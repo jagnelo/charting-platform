@@ -431,20 +431,33 @@ class _RESTProvider:
         return payload
 
     @staticmethod
-    def _rows(payload: Any, *keys: str) -> list[dict[str, Any]]:
-        value = payload
-        if isinstance(payload, dict):
+    def _strict_rows(payload: Any, provider_name: str, *keys: str) -> list[dict[str, Any]]:
+        """Validate a documented row-list response without silent truncation."""
+
+        if isinstance(payload, list):
+            value: Any = payload
+        elif isinstance(payload, dict):
+            missing = object()
+            value = missing
             for key in keys:
-                candidate = payload.get(key)
-                if isinstance(candidate, list):
-                    value = candidate
+                if key in payload:
+                    value = payload[key]
                     break
-            else:
-                # A number of APIs wrap rows under a ``data`` object.
-                value = payload.get("data", payload.get("results", []))
+            if value is missing:
+                expected = ", ".join(keys) or "the documented row list"
+                raise ProviderResponseError(
+                    provider_name, f"provider omitted the expected row container: {expected}"
+                )
+        else:
+            raise ProviderResponseError(provider_name, "provider returned an invalid row-list shape")
         if not isinstance(value, list):
-            return []
-        return [row for row in value if isinstance(row, dict)]
+            expected = ", ".join(keys) or "the documented row list"
+            raise ProviderResponseError(
+                provider_name, f"provider returned an invalid row container: {expected}"
+            )
+        if any(not isinstance(row, dict) for row in value):
+            raise ProviderResponseError(provider_name, "provider returned a non-object row")
+        return value
 
     @staticmethod
     def _bar(
@@ -587,7 +600,7 @@ class TiingoProvider(_RESTProvider):
                 "resampleFreq": resample,
             },
         )
-        rows = self._rows(payload)
+        rows = self._strict_rows(payload, self.name)
         bars = [
             self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
             for row in rows
@@ -610,7 +623,7 @@ class TiingoProvider(_RESTProvider):
                 exchange=str(row.get("exchangeCode") or ""),
                 instrument_type="EQUITY",
             )
-            for row in self._rows(payload)[:limit]
+            for row in self._strict_rows(payload, self.name)[:limit]
             if row.get("ticker")
         ]
 
@@ -704,7 +717,7 @@ class TwelveDataProvider(_RESTProvider):
                 else ""
             )
             timestamp_timezone = request_timezone or exchange_timezone or None
-            for row in self._rows(payload, "values"):
+            for row in self._strict_rows(payload, self.name, "values"):
                 bar = self._bar(
                     row,
                     timeframe,
@@ -724,7 +737,7 @@ class TwelveDataProvider(_RESTProvider):
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("symbol_search", {"symbol": query})
-        rows = self._rows(payload, "data")
+        rows = self._strict_rows(payload, self.name, "data")
         return [
             ProviderSearchResult(
                 symbol=str(row.get("symbol") or "").upper(),
@@ -740,7 +753,9 @@ class TwelveDataProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._rows(self._get("stocks", {"country": "United States"}), "data")
+        rows = self._strict_rows(
+            self._get("stocks", {"country": "United States"}), self.name, "data"
+        )
         filtered: list[dict[str, Any]] = []
         for row in rows:
             kind = str(row.get("type") or row.get("instrument_type") or "EQUITY").upper()
@@ -791,7 +806,9 @@ class TradierProvider(_RESTProvider):
             return []
         wrapped = payload.get(container)
         if isinstance(wrapped, list):
-            return [row for row in wrapped if isinstance(row, dict)]
+            if any(not isinstance(row, dict) for row in wrapped):
+                raise ProviderResponseError("tradier", f"provider returned an invalid {container} row")
+            return wrapped
         if not isinstance(wrapped, dict):
             if wrapped in (None, ""):
                 return []
@@ -799,8 +816,18 @@ class TradierProvider(_RESTProvider):
                 "tradier", f"provider returned an invalid {container} wrapper"
             )
         rows = wrapped.get(row_key)
+        if row_key not in wrapped:
+            if not wrapped:
+                return []
+            raise ProviderResponseError(
+                "tradier", f"provider omitted the documented {container}.{row_key} rows"
+            )
         if isinstance(rows, list):
-            return [row for row in rows if isinstance(row, dict)]
+            if any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(
+                    "tradier", f"provider returned an invalid {container}.{row_key} row"
+                )
+            return rows
         if isinstance(rows, dict):
             return [rows]
         if rows in (None, ""):
@@ -838,7 +865,7 @@ class TradierProvider(_RESTProvider):
         if not rows:
             # Keep compatibility with a flat fixture/provider response while
             # still preferring the documented nested shape above.
-            rows = self._rows(payload, "history")
+            rows = self._strict_rows(payload, self.name, "history")
         return sorted(
             [
                 bar
@@ -863,7 +890,7 @@ class TradierProvider(_RESTProvider):
         payload = self._get("markets/search", {"q": query, "indexes": "false"})
         rows = self._nested_rows(payload, "securities", "security")
         if not rows:
-            rows = self._rows(payload, "securities")
+            rows = self._strict_rows(payload, self.name, "securities")
         return [
             ProviderSearchResult(
                 symbol=str(row.get("symbol") or "").upper(),
@@ -887,13 +914,33 @@ class TradierProvider(_RESTProvider):
                 "contractSize": "true",
             },
         )
-        wrapped = payload.get("expirations") if isinstance(payload, dict) else None
-        values: Any = wrapped.get("date") if isinstance(wrapped, dict) else wrapped
-        if values is None and isinstance(payload, dict):
-            values = payload.get("date")
+        if not isinstance(payload, dict):
+            raise ProviderResponseError("tradier", "provider returned an invalid expirations object")
+        marker = object()
+        wrapped = payload.get("expirations", marker)
+        if wrapped is marker:
+            raise ProviderResponseError("tradier", "provider omitted the expirations wrapper")
+        if isinstance(wrapped, dict):
+            values = wrapped.get("date")
+            if "date" not in wrapped and wrapped:
+                raise ProviderResponseError(
+                    "tradier", "provider omitted the documented expirations.date rows"
+                )
+        elif isinstance(wrapped, list | str | int | float) or wrapped in (None, ""):
+            values = wrapped
+        else:
+            raise ProviderResponseError("tradier", "provider returned an invalid expirations shape")
+        if values in (None, ""):
+            return []
         if not isinstance(values, list):
-            values = [values] if values not in (None, "") else []
-        return sorted({parsed for value in values if (parsed := _option_expiry(value))})
+            values = [values]
+        parsed_values: set[date] = set()
+        for value in values:
+            parsed = _option_expiry(value)
+            if parsed is None:
+                raise ProviderResponseError("tradier", "provider returned an invalid expiration date")
+            parsed_values.add(parsed)
+        return sorted(parsed_values)
 
     def fetch_option_chain(
         self,
@@ -918,7 +965,7 @@ class TradierProvider(_RESTProvider):
         )
         rows = self._nested_rows(payload, "options", "option")
         if not rows:
-            rows = self._rows(payload, "options")
+            rows = self._strict_rows(payload, self.name, "options")
         contracts = [
             contract
             for row in rows
@@ -1083,7 +1130,7 @@ class FinnhubProvider(_RESTProvider):
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("search", {"q": query})
-        rows = self._rows(payload, "result")
+        rows = self._strict_rows(payload, self.name, "result")
         return [
             ProviderSearchResult(
                 symbol=str(row.get("symbol") or "").upper(),
@@ -1096,7 +1143,9 @@ class FinnhubProvider(_RESTProvider):
         ]
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
-        rows = self._rows(self._get("stock/earnings", {"symbol": symbol.upper()}))
+        rows = self._strict_rows(
+            self._get("stock/earnings", {"symbol": symbol.upper()}), self.name
+        )
         fetched_at = datetime.now(UTC)
         events: list[InstrumentEventRecord] = []
         for row in rows:
@@ -1138,7 +1187,9 @@ class FinnhubProvider(_RESTProvider):
             params["from"] = start.isoformat()
         if end is not None:
             params["to"] = end.isoformat()
-        rows = self._rows(self._get("calendar/earnings", params), "earningsCalendar")
+        rows = self._strict_rows(
+            self._get("calendar/earnings", params), self.name, "earningsCalendar"
+        )
         events: list[MarketEventRecord] = []
         for row in rows:
             event_time = _timestamp(row.get("date"))
@@ -1166,7 +1217,9 @@ class FinnhubProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._rows(self._get("stock/symbol", {"exchange": "US"}))
+        rows = self._strict_rows(
+            self._get("stock/symbol", {"exchange": "US"}), self.name
+        )
         filtered: list[dict[str, Any]] = []
         for row in rows:
             kind = str(row.get("type") or "Common Stock").upper()
@@ -1232,7 +1285,7 @@ class MarketstackProvider(_RESTProvider):
                     "offset": offset,
                 },
             )
-            rows = self._rows(payload, "data")
+            rows = self._strict_rows(payload, self.name, "data")
             for row in rows:
                 bar = self._bar(
                     row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id
@@ -1284,7 +1337,7 @@ class MarketstackProvider(_RESTProvider):
                 "marketstack universe discovery requires MARKETSTACK_DISCOVERY_EXCHANGE"
             )
         payload = self._get("tickers", {"exchange": exchange, "limit": 1000, "offset": offset})
-        rows = self._rows(payload, "data")
+        rows = self._strict_rows(payload, self.name, "data")
         quotes = []
         for row in rows:
             symbol = str(row.get("symbol") or row.get("ticker") or "").upper()
@@ -1350,7 +1403,7 @@ class EODHDProvider(_RESTProvider):
         )
         bars = [
             self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in self._rows(payload)
+            for row in self._strict_rows(payload, self.name)
         ]
         return sorted(
             [
@@ -1387,7 +1440,9 @@ class EODHDProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._rows(self._get("exchange-symbol-list/US", {"fmt": "json"}))
+        rows = self._strict_rows(
+            self._get("exchange-symbol-list/US", {"fmt": "json"}), self.name
+        )
         filtered = []
         for row in rows:
             symbol = str(row.get("Code") or row.get("code") or "").upper()
@@ -1444,7 +1499,7 @@ class FMPProvider(_RESTProvider):
         )
         bars = [
             self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in self._rows(payload)
+            for row in self._strict_rows(payload, self.name)
         ]
         return sorted(
             [
@@ -1456,7 +1511,9 @@ class FMPProvider(_RESTProvider):
         )
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        rows = self._rows(self._get("profile", {"symbol": symbol.upper()}))
+        rows = self._strict_rows(
+            self._get("profile", {"symbol": symbol.upper()}), self.name
+        )
         row = rows[0] if rows else None
         if not row:
             return None
@@ -1500,7 +1557,7 @@ class FMPProvider(_RESTProvider):
             params["from"] = start.isoformat()
         if end is not None:
             params["to"] = end.isoformat()
-        rows = self._rows(self._get("earnings-calendar", params))
+        rows = self._strict_rows(self._get("earnings-calendar", params), self.name)
         events: list[MarketEventRecord] = []
         for row in rows:
             event_time = _timestamp(
@@ -1531,7 +1588,7 @@ class FMPProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._rows(self._get("stock-list"))
+        rows = self._strict_rows(self._get("stock-list"), self.name)
         filtered = []
         for row in rows:
             symbol = str(row.get("symbol") or "").upper()

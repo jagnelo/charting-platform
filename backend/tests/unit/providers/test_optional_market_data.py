@@ -659,6 +659,77 @@ def test_tradier_invalid_nested_wrapper_is_typed():
     assert exc_info.value.provider_name == "tradier"
 
 
+def test_tradier_mixed_nested_rows_are_typed():
+    provider = TradierProvider()
+    payload = {"history": {"day": [{"date": "2024-01-02"}, "invalid"]}}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+            )
+    assert exc_info.value.provider_name == "tradier"
+
+
+def test_tradier_invalid_option_expiration_is_typed():
+    provider = TradierProvider()
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"expirations": {"date": ["2024-01-19", "not-a-date"]}},
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.list_option_expirations("AAPL")
+    assert exc_info.value.provider_name == "tradier"
+
+
+def test_optional_documented_row_endpoints_reject_malformed_containers():
+    calls = (
+        ("tiingo", TiingoProvider(), {"data": "invalid"}, "history"),
+        ("twelve_data", TwelveDataProvider(), {"values": "invalid"}, "history"),
+        ("eodhd", EODHDProvider(), {"data": "invalid"}, "history"),
+        ("fmp", FMPProvider(), {"historical": "invalid"}, "history"),
+        (
+            "finnhub",
+            FinnhubProvider(),
+            {"earningsCalendar": "invalid"},
+            "calendar",
+        ),
+        (
+            "marketstack",
+            MarketstackProvider(),
+            {
+                "data": "invalid",
+                "pagination": {"offset": 0, "count": 0, "total": 0},
+            },
+            "discovery",
+        ),
+    )
+    for provider_name, provider, payload, operation in calls:
+        with patch.object(provider, "_get", return_value=payload):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                if operation == "history":
+                    provider.fetch_ohlcv(
+                        "AAPL",
+                        Timeframe.D1,
+                        datetime(2024, 1, 1, tzinfo=UTC),
+                        datetime(2024, 1, 3, tzinfo=UTC),
+                    )
+                elif operation == "calendar":
+                    provider.fetch_market_events(
+                        start=date(2024, 1, 1), end=date(2024, 1, 3)
+                    )
+                else:
+                    with patch(
+                        "app.providers.optional_market_data.settings.MARKETSTACK_DISCOVERY_EXCHANGE",
+                        "XNAS",
+                    ):
+                        provider.discover_universe_page("EQUITY", 0)
+        assert exc_info.value.provider_name == provider_name
+
+
 def test_tradier_parses_option_expirations_and_chain_greeks():
     provider = TradierProvider()
     expiration = date(2024, 1, 19)
