@@ -71,6 +71,7 @@ class InstrumentEventRecord:
     eps_surprise_pct: Decimal | None = None
     dividend_amount: Decimal | None = None
     split_ratio: Decimal | None = None
+    adjustment_factor: Decimal | None = None
     raw_payload: str | None = None
 
 

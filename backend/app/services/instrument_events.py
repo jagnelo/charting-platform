@@ -22,7 +22,9 @@ from app.services.provider_runtime import execute_provider_call
 
 logger = logging.getLogger(__name__)
 
-EVENT_FETCH_VERSION = 2
+# Bump when the persisted provider-event shape gains fields that require a
+# refresh of previously fetched rows (currently, explicit adjustment factors).
+EVENT_FETCH_VERSION = 3
 
 
 async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
@@ -63,6 +65,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
             "eps_surprise_pct": event.eps_surprise_pct,
             "dividend_amount": event.dividend_amount,
             "split_ratio": event.split_ratio,
+            "adjustment_factor": event.adjustment_factor,
             "source_event_key": event.source_event_key,
             "raw_payload": event.raw_payload,
             "fetched_at": event.fetched_at,
@@ -88,6 +91,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
                     "eps_surprise_pct": values.get("eps_surprise_pct"),
                     "dividend_amount": values.get("dividend_amount"),
                     "split_ratio": values.get("split_ratio"),
+                    "adjustment_factor": values.get("adjustment_factor"),
                     "currency": values.get("currency"),
                     "raw_payload": values.get("raw_payload"),
                     "fetched_at": values["fetched_at"],

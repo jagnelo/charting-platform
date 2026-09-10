@@ -21,6 +21,7 @@ def _event(
     source_event_key: str,
     split_ratio: Decimal | None = None,
     dividend_amount: Decimal | None = None,
+    adjustment_factor: Decimal | None = None,
 ) -> InstrumentEvent:
     return InstrumentEvent(
         instrument_id=1,
@@ -33,6 +34,7 @@ def _event(
         fetched_at=event_time,
         split_ratio=split_ratio,
         dividend_amount=dividend_amount,
+        adjustment_factor=adjustment_factor,
     )
 
 
@@ -76,6 +78,24 @@ def test_dividend_event_keeps_adjustment_factors_explicitly_opaque():
     assert snapshot.version is None
     assert snapshot.status == "provider_native_opaque_incomplete_factor_set"
     assert snapshot.event_count == 1
+
+
+def test_provider_supplied_dividend_factor_is_rebuildable():
+    snapshot = build_adjustment_factor_snapshot(
+        [
+            _event(
+                InstrumentEventType.DIVIDEND,
+                datetime(2024, 6, 10, tzinfo=UTC),
+                source_event_key="dividend:2024-06-10",
+                dividend_amount=Decimal("0.25"),
+                adjustment_factor=Decimal("0.9975"),
+            )
+        ]
+    )
+
+    assert snapshot.status == "rebuildable_provider_factors"
+    assert snapshot.event_count == 1
+    assert snapshot.version is not None and snapshot.version.startswith("afv1-")
 
 
 def test_missing_split_ratio_does_not_create_a_rebuildable_version():
@@ -156,6 +176,25 @@ def test_persisted_factor_provenance_does_not_promote_missing_version():
     assert summary.status == "provider_native_opaque_incomplete_factor_set"
 
 
+def test_persisted_provider_dividend_factor_is_rebuildable():
+    summary = summarize_persisted_adjustment_factor_provenance(
+        [
+            AdjustmentFactorObservation(
+                factor_type="dividend",
+                factor=Decimal("0.9975"),
+                factor_kind="provider_supplied",
+                amount=Decimal("0.25"),
+                source_event_key="dividend:2024-06-10",
+                factor_version="afv1-provider-dividend",
+            )
+        ]
+    )
+
+    assert summary.status == "rebuildable_provider_factors"
+    assert summary.version == "afv1-provider-dividend"
+    assert summary.observation_count == 1
+
+
 @pytest.mark.asyncio
 async def test_persist_normalizes_factor_events_and_reuses_the_natural_key(db, instrument):
     source = DataSource(name="factor-observation-provider")
@@ -200,3 +239,36 @@ async def test_persist_normalizes_factor_events_and_reuses_the_natural_key(db, i
     assert rows[0].factor == Decimal("2.000000000000")
     assert rows[0].factor_version.startswith("afv1-")
     assert rows[0].raw_payload == '{"ratio": 2}'
+
+
+@pytest.mark.asyncio
+async def test_persist_stores_provider_supplied_dividend_factor(db, instrument):
+    source = DataSource(name="provider-dividend-factor")
+    db.add(source)
+    db.flush()
+    event_time = datetime(2024, 6, 10, tzinfo=UTC)
+    event = _event(
+        InstrumentEventType.DIVIDEND,
+        event_time,
+        source_event_key="dividend:2024-06-10",
+        dividend_amount=Decimal("0.25"),
+        adjustment_factor=Decimal("0.9975"),
+    )
+    event.instrument_id = instrument.id
+    event.source = source.name
+    event.raw_payload = '{"adjustment_factor": 0.9975, "amount": 0.25}'
+
+    persisted = await persist_adjustment_factor_observations(
+        AsyncSessionAdapter(db),
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        provider_symbol="TEST",
+        events=[event],
+    )
+
+    assert persisted == 1
+    row = db.query(AdjustmentFactorObservation).one()
+    assert row.factor == Decimal("0.997500000000")
+    assert row.factor_kind == "provider_supplied"
+    assert row.amount == Decimal("0.250000000000")
+    assert row.factor_version.startswith("afv1-")

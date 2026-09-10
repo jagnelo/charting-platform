@@ -53,6 +53,7 @@ class InstrumentEvent(Base, TimestampMixin):
     eps_surprise_pct: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     dividend_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     split_ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    adjustment_factor: Mapped[Decimal | None] = mapped_column(Numeric(24, 12), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     source: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown")
@@ -83,7 +84,7 @@ class InstrumentEventFetchState(Base, TimestampMixin):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     earnings_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    fetch_version: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    fetch_version: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
 
     __table_args__ = (
         UniqueConstraint("instrument_id", "source", name="uq_instrument_event_fetch_state_source"),

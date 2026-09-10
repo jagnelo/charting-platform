@@ -1,11 +1,11 @@
 """Deterministic adjustment-factor provenance derived from persisted events.
 
 Provider OHLCV adapters commonly return an adjusted series without exposing the
-event-level factors used to produce it. When a source has persisted complete
-split events, however, those events are enough to identify a reproducible
-split-adjustment input set. This module fingerprints that input set without
-claiming that dividend-adjusted prices can be rebuilt from dividend amounts
-alone.
+event-level factors used to produce it. When a source supplies explicit event
+factors, or a source has persisted complete split events, those inputs are
+enough to identify a reproducible adjustment-input set. This module fingerprints
+that input set without claiming that dividend-adjusted prices can be rebuilt
+from dividend amounts alone.
 """
 
 from __future__ import annotations
@@ -55,15 +55,26 @@ def _decimal_text(value: Decimal | None) -> str | None:
     return format(value.normalize(), "f")
 
 
+def _event_factor(event: InstrumentEvent) -> Decimal | None:
+    """Return only an explicitly provider-supplied or split factor."""
+
+    if event.adjustment_factor is not None:
+        return event.adjustment_factor
+    if event.event_type is InstrumentEventType.SPLIT:
+        return event.split_ratio
+    return None
+
+
 def build_adjustment_factor_snapshot(
     events: Iterable[InstrumentEvent],
 ) -> AdjustmentFactorSnapshot:
-    """Fingerprint a complete split-event set without fabricating factors.
+    """Fingerprint complete factor-event inputs without fabricating factors.
 
-    Split ratios are rebuildable inputs for a split-adjusted series. Dividend
-    amounts are intentionally treated as incomplete: converting them into a
-    price factor requires the contemporaneous reference price and the provider
-    adjustment convention, neither of which this event table guarantees.
+    Split ratios and explicit provider-supplied factors are rebuildable inputs
+    for a split- or dividend-adjusted series. Dividend amounts remain
+    intentionally incomplete: converting them into a price factor requires the
+    contemporaneous reference price and the provider adjustment convention,
+    neither of which this event table guarantees.
     """
 
     relevant = [
@@ -75,10 +86,7 @@ def build_adjustment_factor_snapshot(
         return AdjustmentFactorSnapshot(version=None, status="not_observed", event_count=0)
 
     if any(
-        event.event_type is InstrumentEventType.DIVIDEND
-        or event.split_ratio is None
-        or event.split_ratio <= 0
-        or not event.source_event_key
+        _event_factor(event) is None or _event_factor(event) <= 0 or not event.source_event_key
         for event in relevant
     ):
         return AdjustmentFactorSnapshot(
@@ -98,7 +106,10 @@ def build_adjustment_factor_snapshot(
     payload = [
         {
             "effective_at": _as_utc(event.event_time).isoformat(),
-            "factor": _decimal_text(event.split_ratio),
+            "factor": _decimal_text(_event_factor(event)),
+            "factor_kind": (
+                "provider_supplied" if event.adjustment_factor is not None else "split_ratio"
+            ),
             "source": event.source,
             "source_event_key": event.source_event_key,
         }
@@ -107,7 +118,11 @@ def build_adjustment_factor_snapshot(
     encoded = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
     return AdjustmentFactorSnapshot(
         version=f"afv1-{hashlib.sha256(encoded).hexdigest()}",
-        status="rebuildable_split_factors",
+        status=(
+            "rebuildable_provider_factors"
+            if any(event.adjustment_factor is not None for event in ordered)
+            else "rebuildable_split_factors"
+        ),
         event_count=len(ordered),
     )
 
@@ -117,10 +132,11 @@ def summarize_persisted_adjustment_factor_provenance(
 ) -> PersistedAdjustmentFactorProvenance:
     """Summarize normalized factor rows without inventing missing factors.
 
-    A persisted version is usable only when every split observation is valid
-    and all rows agree on the same version. Dividend amounts remain explicit
-    opaque evidence because they are not sufficient to rebuild a provider's
-    price-adjustment convention.
+    A persisted version is usable only when every relevant observation has a
+    valid factor and all rows agree on the same version. Dividend amounts remain
+    explicit opaque evidence when no provider factor accompanies them because
+    amounts alone are not sufficient to rebuild a provider's price-adjustment
+    convention.
     """
 
     relevant = [
@@ -137,8 +153,7 @@ def summarize_persisted_adjustment_factor_provenance(
         )
 
     if any(
-        observation.factor_type == InstrumentEventType.DIVIDEND.value
-        or observation.factor is None
+        observation.factor is None
         or observation.factor <= 0
         or not observation.source_event_key
         or not observation.factor_version
@@ -173,7 +188,11 @@ def summarize_persisted_adjustment_factor_provenance(
         )
     return PersistedAdjustmentFactorProvenance(
         version=versions[0],
-        status="rebuildable_split_factors",
+        status=(
+            "rebuildable_provider_factors"
+            if any(observation.factor_kind == "provider_supplied" for observation in relevant)
+            else "rebuildable_split_factors"
+        ),
         observation_count=len(relevant),
         distinct_versions=versions,
     )
@@ -225,7 +244,20 @@ async def persist_adjustment_factor_observations(
             "provider_symbol": provider_symbol,
             "factor_type": factor_type,
             "effective_at": effective_at,
-            "factor": event.split_ratio if factor_type == InstrumentEventType.SPLIT.value else None,
+            "factor": (
+                event.adjustment_factor
+                if event.adjustment_factor is not None
+                else event.split_ratio
+                if factor_type == InstrumentEventType.SPLIT.value
+                else None
+            ),
+            "factor_kind": (
+                "provider_supplied"
+                if event.adjustment_factor is not None
+                else "split_ratio"
+                if factor_type == InstrumentEventType.SPLIT.value
+                else None
+            ),
             "amount": event.dividend_amount
             if factor_type == InstrumentEventType.DIVIDEND.value
             else None,

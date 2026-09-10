@@ -32,6 +32,7 @@ class AdjustmentFactorObservation(Base, TimestampMixin):
     factor_type: Mapped[str] = mapped_column(String(24), nullable=False)
     effective_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     factor: Mapped[Decimal | None] = mapped_column(Numeric(24, 12), nullable=True)
+    factor_kind: Mapped[str | None] = mapped_column(String(24), nullable=True)
     amount: Mapped[Decimal | None] = mapped_column(Numeric(24, 12), nullable=True)
     source_event_key: Mapped[str] = mapped_column(String(240), nullable=False)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
