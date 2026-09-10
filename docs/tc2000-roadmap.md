@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Market-data range boundaries normalize at the public service edge
+
+At product tip `36c42c43`, all public market-data range and pagination
+boundaries now normalize naive and offset-aware timestamps to UTC before
+provider fetches, cache-coverage checks, and latest-window calculations. This
+keeps coarse-range and historical page-before reads on the same canonical
+timeline as persisted bars and prevents offset-bearing API cutoffs from
+drifting across provider/cache decisions.
+
+Focused market-data regressions passed `22/22`; the complete backend unit suite
+passed `1,443/1,443` with `68%` total coverage; Ruff, formatting, and diff
+checks passed. The valid focused reproduction of the earlier F8r Python
+Library browser failure passed `1/1`; the exact branch-scoped Docker gate then
+passed all functional coverage (`165` passed, `107` documented skips across
+`272`) and all non-visual stages, including backend integration (`387/387`,
+`81.38%` combined coverage), frontend Vitest (`991/991`) and build. Visual
+parity completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125); clean branch-scoped teardown removed the stack and four
+images. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+This closes the public market-data range-boundary timestamp seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
 
 At product tip `2f07b17f`, the shared market-data timestamp helper now

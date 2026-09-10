@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-10 — Market-data range boundaries normalize at the public service edge
+
+- [x] Normalize public market-data range and pagination boundaries to UTC
+      before provider fetches, cache-coverage checks, and latest-window
+      calculations.
+- [x] Focused market-data regression coverage passed `22/22`; the full backend
+      unit suite passed `1,443/1,443` at `68%`; Ruff, formatting, and diff
+      checks passed. The earlier F8r Python Library browser failure reproduced
+      validly at `1/1` and passed.
+- [x] The exact gate passed all non-visual stages, backend integration
+      (`387/387` with `81.38%` combined coverage), frontend Vitest (`991/991`)
+      and build, and functional Playwright (`165` passed, `107` documented
+      skips across `272`); visual parity was `98/104` with exactly the six
+      protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
 
 - [x] Canonicalize naive and offset-aware market-data timestamps to UTC before

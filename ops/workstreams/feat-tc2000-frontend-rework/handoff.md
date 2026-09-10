@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Market-data range boundaries normalize at the public service edge
+
+Product tip `36c42c430e0336966ffc93b983f6d24bb4a52d53` closes the public
+market-data range-boundary timestamp seam. Public OHLCV range and page-before
+inputs, cache-coverage comparisons, provider fetch windows, and latest-window
+calculations now normalize naive and offset-aware values to UTC before making
+decisions, keeping provider/cache behavior on the same timeline as persisted
+bars.
+
+Focused market-data regressions passed `22/22`; the full backend unit suite
+passed `1,443/1,443` at `68%`, with Ruff, formatting, and diff checks clean.
+The earlier narrow Python Library browser failure was not deterministic: the
+valid branch-assigned `STACK_URL` reproduction passed `1/1`. The exact
+Docker-backed gate passed all functional coverage (`165` passed, `107`
+documented skips across `272`) and all non-visual stages, including backend
+integration (`387/387`, `81.38%` combined coverage), frontend Vitest
+(`991/991`) and build. Visual parity remains `98/104` with exactly the six
+established protected diffs (two watchlist-column-editor-open and four
+workspace-floating states); clean scoped teardown removed the stack and four
+images. No baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+The branch remains implementation-active. Full provider/family history
+breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, dense-data evidence, and R2-R7 remain open. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
 
 Product tip `2f07b17fffd09d1942564b47ef9166461386db97` closes the shared
