@@ -24,6 +24,7 @@ from app.providers.errors import ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
+from app.providers.ibkr import IBKRProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
 from app.providers.openfigi import OpenFigiProvider
@@ -461,3 +462,27 @@ def test_finnhub_credentialed_company_profile():
         "finnhub",
     )
     assert all(event.effective_date is not None for event in calendar_events)
+
+
+def test_ibkr_read_only_gateway_profile_history_and_snapshot():
+    """Exercise the documented gateway session, history, and snapshot paths."""
+
+    _require("IBKR_READ_ONLY_URL", "IBKR_READ_ONLY_SESSION_COOKIE")
+    provider = IBKRProvider()
+    profile, _ = _observed_read(
+        lambda: provider.get_instrument_profile("AAPL"), "ibkr"
+    )
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.listings and profile.listings[0].extra_data.get("conid")
+    start = datetime.now(UTC) - timedelta(days=5)
+    bars, _ = _observed_read(
+        lambda: provider.fetch_ohlcv(
+            "AAPL", Timeframe.D1, start, datetime.now(UTC), adjusted=False
+        ),
+        "ibkr",
+    )
+    assert bars and bars[-1].close > 0
+    price, measurement = _observed_read(lambda: provider.get_current_price("AAPL"), "ibkr")
+    assert price is not None and price > 0
+    assert measurement.http_requests >= 2

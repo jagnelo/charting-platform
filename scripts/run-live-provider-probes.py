@@ -49,6 +49,7 @@ CREDENTIALS = {
     "fmp": ("FMP_API_KEY",),
     "tradier": ("TRADIER_API_KEY",),
     "marketdata_app": ("MARKETDATA_APP_API_KEY",),
+    "ibkr": ("IBKR_READ_ONLY_URL", "IBKR_READ_ONLY_SESSION_COOKIE"),
 }
 
 BYTE_BOUND_OPERATIONS = {

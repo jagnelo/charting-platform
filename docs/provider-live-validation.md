@@ -266,8 +266,12 @@ until the deployment supplies the explicit reviewed controls
 `FRED_REVIEWED_LIMIT_SCOPE`, `FRED_REVIEWED_REQUESTS_PER_MINUTE` (1..120), and
 `FRED_SERIES_TERMS_REVIEWED=true`; these controls make the operator's
 conservative decision observable without pretending the provider's adjustable
-scope is fixed. Nasdaq Trader's polling allowance remains unpublished. IBKR remains a
-descriptor without an authenticated account adapter.
+scope is fixed. Nasdaq Trader's polling allowance remains unpublished. IBKR
+now has a concrete read-only Client Portal Gateway adapter for security search,
+raw historical bars, and latest-price snapshots. The gateway login remains
+interactive and session-bound; no options/futures capability is claimed, and
+raw bars are never labeled as adjusted. Live evidence still requires an
+operator-owned `IBKR_READ_ONLY_URL` and `IBKR_READ_ONLY_SESSION_COOKIE`.
 
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood

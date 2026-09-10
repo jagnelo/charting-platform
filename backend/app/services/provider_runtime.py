@@ -296,10 +296,10 @@ def _dimension_costs_for_operation(
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
         unit = str(dimension.get("unit") or "").strip().lower()
-        if unit in {"concurrent_requests", "concurrency"}:
+        raw_map = explicit.get(name) if isinstance(explicit, dict) else None
+        if unit in {"concurrent_requests", "concurrency"} and raw_map is None:
             result[name] = 1
             continue
-        raw_map = explicit.get(name) if isinstance(explicit, dict) else None
         if raw_map is not None:
             if not isinstance(raw_map, dict):
                 raise ProviderQuotaUnknownError(
@@ -307,19 +307,16 @@ def _dimension_costs_for_operation(
                 )
             if not raw_map:
                 # An explicitly empty map means that the dimension does not
-                # apply to this operation only for ordinary request-like
-                # dimensions (for example FINRA's async budget on a sync POST).
-                if unit in _DIMENSION_RATE_UNITS:
-                    result[name] = 0
-                    continue
-                if contract.get("dimension_costs_required"):
-                    raise ProviderQuotaUnknownError(
-                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
-                    )
+                # apply to this operation (for example IBKR's historical
+                # concurrency budget on a metadata lookup, or FINRA's async
+                # download budget on a synchronous POST). Never infer a unit
+                # for a dimension the reviewed contract explicitly excludes.
+                result[name] = 0
+                continue
             else:
                 raw_value = raw_map.get(family, raw_map.get(operation))
                 if isinstance(raw_value, dict):
-                    if not raw_value and unit in _DIMENSION_RATE_UNITS:
+                    if not raw_value:
                         result[name] = 0
                         continue
                     raise ProviderQuotaUnknownError(
@@ -332,6 +329,12 @@ def _dimension_costs_for_operation(
                             f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
                         )
                     result[name] = parsed
+                    continue
+                if unit in {"concurrent_requests", "concurrency"}:
+                    # Concurrency is a release-only unit and always reserves
+                    # one in-flight slot per invocation, independent of a
+                    # multi-request operation's ordinary usage cost.
+                    result[name] = 1
                     continue
                 if contract.get("dimension_costs_required") and unit not in _DIMENSION_RATE_UNITS:
                     raise ProviderQuotaUnknownError(

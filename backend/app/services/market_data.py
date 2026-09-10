@@ -48,6 +48,11 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
+from app.providers.ibkr import (
+    estimate_ibkr_current_price_request_count,
+    estimate_ibkr_latest_ohlcv_request_count,
+    estimate_ibkr_ohlcv_request_count,
+)
 from app.providers.optional_market_data import (
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
@@ -764,6 +769,7 @@ async def _fetch_provider(
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
     twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
+    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -771,6 +777,7 @@ async def _fetch_provider(
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
@@ -1088,6 +1095,7 @@ async def _fetch_provider_latest(
     kraken_cost = estimate_kraken_latest_ohlcv_request_count(timeframe, limit)
     marketstack_cost = estimate_marketstack_latest_ohlcv_request_count(timeframe, limit)
     twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
+    ibkr_cost = estimate_ibkr_latest_ohlcv_request_count(timeframe, limit)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -1095,6 +1103,7 @@ async def _fetch_provider_latest(
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
@@ -1148,6 +1157,11 @@ async def get_current_price_async(
         ProviderCapability.LATEST_PRICE,
         "get_current_price",
         instrument_id=instrument.id,
+        operation_cost_overrides={
+            "ibkr": estimate_ibkr_current_price_request_count(
+                provider_symbol_for_instrument(instrument, "ibkr")
+            )
+        },
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         invoke=lambda provider, _provider_symbol: provider.get_current_price(
             provider_symbol_for_instrument(instrument, provider.name)

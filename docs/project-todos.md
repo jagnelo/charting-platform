@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-10 — IBKR read-only gateway adapter
+
+- [x] Replace the descriptor-only IBKR market-data entry with a concrete,
+      documentation-faithful read-only Client Portal Gateway adapter covering
+      exact-symbol search/profile, raw OHLCV history with bounded cursor paging,
+      and account-context/latest-price snapshots. The adapter requires an
+      operator-created gateway session cookie, keeps IBKR `conid` values in
+      provider listing metadata rather than canonical identity, rejects
+      adjusted-history requests it cannot prove, and preserves typed pacing,
+      malformed-response, and redacted-cookie failures.
+- [x] Wire IBKR's URL/session configuration through local/RPi Compose, GitHub
+      live validation, the environment examples, capability routing, dynamic
+      history-page usage costs, and the live manifest. Fixture coverage passes;
+      live evidence remains an explicit preflight until a gateway URL and
+      interactive session cookie are supplied.
+- [ ] Keep IBKR options/futures-specific surfaces and automated gateway login
+      out of routing until separate entitlements, adapters, and live evidence
+      are implemented.
+
 ### 2026-09-10 — IBKR historical pacing contract correction
 
 - [x] Reconcile the descriptor-only IBKR quota record with the current official

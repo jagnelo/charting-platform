@@ -43,6 +43,7 @@ from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
+from app.providers.ibkr import IBKRProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
 from app.providers.openfigi import OpenFigiProvider
@@ -96,6 +97,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "fmp": FMPProvider(),
     "tradier": TradierProvider(),
     "marketdata_app": MarketDataAppProvider(),
+    "ibkr": IBKRProvider(),
     "xstocks": XStocksProvider(),
     "robinhood_tokens": RobinhoodTokenProvider(),
     "bybit_xstocks": BybitXStocksProvider(),
@@ -248,7 +250,9 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         "kraken",
     }:
         capabilities.append("crypto_history")
-    if "price_history" in capabilities and provider_name in {"yfinance", "ibkr"}:
+    if "price_history" in capabilities and (
+        provider_name == "yfinance" or bool(getattr(provider, "supports_futures_history", False))
+    ):
         capabilities.append("futures_history")
     if "option_chain" in capabilities:
         capabilities.append("options_current")
@@ -431,6 +435,7 @@ _AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
     "fmp": ("FMP_API_KEY",),
     "tradier": ("TRADIER_API_KEY",),
     "marketdata_app": ("MARKETDATA_APP_API_KEY",),
+    "ibkr": ("IBKR_READ_ONLY_SESSION_COOKIE",),
     "finra": ("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"),
 }
 
@@ -443,6 +448,7 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
     # A Marketstack ticker read must be explicitly scoped to a provider MIC.
     # Without this, a single-venue default could be mistaken for US coverage.
     "marketstack": ("MARKETSTACK_API_KEY", "MARKETSTACK_DISCOVERY_EXCHANGE"),
+    "ibkr": ("IBKR_READ_ONLY_URL",),
 }
 
 # These controls do not authenticate a provider. They bound provider-specific
@@ -589,7 +595,9 @@ def provider_is_configured(name: str) -> bool:
 
     configured = _CONFIGURATION_SETTINGS.get(name)
     if configured is not None:
-        return all(bool(getattr(settings, key, "")) for key in configured)
+        return all(bool(getattr(settings, key, "")) for key in configured) and all(
+            bool(getattr(settings, key, "")) for key in _AUTH_SETTINGS.get(name, ())
+        )
 
     required = _AUTH_SETTINGS.get(name)
     if required is None:

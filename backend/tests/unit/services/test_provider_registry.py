@@ -133,6 +133,20 @@ class TestProviderRegistry:
         assert provider_configuration_required("finra_otc_directory") is True
         assert provider_configuration_required("marketstack") is True
 
+    def test_ibkr_gateway_requires_url_and_session_cookie(self, monkeypatch):
+        monkeypatch.setattr(settings, "IBKR_READ_ONLY_URL", "")
+        monkeypatch.setattr(settings, "IBKR_READ_ONLY_SESSION_COOKIE", "")
+        assert provider_configuration_required("ibkr") is True
+        assert provider_required_settings("ibkr") == (
+            "IBKR_READ_ONLY_URL",
+            "IBKR_READ_ONLY_SESSION_COOKIE",
+        )
+        assert provider_is_configured("ibkr") is False
+        monkeypatch.setattr(settings, "IBKR_READ_ONLY_URL", "https://gateway.test")
+        assert provider_is_configured("ibkr") is False
+        monkeypatch.setattr(settings, "IBKR_READ_ONLY_SESSION_COOKIE", "session")
+        assert provider_is_configured("ibkr") is True
+
     def test_otc_directory_configuration_is_fail_closed(self, monkeypatch):
         monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
         assert provider_is_configured("finra_otc_directory") is False

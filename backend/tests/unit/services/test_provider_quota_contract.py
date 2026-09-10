@@ -863,6 +863,9 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
         ibkr["endpoint_constraints"]["iserver/marketdata/history"]["max_response_points"]
         == 1000
     )
+    usage = settings.PROVIDER_USAGE_PROFILE_SEEDS["ibkr"]
+    assert usage["operation_costs"]["get_current_price"] == 2
+    assert usage["dimension_costs"]["historical_requests_per_minute"]["get_current_price"] == {}
 
 
 def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():

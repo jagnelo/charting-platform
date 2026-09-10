@@ -849,6 +849,36 @@ class Settings(BaseSettings):
                 "fetch_market_events": 1,
             },
         },
+        # IBKR's account-context snapshot is two HTTP requests (accounts
+        # initialization plus snapshot); history/search/profile are one page
+        # per adapter operation before the range-aware service override is
+        # applied. Historical page counts are never guessed here.
+        "ibkr": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 2,
+            },
+            "dimension_costs": {
+                # These endpoint-specific dimensions apply only to history.
+                # Empty maps are explicit zero-cost exclusions; the runtime
+                # supplies the dynamic page cost for history operations.
+                "historical_requests_per_minute": {
+                    "search_instruments": {},
+                    "get_instrument_profile": {},
+                    "get_current_price": {},
+                },
+                "historical_requests_concurrent": {
+                    "search_instruments": {},
+                    "get_instrument_profile": {},
+                    "get_current_price": {},
+                },
+            },
+        },
         "marketdata_app": {
             "mode": "credit_count",
             "unit_label": "credits",
@@ -1354,6 +1384,15 @@ class Settings(BaseSettings):
             "venue_coverage": "Ondo Global Markets tokenized US stocks and ETFs",
             "freshness_semantics": "Provider-dependent",
         },
+        "ibkr": {
+            "configured_plan": "account-session",
+            "is_free": False,
+            "authentication_required": True,
+            "usage_terms": "IBKR account, market-data entitlements, and Client Portal Gateway session required.",
+            "history_depth": "Up to the documented 15-year history-period parameter, subject to entitlements and endpoint bar limits.",
+            "venue_coverage": "Account-entitled stocks, ETFs, options, futures, forex, and crypto instruments; adapter currently routes only generic metadata/history/latest price.",
+            "freshness_semantics": "Gateway/session and exchange-entitlement dependent; no real-time guarantee.",
+        },
         "dinari": {
             "configured_plan": "partner-access-required",
             "is_free": False,
@@ -1404,6 +1443,7 @@ class Settings(BaseSettings):
         "ondo_global_markets": "not_run",
         "dinari": "not_run",
         "alpaca_itn": "not_run",
+        "ibkr": "not_run",
         "yfinance": "not_required",
     }
     OPENFIGI_API_KEY: str = ""
@@ -1431,6 +1471,13 @@ class Settings(BaseSettings):
     MARKETDATA_APP_API_KEY: str = ""
     XSTOCKS_API_KEY: str = ""
     IBKR_READ_ONLY_URL: str = ""
+    IBKR_READ_ONLY_SESSION_COOKIE: str = ""
+    IBKR_READ_ONLY_VERIFY_TLS: bool = True
+    IBKR_READ_ONLY_TIMEOUT_SECONDS: float = 30.0
+    # Optional symbol -> IBKR conid map.  It avoids an ambiguous security
+    # search when a ticker is listed in multiple venues.  Values are provider
+    # identifiers, not canonical platform identity keys.
+    IBKR_CONID_MAP: dict[str, int] = {}
     COINBASE_API_KEY: str = ""
     KRAKEN_API_KEY: str = ""
     # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe
@@ -1535,6 +1582,7 @@ class Settings(BaseSettings):
         "TIINGO_OPERATION_BYTE_BOUNDS",
         "FMP_OPERATION_BYTE_BOUNDS",
         "FINRA_OTC_OPERATION_COSTS",
+        "IBKR_CONID_MAP",
         mode="before",
     )
     @classmethod
