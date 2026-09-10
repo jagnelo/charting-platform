@@ -24,7 +24,11 @@ _BarLike = TypeVar("_BarLike", bound=OHLCVBar)
 
 
 async def _canonical_d1_factor_version(
-    db: AsyncSession, instrument_id: int, *, adjusted: bool
+    db: AsyncSession,
+    instrument_id: int,
+    *,
+    adjusted: bool,
+    end: datetime | None = None,
 ) -> str | None:
     """Return one verified D1 factor version suitable for derived lineage.
 
@@ -36,21 +40,20 @@ async def _canonical_d1_factor_version(
 
     if not adjusted:
         return None
-    source_ids = set(
-        (
-            await db.execute(
-                select(OHLCVBar.data_source_id).where(
-                    OHLCVBar.instrument_id == instrument_id,
-                    OHLCVBar.timeframe == Timeframe.D1,
-                    OHLCVBar.is_adjusted.is_(True),
-                    OHLCVBar.is_derived.is_(False),
-                    OHLCVBar.data_source_id.is_not(None),
-                )
-            )
-        )
-        .scalars()
-        .all()
+    d1_source_statement = select(OHLCVBar.data_source_id).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == Timeframe.D1,
+        OHLCVBar.is_adjusted.is_(True),
+        OHLCVBar.is_derived.is_(False),
+        OHLCVBar.data_source_id.is_not(None),
     )
+    if end is not None:
+        normalized_end = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
+        normalized_end = normalized_end.astimezone(UTC)
+        d1_source_statement = d1_source_statement.where(OHLCVBar.ts <= normalized_end)
+    else:
+        normalized_end = None
+    source_ids = set((await db.execute(d1_source_statement)).scalars().all())
     versions: set[str] = set()
     if source_ids:
         states = (
@@ -71,6 +74,18 @@ async def _canonical_d1_factor_version(
             return None
 
         for state in states:
+            if normalized_end is not None and (
+                state.coverage_end is None
+                or (
+                    state.coverage_end
+                    if state.coverage_end.tzinfo is not None
+                    else state.coverage_end.replace(tzinfo=UTC)
+                ).astimezone(UTC)
+                > normalized_end
+            ):
+                # A provider state whose factor evidence extends beyond a
+                # historical cutoff cannot safely certify the earlier slice.
+                return None
             provenance = (state.extra_data or {}).get("adjustment_provenance")
             if not isinstance(provenance, dict):
                 return None
@@ -82,21 +97,16 @@ async def _canonical_d1_factor_version(
                 return None
             versions.add(version)
 
-    local_rows = (
-        (
-            await db.execute(
-                select(OHLCVBar.id).where(
-                    OHLCVBar.instrument_id == instrument_id,
-                    OHLCVBar.timeframe == Timeframe.D1,
-                    OHLCVBar.is_adjusted.is_(True),
-                    OHLCVBar.is_derived.is_(True),
-                    OHLCVBar.derivation_method == "local_split_ratio",
-                )
-            )
-        )
-        .scalars()
-        .all()
+    local_row_statement = select(OHLCVBar.id).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == Timeframe.D1,
+        OHLCVBar.is_adjusted.is_(True),
+        OHLCVBar.is_derived.is_(True),
+        OHLCVBar.derivation_method == "local_split_ratio",
     )
+    if normalized_end is not None:
+        local_row_statement = local_row_statement.where(OHLCVBar.ts <= normalized_end)
+    local_rows = (await db.execute(local_row_statement)).scalars().all()
     if local_rows:
         local_state = (
             await db.execute(
@@ -109,6 +119,19 @@ async def _canonical_d1_factor_version(
             )
         ).scalar_one_or_none()
         if local_state is None:
+            return None
+        if normalized_end is not None and (
+            local_state.coverage_end is None
+            or (
+                local_state.coverage_end
+                if local_state.coverage_end.tzinfo is not None
+                else local_state.coverage_end.replace(tzinfo=UTC)
+            ).astimezone(UTC)
+            > normalized_end
+        ):
+            # The local factor state may include a later split event than the
+            # dated view.  Without a historical state version, keep lineage
+            # explicitly unversioned rather than claiming future evidence.
             return None
         provenance = (local_state.extra_data or {}).get("adjustment_provenance")
         if not isinstance(provenance, dict):
@@ -188,33 +211,43 @@ def aggregate_d1_bars(bars: Iterable[_BarLike], timeframe: Timeframe) -> list[di
 
 
 async def materialize_derived_timeframes(
-    db: AsyncSession, instrument_id: int, *, adjusted: bool = True
+    db: AsyncSession,
+    instrument_id: int,
+    *,
+    adjusted: bool = True,
+    end: datetime | None = None,
 ) -> dict[str, int]:
     """Rebuild derived W1/MN rows from the instrument's persisted D1 rows.
 
     Existing derived rows are replaced atomically.  Provider rows are retained
     and suppress a derived row for their calendar period, so later provider
     enrichment can safely take precedence without changing the API contract.
+
+    When ``end`` is supplied, only D1 evidence through that inclusive UTC bound
+    is rebuilt.  Derived rows after the bound remain untouched; this is required
+    for dated history jobs, where a newer local cache must not be rewritten as if
+    it were part of the historical point-in-time view.
     """
 
-    d1_bars = (
-        (
-            await db.execute(
-                select(OHLCVBar)
-                .where(
-                    OHLCVBar.instrument_id == instrument_id,
-                    OHLCVBar.timeframe == Timeframe.D1,
-                    OHLCVBar.is_adjusted.is_(adjusted),
-                )
-                .order_by(OHLCVBar.ts)
-            )
-        )
-        .scalars()
-        .all()
+    normalized_end = None
+    if end is not None:
+        normalized_end = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
+        normalized_end = normalized_end.astimezone(UTC)
+
+    d1_statement = select(OHLCVBar).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == Timeframe.D1,
+        OHLCVBar.is_adjusted.is_(adjusted),
     )
+    if normalized_end is not None:
+        d1_statement = d1_statement.where(OHLCVBar.ts <= normalized_end)
+    d1_bars = (await db.execute(d1_statement.order_by(OHLCVBar.ts))).scalars().all()
 
     canonical_factor_version = await _canonical_d1_factor_version(
-        db, instrument_id, adjusted=adjusted
+        db,
+        instrument_id,
+        adjusted=adjusted,
+        end=normalized_end,
     )
     result: dict[str, int] = {}
     for timeframe in (Timeframe.W1, Timeframe.MN):
@@ -234,14 +267,15 @@ async def materialize_derived_timeframes(
         provider_periods = {
             _period_key(bar.ts, timeframe) for bar in existing if not bar.is_derived
         }
-        await db.execute(
-            delete(OHLCVBar).where(
-                OHLCVBar.instrument_id == instrument_id,
-                OHLCVBar.timeframe == timeframe,
-                OHLCVBar.is_adjusted.is_(adjusted),
-                OHLCVBar.is_derived.is_(True),
-            )
+        delete_statement = delete(OHLCVBar).where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.is_derived.is_(True),
         )
+        if normalized_end is not None:
+            delete_statement = delete_statement.where(OHLCVBar.ts <= normalized_end)
+        await db.execute(delete_statement.execution_options(synchronize_session=False))
         payloads = [
             payload
             for payload in aggregate_d1_bars(d1_bars, timeframe)
@@ -287,6 +321,7 @@ async def materialize_derived_timeframes(
                 )
             )
         ).scalar_one_or_none()
+        state_was_new = state is None
         if state is None:
             state = InstrumentDatasetState(
                 instrument_id=instrument_id,
@@ -296,27 +331,55 @@ async def materialize_derived_timeframes(
                 version=1,
             )
             db.add(state)
-        else:
-            state.version = max(1, state.version) + 1
-        state.status = DatasetStatus.FRESH if payloads else DatasetStatus.PENDING
-        state.observed_at = now
-        state.fetched_at = now
-        state.coverage_start = payloads[0]["ts"] if payloads else None
-        state.coverage_end = payloads[-1]["ts"] if payloads else None
-        state.extra_data = {
-            "source_timeframe": Timeframe.D1.value,
-            "derivation_method": DERIVATION_METHOD,
-            "adjusted": adjusted,
-            "derived_bar_count": len(payloads),
-            "provider_periods_excluded": len(provider_periods),
-            "adjustment_provenance": {
-                "mode": "split_adjusted" if adjusted else "raw",
-                "source_kind": "derived_from_canonical_d1",
-                "factor_status": "inherited_from_canonical_d1",
-                "factor_version": canonical_factor_version,
-                "contract_version": 1,
-            },
-        }
+        derived_rows = (
+            (
+                await db.execute(
+                    select(OHLCVBar)
+                    .where(
+                        OHLCVBar.instrument_id == instrument_id,
+                        OHLCVBar.timeframe == timeframe,
+                        OHLCVBar.is_adjusted.is_(adjusted),
+                        OHLCVBar.is_derived.is_(True),
+                    )
+                    .order_by(OHLCVBar.ts)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        preserve_existing_state = (
+            not state_was_new
+            and normalized_end is not None
+            and any(
+                (row.ts if row.ts.tzinfo is not None else row.ts.replace(tzinfo=UTC)).astimezone(
+                    UTC
+                )
+                > normalized_end
+                for row in derived_rows
+            )
+        )
+        if not preserve_existing_state:
+            if not state_was_new:
+                state.version = max(1, state.version) + 1
+            state.status = DatasetStatus.FRESH if derived_rows else DatasetStatus.PENDING
+            state.observed_at = now
+            state.fetched_at = now
+            state.coverage_start = derived_rows[0].ts if derived_rows else None
+            state.coverage_end = derived_rows[-1].ts if derived_rows else None
+            state.extra_data = {
+                "source_timeframe": Timeframe.D1.value,
+                "derivation_method": DERIVATION_METHOD,
+                "adjusted": adjusted,
+                "derived_bar_count": len(derived_rows),
+                "provider_periods_excluded": len(provider_periods),
+                "adjustment_provenance": {
+                    "mode": "split_adjusted" if adjusted else "raw",
+                    "source_kind": "derived_from_canonical_d1",
+                    "factor_status": "inherited_from_canonical_d1",
+                    "factor_version": canonical_factor_version,
+                    "contract_version": 1,
+                },
+            }
         result[timeframe.value] = len(payloads)
     await db.flush()
     return result

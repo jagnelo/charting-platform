@@ -276,3 +276,97 @@ async def test_materialize_derived_timeframes_inherits_local_split_factor_versio
         "factor_version": "afv1-local-split",
         "contract_version": 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_materialize_derived_timeframes_historical_end_preserves_newer_cache(db, instrument):
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2025, 2, 3, tzinfo=UTC),
+            open=Decimal("11"),
+            high=Decimal("14"),
+            low=Decimal("10"),
+            close=Decimal("13"),
+            volume=Decimal("100"),
+            is_adjusted=True,
+        )
+    )
+    db.flush()
+
+    # Seed the normal latest cache first, then rebuild a dated view.  The
+    # historical pass must refresh only the January period and retain the
+    # newer February derived rows for later unbounded reads.
+    await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id)
+    state_before = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    state_version_before = state_before.version
+    state_coverage_end_before = state_before.coverage_end
+    result = await materialize_derived_timeframes(
+        AsyncSessionAdapter(db),
+        instrument.id,
+        end=datetime(2025, 1, 31, 23, 59, tzinfo=UTC),
+    )
+
+    assert result == {"W1": 1, "MN": 1}
+    weekly = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.W1,
+            OHLCVBar.is_derived.is_(True),
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert [row.ts.replace(tzinfo=UTC) for row in weekly] == [
+        datetime(2025, 1, 2, tzinfo=UTC),
+        datetime(2025, 2, 3, tzinfo=UTC),
+    ]
+    state_after = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert state_after.version == state_version_before
+    assert state_after.coverage_end == state_coverage_end_before
+    monthly = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.MN,
+            OHLCVBar.is_derived.is_(True),
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert [row.ts.replace(tzinfo=UTC) for row in monthly] == [
+        datetime(2025, 1, 2, tzinfo=UTC),
+        datetime(2025, 2, 3, tzinfo=UTC),
+    ]

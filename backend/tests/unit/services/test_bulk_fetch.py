@@ -103,6 +103,42 @@ async def test_bulk_fetch_custom_order_attempts_intraday_before_coarse_request(m
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_passes_historical_end_to_derived_materializer(monkeypatch):
+    materializer_ends = []
+
+    class Session:
+        async def commit(self):
+            return None
+
+        async def execute(self, *_args, **_kwargs):
+            return None
+
+    async def fetch_one(*, timeframe, **_kwargs):
+        return 1 if timeframe == Timeframe.D1 else 0
+
+    async def materialize(_db, _instrument_id, *, adjusted, end):
+        materializer_ends.append((adjusted, end))
+        return {"W1": 0, "MN": 0}
+
+    async def no_sleep(_seconds):
+        return None
+
+    end = datetime(2024, 1, 2, tzinfo=UTC)
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    monkeypatch.setattr(bulk_fetch, "materialize_derived_timeframes", materialize)
+    monkeypatch.setattr(bulk_fetch.asyncio, "sleep", no_sleep)
+
+    await bulk_fetch.bulk_fetch_instrument(
+        Session(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.D1],
+        end=end,
+    )
+
+    assert materializer_ends == [(True, end)]
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_treats_empty_provider_result_as_chain_failure(monkeypatch):
     calls = []
 

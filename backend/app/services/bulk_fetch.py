@@ -165,7 +165,15 @@ async def bulk_fetch_instrument(
     if hasattr(db, "execute") and any(
         tf in timeframes for tf in (Timeframe.D1, Timeframe.W1, Timeframe.MN)
     ):
-        derived = await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+        # A dated history job must not let newer persisted D1 bars leak into
+        # the coarse view it is rebuilding.  The unbounded path retains the
+        # normal latest-cache behavior.
+        derived = await materialize_derived_timeframes(
+            db,
+            instrument.id,
+            adjusted=adjusted,
+            end=fetch_end if end is not None else None,
+        )
         summary["derived"] = derived
         await db.commit()
 
