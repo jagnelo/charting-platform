@@ -1314,6 +1314,53 @@ class TestFREDOHLCVParsing:
                 )
         assert exc_info.value.provider_name == "fred"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"observations": "not-an-array"},
+            {"observations": [{"date": "2024-01-02", "value": "4.5"}, "not-a-row"]},
+            {"observations": [{"date": "2024-01-02", "value": "NaN"}]},
+            {"observations": [{"date": "not-a-date", "value": "4.5"}]},
+        ],
+    )
+    def test_malformed_observations_are_typed(self, payload):
+        provider = FREDProvider()
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            configured.FRED_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="FRED"):
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 10, tzinfo=UTC),
+                )
+
+    def test_non_rate_limit_http_failure_is_typed_instead_of_empty_history(self):
+        provider = FREDProvider()
+        response = httpx.Response(
+            500,
+            request=httpx.Request("GET", "https://api.stlouisfed.org/fred/series/observations"),
+        )
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            configured.FRED_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 10, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "fred"
+
 
 # ── CoinGecko ─────────────────────────────────────────────────────────────────
 

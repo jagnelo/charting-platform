@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
+from math import isfinite
 
 import httpx
 
@@ -164,29 +165,29 @@ class FREDProvider:
             r.raise_for_status()
             payload = r.json()
             raise_for_provider_error_envelope("fred", payload, r.status_code)
-            observations = payload.get("observations", [])
+            observations = _observations(payload, "history")
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
-            logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
-            return []
+            raise ProviderResponseError("fred", f"FRED request failed with HTTP {exc.response.status_code}") from exc
         except (ProviderRateLimitError, ProviderResponseError):
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError("fred", str(exc)) from exc
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
-        except Exception as exc:
-            logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
-            return []
 
         bars: list[OHLCVBar] = []
         for obs in observations:
-            raw_val = obs.get("value", ".")
-            if raw_val == "." or not raw_val:
+            if "value" not in obs or "date" not in obs:
+                raise ProviderResponseError("fred", "FRED returned a malformed observation row")
+            raw_val = obs["value"]
+            if raw_val == ".":
                 continue  # FRED uses "." for missing/unreleased data
             try:
                 ts = datetime.strptime(obs["date"], "%Y-%m-%d").replace(tzinfo=UTC)
                 val = float(raw_val)
+                if not isfinite(val):
+                    raise ValueError("non-finite FRED observation")
                 bars.append(
                     OHLCVBar(
                         instrument_id=instrument_id,
@@ -202,8 +203,8 @@ class FREDProvider:
                         is_adjusted=True,
                     )
                 )
-            except (KeyError, ValueError):
-                continue
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError("fred", "FRED returned an invalid observation row") from exc
 
         return bars
 
@@ -256,21 +257,28 @@ class FREDProvider:
             r.raise_for_status()
             payload = r.json()
             raise_for_provider_error_envelope("fred", payload, r.status_code)
-            for obs in payload.get("observations", []):
-                v = obs.get("value", ".")
-                if v != "." and v:
-                    return float(v)
+            for obs in _observations(payload, "latest price"):
+                if "value" not in obs:
+                    raise ProviderResponseError("fred", "FRED returned a malformed observation row")
+                v = obs["value"]
+                if v == ".":
+                    continue
+                try:
+                    value = float(v)
+                except (TypeError, ValueError) as exc:
+                    raise ProviderResponseError("fred", "FRED returned an invalid latest observation") from exc
+                if not isfinite(value):
+                    raise ProviderResponseError("fred", "FRED returned a non-finite latest observation")
+                return value
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
-            logger.debug("fred get_current_price %s: %s", symbol, exc)
+            raise ProviderResponseError("fred", f"FRED request failed with HTTP {exc.response.status_code}") from exc
         except (ProviderRateLimitError, ProviderResponseError):
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError("fred", str(exc)) from exc
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
-        except Exception as exc:
-            logger.debug("fred get_current_price %s: %s", symbol, exc)
         return None
 
 
@@ -285,3 +293,14 @@ def is_fred_symbol(symbol: str) -> bool:
 def fred_series_for(symbol: str) -> str | None:
     """Return the FRED series ID for a platform canonical symbol, or None."""
     return _SERIES_MAP.get(symbol)
+
+
+def _observations(payload: object, operation: str) -> list[dict]:
+    if not isinstance(payload, dict):
+        raise ProviderResponseError("fred", f"FRED {operation} returned an invalid response object")
+    observations = payload.get("observations")
+    if not isinstance(observations, list):
+        raise ProviderResponseError("fred", f"FRED {operation} returned an invalid observations array")
+    if any(not isinstance(observation, dict) for observation in observations):
+        raise ProviderResponseError("fred", f"FRED {operation} returned a malformed observation row")
+    return observations
