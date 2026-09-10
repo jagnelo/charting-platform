@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Watchlist source cutoffs normalize across membership and holdings
+
+Product tip `7b3990b17e8dbc402670b639ed5cbe6e4a1b6a0c` closes the shared
+watchlist-source timestamp seam. Historical watchlist membership intervals,
+saved explicit-source knowledge, combo definitions, and benchmark/ETF holdings
+snapshot selection now normalize offset-less and non-UTC aware cutoffs and
+persisted timestamps to UTC before comparing them.
+
+Focused watchlist-source/history regressions passed `12/12`; the full backend
+unit suite passed `1,440/1,440` at `68%`, with Ruff, formatting, and diff checks
+clean. The exact Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`), frontend Vitest (`991/991`) and build, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established protected diffs; the gate
+exited at `e2e-visual` after clean scoped teardown. No visual, provider,
+fallback, or acceptance policy changed.
+
+Open work remains full provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7. Keep the branch at the
+review boundary; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-10 — Historical analysis cutoffs normalize across consumers
 
 Product tip `9fcbd55ca5c0a016651a16c24605ca6e562c62cf` closes a cross-consumer
