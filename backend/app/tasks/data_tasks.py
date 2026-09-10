@@ -186,3 +186,17 @@ async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
             db,
             max_assets=settings.TOKENIZED_ASSET_REFRESH_MAX_ASSETS,
         )
+
+
+async def refresh_tokenized_corporate_actions(ctx: dict) -> dict:
+    """Persist bounded tokenized corporate-action feeds as market events."""
+
+    from app.config import settings
+    from app.services.tokenized_assets import refresh_tokenized_events
+
+    async with AsyncSessionLocal() as db:
+        return await refresh_tokenized_events(
+            db,
+            max_providers=settings.TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS,
+            page_size=settings.TOKENIZED_EVENT_REFRESH_PAGE_SIZE,
+        )

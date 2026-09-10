@@ -216,7 +216,8 @@ descriptor without an authenticated account adapter.
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood
 Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, and Kraken's
-current xStocks catalogue. The latest bounded run passed all seven probes,
+current xStocks catalogue. The latest bounded run at `2026-09-10T02:24:02Z`
+passed all seven probes,
 including xStocks and Robinhood corporate-action reads, and
 the quote assertions observed at least two upstream requests for every
 successful quote operation (metadata resolution plus quote/order-book read).
@@ -231,7 +232,7 @@ responses become `ProviderRateLimitError` instances with only an allow-listed
 set of provider rate headers and parsed `Retry-After` metadata, and other HTTP
 or JSON failures remain redacted response errors. The bounded Robinhood retry
 handles only that typed 429 and remains finite. Unit regression coverage and
-the five-case live suite both pass after this change; no raw request URL,
+the seven-case live suite both pass after this change; no raw request URL,
 credential, or arbitrary response header is persisted.
 
 The CoinGecko credentialed probes also cover the compound metadata operation:
@@ -265,8 +266,9 @@ The latest network-enabled rerun at `2026-09-10T01:52:55Z`, using the existing
 external keys plus a temporary non-secret SEC User-Agent and explicit
 `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 34 cases: 31 passed with
 positive transport observations across the available keyless and credentialed
-adapters, including all five tokenized providers, OpenFIGI after its prior
-cooldown, and the header-only Alpha Vantage IPO-calendar response. Three failed
+adapters, including all seven tokenized probes across five tokenized providers,
+OpenFIGI after its prior cooldown, and the header-only Alpha Vantage IPO-calendar
+response. Three failed
 exact credential preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`,
 `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. The wrapper returned exit code
 2 and made no acceptance claim. FRED now reports its three explicit missing

@@ -247,8 +247,9 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
   tests/live/test_tokenized_providers_live.py -m live --no-header -q --no-cov
 ```
 
-The latest verified run passed all five public probes. Robinhood's public
-price edge returned `local_rate_limited` during one run; its adapter now uses a
+The latest verified run passed all seven public probes, including bounded
+historical/upcoming corporate-action reads for xStocks and Robinhood.
+Robinhood's public price edge returned `local_rate_limited` during one run; its adapter now uses a
 finite provider-specific retry budget, honors `Retry-After` when present, and
 surfaces repeated 429s. The Kraken catalogue returned no current xStocks pair.
 That evidence is retained as a routing/coverage fact, not hidden by a generic
@@ -262,6 +263,21 @@ provider asset ID as its usage identity, reserves documented quota dimensions
 before the request, records transport telemetry, and stores a separate
 `LatestPriceSnapshot` for the token instrument. The schedule is disabled by
 default and never calls a provider during evaluation.
+
+Corporate actions use a separate opt-in schedule so an operator can budget
+event-feed quota independently from quote polling. Set
+`TOKENIZED_EVENT_REFRESH_ENABLED=true`, with bounded
+`TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` and
+`TOKENIZED_EVENT_REFRESH_PAGE_SIZE`, in both the backend and worker
+environment. xStocks is read in separate historical and upcoming requests;
+Robinhood exposes one combined action feed. Every request uses the exact
+`fetch_tokenized_corporate_actions` operation cost declared for that provider.
+Rows are persisted as provisional `MarketEvent` records with the complete raw
+provider payload. A token is linked only when an explicit provider asset ID or
+unique token symbol matches the stored token detail; otherwise the event is
+retained unlinked for later reconciliation rather than guessed onto an
+underlying ticker. Exchange token adapters without an action endpoint are
+reported as unsupported and never invoked.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|

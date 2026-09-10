@@ -75,7 +75,24 @@
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-market-data-provider-platform/session.json"
+    "env.example",
+    "backend/.env.example",
+    "backend/app/config.py",
+    "backend/app/services/market_data_persistence.py",
+    "backend/app/services/tokenized_assets.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/app/workers/arq_worker.py",
+    "backend/tests/unit/services/test_tokenized_assets.py",
+    "backend/tests/unit/workers/test_arq_worker.py",
+    "deploy/rpi/compose.yml",
+    "docker-compose.yml",
+    "docs/data-providers.md",
+    "docs/deployment.md",
+    "docs/provider-live-validation.md",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -112,14 +129,14 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d36e252b5ad73aa54df0724964a60661bdc78a02",
+  "head": "8883dc7f4f962efd48d043e1af83ac6ffa55ad81",
   "implementation_sha": "d36e252b5ad73aa54df0724964a60661bdc78a02",
-  "last_checkpoint": "2026-09-10T01:55:39.461412+00:00",
-  "last_human_progress_update": "2026-09-10T01:55:29.064633+00:00",
+  "last_checkpoint": "2026-09-10T02:25:39.153251+00:00",
+  "last_human_progress_update": "2026-09-10T02:25:02.529576+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "f8ce2b88a5bd98fb3624df481dfa7a09c104fa8eb40a22b13270f2a79288bf97",
+  "plan_hash": "7d5339bd9ebf41c477494caa1ea502b87a2c4e59bcde8b8dc9c7d3851d684a29",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -143,13 +160,13 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Latest complete live matrix at 2026-09-10T01:52:55Z remains 31/34: all seven tokenized probes, including xStocks and Robinhood corporate-action reads, passed; exact credential preflight is missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY. FINRA async byte bound, FINRA OTC controls, FRED review controls, Nasdaq polling allowance, xStocks quota/legal eligibility, Bybit endpoint/UID state, Tiingo/FMP byte maps, GitHub environment verification, complete NMS/OTC reconciliation, and shadow activation remain acceptance gates.",
+    "current_blocker": "Latest complete live matrix at 2026-09-10T01:52:55Z remains 31/34: all seven tokenized probes, including xStocks and Robinhood corporate-action reads, passed; exact credential preflight is missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY. Tokenized corporate-action persistence is now covered by focused unit/worker tests and the successful 1853-test backend gate, but FINRA async byte bound, FINRA OTC controls, FRED review controls, Nasdaq polling allowance, xStocks quota/legal eligibility, Bybit endpoint/UID state, Tiingo/FMP byte maps, GitHub environment verification, complete NMS/OTC reconciliation, and shadow activation remain acceptance gates.",
     "current_phase": "credentialed_live_validation",
-    "next_action": "Keep routing fail-closed; restore owner authentication for jagnelo, configure missing environment-scoped credentials and reviewed controls, rerun the complete live matrix, and reassess readiness. Do not activate routing or deploy before that evidence.",
+    "next_action": "Keep all provider routing fail-closed; restore owner authentication for the jagnelo GitHub account, configure missing environment-scoped credentials and reviewed controls, rerun the complete manifest live matrix, and reassess readiness. Do not activate routing or deploy before that evidence.",
     "total": 15,
-    "updated_at": "2026-09-10T01:55:29.064535+00:00"
+    "updated_at": "2026-09-10T02:25:02.529493+00:00"
   },
-  "remote": "d36e252b5ad73aa54df0724964a60661bdc78a02",
+  "remote": "8883dc7f4f962efd48d043e1af83ac6ffa55ad81",
   "remote_sha": "d36e252b5ad73aa54df0724964a60661bdc78a02",
   "remote_synchronized": true,
   "retained_docker_resources": [],

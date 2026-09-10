@@ -6,11 +6,16 @@ import pytest
 from sqlalchemy import select
 
 from app.models.instrument import Instrument
+from app.models.market_data_foundation import MarketEvent
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.services import tokenized_assets
-from app.services.tokenized_assets import refresh_tokenized_prices, upsert_tokenized_asset
+from app.services.tokenized_assets import (
+    refresh_tokenized_events,
+    refresh_tokenized_prices,
+    upsert_tokenized_asset,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -154,3 +159,85 @@ async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, ins
     assert result["refreshed"] == 0
     assert result["failed"] == 1
     assert result["failures"][0]["provider_asset_id"] == "rh-aapl"
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_events_persists_and_links_explicit_action_identity(
+    db, instrument, monkeypatch
+):
+    initial = TokenizedAssetRecord(
+        provider="xstocks",
+        asset_id="x:AAPL",
+        symbol="xAAPL",
+        name="Apple xStock",
+        underlying_symbol=instrument.symbol,
+        raw_payload={},
+    )
+    await upsert_tokenized_asset(AsyncSessionAdapter(db), initial)
+    provider = SimpleNamespace(
+        name="xstocks", fetch_tokenized_corporate_actions=lambda **_kwargs: []
+    )
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="xstocks", provider=provider)]
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+
+    async def fake_execute(_db, _capability, operation, **kwargs):
+        assert operation == "fetch_tokenized_corporate_actions"
+        assert kwargs["provider_name"] == "xstocks"
+        return SimpleNamespace(
+            provider_name="xstocks",
+            result=[
+                {
+                    "id": "ca-1",
+                    "assetId": "x:AAPL",
+                    "actionType": "dividend",
+                    "effectiveDate": "2026-09-11",
+                    "announcedAt": "2026-09-10T10:15:00Z",
+                    "amount": "0.25",
+                },
+                {"id": "malformed-but-valid", "symbol": "unlisted"},
+            ],
+        )
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_providers=2, page_size=25, include_upcoming=False
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["events"] == 2
+    assert result["linked"] == 1
+    assert result["unlinked"] == 1
+    assert result["failed"] == 0
+    events = db.execute(select(MarketEvent).order_by(MarketEvent.id)).scalars().all()
+    assert len(events) == 2
+    token_detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.provider_asset_id == "x:AAPL")
+    ).scalar_one()
+    assert events[0].instrument_id == token_detail.instrument_id
+    assert events[0].effective_date.isoformat() == "2026-09-11"
+    assert events[0].announced_at.isoformat().startswith("2026-09-10T10:15:00")
+    assert events[0].payload["raw"]["actionType"] == "dividend"
+    assert events[1].instrument_id is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_events_reports_adapters_without_action_surface(db, monkeypatch):
+    provider = SimpleNamespace(name="bybit_xstocks")
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="bybit_xstocks", provider=provider)]
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+
+    result = await refresh_tokenized_events(AsyncSessionAdapter(db))
+
+    assert result == {
+        "status": "no_corporate_action_provider",
+        "providers": [],
+        "unsupported": ["bybit_xstocks"],
+        "events": 0,
+        "linked": 0,
+        "unlinked": 0,
+        "failed": 0,
+    }

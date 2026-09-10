@@ -123,6 +123,22 @@ async def persist_market_event(
     ).scalar_one_or_none()
     if existing is not None:
         existing.payload = {**(existing.payload or {}), **(payload or {})}
+        # A first observation may arrive before the provider catalogue has
+        # been refreshed.  Preserve the event key but allow a later
+        # authoritative token-asset match to attach the instrument rather
+        # than leaving the canonical event permanently orphaned.
+        if existing.instrument_id is None and instrument_id is not None:
+            existing.instrument_id = instrument_id
+        if existing.issuer_id is None and issuer_id is not None:
+            existing.issuer_id = issuer_id
+        if existing.event_time is None and event_time is not None:
+            existing.event_time = event_time
+        if existing.effective_date is None and effective_date is not None:
+            existing.effective_date = effective_date
+        if existing.announced_at is None and announced_at is not None:
+            existing.announced_at = announced_at
+        if existing.source_version is None and source_version is not None:
+            existing.source_version = source_version
         existing.is_provisional = is_provisional
         return existing
     event = MarketEvent(

@@ -26,6 +26,14 @@ has reviewed provider entitlements and quota contracts, set
 must reach both `backend` and `worker`. Unknown provider quotas remain
 non-routable even when this schedule is enabled.
 
+Tokenized corporate-action persistence is separately opt-in. Set
+`TOKENIZED_EVENT_REFRESH_ENABLED=true`,
+`TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS`, and
+`TOKENIZED_EVENT_REFRESH_PAGE_SIZE` only after the provider-specific action
+feed terms and quota contracts have been reviewed. These values must also be
+present for both `backend` and `worker`; the schedule is otherwise disabled
+and does not consume provider quota.
+
 ```bash
 make rpi-preflight
 make rpi-bundle COMMIT=<full-validated-master-sha>

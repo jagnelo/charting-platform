@@ -102,10 +102,36 @@ async def test_tokenized_asset_refresh_delegates_to_bounded_task(monkeypatch):
     assert calls == [{"redis": "test"}]
 
 
+@pytest.mark.asyncio
+async def test_tokenized_event_refresh_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_EVENT_REFRESH_ENABLED", False)
+
+    result = await arq_worker.scheduled_tokenized_event_refresh({})
+
+    assert result == {"skipped": True, "reason": "tokenized event refresh disabled"}
+
+
+@pytest.mark.asyncio
+async def test_tokenized_event_refresh_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "TOKENIZED_EVENT_REFRESH_ENABLED", True)
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"status": "refreshed", "events": 3}
+
+    monkeypatch.setattr(data_tasks, "refresh_tokenized_corporate_actions", fake_refresh)
+    result = await arq_worker.scheduled_tokenized_event_refresh({"redis": "test"})
+
+    assert result == {"status": "refreshed", "events": 3}
+    assert calls == [{"redis": "test"}]
+
+
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
     assert arq_worker.scheduled_refresh_queue_process in arq_worker.WorkerSettings.functions
     assert arq_worker.scheduled_tokenized_asset_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_tokenized_event_refresh in arq_worker.WorkerSettings.functions
 
 
 @pytest.mark.asyncio

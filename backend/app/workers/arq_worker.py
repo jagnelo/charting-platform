@@ -476,6 +476,16 @@ async def scheduled_tokenized_asset_refresh(ctx: dict):
     return await refresh_tokenized_asset_prices(ctx)
 
 
+async def scheduled_tokenized_event_refresh(ctx: dict):
+    """Persist tokenized corporate actions only when explicitly enabled."""
+
+    if not settings.TOKENIZED_EVENT_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized event refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_corporate_actions
+
+    return await refresh_tokenized_corporate_actions(ctx)
+
+
 async def worker_startup(ctx: dict):
     """Queue the first hydration without blocking worker readiness.
 
@@ -527,6 +537,7 @@ class WorkerSettings:
         scheduled_daily_provider_availability,
         scheduled_weekly_provider_availability,
         scheduled_tokenized_asset_refresh,
+        scheduled_tokenized_event_refresh,
     ]
     cron_jobs = (
         [
@@ -543,6 +554,7 @@ class WorkerSettings:
             cron(scheduled_daily_provider_availability, hour=2, minute=0),
             cron(scheduled_weekly_provider_availability, weekday=6, hour=3, minute=0),
             cron(scheduled_tokenized_asset_refresh, minute={0, 15, 30, 45}),
+            cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
@@ -554,6 +566,7 @@ class WorkerSettings:
             or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
             or settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
             or settings.TOKENIZED_ASSET_REFRESH_ENABLED
+            or settings.TOKENIZED_EVENT_REFRESH_ENABLED
         )
         else []
     )

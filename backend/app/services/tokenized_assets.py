@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
+import json
+import re
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -15,12 +17,172 @@ from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
+from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 
 def tokenized_domain_key(provider: str, asset_id: str) -> str:
     digest = hashlib.sha256(asset_id.encode("utf-8")).hexdigest()[:48]
     return f"tokenized:{provider}:{digest}"
+
+
+_TOKENIZED_ASSET_ID_FIELDS = (
+    "assetId",
+    "asset_id",
+    "providerAssetId",
+    "provider_asset_id",
+    "tokenId",
+    "token_id",
+    "id",
+)
+_TOKENIZED_SYMBOL_FIELDS = (
+    "tokenSymbol",
+    "token_symbol",
+    "symbol",
+    "ticker",
+    "assetSymbol",
+    "asset_symbol",
+)
+_EVENT_ID_FIELDS = (
+    "eventId",
+    "event_id",
+    "corporateActionId",
+    "corporate_action_id",
+    "actionId",
+    "action_id",
+    "id",
+)
+_EVENT_TIME_FIELDS = (
+    "eventTime",
+    "event_time",
+    "announcedAt",
+    "announced_at",
+    "createdAt",
+    "created_at",
+)
+_ANNOUNCED_AT_FIELDS = ("announcedAt", "announced_at", "announcementDate", "announcement_date")
+_EFFECTIVE_DATE_FIELDS = (
+    "effectiveDate",
+    "effective_date",
+    "exDate",
+    "ex_date",
+    "recordDate",
+    "record_date",
+    "paymentDate",
+    "payment_date",
+    "date",
+)
+
+
+def _first_scalar(row: dict[str, Any], fields: tuple[str, ...]) -> Any:
+    for field in fields:
+        value = row.get(field)
+        if value not in (None, "") and not isinstance(value, dict | list):
+            return value
+    return None
+
+
+def _parse_date(value: Any) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    try:
+        return date.fromisoformat(candidate[:10])
+    except ValueError:
+        return None
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    if not candidate or not re.search(r"[T ]", candidate):
+        return None
+    try:
+        parsed = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
+def _tokenized_action_key(provider_name: str, row: dict[str, Any]) -> str:
+    """Build a stable, bounded key without treating a ticker as identity."""
+
+    asset_id = _first_scalar(row, _TOKENIZED_ASSET_ID_FIELDS)
+    event_id = _first_scalar(row, _EVENT_ID_FIELDS)
+    identity = {
+        "provider": provider_name,
+        "asset_id": str(asset_id) if asset_id is not None else None,
+        "event_id": str(event_id) if event_id is not None else None,
+        "payload": row if event_id is None else None,
+    }
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:48]
+    return f"tokenized-action:{provider_name}:{digest}"
+
+
+async def _tokenized_detail_maps(
+    db: AsyncSession, provider_name: str
+) -> tuple[dict[str, list[int]], dict[str, list[int]]]:
+    rows = (
+        await db.execute(
+            select(
+                TokenizedAssetDetail.provider_asset_id,
+                TokenizedAssetDetail.token_symbol,
+                TokenizedAssetDetail.instrument_id,
+            ).where(TokenizedAssetDetail.provider_name == provider_name)
+        )
+    ).all()
+    by_asset: dict[str, list[int]] = {}
+    by_symbol: dict[str, list[int]] = {}
+    for provider_asset_id, token_symbol, instrument_id in rows:
+        if provider_asset_id:
+            by_asset.setdefault(str(provider_asset_id).lower(), []).append(instrument_id)
+        if token_symbol:
+            by_symbol.setdefault(str(token_symbol).upper(), []).append(instrument_id)
+    return by_asset, by_symbol
+
+
+def _resolve_tokenized_instrument(
+    row: dict[str, Any],
+    by_asset: dict[str, list[int]],
+    by_symbol: dict[str, list[int]],
+) -> int | None:
+    asset_id = _first_scalar(row, _TOKENIZED_ASSET_ID_FIELDS)
+    if asset_id is not None:
+        matches = by_asset.get(str(asset_id).lower(), [])
+        return matches[0] if len(matches) == 1 else None
+    symbol = _first_scalar(row, _TOKENIZED_SYMBOL_FIELDS)
+    if symbol is not None:
+        matches = by_symbol.get(str(symbol).upper(), [])
+        return matches[0] if len(matches) == 1 else None
+    return None
+
+
+def _tokenized_event_payload(
+    provider_name: str, row: dict[str, Any], *, phase: str
+) -> dict[str, Any]:
+    """Retain the provider row while exposing only explicit normalized fields."""
+
+    action_type = _first_scalar(row, ("actionType", "action_type", "type", "kind"))
+    asset_id = _first_scalar(row, _TOKENIZED_ASSET_ID_FIELDS)
+    symbol = _first_scalar(row, _TOKENIZED_SYMBOL_FIELDS)
+    return {
+        "provider": provider_name,
+        "provider_asset_id": str(asset_id) if asset_id is not None else None,
+        "token_symbol": str(symbol) if symbol is not None else None,
+        "action_type": str(action_type) if action_type is not None else None,
+        "refresh_phase": phase,
+        "raw": row,
+    }
 
 
 async def _underlying_instrument(
@@ -186,6 +348,149 @@ async def refresh_tokenized_assets(
         refreshed.append({"provider": resolved.provider_name, "assets": count})
     await db.commit()
     return {"status": "refreshed", "providers": refreshed, "assets": sum(item["assets"] for item in refreshed)}
+
+
+async def refresh_tokenized_events(
+    db: AsyncSession,
+    *,
+    provider_name: str | None = None,
+    max_providers: int = 2,
+    page_size: int = 100,
+    include_upcoming: bool = True,
+) -> dict[str, Any]:
+    """Persist provider corporate actions into the canonical market-event table.
+
+    The provider catalog is intentionally broader than the corporate-action
+    surface: xStocks and Robinhood currently expose public action feeds, while
+    the exchange adapters only expose metadata/quotes.  Unsupported adapters
+    are reported and skipped rather than invoked through a guessed method.
+    Every request goes through the provider runtime so durable quota
+    reservations, request telemetry, and circuit state remain authoritative.
+    """
+
+    bounded_providers = max(1, min(int(max_providers), 10))
+    bounded_page_size = max(1, min(int(page_size), 100))
+    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
+    if provider_name:
+        chain = [item for item in chain if item.provider_name == provider_name]
+
+    supported = [
+        item
+        for item in chain
+        if callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
+    ][:bounded_providers]
+    unsupported = [
+        item.provider_name
+        for item in chain
+        if not callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
+    ]
+    if not supported:
+        return {
+            "status": "no_corporate_action_provider",
+            "providers": [],
+            "unsupported": unsupported,
+            "events": 0,
+            "linked": 0,
+            "unlinked": 0,
+            "failed": 0,
+        }
+
+    provider_results: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    total_events = 0
+    total_linked = 0
+    total_unlinked = 0
+
+    for resolved in supported:
+        phases = ["history", "upcoming"] if include_upcoming else ["history"]
+        if resolved.provider_name != "xstocks":
+            # Robinhood's public endpoint combines historical and upcoming
+            # actions and has no page/upcoming parameters.
+            phases = ["combined"]
+        by_asset, by_symbol = await _tokenized_detail_maps(db, resolved.provider_name)
+        provider_count = 0
+        provider_linked = 0
+        provider_unlinked = 0
+        for phase in phases:
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.TOKENIZED_ASSETS,
+                    "fetch_tokenized_corporate_actions",
+                    provider_name=resolved.provider_name,
+                    response_items=len,
+                    treat_empty_as_failure=False,
+                    invoke=lambda provider, _symbol, phase=phase: (
+                        provider.fetch_tokenized_corporate_actions(
+                            upcoming=phase == "upcoming",
+                            page=1,
+                            page_size=bounded_page_size,
+                        )
+                        if resolved.provider_name == "xstocks"
+                        else provider.fetch_tokenized_corporate_actions()
+                    ),
+                )
+                rows = execution.result or []
+                if not isinstance(rows, list):
+                    raise TypeError("tokenized corporate-action provider returned a non-list")
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    event_payload = _tokenized_event_payload(
+                        resolved.provider_name, row, phase=phase
+                    )
+                    instrument_id = _resolve_tokenized_instrument(row, by_asset, by_symbol)
+                    if instrument_id is None:
+                        provider_unlinked += 1
+                    else:
+                        provider_linked += 1
+                    await persist_market_event(
+                        db,
+                        event_key=_tokenized_action_key(resolved.provider_name, row),
+                        event_type="tokenized_corporate_action",
+                        source=resolved.provider_name,
+                        instrument_id=instrument_id,
+                        event_time=_parse_datetime(_first_scalar(row, _EVENT_TIME_FIELDS)),
+                        effective_date=_parse_date(_first_scalar(row, _EFFECTIVE_DATE_FIELDS)),
+                        announced_at=_parse_datetime(
+                            _first_scalar(row, _ANNOUNCED_AT_FIELDS)
+                        ),
+                        payload=event_payload,
+                        is_provisional=True,
+                    )
+                    provider_count += 1
+            except Exception as exc:  # noqa: BLE001 - retain per-provider evidence.
+                failures.append(
+                    {
+                        "provider": resolved.provider_name,
+                        "phase": phase,
+                        "error": str(exc)[:500],
+                    }
+                )
+        provider_results.append(
+            {
+                "provider": resolved.provider_name,
+                "events": provider_count,
+                "linked": provider_linked,
+                "unlinked": provider_unlinked,
+            }
+        )
+        total_events += provider_count
+        total_linked += provider_linked
+        total_unlinked += provider_unlinked
+
+    await db.commit()
+    status = "refreshed" if total_events else ("failed" if failures else "no_events")
+    return {
+        "status": status,
+        "providers": provider_results,
+        "unsupported": unsupported,
+        "events": total_events,
+        "linked": total_linked,
+        "unlinked": total_unlinked,
+        "failed": len(failures),
+        "failures": failures,
+    }
 
 
 async def refresh_tokenized_prices(
