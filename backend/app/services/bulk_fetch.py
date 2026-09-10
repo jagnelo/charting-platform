@@ -100,8 +100,15 @@ async def bulk_fetch_instrument(
     await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
 
     # Track whether any coarser daily+ TF returned data.  If none did, there is
-    # no point querying intraday TFs at all.
+    # no point querying intraday TFs when the caller also requested a coarse
+    # resolution.  An intraday-only request is explicit and must still reach
+    # the provider; otherwise a caller asking for H1 (or finer) would be
+    # silently reported as skipped without any provider work.  Keep the count
+    # of coarse requests remaining so a caller's custom ordering cannot cause
+    # an intraday item to be skipped before its coarse prerequisite is tried.
     any_daily_or_coarser_returned_data = False
+    remaining_daily_or_coarser_requests = sum(not _is_intraday(tf) for tf in timeframes)
+    has_daily_or_coarser_request = remaining_daily_or_coarser_requests > 0
 
     for tf in timeframes:
         if await _is_cancel_requested(redis, cancel_key):
@@ -110,8 +117,16 @@ async def bulk_fetch_instrument(
             return summary
         is_intraday = _is_intraday(tf)
 
-        # If all daily/weekly/monthly TFs returned nothing, skip intraday ones.
-        if is_intraday and not any_daily_or_coarser_returned_data:
+        # If all requested daily/weekly/monthly TFs returned nothing, skip
+        # intraday ones.  Do not apply this optimization to an intraday-only
+        # request, and do not make the result depend on caller ordering while a
+        # coarse request is still waiting to be attempted.
+        if (
+            is_intraday
+            and has_daily_or_coarser_request
+            and not any_daily_or_coarser_returned_data
+            and remaining_daily_or_coarser_requests == 0
+        ):
             summary[tf.value] = "skipped"
             logger.info(
                 f"Skipping {ticker_sym} {tf.value}: "
@@ -136,6 +151,9 @@ async def bulk_fetch_instrument(
             logger.info(f"Bulk fetch {ticker_sym} {tf.value}: {result} bars")
         else:
             logger.info(f"Bulk fetch {ticker_sym} {tf.value}: {result}")
+
+        if not is_intraday:
+            remaining_daily_or_coarser_requests -= 1
 
         await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
         await asyncio.sleep(INTER_TF_DELAY_SECONDS)

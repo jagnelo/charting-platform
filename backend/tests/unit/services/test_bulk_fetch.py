@@ -54,6 +54,54 @@ async def test_bulk_fetch_passes_historical_end_to_each_provider_request(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_does_not_skip_explicit_intraday_only_request(monkeypatch):
+    calls = []
+
+    async def fetch_one(*, timeframe, **_kwargs):
+        calls.append(timeframe)
+        return 0
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    monkeypatch.setattr(bulk_fetch.asyncio, "sleep", no_sleep)
+
+    result = await bulk_fetch.bulk_fetch_instrument(
+        object(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.H1],
+    )
+
+    assert result == {"H1": 0}
+    assert calls == [Timeframe.H1]
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_custom_order_attempts_intraday_before_coarse_request(monkeypatch):
+    calls = []
+
+    async def fetch_one(*, timeframe, **_kwargs):
+        calls.append(timeframe)
+        return 1 if timeframe == Timeframe.D1 else 0
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    monkeypatch.setattr(bulk_fetch.asyncio, "sleep", no_sleep)
+
+    result = await bulk_fetch.bulk_fetch_instrument(
+        object(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.H1, Timeframe.D1],
+    )
+
+    assert result == {"H1": 0, "D1": 1}
+    assert calls == [Timeframe.H1, Timeframe.D1]
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_treats_empty_provider_result_as_chain_failure(monkeypatch):
     calls = []
 
