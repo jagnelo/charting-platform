@@ -140,6 +140,9 @@ export interface WatchlistHistoryTimeframeStatus {
     source_kind?: string
     factor_status?: string
     factor_version?: string | null
+    factor_versioned_member_count?: number
+    factor_opaque_member_count?: number
+    factor_unavailable_member_count?: number
     contract_version?: number
   }
   oldest?: string | null

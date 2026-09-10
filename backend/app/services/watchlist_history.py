@@ -12,10 +12,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import InstrumentDatasetState
 from app.services.member_dispositions import MEMBER_DISPOSITION_KEYS, member_disposition_counts
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
@@ -61,6 +62,112 @@ def _adjustment_provenance(
         "factor_version": None,
         "contract_version": 1,
     }
+
+
+def _state_factor_evidence(
+    lineage_rows: list[dict[str, Any]],
+    state_rows: list[tuple[Any, ...]],
+    timeframe_key: str,
+) -> dict[str, object] | None:
+    """Summarize durable factor evidence for covered members.
+
+    A family-level factor version is meaningful only when every observed
+    provider/derived leg for every covered member points at a dataset state
+    with one rebuildable version.  The helper deliberately returns ``None``
+    when no state rows are available so legacy fixtures and older datasets
+    retain the pre-existing opaque contract.
+    """
+
+    if not state_rows or not lineage_rows:
+        return None
+
+    states: dict[tuple[int, int | None], tuple[str | None, str]] = {}
+    for row in state_rows:
+        if len(row) < 4:
+            continue
+        instrument_id, data_source_id, dataset_key, extra_data = row[:4]
+        if dataset_key != f"{timeframe_key}:adj":
+            continue
+        if not isinstance(instrument_id, int):
+            continue
+        provenance = (
+            extra_data.get("adjustment_provenance") if isinstance(extra_data, dict) else None
+        )
+        if not isinstance(provenance, dict):
+            states[(instrument_id, data_source_id)] = (None, "not_observed")
+            continue
+        version = provenance.get("factor_version")
+        status = str(provenance.get("factor_status") or "not_observed")
+        states[(instrument_id, data_source_id)] = (
+            version.strip() if isinstance(version, str) and version.strip() else None,
+            status,
+        )
+
+    if not states:
+        return None
+
+    rebuildable_statuses = {
+        "rebuildable_split_factors",
+        "rebuildable_provider_factors",
+    }
+    versioned_count = 0
+    opaque_count = 0
+    unavailable_count = 0
+    versions: set[str] = set()
+    statuses: set[str] = set()
+    covered_count = 0
+
+    for member in lineage_rows:
+        instrument_id = int(member["instrument_id"])
+        source_ids = set(member.get("provider_source_ids") or ())
+        if member.get("derived_bar_count", 0) > 0:
+            source_ids.add(None)
+        if not source_ids:
+            continue
+        covered_count += 1
+        member_evidence = [states.get((instrument_id, source_id)) for source_id in source_ids]
+        if any(item is None for item in member_evidence):
+            unavailable_count += 1
+            continue
+        member_versions = {item[0] for item in member_evidence if item[0]}
+        member_statuses = {item[1] for item in member_evidence}
+        if len(member_versions) == 1 and all(
+            item[0] is not None and item[1] in rebuildable_statuses for item in member_evidence
+        ):
+            versioned_count += 1
+            versions.update(member_versions)
+            statuses.update(member_statuses)
+        elif len(member_versions) == 1 and all(
+            item[0] is not None and item[1] == "inherited_from_canonical_d1"
+            for item in member_evidence
+        ):
+            # Derived W1/MN states carry a verified canonical D1 version but
+            # retain their lineage label rather than pretending to be a
+            # provider state.
+            versioned_count += 1
+            versions.update(member_versions)
+            statuses.update(member_statuses)
+        else:
+            opaque_count += 1
+
+    if not covered_count:
+        return None
+    evidence: dict[str, object] = {
+        "factor_versioned_member_count": versioned_count,
+        "factor_opaque_member_count": opaque_count,
+        "factor_unavailable_member_count": unavailable_count,
+    }
+    if versioned_count == covered_count and len(versions) == 1:
+        evidence["factor_version"] = next(iter(versions))
+        if "rebuildable_provider_factors" in statuses:
+            evidence["factor_status"] = "rebuildable_provider_factors"
+        elif "rebuildable_split_factors" in statuses:
+            evidence["factor_status"] = "rebuildable_split_factors"
+        else:
+            evidence["factor_status"] = "inherited_from_canonical_d1"
+    elif versioned_count:
+        evidence["factor_status"] = "partially_rebuildable"
+    return evidence
 
 
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
@@ -281,6 +388,7 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.timeframe,
                     func.count(OHLCVBar.id).label("bar_count"),
                     OHLCVBar.is_derived,
+                    OHLCVBar.data_source_id,
                 )
                 .where(
                     OHLCVBar.instrument_id.in_(instrument_ids),
@@ -288,7 +396,12 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.is_adjusted.is_(True),
                     *([OHLCVBar.ts <= as_of] if as_of is not None else []),
                 )
-                .group_by(OHLCVBar.instrument_id, OHLCVBar.timeframe, OHLCVBar.is_derived)
+                .group_by(
+                    OHLCVBar.instrument_id,
+                    OHLCVBar.timeframe,
+                    OHLCVBar.is_derived,
+                    OHLCVBar.data_source_id,
+                )
             )
         ).all()
         if instrument_ids
@@ -296,7 +409,7 @@ async def build_watchlist_source_history_status(
     )
     covered_instruments_by_timeframe: dict[str, set[int]] = {}
     analysis_ready_instruments_by_timeframe: dict[str, set[int]] = {}
-    lineage_by_timeframe: dict[str, dict[int, dict[str, int]]] = {}
+    lineage_by_timeframe: dict[str, dict[int, dict[str, Any]]] = {}
     for row in covered_rows:
         # Keep compatibility with lightweight test doubles and older callers
         # that return the pre-floor two-column shape. Production SQL returns
@@ -307,11 +420,58 @@ async def build_watchlist_source_history_status(
         bar_count = int(row[2]) if len(row) > 2 and row[2] is not None else 0
         member = lineage_by_timeframe.setdefault(timeframe_key, {}).setdefault(
             int(instrument_id),
-            {"bar_count": 0, "provider_bar_count": 0, "derived_bar_count": 0},
+            {
+                "instrument_id": int(instrument_id),
+                "bar_count": 0,
+                "provider_bar_count": 0,
+                "derived_bar_count": 0,
+                "provider_source_ids": set(),
+            },
         )
         member["bar_count"] += bar_count
         is_derived = bool(row[3]) if len(row) > 3 else False
         member["derived_bar_count" if is_derived else "provider_bar_count"] += bar_count
+        if not is_derived and len(row) > 4 and row[4] is not None:
+            member["provider_source_ids"].add(int(row[4]))
+
+    # Dataset state is the authoritative source for adjustment-factor
+    # provenance. Restrict provider states to source IDs actually represented
+    # by the covered bars and include null-source derived states only when a
+    # derived bar is present. Older fixtures may return the pre-state query
+    # shape; the evidence helper safely ignores those rows.
+    provider_source_ids = {
+        source_id
+        for members in lineage_by_timeframe.values()
+        for member in members.values()
+        for source_id in member.get("provider_source_ids", set())
+    }
+    has_derived_rows = any(
+        member.get("derived_bar_count", 0) > 0
+        for members in lineage_by_timeframe.values()
+        for member in members.values()
+    )
+    state_rows: list[tuple[Any, ...]] = []
+    if instrument_ids and (provider_source_ids or has_derived_rows):
+        state_filters = [InstrumentDatasetState.data_source_id.is_(None)]
+        if provider_source_ids:
+            state_filters.append(InstrumentDatasetState.data_source_id.in_(provider_source_ids))
+        state_rows = (
+            await db.execute(
+                select(
+                    InstrumentDatasetState.instrument_id,
+                    InstrumentDatasetState.data_source_id,
+                    InstrumentDatasetState.dataset_key,
+                    InstrumentDatasetState.extra_data,
+                ).where(
+                    InstrumentDatasetState.instrument_id.in_(instrument_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    or_(*state_filters),
+                    InstrumentDatasetState.dataset_key.in_(
+                        [f"{timeframe.value}:adj" for timeframe in normalized_timeframes]
+                    ),
+                )
+            )
+        ).all()
     for timeframe_key, members in lineage_by_timeframe.items():
         required = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe_key)
         if required is None:
@@ -375,6 +535,13 @@ async def build_watchlist_source_history_status(
             else "unavailable"
         )
         adjustment_provenance = _adjustment_provenance(provider_member_count, derived_member_count)
+        factor_evidence = _state_factor_evidence(
+            lineage_rows,
+            state_rows,
+            timeframe.value,
+        )
+        if factor_evidence:
+            adjustment_provenance.update(factor_evidence)
         timeframe_statuses.append(
             {
                 "timeframe": timeframe.value,

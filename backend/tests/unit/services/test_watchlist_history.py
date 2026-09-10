@@ -422,3 +422,101 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
     assert w1["source_lineage"] == "derived_only"
     assert w1["derived_only_member_count"] == 1
     assert w1["adjustment_provenance"]["factor_status"] == "inherited_from_canonical_d1"
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_status_exposes_consistent_factor_version(monkeypatch):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "source_ids": ["market-group:sp500"],
+            "timeframes": ["D1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "instrument_ids": [10, 20],
+            "available_instrument_count": 2,
+            "selected_instrument_count": 2,
+            "limited": False,
+            "sources": [
+                {
+                    "source_id": "market-group:sp500",
+                    "source_kind": "index_membership",
+                    "name": "S&P 500",
+                    "locked": True,
+                    "status": "ready",
+                    "excluded_count": 0,
+                    "membership_version": "v1",
+                    "message": None,
+                }
+            ],
+        }
+
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def __init__(self, call_number):
+                    self.call_number = call_number
+
+                def all(self_inner):
+                    if self_inner.call_number == 1:
+                        return [
+                            SimpleNamespace(
+                                timeframe=SimpleNamespace(value="D1"),
+                                covered_count=2,
+                                bar_count=504,
+                                oldest=None,
+                                newest=None,
+                            )
+                        ]
+                    if self_inner.call_number == 2:
+                        return [
+                            (10, SimpleNamespace(value="D1"), 252, False, 7),
+                            (20, SimpleNamespace(value="D1"), 252, False, 7),
+                        ]
+                    return [
+                        (
+                            10,
+                            7,
+                            "D1:adj",
+                            {
+                                "adjustment_provenance": {
+                                    "factor_status": "rebuildable_split_factors",
+                                    "factor_version": "afv1-stable",
+                                }
+                            },
+                        ),
+                        (
+                            20,
+                            7,
+                            "D1:adj",
+                            {
+                                "adjustment_provenance": {
+                                    "factor_status": "rebuildable_split_factors",
+                                    "factor_version": "afv1-stable",
+                                }
+                            },
+                        ),
+                    ]
+
+            return FakeResult(self.calls)
+
+    monkeypatch.setattr(history, "plan_watchlist_source_history_refresh", fake_plan)
+    status = await history.build_watchlist_source_history_status(
+        FakeDB(), 42, source_id="market-group:sp500", timeframes=["D1"]
+    )
+
+    provenance = status["timeframes"][0]["adjustment_provenance"]
+    assert provenance == {
+        "mode": "split_adjusted",
+        "source_kind": "provider_observation",
+        "factor_status": "rebuildable_split_factors",
+        "factor_version": "afv1-stable",
+        "contract_version": 1,
+        "factor_versioned_member_count": 2,
+        "factor_opaque_member_count": 0,
+        "factor_unavailable_member_count": 0,
+    }

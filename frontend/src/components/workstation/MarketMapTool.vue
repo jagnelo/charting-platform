@@ -716,7 +716,10 @@ function watchlistHistoryAdjustmentLabel(status: WatchlistSourceHistoryStatus): 
       const source = provenance.source_kind?.replace(/_/g, ' ') || 'not reported'
       const factor = provenance.factor_status?.replace(/_/g, ' ') || 'not reported'
       const version = provenance.factor_version ? ` · factor version ${provenance.factor_version}` : ' · factor version not reported'
-      return `${history.timeframe} ${mode} · source ${source} · factor ${factor}${version}`
+      const factorMembers = provenance.factor_versioned_member_count != null || provenance.factor_opaque_member_count != null || provenance.factor_unavailable_member_count != null
+        ? ` · factor members versioned ${provenance.factor_versioned_member_count ?? 0}, opaque ${provenance.factor_opaque_member_count ?? 0}, unavailable ${provenance.factor_unavailable_member_count ?? 0}`
+        : ''
+      return `${history.timeframe} ${mode} · source ${source} · factor ${factor}${version}${factorMembers}`
     })
     .join(', ')
   return adjustment ? `History adjustment provenance: ${adjustment}` : 'History adjustment provenance: not reported'
