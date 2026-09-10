@@ -20,6 +20,11 @@
       containers rather than filtering rows or creating synthetic records. The
       focused tokenized suite passes `23/23`; the authoritative Docker-backed
       gate passes `1900/1900` with `80.35%` line coverage and 89 warnings.
+- [x] Make Coinbase and Kraken crypto candle, ticker, and directory adapters
+      reject malformed row containers and non-numeric fields instead of
+      skipping observations or returning empty/synthetic results. Focused
+      new-provider tests pass `121/121`; the authoritative Docker-backed gate
+      passes `1904/1904` with `80.35%` line coverage and 89 warnings.
 
 ### 2026-09-05 — Corrective provider quota and live-evidence gate
 

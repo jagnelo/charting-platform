@@ -509,3 +509,11 @@ The focused tokenized suite passed `23/23`; the authoritative gate completed at
 `2026-09-10T08:19Z` with `1900 passed`, `89` warnings, and `80.35%` line
 coverage in `403.85s`. Testcontainer session
 `8190d6b2-84ee-48fa-a119-cd53f0e10fda` was cleaned without host-wide pruning.
+
+Coinbase and Kraken crypto candle, ticker, and directory adapters now reject
+malformed row containers and non-numeric fields instead of skipping
+observations or returning empty/synthetic results. Focused new-provider tests
+passed `121/121`; the authoritative gate completed at `2026-09-10T08:32Z`
+with `1904 passed`, `89` warnings, and `80.35%` line coverage in `444.39s`.
+Testcontainer session `291324c7-d107-4007-97ad-496ee703ce08` was cleaned
+without host-wide pruning.
