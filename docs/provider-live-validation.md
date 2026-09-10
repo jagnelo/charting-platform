@@ -346,3 +346,12 @@ warnings, `80.37%` line coverage in `399.55s`, above the 75% threshold.
 Testcontainer session `0e80e4ff-024f-4ca1-b8ab-f5c876922c95` was cleaned
 without host-wide pruning. This remains observability only: direct live-test
 usage is not merged into runtime quota reservations and cannot change routing.
+
+The continuation complete matrix was rerun at `2026-09-10T04:57Z` with the
+existing operator environment. It collected 34 cases: `31 passed` in
+`38.13s`, while exactly three cases failed credential preflight for
+`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`. The wrapper returned exit code `2` and made no
+acceptance claim. FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit, and
+Tiingo/FMP controls remain explicitly fail-closed; only redacted telemetry was
+written to the external usage ledger.
