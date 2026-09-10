@@ -1557,6 +1557,12 @@ def provider_positive_integer(value: object) -> int | None:
     return value
 
 
+def provider_reviewed_flag(value: object) -> bool:
+    """Accept only an actual boolean ``True`` for operator review gates."""
+
+    return isinstance(value, bool) and value
+
+
 def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
     """Return only positive, explicitly configured operation byte bounds."""
 
@@ -1593,7 +1599,9 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         reviewed_limit = provider_positive_integer(
             getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         )
-        terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
+        terms_reviewed = provider_reviewed_flag(
+            getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
+        )
         allowed_scopes = {"api_key", "account", "ip", "deployment"}
         if (
             scope in allowed_scopes

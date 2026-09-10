@@ -10,6 +10,7 @@ from app.config import (
     provider_positive_integer,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
+    provider_reviewed_flag,
     settings,
 )
 from app.models.data_source import DataSource
@@ -521,11 +522,17 @@ def provider_missing_routing_controls(name: str) -> list[str]:
             for operation in operations
         ):
             missing.append("FINRA_OTC_OPERATION_COSTS")
-        if not bool(getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)):
+        if not provider_reviewed_flag(
+            getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
+        ):
             missing.append("FINRA_OTC_TERMS_REVIEWED")
-        if not bool(getattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)):
+        if not provider_reviewed_flag(
+            getattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)
+        ):
             missing.append("FINRA_OTC_COMPLETENESS_REVIEWED")
-        if not bool(getattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)):
+        if not provider_reviewed_flag(
+            getattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)
+        ):
             missing.append("FINRA_OTC_REDISTRIBUTION_REVIEWED")
         poll_interval = provider_positive_integer(
             getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0)
@@ -538,7 +545,9 @@ def provider_missing_routing_controls(name: str) -> list[str]:
         reviewed_limit = provider_positive_integer(
             getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         )
-        terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
+        terms_reviewed = provider_reviewed_flag(
+            getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
+        )
         missing: list[str] = []
         if scope not in {"api_key", "account", "ip", "deployment"}:
             missing.append("FRED_REVIEWED_LIMIT_SCOPE")

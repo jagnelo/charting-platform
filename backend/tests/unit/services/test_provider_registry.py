@@ -289,6 +289,11 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
         assert provider_missing_routing_controls("finra_otc_directory") == []
+        monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", "true")
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_TERMS_REVIEWED"
+        ]
+        monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", True)
         assert provider_missing_routing_controls("finra_otc_directory") == [
             "FINRA_OTC_POLL_INTERVAL_SECONDS"
@@ -306,6 +311,11 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
         assert provider_missing_routing_controls("fred") == []
+        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", "true")
+        assert provider_missing_routing_controls("fred") == [
+            "FRED_SERIES_TERMS_REVIEWED"
+        ]
+        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", True)
         assert provider_missing_routing_controls("fred") == [
             "FRED_REVIEWED_REQUESTS_PER_MINUTE"

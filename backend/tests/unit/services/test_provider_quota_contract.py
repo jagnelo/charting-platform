@@ -315,6 +315,14 @@ def test_finra_async_boolean_bound_does_not_promote_bandwidth_profile(monkeypatc
     )
 
 
+def test_fred_non_boolean_terms_flag_does_not_promote_reviewed_limit(monkeypatch):
+    monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
+    monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", "true")
+    seed = provider_rate_limit_seed("fred")
+    assert seed["quota_contract"].get("unknown_dimensions")
+
+
 def test_finra_authenticated_dataset_usage_covers_cold_oauth_token_request():
     profile = get_provider_usage_profile("finra")
     assert profile["operation_costs"]["fetch_short_interest"] == 2
