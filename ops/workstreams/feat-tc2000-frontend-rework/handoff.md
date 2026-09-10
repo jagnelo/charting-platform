@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Explicit provider-factor materialization and lineage
+
+Product tip `dc71bf6c` adds the authenticated explicit provider-factor local
+materialization route. Persisted `provider_supplied` factors use the
+adjusted/raw multiplier contract for pre-event bars (prices/VWAP multiply and
+volume scales inversely); derived rows carry provider-neutral
+`provider_adjustment_factor` lineage and never replace provider rows. Coverage
+and D1-to-W1/MN provenance recognize the derived state with point-in-time
+checks. Ambiguous, invalid, incomplete, mixed-kind, mixed-version, and
+amount-only evidence remains structured opaque; no provider convention is
+inferred.
+
+Focused materialization/lineage coverage passed `53/53`; full backend unit
+coverage passed `1,427/1,427` at `67.86%`; Ruff, formatting, and diff checks
+passed. The exact gate passed backend integration `387/387`, frontend tests,
+type-check/build, uPlot/visual policy, compose/health/performance, and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected state-oracle
+diffs; the gate exited `1` at `e2e-visual` after clean teardown. No visual or
+acceptance policy changed. Continue provider/family history, W1/MN continuity
+beyond the bounded seam, canonical population, and dense-data evidence.
+
 ## 2026-09-10 — Explicit provider-factor application contract
 
 Product tip `2f3e59c6` adds a pure `rebuild_provider_adjusted_bars` contract

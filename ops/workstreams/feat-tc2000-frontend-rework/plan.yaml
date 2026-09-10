@@ -13,6 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip dc71bf6c adds authenticated local provider-factor materialization
+  behind an explicit provider_supplied adjusted/raw multiplier contract.
+  Prices/VWAP multiply and volume scales inversely for pre-event bars; derived
+  rows carry provider_adjustment_factor lineage and provider rows are never
+  replaced. Coverage and D1-to-W1/MN provenance recognize the derived state
+  with point-in-time checks. Invalid, incomplete, mixed-kind, mixed-version,
+  amount-only, and ambiguous evidence remains opaque; no convention is
+  inferred. Focused materialization/lineage coverage passed 53/53; full
+  backend unit coverage passed 1427/1427 at 67.86%; Ruff, formatting, and diff
+  checks passed. The exact branch-scoped gate passed backend integration
+  387/387, frontend Vitest/type-check/build, uPlot/visual-policy,
+  compose/health/performance, and functional Playwright 165 passed with 107
+  documented skips across 272. Visual parity remains 98/104 with exactly the
+  six protected diffs; the gate exited 1 at e2e-visual after clean scoped
+  teardown. Continue provider/family history, W1/MN continuity beyond the
+  bounded seam, canonical population, and dense-data evidence; preserve all
+  six assertions and the no-integration/no-deployment boundary.
   Product tip 2f3e59c6 adds a pure rebuild_provider_adjusted_bars seam for
   explicit provider_supplied factors. These are provider-declared adjusted/raw
   price multipliers for bars before each event (prices/VWAP multiply and volume
@@ -1239,6 +1256,19 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip dc71bf6c adds authenticated local provider-factor materialization
+    behind an explicit provider_supplied adjusted/raw multiplier contract;
+    derived rows carry provider_adjustment_factor lineage without replacing
+    provider rows, and coverage plus D1-to-W1/MN provenance retain point-in-time
+    checks. Focused materialization/lineage coverage passed 53/53; full backend
+    unit passed 1427/1427 at 67.86%; Ruff, format, and diff checks passed. The
+    exact gate passed backend integration 387/387, frontend/runtime checks, and
+    functional Playwright 165 passed with 107 documented skips across 272.
+    Visual parity remains 98/104 with exactly the six protected diffs; the gate
+    exited 1 at e2e-visual after clean teardown. Continue provider/family
+    history, W1/MN continuity beyond the bounded seam, canonical population,
+    and dense-data evidence; R2-R5 and R7 remain open and the no-integration/
+    no-deployment boundary holds.
     Product tip 2f3e59c6 adds a pure provider_supplied adjustment-factor
     rebuilder with explicit adjusted/raw multiplier semantics for pre-event
     prices/VWAP and inverse volume scaling, separate from split-only reciprocal
@@ -1875,7 +1905,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded evidence-backed R1 history or provenance seam, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent product/documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded provider/family history or provenance seam, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent product/documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

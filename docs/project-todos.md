@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-10 — Explicit provider-factor materialization and lineage
+
+- [x] Add the authenticated explicit `materialize-local-provider` route and
+      persist provider-adjustment-factor derived rows without replacing
+      provider collisions; prices/VWAP use the adjusted/raw multiplier and
+      volume scales inversely.
+- [x] Carry provider-factor lineage through coverage and D1-to-W1/MN state,
+      retaining point-in-time checks and the separate split-only rebuilder.
+- [x] Focused materialization/lineage coverage passed `53/53`; full backend
+      unit coverage passed `1,427/1,427` at `67.86%`; Ruff, formatting, and
+      diff checks passed; the exact gate passed all non-visual stages and
+      functional Playwright (`165` passed, `107` documented skips across
+      `272`) while visual parity remained `98/104` with exactly the six
+      protected diffs and clean teardown.
+- [ ] Continue provider/family history, W1/MN continuity beyond the bounded
+      path, canonical population, and dense-data evidence; preserve protected
+      visual assertions and the no-fallback/no-integration boundary.
+
 ### 2026-09-10 — Explicit provider adjustment-factor application
 
 - [x] Add a pure provider-factor rebuilder for persisted
@@ -15,10 +33,10 @@
       frontend/build/runtime checks, and functional Playwright (`165` passed,
       `107` documented skips across `272`); visual parity remains `98/104`
       with exactly the six protected diffs and clean teardown.
-- [ ] Wire this explicit provider-factor contract into provider/materialized
-      history, then continue family/provider history, W1/MN continuity,
-      canonical population, and dense-data evidence; preserve protected visual
-      assertions.
+- [x] Wire the explicit provider-factor contract into authenticated local
+      materialization, coverage lineage, and D1-to-W1/MN provenance; continue
+      the remaining provider/family history, canonical population, and dense-
+      data evidence from the new explicit seam.
 
 ### 2026-09-10 — Bounded historical coarse-timeframe materialization
 

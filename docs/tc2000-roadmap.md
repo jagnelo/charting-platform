@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Explicit provider-factor materialization and lineage
+
+At product tip `dc71bf6c`, the authenticated OHLCV API now exposes an explicit
+`POST /ohlcv/{symbol}/{timeframe}/materialize-local-provider` route. It reads
+persisted provider-supplied adjustment factors, applies the dedicated
+adjusted/raw multiplier contract (prices/VWAP multiply; volume scales
+inversely), and persists provider-neutral `provider_adjustment_factor`
+derived rows without replacing provider rows. Missing, invalid, mixed-kind,
+mixed-version, amount-only, and ambiguous source evidence remains structured
+and opaque; no provider convention is inferred.
+
+Coverage lineage and D1-to-W1/MN provenance now recognize the provider-factor
+derived state while retaining point-in-time checks and the existing split-only
+rebuilder. Focused materialization/lineage coverage passed `53/53`; the full
+backend unit suite passed `1,427/1,427` with `67.86%` coverage; Ruff,
+formatting, and diff checks passed. The exact branch-scoped gate passed backend
+integration `387/387`, frontend Vitest/type-check/build, uPlot and
+visual-policy checks, compose/health/performance checks, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six protected state-oracle diffs
+(`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125); the
+gate exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+This closes the bounded provider-factor materialization seam only. Provider/
+family history breadth, W1/MN continuity beyond the bounded lineage path,
+canonical population, and dense-data evidence remain open; preserve the six
+protected visual assertions and continue without integration or deployment.
+
 ## 2026-09-10 — Explicit provider-factor application contract
 
 At product tip `2f3e59c6`, the adjustment-factor service now has a pure
