@@ -56,6 +56,17 @@ current capability/quota ledger.
       products route provider-asset IDs through durable quota reservations and
       retain separate token price snapshots; the schedule is disabled by
       default and is passed only to backend/worker deployments.
+- [x] Add a dedicated tokenized-corporate-actions capability and runtime path.
+      xStocks history/upcoming feeds and Robinhood's combined action feed now
+      persist provisional canonical market events with explicit identity
+      linkage, unresolved-row retention, provider-specific operation accounting,
+      and a separately disabled worker schedule; catalogue/quote-only tokenized
+      adapters cannot be selected for corporate-action reads.
+- [x] Revalidate the complete provider matrix after the tokenized capability
+      change: 31/34 cases passed with only the exact Alpaca, Tradier, and
+      MarketData.app credential domains blocked; the clean backend gate passed
+      1,855 tests at 80.37% coverage and the dedicated tokenized suite passed
+      7/7 live probes plus 47 focused tests.
 - [x] Add safe cross-worktree env links, complete backend/worker Compose
       pass-through, and a manual GitHub environment-scoped live workflow.
       Routine push/PR CI receives no provider credentials. GitHub environment
