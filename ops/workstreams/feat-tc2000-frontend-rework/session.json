@@ -58,8 +58,25 @@
     "ps/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -92,21 +109,21 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-09T12:32:05.092316+00:00",
+  "goal_recorded_at": "2026-09-10T23:14:25.069685+00:00",
   "goal_request": {
     "objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
+  "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
+  "head": "543683c41b597e411bdedb3752a9748274eb8865",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T22:40:09Z",
-  "last_human_progress_update": "2026-09-10T22:40:09Z",
+  "last_checkpoint": "2026-09-10T23:14:33.617099+00:00",
+  "last_human_progress_update": "2026-09-10T23:14:04.823059+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "a057b74e836fd719172bd004e616d7d6c8f808f2a190ca8f1cf843713745b56a",
+  "next_action": "continue implementation from the branch workstream",
+  "plan_hash": "2c215ebaff90dc036729d4b79627c4e95960383307432d6f3ad6b7bcfaf9127c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -119,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip b5b6a5f9 closes the Market Map timestamp-boundary seam: membership evaluation, custom/preset period bounds, bar eligibility and returns, reference/source watermarks, provider snapshot windows, and cache-key serialization now normalize naive and offset-aware values to UTC. Focused Market Map regressions passed 8/8; full backend unit passed 1445/1445 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed backend integration 387/387 with 81.39% combined coverage, frontend Vitest 991/991 and build, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; clean branch-scoped teardown removed the stack and four images. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip c1f141a5 normalizes public instrument OHLCV coverage request boundaries to UTC before validation, SQL selection, coverage/provenance assessment, and response serialization. Focused coverage-router regressions passed 11/11; full backend unit passed 1446/1446 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend integration 387/387, frontend Vitest 991/991 and build, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly six established protected diffs; clean branch-scoped teardown removed all resources. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; no integration or deployment.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-    "total": 25,
-    "updated_at": "2026-09-10T22:40:09Z"
+    "next_action": "Continue provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
+    "total": 10,
+    "updated_at": "2026-09-10T23:14:04.822927+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
