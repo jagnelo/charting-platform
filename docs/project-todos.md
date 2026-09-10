@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-10 — Benchmark-family observed cadence evidence
+
+- [x] Measure distinct composition-date spacing for each benchmark-family
+      role's returned D1/W1/MN snapshots and expose status, sample count, and
+      median/minimum/maximum interval days without inferring an official
+      disclosure schedule or missing-snapshot completeness.
+- [x] Carry the additive observed-cadence evidence through the family
+      provenance contract, Market Map, and family-role accessibility summaries
+      without visible layout or pixel changes; cadence coverage passed `9/9`,
+      family integration `1/1`, Market Map `36/36`, and type-check, Ruff,
+      formatting, and diff checks passed.
+- [x] Re-run the exact gate: backend `1,397/387` (`81.22%`), frontend
+      `990/990`, functional `165` with `107` documented skips, visual `98/104`
+      with the six established diffs, and clean teardown.
+- [ ] Continue broader provider factor application/rebuild verification and
+      family/provider history, W1/MN continuity, broader cadence, and canonical
+      population evidence.
+
 ### 2026-09-10 — Benchmark-family history factor-evidence consumer
 
 - [x] Carry durable adjustment provenance from provider and derived member-bar

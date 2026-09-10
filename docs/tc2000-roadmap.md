@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Benchmark-family observed cadence evidence
+
+At implementation tip `011c1ee1`, benchmark-family coverage now reports
+observed spacing between the distinct composition dates actually returned for
+each D1/W1/MN role. The additive role contract includes cadence status,
+sample count, and median/minimum/maximum interval days; family provenance
+explicitly labels this as diagnostic evidence for returned snapshot dates
+only. It does not infer an official disclosure schedule or claim completeness
+for missing snapshots. Market Map and family-role accessibility summaries
+surface the evidence without visible layout or pixel changes; prices, bars,
+provider routing, fallback behavior, visual baselines, thresholds, skips, and
+acceptance policy are unchanged.
+
+Focused cadence coverage passed `9/9`; the family-coverage integration fixture
+passed `1/1`; the related Market Map frontend suite passed `36/36`; frontend
+type-check, Ruff, formatting, and diff checks were green. The exact
+Docker-backed gate completed migration compatibility (skipped because no
+migration changes existed from its comparison tip) and every other non-visual
+stage: backend unit/integration `1,397`/`387` with `81.22%` combined coverage,
+frontend Vitest `990/990`, functional Playwright `165` with `107` documented
+skips across `272`, frontend build, compose/provider/runner/health/
+performance/acceptance checks, and clean scoped teardown. Visual parity
+remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, broader cadence
+and canonical population evidence; R2-R7 remain open. Next action: continue
+the next bounded evidence-backed R1 history/provenance seam and rerun the exact
+gate at the next coherent tip.
+
 ## 2026-09-10 — Benchmark-family history factor-evidence consumer
 
 At product tip `1bfd7470`, the benchmark-family member-bar history contract
