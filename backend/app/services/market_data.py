@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventType
@@ -35,7 +36,10 @@ from app.providers import (
     provider_symbol_for_instrument,
 )
 from app.providers.base import InstrumentProfile
-from app.services.adjustment_factors import build_adjustment_factor_snapshot
+from app.services.adjustment_factors import (
+    build_adjustment_factor_snapshot,
+    summarize_persisted_adjustment_factor_provenance,
+)
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
@@ -456,31 +460,53 @@ async def _touch_ohlcv_dataset_state(
         factor_version = None
         factor_status = "not_applied" if not adjusted else "provider_native_opaque"
         if adjusted:
-            source_name = (
-                await db.execute(select(DataSource.name).where(DataSource.id == data_source_id))
-            ).scalar_one_or_none()
-            if source_name:
-                event_rows = (
-                    (
-                        await db.execute(
-                            select(InstrumentEvent)
-                            .where(
-                                InstrumentEvent.instrument_id == instrument.id,
-                                InstrumentEvent.source == source_name,
-                                InstrumentEvent.event_type.in_(
-                                    [InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND]
-                                ),
-                            )
-                            .order_by(InstrumentEvent.event_time, InstrumentEvent.source_event_key)
+            normalized_rows = (
+                (
+                    await db.execute(
+                        select(AdjustmentFactorObservation).where(
+                            AdjustmentFactorObservation.instrument_id == instrument.id,
+                            AdjustmentFactorObservation.data_source_id == data_source_id,
                         )
                     )
-                    .scalars()
-                    .all()
                 )
-                factor_snapshot = build_adjustment_factor_snapshot(event_rows)
-                if factor_snapshot.status != "not_observed":
-                    factor_status = factor_snapshot.status
-                    factor_version = factor_snapshot.version
+                .scalars()
+                .all()
+            )
+            if normalized_rows:
+                persisted_provenance = summarize_persisted_adjustment_factor_provenance(
+                    normalized_rows
+                )
+                factor_status = persisted_provenance.status
+                factor_version = persisted_provenance.version
+            else:
+                source_name = (
+                    await db.execute(select(DataSource.name).where(DataSource.id == data_source_id))
+                ).scalar_one_or_none()
+                if source_name:
+                    event_rows = (
+                        (
+                            await db.execute(
+                                select(InstrumentEvent)
+                                .where(
+                                    InstrumentEvent.instrument_id == instrument.id,
+                                    InstrumentEvent.source == source_name,
+                                    InstrumentEvent.event_type.in_(
+                                        [InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND]
+                                    ),
+                                )
+                                .order_by(
+                                    InstrumentEvent.event_time,
+                                    InstrumentEvent.source_event_key,
+                                )
+                            )
+                        )
+                        .scalars()
+                        .all()
+                    )
+                    factor_snapshot = build_adjustment_factor_snapshot(event_rows)
+                    if factor_snapshot.status != "not_observed":
+                        factor_status = factor_snapshot.status
+                        factor_version = factor_snapshot.version
         state.extra_data = {
             "bar_count": len(bars),
             "adjusted": adjusted,

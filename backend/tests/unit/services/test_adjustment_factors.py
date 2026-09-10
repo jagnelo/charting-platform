@@ -9,6 +9,7 @@ from app.models.instrument_event import EventTimeHint, InstrumentEvent, Instrume
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
     persist_adjustment_factor_observations,
+    summarize_persisted_adjustment_factor_provenance,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -90,6 +91,53 @@ def test_missing_split_ratio_does_not_create_a_rebuildable_version():
 
     assert snapshot.version is None
     assert snapshot.status == "provider_native_opaque_incomplete_factor_set"
+
+
+def test_persisted_factor_provenance_requires_one_consistent_rebuildable_version():
+    observations = [
+        AdjustmentFactorObservation(
+            factor_type="split",
+            factor=Decimal("2"),
+            source_event_key="split:2024-06-10",
+            factor_version="afv1-stable",
+        ),
+        AdjustmentFactorObservation(
+            factor_type="split",
+            factor=Decimal("1.5"),
+            source_event_key="split:2020-01-02",
+            factor_version="afv1-stable",
+        ),
+    ]
+
+    summary = summarize_persisted_adjustment_factor_provenance(observations)
+
+    assert summary.status == "rebuildable_split_factors"
+    assert summary.version == "afv1-stable"
+    assert summary.observation_count == 2
+    assert summary.distinct_versions == ("afv1-stable",)
+
+
+def test_persisted_factor_provenance_surfaces_mixed_versions_as_opaque():
+    observations = [
+        AdjustmentFactorObservation(
+            factor_type="split",
+            factor=Decimal("2"),
+            source_event_key="split:2024-06-10",
+            factor_version="afv1-old",
+        ),
+        AdjustmentFactorObservation(
+            factor_type="split",
+            factor=Decimal("1.5"),
+            source_event_key="split:2020-01-02",
+            factor_version="afv1-new",
+        ),
+    ]
+
+    summary = summarize_persisted_adjustment_factor_provenance(observations)
+
+    assert summary.version is None
+    assert summary.status == "provider_native_opaque_inconsistent_factor_set"
+    assert summary.distinct_versions == ("afv1-new", "afv1-old")
 
 
 @pytest.mark.asyncio

@@ -33,6 +33,16 @@ class AdjustmentFactorSnapshot:
     event_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class PersistedAdjustmentFactorProvenance:
+    """The durable factor evidence available for one instrument/source pair."""
+
+    version: str | None
+    status: str
+    observation_count: int
+    distinct_versions: tuple[str, ...] = ()
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
@@ -99,6 +109,72 @@ def build_adjustment_factor_snapshot(
         version=f"afv1-{hashlib.sha256(encoded).hexdigest()}",
         status="rebuildable_split_factors",
         event_count=len(ordered),
+    )
+
+
+def summarize_persisted_adjustment_factor_provenance(
+    observations: Iterable[AdjustmentFactorObservation],
+) -> PersistedAdjustmentFactorProvenance:
+    """Summarize normalized factor rows without inventing missing factors.
+
+    A persisted version is usable only when every split observation is valid
+    and all rows agree on the same version. Dividend amounts remain explicit
+    opaque evidence because they are not sufficient to rebuild a provider's
+    price-adjustment convention.
+    """
+
+    relevant = [
+        observation
+        for observation in observations
+        if observation.factor_type
+        in {InstrumentEventType.SPLIT.value, InstrumentEventType.DIVIDEND.value}
+    ]
+    if not relevant:
+        return PersistedAdjustmentFactorProvenance(
+            version=None,
+            status="not_observed",
+            observation_count=0,
+        )
+
+    if any(
+        observation.factor_type == InstrumentEventType.DIVIDEND.value
+        or observation.factor is None
+        or observation.factor <= 0
+        or not observation.source_event_key
+        for observation in relevant
+    ):
+        return PersistedAdjustmentFactorProvenance(
+            version=None,
+            status="provider_native_opaque_incomplete_factor_set",
+            observation_count=len(relevant),
+            distinct_versions=tuple(
+                sorted(
+                    {
+                        observation.factor_version
+                        for observation in relevant
+                        if observation.factor_version
+                    }
+                )
+            ),
+        )
+
+    versions = tuple(
+        sorted(
+            {observation.factor_version for observation in relevant if observation.factor_version}
+        )
+    )
+    if len(versions) != 1:
+        return PersistedAdjustmentFactorProvenance(
+            version=None,
+            status="provider_native_opaque_inconsistent_factor_set",
+            observation_count=len(relevant),
+            distinct_versions=versions,
+        )
+    return PersistedAdjustmentFactorProvenance(
+        version=versions[0],
+        status="rebuildable_split_factors",
+        observation_count=len(relevant),
+        distinct_versions=versions,
     )
 
 
