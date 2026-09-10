@@ -1,5 +1,7 @@
+import json
 from datetime import UTC, datetime, timedelta
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_observation import (
     DatasetStatus,
@@ -380,7 +382,7 @@ class TestProvidersRouter:
         assert health.circuit_open_until is None
         assert health.last_error_type is None
 
-    def test_provider_usage_summary(self, client, auth_headers, db):
+    def test_provider_usage_summary(self, client, auth_headers, db, monkeypatch, tmp_path):
         data_source = DataSource(
             name="yfinance",
             is_active=True,
@@ -413,6 +415,21 @@ class TestProvidersRouter:
             )
         )
         db.commit()
+        ledger = tmp_path / "provider-live-usage.jsonl"
+        ledger.write_text(
+            json.dumps(
+                {
+                    "at": now.isoformat(),
+                    "provider": "yfinance",
+                    "operations": 1,
+                    "http_requests": 2,
+                    "response_bytes": 128,
+                    "exit_status": 0,
+                }
+            )
+            + "\n"
+        )
+        monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
 
         usage = client.get("/api/v1/providers/usage", headers=auth_headers)
         assert usage.status_code == 200
@@ -421,3 +438,6 @@ class TestProvidersRouter:
         assert row["usage_unit_label"] == "requests"
         assert "live_usage_ledger" in row
         assert "live_test_usage" in row
+        assert row["live_usage_ledger"]["status"] == "available"
+        assert row["live_test_usage"]["http_requests"] == 2
+        assert row["live_test_usage"]["response_bytes"] == 128

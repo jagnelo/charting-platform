@@ -336,3 +336,13 @@ endpoint, the authoritative gate was rerun at `2026-09-10T04:33Z`. It passed
 `1860` tests with `89` warnings and `80.37%` line coverage in `544.22s`, above
 the 75% threshold. Testcontainer session
 `247cc1c4-05aa-4571-adac-9709ad237562` was cleaned without host-wide pruning.
+
+The authenticated `/api/v1/providers/usage` test now writes a temporary
+redacted ledger row and asserts that the endpoint exposes the separate
+`live_usage_ledger` status and `live_test_usage` counters. The focused
+service/router/secret-wiring suite remained green, and the authoritative
+session-aware gate was rerun at `2026-09-10T04:53Z`: `1860 passed`, `89`
+warnings, `80.37%` line coverage in `399.55s`, above the 75% threshold.
+Testcontainer session `0e80e4ff-024f-4ca1-b8ab-f5c876922c95` was cleaned
+without host-wide pruning. This remains observability only: direct live-test
+usage is not merged into runtime quota reservations and cannot change routing.
