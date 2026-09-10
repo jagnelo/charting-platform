@@ -300,7 +300,7 @@ async def _family_member_bar_history(
         )
     )
     if as_of is not None:
-        bars_query = bars_query.where(OHLCVBar.ts <= as_of)
+        bars_query = bars_query.where(OHLCVBar.ts <= _as_utc(as_of))
     bar_rows = (await db.execute(bars_query)).all()
 
     # Aggregate provider and locally derived rows per member before applying
@@ -602,7 +602,8 @@ async def _family_member_metadata_readiness(
 def _as_utc(value: datetime) -> datetime:
     """Normalize database timestamps before entitlement cutoff comparisons."""
 
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
 
 
 def _entitlement_state(
@@ -1270,8 +1271,9 @@ def _truncate_bars_at(
 ) -> dict[int, list[OHLCVBar]]:
     if as_of is None:
         return bars_by_id
+    evaluation_at = _as_utc(as_of)
     return {
-        instrument_id: [bar for bar in bars if bar.ts <= as_of]
+        instrument_id: [bar for bar in bars if _as_utc(bar.ts) <= evaluation_at]
         for instrument_id, bars in bars_by_id.items()
     }
 
@@ -1736,7 +1738,7 @@ async def instrument_technical_snapshot(
         instrument.id, []
     )
     if as_of is not None:
-        bars = [bar for bar in bars if bar.ts <= as_of]
+        bars = _truncate_bars_at({instrument.id: bars}, as_of).get(instrument.id, [])
     latest = bars[-1] if bars else None
     warnings: list[AnalysisWarning] = []
 
@@ -2235,10 +2237,7 @@ async def industry_proxy_snapshot(
         db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
     )
     if as_of is not None:
-        bars_by_id = {
-            instrument_id: [bar for bar in bars if bar.ts <= as_of]
-            for instrument_id, bars in bars_by_id.items()
-        }
+        bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
     rows: list[IndustryProxySnapshotRow] = []
@@ -2530,12 +2529,7 @@ async def etf_constituent_snapshot(
         .options(selectinload(ETFHoldingsSnapshot.rows))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
-    if as_of is not None:
-        snapshot_query = snapshot_query.where(
-            ETFHoldingsSnapshot.composition_date <= as_of.date(),
-            ETFHoldingsSnapshot.known_at.is_not(None),
-            ETFHoldingsSnapshot.known_at <= as_of,
-        )
+    snapshot_query = _holdings_snapshot_at(snapshot_query, as_of)
     snapshot = (
         await db.execute(
             snapshot_query.order_by(
@@ -3329,11 +3323,7 @@ async def benchmark_family_concentration_history(
             .options(selectinload(ETFHoldingsSnapshot.rows))
             .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         ).where(ETFHoldingsSnapshot.known_at.is_not(None))
-        if as_of is not None:
-            snapshots_statement = snapshots_statement.where(
-                ETFHoldingsSnapshot.composition_date <= as_of.date(),
-                ETFHoldingsSnapshot.known_at <= as_of,
-            )
+        snapshots_statement = _holdings_snapshot_at(snapshots_statement, as_of)
         snapshots = list(
             (
                 await db.execute(

@@ -13,6 +13,7 @@ from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
+    _as_utc,
     _calendar_year_cells,
     _entitlement_state,
     _family_member_bar_history,
@@ -443,6 +444,21 @@ def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     cells = _performance_cells([], instrument_id=7)
     assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+def test_historical_bar_truncation_normalizes_offsetless_and_offset_cutoffs():
+    bars = {
+        7: [
+            _bar(7, 2024, 1, "100"),
+            _bar(7, 2024, 2, "120"),
+        ]
+    }
+
+    offsetless = _truncate_bars_at(bars, datetime(2024, 1, 15))
+    assert [bar.close for bar in offsetless[7]] == [Decimal("100")]
+    assert _as_utc(datetime.fromisoformat("2024-01-15T01:00:00+02:00")) == datetime(
+        2024, 1, 14, 23, tzinfo=UTC
+    )
 
 
 def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():
