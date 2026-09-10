@@ -574,12 +574,14 @@ containers, short or non-finite numeric rows, non-increasing pagination,
 malformed symbol metadata, and non-rate-limit HTTP failures. Binance 429/418
 responses are typed capacity errors retaining provider headers. The focused
 Binance suite passed `26/26`; Ruff and diff checks passed. The authoritative
-gate remains unverified because Docker preflight is currently unavailable.
+gate recorded at `2026-09-10T09:45Z` passed `1959/1959`, with `89` warnings
+and `80.45%` coverage, using isolated PostgreSQL/Redis testcontainer session
+`160eaf86-b011-484f-b3cc-a5259f212c26`, cleaned without host-wide pruning.
 
 The bounded keyless Binance live probe then passed `1/1` in `1.46s` against
 the public `/klines` endpoint and recorded positive transport telemetry. This
-is additive live evidence only; it does not replace the blocked Docker-backed
-full gate.
+is additive live evidence only; the authoritative Docker-backed gate is now
+also recorded above.
 
 Alpha Vantage JSON and CSV adapters now reject invalid containers, malformed
 search/history rows, incomplete listing or IPO rows, invalid dates/numbers, and
