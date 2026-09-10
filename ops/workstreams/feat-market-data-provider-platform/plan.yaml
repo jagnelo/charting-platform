@@ -261,21 +261,22 @@ progress:
     - FINRA Query API authenticated submission, polling, synchronous datasets, OAuth, and bounded async downloads now convert HTTP 418/429/non-2xx failures into typed redacted provider errors with allow-listed capacity headers, retry metadata, and explicit IP scope; focused FINRA/provider/universe coverage passes 71/71 with Ruff, compilation, and diff checks clean
     - FINRA credentialed short-interest and OTC Daily List live probes pass 2/2 with positive transport observations using the existing operator-owned credentials; the live usage receipt remains outside Git
     - US-universe reconciliation now fails closed on non-array pages, scalar/mixed quote rows, or rows missing a symbol instead of silently filtering provider discovery data; focused universe/provider coverage passes 71/71 with Ruff, compilation, and diff checks clean
+    - tokenized xStocks, Robinhood, Bybit, Gate, and Kraken record builders now reject missing provider identities, malformed deployment/ticker containers, and malformed or non-finite quote/multiplier values; focused tokenized plus optional-provider integrity coverage passes 104/104 with Ruff, compilation, and diff checks clean
+    - the elevated complete live matrix at 2026-09-10T16:06Z passed 29/37; the eight remaining outcomes are exact missing credential preflights for Alpaca, Tradier, MarketData.app, IBKR, Dinari, and Ondo plus the configured Alpha Vantage key's typed 25-requests/day capacity responses. All public tokenized probes passed, and the xStocks edge exposed observed (not contractual) 1,000-limit/996-remaining/reset headers retained in the external usage receipt; no acceptance claim was made
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
-    The latest complete backend live collection at 2026-09-10T15:16Z passed
-    30/40 with no secret values persisted. Ten cases fail honestly: the
-    deployment-owned EDGAR_USER_AGENT, ALPACA_API_KEY/ALPACA_SECRET_KEY,
-    TRADIER_API_KEY, MARKETDATA_APP_API_KEY, IBKR_READ_ONLY_URL/
-    IBKR_READ_ONLY_SESSION_COOKIE, DINARI_API_KEY_ID/DINARI_API_SECRET_KEY, and
-    ONDO_GLOBAL_MARKETS_API_KEY are absent, while the configured Alpha Vantage
-    key is at its documented 25-requests/day capacity for both daily history
-    and IPO-calendar reads. These are typed capacity failures with
-    provider-specific rolling 24-hour deferral, not parser errors. All public
-    tokenized probes pass, including both corporate-action reads and the Gate
-    public TradFi order-book read; the isolated Finnhub credentialed case also
-    passes. The GitHub `jagnelo` live environment is not externally verifiable
+    The latest elevated complete backend live collection at 2026-09-10T16:06Z
+    passed 29/37 with no secret values persisted. Eight outcomes fail honestly:
+    ALPACA_API_KEY/ALPACA_SECRET_KEY, TRADIER_API_KEY,
+    MARKETDATA_APP_API_KEY, IBKR_READ_ONLY_URL/IBKR_READ_ONLY_SESSION_COOKIE,
+    DINARI_API_KEY_ID/DINARI_API_SECRET_KEY, and ONDO_GLOBAL_MARKETS_API_KEY
+    are absent, while the configured Alpha Vantage key is at its documented
+    25-requests/day capacity for both daily history and IPO-calendar reads.
+    These are typed preflight/capacity failures, not parser errors. All public
+    tokenized probes pass, and xStocks returned observed native limit headers
+    during this run; those observations are not promoted to a contractual
+    quota. The GitHub `jagnelo` live environment is not externally verifiable
     until owner authentication is restored; FRED's three explicit review
     controls (scope, conservative limit, and series terms), FINRA OTC's
     positive operation-cost map plus terms/completeness/redistribution/poll

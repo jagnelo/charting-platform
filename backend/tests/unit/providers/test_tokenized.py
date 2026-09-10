@@ -109,6 +109,58 @@ def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings
     assert kraken.symbol == "AAPLx" and kraken.underlying_symbol == "AAPL"
 
 
+@pytest.mark.parametrize(
+    ("builder", "payload"),
+    [
+        (lambda payload: XStocksProvider()._record(payload), {"id": "x-aapl"}),
+        (lambda payload: RobinhoodTokenProvider._record(payload), {"id": "rh-aapl"}),
+        (lambda payload: BybitXStocksProvider._record(payload), {}),
+        (lambda payload: GateTradfiProvider._record(payload), {}),
+        (lambda payload: KrakenXStocksProvider._record(payload), {}),
+    ],
+)
+def test_tokenized_records_reject_missing_provider_identity(builder, payload):
+    with pytest.raises(ProviderResponseError, match="without (symbol|asset identifier)"):
+        builder(payload)
+
+
+@pytest.mark.parametrize(
+    ("builder", "payload", "quote"),
+    [
+        (
+            lambda payload, quote: XStocksProvider()._record(payload, price=quote),
+            {"id": "x-aapl", "symbol": "xAAPL", "name": "Apple"},
+            Decimal("NaN"),
+        ),
+        (
+            lambda payload, quote: BybitXStocksProvider._record(payload, quote),
+            {"symbol": "AAPLx"},
+            {"lastPrice": "Infinity"},
+        ),
+        (
+            lambda payload, quote: GateTradfiProvider._record(payload, quote),
+            {"symbol": "AAPLx"},
+            {"bid": "NaN"},
+        ),
+        (
+            lambda payload, quote: KrakenXStocksProvider._record(payload, quote),
+            {"symbol": "AAPLx"},
+            {"c": ["NaN"]},
+        ),
+    ],
+)
+def test_tokenized_records_reject_nonfinite_numeric_values(builder, payload, quote):
+    with pytest.raises(ProviderResponseError, match="invalid"):
+        builder(payload, quote)
+
+
+def test_tokenized_records_reject_malformed_deployment_rows():
+    with pytest.raises(ProviderResponseError, match="deployment row container"):
+        XStocksProvider()._record(
+            {"id": "x-aapl", "symbol": "xAAPL", "name": "Apple", "deployments": ["invalid"]}
+        )
+
+
 def test_gate_orderbook_null_rows_are_valid_empty_market_data():
     response = Mock()
     response.raise_for_status.return_value = None

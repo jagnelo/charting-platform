@@ -127,6 +127,43 @@ def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
     assert bars[0].ts == datetime(2024, 1, 2, 21, tzinfo=UTC)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("datetime", "not-a-date"),
+        ("open", "Infinity"),
+        ("high", "NaN"),
+        ("close", "not-a-number"),
+        ("volume", "Infinity"),
+        ("vwap", "NaN"),
+    ],
+)
+def test_optional_ohlcv_rejects_invalid_or_nonfinite_values(field, value):
+    provider = TwelveDataProvider()
+    row = {
+        "datetime": "2024-01-02 14:30:00",
+        "open": "185.0",
+        "high": "186.0",
+        "low": "184.5",
+        "close": "185.5",
+        "volume": "1000",
+        "vwap": "185.2",
+    }
+    row[field] = value
+    payload = {
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
+        "values": [row],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="OHLCV"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+            )
+
+
 def test_finnhub_parses_parallel_candle_arrays():
     provider = FinnhubProvider()
     start = int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())
@@ -289,6 +326,51 @@ def test_fmp_parses_documented_stable_earnings_calendar():
         "to": "2024-01-03",
         "apikey": "demo",
     }
+
+
+@pytest.mark.parametrize(
+    ("provider", "payload", "operation"),
+    [
+        (TiingoProvider(), [{}], "search"),
+        (TwelveDataProvider(), {"data": [{}]}, "search"),
+        (TradierProvider(), {"securities": {"security": [{}]}}, "search"),
+        (FinnhubProvider(), {"result": [{}]}, "search"),
+        (MarketstackProvider(), {"pagination": {"total": 1}, "data": [{}]}, "discovery"),
+        (EODHDProvider(), [{}], "discovery"),
+        (FMPProvider(), [{}], "discovery"),
+    ],
+)
+def test_optional_identity_rows_are_not_silently_dropped(provider, payload, operation):
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="required") as exc_info:
+            if operation == "search":
+                provider.search_instruments("Apple")
+            else:
+                with patch(
+                    "app.providers.optional_market_data.settings.MARKETSTACK_DISCOVERY_EXCHANGE",
+                    "XNAS",
+                ):
+                    provider.discover_universe_page("EQUITY", 0)
+    assert exc_info.value.provider_name == provider.name
+
+
+@pytest.mark.parametrize(
+    ("provider", "payload", "operation"),
+    [
+        (FinnhubProvider(), [{"period": "not-a-date"}], "instrument"),
+        (FinnhubProvider(), {"earningsCalendar": [{"date": "not-a-date", "symbol": "AAPL"}]}, "market"),
+        (FinnhubProvider(), {"earningsCalendar": [{"date": "2024-01-02"}]}, "market"),
+        (FMPProvider(), [{"date": "not-a-date", "symbol": "AAPL"}], "market"),
+        (FMPProvider(), [{"date": "2024-01-02"}], "market"),
+    ],
+)
+def test_optional_earnings_rows_are_not_silently_dropped(provider, payload, operation):
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError):
+            if operation == "instrument":
+                provider.fetch_instrument_events("AAPL")
+            else:
+                provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
 
 
 def test_daily_adapters_parse_common_rows():
@@ -682,6 +764,40 @@ def test_tradier_invalid_option_expiration_is_typed():
     ):
         with pytest.raises(ProviderResponseError) as exc_info:
             provider.list_option_expirations("AAPL")
+    assert exc_info.value.provider_name == "tradier"
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"expiration_date": "2024-01-19", "option_type": "call", "strike": "100"},
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "0",
+        },
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "100",
+            "greeks": {"delta": "NaN"},
+        },
+        {
+            "symbol": "AAPL240119C00100000",
+            "expiration_date": "2024-01-19",
+            "option_type": "call",
+            "strike": "100",
+            "greeks": "invalid",
+        },
+    ],
+)
+def test_tradier_option_chain_rejects_malformed_contracts(row):
+    provider = TradierProvider()
+    with patch.object(provider, "_get", return_value={"options": {"option": [row]}}):
+        with pytest.raises(ProviderResponseError, match="option") as exc_info:
+            provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
     assert exc_info.value.provider_name == "tradier"
 
 

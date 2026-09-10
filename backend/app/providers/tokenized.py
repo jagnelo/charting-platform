@@ -33,9 +33,43 @@ def _decimal(value: Any) -> Decimal | None:
     if value in (None, ""):
         return None
     try:
-        return Decimal(str(value))
+        parsed = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError):
         return None
+    return parsed if parsed.is_finite() else None
+
+
+def _required_text(payload: dict[str, Any], provider_name: str, field: str, *keys: str) -> str:
+    """Return a non-empty provider identity field or fail closed."""
+
+    for key in keys:
+        value = payload.get(key)
+        if value is None or isinstance(value, bool):
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    raise ProviderResponseError(provider_name, f"provider returned an asset without {field}")
+
+
+def _checked_decimal(value: Any, provider_name: str, field: str) -> Decimal | None:
+    """Reject malformed/non-finite values while preserving omitted optionals."""
+
+    if value in (None, ""):
+        return None
+    parsed = _decimal(value)
+    if parsed is None:
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field}")
+    return parsed
+
+
+def _deployments(payload: dict[str, Any], provider_name: str) -> list[dict[str, Any]]:
+    raw = payload.get("deployments", [])
+    if raw is None:
+        return []
+    if not isinstance(raw, list) or any(not isinstance(item, dict) for item in raw):
+        raise ProviderResponseError(provider_name, "provider returned an invalid deployment row container")
+    return raw
 
 
 def _now() -> datetime:
@@ -250,22 +284,33 @@ class XStocksProvider:
 
     def _record(self, payload: dict[str, Any], *, price: Decimal | None = None) -> TokenizedAssetRecord:
         underlying = payload.get("underlying") or {}
-        deployments = payload.get("deployments") or []
-        first = deployments[0] if deployments and isinstance(deployments[0], dict) else {}
+        if not isinstance(underlying, dict):
+            raise ProviderResponseError(self.name, "provider returned an invalid underlying object")
+        deployments = _deployments(payload, self.name)
+        symbol = _required_text(payload, self.name, "symbol", "symbol")
+        asset_id = _required_text(payload, self.name, "asset identifier", "id", "symbol")
+        name = _required_text(payload, self.name, "name", "name", "symbol")
+        first = deployments[0] if deployments else {}
         network, chain_id, address = _network_chain_id(first)
         return TokenizedAssetRecord(
             provider=self.name,
-            asset_id=str(payload.get("id") or payload.get("symbol")),
-            symbol=str(payload.get("symbol") or ""),
-            name=str(payload.get("name") or payload.get("symbol") or ""),
+            asset_id=asset_id,
+            symbol=symbol,
+            name=name,
             underlying_symbol=underlying.get("symbol") or payload.get("underlyingSymbol") or None,
             underlying_isin=underlying.get("isin") or payload.get("underlyingIsin") or None,
             isin=payload.get("isin") or None,
             network=network,
             chain_id=chain_id,
             contract_address=address,
-            price=price,
-            multiplier=_decimal(payload.get("currentMultiplier") or payload.get("multiplier")),
+            price=_checked_decimal(price, self.name, "price") if price is not None else None,
+            multiplier=_checked_decimal(
+                payload.get("currentMultiplier")
+                if payload.get("currentMultiplier") is not None
+                else payload.get("multiplier"),
+                self.name,
+                "current multiplier",
+            ),
             status="halted" if payload.get("isTradingHalted") else "active",
             backing_type="fully_backed" if underlying else None,
             collateral={"underlying": underlying, "deployments": deployments},
@@ -309,7 +354,7 @@ class XStocksProvider:
         asset = self.get_tokenized_asset(identifier)
         if asset is None:
             return None
-        asset.price = _decimal(quote)
+        asset.price = _checked_decimal(quote, self.name, "price quote")
         asset.observed_at = _now()
         asset.raw_payload = {"asset": asset.raw_payload, "price": payload}
         return asset
@@ -348,20 +393,32 @@ class RobinhoodTokenProvider:
 
     @staticmethod
     def _record(payload: dict[str, Any], *, price: Decimal | None = None) -> TokenizedAssetRecord:
-        deployments = payload.get("deployments") or []
-        first = deployments[0] if deployments and isinstance(deployments[0], dict) else {}
+        deployments = _deployments(payload, RobinhoodTokenProvider.name)
+        symbol = _required_text(
+            payload, RobinhoodTokenProvider.name, "symbol", "tokenSymbol", "symbol"
+        )
+        asset_id = _required_text(
+            payload, RobinhoodTokenProvider.name, "asset identifier", "id", "tokenSymbol", "symbol"
+        )
+        name = _required_text(
+            payload, RobinhoodTokenProvider.name, "name", "tokenName", "name", "tokenSymbol", "symbol"
+        )
+        first = deployments[0] if deployments else {}
         network, chain_id, address = _network_chain_id(first)
-        symbol = str(payload.get("tokenSymbol") or payload.get("symbol") or "")
         return TokenizedAssetRecord(
             provider=RobinhoodTokenProvider.name,
-            asset_id=str(payload.get("id") or symbol),
+            asset_id=asset_id,
             symbol=symbol,
-            name=str(payload.get("tokenName") or payload.get("name") or symbol),
+            name=name,
             network=network,
             chain_id=chain_id,
             contract_address=address,
-            price=price,
-            multiplier=_decimal(payload.get("currentMultiplier")),
+            price=(
+                _checked_decimal(price, RobinhoodTokenProvider.name, "price")
+                if price is not None
+                else None
+            ),
+            multiplier=_checked_decimal(payload.get("currentMultiplier"), RobinhoodTokenProvider.name, "current multiplier"),
             status=str(payload.get("status") or "unknown").lower(),
             backing_type="economic_exposure_debt_security",
             collateral={"deployments": deployments, "trading_capabilities": payload.get("tradingCapabilities")},
@@ -396,9 +453,9 @@ class RobinhoodTokenProvider:
         if quote is None:
             return asset
         record = asset or self._record(quote)
-        record.price = _decimal(quote.get("bid"))
-        record.bid = _decimal(quote.get("bid"))
-        record.ask = _decimal(quote.get("ask"))
+        record.price = _checked_decimal(quote.get("bid"), self.name, "bid price")
+        record.bid = _checked_decimal(quote.get("bid"), self.name, "bid price")
+        record.ask = _checked_decimal(quote.get("ask"), self.name, "ask price")
         record.observed_at = _now()
         record.raw_payload = {"asset": record.raw_payload, "price": quote}
         return record
@@ -437,8 +494,11 @@ class BybitXStocksProvider:
 
     @staticmethod
     def _record(row: dict[str, Any], quote: dict[str, Any] | None = None) -> TokenizedAssetRecord:
-        symbol = str(row.get("symbol") or row.get("baseCoin") or "")
-        quote = quote or {}
+        symbol = _required_text(row, BybitXStocksProvider.name, "symbol", "symbol", "baseCoin")
+        if quote is None:
+            quote = {}
+        if not isinstance(quote, dict):
+            raise ProviderResponseError(BybitXStocksProvider.name, "provider returned an invalid ticker object")
         return TokenizedAssetRecord(
             provider=BybitXStocksProvider.name,
             asset_id=symbol,
@@ -446,13 +506,15 @@ class BybitXStocksProvider:
             name=str(row.get("displayName") or row.get("baseCoin") or symbol),
             underlying_symbol=str(row.get("baseCoin") or symbol),
             currency=str(row.get("quoteCoin") or "USD"),
-            price=_decimal(quote.get("lastPrice")),
-            bid=_decimal(quote.get("bid1Price")),
-            ask=_decimal(quote.get("ask1Price")),
-            multiplier=_decimal(
+            price=_checked_decimal(quote.get("lastPrice"), BybitXStocksProvider.name, "last price"),
+            bid=_checked_decimal(quote.get("bid1Price"), BybitXStocksProvider.name, "bid price"),
+            ask=_checked_decimal(quote.get("ask1Price"), BybitXStocksProvider.name, "ask price"),
+            multiplier=_checked_decimal(
                 row.get("xstocksMultiplier")
                 or row.get("multiplier")
-                or row.get("currentMultiplier")
+                or row.get("currentMultiplier"),
+                BybitXStocksProvider.name,
+                "multiplier",
             ),
             status=str(row.get("status") or "unknown").lower(),
             backing_type="exchange_listed_tokenized_security",
@@ -506,9 +568,9 @@ class BybitXStocksProvider:
             return None
         record = asset or self._record({"symbol": identifier}, quote)
         if quote:
-            record.price = _decimal(quote.get("lastPrice"))
-            record.bid = _decimal(quote.get("bid1Price"))
-            record.ask = _decimal(quote.get("ask1Price"))
+            record.price = _checked_decimal(quote.get("lastPrice"), self.name, "last price")
+            record.bid = _checked_decimal(quote.get("bid1Price"), self.name, "bid price")
+            record.ask = _checked_decimal(quote.get("ask1Price"), self.name, "ask price")
             record.raw_payload = {"asset": record.raw_payload, "ticker": quote}
         record.observed_at = _now()
         return record
@@ -539,8 +601,11 @@ class GateTradfiProvider:
 
     @staticmethod
     def _record(row: dict[str, Any], quote: dict[str, Any] | None = None) -> TokenizedAssetRecord:
-        symbol = str(row.get("symbol") or row.get("name") or "")
-        quote = quote or {}
+        symbol = _required_text(row, GateTradfiProvider.name, "symbol", "symbol", "name")
+        if quote is None:
+            quote = {}
+        if not isinstance(quote, dict):
+            raise ProviderResponseError(GateTradfiProvider.name, "provider returned an invalid quote object")
         return TokenizedAssetRecord(
             provider=GateTradfiProvider.name,
             asset_id=symbol,
@@ -548,9 +613,13 @@ class GateTradfiProvider:
             name=str(row.get("display_name") or row.get("name") or symbol),
             underlying_symbol=str(row.get("underlying_symbol") or row.get("base") or symbol),
             currency=str(row.get("quote_currency") or "USD"),
-            price=_decimal(quote.get("last") or quote.get("price")),
-            bid=_decimal(quote.get("bid")),
-            ask=_decimal(quote.get("ask")),
+            price=_checked_decimal(
+                quote.get("last") if quote.get("last") is not None else quote.get("price"),
+                GateTradfiProvider.name,
+                "last price",
+            ),
+            bid=_checked_decimal(quote.get("bid"), GateTradfiProvider.name, "bid price"),
+            ask=_checked_decimal(quote.get("ask"), GateTradfiProvider.name, "ask price"),
             status=str(row.get("status") or "unknown").lower(),
             backing_type="exchange_listed_tokenized_security",
             collateral={"venue": "gate_tradfi"},
@@ -593,9 +662,21 @@ class GateTradfiProvider:
         }
         record = asset or self._record({"symbol": identifier}, row)
         if isinstance(row, dict):
-            record.bid = _decimal(row.get("bid") or row.get("best_bid"))
-            record.ask = _decimal(row.get("ask") or row.get("best_ask"))
-            record.price = _decimal(row.get("last") or row.get("price"))
+            record.bid = _checked_decimal(
+                row.get("bid") if row.get("bid") is not None else row.get("best_bid"),
+                self.name,
+                "bid price",
+            )
+            record.ask = _checked_decimal(
+                row.get("ask") if row.get("ask") is not None else row.get("best_ask"),
+                self.name,
+                "ask price",
+            )
+            record.price = _checked_decimal(
+                row.get("last") if row.get("last") is not None else row.get("price"),
+                self.name,
+                "last price",
+            )
             record.raw_payload = {"asset": record.raw_payload, "orderbook": row}
         record.observed_at = _now()
         return record
@@ -628,8 +709,30 @@ class KrakenXStocksProvider:
 
     @staticmethod
     def _record(row: dict[str, Any], quote: dict[str, Any] | None = None) -> TokenizedAssetRecord:
-        symbol = str(row.get("symbol") or row.get("altname") or row.get("wsname") or "")
-        quote = quote or {}
+        symbol = _required_text(
+            row, KrakenXStocksProvider.name, "symbol", "symbol", "altname", "wsname"
+        )
+        if quote is None:
+            quote = {}
+        if not isinstance(quote, dict):
+            raise ProviderResponseError(KrakenXStocksProvider.name, "provider returned an invalid ticker object")
+
+        def quote_value(*keys: str) -> Any:
+            for key in keys:
+                if key not in quote:
+                    continue
+                value = quote[key]
+                if isinstance(value, list):
+                    if not value:
+                        return None
+                    return value[0]
+                if key in {"c", "b", "a"}:
+                    raise ProviderResponseError(
+                        KrakenXStocksProvider.name, f"provider returned an invalid {key} quote field"
+                    )
+                return value
+            return None
+
         return TokenizedAssetRecord(
             provider=KrakenXStocksProvider.name,
             asset_id=symbol,
@@ -637,9 +740,9 @@ class KrakenXStocksProvider:
             name=str(row.get("wsname") or symbol),
             underlying_symbol=str(row.get("base") or symbol),
             currency=str(row.get("quote") or "USD"),
-            price=_decimal(quote.get("c", [None])[0] if isinstance(quote.get("c"), list) else quote.get("last")),
-            bid=_decimal(quote.get("b", [None])[0] if isinstance(quote.get("b"), list) else quote.get("bid")),
-            ask=_decimal(quote.get("a", [None])[0] if isinstance(quote.get("a"), list) else quote.get("ask")),
+            price=_checked_decimal(quote_value("c", "last"), KrakenXStocksProvider.name, "last price"),
+            bid=_checked_decimal(quote_value("b", "bid"), KrakenXStocksProvider.name, "bid price"),
+            ask=_checked_decimal(quote_value("a", "ask"), KrakenXStocksProvider.name, "ask price"),
             status="active",
             backing_type="exchange_listed_tokenized_security",
             collateral={"venue": "kraken"},
@@ -666,9 +769,25 @@ class KrakenXStocksProvider:
             raise ProviderResponseError(self.name, "provider returned a non-object ticker row")
         quote = next(iter(result.values()))
         record = asset or self._record({"symbol": identifier}, quote)
-        record.price = _decimal(quote.get("c", [None])[0] if isinstance(quote.get("c"), list) else quote.get("last"))
-        record.bid = _decimal(quote.get("b", [None])[0] if isinstance(quote.get("b"), list) else quote.get("bid"))
-        record.ask = _decimal(quote.get("a", [None])[0] if isinstance(quote.get("a"), list) else quote.get("ask"))
+        def quote_value(*keys: str) -> Any:
+            for key in keys:
+                if key not in quote:
+                    continue
+                value = quote[key]
+                if isinstance(value, list):
+                    if not value:
+                        return None
+                    return value[0]
+                if key in {"c", "b", "a"}:
+                    raise ProviderResponseError(
+                        self.name, f"provider returned an invalid {key} quote field"
+                    )
+                return value
+            return None
+
+        record.price = _checked_decimal(quote_value("c", "last"), self.name, "last price")
+        record.bid = _checked_decimal(quote_value("b", "bid"), self.name, "bid price")
+        record.ask = _checked_decimal(quote_value("a", "ask"), self.name, "ask price")
         record.raw_payload = {"asset": record.raw_payload, "ticker": quote}
         record.observed_at = _now()
         return record

@@ -20,7 +20,7 @@ import logging
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from email.utils import parsedate_to_datetime
-from math import ceil
+from math import ceil, isfinite
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -177,16 +177,47 @@ def _number(value: Any) -> float | None:
         if value in (None, "", "null", "None", "-"):
             return None
         number = float(value)
-        return number if number == number else None
+        return number if isfinite(number) else None
     except (TypeError, ValueError):
         return None
 
 
 def _decimal(value: Any) -> Decimal | None:
     try:
-        return Decimal(str(value)) if value not in (None, "") else None
+        if value in (None, ""):
+            return None
+        number = Decimal(str(value))
+        return number if number.is_finite() else None
     except (TypeError, ValueError):
         return None
+
+
+def _required_text(
+    row: dict[str, Any], provider_name: str, label: str, *keys: str
+) -> str:
+    """Read a required provider identity field without silent row loss."""
+
+    for key in keys:
+        value = row.get(key)
+        if value not in (None, ""):
+            text = str(value).strip()
+            if text:
+                return text
+    expected = ", ".join(keys) or label
+    raise ProviderResponseError(
+        provider_name, f"provider returned a row without required {label}: {expected}"
+    )
+
+
+def _checked_decimal(
+    value: Any, provider_name: str, field: str
+) -> Decimal | None:
+    """Parse optional numeric provider fields while rejecting malformed values."""
+
+    parsed = _decimal(value)
+    if value not in (None, "", "null", "None", "-") and parsed is None:
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field}")
+    return parsed
 
 
 def _timestamp(value: Any, *, timezone_name: str | None = None) -> datetime | None:
@@ -262,7 +293,7 @@ def _option_contract_from_row(
     *,
     underlying_symbol: str,
     fallback_expiration: date | None = None,
-) -> OptionContractRecord | None:
+) -> OptionContractRecord:
     """Normalize a documented Tradier-style option row.
 
     Tradier's brokerage JSON uses snake-case fields and nests Greeks under
@@ -271,6 +302,8 @@ def _option_contract_from_row(
     retaining the complete raw row for reconciliation.
     """
 
+    if not isinstance(row, dict):
+        raise ProviderResponseError("tradier", "provider returned a non-object option contract")
     provider_symbol = str(
         row.get("symbol") or row.get("optionSymbol") or row.get("option_symbol") or ""
     ).strip()
@@ -287,9 +320,14 @@ def _option_contract_from_row(
         or row.get("side")
     )
     if not provider_symbol or expiration is None or right is None:
-        return None
+        raise ProviderResponseError(
+            "tradier", "provider returned an option contract without symbol, expiry, or right"
+        )
 
-    greeks = row.get("greeks") if isinstance(row.get("greeks"), dict) else {}
+    raw_greeks = row.get("greeks")
+    if raw_greeks not in (None, "") and not isinstance(raw_greeks, dict):
+        raise ProviderResponseError("tradier", "provider returned an invalid option Greeks object")
+    greeks = raw_greeks if isinstance(raw_greeks, dict) else {}
 
     def value(*names: str) -> Any:
         for name in names:
@@ -299,36 +337,56 @@ def _option_contract_from_row(
                 return greeks[name]
         return None
 
-    bid = _decimal(value("bid"))
-    ask = _decimal(value("ask"))
-    mark = _decimal(value("mid", "mark"))
+    def checked_decimal(field: str, *names: str) -> Decimal | None:
+        raw = value(*names)
+        parsed = _decimal(raw)
+        if raw not in (None, "") and parsed is None:
+            raise ProviderResponseError("tradier", f"provider returned an invalid option {field}")
+        return parsed
+
+    strike = checked_decimal("strike", "strike")
+    if strike is None or strike <= 0:
+        raise ProviderResponseError("tradier", "provider returned an invalid option strike")
+    bid = checked_decimal("bid", "bid")
+    ask = checked_decimal("ask", "ask")
+    mark = checked_decimal("mark", "mid", "mark")
     if mark is None and bid is not None and ask is not None:
         mark = (bid + ask) / Decimal("2")
     observed_at = _timestamp(value("updated", "last_updated", "quote_time"))
+    contract_size = checked_decimal("contract size", "contract_size", "contractSize")
+    last_price = checked_decimal("last price", "last", "last_price")
+    volume = checked_decimal("volume", "volume")
+    open_interest = checked_decimal("open interest", "open_interest", "openInterest")
+    implied_vol = checked_decimal(
+        "implied volatility", "iv", "mid_iv", "implied_volatility", "impliedVolatility"
+    )
+    delta = checked_decimal("delta", "delta")
+    gamma = checked_decimal("gamma", "gamma")
+    theta = checked_decimal("theta", "theta")
+    vega = checked_decimal("vega", "vega")
+    rho = checked_decimal("rho", "rho")
     return OptionContractRecord(
         provider_symbol=provider_symbol,
         underlying_symbol=str(
             row.get("underlying") or row.get("underlying_symbol") or underlying_symbol
         ).upper(),
         expiry_date=expiration,
-        strike=_decimal(row.get("strike")) or Decimal("0"),
+        strike=strike,
         right=right,
         currency=str(row.get("currency") or "USD").upper(),
-        contract_size=_decimal(row.get("contract_size") or row.get("contractSize")),
+        contract_size=contract_size,
         bid=bid,
         ask=ask,
         mark=mark,
-        last_price=_decimal(value("last", "last_price")),
-        volume=_decimal(value("volume")),
-        open_interest=_decimal(value("open_interest", "openInterest")),
-        implied_vol=_decimal(
-            value("iv", "mid_iv", "implied_volatility", "impliedVolatility")
-        ),
-        delta=_decimal(value("delta")),
-        gamma=_decimal(value("gamma")),
-        theta=_decimal(value("theta")),
-        vega=_decimal(value("vega")),
-        rho=_decimal(value("rho")),
+        last_price=last_price,
+        volume=volume,
+        open_interest=open_interest,
+        implied_vol=implied_vol,
+        delta=delta,
+        gamma=gamma,
+        theta=theta,
+        vega=vega,
+        rho=rho,
         observed_at=observed_at,
         raw_payload=dict(row),
     )
@@ -462,8 +520,8 @@ class _RESTProvider:
             raise ProviderResponseError(provider_name, "provider returned a non-object row")
         return value
 
-    @staticmethod
     def _bar(
+        self,
         row: dict[str, Any],
         timeframe: Timeframe,
         *,
@@ -471,60 +529,38 @@ class _RESTProvider:
         data_source_id: int | None,
         timestamp_keys: tuple[str, ...] = ("timestamp", "datetime", "date", "t"),
         timestamp_timezone: str | None = None,
-    ) -> OHLCVBar | None:
-        ts = next(
-            (
-                _timestamp(row.get(key), timezone_name=timestamp_timezone)
-                for key in timestamp_keys
-                if row.get(key) is not None
-            ),
-            None,
-        )
-        values = {
-            "open": next(
-                (
-                    _number(row.get(key))
-                    for key in ("open", "o", "1. open")
-                    if row.get(key) is not None
-                ),
-                None,
-            ),
-            "high": next(
-                (
-                    _number(row.get(key))
-                    for key in ("high", "h", "2. high")
-                    if row.get(key) is not None
-                ),
-                None,
-            ),
-            "low": next(
-                (
-                    _number(row.get(key))
-                    for key in ("low", "l", "3. low")
-                    if row.get(key) is not None
-                ),
-                None,
-            ),
-            "close": next(
-                (
-                    _number(row.get(key))
-                    for key in ("close", "c", "4. close")
-                    if row.get(key) is not None
-                ),
-                None,
-            ),
-        }
-        if ts is None or any(value is None for value in values.values()):
+    ) -> OHLCVBar:
+        def raw_value(*keys: str) -> Any:
+            for key in keys:
+                if key in row:
+                    return row[key]
             return None
-        volume = next(
-            (
-                _number(row.get(key))
-                for key in ("volume", "v", "5. volume")
-                if row.get(key) is not None
-            ),
-            None,
-        )
-        vwap = _number(row.get("vwap") or row.get("vw"))
+
+        def checked_number(field: str, *keys: str, required: bool = False) -> float | None:
+            raw = raw_value(*keys)
+            parsed = _number(raw)
+            missing = raw in (None, "", "null", "None", "-")
+            if required and (missing or parsed is None):
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid OHLCV {field} value"
+                )
+            if not missing and parsed is None:
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid OHLCV {field} value"
+                )
+            return parsed
+
+        ts = _timestamp(raw_value(*timestamp_keys), timezone_name=timestamp_timezone)
+        if ts is None:
+            raise ProviderResponseError(self.name, "provider returned an invalid OHLCV timestamp")
+        values = {
+            "open": checked_number("open", "open", "o", "1. open", required=True),
+            "high": checked_number("high", "high", "h", "2. high", required=True),
+            "low": checked_number("low", "low", "l", "3. low", required=True),
+            "close": checked_number("close", "close", "c", "4. close", required=True),
+        }
+        volume = checked_number("volume", "volume", "v", "5. volume")
+        vwap = checked_number("vwap", "vwap", "vw")
         return OHLCVBar(
             instrument_id=instrument_id,
             data_source_id=data_source_id,
@@ -619,16 +655,18 @@ class TiingoProvider(_RESTProvider):
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("tiingo/utilities/search", {"query": query, "limit": min(limit, 100)})
-        return [
-            ProviderSearchResult(
-                symbol=str(row.get("ticker") or "").upper(),
-                name=str(row.get("name") or row.get("ticker") or ""),
-                exchange=str(row.get("exchangeCode") or ""),
-                instrument_type="EQUITY",
+        results: list[ProviderSearchResult] = []
+        for row in self._strict_rows(payload, self.name):
+            ticker = _required_text(row, self.name, "ticker", "ticker")
+            results.append(
+                ProviderSearchResult(
+                    symbol=ticker.upper(),
+                    name=str(row.get("name") or ticker),
+                    exchange=str(row.get("exchangeCode") or ""),
+                    instrument_type="EQUITY",
+                )
             )
-            for row in self._strict_rows(payload, self.name)[:limit]
-            if row.get("ticker")
-        ]
+        return results[:limit]
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
         payload = self._get(f"tiingo/daily/{symbol.upper()}")
@@ -741,16 +779,18 @@ class TwelveDataProvider(_RESTProvider):
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("symbol_search", {"symbol": query})
         rows = self._strict_rows(payload, self.name, "data")
-        return [
-            ProviderSearchResult(
-                symbol=str(row.get("symbol") or "").upper(),
-                name=str(row.get("instrument_name") or row.get("symbol") or ""),
-                exchange=str(row.get("exchange") or ""),
-                instrument_type=str(row.get("instrument_type") or "EQUITY").upper(),
+        results: list[ProviderSearchResult] = []
+        for row in rows:
+            symbol = _required_text(row, self.name, "symbol", "symbol")
+            results.append(
+                ProviderSearchResult(
+                    symbol=symbol.upper(),
+                    name=str(row.get("instrument_name") or symbol),
+                    exchange=str(row.get("exchange") or ""),
+                    instrument_type=str(row.get("instrument_type") or "EQUITY").upper(),
+                )
             )
-            for row in rows[:limit]
-            if row.get("symbol")
-        ]
+        return results[:limit]
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         normalized = quote_type.strip().upper()
@@ -761,14 +801,15 @@ class TwelveDataProvider(_RESTProvider):
         )
         filtered: list[dict[str, Any]] = []
         for row in rows:
+            symbol = _required_text(row, self.name, "symbol", "symbol")
             kind = str(row.get("type") or row.get("instrument_type") or "EQUITY").upper()
             inferred = "ETF" if "ETF" in kind else "EQUITY"
-            if inferred != normalized or not row.get("symbol"):
+            if inferred != normalized:
                 continue
             filtered.append(
                 {
-                    "symbol": str(row["symbol"]).upper(),
-                    "longName": row.get("name") or row.get("instrument_name"),
+                    "symbol": symbol.upper(),
+                    "longName": row.get("name") or row.get("instrument_name") or symbol,
                     "exchange": row.get("exchange") or "",
                     "currency": row.get("currency") or "USD",
                     "quoteType": inferred,
@@ -894,16 +935,18 @@ class TradierProvider(_RESTProvider):
         rows = self._nested_rows(payload, "securities", "security")
         if not rows:
             rows = self._strict_rows(payload, self.name, "securities")
-        return [
-            ProviderSearchResult(
-                symbol=str(row.get("symbol") or "").upper(),
-                name=str(row.get("description") or row.get("symbol") or ""),
-                exchange=str(row.get("exchange") or ""),
-                instrument_type=str(row.get("type") or "EQUITY").upper(),
+        results: list[ProviderSearchResult] = []
+        for row in rows:
+            symbol = _required_text(row, self.name, "symbol", "symbol")
+            results.append(
+                ProviderSearchResult(
+                    symbol=symbol.upper(),
+                    name=str(row.get("description") or symbol),
+                    exchange=str(row.get("exchange") or ""),
+                    instrument_type=str(row.get("type") or "EQUITY").upper(),
+                )
             )
-            for row in rows[:limit]
-            if row.get("symbol")
-        ]
+        return results[:limit]
 
     def list_option_expirations(self, symbol: str) -> list[date]:
         """Return Tradier's available OCC expiration dates for an underlying."""
@@ -970,13 +1013,12 @@ class TradierProvider(_RESTProvider):
         if not rows:
             rows = self._strict_rows(payload, self.name, "options")
         contracts = [
-            contract
-            for row in rows
-            if (contract := _option_contract_from_row(
+            _option_contract_from_row(
                 row,
                 underlying_symbol=symbol,
                 fallback_expiration=expiration,
-            ))
+            )
+            for row in rows
         ]
         return sorted(contracts, key=lambda contract: (contract.expiry_date, contract.strike, contract.right, contract.provider_symbol))
 
@@ -1134,16 +1176,18 @@ class FinnhubProvider(_RESTProvider):
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("search", {"q": query})
         rows = self._strict_rows(payload, self.name, "result")
-        return [
-            ProviderSearchResult(
-                symbol=str(row.get("symbol") or "").upper(),
-                name=str(row.get("description") or row.get("symbol") or ""),
-                exchange=str(row.get("mic") or ""),
-                instrument_type=str(row.get("type") or "EQUITY").upper(),
+        results: list[ProviderSearchResult] = []
+        for row in rows:
+            symbol = _required_text(row, self.name, "symbol", "symbol")
+            results.append(
+                ProviderSearchResult(
+                    symbol=symbol.upper(),
+                    name=str(row.get("description") or symbol),
+                    exchange=str(row.get("mic") or ""),
+                    instrument_type=str(row.get("type") or "EQUITY").upper(),
+                )
             )
-            for row in rows[:limit]
-            if row.get("symbol")
-        ]
+        return results[:limit]
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
         rows = self._strict_rows(
@@ -1154,7 +1198,9 @@ class FinnhubProvider(_RESTProvider):
         for row in rows:
             event_time = _timestamp(row.get("date") or row.get("period"))
             if event_time is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "provider returned an earnings row without a valid date"
+                )
             events.append(
                 InstrumentEventRecord(
                     event_type=InstrumentEventType.EARNINGS,
@@ -1168,10 +1214,18 @@ class FinnhubProvider(_RESTProvider):
                     # explicit EPS aliases as a compatibility shape only;
                     # do not discard provider values when the documented
                     # names are returned.
-                    eps_estimate=_decimal(row.get("estimate", row.get("epsEstimate"))),
-                    eps_actual=_decimal(row.get("actual", row.get("epsActual"))),
-                    eps_surprise=_decimal(row.get("surprise")),
-                    eps_surprise_pct=_decimal(row.get("surprisePercent")),
+                    eps_estimate=_checked_decimal(
+                        row.get("estimate", row.get("epsEstimate")), self.name, "earnings estimate"
+                    ),
+                    eps_actual=_checked_decimal(
+                        row.get("actual", row.get("epsActual")), self.name, "earnings actual"
+                    ),
+                    eps_surprise=_checked_decimal(
+                        row.get("surprise"), self.name, "earnings surprise"
+                    ),
+                    eps_surprise_pct=_checked_decimal(
+                        row.get("surprisePercent"), self.name, "earnings surprise percent"
+                    ),
                     raw_payload=str(row),
                 )
             )
@@ -1197,12 +1251,14 @@ class FinnhubProvider(_RESTProvider):
         for row in rows:
             event_time = _timestamp(row.get("date"))
             if event_time is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "provider returned an earnings-calendar row without a valid date"
+                )
             event_date = event_time.date()
+            symbol = _required_text(row, self.name, "symbol", "symbol").upper()
             if (start and event_date < start) or (end and event_date > end):
                 continue
-            symbol = str(row.get("symbol") or "").strip().upper()
-            event_key = f"finnhub:earnings_calendar:{symbol or 'market'}:{event_date.isoformat()}"
+            event_key = f"finnhub:earnings_calendar:{symbol}:{event_date.isoformat()}"
             events.append(
                 MarketEventRecord(
                     event_type="earnings",
@@ -1225,14 +1281,15 @@ class FinnhubProvider(_RESTProvider):
         )
         filtered: list[dict[str, Any]] = []
         for row in rows:
+            symbol = _required_text(row, self.name, "symbol", "symbol")
             kind = str(row.get("type") or "Common Stock").upper()
             inferred = "ETF" if "ETF" in kind else "EQUITY"
-            if inferred != normalized or not row.get("symbol"):
+            if inferred != normalized:
                 continue
             filtered.append(
                 {
-                    "symbol": str(row["symbol"]).upper(),
-                    "longName": row.get("description") or row["symbol"],
+                    "symbol": symbol.upper(),
+                    "longName": row.get("description") or symbol,
                     "exchange": row.get("mic") or row.get("exchange") or "",
                     "currency": row.get("currency") or "USD",
                     "quoteType": inferred,
@@ -1343,9 +1400,7 @@ class MarketstackProvider(_RESTProvider):
         rows = self._strict_rows(payload, self.name, "data")
         quotes = []
         for row in rows:
-            symbol = str(row.get("symbol") or row.get("ticker") or "").upper()
-            if not symbol:
-                continue
+            symbol = _required_text(row, self.name, "symbol", "symbol", "ticker").upper()
             inferred = "ETF" if "ETF" in str(row.get("name") or "").upper() else "EQUITY"
             if inferred != normalized:
                 continue
@@ -1448,9 +1503,7 @@ class EODHDProvider(_RESTProvider):
         )
         filtered = []
         for row in rows:
-            symbol = str(row.get("Code") or row.get("code") or "").upper()
-            if not symbol:
-                continue
+            symbol = _required_text(row, self.name, "symbol", "Code", "code").upper()
             kind = str(row.get("Type") or row.get("type") or "").upper()
             inferred = "ETF" if "ETF" in kind else "EQUITY"
             if inferred != normalized:
@@ -1569,11 +1622,13 @@ class FMPProvider(_RESTProvider):
                 or row.get("announcementDate")
             )
             if event_time is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "provider returned an earnings-calendar row without a valid date"
+                )
             event_date = event_time.date()
+            symbol = _required_text(row, self.name, "symbol", "symbol").upper()
             if (start and event_date < start) or (end and event_date > end):
                 continue
-            symbol = str(row.get("symbol") or "").strip().upper()
             events.append(
                 MarketEventRecord(
                     event_type="earnings",
@@ -1594,9 +1649,7 @@ class FMPProvider(_RESTProvider):
         rows = self._strict_rows(self._get("stock-list"), self.name)
         filtered = []
         for row in rows:
-            symbol = str(row.get("symbol") or "").upper()
-            if not symbol:
-                continue
+            symbol = _required_text(row, self.name, "symbol", "symbol").upper()
             kind = str(row.get("assetType") or row.get("type") or "EQUITY").upper()
             inferred = "ETF" if "ETF" in kind else "EQUITY"
             if inferred != normalized:
