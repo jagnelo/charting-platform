@@ -244,7 +244,7 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     assert measurement.http_requests == 1
 
 
-def test_ondo_credentialed_metadata_price_and_ohlc():
+def test_ondo_credentialed_metadata_price_market_summary_and_ohlc():
     _require("ONDO_GLOBAL_MARKETS_API_KEY")
     provider = OndoGlobalMarketsProvider()
     rows, measurement = _observed_read(
