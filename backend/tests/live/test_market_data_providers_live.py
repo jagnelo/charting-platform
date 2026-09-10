@@ -230,6 +230,15 @@ def test_massive_credentialed_reference():
     )
     assert rows
     assert all("AAPL" in f"{row.symbol} {row.name}".upper() for row in rows)
+    events, _ = _observed_read(
+        lambda: MassiveProvider().fetch_market_events(
+            start=date.today() - timedelta(days=7), end=date.today() + timedelta(days=90)
+        ),
+        "massive",
+    )
+    assert isinstance(events, list)
+    assert all(event.event_type == "ipo" for event in events)
+    assert all(event.effective_date is not None for event in events)
 
 
 def test_alpha_vantage_credentialed_daily():

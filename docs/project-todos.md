@@ -10498,19 +10498,22 @@ Product goals:
 
 What remains:
 
-- Add a new provider capability for **forward market events**, distinct from the current instrument-event history model:
-  - examples:
-    - `market_event_calendar`
-    - or a clearly named equivalent
-  - do not overload the current per-instrument event fetch path with market-wide future events
-  - allow multiple providers to contribute to the same normalized market-event feed
+- The normalized `market_events` provider capability is now distinct from the
+  instrument-event history model and supports multiple contributors. The
+  remaining work is persistence/reconciliation and the calendar-facing product
+  surfaces; do not overload the per-instrument event fetch path with market-wide
+  future events.
 
-- Add provider implementations for the free sources that actually make sense:
-  - `massive`
-    - ingest `reference/ipos`
-    - support status filtering and pagination
-    - store the provider payload and provider-specific status semantics
-    - use this as the primary free IPO backbone
+- Provider implementations for the free sources that actually make sense are now
+  partially in place:
+  - `massive` now exposes a normalized `market_events` adapter for
+    `reference/ipos`, including local inclusive date bounds, `ipo_status`
+    filtering, verbatim provider payloads/status semantics, and an explicit
+    one-request page result with `next_url`. The adapter never follows cursors
+    implicitly, so the documented 5-requests/minute allowance cannot be
+    exceeded by a fixed one-request operation cost. A positive configured live
+    event-row observation is still required before this source can be promoted
+    as the primary free IPO backbone.
   - `alphavantage`
     - ingest `IPO_CALENDAR`
     - later also ingest `EARNINGS_CALENDAR` into the same broader market-events system
@@ -13282,6 +13285,7 @@ Required free-source provider roles:
 
 Primary source-documentation anchors:
 - Massive reference tickers: <https://massive.com/docs/rest/stocks/tickers/all-tickers>;
+- Massive IPO calendar: <https://massive.com/docs/rest/stocks/corporate-actions>;
 - Alpha Vantage listing status and raw daily history:
   <https://www.alphavantage.co/documentation/>;
 - Alpaca market-data plan/feed semantics:

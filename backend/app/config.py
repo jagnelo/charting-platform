@@ -766,6 +766,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "search_instruments": 1,
                 "discover_universe_page": 1,
+                "fetch_market_events": 1,
             },
         },
         "fred": {

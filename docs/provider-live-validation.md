@@ -112,6 +112,14 @@ bandwidth pool still requires a complete operator-reviewed
 remain outside this adapter until their plan entitlements are separately
 validated.
 
+The same day, the configured Massive key passed the bounded reference plus IPO
+calendar live case. Search and one `reference/ipos` page both produced valid
+transport/schema evidence; the normalized result preserved IPO status/date
+fields and applied the requested inclusive window. The assertion intentionally
+allows a valid empty calendar window, so this proves the integration contract
+without fabricating an IPO row; a non-empty row is useful additional evidence
+but is not required for transport correctness.
+
 On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
 the official FINRA OTC Security Master URL, the public/keyless matrix passed
 `9/9`, including full SEC ticker/exchange-directory pagination, full Nasdaq

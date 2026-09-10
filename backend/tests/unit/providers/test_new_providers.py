@@ -141,7 +141,7 @@ class TestRegistryCapabilities:
 
     def test_massive_reference_capabilities(self):
         caps = set(list_provider_capabilities("massive"))
-        assert caps == {"instrument_search", "universe_discovery"}
+        assert caps == {"instrument_search", "universe_discovery", "market_events"}
         assert get_search_provider("massive").name == "massive"
         assert get_discovery_provider("massive").name == "massive"
 
@@ -585,6 +585,8 @@ class TestMassiveReferenceProvider:
                 "total": 0,
                 "quotes": [],
             }
+            with pytest.raises(ProviderNotConfiguredError):
+                provider.fetch_market_events()
 
     def test_search_and_discovery_parse_reference_rows(self):
         response = MagicMock()
@@ -633,6 +635,72 @@ class TestMassiveReferenceProvider:
         assert get.call_count == 3
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
+
+    def test_ipo_calendar_normalizes_bounds_status_and_cursor_without_following_pages(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "results": [
+                {
+                    "ticker": "NEW",
+                    "isin": "US0000000001",
+                    "issuer_name": "New Corp",
+                    "listing_date": "2024-01-02",
+                    "last_updated": "2024-01-01T12:30:00Z",
+                    "ipo_status": "upcoming",
+                    "primary_exchange": "XNAS",
+                },
+                {
+                    "ticker": "OLD",
+                    "issuer_name": "Old Corp",
+                    "listing_date": "2023-12-31",
+                    "ipo_status": "history",
+                },
+            ],
+            "next_url": "https://api.massive.com/vX/reference/ipos?cursor=next",
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            page = MassiveProvider().fetch_market_events_page(
+                start=date(2024, 1, 1), end=date(2024, 1, 3), status="UPCOMING"
+            )
+        assert len(page["events"]) == 1
+        event = page["events"][0]
+        assert event.event_key == "massive:ipo:NEW:2024-01-02"
+        assert event.event_time == datetime(2024, 1, 1, 12, 30, tzinfo=UTC)
+        assert event.is_provisional is True
+        assert event.raw_payload["primary_exchange"] == "XNAS"
+        assert page["next_url"].endswith("cursor=next")
+        assert page["complete"] is False
+        assert get.call_count == 1
+        assert get.call_args.args[0] == "https://api.massive.com/vX/reference/ipos"
+        assert get.call_args.kwargs["params"]["ipo_status"] == "upcoming"
+
+    def test_ipo_calendar_http_429_is_typed_and_redacted(self):
+        response = MagicMock()
+        response.status_code = 429
+        response.headers = {"Retry-After": "60"}
+        request = httpx.Request("GET", "https://api.massive.com/vX/reference/ipos?apiKey=secret")
+        response.request = request
+        response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "429 for https://api.massive.com/vX/reference/ipos?apiKey=secret",
+            request=request,
+            response=response,
+        )
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "secret"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                MassiveProvider().fetch_market_events()
+        assert exc_info.value.status_code == 429
+        assert "secret" not in str(exc_info.value)
 
 
 class TestAlphaVantageProvider:

@@ -1,28 +1,35 @@
 """Massive (formerly Polygon) reference-data provider.
 
 This adapter is deliberately limited to the free-source reference role: ticker
-search and paged US ticker discovery.  It is supplementary evidence for the
-canonical security master, not a default market-data path and not a promise of
-consolidated real-time data.
+search, paged US ticker discovery, and one-page IPO-calendar reads.  It is
+supplementary evidence for the canonical security master, not a default
+market-data path and not a promise of consolidated real-time data.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 from app.config import settings
-from app.providers.base import ProviderSearchResult
-from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
+from app.providers.base import MarketEventRecord, ProviderSearchResult
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
 _BASE = "https://api.massive.com"
 _TICKERS_PATH = "/v3/reference/tickers"
+_IPOS_PATH = "/vX/reference/ipos"
 _PAGE_SIZE = 1000
 
 
@@ -45,17 +52,41 @@ class MassiveProvider:
             if value is not None
         }
 
-    def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
+    def _get_path(self, path: str, params: dict[str, Any]) -> dict[str, Any] | None:
         if not self._api_key():
             raise ProviderNotConfiguredError(
                 "massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)"
             )
-        response = httpx.get(f"{_BASE}{_TICKERS_PATH}", params=params, timeout=20)
+        try:
+            response = httpx.get(f"{_BASE}{path}", params=params, timeout=20)
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
-        response.raise_for_status()
-        payload = response.json()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            message = f"HTTP {response.status_code}: {exc}"
+            if response.status_code == 429:
+                raise ProviderRateLimitError(
+                    self.name,
+                    message,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                ) from exc
+            raise ProviderResponseError(
+                self.name, message, status_code=response.status_code
+            ) from exc
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Massive returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload if isinstance(payload, dict) else None
+
+    def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
+        """Read the legacy ticker endpoint (kept for compatibility with callers/tests)."""
+
+        return self._get_path(_TICKERS_PATH, params)
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         needle = query.strip()
@@ -120,6 +151,96 @@ class MassiveProvider:
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]
 
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        status: str | None = None,
+    ) -> list[MarketEventRecord]:
+        """Return one bounded IPO-calendar page as normalized market events.
+
+        Massive exposes cursor pagination.  The provider runtime charges one
+        request for this operation, so this method intentionally does not
+        follow ``next_url`` internally.  Callers that need a complete backfill
+        should use :meth:`fetch_market_events_page` and account for every
+        cursor page separately.
+        """
+
+        page = self.fetch_market_events_page(start=start, end=end, status=status)
+        return page["events"]
+
+    def fetch_market_events_page(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        status: str | None = None,
+        cursor: str | None = None,
+        limit: int = _PAGE_SIZE,
+    ) -> dict[str, Any]:
+        """Fetch one Massive IPO page and expose its continuation cursor.
+
+        Date bounds are applied locally because the endpoint's ``listing_date``
+        filter is an exact-date filter, not a range filter.  The provider row
+        is retained verbatim in each event's provenance payload.
+        """
+
+        if start and end and start > end:
+            return {"events": [], "next_url": None, "complete": True}
+        bounded_limit = max(1, min(int(limit), _PAGE_SIZE))
+        params = self._params(
+            limit=bounded_limit,
+            sort="listing_date",
+            order="asc",
+            cursor=cursor,
+            ipo_status=status.strip().lower() if status and status.strip() else None,
+        )
+        payload = self._get_path(_IPOS_PATH, params) or {}
+        events = [
+            event
+            for row in payload.get("results", [])
+            if isinstance(row, dict)
+            for event in [self._ipo_event(row)]
+            if event is not None
+            and (start is None or event.effective_date is None or event.effective_date >= start)
+            and (end is None or event.effective_date is None or event.effective_date <= end)
+        ]
+        next_url = payload.get("next_url")
+        return {
+            "events": events,
+            "next_url": next_url if isinstance(next_url, str) else None,
+            "complete": not isinstance(next_url, str) or not next_url,
+        }
+
+    @staticmethod
+    def _ipo_event(row: dict[str, Any]) -> MarketEventRecord | None:
+        symbol = str(row.get("ticker") or "").strip().upper()
+        stable_key = symbol or str(row.get("isin") or row.get("us_code") or "").strip()
+        if not stable_key:
+            return None
+        effective_date = _parse_date(
+            row.get("listing_date")
+            or row.get("issue_start_date")
+            or row.get("announced_date")
+        )
+        if effective_date is None:
+            return None
+        status = str(row.get("ipo_status") or "").strip().lower()
+        event_time = _parse_datetime(row.get("last_updated")) or datetime.combine(
+            effective_date, datetime.min.time(), tzinfo=UTC
+        )
+        return MarketEventRecord(
+            event_type="ipo",
+            event_key=f"massive:ipo:{stable_key}:{effective_date.isoformat()}",
+            event_time=event_time,
+            effective_date=effective_date,
+            title=str(row.get("issuer_name") or row.get("security_description") or stable_key),
+            source_version="vX/reference/ipos",
+            is_provisional=status not in {"history", "completed", "listed"},
+            raw_payload=dict(row),
+        )
+
     @staticmethod
     def _result(row: dict[str, Any]) -> ProviderSearchResult:
         return ProviderSearchResult(
@@ -128,3 +249,24 @@ class MassiveProvider:
             exchange=str(row.get("primary_exchange") or row.get("exchange") or ""),
             instrument_type=str(row.get("type") or "EQUITY").upper(),
         )
+
+
+def _parse_date(value: Any) -> date | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        return None
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)

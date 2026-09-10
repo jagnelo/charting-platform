@@ -1122,7 +1122,11 @@ def test_single_request_provider_profiles_are_explicit():
             "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
         },
-        "massive": {"search_instruments": 1, "discover_universe_page": 1},
+        "massive": {
+            "search_instruments": 1,
+            "discover_universe_page": 1,
+            "fetch_market_events": 1,
+        },
         "fred": {
             "fetch_ohlcv": 1,
             "fetch_latest_ohlcv": 1,
