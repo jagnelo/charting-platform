@@ -140,6 +140,22 @@ def test_persisted_factor_provenance_surfaces_mixed_versions_as_opaque():
     assert summary.distinct_versions == ("afv1-new", "afv1-old")
 
 
+def test_persisted_factor_provenance_does_not_promote_missing_version():
+    summary = summarize_persisted_adjustment_factor_provenance(
+        [
+            AdjustmentFactorObservation(
+                factor_type="split",
+                factor=Decimal("2"),
+                source_event_key="split:2024-06-10",
+                factor_version=None,
+            )
+        ]
+    )
+
+    assert summary.version is None
+    assert summary.status == "provider_native_opaque_incomplete_factor_set"
+
+
 @pytest.mark.asyncio
 async def test_persist_normalizes_factor_events_and_reuses_the_natural_key(db, instrument):
     source = DataSource(name="factor-observation-provider")

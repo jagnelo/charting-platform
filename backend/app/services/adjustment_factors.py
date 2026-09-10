@@ -141,6 +141,7 @@ def summarize_persisted_adjustment_factor_provenance(
         or observation.factor is None
         or observation.factor <= 0
         or not observation.source_event_key
+        or not observation.factor_version
         for observation in relevant
     ):
         return PersistedAdjustmentFactorProvenance(
