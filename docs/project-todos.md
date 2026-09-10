@@ -16,6 +16,23 @@
       live 100k-point evidence while preserving the six protected visual
       assertions and rerunning the exact gate at the next coherent tip.
 
+### 2026-09-10 — Exact integration gate after local split-factor rebuilder
+
+- [x] Rerun the branch-scoped gate at documentation checkpoint `4cf80612`
+      (product behavior `4af7917f`): backend unit `1,413/1,413`, backend
+      integration `387/387`, frontend Vitest/type-check/build,
+      compose/health/performance/acceptance checks, and functional Playwright
+      `165` passed with `107` documented skips across `272`.
+- [x] Confirm visual parity remains `98/104` with exactly the six protected
+      `watchlist-column-editor-open` and `workspace-floating` state-oracle
+      diffs across the four declared projects; research-runner denials were
+      expected and scoped Docker resources were cleaned up.
+- [ ] Wire the explicit derived-view contract and continue provider/family
+      history, W1/MN continuity, canonical population, and live 100k-point
+      evidence. Do not change visual baselines, masks, thresholds, skips,
+      providers, fallbacks, or acceptance policy; rerun the exact gate after
+      the next coherent product change.
+
 ### 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 - [x] Rerun the prescribed branch-scoped gate from HEAD `e1fa2478` after the

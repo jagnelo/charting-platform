@@ -29,6 +29,30 @@ continuity, canonical population, and live 100k-point evidence; R2-R5 and R7
 remain open. Rerun the exact gate at the next coherent documentation tip
 while preserving the six protected visual assertions.
 
+## 2026-09-10 — Exact integration gate after local split-factor rebuilder
+
+The prescribed branch-scoped `make validate-integration` gate reran at
+documentation checkpoint `4cf80612` with product behavior from `4af7917f`.
+Backend unit coverage passed `1,413/1,413`; backend integration passed
+`387/387`; frontend Vitest, type-check/build, compose startup/contract,
+health, performance, and acceptance checks passed; and authenticated
+functional Playwright passed `165` with `107` documented skips across `272`.
+The research-runner probe returned the expected sandbox/resource denials.
+
+Visual parity completed `104` cases with `98` passes and exactly the six
+protected state-oracle diffs: `watchlist-column-editor-open` at
+`visual-1080p-100/125`, and `workspace-floating` at
+`visual-1080p-100/125` and `visual-1440p-100/125`. The gate exited `2` at
+`e2e-visual` after clean branch-scoped teardown. No baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed; the live 100k-point
+proof remains unclaimed.
+
+R1/R6 remain active for wiring the explicit derived view, provider/family
+history readiness, W1/MN continuity, canonical population, and dense-data
+evidence. R2-R5 and R7 remain open. Continue the next bounded seam and rerun
+the exact gate after the next coherent product change while preserving all
+six protected visual assertions.
+
 ## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 The prescribed `make validate-integration` gate reran from branch HEAD

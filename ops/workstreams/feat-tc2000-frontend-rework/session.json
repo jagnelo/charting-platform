@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "23ffbe4ce93986ea4e52d911a4a670bf7e3c512f",
-  "implementation_sha": "95f3b67a4cf930b31edeaca7f8ea0c980e1dc8e9",
+  "head": "4cf806128a10e35a39666132bf05fb4c98f91f4b",
+  "implementation_sha": "4af7917f",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T10:54:26Z",
-  "last_human_progress_update": "2026-09-10T10:54:26Z",
+  "last_checkpoint": "2026-09-10T11:19:09Z",
+  "last_human_progress_update": "2026-09-10T11:19:09Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 provider-factor/history/provenance and R6 dense-data seam; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "3e1b417a35f36befffb6b637e5f6ded97e65c833f909a9ec39bdccfbc68c9765",
+  "plan_hash": "1bb607380da2b4f6250a2e32f40f96ffa6504badc93e8157b0724a80eff8a7a6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 4af7917f adds a pure local split-ratio rebuilder for raw bars. Complete, version-consistent split observations produce cumulative pre-event price scaling and inverse volume scaling in immutable derived values; dividend/provider-oriented, incomplete, or mixed-version inputs return explicit unsupported/opaque states. Focused adjustment-factor coverage passed 14/14; the full backend unit suite passed 1413/1413 at 67.78% coverage against the configured 55% threshold; Ruff, formatting, and diff checks passed. Raw/provider ORM rows are not mutated and no provider routing, fallback, API response, visible layout, pixel, visual baseline, threshold, skip, or acceptance policy changed. The exact branch-scoped gate reran from prior HEAD e1fa2478 and reproduced backend integration 387/387, functional Playwright 165 passed with 107 documented skips across 272, and visual parity 98/104 with exactly the six protected state-oracle diffs; it exited 2 at e2e-visual after clean scoped teardown. The live 100k-point proof remains unclaimed. Next bounded work is an explicit derived-view contract plus provider/family history, W1/MN continuity, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
+    "current_blocker": "The exact branch-scoped gate reran at documentation checkpoint 4cf80612 with product behavior 4af7917f. Backend unit/integration passed 1413/1413 and 387/387; frontend, compose, health, performance, acceptance, and functional Playwright passed (165 passed, 107 documented skips across 272); research-runner denials were expected. Visual parity again passed 98/104 with exactly the six protected state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. The gate exited 2 at e2e-visual after clean scoped teardown. No visual policy, provider, fallback, baseline, mask, threshold, skip, or acceptance behavior changed; live 100k-point proof remains unclaimed. Product tip 4af7917f remains the pure local split-ratio rebuilder; next bounded work is the explicit derived-view contract plus R1/R6 provider/family history, W1/MN continuity, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 provider-factor/history/provenance and R6 dense-data seam; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T10:54:26Z"
+    "updated_at": "2026-09-10T11:19:09Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

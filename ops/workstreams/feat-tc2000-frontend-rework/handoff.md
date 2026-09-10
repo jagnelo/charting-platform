@@ -28,6 +28,24 @@ and family history readiness plus R6 dense-data proof, then rerun the exact
 gate at the next coherent tip while preserving all six protected visual
 assertions.
 
+## 2026-09-10 — Exact integration gate after local split-factor rebuilder
+
+The branch-scoped `make validate-integration` gate reran at documentation
+checkpoint `4cf80612` with product behavior from `4af7917f`. Backend unit and
+integration suites passed `1,413/1,413` and `387/387`; frontend Vitest,
+type-check/build, compose startup/contract, health, performance, and
+acceptance checks passed; and authenticated functional Playwright passed `165`
+with `107` documented skips across `272`. Research-runner sandbox/resource
+denials were expected.
+
+Visual parity remained `98/104`; the only six failures are the protected
+`watchlist-column-editor-open` and `workspace-floating` state-oracle diffs at
+the declared visual projects. The gate exited at `e2e-visual` with status `2`
+after clean scoped teardown. No visual policy, provider, fallback, baseline,
+mask, threshold, skip, or acceptance behavior changed. The live 100k-point
+proof remains unclaimed. Continue the explicit derived-view contract and the
+R1/R6 provider/history/dense-data seams, then rerun the exact gate.
+
 ## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 The prescribed `make validate-integration` gate reran from branch HEAD
