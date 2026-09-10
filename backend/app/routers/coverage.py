@@ -94,12 +94,25 @@ async def instrument_ohlcv_coverage(
     )
     storage_evidence = reconcile_ohlcv_storage(bars, observations)
     if adjusted:
+        provider_source_ids = {
+            bar.data_source_id
+            for bar in bars
+            if bar.is_derived is False and bar.data_source_id is not None
+        }
+        if lineage.source_lineage == "derived_only":
+            state_source_filter = InstrumentDatasetState.data_source_id.is_(None)
+        elif provider_source_ids:
+            state_source_filter = InstrumentDatasetState.data_source_id.in_(provider_source_ids)
+        else:
+            # Preserve the legacy provider-state lookup when a fixture or
+            # older row has provider lineage but no source identity.
+            state_source_filter = InstrumentDatasetState.data_source_id.is_not(None)
         dataset_state = (
             await db.execute(
                 select(InstrumentDatasetState)
                 .where(
                     InstrumentDatasetState.instrument_id == instrument.id,
-                    InstrumentDatasetState.data_source_id.is_not(None),
+                    state_source_filter,
                     InstrumentDatasetState.dataset_type == "ohlcv",
                     InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
                 )
