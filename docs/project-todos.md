@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — Provider-factor fingerprint compatibility correction
+
+- [x] Preserve the established split-only `afv1-…` fingerprint while retaining
+      explicit provider-factor metadata for provider-supplied evidence.
+- [x] Re-run the focused factor/market-data/event (`28/28`) and provider
+      adapter (`83/83`) coverage; the exact gate completed its migration
+      compatibility stage (reported skipped with no changes from its
+      comparison tip) and preserved `1,391/387` backend, `990/990` frontend,
+      `165` functional passes, `107` documented skips, and the six established
+      visual diffs with clean teardown.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Provider-supplied adjustment-factor persistence
 
 - [x] Extend provider event and normalized observation contracts with explicit

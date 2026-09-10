@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Provider-factor fingerprint compatibility correction
+
+At product tip `1875ac4f`, the provider-factor seam preserves the established
+legacy `afv1-…` fingerprint for split-only evidence while still including
+explicit provider-factor metadata whenever provider factors are present.
+This keeps existing split-derived dataset identities stable and promotes
+provider-supplied factor sets without changing prices, bars, provider routing,
+fallback behavior, visible layout, pixels, or acceptance policy.
+
+The focused factor/market-data/event coverage passed `28/28`, the related
+provider adapter suite passed `83/83`, and Ruff, formatting, and diff checks
+passed. The exact Docker-backed gate completed its migration-compatibility
+stage (reported skipped because no migration changes existed from its
+comparison tip) and all other non-visual stages: backend unit/integration
+`1,391`/`387` with `81.20%`
+combined coverage, frontend Vitest `990/990`, and functional Playwright `165`
+with `107` documented skips across `272`. Visual parity remained `98/104`
+with exactly the six established state-oracle diffs: watchlist-column-editor-
+open at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125
+and visual-1440p-100/125. Scoped teardown removed all assigned resources and
+test sessions cleanly.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Provider-supplied adjustment-factor persistence
 
 At product tip `d322584f`, the provider event contract accepts an explicit
