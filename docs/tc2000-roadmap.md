@@ -53,6 +53,26 @@ evidence. R2-R5 and R7 remain open. Continue the next bounded seam and rerun
 the exact gate after the next coherent product change while preserving all
 six protected visual assertions.
 
+## 2026-09-10 — Explicit persisted OHLCV lineage views
+
+At product tip `b189478e`, the OHLCV read routes now expose a backward-compatible `view` contract:
+`canonical` (the existing provider-plus-derived merge), `provider` (only
+persisted provider-observed rows), or `derived` (only rows marked
+`is_derived`). The selector is available on local, provider-capable, and
+transformed chart reads; coarse local materialization remains enabled only for
+the canonical/derived views, while provider-only reads never manufacture
+derived rows. This makes source selection explicit for the workstation without
+changing the default response, provider precedence, adjustment factors, or
+visual behavior.
+
+The focused OHLCV router suite passed `11/11`; backend unit coverage passed
+`1,414/1,414` with `67.79%` coverage against the configured `55%` threshold;
+Ruff, formatting, and diff checks passed. The persisted derived-view contract
+is now wired for existing W1/MN lineage. Local split-ratio materialization,
+full family/provider history, W1/MN continuity, canonical population, and live
+100k-point evidence remain open; preserve the six protected visual assertions
+and rerun the exact gate at the next coherent product tip.
+
 ## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 The prescribed `make validate-integration` gate reran from branch HEAD

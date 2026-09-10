@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip b189478e wires an explicit persisted OHLCV lineage selector,
+  view=canonical|provider|derived, through local, provider-capable, and
+  transformed reads. Canonical preserves the existing merge; provider and
+  derived isolate persisted is_derived rows, and provider-only local reads do
+  not trigger coarse materialization. Focused router coverage passed 11/11;
+  the full backend unit suite passed 1414/1414 at 67.79% coverage against the
+  configured 55% threshold; Ruff, formatting, and diff checks passed. No
+  factor, provider precedence, fallback, visible layout, pixel, visual
+  baseline, threshold, skip, or acceptance policy changed. Next bounded work
+  is local split-ratio materialization behind this contract, then provider/
+  family history, W1/MN continuity, canonical population, and dense-data
+  evidence; rerun the exact gate while preserving the six assertions.
   The exact branch-scoped gate reran at documentation checkpoint 4cf80612 with
   product behavior 4af7917f. Backend unit/integration passed 1413/1413 and
   387/387; frontend, compose, health, performance, acceptance, and functional

@@ -33,6 +33,20 @@
       providers, fallbacks, or acceptance policy; rerun the exact gate after
       the next coherent product change.
 
+### 2026-09-10 — Explicit persisted OHLCV lineage views
+
+- [x] Add the backward-compatible `view=canonical|provider|derived` selector
+      to local, provider-capable, and transformed OHLCV reads. Canonical keeps
+      the existing provider-plus-derived merge; provider and derived isolate
+      persisted `is_derived` lineage, and provider-only reads never trigger
+      coarse materialization.
+- [x] Focused OHLCV router coverage passed `11/11`; the full backend unit suite
+      passed `1,414/1,414` at `67.79%` coverage against the `55%` threshold;
+      Ruff, formatting, and diff checks passed.
+- [ ] Continue local split-ratio materialization, provider/family history,
+      W1/MN continuity, canonical population, and live 100k-point evidence;
+      preserve the six protected visual assertions and rerun the exact gate.
+
 ### 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 - [x] Rerun the prescribed branch-scoped gate from HEAD `e1fa2478` after the

@@ -28,6 +28,23 @@ and family history readiness plus R6 dense-data proof, then rerun the exact
 gate at the next coherent tip while preserving all six protected visual
 assertions.
 
+## 2026-09-10 — Explicit persisted OHLCV lineage views
+
+Product tip `b189478e` wires the OHLCV API to accept `view=canonical|provider|derived` on local,
+provider-capable, and transformed reads. Canonical preserves the existing
+provider-plus-derived merge; provider isolates persisted provider-observed
+rows; derived isolates rows explicitly marked `is_derived`. Provider-only
+local reads do not trigger coarse materialization. Focused router coverage
+passed `11/11`; the full backend unit suite passed `1,414/1,414` at `67.79%`
+coverage, with Ruff, formatting, and diff checks clean. This is a
+backward-compatible persisted-lineage selector and does not alter factors,
+provider precedence, fallback, or visual policy.
+
+Next bounded work is local split-ratio materialization behind this explicit
+contract, then provider/family history, W1/MN continuity, canonical
+population, and dense-data evidence. Preserve all six protected visual
+assertions and rerun the exact gate after the next coherent product change.
+
 ## 2026-09-10 — Exact integration gate after local split-factor rebuilder
 
 The branch-scoped `make validate-integration` gate reran at documentation
