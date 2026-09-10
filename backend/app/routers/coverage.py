@@ -122,6 +122,15 @@ async def instrument_ohlcv_coverage(
                     state_source_filter,
                     InstrumentDatasetState.dataset_type == "ohlcv",
                     InstrumentDatasetState.dataset_key.in_(dataset_keys),
+                    # Adjustment provenance is a point-in-time claim. A
+                    # state row that was fetched later or covers bars beyond
+                    # this requested range cannot certify this historical
+                    # response. Keep the envelope conservative instead of
+                    # projecting a later factor version backwards.
+                    InstrumentDatasetState.coverage_end.is_not(None),
+                    InstrumentDatasetState.fetched_at.is_not(None),
+                    InstrumentDatasetState.coverage_end <= end,
+                    InstrumentDatasetState.fetched_at <= end,
                 )
                 .order_by(
                     InstrumentDatasetState.dataset_key,

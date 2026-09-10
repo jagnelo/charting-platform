@@ -207,6 +207,8 @@ class TestCoverageRouter:
                     status=DatasetStatus.FRESH,
                     observed_at=start,
                     fetched_at=start,
+                    coverage_start=start,
+                    coverage_end=start,
                     version=1,
                     extra_data={
                         "adjustment_provenance": {
@@ -291,6 +293,8 @@ class TestCoverageRouter:
                     status=DatasetStatus.FRESH,
                     observed_at=start,
                     fetched_at=start,
+                    coverage_start=start,
+                    coverage_end=start,
                     version=1,
                     extra_data={
                         "adjustment_provenance": {
@@ -325,6 +329,72 @@ class TestCoverageRouter:
             "contract_version": 1,
         }
 
+    def test_range_coverage_does_not_project_future_factor_state(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.data_source import DataSource
+
+        source = DataSource(name="coverage-future-factor-provider")
+        db.add(source)
+        db.flush()
+        start = datetime(2026, 1, 2, tzinfo=UTC)
+        cutoff = start + timedelta(days=1)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=start,
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                is_adjusted=True,
+            )
+        )
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.FRESH,
+                observed_at=start,
+                fetched_at=cutoff + timedelta(days=1),
+                coverage_start=start,
+                coverage_end=cutoff + timedelta(days=1),
+                version=1,
+                extra_data={
+                    "adjustment_provenance": {
+                        "mode": "split_adjusted",
+                        "source_kind": "provider_observation",
+                        "factor_status": "rebuildable_split_factors",
+                        "factor_version": "future-factor-version",
+                    }
+                },
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": start.isoformat(),
+                "end": cutoff.isoformat(),
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_observation",
+            "factor_status": "provider_native_opaque",
+            "factor_version": None,
+            "contract_version": 1,
+        }
+
     def test_range_coverage_exposes_provider_factor_derived_version(
         self, client, auth_headers, db, instrument
     ):
@@ -355,6 +425,8 @@ class TestCoverageRouter:
                     status=DatasetStatus.FRESH,
                     observed_at=start,
                     fetched_at=start,
+                    coverage_start=start,
+                    coverage_end=start,
                     version=1,
                     extra_data={
                         "adjustment_provenance": {
