@@ -8,6 +8,43 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Bounded historical coarse-timeframe materialization
+
+Product tip `cacdeb4e` makes dated bulk-history requests pass an inclusive UTC
+cutoff into W1/MN materialization. Only D1 evidence through that cutoff is
+aggregated, derived rows through the cutoff are replaced, newer derived cache
+rows and state metadata are preserved, and factor provenance is claimed only
+when provider/local evidence also ends within the cutoff. Unbounded materialize
+calls retain latest-cache behavior; provider precedence and all visible/API
+contracts remain unchanged.
+
+The focused derived-timeframe/bulk-fetch regression set passed `14/14`; the
+full backend unit suite passed `1,420/1,420` at `67.84%` coverage; Ruff,
+formatting, and diff checks passed. This is a bounded R1/R6 history seam, not
+completion of provider/family history, canonical population, or dense-data
+evidence.
+
+## 2026-09-10 — Mounted watchlist promotion visibility
+
+Product tip `b2de94ae` updates chart promotion targets in place so mounted
+Golden Layout watchlists observe Boolean-column and filter promotions
+immediately, and emits the complete target configuration through the
+workstation parent contract for cross-root consumers. Focused component
+coverage passed `25/25`; the authenticated `F8u-boolean` flow passed `1/1`.
+
+The exact gate passed backend unit/integration `1,420/1,420` and `387/387`
+with `81.33%` combined coverage, frontend Vitest/type-check/build,
+compose/health/performance/acceptance checks, and functional Playwright `165`
+passed with `107` documented skips across `272`. Visual parity remains `98/104`
+with exactly the six protected state-oracle diffs; the gate exited `2` at
+`e2e-visual` after clean scoped teardown. Research-runner denials were
+expected. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Next bounded work remains provider/family history, W1/MN continuity beyond
+this seam, canonical population, and dense-data evidence; preserve all six
+protected visual assertions and do not integrate or deploy from this session.
+
 ## 2026-09-10 — Local split provenance carried into coarse views
 
 Product tip `8259e5e2` makes W1/MN materialization recognize fully local

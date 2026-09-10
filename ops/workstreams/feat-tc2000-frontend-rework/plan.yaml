@@ -13,6 +13,28 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip b2de94ae fixes mounted Golden Layout watchlist promotion: chart
+  Boolean-column and filter targets are patched in place to preserve the
+  mounted configuration identity, and the complete target configuration is
+  emitted through the workstation parent contract for cross-root consumers.
+  Focused ChartPlotLibrary coverage passed 25/25; the authenticated F8u-boolean
+  browser flow passed 1/1. The exact branch-scoped gate then completed backend
+  unit/integration 1420/1420 and 387/387 with 81.33% combined coverage,
+  frontend Vitest/type-check/build, uPlot renderer contract, visual acceptance,
+  compose/health/performance checks, and functional Playwright 165 passed with
+  107 documented skips across 272. Visual parity remains 98/104 with exactly
+  the six protected state-oracle diffs; the gate exited 2 at e2e-visual after
+  clean scoped teardown. No visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. The live 100k-point proof remains
+  unclaimed.
+  Product tip cacdeb4e bounds dated bulk-history W1/MN materialization to an
+  inclusive UTC end: only D1 evidence and derived rows through that cutoff are
+  rebuilt, newer derived cache rows and state metadata are preserved, and
+  factor provenance is certified only when provider/local evidence also ends
+  within the cutoff. Focused derived-timeframe/bulk-fetch regression coverage
+  passed 14/14; the full backend unit suite passed 1420/1420 at 67.84% coverage
+  against the configured 55% threshold; Ruff, formatting, and diff checks
+  passed. The unbounded path and provider precedence are unchanged.
   Product tip 8259e5e2 carries a verified local_split_ratio factor version from
   fully local split-derived D1 rows into provider-neutral W1/MN materialization
   state. Mixed provider/local D1 evidence is versioned only when all
@@ -1199,6 +1221,24 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip b2de94ae fixes mounted Golden Layout watchlist promotion by
+    preserving target configuration identity, patching Boolean-column/filter
+    targets in place, and emitting the complete target configuration through
+    the workstation parent contract. Focused ChartPlotLibrary coverage passed
+    25/25; authenticated F8u-boolean passed 1/1. The exact gate completed
+    backend unit/integration 1420/1420 and 387/387 with 81.33% combined
+    coverage, frontend Vitest/type-check/build, uPlot/visual policy,
+    compose/health/performance checks, and functional Playwright 165 passed
+    with 107 documented skips across 272. Visual parity remains 98/104 with
+    exactly the six protected diffs and clean scoped teardown; the gate exited
+    2 at e2e-visual. Product tip cacdeb4e bounds dated W1/MN materialization to
+    the inclusive UTC cutoff, preserving newer derived cache rows/state and
+    certifying factor lineage only through that cutoff; focused regression
+    coverage passed 14/14 and backend unit passed 1420/1420 at 67.84%.
+    Continue provider/family history, W1/MN continuity beyond this bounded
+    seam, canonical population, and dense-data evidence; R2-R5 and R7 remain
+    open. Preserve all six protected visual assertions and the no-integration/
+    no-deployment boundary.
     Product tip 1fc650a7 adds an authenticated local split-adjusted view
     materializer behind the explicit OHLCV lineage selector. It reads one
     identified raw provider source, applies the pure version-consistent

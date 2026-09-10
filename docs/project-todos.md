@@ -1,5 +1,35 @@
 # Project TODO Memory
 
+### 2026-09-10 — Bounded historical coarse-timeframe materialization
+
+- [x] Pass dated bulk-history cutoffs into W1/MN materialization, filter D1
+      evidence through the inclusive UTC end, replace only derived rows through
+      that end, and preserve newer derived cache rows/state metadata.
+- [x] Keep factor provenance point-in-time safe by rejecting provider/local
+      evidence whose coverage extends past the requested cutoff; preserve
+      provider precedence and the unbounded latest-cache path.
+- [x] Focused derived-timeframe/bulk-fetch regression coverage passed `14/14`;
+      full backend unit coverage passed `1,420/1,420` at `67.84%`; Ruff,
+      formatting, and diff checks passed.
+- [ ] Continue provider/family history, W1/MN continuity beyond this seam,
+      canonical population, and dense-data evidence.
+
+### 2026-09-10 — Mounted watchlist promotion visibility
+
+- [x] Preserve mounted watchlist configuration identity during chart Boolean
+      column and filter promotion, and emit the complete target configuration
+      through the workstation parent contract for cross-root Golden Layout
+      consumers.
+- [x] Focused `ChartPlotLibrary` coverage passed `25/25`; authenticated
+      `F8u-boolean` browser coverage passed `1/1`; the exact gate's functional
+      suite passed `165` with `107` documented skips across `272`.
+- [x] Visual parity remains `98/104` with exactly the six protected diffs;
+      clean branch-scoped teardown completed and no visual/acceptance policy
+      changed.
+- [ ] Continue the remaining R1/R6 provider/family history, W1/MN continuity,
+      canonical population, and dense-data work; do not change protected
+      visual assertions.
+
 ### 2026-09-10 — Local split provenance carried into coarse views
 
 - [x] Carry a verified `local_split_ratio` factor version from fully local

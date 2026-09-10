@@ -5,6 +5,51 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Bounded historical coarse-timeframe materialization
+
+At product tip `cacdeb4e`, dated bulk-history fetches now pass their inclusive
+UTC cutoff into W1/MN materialization. D1 source rows are filtered through that
+cutoff; only derived coarse rows through the cutoff are replaced; newer local
+derived cache rows and their state metadata are preserved; and factor
+provenance is certified only when its provider/local evidence also ends within
+the requested historical range. The unbounded path retains normal latest-cache
+behavior, provider-period precedence is unchanged, and no prices, bars,
+routing, fallback, layout, pixels, or acceptance policy changed.
+
+The focused derived-timeframe/bulk-fetch regression set passed `14/14`; the
+full backend unit suite passed `1,420/1,420` with `67.84%` coverage against the
+configured `55%` threshold; Ruff, formatting, and diff checks passed. The
+exact gate was rerun after the follow-up mounted-watchlist fix below; retain
+this bounded-history seam as the next R1/R6 consumer contract to exercise.
+
+## 2026-09-10 — Mounted watchlist promotion visibility
+
+At product tip `b2de94ae`, chart plot promotion preserves the mounted
+watchlist configuration object's identity, applies Boolean-column and filter
+patches in place, and emits the complete target configuration through the
+workstation contract. This closes the cross-root Golden Layout case where a
+persisted promotion was invisible until a later remount. The focused
+`ChartPlotLibrary` suite passed `25/25`, and the focused authenticated
+`F8u-boolean` browser flow passed `1/1`; no persistence schema, provider,
+fallback, layout policy, pixels, visual baseline, threshold, skip, or
+acceptance policy changed.
+
+The exact branch-scoped gate then passed backend unit/integration `1,420/1,420`
+and `387/387` with `81.33%` combined coverage, frontend Vitest/type-check/
+build, compose/health/performance/acceptance checks, and functional Playwright
+`165` passed with `107` documented skips across `272`. Visual parity remained
+`98/104` with exactly the six protected state-oracle diffs
+(`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125); the
+gate exited `2` at `e2e-visual` after clean branch-scoped teardown. The
+research-runner denials were expected; no visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
+R1/R6 remain active for provider/family history, W1/MN continuity beyond this
+bounded seam, canonical population, and dense-data evidence; R2-R5 and R7
+remain open. Preserve the six protected visual assertions and continue the
+next bounded product seam.
+
 ## 2026-09-10 — Local split provenance carried into coarse views
 
 At product tip `8259e5e2`, W1/MN materialization now recognizes a fully local
