@@ -109,7 +109,10 @@ def resolve_provider_symbol_for_instrument(instrument: Instrument) -> str:
 
 
 def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    """Normalize API and persisted bar timestamps to the canonical UTC timeline."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
 
 
 def _historical_repair_start(

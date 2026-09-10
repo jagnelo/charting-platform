@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -6,6 +6,7 @@ import pytest
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 from app.services.market_data import (
+    _as_utc,
     _historical_repair_start,
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
@@ -24,6 +25,13 @@ from app.services.ohlcv_coverage import (
 )
 from app.services.provider_runtime import ProviderNoDataError
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_market_data_timestamp_normalization_converts_offset_aware_values_to_utc():
+    assert _as_utc(datetime(2026, 1, 2, 1, 30, tzinfo=timezone(timedelta(hours=2)))) == datetime(
+        2026, 1, 1, 23, 30, tzinfo=UTC
+    )
+    assert _as_utc(datetime(2026, 1, 2, 1, 30)) == datetime(2026, 1, 2, 1, 30, tzinfo=UTC)
 
 
 def test_historical_repair_start_is_bounded_to_the_missing_tail():
