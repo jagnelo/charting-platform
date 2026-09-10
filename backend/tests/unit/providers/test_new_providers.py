@@ -1168,6 +1168,88 @@ class TestAlphaVantageProvider:
                 AlphaVantageProvider().search_instruments("AAPL")
         assert exc_info.value.provider_name == "alpha_vantage"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"bestMatches": "not-an-array"},
+            {"bestMatches": [{"1. symbol": "AAPL"}, "not-a-row"]},
+        ],
+    )
+    def test_symbol_search_rejects_malformed_rows(self, payload):
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="Alpha Vantage"):
+                AlphaVantageProvider().search_instruments("AAPL")
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"Time Series (Daily)": "not-an-object"},
+            {"Time Series (Daily)": {"2024-01-02": "not-a-row"}},
+            {"Time Series (Daily)": {"2024-01-02": {"1. open": "1"}}},
+        ],
+    )
+    def test_daily_history_rejects_malformed_rows(self, payload):
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="Alpha Vantage"):
+                AlphaVantageProvider().fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 5, tzinfo=UTC),
+                )
+
+    def test_non_rate_limit_http_failure_is_typed(self):
+        response = httpx.Response(
+            500,
+            request=httpx.Request("GET", "https://www.alphavantage.co/query"),
+        )
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                AlphaVantageProvider().search_instruments("AAPL")
+        assert exc_info.value.provider_name == "alpha_vantage"
+
+    def test_listing_csv_rejects_missing_columns(self):
+        response = MagicMock(status_code=200)
+        response.text = "symbol,name\nAAPL,Apple\n"
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="listing CSV"):
+                AlphaVantageProvider().discover_universe_page("EQUITY", 0)
+
+    def test_ipo_csv_rejects_invalid_dates(self):
+        response = MagicMock(status_code=200)
+        response.text = "symbol,name,ipoDate\nNEW,New Corp,not-a-date\n"
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="invalid IPO date"):
+                AlphaVantageProvider().fetch_market_events()
+
 
 class TestCryptoProviderErrorEnvelopes:
     def test_kraken_http_success_error_array_is_typed(self):

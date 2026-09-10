@@ -6,6 +6,7 @@ import csv
 import io
 import logging
 from datetime import UTC, date, datetime, timedelta
+from math import isfinite
 from typing import Any
 
 import httpx
@@ -43,7 +44,19 @@ class AlphaVantageProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"Alpha Vantage request rejected for capacity (HTTP {response.status_code})",
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                ) from exc
+            raise ProviderResponseError(
+                self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
+            ) from exc
         try:
             payload = response.json()
         except (TypeError, ValueError) as exc:
@@ -53,7 +66,9 @@ class AlphaVantageProvider:
             raise ProviderRateLimitError(
                 self.name, str(payload.get("Note") or payload.get("Information"))
             )
-        return payload if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid response object")
+        return payload
 
     def _get_text(self, function: str, **params: Any) -> str | None:
         if not self._key():
@@ -65,8 +80,22 @@ class AlphaVantageProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"Alpha Vantage request rejected for capacity (HTTP {response.status_code})",
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                ) from exc
+            raise ProviderResponseError(
+                self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
+            ) from exc
         text = response.text
+        if not isinstance(text, str):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid text response")
         if "Error Message" in text:
             raise ProviderResponseError(self.name, text[:240])
         if "Thank you for using Alpha Vantage" in text or "higher API call volume" in text:
@@ -76,7 +105,13 @@ class AlphaVantageProvider:
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         if not query.strip() or limit <= 0:
             return []
-        payload = self._get("SYMBOL_SEARCH", keywords=query.strip()) or {}
+        payload = self._get("SYMBOL_SEARCH", keywords=query.strip())
+        matches = payload.get("bestMatches", [])
+        if not isinstance(matches, list) or any(not isinstance(row, dict) for row in matches):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed symbol-search rows")
+        for row in matches:
+            if not str(row.get("1. symbol") or "").strip() or not str(row.get("2. name") or "").strip():
+                raise ProviderResponseError(self.name, "Alpha Vantage returned an incomplete symbol-search row")
         return [
             ProviderSearchResult(
                 symbol=str(row.get("1. symbol") or ""),
@@ -84,7 +119,7 @@ class AlphaVantageProvider:
                 exchange=str(row.get("4. region") or ""),
                 instrument_type=str(row.get("3. type") or "EQUITY").upper(),
             )
-            for row in payload.get("bestMatches", [])[:limit]
+            for row in matches[:limit]
         ]
 
     def fetch_ohlcv(
@@ -103,30 +138,38 @@ class AlphaVantageProvider:
         # Alpha Vantage's free key currently rejects ``outputsize=full`` as a
         # premium-only feature. ``compact`` is the documented free response
         # (latest 100 daily points); older history must use another provider.
-        payload = self._get("TIME_SERIES_DAILY", symbol=symbol, outputsize="compact") or {}
-        series = payload.get("Time Series (Daily)") or {}
+        payload = self._get("TIME_SERIES_DAILY", symbol=symbol, outputsize="compact")
+        series = payload.get("Time Series (Daily)", {})
+        if not isinstance(series, dict):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid daily-series object")
         bars: list[OHLCVBar] = []
         for date_text, row in series.items():
+            if not isinstance(row, dict):
+                raise ProviderResponseError(self.name, "Alpha Vantage returned a malformed daily-series row")
             try:
                 ts = datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=UTC)
                 if not (start <= ts < end):
                     continue
+                values = [row[f"{index}. {field}"] for index, field in ((1, "open"), (2, "high"), (3, "low"), (4, "close"), (5, "volume"))]
+                numbers = [float(value) for value in values]
+                if not all(isfinite(value) for value in numbers):
+                    raise ValueError("non-finite Alpha Vantage daily value")
                 bars.append(
                     OHLCVBar(
                         instrument_id=instrument_id,
                         data_source_id=data_source_id,
                         timeframe=timeframe,
                         ts=ts,
-                        open=float(row["1. open"]),
-                        high=float(row["2. high"]),
-                        low=float(row["3. low"]),
-                        close=float(row["4. close"]),
-                        volume=float(row["5. volume"]),
+                        open=numbers[0],
+                        high=numbers[1],
+                        low=numbers[2],
+                        close=numbers[3],
+                        volume=numbers[4],
                         is_adjusted=False,
                     )
                 )
-            except (KeyError, TypeError, ValueError):
-                continue
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid daily-series row") from exc
         return sorted(bars, key=lambda bar: bar.ts)
 
     def fetch_latest_ohlcv(
@@ -164,9 +207,16 @@ class AlphaVantageProvider:
         if not text:
             return {"total": 0, "quotes": []}
         try:
-            rows = list(csv.DictReader(io.StringIO(text)))
-        except csv.Error:
-            return {"total": 0, "quotes": []}
+            reader = csv.DictReader(io.StringIO(text), strict=True)
+            if not reader.fieldnames or not {"symbol", "name", "exchange", "assetType", "status"}.issubset(
+                set(reader.fieldnames)
+            ):
+                raise ValueError("Alpha Vantage listing CSV is missing required columns")
+            rows = list(reader)
+        except (csv.Error, TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed listing CSV") from exc
+        if any(None in row or any(value is None for value in row.values()) for row in rows):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed listing CSV rows")
         page_size = 1000
         page = rows[max(offset, 0) : max(offset, 0) + page_size]
         quotes = [
@@ -180,8 +230,9 @@ class AlphaVantageProvider:
                 "delisting_date": row.get("delistingDate") or None,
             }
             for row in page
-            if row.get("symbol")
         ]
+        if any(not quote["symbol"] or not quote["name"] for quote in quotes):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned incomplete listing rows")
         return {"total": len(rows), "quotes": quotes}
 
     def supported_discovery_types(self) -> list[str]:
@@ -199,20 +250,25 @@ class AlphaVantageProvider:
         if not text:
             return []
         try:
-            rows = list(csv.DictReader(io.StringIO(text)))
-        except csv.Error:
-            return []
+            reader = csv.DictReader(io.StringIO(text), strict=True)
+            if not reader.fieldnames or not {"symbol", "name", "ipoDate"}.issubset(set(reader.fieldnames)):
+                raise ValueError("Alpha Vantage IPO CSV is missing required columns")
+            rows = list(reader)
+        except (csv.Error, TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed IPO CSV") from exc
+        if any(None in row or any(value is None for value in row.values()) for row in rows):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned malformed IPO CSV rows")
         result: list[MarketEventRecord] = []
         for row in rows:
             try:
                 event_date = date.fromisoformat(str(row.get("ipoDate") or ""))
-            except ValueError:
-                continue
+            except ValueError as exc:
+                raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid IPO date") from exc
             if start and event_date < start or end and event_date > end:
                 continue
             symbol = str(row.get("symbol") or "").strip().upper()
             if not symbol:
-                continue
+                raise ProviderResponseError(self.name, "Alpha Vantage returned an IPO row without a symbol")
             result.append(
                 MarketEventRecord(
                     event_type="ipo",
