@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Storage reconciliation identity hardening
+
+Product tip `794d5e35` makes canonical OHLCV storage reconciliation use the
+complete provider-observation identity: instrument, data source, timeframe,
+UTC-normalized timestamp, and raw versus adjusted mode. This prevents a
+same-timestamp D1/W1 or raw/adjusted observation from being counted against
+the wrong provider bar. Focused storage-reconciliation plus coverage-router
+coverage passed `11/11`; Ruff, formatting, and diff checks passed. No prices,
+bars, provider routing, fallback, visual baseline, threshold, skip, or
+acceptance policy changed.
+
+The exact Docker-backed gate remains pending: first rerun from the conflict
+recovery product tip `bab365e9` when Docker is responsive, then rerun again at
+the current coherent tip `794d5e35`. Continue the next bounded R1
+provider-factor/history seam afterward.
+
 ## 2026-09-10 — Conflict recovery after late snapshot callbacks
 
 Product tip `bab365e9` narrows the revisioned-save generation guard. When a

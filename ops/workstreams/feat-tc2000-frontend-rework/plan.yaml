@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 794d5e35 hardens canonical OHLCV storage reconciliation: provider
+  bars and raw observations now match on instrument, source, timeframe,
+  UTC-normalized timestamp, and raw versus adjusted mode, preventing
+  cross-timeframe or cross-adjustment evidence collisions. Focused storage and
+  coverage-router coverage passed 11/11; Ruff, formatting, and diff checks
+  passed. Prices, bars, provider routing, fallback, visible layout, pixels,
+  visual baselines, thresholds, skips, and acceptance policy are unchanged.
+  The exact Docker-backed gate still needs to be rerun first at bab365e9 (the
+  conflict-recovery fix) and then at this coherent tip when Docker is
+  responsive. R1 remains active for provider-factor application/rebuild
+  verification, family/provider-history readiness, W1/MN continuity, broader
+  cadence, and canonical population; R2-R7 remain open.
   Product tip bab365e9 narrows the revisioned-save generation guard so a late
   Golden Layout/configuration callback cannot suppress recovery when the
   request already contained the user's structural tool mutation, while a

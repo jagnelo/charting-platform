@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Storage reconciliation identity hardening
+
+- [x] Match provider OHLCV bars and raw observations on the complete storage
+      identity (instrument, source, timeframe, UTC timestamp, and raw versus
+      adjusted mode), preventing cross-view evidence collisions.
+- [x] Normalize offset-aware timestamps to UTC and regress the focused storage
+      and coverage-router contract (`11/11`); Ruff, formatting, and diff checks
+      passed without changing visible or visual policy.
+- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
+      coherent tip, and continue provider factor application/rebuild,
+      family/provider history, W1/MN continuity, cadence, and population.
+
 ### 2026-09-10 — Conflict recovery after late snapshot callbacks
 
 - [x] Make revisioned workspace saves distinguish a request that predates a

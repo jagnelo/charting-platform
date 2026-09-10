@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Storage reconciliation identity hardening
+
+At product tip `794d5e35`, canonical OHLCV storage reconciliation now keys
+provider bars and raw observations by instrument, source, timeframe, UTC
+timestamp, and adjustment mode. Offset-aware timestamps are normalized to UTC
+before matching, so a D1/W1 or raw/adjusted row cannot satisfy the wrong
+evidence record. Focused storage-reconciliation and coverage-router coverage
+passed `11/11`; Ruff, formatting, and diff checks passed. Prices, bars,
+provider routing, fallback, visible layout, pixels, visual baselines,
+thresholds, skips, and acceptance policy are unchanged.
+
+R1 remains active for provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, broader cadence, and
+canonical population evidence; R2-R7 remain open. The exact Docker-backed gate
+still needs to be rerun at `bab365e9` and then at the current coherent tip when
+Docker is responsive.
+
 ## 2026-09-10 — Conflict recovery after late snapshot callbacks
 
 At product tip `bab365e9`, the workspace snapshot conflict path now
