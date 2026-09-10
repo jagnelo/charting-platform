@@ -77,6 +77,12 @@ current capability/quota ledger.
       API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
       yfinance as the broad default route; yfinance remains an explicit,
       disabled-by-default legacy/options compatibility path.
+- [x] Close the remaining code-owned Tradier options gap: the concrete adapter
+      now normalizes documented expiration and current-chain endpoints,
+      provider OCC symbols, calls/puts, quotes, open interest, and nested ORATS
+      Greeks; operation costs are explicit and the credentialed live matrix
+      exercises both reads when a production token is available. No sandbox
+      token or undocumented quota is promoted.
 - [ ] Supply and live-prove Alpaca Trading API key/secret, a Tradier individual
       token, and a MarketData.app token. The authoritative local matrix already
       passed SEC EDGAR with an operator-supplied temporary contact User-Agent;

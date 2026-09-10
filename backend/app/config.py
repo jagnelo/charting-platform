@@ -985,6 +985,8 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "search_instruments": 1,
                 "bulk_fetch": 1,
+                "list_option_expirations": 1,
+                "fetch_option_chain": 1,
             },
         },
         # A metadata lookup resolves the provider-native coin id through

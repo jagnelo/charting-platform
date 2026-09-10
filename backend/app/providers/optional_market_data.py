@@ -34,6 +34,7 @@ from app.providers.base import (
     InstrumentProfile,
     ListingRecord,
     MarketEventRecord,
+    OptionContractRecord,
     ProviderSearchResult,
 )
 from app.providers.errors import (
@@ -223,6 +224,113 @@ def _timestamp(value: Any, *, timezone_name: str | None = None) -> datetime | No
 
 def _bounded_datetime(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _option_expiry(value: Any) -> date | None:
+    """Parse provider option-expiration values without guessing a timezone."""
+
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, int | float):
+        try:
+            return datetime.fromtimestamp(value, tz=UTC).date()
+        except (OverflowError, OSError, ValueError):
+            return None
+    text = str(value).strip()
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        return None
+
+
+def _option_right(value: Any) -> str | None:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"c", "call", "calls"}:
+        return "call"
+    if normalized in {"p", "put", "puts"}:
+        return "put"
+    return None
+
+
+def _option_contract_from_row(
+    row: dict[str, Any],
+    *,
+    underlying_symbol: str,
+    fallback_expiration: date | None = None,
+) -> OptionContractRecord | None:
+    """Normalize a documented Tradier-style option row.
+
+    Tradier's brokerage JSON uses snake-case fields and nests Greeks under
+    ``greeks``.  Keeping this parser tolerant of singleton/alias fields makes
+    the adapter safe for both production responses and recorded fixtures while
+    retaining the complete raw row for reconciliation.
+    """
+
+    provider_symbol = str(
+        row.get("symbol") or row.get("optionSymbol") or row.get("option_symbol") or ""
+    ).strip()
+    expiration = _option_expiry(
+        row.get("expiration_date")
+        or row.get("expirationDate")
+        or row.get("expiration")
+        or fallback_expiration
+    )
+    right = _option_right(
+        row.get("option_type")
+        or row.get("optionType")
+        or row.get("type")
+        or row.get("side")
+    )
+    if not provider_symbol or expiration is None or right is None:
+        return None
+
+    greeks = row.get("greeks") if isinstance(row.get("greeks"), dict) else {}
+
+    def value(*names: str) -> Any:
+        for name in names:
+            if row.get(name) is not None:
+                return row[name]
+            if greeks.get(name) is not None:
+                return greeks[name]
+        return None
+
+    bid = _decimal(value("bid"))
+    ask = _decimal(value("ask"))
+    mark = _decimal(value("mid", "mark"))
+    if mark is None and bid is not None and ask is not None:
+        mark = (bid + ask) / Decimal("2")
+    observed_at = _timestamp(value("updated", "last_updated", "quote_time"))
+    return OptionContractRecord(
+        provider_symbol=provider_symbol,
+        underlying_symbol=str(
+            row.get("underlying") or row.get("underlying_symbol") or underlying_symbol
+        ).upper(),
+        expiry_date=expiration,
+        strike=_decimal(row.get("strike")) or Decimal("0"),
+        right=right,
+        currency=str(row.get("currency") or "USD").upper(),
+        contract_size=_decimal(row.get("contract_size") or row.get("contractSize")),
+        bid=bid,
+        ask=ask,
+        mark=mark,
+        last_price=_decimal(value("last", "last_price")),
+        volume=_decimal(value("volume")),
+        open_interest=_decimal(value("open_interest", "openInterest")),
+        implied_vol=_decimal(
+            value("iv", "mid_iv", "implied_volatility", "impliedVolatility")
+        ),
+        delta=_decimal(value("delta")),
+        gamma=_decimal(value("gamma")),
+        theta=_decimal(value("theta")),
+        vega=_decimal(value("vega")),
+        rho=_decimal(value("rho")),
+        observed_at=observed_at,
+        raw_payload=dict(row),
+    )
 
 
 class _RESTProvider:
@@ -721,6 +829,61 @@ class TradierProvider(_RESTProvider):
             for row in rows[:limit]
             if row.get("symbol")
         ]
+
+    def list_option_expirations(self, symbol: str) -> list[date]:
+        """Return Tradier's available OCC expiration dates for an underlying."""
+
+        payload = self._get(
+            "markets/options/expirations",
+            {
+                "symbol": symbol.upper(),
+                "includeAllRoots": "false",
+                "strikes": "false",
+                "contractSize": "true",
+            },
+        )
+        wrapped = payload.get("expirations") if isinstance(payload, dict) else None
+        values: Any = wrapped.get("date") if isinstance(wrapped, dict) else wrapped
+        if values is None and isinstance(payload, dict):
+            values = payload.get("date")
+        if not isinstance(values, list):
+            values = [values] if values not in (None, "") else []
+        return sorted({parsed for value in values if (parsed := _option_expiry(value))})
+
+    def fetch_option_chain(
+        self,
+        symbol: str,
+        *,
+        expiration: date | None = None,
+    ) -> list[OptionContractRecord]:
+        """Fetch one current Tradier option chain with provider Greeks."""
+
+        if expiration is None:
+            expirations = self.list_option_expirations(symbol)
+            if not expirations:
+                return []
+            expiration = expirations[0]
+        payload = self._get(
+            "markets/options/chains",
+            {
+                "symbol": symbol.upper(),
+                "expiration": expiration.isoformat(),
+                "greeks": "true",
+            },
+        )
+        rows = self._nested_rows(payload, "options", "option")
+        if not rows:
+            rows = self._rows(payload, "options")
+        contracts = [
+            contract
+            for row in rows
+            if (contract := _option_contract_from_row(
+                row,
+                underlying_symbol=symbol,
+                fallback_expiration=expiration,
+            ))
+        ]
+        return sorted(contracts, key=lambda contract: (contract.expiry_date, contract.strike, contract.right, contract.provider_symbol))
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(days=max(30, limit * 2))

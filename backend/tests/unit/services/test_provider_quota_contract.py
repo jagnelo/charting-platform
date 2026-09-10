@@ -1148,6 +1148,8 @@ def test_single_request_provider_profiles_are_explicit():
             "get_current_price": 1,
             "search_instruments": 1,
             "bulk_fetch": 1,
+            "list_option_expirations": 1,
+            "fetch_option_chain": 1,
         },
     }
     for provider_name, operation_costs in expected.items():

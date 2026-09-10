@@ -404,6 +404,18 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert calendar_events
         assert all(event.event_type == "earnings" for event in calendar_events)
         assert all(event.effective_date is not None for event in calendar_events)
+    if provider.name == "tradier":
+        expirations, _ = _observed_read(
+            lambda: provider.list_option_expirations(symbol), provider.name
+        )
+        assert expirations
+        contracts, _ = _observed_read(
+            lambda: provider.fetch_option_chain(symbol, expiration=expirations[0]),
+            provider.name,
+        )
+        assert contracts
+        assert all(contract.underlying_symbol == symbol for contract in contracts)
+        assert all(contract.right in {"call", "put"} for contract in contracts)
 
 
 def test_eodhd_free_plan_profile_entitlement_is_explicit():

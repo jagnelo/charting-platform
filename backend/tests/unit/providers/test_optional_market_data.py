@@ -57,6 +57,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "universe_discovery" in list_provider_capabilities("eodhd")
     assert "instrument_events" in list_provider_capabilities("finnhub")
     assert "market_events" in list_provider_capabilities("finnhub")
+    assert "option_chain" in list_provider_capabilities("tradier")
 
 
 def test_twelve_data_parses_intraday_values():
@@ -577,6 +578,58 @@ def test_tradier_parses_documented_nested_history_and_singleton_quote_search_sha
         rows = provider.search_instruments("Apple")
     assert rows and rows[0].symbol == "AAPL"
     assert rows[0].name == "Apple Inc."
+
+
+def test_tradier_parses_option_expirations_and_chain_greeks():
+    provider = TradierProvider()
+    expiration = date(2024, 1, 19)
+    with patch.object(
+        provider,
+        "_get",
+        side_effect=[
+            {"expirations": {"date": [expiration.isoformat()]}},
+            {
+                "options": {
+                    "option": [
+                        {
+                            "symbol": "AAPL240119C00100000",
+                            "underlying": "AAPL",
+                            "expiration_date": expiration.isoformat(),
+                            "option_type": "call",
+                            "strike": "100",
+                            "contract_size": "100",
+                            "bid": "2.00",
+                            "ask": "2.20",
+                            "last": "2.10",
+                            "volume": "42",
+                            "open_interest": "1000",
+                            "greeks": {
+                                "mid_iv": "0.25",
+                                "delta": "0.70",
+                                "gamma": "0.03",
+                                "theta": "-0.02",
+                                "vega": "0.11",
+                                "rho": "0.04",
+                            },
+                        }
+                    ]
+                }
+            },
+        ],
+    ) as get:
+        expirations = provider.list_option_expirations("AAPL")
+        contracts = provider.fetch_option_chain("AAPL", expiration=expirations[0])
+
+    assert expirations == [expiration]
+    assert len(contracts) == 1
+    contract = contracts[0]
+    assert contract.provider_symbol == "AAPL240119C00100000"
+    assert contract.right == "call"
+    assert contract.mark == Decimal("2.10")
+    assert contract.implied_vol == Decimal("0.25")
+    assert contract.delta == Decimal("0.70")
+    assert get.call_args_list[1].args[0].endswith("markets/options/chains")
+    assert get.call_args_list[1].args[1]["greeks"] == "true"
 
 
 def test_missing_credentials_never_make_optional_call():
