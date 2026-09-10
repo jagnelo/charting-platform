@@ -1336,6 +1336,10 @@ class TestAlphaVantageProvider:
                 AlphaVantageProvider().fetch_market_events()
         after = datetime.now(UTC) + timedelta(days=1)
         assert before <= exc_info.value.retry_at <= after
+        assert str(exc_info.value) == (
+            "Alpha Vantage CSV response indicates the documented daily request capacity"
+        )
+        assert "symbol,name" not in str(exc_info.value)
 
     def test_json_daily_capacity_message_gets_provider_window(self):
         response = MagicMock(status_code=200)

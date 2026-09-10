@@ -114,9 +114,14 @@ class AlphaVantageProvider:
             or "higher api call volume" in lowered
             or csv_information
         ):
+            capacity_message = (
+                "Alpha Vantage CSV response indicates the documented daily request capacity"
+                if csv_information
+                else text[:240]
+            )
             raise ProviderRateLimitError(
                 self.name,
-                text[:240],
+                capacity_message,
                 retry_at=_retry_at_for_capacity_message(
                     text,
                     assume_daily_for_csv_information=csv_information,
