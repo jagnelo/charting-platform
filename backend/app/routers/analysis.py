@@ -284,6 +284,7 @@ async def _family_member_bar_history(
             func.max(OHLCVBar.ts).label("newest"),
             OHLCVBar.is_derived,
             OHLCVBar.data_source_id,
+            OHLCVBar.derivation_method,
         )
         .where(
             OHLCVBar.instrument_id.in_(member_ids),
@@ -295,6 +296,7 @@ async def _family_member_bar_history(
             OHLCVBar.instrument_id,
             OHLCVBar.is_derived,
             OHLCVBar.data_source_id,
+            OHLCVBar.derivation_method,
         )
     )
     if as_of is not None:
@@ -310,6 +312,7 @@ async def _family_member_bar_history(
     for row in bar_rows:
         timeframe, instrument_id, bar_count, oldest, newest, is_derived = row[:6]
         data_source_id = row[6] if len(row) > 6 else None
+        derivation_method = row[7] if len(row) > 7 else None
         member = by_timeframe[timeframe].setdefault(
             int(instrument_id),
             {
@@ -318,6 +321,7 @@ async def _family_member_bar_history(
                 "provider_bar_count": 0,
                 "derived_bar_count": 0,
                 "provider_source_ids": set(),
+                "derived_methods": set(),
                 "oldest": None,
                 "newest": None,
             },
@@ -326,6 +330,8 @@ async def _family_member_bar_history(
         member["bar_count"] += count
         if bool(is_derived):
             member["derived_bar_count"] += count
+            if derivation_method:
+                member["derived_methods"].add(str(derivation_method))
         else:
             member["provider_bar_count"] += count
             if data_source_id is not None:
@@ -363,7 +369,14 @@ async def _family_member_bar_history(
                     InstrumentDatasetState.dataset_type == "ohlcv",
                     or_(*state_filters),
                     InstrumentDatasetState.dataset_key.in_(
-                        [f"{timeframe.value}:adj" for timeframe in _FAMILY_MEMBER_BAR_REQUIREMENTS]
+                        [
+                            *(
+                                f"{timeframe.value}:adj"
+                                for timeframe in _FAMILY_MEMBER_BAR_REQUIREMENTS
+                            ),
+                            "D1:adj:local_split_ratio",
+                            "D1:adj:provider_adjustment_factor",
+                        ]
                     ),
                 )
             )

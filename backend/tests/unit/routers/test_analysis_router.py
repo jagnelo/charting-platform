@@ -1,5 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from app.routers.analysis import (
     _aggregate_series_cells,
     _calendar_year_cells,
     _entitlement_state,
+    _family_member_bar_history,
     _gauge_exclusion_warnings,
     _group_members_at,
     _group_membership_version,
@@ -76,6 +78,70 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "verified"
     entitlement.live_probe_status = "failure"
     assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+@pytest.mark.asyncio
+async def test_family_member_history_reads_method_specific_d1_factor_state():
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def __init__(self, call_number):
+                    self.call_number = call_number
+
+                def all(self_inner):
+                    if self_inner.call_number == 1:
+                        return [(1, 10, "ACME", True, "ACME", "equity", "security")]
+                    if self_inner.call_number == 2:
+                        return [
+                            (
+                                Timeframe.D1,
+                                10,
+                                1,
+                                datetime(2026, 1, 2, tzinfo=UTC),
+                                datetime(2026, 1, 2, tzinfo=UTC),
+                                True,
+                                None,
+                                "provider_adjustment_factor",
+                            )
+                        ]
+                    return [
+                        (
+                            10,
+                            None,
+                            "D1:adj:provider_adjustment_factor",
+                            {
+                                "adjustment_provenance": {
+                                    "factor_status": "rebuildable_provider_factors",
+                                    "factor_version": "afv1-family-provider",
+                                }
+                            },
+                        )
+                    ]
+
+            return FakeResult(self.calls)
+
+    result = await _family_member_bar_history(
+        FakeDB(),
+        SimpleNamespace(id=7, composition_date=date(2026, 1, 1)),
+        as_of=None,
+    )
+
+    daily = next(item for item in result.timeframes if item.timeframe == "D1")
+    assert daily.adjustment_provenance == {
+        "mode": "split_adjusted",
+        "source_kind": "derived_from_canonical_d1",
+        "factor_status": "rebuildable_provider_factors",
+        "factor_version": "afv1-family-provider",
+        "contract_version": 1,
+        "factor_versioned_member_count": 1,
+        "factor_opaque_member_count": 0,
+        "factor_unavailable_member_count": 0,
+    }
 
 
 def test_entitlement_readiness_respects_effective_and_review_cutoffs():
