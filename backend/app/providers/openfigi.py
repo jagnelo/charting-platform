@@ -7,6 +7,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+from app.providers.errors import ProviderResponseError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -103,19 +104,25 @@ class OpenFigiProvider:
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
 
-        with httpx.Client(timeout=settings.OPENFIGI_TIMEOUT_SECONDS) as client:
-            response = client.post(
-                f"{self.base_url}/v3/mapping",
-                json=payload,
-                headers=headers,
-            )
+        try:
+            with httpx.Client(timeout=settings.OPENFIGI_TIMEOUT_SECONDS) as client:
+                response = client.post(
+                    f"{self.base_url}/v3/mapping",
+                    json=payload,
+                    headers=headers,
+                )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
         if hasattr(response, "raise_for_status"):
             response.raise_for_status()
         elif getattr(response, "status_code", 200) != 200:
             return []
 
-        raw_payload = response.json()
+        try:
+            raw_payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "OpenFIGI returned invalid JSON") from exc
         if isinstance(raw_payload, dict):
             raw_payload = [raw_payload]
         if not raw_payload or not isinstance(raw_payload, list):

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import httpx
+import pytest
+
 from app.providers.base import InstrumentProfile
+from app.providers.errors import ProviderResponseError
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.telemetry import activate, deactivate
 
@@ -111,3 +115,50 @@ def test_openfigi_mapping_reports_transport_usage(monkeypatch):
     assert measurement.http_requests == 1
     assert measurement.response_bytes == len(b"openfigi-payload")
     assert measurement.response_headers == {"x-ratelimit-remaining": "24"}
+
+
+def test_openfigi_transport_failure_is_typed(monkeypatch):
+    failure = httpx.ConnectError(
+        "connection failed",
+        request=httpx.Request("POST", "https://api.openfigi.com/v3/mapping"),
+    )
+
+    class FailingClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def post(self, *args, **kwargs):
+            raise failure
+
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FailingClient)
+    with pytest.raises(ProviderResponseError) as exc_info:
+        OpenFigiProvider().fetch_stable_identifiers("AAPL")
+    assert exc_info.value.provider_name == "openfigi"
+
+
+def test_openfigi_invalid_json_is_typed(monkeypatch):
+    class InvalidJsonClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def post(self, *args, **kwargs):
+            response = FakeResponse(None)
+            response.json = lambda: (_ for _ in ()).throw(ValueError("malformed payload"))
+            return response
+
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", InvalidJsonClient)
+    with pytest.raises(ProviderResponseError) as exc_info:
+        OpenFigiProvider().fetch_stable_identifiers("AAPL")
+    assert exc_info.value.provider_name == "openfigi"

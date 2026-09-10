@@ -448,6 +448,26 @@ class TestBinanceOHLCVParsing:
 
 
 class TestCryptoOHLCVPagination:
+    def test_coinbase_transport_failure_is_typed(self):
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com/products/BTC-USD/ticker"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=failure):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                CoinbaseProvider().get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == "coinbase"
+
+    def test_kraken_invalid_json_is_typed(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.status_code = 200
+        response.json.side_effect = ValueError("malformed payload")
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                KrakenProvider().get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == "kraken"
+
     def test_coinbase_history_pages_300_candle_ranges(self):
         provider = CoinbaseProvider()
         start = datetime(2024, 1, 1, tzinfo=UTC)

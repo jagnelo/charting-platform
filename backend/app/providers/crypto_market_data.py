@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.errors import raise_for_provider_error_envelope
+from app.providers.errors import ProviderResponseError, raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 _TF_SECONDS = {
@@ -86,9 +86,30 @@ def estimate_kraken_latest_ohlcv_request_count(timeframe: Timeframe, limit: int)
 
 
 def _json_payload(response: httpx.Response, provider_name: str) -> Any:
-    payload = response.json()
+    try:
+        payload = response.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(provider_name, "provider returned invalid JSON") from exc
     raise_for_provider_error_envelope(provider_name, payload, response.status_code)
     return payload
+
+
+def _get_json(
+    provider_name: str,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    timeout: float,
+) -> Any:
+    try:
+        response = httpx.get(url, params=params, timeout=timeout)
+        observe_response(response)
+        response.raise_for_status()
+        return _json_payload(response, provider_name)
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
+        raise ProviderResponseError(provider_name, str(exc)) from exc
 
 
 class CoinbaseProvider:
@@ -121,7 +142,8 @@ class CoinbaseProvider:
                 end,
                 cursor + timedelta(seconds=seconds * _COINBASE_CANDLES_PER_REQUEST),
             )
-            response = httpx.get(
+            rows = _get_json(
+                self.name,
                 f"{self.base_url}/products/{product}/candles",
                 params={
                     "granularity": seconds,
@@ -130,9 +152,6 @@ class CoinbaseProvider:
                 },
                 timeout=30,
             )
-            observe_response(response)
-            response.raise_for_status()
-            rows = _json_payload(response, self.name)
             for row in rows if isinstance(rows, list) else []:
                 if not isinstance(row, list) or len(row) < 6:
                     continue
@@ -184,12 +203,11 @@ class CoinbaseProvider:
         )
 
     def get_current_price(self, symbol: str) -> float | None:
-        response = httpx.get(
-            f"{self.base_url}/products/{_coinbase_product(symbol)}/ticker", timeout=15
+        payload = _get_json(
+            self.name,
+            f"{self.base_url}/products/{_coinbase_product(symbol)}/ticker",
+            timeout=15,
         )
-        observe_response(response)
-        response.raise_for_status()
-        payload = _json_payload(response, self.name)
         return (
             float(payload["price"]) if isinstance(payload, dict) and payload.get("price") else None
         )
@@ -197,12 +215,12 @@ class CoinbaseProvider:
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.upper() != "CRYPTOCURRENCY":
             return {"total": 0, "quotes": []}
-        response = httpx.get(f"{self.base_url}/products", timeout=30)
-        observe_response(response)
-        response.raise_for_status()
+        products_payload = _get_json(self.name, f"{self.base_url}/products", timeout=30)
+        if not isinstance(products_payload, list):
+            raise ProviderResponseError(self.name, "Coinbase returned an invalid products array")
         products = [
             item
-            for item in _json_payload(response, self.name)
+            for item in products_payload
             if isinstance(item, dict)
             and item.get("quote_currency") == "USD"
             and item.get("status") == "online"
@@ -254,7 +272,8 @@ class KrakenProvider:
             if cursor_seconds in seen_cursors:
                 break
             seen_cursors.add(cursor_seconds)
-            response = httpx.get(
+            payload = _get_json(
+                self.name,
                 f"{self.base_url}/OHLC",
                 params={
                     "pair": _kraken_pair(symbol),
@@ -263,9 +282,8 @@ class KrakenProvider:
                 },
                 timeout=30,
             )
-            observe_response(response)
-            response.raise_for_status()
-            payload = _json_payload(response, self.name)
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC JSON object")
             result = payload.get("result", {}) if isinstance(payload, dict) else {}
             rows = next(
                 (value for key, value in result.items() if key != "last" and isinstance(value, list)),
@@ -339,22 +357,23 @@ class KrakenProvider:
         )
 
     def get_current_price(self, symbol: str) -> float | None:
-        response = httpx.get(
-            f"{self.base_url}/Ticker", params={"pair": _kraken_pair(symbol)}, timeout=15
+        payload = _get_json(
+            self.name,
+            f"{self.base_url}/Ticker",
+            params={"pair": _kraken_pair(symbol)},
+            timeout=15,
         )
-        observe_response(response)
-        response.raise_for_status()
-        result = _json_payload(response, self.name).get("result", {})
+        result = payload.get("result", {})
         row = next(iter(result.values()), {})
         return float(row["c"][0]) if isinstance(row, dict) and row.get("c") else None
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.upper() != "CRYPTOCURRENCY":
             return {"total": 0, "quotes": []}
-        response = httpx.get(f"{self.base_url}/AssetPairs", timeout=30)
-        observe_response(response)
-        response.raise_for_status()
-        result = _json_payload(response, self.name).get("result", {})
+        payload = _get_json(self.name, f"{self.base_url}/AssetPairs", timeout=30)
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Kraken returned an invalid asset-pairs JSON object")
+        result = payload.get("result", {})
         products = [
             item
             for item in result.values()

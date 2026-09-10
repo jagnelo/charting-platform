@@ -421,3 +421,11 @@ passed `109/109`; the authoritative gate completed at `2026-09-10T06:14Z`
 with `1868 passed`, `89` warnings, and `80.35%` line coverage in `544.34s`.
 Testcontainer session `5050159c-29bd-4cba-8846-54785ab4b75a` was cleaned
 without host-wide pruning.
+
+Coinbase, Kraken, and OpenFIGI now also preserve typed failure semantics:
+network errors and malformed JSON are provider-response failures, and invalid
+exchange payload shapes are not normalized into empty market data or identity
+results. The focused crypto/OpenFIGI/provider-transport suite passed `116/116`;
+the authoritative gate completed at `2026-09-10T06:25Z` with `1872 passed`,
+`89` warnings, and `80.35%` line coverage in `407.49s`. Testcontainer session
+`02888682-f032-4f0a-8669-efc552fa9fd2` was cleaned without host-wide pruning.
