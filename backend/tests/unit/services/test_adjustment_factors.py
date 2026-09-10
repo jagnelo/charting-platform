@@ -693,3 +693,96 @@ async def test_materialize_local_provider_view_applies_factor_and_preserves_prov
         "rebuildable_provider_factors"
     )
     assert state.extra_data["adjustment_provenance"]["factor_version"] == ("afv1-provider-dividend")
+
+
+@pytest.mark.asyncio
+async def test_provider_factor_view_upgrades_local_split_derived_row(db, instrument):
+    source = DataSource(name="provider-factor-precedence")
+    db.add(source)
+    db.flush()
+    before = datetime(2024, 6, 7, 21, tzinfo=UTC)
+    after = datetime(2024, 6, 10, 21, tzinfo=UTC)
+    db.add_all(
+        [
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=before,
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                vwap=Decimal("100"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=after,
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                vwap=Decimal("100"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=before,
+                open=Decimal("50"),
+                high=Decimal("51"),
+                low=Decimal("49"),
+                close=Decimal("50"),
+                volume=Decimal("200"),
+                vwap=Decimal("50"),
+                is_adjusted=True,
+                is_derived=True,
+                derivation_method="local_split_ratio",
+            ),
+        ]
+    )
+    db.add(
+        AdjustmentFactorObservation(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            factor_type="dividend",
+            effective_at=after,
+            factor=Decimal("0.9975"),
+            factor_kind="provider_supplied",
+            amount=Decimal("0.25"),
+            source_event_key="dividend:2024-06-10",
+            observed_at=datetime(2024, 6, 11, tzinfo=UTC),
+            factor_version="afv1-provider-precedence",
+        )
+    )
+    db.flush()
+
+    result = await materialize_local_provider_adjusted_view(
+        AsyncSessionAdapter(db), instrument_id=instrument.id
+    )
+
+    assert result.status == "applied"
+    assert result.persisted_bar_count == 1
+    assert result.updated_bar_count == 1
+    assert result.skipped_provider_bar_count == 0
+    derived = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert len(derived) == 2
+    assert derived[0].derivation_method == "provider_adjustment_factor"
+    assert derived[0].close == Decimal("99.75000000")

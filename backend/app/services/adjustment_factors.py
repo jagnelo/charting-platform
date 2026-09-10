@@ -423,11 +423,25 @@ async def _materialize_local_adjusted_view(
     now = datetime.now(UTC)
     for derived in rebuilt.bars:
         prior = existing_by_ts.get(_as_utc(derived.ts))
-        if prior is not None and not (
-            prior.is_derived is True and prior.derivation_method == source_kind
-        ):
-            skipped_provider += 1
-            continue
+        if prior is not None:
+            if prior.is_derived is False:
+                # Persisted provider-adjusted evidence is authoritative and is
+                # never replaced by a local reconstruction.
+                skipped_provider += 1
+                continue
+            if not (
+                prior.derivation_method == source_kind
+                or (
+                    source_kind == "provider_adjustment_factor"
+                    and prior.derivation_method == "local_split_ratio"
+                )
+            ):
+                # Keep a derived view from an unrelated contract intact.  The
+                # explicit provider-factor view is the one deliberate upgrade
+                # path: provider-declared factors outrank local split ratios,
+                # while the split-only path cannot downgrade that evidence.
+                skipped_provider += 1
+                continue
         values = {
             "instrument_id": instrument_id,
             "data_source_id": None,
