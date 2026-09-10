@@ -176,3 +176,5 @@ Update this handoff at each coherent boundary.
 - The branch remains backend-only and clean after the consistency guard; no frontend or ETF-constituent adapter paths were modified. The current live matrix remains explicitly blocked only by the three absent provider credential domains plus the documented provider-specific safety/legal controls; no generic quota fallback or acceptance bypass was introduced.
 
 - The workstream audit now points to the authoritative `2026-09-10T03:36Z` 34-case matrix (31 passed, three exact credential preflight failures) rather than the earlier 02:55 run. The lifecycle checkpoint at commit `3efe5f2f` records the current plan hash, synchronized remote head, and zero retained Docker resources; no routing entitlement or acceptance state changed.
+
+- The continuation live matrix at `2026-09-10T03:59Z` reproduced the same 34-case result (`31 passed`, `3` exact credential preflight failures) in `36.12s`; the wrapper returned exit `2` and made no acceptance claim. This is the latest live evidence and leaves the provider-specific safety/legal controls fail-closed.

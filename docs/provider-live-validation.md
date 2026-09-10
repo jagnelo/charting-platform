@@ -308,3 +308,12 @@ made no acceptance claim. The live runner now regression-checks its Tiingo/FMP
 byte-bound operation set against the runtime quota policy, including FMP's
 `fetch_market_events`; the Docker-backed combined gate passed `1858/1858` with
 `80.36%` coverage. No provider-specific safety gate was relaxed.
+
+The continuation rerun at `2026-09-10T03:59Z` used the same existing keys and
+temporary non-secret overrides. It reproduced the exact result: all 34 cases
+were collected, 31 passed, and the three failures were explicit credential
+preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`. The pytest summary was `3 failed, 31 passed in
+36.12s`; the wrapper returned exit code `2`, appended only redacted external
+usage telemetry, and made no acceptance claim. The provider-specific routing
+safety controls remain fail-closed.
