@@ -596,3 +596,29 @@ and non-finite values while retaining the documented `.` missing-data marker.
 The focused FRED suite passed `31/31`; Ruff and diff checks passed. The
 authoritative gate remains unverified because Docker preflight is currently
 unavailable.
+
+## Latest live and full-gate evidence
+
+The complete manifest matrix was rerun at `2026-09-10T09:58:46Z` with the
+existing operator-owned environment file, a temporary non-secret
+`EDGAR_USER_AGENT`, and `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`. It collected 34
+cases: `29 passed` and `5 failed` in `36.15s`. The five failures are explicit
+credential/capacity blockers, not live skips: missing
+`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, missing `TRADIER_API_KEY`, missing
+`MARKETDATA_APP_API_KEY`, and Alpha Vantage's documented 25-requests/day
+capacity response for both daily history and IPO-calendar reads. The direct
+pytest matrix returned exit code `1`, so this is not an acceptance claim.
+
+Alpha Vantage's observed CSV `Information` response is now classified as a
+typed `ProviderRateLimitError` before CSV row parsing; it is never interpreted
+as an IPO event or malformed date. The Gate public TradFi order-book probe
+passed `1/1` after the adapter accepted the documented `null` empty-book shape,
+validated object rows and finite decimal prices, and rejected scalar/malformed
+rows. All seven tokenized probes remained green.
+
+The latest authoritative `make test-backend-coverage` gate passed
+`1963/1963`, with `89` warnings and `80.48%` coverage in `458.04s`, using
+isolated PostgreSQL/Redis testcontainer session
+`e6ae1ca0-d42b-473d-a83a-90751305ae08`. The testcontainer was cleaned without
+host-wide pruning. No credentials or provider payloads were persisted, and no
+frontend or ETF-constituent files were changed.
