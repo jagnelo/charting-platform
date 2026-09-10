@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.instrument_event import InstrumentEvent, InstrumentEventType
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     DatasetStatus,
@@ -34,6 +35,7 @@ from app.providers import (
     provider_symbol_for_instrument,
 )
 from app.providers.base import InstrumentProfile
+from app.services.adjustment_factors import build_adjustment_factor_snapshot
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
@@ -451,6 +453,34 @@ async def _touch_ohlcv_dataset_state(
     if bars:
         state.coverage_start = min(bar.ts for bar in bars)
         state.coverage_end = max(bar.ts for bar in bars)
+        factor_version = None
+        factor_status = "not_applied" if not adjusted else "provider_native_opaque"
+        if adjusted:
+            source_name = (
+                await db.execute(select(DataSource.name).where(DataSource.id == data_source_id))
+            ).scalar_one_or_none()
+            if source_name:
+                event_rows = (
+                    (
+                        await db.execute(
+                            select(InstrumentEvent)
+                            .where(
+                                InstrumentEvent.instrument_id == instrument.id,
+                                InstrumentEvent.source == source_name,
+                                InstrumentEvent.event_type.in_(
+                                    [InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND]
+                                ),
+                            )
+                            .order_by(InstrumentEvent.event_time, InstrumentEvent.source_event_key)
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                factor_snapshot = build_adjustment_factor_snapshot(event_rows)
+                if factor_snapshot.status != "not_observed":
+                    factor_status = factor_snapshot.status
+                    factor_version = factor_snapshot.version
         state.extra_data = {
             "bar_count": len(bars),
             "adjusted": adjusted,
@@ -461,11 +491,12 @@ async def _touch_ohlcv_dataset_state(
                 "mode": "split_adjusted" if adjusted else "raw",
                 "source_kind": "provider_observation",
                 # Provider APIs expose the requested adjustment mode but do
-                # not return the per-event factors used to build the series.
-                # Keep that limitation explicit instead of inventing a local
-                # factor set that could disagree with the provider payload.
-                "factor_status": "provider_native_opaque" if adjusted else "not_applied",
-                "factor_version": None,
+                # not necessarily return the per-event factors used to build
+                # the series. A complete persisted split-event set receives a
+                # deterministic version; incomplete or absent inputs remain
+                # explicitly opaque instead of being inferred.
+                "factor_status": factor_status,
+                "factor_version": factor_version,
                 "contract_version": 1,
             },
         }
