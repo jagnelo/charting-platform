@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — Point-in-time factor cutoff regression completion
+
+- [x] Cover both normalized observation and legacy event fallback paths for
+      the `coverage_end` cutoff; future corporate actions cannot contaminate
+      historical factor provenance.
+- [x] Focused factor coverage passed `6/6`; the full backend unit suite passed
+      `1,409/1,409` at `67.76%` coverage against the `55%` threshold; Ruff,
+      formatting, and diff checks passed.
+- [ ] Continue provider factor application/rebuild, family/provider history,
+      W1/MN continuity, canonical population, and live 100k-point evidence;
+      preserve the six protected visual assertions and rerun the exact gate
+      after the next coherent product change.
+
 ### 2026-09-10 — Point-in-time adjustment-factor provenance
 
 - [x] Bound normalized adjustment observations and legacy event fallback rows

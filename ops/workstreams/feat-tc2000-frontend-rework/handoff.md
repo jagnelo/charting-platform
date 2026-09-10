@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Point-in-time factor cutoff regression completion
+
+Test tip `d793e5a9` completes coverage for both normalized adjustment
+observations and the legacy instrument-event fallback at the dataset
+`coverage_end` cutoff. The focused factor suite passed `6/6`; the full backend
+unit suite passed `1,409/1,409` at `67.76%` coverage against the configured
+`55%` threshold; Ruff, formatting, and diff checks passed. Product behavior is
+the `95f3b67a` point-in-time guard; this follow-up adds regression coverage
+only. No prices, bars, provider routing, fallback, visible layout, pixels,
+visual baselines, thresholds, skips, or acceptance policy changed.
+
+Continue the next bounded R1/R6 provider-factor/history/provenance and
+dense-data seam, preserve the six protected visual assertions, and rerun the
+exact gate after the next coherent product change.
+
 ## 2026-09-10 — Point-in-time adjustment-factor provenance
 
 Product tip `95f3b67a` bounds normalized adjustment observations and the

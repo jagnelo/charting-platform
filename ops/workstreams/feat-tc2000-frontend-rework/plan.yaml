@@ -13,6 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Test tip d793e5a9 completes focused coverage for both normalized adjustment
+  observations and legacy event fallback at the dataset coverage_end cutoff.
+  Focused factor coverage passed 6/6; the full backend unit suite passed
+  1409/1409 at 67.76% coverage against the configured 55% threshold; Ruff,
+  formatting, and diff checks passed. Product behavior remains the 95f3b67a
+  point-in-time guard; no prices, bars, provider routing, fallback, visible
+  layout, pixels, visual baselines, thresholds, skips, or acceptance policy
+  changed. Continue the next bounded R1/R6 provider-factor/history/provenance
+  and dense-data seam; rerun the exact gate after the next coherent product
+  change while preserving the six protected assertions.
   Product tip 95f3b67a bounds normalized adjustment observations and legacy
   event fallback rows to events effective on or before each dataset's
   coverage_end, preventing future corporate actions from contaminating a

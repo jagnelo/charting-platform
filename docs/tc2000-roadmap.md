@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Point-in-time factor cutoff regression completion
+
+The follow-up regression at test tip `d793e5a9` covers both adjustment-factor
+sources: normalized persisted observations and the legacy instrument-event
+fallback. The focused point-in-time factor set passed `6/6`, and the complete
+backend unit suite passed `1,409/1,409` with `67.76%` coverage against the
+configured `55%` threshold. Ruff, formatting, and diff checks passed. This is
+coverage-only hardening of product tip `95f3b67a`; no prices, bars, provider
+routing, fallback, visible layout, pixels, visual baselines, thresholds,
+skips, or acceptance policy changed.
+
+R1/R6 remain active for provider-factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, canonical population, and
+the live 100k-point proof; R2-R5 and R7 remain open. Rerun the exact gate after
+the next coherent product change while preserving the six protected visual
+assertions.
+
 ## 2026-09-10 — Point-in-time adjustment-factor provenance
 
 At product tip `95f3b67a`, canonical adjusted dataset-state provenance now
