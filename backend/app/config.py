@@ -140,6 +140,7 @@ class Settings(BaseSettings):
             "gate_tradfi",
             "kraken_xstocks",
         ],
+        "tokenized_corporate_actions": ["robinhood_tokens", "xstocks"],
     }
     # Provider-specific, documentation-backed budgets.  An omitted provider
     # (or omitted dimension) is intentionally unknown and therefore not

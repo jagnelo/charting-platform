@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketEvent
 from app.models.provider_observation import LatestPriceSnapshot
+from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.services import tokenized_assets
@@ -182,7 +183,8 @@ async def test_refresh_tokenized_events_persists_and_links_explicit_action_ident
 
     monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
 
-    async def fake_execute(_db, _capability, operation, **kwargs):
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.TOKENIZED_CORPORATE_ACTIONS
         assert operation == "fetch_tokenized_corporate_actions"
         assert kwargs["provider_name"] == "xstocks"
         return SimpleNamespace(

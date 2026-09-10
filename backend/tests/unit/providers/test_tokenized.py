@@ -91,6 +91,13 @@ def test_exchange_tokenized_adapters_expose_required_provider_surface():
         assert callable(provider.get_tokenized_price)
 
 
+def test_only_action_capable_tokenized_adapters_expose_corporate_action_capability():
+    assert "tokenized_corporate_actions" in list_provider_capabilities("xstocks")
+    assert "tokenized_corporate_actions" in list_provider_capabilities("robinhood_tokens")
+    for provider in ("bybit_xstocks", "gate_tradfi", "kraken_xstocks"):
+        assert "tokenized_corporate_actions" not in list_provider_capabilities(provider)
+
+
 def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings():
     gate = GateTradfiProvider._record({"symbol": "AAPLx", "underlying_symbol": "AAPL"})
     kraken = KrakenXStocksProvider._record({"symbol": "AAPLx", "base": "AAPL", "quote": "USD"})

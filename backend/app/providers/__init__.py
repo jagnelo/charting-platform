@@ -25,6 +25,7 @@ from app.providers.base import (
     ShortInterestRecord,
     TokenizedAssetProvider,
     TokenizedAssetRecord,
+    TokenizedCorporateActionProvider,
 )
 from app.providers.registry import (
     ensure_data_source,
@@ -52,6 +53,7 @@ from app.providers.registry import (
     get_search_provider,
     get_short_interest_provider,
     get_tokenized_asset_provider,
+    get_tokenized_corporate_action_provider,
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
@@ -90,6 +92,7 @@ __all__ = [
     "ShortInterestProvider",
     "ShortInterestRecord",
     "TokenizedAssetProvider",
+    "TokenizedCorporateActionProvider",
     "TokenizedAssetRecord",
     "ensure_data_source",
     "get_default_discovery_provider",
@@ -106,6 +109,7 @@ __all__ = [
     "get_market_event_provider",
     "get_short_interest_provider",
     "get_tokenized_asset_provider",
+    "get_tokenized_corporate_action_provider",
     "get_identifier_provider_chain",
     "get_identifier_providers",
     "get_metadata_provider",

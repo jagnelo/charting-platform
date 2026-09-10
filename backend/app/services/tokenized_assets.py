@@ -370,7 +370,11 @@ async def refresh_tokenized_events(
 
     bounded_providers = max(1, min(int(max_providers), 10))
     bounded_page_size = max(1, min(int(page_size), 100))
-    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
+    # Corporate actions have their own capability contract. This prevents a
+    # provider that only advertises catalogue/quote support from being selected
+    # merely because it is present in the broader tokenized-asset chain.
+    catalog_chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
+    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_CORPORATE_ACTIONS)
     if provider_name:
         chain = [item for item in chain if item.provider_name == provider_name]
 
@@ -381,7 +385,7 @@ async def refresh_tokenized_events(
     ][:bounded_providers]
     unsupported = [
         item.provider_name
-        for item in chain
+        for item in catalog_chain
         if not callable(getattr(item.provider, "fetch_tokenized_corporate_actions", None))
     ]
     if not supported:
@@ -415,7 +419,7 @@ async def refresh_tokenized_events(
             try:
                 execution = await execute_provider_call(
                     db,
-                    ProviderCapability.TOKENIZED_ASSETS,
+                    ProviderCapability.TOKENIZED_CORPORATE_ACTIONS,
                     "fetch_tokenized_corporate_actions",
                     provider_name=resolved.provider_name,
                     response_items=len,

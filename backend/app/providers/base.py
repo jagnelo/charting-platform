@@ -310,6 +310,20 @@ class TokenizedAssetProvider(ProviderDescriptor, Protocol):
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None: ...
 
 
+@runtime_checkable
+class TokenizedCorporateActionProvider(ProviderDescriptor, Protocol):
+    """Provider-specific corporate-action feed for tokenized instruments."""
+
+    def fetch_tokenized_corporate_actions(
+        self,
+        *,
+        symbol: str | None = None,
+        upcoming: bool = False,
+        page: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]: ...
+
+
 class MarketDataProvider(
     InstrumentSearchProvider,
     InstrumentMetadataProvider,

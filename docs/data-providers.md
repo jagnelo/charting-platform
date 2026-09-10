@@ -264,8 +264,9 @@ before the request, records transport telemetry, and stores a separate
 `LatestPriceSnapshot` for the token instrument. The schedule is disabled by
 default and never calls a provider during evaluation.
 
-Corporate actions use a separate opt-in schedule so an operator can budget
-event-feed quota independently from quote polling. Set
+Corporate actions use a dedicated `tokenized_corporate_actions` capability and
+a separate opt-in schedule so an operator can budget event-feed quota
+independently from quote polling. Set
 `TOKENIZED_EVENT_REFRESH_ENABLED=true`, with bounded
 `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` and
 `TOKENIZED_EVENT_REFRESH_PAGE_SIZE`, in both the backend and worker
@@ -700,7 +701,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","alpaca","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar"],"universe_discovery":["alpaca","edgar","massive","nasdaq","alpha_vantage"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","alpaca","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar"],"universe_discovery":["alpaca","edgar","massive","nasdaq","alpha_vantage"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}
 ```
 
 Adding `yfinance` requires an explicit legacy/options deployment decision and must never

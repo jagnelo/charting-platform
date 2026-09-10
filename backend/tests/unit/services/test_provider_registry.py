@@ -9,6 +9,7 @@ from app.providers.registry import (
     get_option_chain_provider,
     get_price_history_provider,
     get_provider,
+    get_tokenized_corporate_action_provider,
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
@@ -100,6 +101,16 @@ class TestProviderRegistry:
             assert not provider_supports_instrument(
                 provider, asset_class="Equity", instrument_type="Stock"
             )
+
+    def test_tokenized_corporate_action_registry_is_capability_specific(self):
+        assert get_tokenized_corporate_action_provider("xstocks").name == "xstocks"
+        assert get_tokenized_corporate_action_provider("robinhood_tokens").name == "robinhood_tokens"
+        try:
+            get_tokenized_corporate_action_provider("bybit_xstocks")
+        except KeyError:
+            pass
+        else:
+            raise AssertionError("bybit_xstocks should not expose corporate-action capability")
 
     def test_openfigi_is_registered_as_identifier_provider(self):
         provider = get_identifier_provider("openfigi")
