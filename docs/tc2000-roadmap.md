@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Benchmark-family history factor-evidence consumer
+
+At product tip `1bfd7470`, the benchmark-family member-bar history contract
+now carries durable `InstrumentDatasetState` adjustment provenance for each
+role's D1/W1/MN coverage. Provider source identities are retained while
+aggregating member bars, null-source derived states are included when present,
+and the shared conservative factor-evidence helper reports versioned, opaque,
+and unavailable member counts only when the observed lineage supports them.
+The additive schema/type fields reach both Market Map and the family-role
+workstation accessibility summaries; visible labels, prices, bars, provider
+routing, fallback behavior, visual baselines, thresholds, skips, and
+acceptance policy are unchanged.
+
+Focused family-coverage integration passed `1/1`; watchlist-history unit
+coverage passed `8/8`; the related Market Map frontend suite passed `36/36`;
+frontend type-check, Ruff, formatting, and diff checks were green. The exact
+Docker-backed gate completed migration compatibility (skipped because no
+migration changes existed from its comparison tip) and every other
+non-visual stage: backend unit/integration `1,394`/`387` with `81.21%`
+combined coverage, frontend Vitest `990/990`, functional Playwright `165`
+with `107` documented skips across `272`, frontend build, compose/provider/
+runner/health/performance/acceptance checks, and clean scoped teardown. Visual
+parity remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Generic history factor-evidence consumer
 
 At implementation tip `d33ef30e`, watchlist source-history status now joins

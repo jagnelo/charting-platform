@@ -8,6 +8,32 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Benchmark-family history factor-evidence consumer checkpoint
+
+Product tip `1bfd7470` makes benchmark-family member-bar history consume the
+same durable `InstrumentDatasetState` adjustment provenance as generic
+watchlist history. The D1/W1/MN role contract now retains provider source
+identity while aggregating bars, includes null-source derived states, and
+reports conservative factor version/status and member counts when lineage is
+complete. Market Map and family-role accessibility summaries carry the
+additive evidence without visible layout or pixel changes. No prices, bars,
+provider routing, fallback, or acceptance policy changed.
+
+Focused family-coverage integration passed `1/1`, watchlist-history unit
+coverage `8/8`, and the Market Map frontend suite `36/36`; type-check, Ruff,
+formatting, and diff checks passed. The exact Docker-backed gate passed all
+non-visual stages: backend unit/integration `1,394`/`387` with `81.21%`
+combined coverage, frontend Vitest `990/990`, functional Playwright `165`
+with `107` documented skips across `272`, and clean scoped teardown. Visual
+parity remained `98/104` with exactly the six established
+watchlist-column-editor-open/workspace-floating diffs. Migration compatibility
+was skipped because no migrations changed from its comparison tip.
+
+R1 remains active for broader provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, source-declared cadence,
+and canonical population. R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Generic history factor-evidence consumer checkpoint
 
 Implementation commit `d33ef30e` makes watchlist source-history status consume

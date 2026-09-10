@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Benchmark-family history factor-evidence consumer
+
+- [x] Carry durable adjustment provenance from provider and derived member-bar
+      rows into each benchmark-family role's D1/W1/MN coverage contract, with
+      conservative versioned/opaque/unavailable counts and no invented factor
+      evidence.
+- [x] Preserve provider source identity during aggregation and expose the
+      additive evidence through Market Map and family-role accessibility
+      summaries; focused integration passed `1/1`, watchlist-history unit
+      coverage `8/8`, Market Map frontend coverage `36/36`, and type-check,
+      Ruff, formatting, and diff checks passed.
+- [x] Re-run the exact gate: backend `1,394/387` (`81.21%`), frontend
+      `990/990`, functional `165` with `107` documented skips, visual `98/104`
+      with the six established diffs, and clean teardown.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Generic history factor-evidence consumer
 
 - [x] Join covered provider/derived history to durable dataset-state factor
