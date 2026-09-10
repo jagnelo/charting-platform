@@ -561,3 +561,10 @@ preserving intentional test-issue exclusion and ACT Symbol/Symbol compatibility.
 The focused Nasdaq suite passed `11/11`; Ruff and diff checks passed. The
 authoritative gate remains unverified because Docker preflight is currently
 unavailable.
+
+FRED history and latest-price paths now preserve typed non-rate-limit HTTP
+failures and reject invalid observation containers, mixed rows, invalid dates,
+and non-finite values while retaining the documented `.` missing-data marker.
+The focused FRED suite passed `31/31`; Ruff and diff checks passed. The
+authoritative gate remains unverified because Docker preflight is currently
+unavailable.
