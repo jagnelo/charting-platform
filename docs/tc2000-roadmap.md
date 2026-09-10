@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Adjustment-factor input audit evidence
+
+At product tip `bc703b3a`, canonical adjusted OHLCV coverage now carries
+conservative adjustment-input evidence from the durable provider event or
+normalized-observation lineage: total observed inputs, rebuildable versus
+opaque input counts, and the observed factor kinds. The evidence is propagated
+through dataset state, the coverage response, and Coverage Summary's existing
+screen-reader-only range description. It is explicitly an input audit only;
+it does not prove that prices were recalculated locally. Visible layout,
+prices, bars, provider routing, fallback, visual baselines, thresholds,
+skips, and acceptance policy are unchanged.
+
+Focused adjustment-factor, market-data, and coverage-router backend coverage
+passed `36/36`; the Coverage Summary frontend suite passed `4/4`; frontend
+type-check, Ruff, formatting, and diff checks were green. The exact
+Docker-backed gate completed migration compatibility (skipped because no
+migration changes existed from its comparison tip) and every other non-visual
+stage: backend unit/integration `1,399`/`387` with `81.23%` combined coverage,
+frontend Vitest `990/990`, functional Playwright `165` with `107` documented
+skips across `272`, frontend build, compose/provider/runner/health/
+performance/acceptance checks, and clean scoped teardown. Visual parity
+remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+
+R1 remains active for actual provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, broader cadence
+and canonical population evidence; R2-R7 remain open. Next action: continue
+the next bounded evidence-backed R1 history/provenance seam and rerun the exact
+gate at the next coherent tip.
+
 ## 2026-09-10 — Observed OHLCV cadence contract
 
 At product tip `9e9026be`, the canonical OHLCV coverage endpoint now reports

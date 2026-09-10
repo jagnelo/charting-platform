@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Adjustment-factor input audit evidence
+
+- [x] Carry conservative adjustment-input counts (observed, rebuildable,
+      opaque) and factor kinds from durable provider event or normalized
+      observation lineage through dataset state and canonical OHLCV coverage;
+      label it as input audit evidence, not proof of local price recalculation.
+- [x] Surface the additive evidence through Coverage Summary's existing
+      screen-reader-only range description without visible layout or pixel
+      changes; focused backend coverage passed `36/36`, the frontend consumer
+      passed `4/4`, and type-check, Ruff, formatting, and diff checks passed.
+- [x] Re-run the exact gate: backend `1,399/387` (`81.23%`), frontend
+      `990/990`, functional `165` with `107` documented skips, visual `98/104`
+      with the six established diffs, and clean teardown.
+- [ ] Complete provider factor application/rebuild verification and continue
+      family/provider history, W1/MN continuity, broader cadence, and
+      canonical population evidence.
+
 ### 2026-09-10 — Observed OHLCV cadence contract
 
 - [x] Expose canonical returned-bar cadence as additive coverage evidence:

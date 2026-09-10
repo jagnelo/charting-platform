@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Adjustment-factor input audit evidence checkpoint
+
+Product tip `bc703b3a` carries conservative adjustment-input evidence from
+durable provider events or normalized observations into canonical adjusted
+OHLCV coverage: observed input count, rebuildable and opaque counts, and factor
+kinds. Coverage Summary exposes it through its existing screen-reader-only
+range description and explicitly says this is an input audit, not proof that
+prices were recalculated locally. Visible layout, prices, bars, provider
+routing, fallback, visual baselines, thresholds, skips, and acceptance policy
+are unchanged.
+
+Focused adjustment-factor, market-data, and coverage-router backend coverage
+passed `36/36`; Coverage Summary frontend coverage passed `4/4`; type-check,
+Ruff, formatting, and diff checks passed. The exact Docker-backed gate
+completed every non-visual stage (migration compatibility was skipped because
+no migrations changed from its comparison tip): backend unit/integration
+`1,399`/`387` with `81.23%` combined coverage, frontend Vitest `990/990`,
+functional Playwright `165` with `107` documented skips across `272`,
+build/provider/health/performance/acceptance checks, and clean scoped teardown.
+Visual parity remained `98/104` with exactly the six established
+watchlist-column-editor-open/workspace-floating diffs.
+
+R1 remains active for actual provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, broader cadence, and
+canonical population evidence. R2-R7 remain open. Next action: continue the
+next bounded evidence-backed R1 history/provenance seam and rerun the exact
+gate.
+
 ## 2026-09-10 — Observed OHLCV cadence contract checkpoint
 
 Product tip `9e9026be` adds observed cadence to the canonical OHLCV coverage
