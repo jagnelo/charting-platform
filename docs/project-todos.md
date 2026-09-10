@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Durable normalized adjustment-factor observations
+
+- [x] Add the additive `adjustment_factor_observation` model and migration;
+      persist split/dividend event evidence idempotently from provider event
+      ingestion, retaining stable `afv1-…` versions only for complete split
+      inputs.
+- [x] Regress factor/event/market-data coverage (`20/20`), adjacent OHLCV /
+      derived-timeframe coverage (`13/13`), and OHLCV integration (`19/19`);
+      the exact gate preserved `1,380/387` backend, `990/990` frontend, `165`
+      functional passes, `107` documented skips, and the six visual diffs with
+      clean teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue raw-versus-derived reconciliation, family/
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Rebuildable split-factor provenance fingerprint
 
 - [x] Canonically fingerprint complete persisted split events as a stable

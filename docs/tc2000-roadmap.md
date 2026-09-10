@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Durable normalized adjustment-factor observations
+
+At product tip `91bc8f5d` (with required import-order correction
+`1dd94507`), provider event ingestion now persists normalized split/dividend
+observations in the additive `adjustment_factor_observation` table. The
+natural key is instrument, source, factor type, effective time, and source
+event key, so refreshes update evidence idempotently. Complete split inputs
+retain the deterministic `afv1-…` version; dividend amounts and incomplete
+inputs are stored without being converted into invented price factors. The
+Alembic migration is `ff1a2b3c4d5e`. No provider response, price, fallback,
+visible layout, pixel, or acceptance policy changed.
+
+Focused adjustment-factor/market-data/event coverage passed `20/20`, adjacent
+derived-timeframe/OHLCV units passed `13/13`, and the OHLCV integration
+contract passed `19/19`; model metadata registration, Ruff, formatting, and
+diff checks passed. The exact Docker-backed gate passed all non-visual stages,
+backend unit/integration coverage (`1,380`/`387`, `68%`/`81.17%`), frontend
+Vitest (`990/990`), and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity completed `104` cases with `98` passes and
+the same six established state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Scoped teardown removed all assigned resources and test
+sessions cleanly. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+R1 remains active for provider-supplied dividend-factor coverage and factor
+application/rebuild verification, raw-versus-derived storage reconciliation,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and broader canonical population; R2-R7 remain open.
+Next action: continue the next bounded evidence-backed R1 history/provenance
+seam and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Rebuildable split-factor provenance fingerprint
 
 At product tip `64a17354`, the provider dataset-state path now fingerprints a
