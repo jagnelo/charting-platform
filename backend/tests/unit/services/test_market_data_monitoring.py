@@ -8,6 +8,7 @@ from app.models.market_data_foundation import (
     MarketDataAnomaly,
     ProviderShadowObservation,
 )
+from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.services.market_data_monitoring import (
     build_shadow_report,
     record_coverage_snapshot,
@@ -93,6 +94,55 @@ async def test_shadow_report_is_explicitly_observational(db):
     assert report["observations"] == 2
     assert report["discrepancies"] == 1
     assert db.query(ProviderShadowObservation).count() == 2
+    assert report["core_daily_coverage"]["status"] == "insufficient_evidence"
+    assert report["quota_capacity_events"]["count"] == 0
+    assert report["open_anomalies"]["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_shadow_report_includes_daily_coverage_capacity_and_anomalies(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    at = datetime(2026, 9, 4, 16, tzinfo=UTC)
+    await record_coverage_snapshot(
+        async_db,
+        instrument_id=instrument.id,
+        market_series_id=None,
+        timeframe="D1",
+        expected_bars=100,
+        observed_bars=99,
+        evaluated_at=at,
+        provenance={"source": "core_daily_coverage", "target_session": "2026-09-04"},
+    )
+    capacity = ProviderCapacityEvent(
+        capability=ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv",
+        error_type="ProviderRateLimitError",
+        message="redacted capacity event",
+        observed_at=at + timedelta(minutes=1),
+    )
+    db.add(capacity)
+    await record_market_data_anomaly(
+        async_db,
+        anomaly_type="provider_close_mismatch",
+        source="shadow",
+        details={"close_abs": 0.12},
+        severity="warning",
+        detected_at=at + timedelta(minutes=2),
+    )
+    report = await build_shadow_report(async_db, since=at - timedelta(seconds=1))
+
+    coverage = report["core_daily_coverage"]
+    assert coverage["status"] == "pass"
+    assert coverage["eligible_snapshots"] == 1
+    assert coverage["expected_bars"] == 100
+    assert coverage["observed_bars"] == 99
+    assert coverage["coverage_ratio"] == pytest.approx(0.99)
+    assert coverage["threshold_met"] is True
+    assert report["quota_capacity_events"]["count"] == 1
+    assert report["open_anomalies"] == {
+        "count": 1,
+        "by_severity": {"warning": 1},
+    }
 
 
 @pytest.mark.asyncio

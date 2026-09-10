@@ -14,6 +14,7 @@ from app.models.market_data_foundation import (
     MarketDataAnomaly,
     ProviderShadowObservation,
 )
+from app.models.provider_runtime import ProviderCapacityEvent
 
 
 def _utc(value: datetime | None) -> datetime:
@@ -175,6 +176,38 @@ async def build_shadow_report(
     discrepancies = sum(
         value for key, value in statuses.items() if key in {"discrepancy", "mismatch"}
     )
+
+    coverage_query = select(MarketCoverageSnapshot).where(
+        MarketCoverageSnapshot.timeframe == "D1"
+    )
+    if cutoff is not None:
+        coverage_query = coverage_query.where(MarketCoverageSnapshot.evaluated_at >= cutoff)
+    coverage_rows = (await db.execute(coverage_query)).scalars().all()
+    eligible_coverage = [
+        row
+        for row in coverage_rows
+        if isinstance(row.provenance, dict)
+        and row.provenance.get("source") == "core_daily_coverage"
+    ]
+    expected_bars = sum(max(0, int(row.expected_bars or 0)) for row in eligible_coverage)
+    observed_bars = sum(max(0, int(row.observed_bars or 0)) for row in eligible_coverage)
+    coverage_ratio = observed_bars / expected_bars if expected_bars else None
+    coverage_threshold = 0.99
+
+    capacity_query = select(ProviderCapacityEvent)
+    if cutoff is not None:
+        capacity_query = capacity_query.where(ProviderCapacityEvent.observed_at >= cutoff)
+    capacity_events = (await db.execute(capacity_query)).scalars().all()
+
+    anomaly_query = select(MarketDataAnomaly).where(MarketDataAnomaly.status == "open")
+    if cutoff is not None:
+        anomaly_query = anomaly_query.where(MarketDataAnomaly.detected_at >= cutoff)
+    open_anomalies = (await db.execute(anomaly_query)).scalars().all()
+    anomaly_severities: dict[str, int] = {}
+    for anomaly in open_anomalies:
+        severity = str(anomaly.severity or "unknown")
+        anomaly_severities[severity] = anomaly_severities.get(severity, 0) + 1
+
     return {
         "mode": "shadow_only",
         "routing_enabled": any(row.routing_enabled for row in rows),
@@ -186,4 +219,34 @@ async def build_shadow_report(
         "discrepancy_rate": (discrepancies / len(rows)) if rows else 0.0,
         "first_observed_at": rows[0].observed_at if rows else None,
         "last_observed_at": rows[-1].observed_at if rows else None,
+        "core_daily_coverage": {
+            "status": (
+                "insufficient_evidence"
+                if expected_bars == 0
+                else "pass"
+                if coverage_ratio is not None and coverage_ratio >= coverage_threshold
+                else "fail"
+            ),
+            "timeframe": "D1",
+            "eligible_snapshots": len(eligible_coverage),
+            "expected_bars": expected_bars,
+            "observed_bars": observed_bars,
+            "coverage_ratio": coverage_ratio,
+            "threshold": coverage_threshold,
+            "threshold_met": bool(
+                coverage_ratio is not None and coverage_ratio >= coverage_threshold
+            ),
+        },
+        "quota_capacity_events": {
+            "count": len(capacity_events),
+            "latest_observed_at": (
+                max(event.observed_at for event in capacity_events)
+                if capacity_events
+                else None
+            ),
+        },
+        "open_anomalies": {
+            "count": len(open_anomalies),
+            "by_severity": anomaly_severities,
+        },
     }

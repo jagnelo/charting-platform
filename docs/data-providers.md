@@ -346,7 +346,12 @@ symbol APIs:
 - `market_coverage_snapshot`, `provider_shadow_observation`, and
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`
-  expose these records to backend operators without enabling a route.
+  expose these records to backend operators without enabling a route. The
+  shadow report additionally returns an explicit `core_daily_coverage` status
+  (including eligible D1 snapshot counts, expected/observed bars, the 0.99
+  threshold, and `threshold_met`), quota-capacity event totals, and open
+  anomaly counts by severity. Missing coverage evidence is reported as
+  `insufficient_evidence`, never as a passing zero.
 - `market_universe_reconciliation_run` and
   `market_universe_lifecycle_observation` retain complete discovery-run counts,
   provider symbol/venue presence, repeated missing confirmations, and

@@ -45,6 +45,12 @@
       authoritative backend gate passes `1968/1968` with `80.52%` coverage and
       89 warnings (testcontainer session
       `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without host-wide pruning).
+- [x] Extend the backend `/shadow` report with eligible core-session D1 coverage,
+      an explicit 99% threshold status, quota-capacity event totals, and open
+      anomaly counts by severity. Focused monitoring coverage passes `5/5`; the
+      authoritative backend gate passes `1969/1969` with `80.53%` coverage and
+      89 warnings (testcontainer session
+      `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

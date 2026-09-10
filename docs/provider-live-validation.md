@@ -706,3 +706,12 @@ remained `32/32`; the authoritative gate passed `1968/1968`, with `89`
 warnings and `80.52%` coverage in `412.46s`, using isolated PostgreSQL/Redis
 testcontainer session `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without
 host-wide pruning.
+
+The backend shadow-report contract now aggregates core-session D1 coverage and
+returns `pass`, `fail`, or `insufficient_evidence` against the explicit 99%
+threshold, alongside quota-capacity event totals and open-anomaly severity
+counts. Focused monitoring tests passed `5/5`; the authoritative
+`make test-backend-coverage` gate passed `1969/1969`, with `89` warnings and
+`80.53%` coverage in `388.46s`, using isolated PostgreSQL/Redis testcontainer
+session `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide
+pruning. This remains observational and does not enable routing.
