@@ -200,3 +200,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"
+
+
+def test_fmp_byte_bound_preflight_covers_market_events_operation():
+    assert "fetch_market_events" in _LIVE_SCRIPT.BYTE_BOUND_OPERATIONS["fmp"]

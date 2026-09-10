@@ -66,6 +66,7 @@ BYTE_BOUND_OPERATIONS = {
         "get_current_price",
         "bulk_fetch",
         "get_instrument_profile",
+        "fetch_market_events",
         "discover_universe_page",
     ),
 }
