@@ -19,6 +19,13 @@ a secure operator channel. The deployment intentionally does not pull secrets
 from GitHub or from a developer worktree, and release bundles never contain
 them. Compose passes provider credentials only to `backend` and `worker`.
 
+The direct live-probe ledger is optional and contains only provider/request/byte
+aggregates. If an operator wants those cross-session probe totals visible in
+the backend usage endpoint, mount the owner-managed ledger read-only into the
+backend and worker containers and set `PROVIDER_LIVE_USAGE_LEDGER` to its
+container path. Do not copy credentials or raw provider payloads into that
+mount; an unavailable ledger is safe and does not affect routing.
+
 Tokenized quote polling is opt-in and disabled by default. If the deployment
 has reviewed provider entitlements and quota contracts, set
 `TOKENIZED_ASSET_REFRESH_ENABLED=true` and a bounded

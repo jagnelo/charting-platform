@@ -33,6 +33,12 @@ request, and response-byte totals to the external
 application database's durable runtime quota windows; it makes direct live-test
 consumption visible across local sessions without storing credentials or
 payloads.
+When an operator mounts that redacted ledger into a backend deployment and sets
+the same `PROVIDER_LIVE_USAGE_LEDGER` path, the authenticated
+`/api/v1/providers/usage` response exposes a separate `live_test_usage` object
+per provider plus ledger status/row counts. It never merges direct-test usage
+into runtime quota reservations, exposes the ledger path, or makes routing
+depend on the file; an absent or unreadable ledger is reported as unavailable.
 Local secrets belong in the owner-only
 `~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
 `.env` and `backend/.env.dev` paths to that external source. Set
@@ -324,3 +330,9 @@ line coverage in `384.90s`, above the 75% threshold. Testcontainer session
 `abb23a71-625c-402e-baa2-3efccac456ec` was cleaned successfully without a
 host-wide prune. This validates the current code unchanged; it does not relax
 the live credential or provider-governance gates.
+
+After adding the optional read-only live-ledger summary to the backend usage
+endpoint, the authoritative gate was rerun at `2026-09-10T04:33Z`. It passed
+`1860` tests with `89` warnings and `80.37%` line coverage in `544.22s`, above
+the 75% threshold. Testcontainer session
+`247cc1c4-05aa-4571-adac-9709ad237562` was cleaned without host-wide pruning.

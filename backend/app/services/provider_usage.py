@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from statistics import quantiles
 from typing import Any
 
@@ -57,6 +59,145 @@ def _bucket_start(ts: datetime, *, span: str) -> datetime:
     return ts.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def _live_usage_ledger_path() -> Path:
+    configured = str(getattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", "") or "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
+
+
+def _empty_live_usage() -> dict[str, Any]:
+    return {
+        "status": "no_observations",
+        "runs": 0,
+        "failed_runs": 0,
+        "operations": 0,
+        "http_requests": 0,
+        "response_bytes": 0,
+        "runs_24h": 0,
+        "operations_24h": 0,
+        "http_requests_24h": 0,
+        "response_bytes_24h": 0,
+        "runs_7d": 0,
+        "operations_7d": 0,
+        "http_requests_7d": 0,
+        "response_bytes_7d": 0,
+        "last_observation_at": None,
+    }
+
+
+def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
+    """Read redacted direct-live usage without making it a routing dependency.
+
+    The live suite writes one JSON object per provider/run outside Git and the
+    application database.  This reader deliberately accepts only the numeric
+    aggregate fields emitted by ``tests/live/live_usage.py``.  Malformed rows
+    are counted and ignored; credentials, payloads, run IDs, and filesystem
+    paths are never returned.
+    """
+
+    current = now or _now_utc()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=UTC)
+    else:
+        current = current.astimezone(UTC)
+    path = _live_usage_ledger_path()
+    if not path.is_file():
+        return {
+            "status": "unavailable",
+            "reason": "ledger_missing",
+            "rows": 0,
+            "invalid_rows": 0,
+            "last_observation_at": None,
+            "providers": {},
+        }
+
+    last_24h = current - timedelta(hours=24)
+    last_7d = current - timedelta(days=7)
+    providers: dict[str, dict[str, Any]] = defaultdict(_empty_live_usage)
+    rows = 0
+    invalid_rows = 0
+    latest: datetime | None = None
+
+    def _nonnegative_int(value: Any) -> int | None:
+        if isinstance(value, bool):
+            return None
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed >= 0 else None
+
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                try:
+                    row = json.loads(line)
+                    provider = str(row.get("provider") or "").strip()
+                    observed_at = datetime.fromisoformat(str(row.get("at") or ""))
+                    if observed_at.tzinfo is None:
+                        observed_at = observed_at.replace(tzinfo=UTC)
+                    else:
+                        observed_at = observed_at.astimezone(UTC)
+                    operations = _nonnegative_int(row.get("operations"))
+                    requests = _nonnegative_int(row.get("http_requests"))
+                    response_bytes = _nonnegative_int(row.get("response_bytes"))
+                    exit_status = _nonnegative_int(row.get("exit_status"))
+                    if (
+                        not provider
+                        or operations is None
+                        or requests is None
+                        or response_bytes is None
+                        or exit_status is None
+                    ):
+                        raise ValueError("invalid live usage row")
+                except (AttributeError, TypeError, ValueError, json.JSONDecodeError):
+                    invalid_rows += 1
+                    continue
+
+                rows += 1
+                latest = max(latest, observed_at) if latest else observed_at
+                summary = providers[provider]
+                summary["status"] = "available"
+                summary["runs"] += 1
+                summary["failed_runs"] += int(exit_status not in (None, 0))
+                summary["operations"] += operations
+                summary["http_requests"] += requests
+                summary["response_bytes"] += response_bytes
+                summary["last_observation_at"] = max(
+                    summary["last_observation_at"], observed_at
+                ) if summary["last_observation_at"] else observed_at
+                if observed_at >= last_24h:
+                    summary["runs_24h"] += 1
+                    summary["operations_24h"] += operations
+                    summary["http_requests_24h"] += requests
+                    summary["response_bytes_24h"] += response_bytes
+                if observed_at >= last_7d:
+                    summary["runs_7d"] += 1
+                    summary["operations_7d"] += operations
+                    summary["http_requests_7d"] += requests
+                    summary["response_bytes_7d"] += response_bytes
+    except OSError:
+        return {
+            "status": "unavailable",
+            "reason": "ledger_unreadable",
+            "rows": 0,
+            "invalid_rows": 0,
+            "last_observation_at": None,
+            "providers": {},
+        }
+
+    return {
+        "status": "available" if rows else "empty",
+        "rows": rows,
+        "invalid_rows": invalid_rows,
+        "last_observation_at": latest,
+        "providers": dict(providers),
+    }
+
+
 def _iter_buckets(start: datetime, count: int, *, span: str) -> list[datetime]:
     step = timedelta(hours=1) if span == "hour" else timedelta(days=1)
     return [start + (step * idx) for idx in range(count)]
@@ -93,6 +234,8 @@ def _window_usage(
 async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     await seed_provider_runtime(db)
     now = _now_utc()
+    live_usage_ledger = read_live_usage_ledger(now=now)
+    live_usage_by_provider = live_usage_ledger.get("providers") or {}
     retention_days = max(int(settings.PROVIDER_REQUEST_LOG_RETENTION_DAYS or 30), 7)
     retained_since = now - timedelta(days=retention_days)
     last_24h_since = now - timedelta(hours=24)
@@ -398,6 +541,18 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 ],
                 "hourly_buckets": list(hourly_map.values()),
                 "daily_buckets": list(daily_map.values()),
+                # Direct live probes consume provider accounts outside the
+                # application DB. Keep their redacted ledger totals separate
+                # from runtime request logs and quota reservations.
+                "live_usage_ledger": {
+                    "status": live_usage_ledger.get("status"),
+                    "rows": live_usage_ledger.get("rows", 0),
+                    "invalid_rows": live_usage_ledger.get("invalid_rows", 0),
+                    "last_observation_at": live_usage_ledger.get("last_observation_at"),
+                },
+                "live_test_usage": live_usage_by_provider.get(
+                    data_source.name, _empty_live_usage()
+                ),
             }
         )
     return summaries

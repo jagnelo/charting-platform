@@ -1473,6 +1473,10 @@ class Settings(BaseSettings):
     PROVIDER_MAX_CONCURRENCY: int = 2
     OPTION_CHAIN_REFRESH_HORIZON_DAYS: int = 45
     PROVIDER_REQUEST_LOG_RETENTION_DAYS: int = 30
+    # Optional read-only view of the direct live-probe usage ledger.  The
+    # ledger is outside the application database and is never required for
+    # routing; an absent/unmounted file is reported as unavailable.
+    PROVIDER_LIVE_USAGE_LEDGER: str = ""
     LATEST_PRICE_SNAPSHOT_RETENTION_DAYS: int = 30
     INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS: int = 14
     UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 30

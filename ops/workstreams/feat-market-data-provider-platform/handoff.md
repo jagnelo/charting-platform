@@ -180,3 +180,5 @@ Update this handoff at each coherent boundary.
 - The continuation live matrix at `2026-09-10T03:59Z` reproduced the same 34-case result (`31 passed`, `3` exact credential preflight failures) in `36.12s`; the wrapper returned exit `2` and made no acceptance claim. This is the latest live evidence and leaves the provider-specific safety/legal controls fail-closed.
 
 - A session-aware authoritative backend gate completed at `2026-09-10T04:17Z`: `1858 passed`, `89` warnings, `80.36%` coverage in `384.90s`. Testcontainer session `abb23a71-625c-402e-baa2-3efccac456ec` was cleaned without host-wide pruning; this adds no routing entitlement.
+
+- The new optional cross-session live-ledger observability path passed focused service/router/secret-wiring coverage (`21/21`), Compose/RPi contract rendering, Ruff, and the authoritative backend gate at `2026-09-10T04:33Z`: `1860 passed`, `89` warnings, `80.37%` coverage in `544.22s`. Testcontainer session `247cc1c4-05aa-4571-adac-9709ad237562` was cleaned without host-wide pruning. Direct-test totals remain separate from runtime quota reservations and do not alter routing.

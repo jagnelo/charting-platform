@@ -5,16 +5,58 @@ from decimal import Decimal
 
 import pytest
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
-from app.services.provider_usage import summarize_provider_usage
+from app.services.provider_usage import read_live_usage_ledger, summarize_provider_usage
 from tests.unit.conftest import AsyncSessionAdapter
 
 
+def test_read_live_usage_ledger_aggregates_redacted_rows(tmp_path, monkeypatch):
+    now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text(
+        '\n'.join(
+            [
+                '{"at":"2026-09-10T11:00:00+00:00","provider":"fred","operations":2,"http_requests":3,"response_bytes":100,"exit_status":0}',
+                '{"at":"2026-09-08T12:00:00+00:00","provider":"fred","operations":1,"http_requests":1,"response_bytes":50,"exit_status":2}',
+                '{"at":"2026-09-10T11:30:00+00:00","provider":"coinbase","operations":1,"http_requests":1,"response_bytes":25,"exit_status":0}',
+                'not-json',
+            ]
+        )
+        + '\n'
+    )
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    result = read_live_usage_ledger(now=now)
+
+    assert result["status"] == "available"
+    assert result["rows"] == 3
+    assert result["invalid_rows"] == 1
+    assert result["providers"]["fred"]["http_requests"] == 4
+    assert result["providers"]["fred"]["http_requests_24h"] == 3
+    assert result["providers"]["fred"]["runs_7d"] == 2
+    assert result["providers"]["fred"]["failed_runs"] == 1
+
+
+def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(tmp_path / "missing.jsonl"))
+
+    result = read_live_usage_ledger(now=datetime.now(UTC))
+
+    assert result["status"] == "unavailable"
+    assert result["reason"] == "ledger_missing"
+
+
 @pytest.mark.asyncio
-async def test_summarize_provider_usage_tracks_plain_request_counts(db):
+async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypatch, tmp_path):
     async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_LIVE_USAGE_LEDGER",
+        str(tmp_path / "missing-provider-live-usage.jsonl"),
+    )
     source = DataSource(
         name="yfinance",
         is_active=True,
@@ -105,6 +147,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
     assert summary["active_quota_windows"][0]["available_units"] == 77
     assert summary["active_quota_windows"][0]["reserved_units"] == 3
     assert summary["active_quota_windows"][0]["distinct_identity_count"] == 1
+    assert summary["live_usage_ledger"]["status"] == "unavailable"
+    assert summary["live_test_usage"]["http_requests"] == 0
 
 
 @pytest.mark.asyncio

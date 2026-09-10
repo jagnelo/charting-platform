@@ -419,3 +419,5 @@ class TestProvidersRouter:
         row = next(item for item in usage.json() if item["provider"] == "yfinance")
         assert row["requests_24h"] >= 1
         assert row["usage_unit_label"] == "requests"
+        assert "live_usage_ledger" in row
+        assert "live_test_usage" in row
