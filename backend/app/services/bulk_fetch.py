@@ -365,10 +365,10 @@ async def _existing_timestamps(
 def _to_utc(ts: Any) -> datetime:
     """Coerce any timestamp-like value to a timezone-aware UTC datetime."""
     if isinstance(ts, datetime):
-        return ts if ts.tzinfo else ts.replace(tzinfo=UTC)
+        return ts.astimezone(UTC) if ts.tzinfo else ts.replace(tzinfo=UTC)
     if hasattr(ts, "to_pydatetime"):
         dt = ts.to_pydatetime()
-        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+        return dt.astimezone(UTC) if dt.tzinfo else dt.replace(tzinfo=UTC)
     return datetime.fromtimestamp(float(ts), tz=UTC)
 
 

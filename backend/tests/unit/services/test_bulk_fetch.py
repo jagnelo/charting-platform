@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -141,3 +142,10 @@ def test_bars_through_end_rejects_future_provider_rows():
     ]
 
     assert bulk_fetch._bars_through_end(bars, end) == bars[:1]
+
+
+def test_to_utc_normalizes_offset_aware_provider_timestamps():
+    offset_timestamp = datetime(2024, 1, 2, 1, 0, tzinfo=timezone(timedelta(hours=1)))
+
+    assert bulk_fetch._to_utc(offset_timestamp) == datetime(2024, 1, 2, tzinfo=UTC)
+    assert bulk_fetch._to_utc(offset_timestamp).tzinfo == UTC
