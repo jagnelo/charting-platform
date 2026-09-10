@@ -13,6 +13,11 @@
       explicit missing `EDGAR_USER_AGENT`, Alpaca, Tradier, and MarketData.app
       credential preflights plus Alpha Vantage's documented daily-capacity
       responses. No acceptance claim was made.
+- [x] Finalize the shared capacity-envelope evidence after the safe response
+      header extractor: focused provider/runtime/error coverage passed `327/327`
+      and the final authoritative Docker-backed gate passed `1966/1966` with
+      `80.52%` coverage (testcontainer session
+      `bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

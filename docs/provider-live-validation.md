@@ -658,3 +658,11 @@ provider-capacity outcomes: missing `EDGAR_USER_AGENT`,
 capacity response for daily history and IPO-calendar reads. The wrapper made
 no acceptance claim; all seven tokenized probes remained green and aggregate
 usage was recorded outside Git without credentials or payloads.
+
+After the final safe response-header extraction fix, the focused provider,
+runtime, and error suite passed `327/327` in `5.85s`, with Ruff and diff checks
+clean. The final authoritative `make test-backend-coverage` gate passed
+`1966/1966`, with `89` warnings and `80.52%` coverage in `412.11s`, using
+isolated PostgreSQL/Redis testcontainer session
+`bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning.
+This does not change the live-matrix blockers or constitute provider acceptance.
