@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -22,6 +23,17 @@ router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
 # Number of bars returned in one page. Chosen to be comfortable for rendering
 # while giving enough history context for indicators (e.g. 200-period SMA).
 PAGE_SIZE = 500
+OhlcvView = Literal["canonical", "provider", "derived"]
+
+
+def _filter_ohlcv_view(bars: list[OHLCVBar], view: OhlcvView) -> list[OHLCVBar]:
+    """Select an explicit persisted lineage view without changing canonical defaults."""
+
+    if view == "provider":
+        return [bar for bar in bars if bar.is_derived is False]
+    if view == "derived":
+        return [bar for bar in bars if bar.is_derived is True]
+    return bars
 
 
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
@@ -30,6 +42,13 @@ async def get_local_ohlcv(
     timeframe: Timeframe,
     limit: int = Query(PAGE_SIZE, ge=1, le=5000),
     adjusted: bool = Query(True),
+    view: OhlcvView = Query(
+        "canonical",
+        description=(
+            "Persisted lineage view: canonical merges provider and derived rows; "
+            "provider or derived isolates one lineage."
+        ),
+    ),
     before: datetime | None = Query(
         None, description="Return the local page strictly before this timestamp."
     ),
@@ -51,6 +70,10 @@ async def get_local_ohlcv(
         if before.tzinfo is None:
             before = before.replace(tzinfo=UTC)
         predicates.append(OHLCVBar.ts < before)
+    if view == "provider":
+        predicates.append(OHLCVBar.is_derived.is_(False))
+    elif view == "derived":
+        predicates.append(OHLCVBar.is_derived.is_(True))
     if settings.E2E_SEED_MARKET_DATA:
         predicates.append(
             OHLCVBar.data_source_id
@@ -71,7 +94,11 @@ async def get_local_ohlcv(
     # and watchlist consumers see the same explicit lineage as normal reads.
     # Seeded browser fixtures intentionally remain source-scoped and must not
     # receive provider-neutral rows during deterministic visual runs.
-    if not settings.E2E_SEED_MARKET_DATA and timeframe in (Timeframe.W1, Timeframe.MN):
+    if (
+        view in {"canonical", "derived"}
+        and not settings.E2E_SEED_MARKET_DATA
+        and timeframe in (Timeframe.W1, Timeframe.MN)
+    ):
         d1_exists = await db.execute(
             select(OHLCVBar.id)
             .where(
@@ -130,6 +157,13 @@ async def get_ohlcv_transformed(
     ),
     limit: int | None = Query(None, ge=1),
     adjusted: bool = Query(True),
+    view: OhlcvView = Query(
+        "canonical",
+        description=(
+            "Persisted lineage view: canonical merges provider and derived rows; "
+            "provider or derived isolates one lineage before transformation."
+        ),
+    ),
     local_only: bool = Query(
         False,
         description="Read only the canonical local cache; never hydrate from providers.",
@@ -218,6 +252,7 @@ async def get_ohlcv_transformed(
     if reversal is not None:
         params["reversal"] = reversal
 
+    raw_bars = _filter_ohlcv_view(raw_bars, view)
     transformed = apply_transform(bar_type, raw_bars, params or None)
     if limit:
         transformed = transformed[-limit:]
@@ -235,6 +270,13 @@ async def get_ohlcv(
     ),
     limit: int | None = Query(None, ge=1, description="Cap the number of bars returned"),
     adjusted: bool = Query(True),
+    view: OhlcvView = Query(
+        "canonical",
+        description=(
+            "Persisted lineage view: canonical merges provider and derived rows; "
+            "provider or derived isolates one lineage."
+        ),
+    ),
     local_only: bool = Query(
         False,
         description="Read only the canonical local cache; never hydrate from providers.",
@@ -269,6 +311,7 @@ async def get_ohlcv(
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
+        bars = _filter_ohlcv_view(bars, view)
         return bars[-limit:] if limit else bars
 
     if start is not None:
@@ -291,12 +334,13 @@ async def get_ohlcv(
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
+        bars = _filter_ohlcv_view(bars, view)
         return bars[-limit:] if limit else bars
 
     # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
     try:
-        return await fetch_ohlcv_latest(
+        bars = await fetch_ohlcv_latest(
             db,
             instrument,
             timeframe,
@@ -304,6 +348,7 @@ async def get_ohlcv(
             adjusted,
             allow_provider_fetch=not local_only,
         )
+        return _filter_ohlcv_view(bars, view)
     except ProviderNoDataError as exc:
         raise HTTPException(
             404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."

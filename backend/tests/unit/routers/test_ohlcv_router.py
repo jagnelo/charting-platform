@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -79,6 +79,58 @@ class TestOHLCVRouter:
         payload = response.json()
         assert any(row["is_derived"] is False and row["close"] == 1000.0 for row in payload)
         assert any(row["is_derived"] is True for row in payload)
+
+    def test_local_view_selector_isolates_persisted_provider_and_derived_lineage(
+        self, client, auth_headers, db, instrument
+    ):
+        """The explicit view contract must not conflate persisted lineage."""
+        timestamp = datetime(2025, 1, 2, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=timestamp,
+                    open=Decimal("10"),
+                    high=Decimal("12"),
+                    low=Decimal("9"),
+                    close=Decimal("11"),
+                    is_adjusted=True,
+                    is_derived=False,
+                    data_source_id=None,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=timestamp + timedelta(days=7),
+                    open=Decimal("20"),
+                    high=Decimal("22"),
+                    low=Decimal("19"),
+                    close=Decimal("21"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe="D1",
+                    derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+                ),
+            ]
+        )
+        db.flush()
+
+        provider = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
+            params={"view": "provider"},
+            headers=auth_headers,
+        )
+        derived = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
+            params={"view": "derived"},
+            headers=auth_headers,
+        )
+
+        assert provider.status_code == 200
+        assert provider.json() and all(row["is_derived"] is False for row in provider.json())
+        assert derived.status_code == 200
+        assert derived.json() and all(row["is_derived"] is True for row in derived.json())
 
     def test_chart_coarse_local_read_merges_partial_provider_rows(
         self, client, auth_headers, db, instrument, ohlcv_bars
