@@ -91,6 +91,15 @@ interface OhlcvCoverageAssessment {
     factor_status?: string
     factor_version?: string | null
   }
+  storage_evidence?: {
+    status?: string
+    provider_bar_count?: number
+    observation_count?: number
+    matched_observation_count?: number
+    missing_observation_count?: number
+    mismatched_observation_count?: number
+    orphan_observation_count?: number
+  }
 }
 
 const props = defineProps<{ symbol: string; configuration?: Record<string, unknown> }>()
@@ -119,7 +128,8 @@ const rangeAccessibilitySummary = computed(() => {
   if (!assessment) return ''
   const lineage = assessment.lineage ?? {}
   const adjustment = assessment.adjustment_provenance ?? {}
-  return describeOhlcvCoverage({
+  const storage = assessment.storage_evidence ?? {}
+  const coverageDescription = describeOhlcvCoverage({
     timeframe: rangeTimeframe.value,
     status: assessment.status,
     barCount: assessment.bar_count,
@@ -132,6 +142,8 @@ const rangeAccessibilitySummary = computed(() => {
     factorStatus: adjustment.factor_status ?? 'not_reported',
     factorVersion: adjustment.factor_version,
   })
+  const storageDescription = `Storage evidence ${storage.status ?? 'not_observed'}: ${storage.matched_observation_count ?? 0} matched, ${storage.missing_observation_count ?? 0} missing, ${storage.mismatched_observation_count ?? 0} mismatched, ${storage.orphan_observation_count ?? 0} orphan observations.`
+  return `${coverageDescription} ${storageDescription}`
 })
 let requestId = 0
 let rangeRequestId = 0

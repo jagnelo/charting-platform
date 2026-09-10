@@ -26,6 +26,7 @@ describe('CoverageSummaryTool', () => {
           explanation: 'One internal gap was found in the requested range.',
           lineage: { provider_bar_count: 240, derived_bar_count: 8, unknown_bar_count: 0, source_lineage: 'provider_and_derived', source_timeframes: ['D1'] },
           adjustment_provenance: { mode: 'split_adjusted', factor_status: 'mixed_provider_native_opaque_and_inherited_from_canonical_d1', factor_version: null },
+          storage_evidence: { status: 'reconciled', provider_bar_count: 240, observation_count: 240, matched_observation_count: 240, missing_observation_count: 0, mismatched_observation_count: 0, orphan_observation_count: 0 },
         }
       }
       return {
@@ -58,6 +59,7 @@ describe('CoverageSummaryTool', () => {
     expect(wrapper.find('.coverage-summary__assessment[role="status"]').attributes('aria-live')).toBe('polite')
     expect(wrapper.find('.coverage-summary__assessment[role="status"]').text()).toContain('provider and derived')
     expect(wrapper.find('.coverage-summary__assessment[role="status"] .sr-only').text()).toContain('factor status mixed provider native opaque and inherited from canonical d1')
+    expect(wrapper.find('.coverage-summary__assessment[role="status"] .sr-only').text()).toContain('Storage evidence reconciled: 240 matched, 0 missing, 0 mismatched, 0 orphan observations.')
   })
 
   it('prevents reversed ranges and persists serializable controls', async () => {
