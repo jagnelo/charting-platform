@@ -9,6 +9,7 @@ from enum import StrEnum
 from typing import Literal
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.models.provider_observation import MarketBarObservation
 
 
 class CoverageStatus(StrEnum):
@@ -50,6 +51,82 @@ class OhlcvLineageSummary:
     source_lineage: str
     source_timeframes: tuple[str, ...]
     adjustment_provenance: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class OhlcvStorageReconciliation:
+    """Evidence that canonical provider bars still match raw observations."""
+
+    status: str
+    provider_bar_count: int
+    observation_count: int
+    matched_observation_count: int
+    missing_observation_count: int
+    mismatched_observation_count: int
+    orphan_observation_count: int
+
+
+def reconcile_ohlcv_storage(
+    bars: Sequence[OHLCVBar], observations: Sequence[MarketBarObservation]
+) -> OhlcvStorageReconciliation:
+    """Compare provider-backed canonical bars with their raw observations.
+
+    Derived rows intentionally have no raw observation. Provider rows with no
+    source identity are reported through the existing unknown-lineage count,
+    not treated as a proven mismatch.
+    """
+
+    provider_bars = [
+        bar for bar in bars if bar.is_derived is False and bar.data_source_id is not None
+    ]
+    observation_by_key = {
+        (observation.data_source_id, _as_utc(observation.ts)): observation
+        for observation in observations
+    }
+    matched = missing = mismatched = 0
+    observed_keys: set[tuple[int, datetime]] = set()
+    for bar in provider_bars:
+        key = (bar.data_source_id, _as_utc(bar.ts))
+        observation = observation_by_key.get(key)
+        if observation is None:
+            missing += 1
+            continue
+        observed_keys.add(key)
+        if any(
+            left != right
+            for left, right in (
+                (bar.open, observation.open),
+                (bar.high, observation.high),
+                (bar.low, observation.low),
+                (bar.close, observation.close),
+                (bar.volume, observation.volume),
+                (bar.vwap, observation.vwap),
+            )
+        ):
+            mismatched += 1
+        else:
+            matched += 1
+    orphan = sum(
+        1
+        for key in observation_by_key
+        if key not in observed_keys
+        and not any((bar.data_source_id, _as_utc(bar.ts)) == key for bar in provider_bars)
+    )
+    if not provider_bars and not observations:
+        status = "not_observed"
+    elif missing or mismatched or orphan:
+        status = "inconsistent"
+    else:
+        status = "reconciled"
+    return OhlcvStorageReconciliation(
+        status=status,
+        provider_bar_count=len(provider_bars),
+        observation_count=len(observations),
+        matched_observation_count=matched,
+        missing_observation_count=missing,
+        mismatched_observation_count=mismatched,
+        orphan_observation_count=orphan,
+    )
 
 
 def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> OhlcvLineageSummary:

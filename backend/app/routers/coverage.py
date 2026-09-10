@@ -10,7 +10,7 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import InstrumentDatasetState
+from app.models.provider_observation import InstrumentDatasetState, MarketBarObservation
 from app.models.user import User
 from app.schemas.coverage import (
     DatasetCoverageStateOut,
@@ -18,7 +18,11 @@ from app.schemas.coverage import (
     LocalCoverageRangeOut,
     OhlcvCoverageOut,
 )
-from app.services.ohlcv_coverage import assess_ohlcv_coverage, summarize_ohlcv_lineage
+from app.services.ohlcv_coverage import (
+    assess_ohlcv_coverage,
+    reconcile_ohlcv_storage,
+    summarize_ohlcv_lineage,
+)
 
 router = APIRouter(prefix="/coverage", tags=["coverage"])
 
@@ -73,6 +77,22 @@ async def instrument_ohlcv_coverage(
         calendar="XNYS" if (instrument.currency or "").upper() == "USD" else None,
     )
     lineage = summarize_ohlcv_lineage(bars, adjusted=adjusted)
+    observations = (
+        (
+            await db.execute(
+                select(MarketBarObservation).where(
+                    MarketBarObservation.instrument_id == instrument.id,
+                    MarketBarObservation.timeframe == timeframe,
+                    MarketBarObservation.is_adjusted.is_(adjusted),
+                    MarketBarObservation.ts >= start,
+                    MarketBarObservation.ts <= end,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    storage_evidence = reconcile_ohlcv_storage(bars, observations)
     if adjusted:
         dataset_state = (
             await db.execute(
@@ -123,6 +143,15 @@ async def instrument_ohlcv_coverage(
             "source_timeframes": list(lineage.source_timeframes),
         },
         adjustment_provenance=lineage.adjustment_provenance,
+        storage_evidence={
+            "status": storage_evidence.status,
+            "provider_bar_count": storage_evidence.provider_bar_count,
+            "observation_count": storage_evidence.observation_count,
+            "matched_observation_count": storage_evidence.matched_observation_count,
+            "missing_observation_count": storage_evidence.missing_observation_count,
+            "mismatched_observation_count": storage_evidence.mismatched_observation_count,
+            "orphan_observation_count": storage_evidence.orphan_observation_count,
+        },
     )
 
 

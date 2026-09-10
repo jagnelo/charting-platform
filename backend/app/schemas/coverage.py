@@ -55,6 +55,16 @@ class OhlcvAdjustmentProvenanceOut(BaseModel):
     contract_version: int = Field(ge=1)
 
 
+class OhlcvStorageEvidenceOut(BaseModel):
+    status: str
+    provider_bar_count: int = Field(ge=0)
+    observation_count: int = Field(ge=0)
+    matched_observation_count: int = Field(ge=0)
+    missing_observation_count: int = Field(ge=0)
+    mismatched_observation_count: int = Field(ge=0)
+    orphan_observation_count: int = Field(ge=0)
+
+
 class OhlcvCoverageOut(BaseModel):
     instrument_id: int
     symbol: str
@@ -71,4 +81,5 @@ class OhlcvCoverageOut(BaseModel):
     explanation: str
     lineage: OhlcvLineageOut
     adjustment_provenance: OhlcvAdjustmentProvenanceOut
+    storage_evidence: OhlcvStorageEvidenceOut
     provenance: str = "canonical_local_database"
