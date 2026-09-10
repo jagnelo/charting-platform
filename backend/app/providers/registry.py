@@ -38,7 +38,7 @@ from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
 from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
-from app.providers.edgar import EdgarProvider
+from app.providers.edgar import EdgarProvider, is_valid_edgar_user_agent
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
@@ -497,7 +497,7 @@ def provider_missing_settings(name: str) -> list[str]:
         return missing
     for setting_name in provider_required_settings(name):
         value = str(getattr(settings, setting_name, "") or "").strip()
-        if not value or (setting_name == "EDGAR_USER_AGENT" and "contact@example.com" in value):
+        if not value or (setting_name == "EDGAR_USER_AGENT" and not is_valid_edgar_user_agent(value)):
             missing.append(setting_name)
     return missing
 
@@ -595,7 +595,7 @@ def provider_is_configured(name: str) -> bool:
     if required is None:
         if name == "edgar":
             user_agent = str(getattr(settings, "EDGAR_USER_AGENT", "") or "").strip()
-            return bool(user_agent and "contact@example.com" not in user_agent)
+            return is_valid_edgar_user_agent(user_agent)
         return True
     if name == "massive":
         return bool(settings.MASSIVE_API_KEY or settings.MARKETDATA_API_KEY)

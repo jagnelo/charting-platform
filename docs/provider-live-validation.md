@@ -685,3 +685,14 @@ The follow-up authoritative `make test-backend-coverage` gate passed
 `1967/1967`, with `89` warnings and `80.52%` coverage in `437.64s`, using
 isolated PostgreSQL/Redis testcontainer session
 `aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning.
+
+The SEC contact validation is now shared and rejects empty values,
+`contact@example.com`, `your.email@example.com`, and any `example.com`
+placeholder in the EDGAR adapter, registry, live preflight, and live-test
+helper. Focused SEC/secret-wiring coverage passed `32/32`; Ruff and diff checks
+were clean. The authoritative `make test-backend-coverage` gate passed
+`1968/1968`, with `89` warnings and `80.51%` coverage in `421.39s`, using
+isolated PostgreSQL/Redis testcontainer session
+`59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning.
+This hardens preflight only; each trusted environment still needs its own
+non-placeholder SEC User-Agent.

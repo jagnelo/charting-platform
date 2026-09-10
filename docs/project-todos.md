@@ -31,6 +31,13 @@
       authoritative backend gate passes `1967/1967` with `80.52%` coverage and
       89 warnings (testcontainer session
       `aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning).
+- [x] Reject all checked-in SEC contact placeholders, including
+      `contact@example.com`, `your.email@example.com`, and any `example.com`
+      value, consistently in the EDGAR adapter, registry, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage passes `32/32` with
+      Ruff and diff checks clean; the authoritative backend gate passes
+      `1968/1968` with `80.51%` coverage and 89 warnings (testcontainer session
+      `59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

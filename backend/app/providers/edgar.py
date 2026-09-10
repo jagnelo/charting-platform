@@ -55,6 +55,13 @@ _exchange_directory_ts: float = 0.0
 _profile_cache: dict[str, tuple[float, InstrumentProfile | None]] = {}
 
 
+def is_valid_edgar_user_agent(value: str | None) -> bool:
+    """Return whether a SEC contact value is descriptive rather than example text."""
+
+    normalized = str(value or "").strip().lower()
+    return bool(normalized) and "example.com" not in normalized
+
+
 class EdgarProvider:
     name = "edgar"
     base_url = "https://data.sec.gov"
@@ -65,7 +72,7 @@ class EdgarProvider:
 
     def _headers(self) -> dict[str, str]:
         user_agent = str(settings.EDGAR_USER_AGENT or "").strip()
-        if not user_agent:
+        if not is_valid_edgar_user_agent(user_agent):
             raise ProviderNotConfiguredError(
                 "edgar requires EDGAR_USER_AGENT with a descriptive contact value"
             )
