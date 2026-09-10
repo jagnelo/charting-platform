@@ -214,3 +214,15 @@ def test_tokenized_http_invalid_json_is_typed():
             XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
     assert exc_info.value.provider_name == "xstocks"
     assert str(exc_info.value) == "provider returned invalid JSON"
+
+
+def test_tokenized_http_non_finite_retry_after_is_safe():
+    response = httpx.Response(
+        429,
+        headers={"Retry-After": "NaN"},
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets"),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.retry_at is None

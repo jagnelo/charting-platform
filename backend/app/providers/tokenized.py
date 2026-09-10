@@ -14,6 +14,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
+from math import isfinite
 from typing import Any
 
 import httpx
@@ -140,7 +141,7 @@ def _retry_at(headers: dict[str, str]) -> datetime | None:
         except (TypeError, ValueError, OverflowError):
             return None
         return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
-    if seconds < 0:
+    if not isfinite(seconds) or seconds < 0:
         return None
     return datetime.now(UTC) + timedelta(seconds=seconds)
 
