@@ -8,6 +8,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Historical factor evidence honors `as_of`
+
+Product tip `a8b7d304` makes factor-evidence resolution point-in-time safe for
+generic and benchmark-family history. Production state queries now include
+`coverage_end` and `fetched_at`, and dated requests pass their `as_of` cutoff;
+state that is later than the cutoff or lacks temporal proof is ignored rather
+than projected into an earlier historical response. The caller therefore stays
+conservative/unavailable when dated provenance cannot be certified.
+
+Focused cutoff/family-history coverage passed `11/11`; the full backend unit
+suite passed `1,431/1,431` at `68.00%`; Ruff, formatting, and diff checks
+passed. The exact Docker-backed gate passed all non-visual stages and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected diffs; the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. Continue R1 provider/family history breadth, W1/MN continuity,
+canonical population, and R6 dense-data evidence; do not integrate or deploy.
+
 ## 2026-09-10 — Benchmark-family history exposes factor lineage
 
 Product tip `78d1e042` fixes the benchmark-family member-history seam: the

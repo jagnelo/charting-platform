@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Historical factor evidence honors `as_of`
+
+At product tip `a8b7d304`, generic watchlist and benchmark-family history now
+pass dated `as_of` cutoffs into factor-evidence resolution. Persisted state is
+accepted only when its `coverage_end` and `fetched_at` are present and do not
+extend beyond the requested cutoff; future or unverifiable state is treated as
+absent, so historical responses remain conservative instead of projecting a
+later factor version/status backwards. Legacy four-field test doubles remain
+compatible while production queries select the temporal state fields.
+
+The focused historical-cutoff regression and adjacent family-history check
+passed `11/11`; the complete backend unit suite passed `1,431/1,431` at
+`68.00%`; Ruff, formatting, and diff checks passed. The exact branch-scoped
+Docker gate passed all non-visual stages and functional Playwright (`165`
+passed, `107` documented skips across `272`). Visual parity remains `98/104`
+with exactly the six protected state-oracle diffs (watchlist-column-editor-open
+at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean scoped
+teardown. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+This closes the bounded point-in-time factor-evidence seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Benchmark-family history exposes factor lineage
 
 At product tip `78d1e042`, benchmark-family member history now selects and
