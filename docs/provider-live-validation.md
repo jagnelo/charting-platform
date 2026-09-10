@@ -297,3 +297,14 @@ and the 50-request concurrent ceiling; the adapter path, Bearer-auth shape, and
 durable release-only in-flight reservation are covered by fixture/unit tests.
 A credentialed live read is still required before this provider can be accepted
 for routing.
+
+After the FMP live-preflight correction, the complete manifest was rerun at
+`2026-09-10T03:36Z` with the existing operator-owned keys plus temporary
+non-secret `EDGAR_USER_AGENT` and `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`
+overrides. It again collected 34 cases: 31 passed with positive transport
+observations, while only the exact Alpaca, Tradier, and MarketData.app
+credential domains failed preflight. The wrapper returned exit code `2` and
+made no acceptance claim. The live runner now regression-checks its Tiingo/FMP
+byte-bound operation set against the runtime quota policy, including FMP's
+`fetch_market_events`; the Docker-backed combined gate passed `1858/1858` with
+`80.36%` coverage. No provider-specific safety gate was relaxed.
