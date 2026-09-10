@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
+
+Product tip `7b5069f74d20fc542e01d3bfc5f8adce6ab6fcaf` closes the remaining
+direct watchlist historical timestamp seam. Market-group membership effective/
+known timestamps and watchlist-history OHLCV bar queries now compare against a
+single UTC-normalized evaluation cutoff, including offset-aware API values.
+
+Focused watchlist-source/history regressions passed `14/14`; the full backend
+unit suite passed `1,442/1,442` at `68%`, with Ruff, formatting, and diff checks
+clean. The exact Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`), frontend Vitest (`991/991`) and build, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established protected diffs; the gate
+exited at `e2e-visual` after clean scoped teardown. No visual, provider,
+fallback, or acceptance policy changed.
+
+Open work remains full provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7. Keep the branch at the
+review boundary; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-10 — Watchlist source cutoffs normalize across membership and holdings
 
 Product tip `7b3990b17e8dbc402670b639ed5cbe6e4a1b6a0c` closes the shared

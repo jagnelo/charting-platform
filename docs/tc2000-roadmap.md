@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
+
+At product tip `7b5069f7`, the remaining watchlist historical timestamp seams
+now normalize to UTC at the resolver boundary: market-group membership
+effective/known timestamps and watchlist-history OHLCV bar queries share one
+canonical evaluation cutoff, including offset-aware API values.
+
+Focused watchlist-source/history coverage passed `14/14`; the complete backend
+unit suite passed `1,442/1,442` with `68%` total coverage; Ruff, formatting,
+and diff checks passed. The exact branch-scoped Docker gate passed all
+non-visual stages, backend integration (`387/387`), frontend Vitest
+(`991/991`) and build, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity completed `104` cases with `98`
+passes and exactly the six protected state-oracle diffs (watchlist-column-
+editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125); the gate exited `1` at
+`e2e-visual` after clean branch-scoped teardown. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+This closes the remaining direct watchlist source/bar cutoff seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Watchlist source cutoffs normalize across membership and holdings
 
 At product tip `7b3990b1`, the shared watchlist-source resolver now normalizes

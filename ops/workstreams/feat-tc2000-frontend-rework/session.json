@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7b3990b17e8dbc402670b639ed5cbe6e4a1b6a0c",
-  "implementation_sha": "7b3990b17e8dbc402670b639ed5cbe6e4a1b6a0c",
+  "head": "7b5069f74d20fc542e01d3bfc5f8adce6ab6fcaf",
+  "implementation_sha": "7b5069f74d20fc542e01d3bfc5f8adce6ab6fcaf",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T20:22:23Z",
-  "last_human_progress_update": "2026-09-10T20:22:23Z",
+  "last_checkpoint": "2026-09-10T20:50:28Z",
+  "last_human_progress_update": "2026-09-10T20:50:28Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "7b35daeaeec9bba4baf610a17c3daeb7dfc9ff75cf95c06f0abe4bac00d2545e",
+  "plan_hash": "577da0234753909aab069d0d824d54de784465cd7ac62014a0da34967d7faaea",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 7b3990b1 closes the shared watchlist-source timestamp seam: historical membership intervals, saved explicit-source knowledge, combo definitions, and benchmark-family/ETF holdings snapshot selection now normalize offset-less and non-UTC aware cutoffs and persisted timestamps to UTC before comparing them. Focused watchlist-source/history coverage passed 12/12; full backend unit passed 1440/1440 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed backend integration 387/387, frontend Vitest 991/991 and build, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; the gate exited 1 at e2e-visual after clean branch-scoped teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip 7b5069f7 closes the remaining direct watchlist historical timestamp seam: market-group membership effective/known timestamps and watchlist-history OHLCV bar queries now compare against one UTC-normalized evaluation cutoff, including offset-aware API values. Focused watchlist-source/history coverage passed 14/14; full backend unit passed 1442/1442 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed backend integration 387/387, frontend Vitest 991/991 and build, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; the gate exited 1 at e2e-visual after clean branch-scoped teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T19:52:31Z"
+    "updated_at": "2026-09-10T20:50:28Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

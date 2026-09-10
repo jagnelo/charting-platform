@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
+
+- [x] Normalize the shared UTC evaluation cutoff for market-group membership
+      effective/known timestamps and watchlist-history OHLCV bar queries,
+      including offset-aware API values.
+- [x] Focused watchlist-source/history coverage passed `14/14`; the full
+      backend unit suite passed `1,442/1,442` at `68%`; Ruff, formatting, and
+      diff checks passed.
+- [x] The exact gate passed non-visual stages, backend integration (`387/387`),
+      frontend Vitest (`991/991`) and build, and functional Playwright (`165`
+      passed, `107` documented skips across `272`); visual parity was `98/104`
+      with exactly the six protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Watchlist source cutoffs normalize across membership and holdings
 
 - [x] Normalize historical cutoffs and persisted timestamps to UTC in shared
