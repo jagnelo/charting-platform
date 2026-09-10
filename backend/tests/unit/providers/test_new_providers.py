@@ -916,6 +916,34 @@ class TestAlphaVantageProvider:
             with pytest.raises(ProviderResponseError):
                 AlphaVantageProvider().discover_universe_page("EQUITY", 0)
 
+    def test_transport_failure_is_typed(self):
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://www.alphavantage.co/query"),
+        )
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", side_effect=failure),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                AlphaVantageProvider().search_instruments("AAPL")
+        assert exc_info.value.provider_name == "alpha_vantage"
+
+    def test_invalid_json_is_typed(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.status_code = 200
+        response.json.side_effect = ValueError("malformed payload")
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                AlphaVantageProvider().search_instruments("AAPL")
+        assert exc_info.value.provider_name == "alpha_vantage"
+
 
 class TestCryptoProviderErrorEnvelopes:
     def test_kraken_http_success_error_array_is_typed(self):
@@ -1136,6 +1164,34 @@ class TestCoinGeckoCredentialWarning:
 
     def test_supported_discovery_types(self):
         assert CoinGeckoProvider().supported_discovery_types() == ["CRYPTOCURRENCY"]
+
+    def test_transport_failure_is_typed(self):
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://api.coingecko.com/api/v3/search"),
+        )
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", side_effect=failure),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                CoinGeckoProvider().search_instruments("BTC")
+        assert exc_info.value.provider_name == "coingecko"
+
+    def test_invalid_json_is_typed(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.status_code = 200
+        response.json.side_effect = ValueError("malformed payload")
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                CoinGeckoProvider().search_instruments("BTC")
+        assert exc_info.value.provider_name == "coingecko"
 
 
 # ── EDGAR ticker map parsing ──────────────────────────────────────────────────

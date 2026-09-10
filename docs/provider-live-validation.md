@@ -429,3 +429,11 @@ results. The focused crypto/OpenFIGI/provider-transport suite passed `116/116`;
 the authoritative gate completed at `2026-09-10T06:25Z` with `1872 passed`,
 `89` warnings, and `80.35%` line coverage in `407.49s`. Testcontainer session
 `02888682-f032-4f0a-8669-efc552fa9fd2` was cleaned without host-wide pruning.
+
+Alpha Vantage and CoinGecko shared HTTP helpers now convert transport and
+malformed-JSON failures into typed provider-response errors, including
+CoinGecko's ranked symbol-resolution request. The focused provider/transport
+suite passed `115/115`; the authoritative gate completed at
+`2026-09-10T06:35Z` with `1876 passed`, `89` warnings, and `80.36%` line
+coverage in `389.90s`. Testcontainer session
+`795d0dc3-df37-451b-af3c-62eb6ad3d0ce` was cleaned without host-wide pruning.

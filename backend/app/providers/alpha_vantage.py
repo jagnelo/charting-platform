@@ -36,12 +36,18 @@ class AlphaVantageProvider:
     def _get(self, function: str, **params: Any) -> dict[str, Any] | None:
         if not self._key():
             raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
-        response = httpx.get(
-            _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
-        )
+        try:
+            response = httpx.get(
+                _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
         response.raise_for_status()
-        payload = response.json()
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpha Vantage returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
             raise ProviderRateLimitError(
@@ -52,9 +58,12 @@ class AlphaVantageProvider:
     def _get_text(self, function: str, **params: Any) -> str | None:
         if not self._key():
             raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
-        response = httpx.get(
-            _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
-        )
+        try:
+            response = httpx.get(
+                _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
         response.raise_for_status()
         text = response.text

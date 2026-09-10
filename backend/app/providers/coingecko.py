@@ -28,7 +28,11 @@ import httpx
 
 from app.config import settings
 from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
-from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -56,15 +60,21 @@ class CoinGeckoProvider:
         raise ProviderNotConfiguredError("coingecko requires COINGECKO_API_KEY for the Demo plan")
 
     def _get(self, path: str, params: dict | None = None) -> Any:
-        r = httpx.get(
-            f"{_BASE}{path}",
-            params=params or {},
-            headers=self._headers(),
-            timeout=20,
-        )
+        try:
+            r = httpx.get(
+                f"{_BASE}{path}",
+                params=params or {},
+                headers=self._headers(),
+                timeout=20,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(r)
         r.raise_for_status()
-        payload = r.json()
+        try:
+            payload = r.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "CoinGecko returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, r.status_code)
         return payload
 
@@ -74,9 +84,6 @@ class CoinGeckoProvider:
         try:
             data = self._get("/search", {"query": query})
         except httpx.HTTPStatusError:
-            raise
-        except httpx.RequestError as exc:
-            logger.warning("coingecko search '%s': %s", query, exc)
             raise
         results: list[ProviderSearchResult] = []
         for coin in (data.get("coins") or [])[:limit]:
@@ -109,9 +116,6 @@ class CoinGeckoProvider:
                 },
             )
         except httpx.HTTPStatusError:
-            raise
-        except httpx.RequestError as exc:
-            logger.warning("coingecko get_instrument_profile %s (%s): %s", symbol, coin_id, exc)
             raise
 
         sym = (data.get("symbol") or "").upper()
@@ -174,9 +178,6 @@ class CoinGeckoProvider:
             )
         except httpx.HTTPStatusError:
             raise
-        except httpx.RequestError as exc:
-            logger.warning("coingecko discover_universe_page page=%d: %s", page_num, exc)
-            raise
 
         quotes = [_market_to_quote(c) for c in (data or []) if c.get("symbol")]
         return {
@@ -200,15 +201,21 @@ def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
     exact-symbol match is still required before accepting that result.
     """
     base = platform_symbol.split("-")[0].lower()
-    r = httpx.get(
-        f"{_BASE}/search",
-        params={"query": base},
-        headers=headers,
-        timeout=20,
-    )
+    try:
+        r = httpx.get(
+            f"{_BASE}/search",
+            params={"query": base},
+            headers=headers,
+            timeout=20,
+        )
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("coingecko", str(exc)) from exc
     observe_response(r)
     r.raise_for_status()
-    payload = r.json()
+    try:
+        payload = r.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("coingecko", "CoinGecko returned invalid JSON") from exc
     raise_for_provider_error_envelope("coingecko", payload, r.status_code)
     candidates = [
         item
