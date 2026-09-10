@@ -677,3 +677,11 @@ All tokenized probes remained green. A separate Finnhub credentialed profile,
 historical-earnings, and forward-calendar isolation passed `1/1` with the
 operator-owned env. The temporary SEC value is not a deployment configuration;
 each trusted environment must supply its own non-secret contact value.
+
+The live credential preflight now rejects the checked-in placeholder SEC contact
+value before any external call, and the live-test helper applies the same rule.
+Focused secret-wiring coverage passed `10/10` with Ruff and diff checks clean.
+The follow-up authoritative `make test-backend-coverage` gate passed
+`1967/1967`, with `89` warnings and `80.52%` coverage in `437.64s`, using
+isolated PostgreSQL/Redis testcontainer session
+`aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning.

@@ -56,7 +56,11 @@ def _bounds() -> tuple[datetime, datetime]:
 
 
 def _require(*names: str) -> None:
-    missing = [name for name in names if not os.getenv(name)]
+    missing = []
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if not value or (name == "EDGAR_USER_AGENT" and "contact@example.com" in value.lower()):
+            missing.append(name)
     if missing:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 

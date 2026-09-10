@@ -25,6 +25,12 @@
       tokenized probes remained green. A follow-up Finnhub isolation passed
       `1/1` with the operator-owned env. This is evidence only, not acceptance;
       deployment-owned SEC contact configuration remains required.
+- [x] Reject the documented placeholder SEC contact value during live credential
+      preflight and in the live-test helper, preventing false configured
+      evidence. Focused secret-wiring coverage passes `10/10`; the final
+      authoritative backend gate passes `1967/1967` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

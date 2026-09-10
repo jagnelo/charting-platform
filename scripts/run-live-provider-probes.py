@@ -74,6 +74,22 @@ BYTE_BOUND_OPERATIONS = {
 FINRA_OTC_OPERATION_COSTS = ("discover_universe_page", "reconcile_universe_page")
 
 
+def setting_is_configured(name: str) -> bool:
+    """Return whether a live-probe setting is usable, not merely non-empty.
+
+    The checked-in examples use a placeholder SEC contact value. Treating it
+    as configured would start live calls and only fail inside the adapter,
+    obscuring the exact deployment input that is missing.
+    """
+
+    value = os.getenv(name, "").strip()
+    if not value:
+        return False
+    if name == "EDGAR_USER_AGENT" and "contact@example.com" in value.lower():
+        return False
+    return True
+
+
 def routing_safety_preflight() -> dict[str, str]:
     """Describe safety controls that can block routing after a live read.
 
@@ -248,7 +264,7 @@ def main() -> int:
         return 0
     missing: dict[str, list[str]] = {}
     for provider, names in {"keyless/config": KEYLESS, **CREDENTIALS}.items():
-        absent = [name for name in names if not os.getenv(name)]
+        absent = [name for name in names if not setting_is_configured(name)]
         if absent:
             missing[provider] = absent
     print("live provider credential preflight:")

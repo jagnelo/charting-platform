@@ -13,6 +13,7 @@ assert _LIVE_SCRIPT_SPEC and _LIVE_SCRIPT_SPEC.loader
 _LIVE_SCRIPT = importlib.util.module_from_spec(_LIVE_SCRIPT_SPEC)
 _LIVE_SCRIPT_SPEC.loader.exec_module(_LIVE_SCRIPT)
 routing_safety_preflight = _LIVE_SCRIPT.routing_safety_preflight
+setting_is_configured = _LIVE_SCRIPT.setting_is_configured
 PROVIDER_SECRET_NAMES = {
     "ALPACA_API_KEY",
     "ALPACA_SECRET_KEY",
@@ -208,6 +209,15 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"
+
+
+def test_live_credential_preflight_rejects_placeholder_sec_contact(monkeypatch):
+    monkeypatch.delenv("EDGAR_USER_AGENT", raising=False)
+    assert setting_is_configured("EDGAR_USER_AGENT") is False
+    monkeypatch.setenv("EDGAR_USER_AGENT", "charting-platform contact@example.com")
+    assert setting_is_configured("EDGAR_USER_AGENT") is False
+    monkeypatch.setenv("EDGAR_USER_AGENT", "charting-platform ops@example.invalid")
+    assert setting_is_configured("EDGAR_USER_AGENT") is True
 
 
 def test_fmp_byte_bound_preflight_covers_market_events_operation():
