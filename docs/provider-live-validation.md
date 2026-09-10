@@ -150,15 +150,16 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 # 1 passed
 ```
 
-The backend deterministic gates pass on the current corrective revision:
+The latest backend deterministic gate on the current corrective revision is:
 
-- unit suite: `1384 passed`
-- Docker-backed integration suite: `371 passed` on the current branch; the
-  isolated testcontainer resources were cleaned after the run
-- latest combined unit + Docker-backed coverage gate: `1807 passed`, `80.22%`
-  line coverage, above the repository `75%` threshold
-- focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
-- migration compatibility: passed against the previous release head
+- authoritative combined unit + PostgreSQL/Redis Docker-backed coverage gate:
+  `1855 passed`, `80.37%` line coverage, 89 warnings, above the repository
+  `75%` threshold; the isolated testcontainer resources were cleaned after
+  the run
+- dedicated tokenized corporate-action capability, availability, registry,
+  and service suite: `47 passed`
+- migration compatibility and the broader focused provider/quota/runtime
+  suites are included in the authoritative combined gate
 
 429/418/quota responses now create durable `provider_capacity_event` records
 with provider scope, status, filtered reset headers, retry time, and the
