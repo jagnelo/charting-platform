@@ -98,10 +98,14 @@ class AlphaVantageProvider:
             raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid text response")
         if "Error Message" in text:
             raise ProviderResponseError(self.name, text[:240])
-        if "Thank you for using Alpha Vantage" in text or "higher API call volume" in text:
+        lowered = text.lower()
+        if (
+            "thank you for using alpha vantage" in lowered
+            or "higher api call volume" in lowered
+            or _csv_information_message(text)
+        ):
             raise ProviderRateLimitError(self.name, text[:240])
         return text
-
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         if not query.strip() or limit <= 0:
             return []
@@ -282,3 +286,13 @@ class AlphaVantageProvider:
                 )
             )
         return result
+
+
+def _csv_information_message(text: str) -> bool:
+    """Recognize Alpha Vantage's quota message when returned as CSV fields."""
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) < 2 or not lines[0].lower().startswith("symbol,"):
+        return False
+    message = lines[1].replace(",", "").strip().lower()
+    return message.startswith(("informa", "note", "errormessage"))

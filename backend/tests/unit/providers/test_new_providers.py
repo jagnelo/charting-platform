@@ -1322,6 +1322,18 @@ class TestAlphaVantageProvider:
             with pytest.raises(ProviderResponseError, match="invalid IPO date"):
                 AlphaVantageProvider().fetch_market_events()
 
+    def test_ipo_csv_information_message_is_typed_as_rate_limit(self):
+        response = MagicMock(status_code=200)
+        response.text = "symbol,name,ipoDate,priceRangeLow,priceRangeHigh,currency,exchange\nI,n,f,o,r,m,a\n"
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderRateLimitError):
+                AlphaVantageProvider().fetch_market_events()
+
 
 class TestCryptoProviderErrorEnvelopes:
     def test_kraken_http_success_error_array_is_typed(self):

@@ -105,6 +105,61 @@ def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings
     assert kraken.symbol == "AAPLx" and kraken.underlying_symbol == "AAPL"
 
 
+def test_gate_orderbook_null_rows_are_valid_empty_market_data():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "data": {"symbol": "AA", "bids": None, "asks": None},
+    }
+    asset = GateTradfiProvider._record({"symbol": "AA"})
+    with (
+        patch.object(GateTradfiProvider, "get_tokenized_asset", return_value=asset),
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+    ):
+        result = GateTradfiProvider().get_tokenized_price("AA")
+    assert result is asset
+    assert result.price is None
+    assert result.bid is None
+    assert result.ask is None
+
+
+def test_gate_orderbook_object_rows_produce_quote():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "data": {
+            "symbol": "AAOI",
+            "bids": [{"p": "106.07", "user_order": False}],
+            "asks": [{"p": "106.72", "user_order": False}],
+        },
+    }
+    asset = GateTradfiProvider._record({"symbol": "AAOI"})
+    with (
+        patch.object(GateTradfiProvider, "get_tokenized_asset", return_value=asset),
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+    ):
+        result = GateTradfiProvider().get_tokenized_price("AAOI")
+    assert result is asset
+    assert result.bid == Decimal("106.07")
+    assert result.ask == Decimal("106.72")
+    assert result.price == Decimal("106.395")
+
+
+def test_gate_orderbook_scalar_rows_fail_closed():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {"data": {"bids": "invalid", "asks": []}}
+    with (
+        patch.object(GateTradfiProvider, "get_tokenized_asset", return_value=None),
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+    ):
+        with pytest.raises(ProviderResponseError, match="invalid bids row container"):
+            GateTradfiProvider().get_tokenized_price("AA")
+
+
 def test_robinhood_price_retries_one_bounded_provider_throttle():
     rate_limited = httpx.Response(
         429,

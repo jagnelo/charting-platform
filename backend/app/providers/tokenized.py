@@ -187,6 +187,30 @@ def _required_nested_rows(
     return current
 
 
+def _gate_orderbook_rows(payload: dict[str, Any], field: str) -> list[dict[str, Any]]:
+    """Normalize Gate's documented ``null`` empty book and object rows."""
+
+    if field not in payload:
+        raise ProviderResponseError("gate_tradfi", f"provider omitted the {field} rows")
+    rows = payload[field]
+    if rows is None:
+        return []
+    if not isinstance(rows, list):
+        raise ProviderResponseError("gate_tradfi", f"provider returned an invalid {field} row container")
+    if any(not isinstance(row, dict) for row in rows):
+        raise ProviderResponseError("gate_tradfi", f"provider returned a non-object {field} row")
+    return rows
+
+
+def _gate_orderbook_price(rows: list[dict[str, Any]], field: str) -> Decimal | None:
+    if not rows:
+        return None
+    value = _decimal(rows[0].get("p"))
+    if value is None or not value.is_finite():
+        raise ProviderResponseError("gate_tradfi", f"provider returned an invalid {field} price")
+    return value
+
+
 def _network_chain_id(deployment: dict[str, Any]) -> tuple[str | None, int | None, str | None]:
     network = deployment.get("network") or deployment.get("networkName")
     chain_id = deployment.get("chainId") or deployment.get("chain_id")
@@ -539,15 +563,15 @@ class GateTradfiProvider:
         )
         body = _required_object(payload, self.name, "order book")
         data = _required_object(body.get("data"), self.name, "order book data")
-        bids = _required_rows(data, self.name, "bids", context="order book bids")
-        asks = _required_rows(data, self.name, "asks", context="order book asks")
-        bid = bids[0].get("p") if bids else None
-        ask = asks[0].get("p") if asks else None
+        bids = _gate_orderbook_rows(data, "bids")
+        asks = _gate_orderbook_rows(data, "asks")
+        bid = _gate_orderbook_price(bids, "bid")
+        ask = _gate_orderbook_price(asks, "ask")
         row = {
             "bid": bid,
             "ask": ask,
             "price": (
-                (float(bid) + float(ask)) / 2
+                (bid + ask) / 2
                 if bid is not None and ask is not None
                 else bid or ask
             ),
