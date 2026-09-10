@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Provider adjustment-factor persistence checkpoint
+
+Product tip `d322584f` extends the provider event contract with an explicit
+positive `adjustment_factor`, persists it on `InstrumentEvent`, and records
+`factor_kind` on normalized adjustment observations. Complete, consistently
+versioned provider factors receive deterministic `afv1-…` provenance and
+dataset state reports `rebuildable_provider_factors`; amount-only dividends
+remain opaque. Migration `ff2a3b4c5d6e` is additive and event fetch version `3`
+refreshes older rows. No prices, bars, provider routing, fallback, visible
+layout, pixels, or acceptance policy changed.
+
+Focused factor/market-data/event coverage passed `28/28`; the related provider
+adapter suite passed `83/83`; Ruff, formatting, and diff checks passed. The
+exact Docker-backed gate passed all non-visual stages, backend unit/integration
+`1,391`/`387` (`81.20%` combined), frontend Vitest `990/990`, and functional
+Playwright `165` with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established watchlist-column-editor-open
+and workspace-floating diffs; teardown and resource accounting were clean.
+
+R1 remains active for broader provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, source-declared cadence,
+and broader canonical population. R2-R7 remain open. Next action: continue the
+next bounded evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Accessible storage evidence checkpoint
 
 Product tip `285f1942` carries raw/provider storage reconciliation status and

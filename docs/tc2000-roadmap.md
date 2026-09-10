@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Provider-supplied adjustment-factor persistence
+
+At product tip `d322584f`, the provider event contract accepts an explicit
+positive `adjustment_factor` and persists it alongside the original event.
+Normalized adjustment observations now retain `factor_kind`, distinguishing a
+provider-supplied factor from a split ratio. Deterministic `afv1-…` snapshots
+and dataset-state provenance promote a complete, consistently versioned set to
+`rebuildable_provider_factors`; dividend amounts without a factor remain
+explicitly opaque. Migration `ff2a3b4c5d6e` adds both nullable fields, and event
+fetch version `3` causes older event rows to be refreshed for the new payload.
+This seam records and verifies factor provenance; it does not transform prices
+or claim a provider adjustment convention that was not supplied.
+
+Focused factor/market-data/event coverage passed `28/28`, the related provider
+adapter suite passed `83/83`, and Ruff, formatting, and diff checks passed. The
+exact Docker-backed gate passed migration compatibility, backend unit/integration
+`1,391`/`387` with `81.20%` combined coverage, frontend Vitest `990/990`, and
+functional Playwright `165` with `107` documented skips across `272`. Visual
+parity remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Accessible storage evidence consumer
 
 At product tip `285f1942`, the Coverage Summary tool now includes the

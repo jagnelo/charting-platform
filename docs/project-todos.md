@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Provider-supplied adjustment-factor persistence
+
+- [x] Extend provider event and normalized observation contracts with explicit
+      positive adjustment factors and a `factor_kind` discriminator; persist
+      them idempotently and bump event refresh version to `3`.
+- [x] Promote complete, consistently versioned provider-factor evidence to
+      deterministic `afv1-…` dataset provenance while keeping amount-only
+      dividends opaque; focused factor/market-data/event coverage passed
+      `28/28` and the related provider suite passed `83/83`.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Accessible storage evidence consumer
 
 - [x] Carry raw/provider storage reconciliation status and counts through the
