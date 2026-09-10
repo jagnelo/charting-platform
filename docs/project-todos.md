@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
+
+- [x] Require dated W1/MN materialization to prove both `coverage_end` and
+      `fetched_at` are present and no later than the requested cutoff before
+      inheriting D1 factor evidence; keep missing/future proof conservative.
+- [x] Focused derived-timeframe regression coverage passed `9/9`; the full
+      backend unit suite passed `1,435/1,435` at `68%`; Ruff, formatting, and
+      diff checks passed.
+- [x] The exact gate passed all non-visual stages and functional Playwright
+      (`165` passed, `107` documented skips across `272`); visual parity was
+      `98/104` with exactly the six protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
 
 - [x] Order range-coverage state by the requested `dataset_keys` precedence so

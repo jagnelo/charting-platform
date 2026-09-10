@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
+
+At product tip `b35d5f5e`, dated W1/MN materialization now requires both
+`coverage_end` and `fetched_at` temporal proof before inheriting a D1 factor
+version. Missing or future fetch proof leaves the historical coarse-timeframe
+state without an inherited factor version instead of projecting later evidence
+backwards; unbounded/latest materialization behavior is unchanged.
+
+The focused derived-timeframe regression suite passed `9/9`; the complete
+backend unit suite passed `1,435/1,435` with `68%` total coverage; Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker gate passed
+all non-visual stages and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity completed `104` cases with `98` passes and
+exactly the six protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes one bounded historical factor-provenance seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
 
 At product tip `edce3e824`, range coverage now orders persisted dataset state by

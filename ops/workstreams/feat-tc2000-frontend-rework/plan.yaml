@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip b35d5f5e requires dated W1/MN materialization to prove both
+  coverage_end and fetched_at before inheriting a D1 factor version. Missing
+  or future fetch proof remains conservative and cannot project later factor
+  evidence into an earlier historical slice. Focused derived-timeframe
+  regression coverage passed 9/9; full backend unit passed 1435/1435 at 68%;
+  Ruff, formatting, and diff checks passed. The exact Docker-backed gate
+  passed all non-visual stages and functional Playwright 165 passed with 107
+  documented skips across 272. Visual parity completed 104 cases with 98
+  passes and exactly six established protected diffs; the gate exited 1 at
+  e2e-visual after clean branch-scoped teardown. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Continue
+  full provider/family history breadth, W1/MN continuity beyond the bounded
+  lineage seam, canonical population, dense-data evidence, and R2-R7 goals;
+  the no-integration/no-deployment boundary holds.
   Product tip edce3e824 fixes range-coverage state selection to honor the
   explicit dataset_keys precedence before recency, so lineage-specific D1
   factor state cannot be shadowed by generic D1:adj fallback state. Focused

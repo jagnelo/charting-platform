@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
+
+Product tip `b35d5f5e26638fe82ed6a74cf956e15f74fd5611` hardens dated W1/MN
+materialization: a D1 factor version is inherited only when both persisted
+`coverage_end` and `fetched_at` are present and no later than the requested
+historical cutoff. Missing or future fetch proof remains conservative and does
+not project later factor evidence into an earlier slice; latest/unbounded
+materialization is unchanged.
+
+Focused derived-timeframe regression coverage passed `9/9`; the full backend
+unit suite passed `1,435/1,435` with `68%` total coverage; Ruff, formatting, and
+diff checks passed. The exact Docker-backed gate passed backend/frontend,
+runtime, performance, sandbox, and functional stages (`165` passed, `107`
+documented skips across `272`); visual parity was `98/104` with exactly the
+six established protected diffs and clean branch-scoped teardown. No visual or
+acceptance policy changed.
+
+Remaining roadmap gaps are full provider/family history breadth, W1/MN
+continuity beyond the bounded lineage path, canonical population, and dense
+data evidence. Keep the branch at the review boundary; do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
 
 Product tip `edce3e824` fixes range-coverage state selection to honor the
