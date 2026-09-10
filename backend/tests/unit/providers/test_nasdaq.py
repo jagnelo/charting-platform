@@ -59,6 +59,32 @@ def test_official_otherlisted_file_maps_exchange_codes():
     assert rows[1]["quoteType"] == "ETF"
 
 
+@pytest.mark.parametrize(
+    "source_name,text",
+    [
+        (
+            "nasdaqlisted",
+            "Symbol|Security Name|Market Category\nAAPL|Apple\n",
+        ),
+        (
+            "nasdaqlisted",
+            "Symbol|Security Name|Market Category\nAAPL||Q\n",
+        ),
+        (
+            "otherlisted",
+            "ACT Symbol|Security Name|Exchange\nIBM|IBM|N|EXTRA\n",
+        ),
+        (
+            "otherlisted",
+            "ACT Symbol|Security Name|Exchange\n|IBM|N\n",
+        ),
+    ],
+)
+def test_nasdaq_parser_rejects_malformed_rows(source_name, text):
+    with pytest.raises(ValueError, match="malformed row"):
+        _parse_file(source_name, text)
+
+
 def test_discovery_pages_filter_official_directory_and_keep_file_provenance():
     nasdaq._cache = None
     nasdaq._file_cache.clear()

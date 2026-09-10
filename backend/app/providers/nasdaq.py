@@ -130,8 +130,10 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
         ):
             continue
         if source_name == "nasdaqlisted":
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"malformed row in {source_name}: inconsistent column count")
             symbol = str(row.get("Symbol") or "").strip().upper()
-            name = str(row.get("Security Name") or symbol).strip()
+            name = str(row.get("Security Name") or "").strip()
             exchange = "XNAS"
             is_etf = str(row.get("ETF") or "N").upper() == "Y"
             test_issue = str(row.get("Test Issue") or "N").upper() == "Y"
@@ -142,8 +144,12 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             # Test issues are the only Nasdaq-listed directory rows excluded.
             active = not test_issue
         else:
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"malformed row in {source_name}: inconsistent column count")
+            if row.get("ACT Symbol") is None and row.get("Symbol") is None:
+                raise ValueError(f"malformed row in {source_name}: missing symbol column value")
             symbol = str(row.get("ACT Symbol") or row.get("Symbol") or "").strip().upper()
-            name = str(row.get("Security Name") or symbol).strip()
+            name = str(row.get("Security Name") or "").strip()
             code = str(row.get("Exchange") or "").strip().upper()
             exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(
                 code, code or None
@@ -151,7 +157,9 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             is_etf = str(row.get("ETF") or "N").upper() == "Y"
             financial_status = ""
             active = str(row.get("Test Issue") or "N").upper() != "Y"
-        if not symbol or not active:
+        if not symbol or not name:
+            raise ValueError(f"malformed row in {source_name}: missing symbol or security name")
+        if not active:
             continue
         parsed.append(
             {
