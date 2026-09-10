@@ -120,14 +120,30 @@ def reconcile_ohlcv_storage(
     provider_bars = [
         bar for bar in bars if bar.is_derived is False and bar.data_source_id is not None
     ]
+    # A timestamp is not globally unique: the same source can expose several
+    # timeframes and both raw and adjusted views for one instrument.  Keep the
+    # complete storage identity here so one observation cannot satisfy a
+    # different timeframe or adjustment mode by accident.
     observation_by_key = {
-        (observation.data_source_id, _as_utc(observation.ts)): observation
+        (
+            observation.instrument_id,
+            observation.data_source_id,
+            observation.timeframe,
+            _as_utc(observation.ts),
+            observation.is_adjusted,
+        ): observation
         for observation in observations
     }
     matched = missing = mismatched = 0
-    observed_keys: set[tuple[int, datetime]] = set()
+    observed_keys: set[tuple[int, int, Timeframe, datetime, bool]] = set()
     for bar in provider_bars:
-        key = (bar.data_source_id, _as_utc(bar.ts))
+        key = (
+            bar.instrument_id,
+            bar.data_source_id,
+            bar.timeframe,
+            _as_utc(bar.ts),
+            bar.is_adjusted,
+        )
         observation = observation_by_key.get(key)
         if observation is None:
             missing += 1
@@ -151,7 +167,17 @@ def reconcile_ohlcv_storage(
         1
         for key in observation_by_key
         if key not in observed_keys
-        and not any((bar.data_source_id, _as_utc(bar.ts)) == key for bar in provider_bars)
+        and not any(
+            (
+                bar.instrument_id,
+                bar.data_source_id,
+                bar.timeframe,
+                _as_utc(bar.ts),
+                bar.is_adjusted,
+            )
+            == key
+            for bar in provider_bars
+        )
     )
     if not provider_bars and not observations:
         status = "not_observed"
@@ -227,7 +253,9 @@ def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> Ohlc
 
 
 def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _observed_fixed_holiday(year: int, month: int, day: int) -> date:
