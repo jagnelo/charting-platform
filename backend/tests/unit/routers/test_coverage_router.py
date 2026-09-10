@@ -264,6 +264,43 @@ class TestCoverageRouter:
         assert response.status_code == 422
         assert response.json()["detail"]["code"] == "invalid_coverage_range"
 
+    def test_range_coverage_normalizes_offset_aware_request_boundaries(
+        self, client, auth_headers, db, instrument
+    ):
+        start = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=start,
+                open=Decimal("10"),
+                high=Decimal("11"),
+                low=Decimal("9"),
+                close=Decimal("10"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                # These are the same instants as 2026-01-02T00:00:00Z and
+                # 2026-01-03T00:00:00Z, expressed with a non-UTC offset.
+                "start": "2026-01-02T02:00:00+02:00",
+                "end": "2026-01-03T02:00:00+02:00",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["requested_start"] == "2026-01-02T00:00:00Z"
+        assert body["requested_end"] == "2026-01-03T00:00:00Z"
+        assert body["covered_start"] == "2026-01-02T00:00:00Z"
+        assert body["bar_count"] == 1
+
     def test_range_coverage_exposes_derived_factor_version(
         self, client, auth_headers, db, instrument
     ):

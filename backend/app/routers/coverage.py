@@ -19,6 +19,7 @@ from app.schemas.coverage import (
     OhlcvCoverageOut,
 )
 from app.services.ohlcv_coverage import (
+    _as_utc,
     assess_observed_ohlcv_cadence,
     assess_ohlcv_coverage,
     reconcile_ohlcv_storage,
@@ -40,6 +41,11 @@ async def instrument_ohlcv_coverage(
     _: User = Depends(get_current_user),
 ):
     """Assess local OHLCV readiness without contacting any provider."""
+    # FastAPI preserves an offset supplied by the caller.  Canonical storage
+    # and the coverage planner compare UTC instants, so normalize the request
+    # envelope before issuing SQL predicates or returning it to the client.
+    start = _as_utc(start)
+    end = _as_utc(end)
     if end < start:
         raise HTTPException(
             422,
