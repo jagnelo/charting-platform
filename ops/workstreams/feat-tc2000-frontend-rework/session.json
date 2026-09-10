@@ -97,7 +97,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8259e5e2997e88aec0bee51dddd54e35d2c4f7b7",
+  "head": "bc0fc1a4f1d8a12898ff798f716d1b7cb7fb24a6",
   "implementation_sha": "8259e5e2997e88aec0bee51dddd54e35d2c4f7b7",
   "interrupted": false,
   "last_checkpoint": "2026-09-10T12:37:49Z",
