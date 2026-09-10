@@ -173,9 +173,26 @@ class AlpacaProvider:
             bars_payload = data.get("bars") or {}
             if not isinstance(bars_payload, dict):
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid bars object")
-            for b in bars_payload.get(alpaca_sym, []):
+            raw_rows = bars_payload.get(alpaca_sym, [])
+            if raw_rows is None:
+                raise ProviderResponseError(self.name, "Alpaca returned null bars for the requested symbol")
+            if not isinstance(raw_rows, list):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid bars array")
+            for b in raw_rows:
+                if not isinstance(b, dict):
+                    raise ProviderResponseError(self.name, "Alpaca returned a malformed bar row")
+                if any(field not in b for field in ("t", "o", "h", "l", "c")):
+                    raise ProviderResponseError(self.name, "Alpaca returned an incomplete bar row")
                 try:
                     ts = datetime.fromisoformat(b["t"].replace("Z", "+00:00"))
+                    _require_finite_number(b["o"])
+                    _require_finite_number(b["h"])
+                    _require_finite_number(b["l"])
+                    _require_finite_number(b["c"])
+                    if b.get("v") is not None:
+                        _require_finite_number(b["v"])
+                    if b.get("vw") is not None:
+                        _require_finite_number(b["vw"])
                     bars.append(
                         OHLCVBar(
                             instrument_id=instrument_id,
@@ -191,10 +208,12 @@ class AlpacaProvider:
                             is_adjusted=adjusted,
                         )
                     )
-                except (KeyError, ValueError):
-                    continue
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(self.name, "Alpaca returned an invalid bar row") from exc
 
             page_token = data.get("next_page_token")
+            if page_token is not None and not isinstance(page_token, str):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid pagination token")
             if not page_token:
                 break
 
@@ -248,7 +267,12 @@ class AlpacaProvider:
             if not isinstance(bars_payload, dict):
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid bars object")
             bar = bars_payload.get(alpaca_sym)
-            return float(bar["c"]) if bar else None
+            if bar is None:
+                return None
+            if not isinstance(bar, dict) or "c" not in bar:
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid latest bar")
+            _require_finite_number(bar["c"])
+            return float(bar["c"])
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
@@ -475,7 +499,9 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         payload = r.json()
         if not isinstance(payload, list):
             raise ProviderResponseError("alpaca", "Alpaca returned an invalid JSON array")
-        assets = [a for a in payload if isinstance(a, dict) and a.get("tradable")]
+        if any(not isinstance(asset, dict) for asset in payload):
+            raise ProviderResponseError("alpaca", "Alpaca returned a malformed asset row")
+        assets = [a for a in payload if a.get("tradable")]
         _asset_cache[asset_class] = assets
         _asset_cache_ts = now
         return assets
@@ -499,3 +525,16 @@ def _asset_to_quote(asset: dict, quote_type: str) -> dict[str, Any]:
         "exchange": asset.get("exchange", ""),
         "currency": "USD",
     }
+
+
+def _require_finite_number(value: Any) -> None:
+    """Reject booleans, non-numeric values, and non-finite provider numbers."""
+
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a numeric market-data value")
+    try:
+        number = Decimal(str(value))
+    except Exception as exc:
+        raise ValueError("invalid numeric market-data value") from exc
+    if not number.is_finite():
+        raise ValueError("non-finite market-data value")

@@ -359,6 +359,57 @@ class TestAlpacaOHLCVParsing:
         assert float(bars[0].close) == 186.0
         assert float(bars[1].open) == 186.0
 
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            [{"t": "2024-01-02T05:00:00Z", "o": 185.0}],
+            [{"t": "2024-01-02T05:00:00Z", "o": 185.0, "h": 187.0, "l": 184.0, "c": "NaN"}],
+            ["not-a-bar"],
+        ],
+    )
+    def test_fetch_ohlcv_rejects_malformed_or_non_finite_rows(self, rows):
+        provider = AlpacaProvider()
+        response = MagicMock()
+        response.json.return_value = {"bars": {"AAPL": rows}, "next_page_token": None}
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError, match="Alpaca returned"):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 5, tzinfo=UTC),
+                )
+
+    def test_fetch_ohlcv_rejects_invalid_pagination_token(self):
+        provider = AlpacaProvider()
+        response = MagicMock()
+        response.json.return_value = {
+            "bars": {"AAPL": []},
+            "next_page_token": {"unexpected": "object"},
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError, match="pagination token"):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 5, tzinfo=UTC),
+                )
+
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────
 
