@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Derived timeframe factor-lineage propagation
+
+- [x] Preserve a verified canonical D1 `factor_version` on derived W1/MN
+      dataset provenance when all contributing provider sources agree; keep
+      mixed, missing, opaque, and raw evidence explicitly unversioned.
+- [x] Regress the derived-timeframe, factor, market-data, and coverage-router
+      contract (`37/37`); the exact gate preserved `1,392/387` backend,
+      `990/990` frontend, `165` functional passes, `107` documented skips,
+      and the six established visual diffs with clean teardown.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Provider-factor fingerprint compatibility correction
 
 - [x] Preserve the established split-only `afv1-…` fingerprint while retaining

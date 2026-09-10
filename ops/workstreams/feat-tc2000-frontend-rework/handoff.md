@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Derived timeframe factor-lineage checkpoint
+
+Product tip `ef5f2caa` carries a verified canonical D1 `factor_version` into
+derived W1/MN dataset provenance when every contributing provider D1 source
+agrees on one rebuildable version. Mixed, missing, opaque, or raw evidence
+remains explicitly unversioned. No prices, bars, provider routing, fallback,
+visible layout, pixels, or acceptance policy changed.
+
+Focused derived-timeframe, adjustment-factor, market-data, and coverage-router
+coverage passed `37/37`; Ruff, formatting, and diff checks passed. The exact
+Docker-backed gate completed its migration-compatibility stage (reported
+skipped because no migration changes existed from its comparison tip) and all
+other non-visual stages: backend unit/integration `1,392`/`387` (`81.20%`
+combined), frontend Vitest `990/990`, and functional Playwright `165` with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+exactly the six established watchlist-column-editor-open/workspace-floating
+diffs; teardown and resource accounting were clean.
+
+R1 remains active for broader provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, source-declared cadence,
+and broader canonical population. R2-R7 remain open. Next action: continue
+the next bounded evidence-backed R1 history/provenance seam and rerun the
+exact gate at the next coherent tip.
+
 ## 2026-09-10 — Provider-factor fingerprint compatibility checkpoint
 
 Product tip `1875ac4f` preserves the established legacy `afv1-…` fingerprint

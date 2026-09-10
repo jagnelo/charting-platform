@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Derived timeframe factor-lineage propagation
+
+At product tip `ef5f2caa`, derived W1/MN dataset states now retain a verified
+canonical D1 `factor_version` when every contributing provider D1 source has
+the same rebuildable split or provider-factor provenance. Missing, mixed,
+opaque, raw, or otherwise incomplete evidence remains unversioned; no prices,
+bars, provider routing, fallback behavior, visible layout, pixels, or
+acceptance policy changed.
+
+The focused derived-timeframe, adjustment-factor, market-data, and coverage
+router suite passed `37/37`, with Ruff, formatting, and diff checks passing.
+The exact Docker-backed gate completed its migration-compatibility stage
+(reported skipped because no migration changes existed from its comparison
+tip) and all other non-visual stages: backend unit/integration `1,392`/`387`
+with `81.20%` combined coverage, frontend Vitest `990/990`, and functional
+Playwright `165` with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Provider-factor fingerprint compatibility correction
 
 At product tip `1875ac4f`, the provider-factor seam preserves the established
