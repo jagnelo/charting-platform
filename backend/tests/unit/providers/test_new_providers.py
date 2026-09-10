@@ -560,6 +560,80 @@ class TestCryptoOHLCVPagination:
         assert estimate_kraken_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 721) == 2
 
+    def test_coinbase_malformed_candle_rows_are_typed(self):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        response = httpx.Response(
+            200,
+            json=[[start.timestamp(), "1"]],
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                CoinbaseProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                )
+        assert exc_info.value.provider_name == "coinbase"
+
+    def test_kraken_malformed_candle_rows_are_typed(self):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        response = httpx.Response(
+            200,
+            json={"result": {"XXBTZUSD": [[start.timestamp(), "1"]], "last": 1}},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                KrakenProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                )
+        assert exc_info.value.provider_name == "kraken"
+
+    def test_crypto_invalid_ticker_shapes_are_typed(self):
+        coinbase_response = httpx.Response(
+            200,
+            json={"price": "not-a-number"},
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
+        ):
+            with pytest.raises(ProviderResponseError):
+                CoinbaseProvider().get_current_price("BTC-USD")
+
+        kraken_response = httpx.Response(
+            200,
+            json={"result": {}},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/Ticker"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
+        ):
+            with pytest.raises(ProviderResponseError):
+                KrakenProvider().get_current_price("BTC-USD")
+
+    def test_crypto_directory_rows_are_typed(self):
+        coinbase_response = httpx.Response(
+            200,
+            json=[{"id": "BTC-USD"}, "invalid"],
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com/products"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
+        ):
+            with pytest.raises(ProviderResponseError):
+                CoinbaseProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+        kraken_response = httpx.Response(
+            200,
+            json={"result": {"XXBTZUSD": "invalid"}},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/AssetPairs"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
+        ):
+            with pytest.raises(ProviderResponseError):
+                KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
     def test_twelve_data_history_pages_5000_point_ranges(self):
         provider = TwelveDataProvider()
         start = datetime(2024, 1, 1, tzinfo=UTC)

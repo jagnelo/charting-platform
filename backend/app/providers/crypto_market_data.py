@@ -112,6 +112,23 @@ def _get_json(
         raise ProviderResponseError(provider_name, str(exc)) from exc
 
 
+def _required_candle_rows(payload: Any, provider_name: str, width: int) -> list[list[Any]]:
+    if not isinstance(payload, list):
+        raise ProviderResponseError(provider_name, "provider returned an invalid candle array")
+    if any(not isinstance(row, list) or len(row) < width for row in payload):
+        raise ProviderResponseError(provider_name, "provider returned an invalid candle row")
+    return payload
+
+
+def _candle_float(value: Any, provider_name: str, field: str) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid candle {field}"
+        ) from exc
+
+
 class CoinbaseProvider:
     name = "coinbase"
     base_url = "https://api.exchange.coinbase.com"
@@ -152,10 +169,8 @@ class CoinbaseProvider:
                 },
                 timeout=30,
             )
-            for row in rows if isinstance(rows, list) else []:
-                if not isinstance(row, list) or len(row) < 6:
-                    continue
-                ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
+            for row in _required_candle_rows(rows, self.name, 6):
+                ts = datetime.fromtimestamp(_candle_float(row[0], self.name, "timestamp"), tz=UTC)
                 if not start <= ts < end:
                     continue
                 bars_by_timestamp[ts] = OHLCVBar(
@@ -163,11 +178,11 @@ class CoinbaseProvider:
                     data_source_id=data_source_id,
                     timeframe=timeframe,
                     ts=ts,
-                    low=float(row[1]),
-                    high=float(row[2]),
-                    open=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]),
+                    low=_candle_float(row[1], self.name, "low"),
+                    high=_candle_float(row[2], self.name, "high"),
+                    open=_candle_float(row[3], self.name, "open"),
+                    close=_candle_float(row[4], self.name, "close"),
+                    volume=_candle_float(row[5], self.name, "volume"),
                     is_adjusted=False,
                 )
             cursor = limit_end
@@ -208,9 +223,9 @@ class CoinbaseProvider:
             f"{self.base_url}/products/{_coinbase_product(symbol)}/ticker",
             timeout=15,
         )
-        return (
-            float(payload["price"]) if isinstance(payload, dict) and payload.get("price") else None
-        )
+        if not isinstance(payload, dict) or payload.get("price") in (None, ""):
+            raise ProviderResponseError(self.name, "Coinbase returned an invalid ticker object")
+        return _candle_float(payload["price"], self.name, "ticker price")
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.upper() != "CRYPTOCURRENCY":
@@ -218,12 +233,12 @@ class CoinbaseProvider:
         products_payload = _get_json(self.name, f"{self.base_url}/products", timeout=30)
         if not isinstance(products_payload, list):
             raise ProviderResponseError(self.name, "Coinbase returned an invalid products array")
+        if any(not isinstance(item, dict) for item in products_payload):
+            raise ProviderResponseError(self.name, "Coinbase returned a non-object product row")
         products = [
             item
             for item in products_payload
-            if isinstance(item, dict)
-            and item.get("quote_currency") == "USD"
-            and item.get("status") == "online"
+            if item.get("quote_currency") == "USD" and item.get("status") == "online"
         ]
         page = products[offset : offset + 500]
         return {
@@ -284,16 +299,18 @@ class KrakenProvider:
             )
             if not isinstance(payload, dict):
                 raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC JSON object")
-            result = payload.get("result", {}) if isinstance(payload, dict) else {}
-            rows = next(
-                (value for key, value in result.items() if key != "last" and isinstance(value, list)),
-                [],
-            )
+            result = payload.get("result")
+            if not isinstance(result, dict):
+                raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC result")
+            row_lists = [value for key, value in result.items() if key != "last"]
+            if not row_lists or any(not isinstance(value, list) for value in row_lists):
+                raise ProviderResponseError(self.name, "Kraken returned an invalid OHLC row container")
+            rows = _required_candle_rows(row_lists[0], self.name, 7)
             max_timestamp: datetime | None = None
             for row in rows:
                 if not isinstance(row, list) or len(row) < 7:
                     continue
-                ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
+                ts = datetime.fromtimestamp(_candle_float(row[0], self.name, "timestamp"), tz=UTC)
                 max_timestamp = max(max_timestamp, ts) if max_timestamp else ts
                 if not start <= ts < end:
                     continue
@@ -302,22 +319,24 @@ class KrakenProvider:
                     data_source_id=data_source_id,
                     timeframe=timeframe,
                     ts=ts,
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[6]),
+                    open=_candle_float(row[1], self.name, "open"),
+                    high=_candle_float(row[2], self.name, "high"),
+                    low=_candle_float(row[3], self.name, "low"),
+                    close=_candle_float(row[4], self.name, "close"),
+                    volume=_candle_float(row[6], self.name, "volume"),
                     is_adjusted=False,
                 )
-            provider_last = result.get("last") if isinstance(result, dict) else None
+            provider_last = result.get("last")
             try:
                 provider_last_dt = (
                     datetime.fromtimestamp(float(provider_last), tz=UTC)
                     if provider_last is not None
                     else None
                 )
-            except (TypeError, ValueError, OverflowError):
-                provider_last_dt = None
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ProviderResponseError(
+                    self.name, "Kraken returned an invalid OHLC cursor"
+                ) from exc
             next_cursor = cursor + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400))
             if max_timestamp is not None:
                 next_cursor = max(next_cursor, max_timestamp + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400)))
@@ -363,9 +382,14 @@ class KrakenProvider:
             params={"pair": _kraken_pair(symbol)},
             timeout=15,
         )
-        result = payload.get("result", {})
-        row = next(iter(result.values()), {})
-        return float(row["c"][0]) if isinstance(row, dict) and row.get("c") else None
+        body = payload if isinstance(payload, dict) else None
+        result = body.get("result") if body is not None else None
+        if not isinstance(result, dict) or not result:
+            raise ProviderResponseError(self.name, "Kraken returned an invalid ticker result")
+        row = next(iter(result.values()))
+        if not isinstance(row, dict) or not isinstance(row.get("c"), list) or not row["c"]:
+            raise ProviderResponseError(self.name, "Kraken returned an invalid ticker row")
+        return _candle_float(row["c"][0], self.name, "ticker price")
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.upper() != "CRYPTOCURRENCY":
@@ -373,11 +397,13 @@ class KrakenProvider:
         payload = _get_json(self.name, f"{self.base_url}/AssetPairs", timeout=30)
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "Kraken returned an invalid asset-pairs JSON object")
-        result = payload.get("result", {})
+        result = payload.get("result")
+        if not isinstance(result, dict):
+            raise ProviderResponseError(self.name, "Kraken returned an invalid asset-pairs result")
+        if any(not isinstance(item, dict) for item in result.values()):
+            raise ProviderResponseError(self.name, "Kraken returned a non-object asset-pair row")
         products = [
-            item
-            for item in result.values()
-            if isinstance(item, dict) and str(item.get("quote", "")).upper() in {"ZUSD", "USD"}
+            item for item in result.values() if str(item.get("quote", "")).upper() in {"ZUSD", "USD"}
         ]
         page = products[offset : offset + 500]
         return {
