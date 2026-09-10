@@ -25,6 +25,10 @@
       skipping observations or returning empty/synthetic results. Focused
       new-provider tests pass `121/121`; the authoritative Docker-backed gate
       passes `1904/1904` with `80.35%` line coverage and 89 warnings.
+- [x] Make OpenFIGI mapping reject malformed envelopes, missing/mixed rows,
+      response-count mismatches, and non-2xx/429 failures with typed errors.
+      Focused tests pass `8/8`; the authoritative Docker-backed gate passes
+      `1907/1907` with `80.35%` line coverage and 89 warnings.
 
 ### 2026-09-05 — Corrective provider quota and live-evidence gate
 

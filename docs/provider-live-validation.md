@@ -517,3 +517,10 @@ passed `121/121`; the authoritative gate completed at `2026-09-10T08:32Z`
 with `1904 passed`, `89` warnings, and `80.35%` line coverage in `444.39s`.
 Testcontainer session `291324c7-d107-4007-97ad-496ee703ce08` was cleaned
 without host-wide pruning.
+
+OpenFIGI mapping now rejects malformed outer envelopes, missing or mixed
+mapping rows, response-count mismatches, and non-2xx/429 transport failures
+with typed provider errors. Focused OpenFIGI tests passed `8/8`; the
+authoritative gate completed at `2026-09-10T08:42Z` with `1907 passed`,
+`89` warnings, and `80.35%` line coverage in `410.96s`. Testcontainer session
+`fddece92-aebf-488b-a824-68f4068db334` was cleaned without host-wide pruning.
