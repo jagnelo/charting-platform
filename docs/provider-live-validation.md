@@ -547,3 +547,10 @@ misaligned arrays, and invalid nested containers instead of truncating or
 filtering provider data. The focused EDGAR suite passed `21/21`; Ruff and diff
 checks passed. The authoritative gate remains unverified because Docker
 preflight is currently unavailable.
+
+Massive ticker search/discovery, IPO-calendar, and market-holiday adapters now
+reject invalid result containers, mixed or scalar rows, missing identities or
+dates, and invalid pagination metadata instead of silently filtering or
+returning partial reference evidence. The focused Massive suite passed `13/13`;
+Ruff and diff checks passed. The authoritative gate remains unverified because
+Docker preflight is currently unavailable.
