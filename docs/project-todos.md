@@ -10,6 +10,11 @@
       Docker-backed gate passes `1892/1892` with `80.36%` line coverage and
       89 warnings, and the owned PostgreSQL/Redis testcontainer is cleaned
       without host-wide pruning.
+- [x] Make every concrete optional-provider documented row-list endpoint fail
+      closed on missing, scalar, or mixed row containers, and reject malformed
+      Tradier option-expiration dates/wrappers. The focused suite passes
+      `35/35`; the authoritative Docker-backed gate passes `1895/1895` with
+      `80.36%` line coverage and 89 warnings.
 
 ### 2026-09-05 — Corrective provider quota and live-evidence gate
 

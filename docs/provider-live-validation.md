@@ -492,3 +492,12 @@ instead of truncating history. The focused optional-provider suite passed
 `1892 passed`, `89` warnings, and `80.36%` line coverage in `404.68s`.
 Testcontainer session `294f910c-3bf6-4c72-8cf3-7d5c66d132da` was cleaned
 without host-wide pruning.
+
+All concrete optional-provider documented row-list endpoints now fail closed on
+missing, scalar, or mixed row containers instead of normalizing malformed
+responses to empty data; Tradier option-expiration parsing also rejects
+malformed dates and wrapper shapes. The focused optional-provider suite passed
+`35/35`; the authoritative gate completed at `2026-09-10T08:07Z` with
+`1895 passed`, `89` warnings, and `80.36%` line coverage in `390.66s`.
+Testcontainer session `3a0e72c2-6f1c-444d-9bc0-71059e0b4ed6` was cleaned
+without host-wide pruning.
