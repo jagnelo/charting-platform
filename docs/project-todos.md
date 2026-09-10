@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Linear-time OHLCV reconciliation
+
+- [x] Replace nested provider/observation orphan scans with a precomputed
+      complete-identity set, preserving instrument/source/timeframe/UTC/mode
+      semantics while reducing reconciliation to linear work.
+- [x] Regress storage reconciliation plus coverage routing (`12/12`); Ruff,
+      formatting, and diff checks passed. This is an implementation guard for
+      the roadmap's large-data path, not a claim that the 100k-point live gate
+      has passed.
+- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
+      coherent tip, and continue provider factor application/rebuild,
+      family/provider history, W1/MN continuity, cadence, population, and R6
+      dense-data evidence.
+
 ### 2026-09-10 — UTC normalization at the bulk-history boundary
 
 - [x] Normalize offset-aware provider timestamps to UTC before bulk-history

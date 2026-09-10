@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Linear-time OHLCV reconciliation
+
+Product tip `02bc0bd8` replaces the canonical storage reconciliation's nested
+orphan scan with a hash-set lookup keyed by the complete provider identity.
+The result remains instrument/source/timeframe/UTC/adjustment-mode exact while
+scaling as `O(n+m)` instead of `O(n×m)`, an important prerequisite for the
+roadmap's large-range performance work. Focused storage and coverage-router
+coverage passed `12/12`; Ruff, formatting, and diff checks passed. No prices,
+bars, provider routing, fallback, visible layout, visual baseline, threshold,
+skip, or acceptance policy changed.
+
+This does not substitute for the live 100k-point proof. The exact
+Docker-backed gate remains pending at `bab365e9` and then the current coherent
+tip; continue the next bounded R1/R6 seam when the branch-scoped stack is
+available.
+
 ## 2026-09-10 — UTC normalization at the bulk-history boundary
 
 Product tip `6dbf5fac` makes bulk-history timestamp coercion normalize

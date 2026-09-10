@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Linear-time OHLCV reconciliation
+
+At product tip `02bc0bd8`, canonical OHLCV storage reconciliation now
+precomputes provider identities and counts orphan observations with a hash-set
+lookup. The previous nested comparison was `O(observations × provider bars)`;
+the identity-preserving result is now `O(observations + provider bars)`, which
+keeps the R6 large-range path viable without changing any status semantics.
+Focused storage and coverage-router coverage passed `12/12`; Ruff,
+formatting, and diff checks passed. Prices, bars, provider routing, fallback,
+visible layout, pixels, visual baselines, thresholds, skips, and acceptance
+policy are unchanged.
+
+R1/R6 remain active for provider/history readiness, W1/MN continuity, canonical
+population, and large-data runtime evidence; R2-R5 and R7 remain open. The
+exact Docker-backed gate still needs to be rerun at `bab365e9` and then at the
+current coherent tip when Docker is responsive.
+
 ## 2026-09-10 — UTC normalization at the bulk-history boundary
 
 At product tip `6dbf5fac`, bulk-history timestamp coercion now converts

@@ -13,6 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 02bc0bd8 makes canonical OHLCV storage reconciliation linear in
+  provider bars plus observations by precomputing complete provider identities
+  before orphan counting. Focused storage and coverage-router coverage passed
+  12/12; Ruff, formatting, and diff checks passed. This is an implementation
+  guard for the large-data path, not a claim that the live 100k-point proof has
+  passed. Prices, bars, provider routing, fallback, visible layout, pixels,
+  visual baselines, thresholds, skips, and acceptance policy are unchanged.
+  The exact Docker-backed gate still needs to be rerun first at bab365e9 and
+  then at this coherent tip when Docker is responsive. R1/R6 remain active for
+  provider/history readiness, W1/MN continuity, canonical population, and
+  dense-data runtime evidence; R2-R5 and R7 remain open.
   Product tip 6dbf5fac normalizes offset-aware provider timestamps to UTC at
   the bulk-history boundary before comparison and persistence, keeping
   canonical OHLCV identities stable across equivalent offsets. Focused
