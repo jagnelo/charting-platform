@@ -146,6 +146,47 @@ def _retry_at(headers: dict[str, str]) -> datetime | None:
     return datetime.now(UTC) + timedelta(seconds=seconds)
 
 
+def _required_object(payload: Any, provider_name: str, context: str) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {context} object")
+    return payload
+
+
+def _required_rows(
+    payload: Any, provider_name: str, field: str, *, context: str | None = None
+) -> list[dict[str, Any]]:
+    body = _required_object(payload, provider_name, context or field)
+    if field not in body:
+        raise ProviderResponseError(provider_name, f"provider omitted the {field} rows")
+    rows = body[field]
+    if not isinstance(rows, list):
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} row container")
+    if any(not isinstance(row, dict) for row in rows):
+        raise ProviderResponseError(provider_name, f"provider returned a non-object {field} row")
+    return rows
+
+
+def _required_nested_rows(
+    payload: Any, provider_name: str, path: tuple[str, ...]
+) -> list[dict[str, Any]]:
+    current: Any = _required_object(payload, provider_name, ".".join(path))
+    for key in path:
+        if not isinstance(current, dict) or key not in current:
+            raise ProviderResponseError(
+                provider_name, f"provider omitted the {'.'.join(path)} rows"
+            )
+        current = current[key]
+    if not isinstance(current, list):
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid {'.'.join(path)} row container"
+        )
+    if any(not isinstance(row, dict) for row in current):
+        raise ProviderResponseError(
+            provider_name, f"provider returned a non-object {'.'.join(path)} row"
+        )
+    return current
+
+
 def _network_chain_id(deployment: dict[str, Any]) -> tuple[str | None, int | None, str | None]:
     network = deployment.get("network") or deployment.get("networkName")
     chain_id = deployment.get("chainId") or deployment.get("chain_id")
@@ -202,12 +243,8 @@ class XStocksProvider:
             params={"page": max(0, page), "pageSize": max(1, min(page_size, 100))},
             headers=self._headers(),
         )
-        nodes = payload.get("nodes", []) if isinstance(payload, dict) else []
-        return [
-            self._record(item)
-            for item in nodes
-            if isinstance(item, dict) and item.get("symbol")
-        ]
+        nodes = _required_rows(payload, self.name, "nodes")
+        return [self._record(item) for item in nodes]
 
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = _http_json(
@@ -215,7 +252,10 @@ class XStocksProvider:
             provider_name=self.name,
             headers=self._headers(),
         )
-        return self._record(payload) if isinstance(payload, dict) and payload.get("symbol") else None
+        body = _required_object(payload, self.name, "asset")
+        if not body.get("symbol"):
+            raise ProviderResponseError(self.name, "provider returned an asset without a symbol")
+        return self._record(body)
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = _http_json(
@@ -223,7 +263,10 @@ class XStocksProvider:
             provider_name=self.name,
             headers=self._headers(),
         )
-        quote = payload.get("quote") if isinstance(payload, dict) else None
+        body = _required_object(payload, self.name, "price")
+        if "quote" not in body:
+            raise ProviderResponseError(self.name, "provider omitted the price quote")
+        quote = body["quote"]
         asset = self.get_tokenized_asset(identifier)
         if asset is None:
             return None
@@ -246,8 +289,7 @@ class XStocksProvider:
             },
             headers=self._headers(),
         )
-        nodes = payload.get("nodes", []) if isinstance(payload, dict) else []
-        return [row for row in nodes if isinstance(row, dict)]
+        return _required_rows(payload, self.name, "nodes")
 
 
 class RobinhoodTokenProvider:
@@ -263,7 +305,7 @@ class RobinhoodTokenProvider:
             f"{RobinhoodTokenProvider.base_url}/assets",
             provider_name=RobinhoodTokenProvider.name,
         )
-        return [row for row in (payload.get("assets", []) if isinstance(payload, dict) else []) if isinstance(row, dict)]
+        return _required_rows(payload, RobinhoodTokenProvider.name, "assets")
 
     @staticmethod
     def _record(payload: dict[str, Any], *, price: Decimal | None = None) -> TokenizedAssetRecord:
@@ -310,8 +352,8 @@ class RobinhoodTokenProvider:
         payload = _http_json_bounded_rate_retry(
             f"{self.base_url}/prices/{symbol}", provider_name=self.name
         )
-        quotes = payload.get("quotes", []) if isinstance(payload, dict) else []
-        quote = next((row for row in quotes if isinstance(row, dict)), None)
+        quotes = _required_rows(payload, self.name, "quotes")
+        quote = quotes[0] if quotes else None
         if quote is None:
             return asset
         record = asset or self._record(quote)
@@ -326,8 +368,7 @@ class RobinhoodTokenProvider:
         payload = _http_json(
             f"{self.base_url}/corporate-actions", provider_name=self.name
         )
-        rows = payload.get("corpActions", []) if isinstance(payload, dict) else []
-        rows = [row for row in rows if isinstance(row, dict)]
+        rows = _required_rows(payload, self.name, "corpActions")
         if symbol:
             rows = [row for row in rows if str(row.get("tokenSymbol", "")).upper() == symbol.upper()]
         return rows
@@ -385,29 +426,33 @@ class BybitXStocksProvider:
         self, *, page: int = 0, page_size: int = 100
     ) -> list[TokenizedAssetRecord]:
         payload = self._instruments(limit=page_size)
-        rows = (payload.get("result", {}).get("list", []) if isinstance(payload, dict) else [])
+        rows = _required_nested_rows(payload, self.name, ("result", "list"))
         if page > 0:
             # Bybit uses an opaque cursor; callers needing subsequent pages use
             # discover_tokenized_page and persist the cursor in the job state.
             return []
-        return [self._record(row) for row in rows if isinstance(row, dict) and row.get("symbol")]
+        return [self._record(row) for row in rows]
 
     def discover_tokenized_page(
         self, *, cursor: str | None = None, page_size: int = 500
     ) -> tuple[list[TokenizedAssetRecord], str | None]:
         payload = self._instruments(cursor=cursor, limit=page_size)
-        result = payload.get("result", {}) if isinstance(payload, dict) else {}
-        rows = result.get("list", [])
+        body = _required_object(payload, self.name, "instrument result")
+        result = _required_object(body.get("result"), self.name, "instrument result")
+        rows = _required_rows(result, self.name, "list", context="instrument result list")
+        next_cursor = result.get("nextPageCursor")
+        if next_cursor is not None and not isinstance(next_cursor, str):
+            raise ProviderResponseError(self.name, "provider returned an invalid instrument cursor")
         return (
-            [self._record(row) for row in rows if isinstance(row, dict) and row.get("symbol")],
-            result.get("nextPageCursor") or None,
+            [self._record(row) for row in rows],
+            next_cursor or None,
         )
 
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = self._instruments(limit=1000)
-        rows = payload.get("result", {}).get("list", []) if isinstance(payload, dict) else []
+        rows = _required_nested_rows(payload, self.name, ("result", "list"))
         row = next((row for row in rows if row.get("symbol") == identifier), None)
-        return self._record(row) if isinstance(row, dict) else None
+        return self._record(row) if row is not None else None
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         asset = self.get_tokenized_asset(identifier)
@@ -416,8 +461,8 @@ class BybitXStocksProvider:
             provider_name=self.name,
             params={"category": "spot", "symbol": identifier},
         )
-        rows = payload.get("result", {}).get("list", []) if isinstance(payload, dict) else []
-        quote = next((row for row in rows if isinstance(row, dict)), None)
+        rows = _required_nested_rows(payload, self.name, ("result", "list"))
+        quote = rows[0] if rows else None
         if asset is None and quote is None:
             return None
         record = asset or self._record({"symbol": identifier}, quote)
@@ -445,12 +490,12 @@ class GateTradfiProvider:
             provider_name=self.name,
             params={"exchange": "us", "page": max(1, page + 1)},
         )
-        data = payload.get("data", {}) if isinstance(payload, dict) else {}
-        rows = data.get("list", []) if isinstance(data, dict) else []
+        body = _required_object(payload, self.name, "symbol catalogue")
+        data = _required_object(body.get("data"), self.name, "symbol catalogue data")
+        rows = _required_rows(data, self.name, "list", context="symbol catalogue list")
         return [
             self._record(row)
             for row in rows[: max(1, page_size)]
-            if isinstance(row, dict)
         ]
 
     @staticmethod
@@ -480,9 +525,10 @@ class GateTradfiProvider:
             provider_name=self.name,
             params={"exchange": "us", "symbols": identifier},
         )
-        data = payload.get("data", {}) if isinstance(payload, dict) else {}
-        rows = data.get("list", []) if isinstance(data, dict) else []
-        row = next((row for row in rows if isinstance(row, dict)), None)
+        body = _required_object(payload, self.name, "symbol lookup")
+        data = _required_object(body.get("data"), self.name, "symbol lookup data")
+        rows = _required_rows(data, self.name, "list", context="symbol lookup list")
+        row = rows[0] if rows else None
         return self._record(row) if row else None
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
@@ -491,11 +537,12 @@ class GateTradfiProvider:
             f"{self.base_url}/stock/market/{identifier}/orderbook",
             provider_name=self.name,
         )
-        data = payload.get("data", {}) if isinstance(payload, dict) else {}
-        bids = data.get("bids", []) if isinstance(data, dict) else []
-        asks = data.get("asks", []) if isinstance(data, dict) else []
-        bid = bids[0].get("p") if bids and isinstance(bids[0], dict) else None
-        ask = asks[0].get("p") if asks and isinstance(asks[0], dict) else None
+        body = _required_object(payload, self.name, "order book")
+        data = _required_object(body.get("data"), self.name, "order book data")
+        bids = _required_rows(data, self.name, "bids", context="order book bids")
+        asks = _required_rows(data, self.name, "asks", context="order book asks")
+        bid = bids[0].get("p") if bids else None
+        ask = asks[0].get("p") if asks else None
         row = {
             "bid": bid,
             "ask": ask,
@@ -528,12 +575,14 @@ class KrakenXStocksProvider:
         payload = _http_json(
             f"{self.base_url}/AssetPairs", provider_name=self.name
         )
-        rows = payload.get("result", {}) if isinstance(payload, dict) else {}
+        body = _required_object(payload, self.name, "asset-pairs response")
+        rows = _required_object(body.get("result"), self.name, "asset-pairs result")
+        if any(not isinstance(value, dict) for value in rows.values()):
+            raise ProviderResponseError(self.name, "provider returned a non-object asset-pair row")
         candidates = [
             {"symbol": key, **value}
             for key, value in rows.items()
-            if isinstance(value, dict)
-            and "xstock" in f"{key} {value.get('wsname', '')} {value.get('altname', '')}".lower()
+            if "xstock" in f"{key} {value.get('wsname', '')} {value.get('altname', '')}".lower()
         ]
         start = max(0, page) * max(1, page_size)
         return [self._record(row) for row in candidates[start : start + max(1, page_size)]]
@@ -570,8 +619,13 @@ class KrakenXStocksProvider:
             provider_name=self.name,
             params={"pair": identifier},
         )
-        result = payload.get("result", {}) if isinstance(payload, dict) else {}
-        quote = next(iter(result.values()), {}) if isinstance(result, dict) else {}
+        body = _required_object(payload, self.name, "ticker response")
+        result = _required_object(body.get("result"), self.name, "ticker result")
+        if not result:
+            raise ProviderResponseError(self.name, "provider returned no ticker rows")
+        if any(not isinstance(value, dict) for value in result.values()):
+            raise ProviderResponseError(self.name, "provider returned a non-object ticker row")
+        quote = next(iter(result.values()))
         record = asset or self._record({"symbol": identifier}, quote)
         record.price = _decimal(quote.get("c", [None])[0] if isinstance(quote.get("c"), list) else quote.get("last"))
         record.bid = _decimal(quote.get("b", [None])[0] if isinstance(quote.get("b"), list) else quote.get("bid"))

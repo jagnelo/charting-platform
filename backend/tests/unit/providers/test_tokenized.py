@@ -163,7 +163,27 @@ def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
         assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
 
 
-def test_xstocks_corporate_actions_use_bounded_history_page_and_filter_invalid_rows():
+@pytest.mark.parametrize(
+    ("provider", "payload"),
+    [
+        (XStocksProvider(), {"nodes": "invalid"}),
+        (RobinhoodTokenProvider(), {"assets": "invalid"}),
+        (BybitXStocksProvider(), {"retCode": 0, "result": {"list": "invalid"}}),
+        (GateTradfiProvider(), {"data": {"list": "invalid"}}),
+        (KrakenXStocksProvider(), {"result": {"AAPLx/USD": "invalid"}}),
+    ],
+)
+def test_tokenized_documented_row_containers_fail_closed(provider, payload):
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = payload
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError):
+            provider.discover_tokenized_assets(page=0, page_size=1)
+
+
+def test_xstocks_corporate_actions_reject_invalid_rows_and_bound_history_page():
     response = Mock()
     response.raise_for_status.return_value = None
     response.status_code = 200
@@ -171,10 +191,10 @@ def test_xstocks_corporate_actions_use_bounded_history_page_and_filter_invalid_r
         "nodes": [{"id": "split-1"}, "not-an-event"],
     }
     with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
-        rows = XStocksProvider().fetch_tokenized_corporate_actions(
-            symbol="xAAPL", page=0, page_size=1000
-        )
-    assert rows == [{"id": "split-1"}]
+        with pytest.raises(ProviderResponseError, match="non-object nodes row"):
+            XStocksProvider().fetch_tokenized_corporate_actions(
+                symbol="xAAPL", page=0, page_size=1000
+            )
     get.assert_called_once()
     assert get.call_args.kwargs["params"] == {
         "page": 1,
@@ -183,7 +203,7 @@ def test_xstocks_corporate_actions_use_bounded_history_page_and_filter_invalid_r
     }
 
 
-def test_robinhood_corporate_actions_filter_by_token_symbol():
+def test_robinhood_corporate_actions_reject_invalid_rows_before_filtering():
     response = Mock()
     response.raise_for_status.return_value = None
     response.status_code = 200
@@ -195,8 +215,8 @@ def test_robinhood_corporate_actions_filter_by_token_symbol():
         ],
     }
     with patch("app.providers.tokenized.httpx.get", return_value=response):
-        rows = RobinhoodTokenProvider().fetch_tokenized_corporate_actions(symbol="aaplx")
-    assert rows == [{"tokenSymbol": "AAPLx", "type": "dividend"}]
+        with pytest.raises(ProviderResponseError, match="non-object corpActions row"):
+            RobinhoodTokenProvider().fetch_tokenized_corporate_actions(symbol="aaplx")
 
 
 def test_tokenized_http_rate_limit_is_typed_redacted_and_keeps_retry_metadata():
