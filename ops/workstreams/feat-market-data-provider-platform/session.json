@@ -61,7 +61,7 @@
       "text": "Local worktrees, GitHub live validation, and deployment targets use separate explicit secret stores; no credential is tracked, routine PR CI receives no provider secret, and provider credentials reach only trusted backend/worker processes."
     }
   ],
-  "active_session_id": "ce6d0eaf-28a5-4aa3-834e-b3b44e0e5002",
+  "active_session_id": null,
   "branch": "feat/market-data-provider-platform",
   "claim": {
     "branch": "feat/market-data-provider-platform",
@@ -74,7 +74,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-market-data-provider-platform/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -123,7 +125,7 @@
     "wait_seconds": 0
   },
   "finished": true,
-  "finished_at": "2026-09-10T16:42:59.650836+00:00",
+  "finished_at": "2026-09-10T17:07:17.649232+00:00",
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: AC-IDENTITY: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.; AC-SERIES: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.; AC-CALENDAR: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.; AC-ROUTING: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.; AC-REFRESH: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.; AC-DATA: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.; AC-OPTIONS: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.; AC-OPS: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.; AC-SHADOW: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.; AC-COMPAT: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.; AC-TEST: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.; AC-QUOTA-SAFETY: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.; AC-RATE-FAILURE: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.; AC-LIVE-EVIDENCE: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.; AC-SECRET-DISTRIBUTION: Local worktrees, GitHub live validation, and deployment targets use separate explicit secret stores; no credential is tracked, routine PR CI receives no provider secret, and provider credentials reach only trusted backend/worker processes.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-09-10T16:56:54.449693+00:00",
@@ -133,13 +135,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "33e9502ff96f91ddf64de7077f9e76f8c422c8de",
+  "head": "1de43e349a66a72b35657eb646f37ed1c43ab414",
   "implementation_sha": "c3d1f426811418ec44479503dd15b4c48ba80610",
   "interrupted": true,
-  "last_checkpoint": "2026-09-10T16:42:42.189568+00:00",
+  "last_checkpoint": "2026-09-10T17:06:41.226816+00:00",
   "last_human_progress_update": "2026-09-10T17:05:19.417868+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Restore owner GitHub authentication; supply missing provider credentials and deployment-owned SEC contact; complete provider-specific quota/legal and venue-reconciliation reviews; rerun the complete 37-case live matrix and separately approved 30-day shadow before any routing or deployment.",
   "parent_branch": "staging",
   "plan_hash": "2c5fe38088e760e75ac5b2fd7849d424b28ba314ae0de50cf0e2b2f63449734f",
   "planning_required": false,
@@ -171,9 +173,9 @@
     "total": 15,
     "updated_at": "2026-09-10T17:05:19.417455+00:00"
   },
-  "remote": "2cc80bb8791e9688dc88e9b3c22b8fa25c9cdcf4",
+  "remote": "1de43e349a66a72b35657eb646f37ed1c43ab414",
   "remote_sha": "c3d1f426811418ec44479503dd15b4c48ba80610",
-  "remote_synchronized": false,
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "ce6d0eaf-28a5-4aa3-834e-b3b44e0e5002",
