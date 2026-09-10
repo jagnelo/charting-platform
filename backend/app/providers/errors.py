@@ -77,7 +77,7 @@ class ProviderNotConfiguredError(RuntimeError):
 
 
 class ProviderResponseError(RuntimeError):
-    """The provider returned an explicit error envelope with HTTP success."""
+    """The provider returned an unusable response or transport failure."""
 
     def __init__(
         self,

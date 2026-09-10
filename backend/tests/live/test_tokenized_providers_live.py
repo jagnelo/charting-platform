@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 import time
 
-import httpx
 import pytest
 
+from app.providers.errors import ProviderRateLimitError
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.providers.tokenized import (
@@ -91,11 +91,11 @@ def test_robinhood_public_asset_and_price():
         priced, quote_measurement = _observed_read(
             lambda: provider.get_tokenized_price(rows[0].symbol), "robinhood_tokens"
         )
-    except httpx.HTTPStatusError as exc:
+    except ProviderRateLimitError as exc:
         # Robinhood's public edge occasionally returns its documented local
         # throttle even below the published 60 req/s limit.  Record the first
         # bounded observation, then retry once after a provider-safe second.
-        if exc.response.status_code != 429:
+        if exc.status_code != 429:
             raise
         time.sleep(1.1)
         priced, quote_measurement = _observed_read(

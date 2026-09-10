@@ -11,15 +11,20 @@ redemption, trading and wallet-transfer APIs are outside this subsystem.
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
 
 from app.config import settings
 from app.providers.base import TokenizedAssetRecord
-from app.providers.errors import raise_for_provider_error_envelope
+from app.providers.errors import (
+    ProviderRateLimitError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 
@@ -43,10 +48,45 @@ def _http_json(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
 ) -> Any:
-    response = httpx.get(url, params=params, headers=headers, timeout=30)
+    try:
+        response = httpx.get(url, params=params, headers=headers, timeout=30)
+    except httpx.RequestError as exc:
+        raise ProviderResponseError(provider_name or url.split("/", 3)[2], str(exc)) from exc
     observe_response(response)
-    response.raise_for_status()
-    payload = response.json()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        provider = provider_name or url.split("/", 3)[2]
+        safe_headers = {
+            key.lower(): value
+            for key, value in response.headers.items()
+            if key.lower()
+            in {
+                "retry-after",
+                "x-ratelimit-limit",
+                "x-ratelimit-remaining",
+                "x-ratelimit-reset",
+                "x-bapi-limit",
+                "x-bapi-limit-status",
+                "x-bapi-limit-reset-timestamp",
+            }
+        }
+        message = f"HTTP {response.status_code}: {exc}"
+        if response.status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                provider,
+                message,
+                retry_at=_retry_at(safe_headers),
+                status_code=response.status_code,
+                headers=safe_headers,
+            ) from exc
+        raise ProviderResponseError(provider, message, status_code=response.status_code) from exc
+    try:
+        payload = response.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(
+            provider_name or url.split("/", 3)[2], "provider returned invalid JSON"
+        ) from exc
     raise_for_provider_error_envelope(
         provider_name or url.split("/", 3)[2], payload, response.status_code
     )
@@ -75,10 +115,10 @@ def _http_json_bounded_rate_retry(
             return _http_json(
                 url, provider_name=provider_name, params=params, headers=headers
             )
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 429 or attempt == attempts - 1:
+        except ProviderRateLimitError as exc:
+            if exc.status_code != 429 or attempt == attempts - 1:
                 raise
-            retry_after = exc.response.headers.get("retry-after")
+            retry_after = exc.headers.get("retry-after")
             try:
                 delay = float(str(retry_after).strip()) if retry_after else 0.0
             except (TypeError, ValueError):
@@ -86,6 +126,23 @@ def _http_json_bounded_rate_retry(
             if delay <= 0:
                 delay = min(1.0 * (2**attempt), 5.0)
             time.sleep(min(delay, 5.0))
+
+
+def _retry_at(headers: dict[str, str]) -> datetime | None:
+    value = str(headers.get("retry-after") or "").strip()
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        try:
+            parsed = parsedate_to_datetime(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    if seconds < 0:
+        return None
+    return datetime.now(UTC) + timedelta(seconds=seconds)
 
 
 def _network_chain_id(deployment: dict[str, Any]) -> tuple[str | None, int | None, str | None]:

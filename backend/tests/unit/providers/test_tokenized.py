@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from app.providers.errors import ProviderResponseError
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.registry import list_provider_capabilities
 from app.providers.tokenized import (
     BybitXStocksProvider,
@@ -154,3 +154,63 @@ def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
     }
     with patch("app.providers.tokenized.httpx.get", return_value=response):
         assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
+
+
+def test_tokenized_http_rate_limit_is_typed_redacted_and_keeps_retry_metadata():
+    response = httpx.Response(
+        429,
+        headers={"Retry-After": "7", "X-RateLimit-Remaining": "0"},
+        request=httpx.Request(
+            "GET", "https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token"
+        ),
+    )
+    with (
+        patch("app.providers.tokenized.settings.XSTOCKS_API_KEY", "secret-token"),
+        patch("app.providers.tokenized.httpx.get", return_value=response),
+    ):
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "xstocks"
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.headers["retry-after"] == "7"
+    assert exc_info.value.retry_at is not None
+    assert "secret-token" not in str(exc_info.value)
+
+
+def test_tokenized_http_request_failure_is_typed():
+    failure = httpx.ConnectError(
+        "connection failed for https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token",
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token"),
+    )
+    with patch("app.providers.tokenized.httpx.get", side_effect=failure):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "xstocks"
+    assert "secret-token" not in str(exc_info.value)
+
+
+def test_tokenized_http_non_rate_status_is_typed_and_redacted():
+    response = httpx.Response(
+        503,
+        request=httpx.Request(
+            "GET", "https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token"
+        ),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "xstocks"
+    assert exc_info.value.status_code == 503
+    assert "secret-token" not in str(exc_info.value)
+
+
+def test_tokenized_http_invalid_json_is_typed():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.side_effect = ValueError("malformed payload")
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "xstocks"
+    assert str(exc_info.value) == "provider returned invalid JSON"

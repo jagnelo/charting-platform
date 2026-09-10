@@ -224,6 +224,15 @@ and Robinhood returned one transient `local_rate_limited` response before the
 test's single provider-specific retry succeeded; neither result is treated as
 permission to guess a ticker or a quota.
 
+Tokenized transport failures are typed at the shared adapter boundary: network
+errors become redacted `ProviderResponseError` instances, HTTP 418/429
+responses become `ProviderRateLimitError` instances with only an allow-listed
+set of provider rate headers and parsed `Retry-After` metadata, and other HTTP
+or JSON failures remain redacted response errors. The bounded Robinhood retry
+handles only that typed 429 and remains finite. Unit regression coverage and
+the five-case live suite both pass after this change; no raw request URL,
+credential, or arbitrary response header is persisted.
+
 The CoinGecko credentialed probes also cover the compound metadata operation:
 the provider resolves a ticker through ranked `/search` results and then reads
 the canonical `/coins/{id}` profile. The bounded live probe verified
@@ -251,7 +260,7 @@ the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
 
-The latest network-enabled rerun at `2026-09-09T18:59:06Z`, using the existing
+The latest network-enabled rerun at `2026-09-10T01:04:34Z`, using the existing
 external keys plus a temporary non-secret SEC User-Agent and explicit
 `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 32 cases: 29 passed with
 positive transport observations across the available keyless and credentialed
