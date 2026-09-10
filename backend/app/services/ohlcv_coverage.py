@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
+from statistics import median
 from typing import Literal
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
@@ -64,6 +65,46 @@ class OhlcvStorageReconciliation:
     missing_observation_count: int
     mismatched_observation_count: int
     orphan_observation_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class OhlcvCadenceAssessment:
+    """Observed spacing between distinct bars returned for a range.
+
+    This is a diagnostic of local rows in the requested range only. It is not
+    a claim about a provider schedule or about missing observations outside
+    the returned rows.
+    """
+
+    status: str
+    sample_count: int = 0
+    median_interval_days: float | None = None
+    min_interval_days: float | None = None
+    max_interval_days: float | None = None
+
+
+def assess_observed_ohlcv_cadence(bars: Sequence[OHLCVBar]) -> OhlcvCadenceAssessment:
+    """Summarise intervals between distinct timestamps in returned OHLCV rows."""
+
+    timestamps = sorted({_as_utc(bar.ts) for bar in bars if bar.ts is not None})
+    if not timestamps:
+        return OhlcvCadenceAssessment(status="no_observation")
+    if len(timestamps) == 1:
+        return OhlcvCadenceAssessment(status="single_observation")
+    intervals = tuple(
+        (current - previous).total_seconds() / 86_400
+        for previous, current in zip(timestamps, timestamps[1:])
+        if current > previous
+    )
+    if not intervals:
+        return OhlcvCadenceAssessment(status="no_interval")
+    return OhlcvCadenceAssessment(
+        status="observed_cadence",
+        sample_count=len(intervals),
+        median_interval_days=float(median(intervals)),
+        min_interval_days=min(intervals),
+        max_interval_days=max(intervals),
+    )
 
 
 def reconcile_ohlcv_storage(

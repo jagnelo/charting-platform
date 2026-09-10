@@ -65,6 +65,17 @@ class OhlcvStorageEvidenceOut(BaseModel):
     orphan_observation_count: int = Field(ge=0)
 
 
+class OhlcvObservedCadenceOut(BaseModel):
+    """Observed spacing for returned local bars, not a provider schedule."""
+
+    status: str
+    sample_count: int = Field(default=0, ge=0)
+    median_interval_days: float | None = Field(default=None, ge=0)
+    min_interval_days: float | None = Field(default=None, ge=0)
+    max_interval_days: float | None = Field(default=None, ge=0)
+    semantics: str = "diagnostic_of_returned_bar_timestamps_only"
+
+
 class OhlcvCoverageOut(BaseModel):
     instrument_id: int
     symbol: str
@@ -82,4 +93,5 @@ class OhlcvCoverageOut(BaseModel):
     lineage: OhlcvLineageOut
     adjustment_provenance: OhlcvAdjustmentProvenanceOut
     storage_evidence: OhlcvStorageEvidenceOut
+    observed_cadence: OhlcvObservedCadenceOut
     provenance: str = "canonical_local_database"

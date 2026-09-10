@@ -165,6 +165,14 @@ class TestCoverageRouter:
             "factor_version": None,
             "contract_version": 1,
         }
+        assert body["observed_cadence"] == {
+            "status": "observed_cadence",
+            "sample_count": 2,
+            "median_interval_days": 4.5,
+            "min_interval_days": 1.0,
+            "max_interval_days": 8.0,
+            "semantics": "diagnostic_of_returned_bar_timestamps_only",
+        }
         assert "provider" not in body
 
     def test_range_coverage_exposes_verified_adjustment_factor_version(

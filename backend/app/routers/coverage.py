@@ -19,6 +19,7 @@ from app.schemas.coverage import (
     OhlcvCoverageOut,
 )
 from app.services.ohlcv_coverage import (
+    assess_observed_ohlcv_cadence,
     assess_ohlcv_coverage,
     reconcile_ohlcv_storage,
     summarize_ohlcv_lineage,
@@ -93,6 +94,7 @@ async def instrument_ohlcv_coverage(
         .all()
     )
     storage_evidence = reconcile_ohlcv_storage(bars, observations)
+    observed_cadence = assess_observed_ohlcv_cadence(bars)
     if adjusted:
         provider_source_ids = {
             bar.data_source_id
@@ -164,6 +166,14 @@ async def instrument_ohlcv_coverage(
             "missing_observation_count": storage_evidence.missing_observation_count,
             "mismatched_observation_count": storage_evidence.mismatched_observation_count,
             "orphan_observation_count": storage_evidence.orphan_observation_count,
+        },
+        observed_cadence={
+            "status": observed_cadence.status,
+            "sample_count": observed_cadence.sample_count,
+            "median_interval_days": observed_cadence.median_interval_days,
+            "min_interval_days": observed_cadence.min_interval_days,
+            "max_interval_days": observed_cadence.max_interval_days,
+            "semantics": "diagnostic_of_returned_bar_timestamps_only",
         },
     )
 

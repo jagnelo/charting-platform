@@ -18,6 +18,7 @@ from app.services.market_data import (
 )
 from app.services.ohlcv_coverage import (
     CoverageStatus,
+    assess_observed_ohlcv_cadence,
     assess_ohlcv_coverage,
     missing_range_slices,
 )
@@ -148,6 +149,30 @@ def test_coverage_planner_reports_cold_range_and_bounded_slice():
     assert assessment.status is CoverageStatus.MISSING
     assert assessment.missing_slices == ((start, end),)
     assert assessment.bar_count == 0
+
+
+def test_observed_ohlcv_cadence_uses_distinct_returned_timestamps():
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    bars = [
+        SimpleNamespace(ts=start),
+        SimpleNamespace(ts=start + timedelta(days=1)),
+        SimpleNamespace(ts=start + timedelta(days=9)),
+        SimpleNamespace(ts=start + timedelta(days=9)),
+    ]
+
+    assessment = assess_observed_ohlcv_cadence(bars)
+
+    assert assessment.status == "observed_cadence"
+    assert assessment.sample_count == 2
+    assert assessment.median_interval_days == 4.5
+    assert assessment.min_interval_days == 1.0
+    assert assessment.max_interval_days == 8.0
+
+
+def test_observed_ohlcv_cadence_reports_empty_and_single_ranges():
+    assert assess_observed_ohlcv_cadence([]).status == "no_observation"
+    bar = SimpleNamespace(ts=datetime(2026, 1, 1))
+    assert assess_observed_ohlcv_cadence([bar]).status == "single_observation"
 
 
 @pytest.mark.asyncio

@@ -100,6 +100,14 @@ interface OhlcvCoverageAssessment {
     mismatched_observation_count?: number
     orphan_observation_count?: number
   }
+  observed_cadence?: {
+    status?: string
+    sample_count?: number
+    median_interval_days?: number | null
+    min_interval_days?: number | null
+    max_interval_days?: number | null
+    semantics?: string
+  }
 }
 
 const props = defineProps<{ symbol: string; configuration?: Record<string, unknown> }>()
@@ -143,7 +151,20 @@ const rangeAccessibilitySummary = computed(() => {
     factorVersion: adjustment.factor_version,
   })
   const storageDescription = `Storage evidence ${storage.status ?? 'not_observed'}: ${storage.matched_observation_count ?? 0} matched, ${storage.missing_observation_count ?? 0} missing, ${storage.mismatched_observation_count ?? 0} mismatched, ${storage.orphan_observation_count ?? 0} orphan observations.`
-  return `${coverageDescription} ${storageDescription}`
+  const cadence = assessment.observed_cadence ?? {}
+  const cadenceLabel: Record<string, string> = {
+    no_observation: 'no observations',
+    single_observation: 'single observation',
+    observed_cadence: 'measured',
+    no_interval: 'no interval',
+  }
+  const medianInterval = cadence.median_interval_days == null
+    ? null
+    : Number.isInteger(cadence.median_interval_days)
+      ? String(cadence.median_interval_days)
+      : cadence.median_interval_days.toFixed(2)
+  const cadenceDescription = `Observed cadence ${cadenceLabel[cadence.status ?? ''] ?? cadence.status ?? 'not reported'}${cadence.sample_count ? ` · ${cadence.sample_count} interval${cadence.sample_count === 1 ? '' : 's'}` : ''}${medianInterval ? ` · median ${medianInterval}d` : ''}${cadence.min_interval_days != null ? ` · min ${cadence.min_interval_days}d` : ''}${cadence.max_interval_days != null ? ` · max ${cadence.max_interval_days}d` : ''}. This is diagnostic of returned bar timestamps only.`
+  return `${coverageDescription} ${storageDescription} ${cadenceDescription}`
 })
 let requestId = 0
 let rangeRequestId = 0
