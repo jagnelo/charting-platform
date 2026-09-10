@@ -639,3 +639,22 @@ the follow-up authoritative gate passed `1964/1964`, with `89` warnings and
 `80.49%` coverage in `396.81s`, using isolated PostgreSQL/Redis testcontainer
 session `343bdfb7-6f4d-41e8-99a0-d1a9802f5db2`, cleaned without host-wide
 pruning.
+
+The shared provider error-envelope path now retains provider-declared reset
+headers and retry timestamps for JSON quota/error envelopes across all
+registered adapters. Only allow-listed capacity headers are retained, and
+lightweight/malformed response-header objects fail safely without hiding the
+typed provider error. The focused provider/error suite passed `247/247`; Ruff,
+compilation, and diff checks passed. The authoritative backend gate then
+passed `1966/1966`, with `89` warnings and `80.50%` coverage in `406.22s`,
+using isolated PostgreSQL/Redis testcontainer session
+`8219560c-3015-42a7-9b59-eeae4342330a`, cleaned without host-wide pruning.
+
+The post-change complete live matrix at `2026-09-10T11:15Z` collected 34
+cases: `27 passed` in `38.20s`. Seven failures were explicit preflight or
+provider-capacity outcomes: missing `EDGAR_USER_AGENT`,
+`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`, plus Alpha Vantage's documented 25-requests/day
+capacity response for daily history and IPO-calendar reads. The wrapper made
+no acceptance claim; all seven tokenized probes remained green and aggregate
+usage was recorded outside Git without credentials or payloads.

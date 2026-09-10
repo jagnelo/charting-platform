@@ -34,6 +34,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -127,14 +128,16 @@ class BinanceProvider:
                 observe_response(r)
                 r.raise_for_status()
                 klines = r.json()
-                raise_for_provider_error_envelope("binance", klines, r.status_code)
+                raise_for_provider_error_envelope(
+                    "binance", klines, r.status_code, headers=provider_response_headers(r)
+                )
             except httpx.HTTPStatusError as exc:
                 if r.status_code in {418, 429}:
                     raise ProviderRateLimitError(
                         self.name,
                         f"Binance request rejected for capacity (HTTP {r.status_code})",
                         status_code=r.status_code,
-                        headers=dict(r.headers),
+                        headers=provider_response_headers(r),
                     ) from exc
                 raise ProviderResponseError(
                     self.name,
@@ -232,14 +235,16 @@ class BinanceProvider:
             observe_response(r)
             r.raise_for_status()
             payload = r.json()
-            raise_for_provider_error_envelope("binance", payload, r.status_code)
+            raise_for_provider_error_envelope(
+                "binance", payload, r.status_code, headers=provider_response_headers(r)
+            )
         except httpx.HTTPStatusError as exc:
             if r.status_code in {418, 429}:
                 raise ProviderRateLimitError(
                     self.name,
                     f"Binance request rejected for capacity (HTTP {r.status_code})",
                     status_code=r.status_code,
-                    headers=dict(r.headers),
+                    headers=provider_response_headers(r),
                 ) from exc
             raise ProviderResponseError(
                 self.name,
@@ -336,7 +341,9 @@ def _cached_usdt_pairs() -> list[dict]:
         observe_response(r)
         r.raise_for_status()
         payload = r.json()
-        raise_for_provider_error_envelope("binance", payload, r.status_code)
+        raise_for_provider_error_envelope(
+            "binance", payload, r.status_code, headers=provider_response_headers(r)
+        )
         if not isinstance(payload, dict) or not isinstance(payload.get("symbols"), list):
             raise ProviderResponseError(
                 "binance", "malformed exchange-info response: expected symbols list"
@@ -373,7 +380,7 @@ def _cached_usdt_pairs() -> list[dict]:
                 "binance",
                 f"Binance request rejected for capacity (HTTP {r.status_code})",
                 status_code=r.status_code,
-                headers=dict(r.headers),
+                headers=provider_response_headers(r),
             ) from exc
         raise ProviderResponseError(
             "binance",

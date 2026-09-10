@@ -20,6 +20,7 @@ from app.providers.base import MarketEventRecord, ShortInterestRecord
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -98,7 +99,9 @@ class FINRAProvider:
             payload = response.json() if response.content else {}
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "FINRA async status returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, payload, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, payload, response.status_code, headers=provider_response_headers(response)
+        )
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "FINRA async status returned an invalid object")
         body = payload
@@ -238,7 +241,9 @@ class FINRAProvider:
             raw = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "FINRA short-interest response returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, raw, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, raw, response.status_code, headers=provider_response_headers(response)
+        )
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             raise ProviderResponseError(self.name, "FINRA short-interest response returned an invalid rows array")
@@ -353,7 +358,9 @@ class FINRAProvider:
             raw = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, raw, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, raw, response.status_code, headers=provider_response_headers(response)
+        )
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned an invalid rows array")
@@ -424,7 +431,9 @@ def _access_token(client_id: str, client_secret: str) -> str:
         body = response.json()
     except (TypeError, ValueError) as exc:
         raise ProviderResponseError("finra", "FINRA OAuth response returned invalid JSON") from exc
-    raise_for_provider_error_envelope("finra", body, response.status_code)
+    raise_for_provider_error_envelope(
+        "finra", body, response.status_code, headers=provider_response_headers(response)
+    )
     if not isinstance(body, dict):
         raise ProviderResponseError("finra", "FINRA OAuth response returned an invalid object")
     token = str(body.get("access_token") or "").strip()

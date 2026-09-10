@@ -10,6 +10,7 @@ from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecor
 from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
     redact_provider_message,
 )
@@ -156,7 +157,9 @@ class OpenFigiProvider:
             raw_payload = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "OpenFIGI returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, raw_payload, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, raw_payload, response.status_code, headers=provider_response_headers(response)
+        )
         if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
             raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
         results: list[list[dict[str, Any]]] = []

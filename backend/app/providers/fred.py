@@ -37,6 +37,7 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -70,7 +71,7 @@ def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
     response = exc.response
     if response.status_code not in {418, 429}:
         return
-    headers = dict(response.headers)
+    headers = provider_response_headers(response)
     retry_at: datetime | None = None
     retry_after = headers.get("retry-after") or headers.get("Retry-After")
     if retry_after:
@@ -164,7 +165,9 @@ class FREDProvider:
             observe_response(r)
             r.raise_for_status()
             payload = r.json()
-            raise_for_provider_error_envelope("fred", payload, r.status_code)
+            raise_for_provider_error_envelope(
+                "fred", payload, r.status_code, headers=provider_response_headers(r)
+            )
             observations = _observations(payload, "history")
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
@@ -256,7 +259,9 @@ class FREDProvider:
             observe_response(r)
             r.raise_for_status()
             payload = r.json()
-            raise_for_provider_error_envelope("fred", payload, r.status_code)
+            raise_for_provider_error_envelope(
+                "fred", payload, r.status_code, headers=provider_response_headers(r)
+            )
             for obs in _observations(payload, "latest price"):
                 if "value" not in obs:
                     raise ProviderResponseError("fred", "FRED returned a malformed observation row")

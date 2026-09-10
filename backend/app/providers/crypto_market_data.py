@@ -9,7 +9,11 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.errors import ProviderResponseError, raise_for_provider_error_envelope
+from app.providers.errors import (
+    ProviderResponseError,
+    provider_response_headers,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 _TF_SECONDS = {
@@ -90,7 +94,9 @@ def _json_payload(response: httpx.Response, provider_name: str) -> Any:
         payload = response.json()
     except (TypeError, ValueError) as exc:
         raise ProviderResponseError(provider_name, "provider returned invalid JSON") from exc
-    raise_for_provider_error_envelope(provider_name, payload, response.status_code)
+    raise_for_provider_error_envelope(
+        provider_name, payload, response.status_code, headers=provider_response_headers(response)
+    )
     return payload
 
 

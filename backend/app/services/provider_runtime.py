@@ -44,6 +44,7 @@ from app.providers import (
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
+    provider_retry_at_from_headers,
     redact_provider_message,
 )
 from app.providers.telemetry import activate as activate_provider_telemetry
@@ -889,37 +890,7 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
     """Parse standard retry/reset headers without inventing a provider delay."""
 
-    if headers is None:
-        return None
-    normalized = {str(key).lower(): str(value) for key, value in headers.items()}
-    current = now or datetime.now(UTC)
-    retry_after = normalized.get("retry-after")
-    if retry_after:
-        try:
-            seconds = float(retry_after)
-            if seconds >= 0:
-                return current + timedelta(seconds=seconds)
-        except ValueError:
-            try:
-                parsed = datetime.strptime(retry_after, "%a, %d %b %Y %H:%M:%S GMT")
-                return parsed.replace(tzinfo=UTC)
-            except ValueError:
-                pass
-    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
-        value = normalized.get(name)
-        if not value:
-            continue
-        try:
-            raw = float(value)
-        except ValueError:
-            continue
-        # Providers use both Unix epochs and relative seconds for this header.
-        return (
-            datetime.fromtimestamp(raw, tz=UTC)
-            if raw > 1_000_000_000
-            else current + timedelta(seconds=max(0, raw))
-        )
-    return None
+    return provider_retry_at_from_headers(headers, now=now)
 
 
 def provider_rate_limit_error(

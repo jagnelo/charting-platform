@@ -19,6 +19,7 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -54,7 +55,7 @@ class AlphaVantageProvider:
                     self.name,
                     f"Alpha Vantage request rejected for capacity (HTTP {response.status_code})",
                     status_code=response.status_code,
-                    headers=dict(response.headers),
+                    headers=provider_response_headers(response),
                 ) from exc
             raise ProviderResponseError(
                 self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
@@ -63,14 +64,16 @@ class AlphaVantageProvider:
             payload = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Alpha Vantage returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, payload, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, payload, response.status_code, headers=provider_response_headers(response)
+        )
         if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
             message = str(payload.get("Note") or payload.get("Information"))
             raise ProviderRateLimitError(
                 self.name,
                 message,
                 retry_at=_retry_at_for_capacity_message(message),
-                headers=dict(response.headers),
+                headers=provider_response_headers(response),
             )
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid response object")
@@ -94,7 +97,7 @@ class AlphaVantageProvider:
                     self.name,
                     f"Alpha Vantage request rejected for capacity (HTTP {response.status_code})",
                     status_code=response.status_code,
-                    headers=dict(response.headers),
+                    headers=provider_response_headers(response),
                 ) from exc
             raise ProviderResponseError(
                 self.name, f"Alpha Vantage request failed with HTTP {response.status_code}", status_code=response.status_code
@@ -118,7 +121,7 @@ class AlphaVantageProvider:
                     text,
                     assume_daily_for_csv_information=csv_information,
                 ),
-                headers=dict(response.headers),
+                headers=provider_response_headers(response),
             )
         return text
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:

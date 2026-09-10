@@ -21,6 +21,7 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -72,7 +73,7 @@ class MassiveProvider:
                     self.name,
                     message,
                     status_code=response.status_code,
-                    headers=dict(response.headers),
+                    headers=provider_response_headers(response),
                 ) from exc
             raise ProviderResponseError(
                 self.name, message, status_code=response.status_code
@@ -81,7 +82,9 @@ class MassiveProvider:
             payload = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Massive returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, payload, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, payload, response.status_code, headers=provider_response_headers(response)
+        )
         if not isinstance(payload, dict | list):
             raise ProviderResponseError(self.name, "Massive returned an invalid response container")
         return payload

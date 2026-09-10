@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
+from math import isfinite
 from typing import Any
 
 _QUERY_SECRET_RE = re.compile(
@@ -35,6 +38,32 @@ _SECRET_SETTING_NAMES = (
     "KRAKEN_API_KEY",
     "ALPACA_API_KEY",
     "ALPACA_SECRET_KEY",
+)
+_CAPACITY_HEADER_NAMES = frozenset(
+    {
+        "retry-after",
+        "api-credits-request",
+        "api-credits-used",
+        "api-credits-left",
+        "x-ratelimit-limit",
+        "x-ratelimit-remaining",
+        "x-ratelimit-reset",
+        "x-ratelimit-allowed",
+        "x-ratelimit-used",
+        "x-ratelimit-available",
+        "x-ratelimit-expiry",
+        "x-rate-limit-limit",
+        "x-rate-limit-remaining",
+        "x-rate-limit-reset",
+        "x-mbx-used-weight-1m",
+        "x-mbx-order-count-1m",
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+        "ratelimit-limit",
+        "ratelimit-remaining",
+        "ratelimit-reset",
+    }
 )
 
 
@@ -112,10 +141,84 @@ class ProviderRateLimitError(RuntimeError):
         self.headers = headers or {}
 
 
+def provider_retry_at_from_headers(
+    headers: dict[str, str] | None,
+    *,
+    now: datetime | None = None,
+) -> datetime | None:
+    """Return a provider-declared retry time without inventing a delay.
+
+    Providers expose either ``Retry-After`` (seconds or an HTTP date) or one
+    of the common reset headers.  A missing, malformed, or non-finite value is
+    deliberately treated as unknown; callers can then apply their own
+    documented circuit policy instead of silently guessing a reset window.
+    """
+
+    if not headers:
+        return None
+    normalized = {str(key).lower(): str(value).strip() for key, value in headers.items()}
+    current = now or datetime.now(UTC)
+    retry_after = normalized.get("retry-after")
+    if retry_after:
+        try:
+            seconds = float(retry_after)
+            if isfinite(seconds) and seconds >= 0:
+                return current + timedelta(seconds=seconds)
+        except (TypeError, ValueError, OverflowError):
+            pass
+        try:
+            parsed = parsedate_to_datetime(retry_after)
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+        except (TypeError, ValueError, OverflowError):
+            pass
+    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
+        value = normalized.get(name)
+        if not value:
+            continue
+        try:
+            raw = float(value)
+            if not isfinite(raw):
+                continue
+            if raw > 1_000_000_000:
+                return datetime.fromtimestamp(raw, tz=UTC)
+            return current + timedelta(seconds=max(0, raw))
+        except (TypeError, ValueError, OverflowError, OSError):
+            continue
+    return None
+
+
+def provider_response_headers(response: Any) -> dict[str, str]:
+    """Safely copy only allow-listed capacity headers from a response."""
+
+    raw_headers = getattr(response, "headers", None)
+    if isinstance(raw_headers, Mapping):
+        return provider_capacity_headers(raw_headers)
+    try:
+        return provider_capacity_headers(raw_headers.items())
+    except (AttributeError, TypeError):
+        return {}
+
+
+def provider_capacity_headers(headers: Any) -> dict[str, str]:
+    """Filter a header mapping/iterator to non-sensitive capacity fields."""
+
+    try:
+        items = headers.items() if hasattr(headers, "items") else headers
+        return {
+            str(key): str(value)
+            for key, value in items
+            if str(key).lower() in _CAPACITY_HEADER_NAMES
+        }
+    except (AttributeError, TypeError, ValueError):
+        return {}
+
+
 def raise_for_provider_error_envelope(
     provider_name: str,
     payload: Any,
     status_code: int | None = None,
+    *,
+    headers: dict[str, str] | None = None,
 ) -> None:
     """Reject explicit provider error envelopes even when HTTP succeeded.
 
@@ -183,5 +286,12 @@ def raise_for_provider_error_envelope(
             "429",
         )
     ):
-        raise ProviderRateLimitError(provider_name, safe_detail, status_code=status_code)
+        safe_headers = provider_capacity_headers(headers)
+        raise ProviderRateLimitError(
+            provider_name,
+            safe_detail,
+            retry_at=provider_retry_at_from_headers(safe_headers),
+            status_code=status_code,
+            headers=safe_headers,
+        )
     raise ProviderResponseError(provider_name, safe_detail, status_code=status_code)

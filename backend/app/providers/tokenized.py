@@ -42,6 +42,31 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+_CAPACITY_HEADER_NAMES = {
+    "retry-after",
+    "x-ratelimit-limit",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset",
+    "x-bapi-limit",
+    "x-bapi-limit-status",
+    "x-bapi-limit-reset-timestamp",
+}
+
+
+def _capacity_headers(response: httpx.Response) -> dict[str, str]:
+    """Keep allow-listed capacity headers, tolerating lightweight test doubles."""
+
+    try:
+        items = response.headers.items()
+        return {
+            str(key).lower(): str(value)
+            for key, value in items
+            if str(key).lower() in _CAPACITY_HEADER_NAMES
+        }
+    except (AttributeError, TypeError):
+        return {}
+
+
 def _http_json(
     url: str,
     *,
@@ -58,20 +83,7 @@ def _http_json(
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
         provider = provider_name or url.split("/", 3)[2]
-        safe_headers = {
-            key.lower(): value
-            for key, value in response.headers.items()
-            if key.lower()
-            in {
-                "retry-after",
-                "x-ratelimit-limit",
-                "x-ratelimit-remaining",
-                "x-ratelimit-reset",
-                "x-bapi-limit",
-                "x-bapi-limit-status",
-                "x-bapi-limit-reset-timestamp",
-            }
-        }
+        safe_headers = _capacity_headers(response)
         message = f"HTTP {response.status_code}: {exc}"
         if response.status_code in {418, 429}:
             raise ProviderRateLimitError(
@@ -89,7 +101,10 @@ def _http_json(
             provider_name or url.split("/", 3)[2], "provider returned invalid JSON"
         ) from exc
     raise_for_provider_error_envelope(
-        provider_name or url.split("/", 3)[2], payload, response.status_code
+        provider_name or url.split("/", 3)[2],
+        payload,
+        response.status_code,
+        headers=_capacity_headers(response),
     )
     return payload
 

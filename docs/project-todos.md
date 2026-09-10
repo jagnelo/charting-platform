@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Shared provider capacity-envelope evidence
+
+- [x] Preserve provider-declared `Retry-After`/reset headers and retry times
+      when JSON quota/error envelopes arrive with HTTP 200, across all
+      registered provider adapters. Retain only allow-listed capacity headers;
+      malformed response-header objects fail safely without masking the typed
+      provider error. Focused provider/error coverage passed `247/247`, and
+      the authoritative backend gate passed `1966/1966` with `80.50%` coverage.
+- [x] Rerun the complete manifest live matrix after the transport change:
+      `27/34` passed at `2026-09-10T11:15Z`; the remaining seven cases are
+      explicit missing `EDGAR_USER_AGENT`, Alpaca, Tradier, and MarketData.app
+      credential preflights plus Alpha Vantage's documented daily-capacity
+      responses. No acceptance claim was made.
+
 ### 2026-09-10 — Optional provider response-contract hardening
 
 - [x] Make Tradier's documented nested history/quote wrappers fail closed on

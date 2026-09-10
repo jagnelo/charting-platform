@@ -32,6 +32,7 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -79,7 +80,7 @@ class CoinGeckoProvider:
                     self.name,
                     f"CoinGecko request rejected for capacity (HTTP {r.status_code})",
                     status_code=r.status_code,
-                    headers=dict(r.headers),
+                    headers=provider_response_headers(r),
                 ) from exc
             raise ProviderResponseError(
                 self.name, f"CoinGecko request failed with HTTP {r.status_code}", status_code=r.status_code
@@ -88,7 +89,9 @@ class CoinGeckoProvider:
             payload = r.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "CoinGecko returned invalid JSON") from exc
-        raise_for_provider_error_envelope(self.name, payload, r.status_code)
+        raise_for_provider_error_envelope(
+            self.name, payload, r.status_code, headers=provider_response_headers(r)
+        )
         if not isinstance(payload, dict | list):
             raise ProviderResponseError(self.name, "CoinGecko returned an invalid response container")
         return payload
@@ -250,7 +253,7 @@ def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
                 "coingecko",
                 f"CoinGecko request rejected for capacity (HTTP {r.status_code})",
                 status_code=r.status_code,
-                headers=dict(r.headers),
+                headers=provider_response_headers(r),
             ) from exc
         raise ProviderResponseError(
             "coingecko", f"CoinGecko request failed with HTTP {r.status_code}", status_code=r.status_code
@@ -259,7 +262,9 @@ def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
         payload = r.json()
     except (TypeError, ValueError) as exc:
         raise ProviderResponseError("coingecko", "CoinGecko returned invalid JSON") from exc
-    raise_for_provider_error_envelope("coingecko", payload, r.status_code)
+    raise_for_provider_error_envelope(
+        "coingecko", payload, r.status_code, headers=provider_response_headers(r)
+    )
     if not isinstance(payload, dict):
         raise ProviderResponseError("coingecko", "CoinGecko search returned an invalid object")
     coins = payload.get("coins", [])

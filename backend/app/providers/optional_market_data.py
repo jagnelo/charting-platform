@@ -41,6 +41,7 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+    provider_response_headers,
     raise_for_provider_error_envelope,
     redact_provider_message,
 )
@@ -427,7 +428,9 @@ class _RESTProvider:
             raise ProviderResponseError(
                 self.name, "provider returned an invalid JSON shape"
             )
-        raise_for_provider_error_envelope(self.name, payload, response.status_code)
+        raise_for_provider_error_envelope(
+            self.name, payload, response.status_code, headers=provider_response_headers(response)
+        )
         return payload
 
     @staticmethod
