@@ -12,7 +12,8 @@ from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
-from app.schemas.ohlcv import OHLCVBarOut
+from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
+from app.services.adjustment_factors import materialize_local_split_adjusted_view
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
@@ -34,6 +35,45 @@ def _filter_ohlcv_view(bars: list[OHLCVBar], view: OhlcvView) -> list[OHLCVBar]:
     if view == "derived":
         return [bar for bar in bars if bar.is_derived is True]
     return bars
+
+
+@router.post(
+    "/{symbol:path}/{timeframe}/materialize-local-split",
+    response_model=LocalSplitMaterializationOut,
+)
+async def materialize_local_split(
+    symbol: str,
+    timeframe: Timeframe,
+    start: datetime | None = Query(None),
+    end: datetime | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Build a persisted local split-adjusted view from canonical raw bars."""
+
+    if start is not None and start.tzinfo is None:
+        start = start.replace(tzinfo=UTC)
+    if end is not None and end.tzinfo is None:
+        end = end.replace(tzinfo=UTC)
+    if start is not None and end is not None and end < start:
+        raise HTTPException(
+            422,
+            detail={"code": "invalid_ohlcv_range", "message": "end must be on or after start"},
+        )
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    ).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found.")
+    result = await materialize_local_split_adjusted_view(
+        db,
+        instrument_id=instrument.id,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+    )
+    await db.commit()
+    return result
 
 
 @router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])

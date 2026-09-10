@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import MarketBarObservation
-from app.services.ohlcv_coverage import reconcile_ohlcv_storage
+from app.services.ohlcv_coverage import reconcile_ohlcv_storage, summarize_ohlcv_lineage
 
 
 def _bar(
@@ -149,3 +149,17 @@ def test_reconciliation_counts_orphans_by_complete_identity():
 
     assert result.status == "inconsistent"
     assert result.orphan_observation_count == 2
+
+
+def test_lineage_identifies_local_split_ratio_derived_rows():
+    bar = _bar(
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        source_id=None,
+        derived=True,
+    )
+    bar.derivation_method = "local_split_ratio"
+    summary = summarize_ohlcv_lineage([bar], adjusted=True)
+
+    assert summary.source_lineage == "derived_only"
+    assert summary.adjustment_provenance["source_kind"] == "local_split_ratio"
+    assert summary.adjustment_provenance["factor_status"] == "rebuildable_split_factors"

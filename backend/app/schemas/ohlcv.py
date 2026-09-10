@@ -30,3 +30,15 @@ class OHLCVRequest(BaseModel):
     start: datetime
     end: datetime | None = None
     adjusted: bool = True
+
+
+class LocalSplitMaterializationOut(BaseModel):
+    """Receipt for an explicit local split-adjusted derived-view build."""
+
+    status: str
+    factor_version: str | None = None
+    raw_bar_count: int = 0
+    persisted_bar_count: int = 0
+    updated_bar_count: int = 0
+    skipped_provider_bar_count: int = 0
+    reason: str | None = None

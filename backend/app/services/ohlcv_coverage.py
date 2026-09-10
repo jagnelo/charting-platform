@@ -217,6 +217,9 @@ def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> Ohlc
             }
         )
     )
+    local_split_count = sum(
+        1 for bar in bars if bar.is_derived is True and bar.derivation_method == "local_split_ratio"
+    )
     if not bars:
         source_kind = "unavailable"
         factor_status = "not_observed"
@@ -227,8 +230,12 @@ def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> Ohlc
         source_kind = "provider_observation"
         factor_status = "provider_native_opaque" if adjusted else "not_applied"
     elif derived_count:
-        source_kind = "derived_from_canonical_d1"
-        factor_status = "inherited_from_canonical_d1"
+        if local_split_count == derived_count:
+            source_kind = "local_split_ratio"
+            factor_status = "rebuildable_split_factors"
+        else:
+            source_kind = "derived_from_canonical_d1"
+            factor_status = "inherited_from_canonical_d1"
     else:
         source_kind = "unavailable"
         factor_status = "not_observed"

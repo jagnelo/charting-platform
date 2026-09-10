@@ -6,8 +6,11 @@ import pytest
 from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.data_source import DataSource
 from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
+from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import InstrumentDatasetState
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
+    materialize_local_split_adjusted_view,
     persist_adjustment_factor_observations,
     rebuild_split_adjusted_bars,
     summarize_persisted_adjustment_factor_provenance,
@@ -409,3 +412,110 @@ async def test_persist_stores_provider_supplied_dividend_factor(db, instrument):
     assert row.factor_kind == "provider_supplied"
     assert row.amount == Decimal("0.250000000000")
     assert row.factor_version.startswith("afv1-")
+
+
+@pytest.mark.asyncio
+async def test_materialize_local_split_view_persists_lineage_and_preserves_provider_rows(
+    db, instrument
+):
+    source = DataSource(name="raw-price-provider")
+    db.add(source)
+    db.flush()
+    before = datetime(2024, 6, 7, 21, tzinfo=UTC)
+    after = datetime(2024, 6, 10, 21, tzinfo=UTC)
+    db.add_all(
+        [
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=before,
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                vwap=Decimal("100"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=after,
+                open=Decimal("49"),
+                high=Decimal("51"),
+                low=Decimal("48"),
+                close=Decimal("50"),
+                volume=Decimal("200"),
+                vwap=Decimal("50"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=after,
+                open=Decimal("49"),
+                high=Decimal("51"),
+                low=Decimal("48"),
+                close=Decimal("50"),
+                volume=Decimal("200"),
+                vwap=Decimal("50"),
+                is_adjusted=True,
+                is_derived=False,
+            ),
+        ]
+    )
+    db.add(
+        AdjustmentFactorObservation(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            factor_type="split",
+            effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+            factor=Decimal("2"),
+            factor_kind="split_ratio",
+            source_event_key="split:2024-06-10",
+            observed_at=datetime(2024, 6, 11, tzinfo=UTC),
+            factor_version="afv1-local-split",
+        )
+    )
+    db.flush()
+
+    result = await materialize_local_split_adjusted_view(
+        AsyncSessionAdapter(db), instrument_id=instrument.id
+    )
+
+    assert result.status == "applied"
+    assert result.raw_bar_count == 2
+    assert result.persisted_bar_count == 1
+    assert result.updated_bar_count == 0
+    assert result.skipped_provider_bar_count == 1
+    derived = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .one()
+    )
+    assert derived.ts.replace(tzinfo=UTC) == before
+    assert derived.close == Decimal("50.00000000")
+    assert derived.volume == Decimal("200.0000")
+    assert derived.source_timeframe == "D1"
+    assert derived.derivation_method == "local_split_ratio"
+    state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "D1:adj:local_split_ratio",
+        )
+        .one()
+    )
+    assert state.extra_data["source_kind"] == "local_split_ratio"
+    assert state.extra_data["adjustment_provenance"]["factor_version"] == "afv1-local-split"

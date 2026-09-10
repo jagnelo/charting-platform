@@ -22,6 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.instrument_event import InstrumentEvent, InstrumentEventType
+from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +83,19 @@ class AdjustmentRebuildResult:
     event_count: int = 0
     applied_event_count: int = 0
     bars: tuple[RebuiltOHLCVBar, ...] = ()
+    reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PersistedAdjustmentViewResult:
+    """Receipt for an explicitly requested local derived-view materialization."""
+
+    status: str
+    factor_version: str | None = None
+    raw_bar_count: int = 0
+    persisted_bar_count: int = 0
+    updated_bar_count: int = 0
+    skipped_provider_bar_count: int = 0
     reason: str | None = None
 
 
@@ -211,6 +226,192 @@ def rebuild_split_adjusted_bars(
         event_count=len(relevant),
         applied_event_count=len(applied_event_keys),
         bars=tuple(rebuilt),
+    )
+
+
+async def materialize_local_split_adjusted_view(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe = Timeframe.D1,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> PersistedAdjustmentViewResult:
+    """Persist a local split-adjusted view from one unadjusted source.
+
+    This is an explicit maintenance operation, not an automatic provider
+    fallback. It refuses ambiguous raw-source mixes and unsupported or
+    incomplete factor evidence, preserves provider-adjusted rows when their
+    identity already exists, and records the derived view's factor version in
+    a provider-neutral dataset state.
+    """
+
+    predicates = [
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted.is_(False),
+        OHLCVBar.is_derived.is_(False),
+    ]
+    if start is not None:
+        predicates.append(OHLCVBar.ts >= _as_utc(start))
+    if end is not None:
+        predicates.append(OHLCVBar.ts <= _as_utc(end))
+    raw_bars = list(
+        (await db.execute(select(OHLCVBar).where(*predicates).order_by(OHLCVBar.ts)))
+        .scalars()
+        .all()
+    )
+    if not raw_bars:
+        return PersistedAdjustmentViewResult(
+            status="not_observed",
+            reason="no_unadjusted_provider_bars_for_requested_view",
+        )
+
+    source_ids = {bar.data_source_id for bar in raw_bars}
+    if len(source_ids) != 1 or None in source_ids:
+        return PersistedAdjustmentViewResult(
+            status="ambiguous_raw_source",
+            raw_bar_count=len(raw_bars),
+            reason="local_split_view_requires_one_identified_raw_provider_source",
+        )
+    data_source_id = next(iter(source_ids))
+    assert data_source_id is not None
+    observations = list(
+        (
+            await db.execute(
+                select(AdjustmentFactorObservation)
+                .where(
+                    AdjustmentFactorObservation.instrument_id == instrument_id,
+                    AdjustmentFactorObservation.data_source_id == data_source_id,
+                    AdjustmentFactorObservation.effective_at
+                    <= max(_as_utc(bar.ts) for bar in raw_bars),
+                )
+                .order_by(
+                    AdjustmentFactorObservation.effective_at,
+                    AdjustmentFactorObservation.source_event_key,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    rebuilt = rebuild_split_adjusted_bars(raw_bars, observations)
+    if rebuilt.status != "applied":
+        return PersistedAdjustmentViewResult(
+            status=rebuilt.status,
+            factor_version=rebuilt.factor_version,
+            raw_bar_count=len(raw_bars),
+            reason=rebuilt.reason,
+        )
+
+    existing = list(
+        (
+            await db.execute(
+                select(OHLCVBar).where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.ts.in_([bar.ts for bar in rebuilt.bars]),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    existing_by_ts = {_as_utc(bar.ts): bar for bar in existing}
+    persisted = updated = skipped_provider = 0
+    materialized_timestamps: list[datetime] = []
+    now = datetime.now(UTC)
+    for derived in rebuilt.bars:
+        prior = existing_by_ts.get(_as_utc(derived.ts))
+        if prior is not None and not (
+            prior.is_derived is True and prior.derivation_method == "local_split_ratio"
+        ):
+            skipped_provider += 1
+            continue
+        values = {
+            "instrument_id": instrument_id,
+            "data_source_id": None,
+            "timeframe": timeframe,
+            "ts": derived.ts,
+            "open": derived.open,
+            "high": derived.high,
+            "low": derived.low,
+            "close": derived.close,
+            "volume": derived.volume,
+            "vwap": derived.vwap,
+            "is_adjusted": True,
+            "is_derived": True,
+            "source_timeframe": timeframe.value,
+            "derivation_method": derived.derivation_method,
+            "derived_at": now,
+            "source_bar_count": 1,
+            "source_start": derived.ts,
+            "source_end": derived.ts,
+        }
+        if prior is None:
+            db.add(OHLCVBar(**values))
+            persisted += 1
+            materialized_timestamps.append(derived.ts)
+        else:
+            for key, value in values.items():
+                setattr(prior, key, value)
+            updated += 1
+            materialized_timestamps.append(derived.ts)
+
+    if materialized_timestamps:
+        dataset_key = f"{timeframe.value}:adj:local_split_ratio"
+        state = (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id == instrument_id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == dataset_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if state is None:
+            state = InstrumentDatasetState(
+                instrument_id=instrument_id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key=dataset_key,
+                version=1,
+            )
+            db.add(state)
+        else:
+            state.version = max(1, state.version) + 1
+        state.status = DatasetStatus.FRESH
+        state.observed_at = now
+        state.fetched_at = now
+        state.coverage_start = min(materialized_timestamps, key=_as_utc)
+        state.coverage_end = max(materialized_timestamps, key=_as_utc)
+        state.snapshot_hash = rebuilt.factor_version
+        state.extra_data = {
+            "bar_count": len(materialized_timestamps),
+            "adjusted": True,
+            "adjustment": "split_adjusted",
+            "source_kind": "local_split_ratio",
+            "provider_source_id": data_source_id,
+            "source_timeframe": timeframe.value,
+            "derivation_method": "local_split_ratio",
+            "adjustment_provenance": {
+                "mode": "split_adjusted",
+                "source_kind": "local_split_ratio",
+                "factor_status": "rebuildable_split_factors",
+                "factor_version": rebuilt.factor_version,
+                "contract_version": 1,
+            },
+        }
+    await db.flush()
+    return PersistedAdjustmentViewResult(
+        status="applied",
+        factor_version=rebuilt.factor_version,
+        raw_bar_count=len(raw_bars),
+        persisted_bar_count=persisted,
+        updated_bar_count=updated,
+        skipped_provider_bar_count=skipped_provider,
     )
 
 

@@ -109,6 +109,9 @@ async def instrument_ohlcv_coverage(
             # Preserve the legacy provider-state lookup when a fixture or
             # older row has provider lineage but no source identity.
             state_source_filter = InstrumentDatasetState.data_source_id.is_not(None)
+        dataset_keys = [f"{timeframe.value}:adj"]
+        if lineage.adjustment_provenance.get("source_kind") == "local_split_ratio":
+            dataset_keys.insert(0, f"{timeframe.value}:adj:local_split_ratio")
         dataset_state = (
             await db.execute(
                 select(InstrumentDatasetState)
@@ -116,9 +119,12 @@ async def instrument_ohlcv_coverage(
                     InstrumentDatasetState.instrument_id == instrument.id,
                     state_source_filter,
                     InstrumentDatasetState.dataset_type == "ohlcv",
-                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                    InstrumentDatasetState.dataset_key.in_(dataset_keys),
                 )
-                .order_by(InstrumentDatasetState.observed_at.desc())
+                .order_by(
+                    InstrumentDatasetState.dataset_key,
+                    InstrumentDatasetState.observed_at.desc(),
+                )
                 .limit(1)
             )
         ).scalar_one_or_none()

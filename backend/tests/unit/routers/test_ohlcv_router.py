@@ -7,6 +7,25 @@ from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
+    def test_materialize_local_split_endpoint_returns_explicit_unavailable_receipt(
+        self, client, auth_headers, instrument
+    ):
+        response = client.post(
+            f"/api/v1/ohlcv/{instrument.symbol}/D1/materialize-local-split",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "not_observed",
+            "factor_version": None,
+            "raw_bar_count": 0,
+            "persisted_bar_count": 0,
+            "updated_bar_count": 0,
+            "skipped_provider_bar_count": 0,
+            "reason": "no_unadjusted_provider_bars_for_requested_view",
+        }
+
     def test_local_shape_exposes_derived_lineage(self, client, auth_headers, db, instrument):
         db.add(
             OHLCVBar(
