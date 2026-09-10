@@ -501,3 +501,11 @@ malformed dates and wrapper shapes. The focused optional-provider suite passed
 `1895 passed`, `89` warnings, and `80.36%` line coverage in `390.66s`.
 Testcontainer session `3a0e72c2-6f1c-444d-9bc0-71059e0b4ed6` was cleaned
 without host-wide pruning.
+
+Tokenized xStocks, Robinhood, Bybit, Gate, and Kraken list, quote, instrument,
+and corporate-action paths now reject missing, scalar, or mixed response
+containers instead of filtering malformed rows or creating synthetic records.
+The focused tokenized suite passed `23/23`; the authoritative gate completed at
+`2026-09-10T08:19Z` with `1900 passed`, `89` warnings, and `80.35%` line
+coverage in `403.85s`. Testcontainer session
+`8190d6b2-84ee-48fa-a119-cd53f0e10fda` was cleaned without host-wide pruning.

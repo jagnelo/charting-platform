@@ -15,6 +15,11 @@
       Tradier option-expiration dates/wrappers. The focused suite passes
       `35/35`; the authoritative Docker-backed gate passes `1895/1895` with
       `80.36%` line coverage and 89 warnings.
+- [x] Make tokenized xStocks, Robinhood, Bybit, Gate, and Kraken list, quote,
+      instrument, and corporate-action paths reject malformed response
+      containers rather than filtering rows or creating synthetic records. The
+      focused tokenized suite passes `23/23`; the authoritative Docker-backed
+      gate passes `1900/1900` with `80.35%` line coverage and 89 warnings.
 
 ### 2026-09-05 — Corrective provider quota and live-evidence gate
 
