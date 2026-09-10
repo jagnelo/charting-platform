@@ -413,6 +413,14 @@ empty provider responses remain unchanged. The focused provider suite passed
 Testcontainer session `9aad314f-c0a9-4fd9-b902-83afd574e391` was cleaned
 without host-wide pruning.
 
+The optional candle adapters now validate provider-specific parallel-array
+contracts: Finnhub and MarketData.app reject missing/unknown status, non-array
+fields, and mismatched array lengths instead of truncating with `zip()` or
+returning an empty series. The focused optional-provider suite passed `30/30`;
+the authoritative gate completed at `2026-09-10T07:38Z` with `1890 passed`,
+`89` warnings, and `80.36%` line coverage in `395.31s`. Testcontainer session
+`3b3c3a4b-042f-4161-b40c-5df689a8ee6d` was cleaned without host-wide pruning.
+
 The same adapters now validate response shape and malformed JSON explicitly:
 Alpaca bars/latest, corporate-actions, and assets responses, SEC EDGAR
 submissions/facts/directories, and FRED observations all reject invalid
