@@ -569,6 +569,18 @@ preserving typed capacity errors. The focused CoinGecko suite passed `17/17`;
 Ruff and diff checks passed. The authoritative gate remains unverified because
 Docker preflight is currently unavailable.
 
+Binance OHLCV, ticker, and exchange-info paths now reject malformed row
+containers, short or non-finite numeric rows, non-increasing pagination,
+malformed symbol metadata, and non-rate-limit HTTP failures. Binance 429/418
+responses are typed capacity errors retaining provider headers. The focused
+Binance suite passed `26/26`; Ruff and diff checks passed. The authoritative
+gate remains unverified because Docker preflight is currently unavailable.
+
+The bounded keyless Binance live probe then passed `1/1` in `1.46s` against
+the public `/klines` endpoint and recorded positive transport telemetry. This
+is additive live evidence only; it does not replace the blocked Docker-backed
+full gate.
+
 Alpha Vantage JSON and CSV adapters now reject invalid containers, malformed
 search/history rows, incomplete listing or IPO rows, invalid dates/numbers, and
 non-rate-limit HTTP failures while preserving documented rate-limit/error
