@@ -3,8 +3,9 @@
 
 Receipts from local worktrees and GitHub artifacts are account-level evidence,
 not runtime quota reservations. This utility accepts only the aggregate fields
-emitted by ``tests/live/live_usage.py``, deduplicates a run/provider row under
-an exclusive destination lock, and never copies unknown fields such as payloads
+and allow-listed provider-capacity headers emitted by
+``tests/live/live_usage.py``, deduplicates a run/provider row under an
+exclusive destination lock, and never copies unknown fields such as payloads
 or credentials.
 """
 
@@ -20,6 +21,34 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+_CAPACITY_HEADERS = {
+    "api-credits-left",
+    "api-credits-request",
+    "api-credits-used",
+    "content-length",
+    "record-limit",
+    "record-max-limit",
+    "record-offset",
+    "record-total",
+    "response-payload-max-size",
+    "retry-after",
+    "x-bapi-limit",
+    "x-bapi-limit-reset-timestamp",
+    "x-bapi-limit-status",
+    "x-mbx-order-count-1m",
+    "x-mbx-used-weight-1m",
+    "x-rate-limit-limit",
+    "x-rate-limit-remaining",
+    "x-rate-limit-reset",
+    "x-ratelimit-allowed",
+    "x-ratelimit-available",
+    "x-ratelimit-expiry",
+    "x-ratelimit-limit",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset",
+    "x-ratelimit-used",
+}
+
 
 def _nonnegative_int(value: Any) -> int | None:
     if isinstance(value, bool):
@@ -31,6 +60,28 @@ def _nonnegative_int(value: Any) -> int | None:
     else:
         return None
     return parsed if parsed >= 0 else None
+
+
+def _capacity_headers(value: Any) -> dict[str, str] | None:
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or len(value) > 32:
+        return None
+    result: dict[str, str] = {}
+    for raw_name, raw_value in value.items():
+        name = str(raw_name).strip().lower()
+        header = str(raw_value).strip()
+        if (
+            name not in _CAPACITY_HEADERS
+            or len(name) > 128
+            or not name.isprintable()
+            or not header
+            or len(header) > 256
+            or not header.isprintable()
+        ):
+            return None
+        result[name] = header
+    return result
 
 
 def _normalise_row(value: Any) -> dict[str, Any] | None:
@@ -56,11 +107,15 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
     }
     if any(item is None for item in values.values()):
         return None
+    response_headers = _capacity_headers(value.get("response_headers"))
+    if response_headers is None:
+        return None
     row: dict[str, Any] = {
         "at": observed.isoformat(),
         "usage_scope": usage_scope,
         "provider": provider,
         **{field: int(item) for field, item in values.items()},
+        "response_headers": response_headers,
     }
     run_id = str(value.get("run_id") or "").strip()
     if run_id:

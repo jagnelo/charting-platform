@@ -84,7 +84,37 @@ def _empty_live_usage() -> dict[str, Any]:
         "response_bytes_7d": 0,
         "last_observation_at": None,
         "usage_scopes": [],
+        "last_response_headers": {},
     }
+
+
+_LIVE_CAPACITY_HEADERS = {
+    "api-credits-left",
+    "api-credits-request",
+    "api-credits-used",
+    "content-length",
+    "record-limit",
+    "record-max-limit",
+    "record-offset",
+    "record-total",
+    "response-payload-max-size",
+    "retry-after",
+    "x-bapi-limit",
+    "x-bapi-limit-reset-timestamp",
+    "x-bapi-limit-status",
+    "x-mbx-order-count-1m",
+    "x-mbx-used-weight-1m",
+    "x-rate-limit-limit",
+    "x-rate-limit-remaining",
+    "x-rate-limit-reset",
+    "x-ratelimit-allowed",
+    "x-ratelimit-available",
+    "x-ratelimit-expiry",
+    "x-ratelimit-limit",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset",
+    "x-ratelimit-used",
+}
 
 
 def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
@@ -151,6 +181,24 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                     requests = _nonnegative_int(row.get("http_requests"))
                     response_bytes = _nonnegative_int(row.get("response_bytes"))
                     exit_status = _nonnegative_int(row.get("exit_status"))
+                    response_headers = row.get("response_headers")
+                    if response_headers is None:
+                        response_headers = {}
+                    if not isinstance(response_headers, dict) or len(response_headers) > 32:
+                        raise ValueError("invalid live usage headers")
+                    safe_headers: dict[str, str] = {}
+                    for raw_name, raw_value in response_headers.items():
+                        name = str(raw_name).strip().lower()
+                        value = str(raw_value).strip()
+                        if (
+                            name not in _LIVE_CAPACITY_HEADERS
+                            or not name.isprintable()
+                            or not value
+                            or len(value) > 256
+                            or not value.isprintable()
+                        ):
+                            raise ValueError("invalid live usage header")
+                        safe_headers[name] = value
                     if (
                         not provider
                         or operations is None
@@ -174,6 +222,8 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 summary["operations"] += operations
                 summary["http_requests"] += requests
                 summary["response_bytes"] += response_bytes
+                if safe_headers:
+                    summary["last_response_headers"] = safe_headers
                 summary["last_observation_at"] = max(
                     summary["last_observation_at"], observed_at
                 ) if summary["last_observation_at"] else observed_at

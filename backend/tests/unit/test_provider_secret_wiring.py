@@ -14,6 +14,7 @@ _LIVE_SCRIPT = importlib.util.module_from_spec(_LIVE_SCRIPT_SPEC)
 _LIVE_SCRIPT_SPEC.loader.exec_module(_LIVE_SCRIPT)
 routing_safety_preflight = _LIVE_SCRIPT.routing_safety_preflight
 setting_is_configured = _LIVE_SCRIPT.setting_is_configured
+usage_scope_is_configured = _LIVE_SCRIPT.usage_scope_is_configured
 PROVIDER_SECRET_NAMES = {
     "ALPACA_API_KEY",
     "ALPACA_SECRET_KEY",
@@ -223,6 +224,17 @@ def test_live_credential_preflight_rejects_placeholder_sec_contact(monkeypatch):
     assert setting_is_configured("EDGAR_USER_AGENT") is False
     monkeypatch.setenv("EDGAR_USER_AGENT", "charting-platform ops@example.invalid")
     assert setting_is_configured("EDGAR_USER_AGENT") is True
+
+
+def test_live_preflight_requires_bounded_usage_scope(monkeypatch):
+    monkeypatch.delenv("PROVIDER_LIVE_USAGE_SCOPE", raising=False)
+    assert usage_scope_is_configured() is False
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_SCOPE", "local-dev")
+    assert usage_scope_is_configured() is True
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_SCOPE", "x" * 129)
+    assert usage_scope_is_configured() is False
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_SCOPE", "local\nworktree")
+    assert usage_scope_is_configured() is False
 
 
 def test_fmp_byte_bound_preflight_covers_market_events_operation():

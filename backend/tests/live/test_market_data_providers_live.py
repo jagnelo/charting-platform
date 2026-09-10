@@ -82,6 +82,7 @@ def _observed_read(call, provider_name: str):
             provider_name,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
+            response_headers=measurement.response_headers,
         )
         assert measurement.http_requests > 0
         assert measurement.response_bytes > 0
@@ -92,6 +93,7 @@ def _observed_read(call, provider_name: str):
         provider_name,
         http_requests=measurement.http_requests,
         response_bytes=measurement.response_bytes,
+        response_headers=measurement.response_headers,
     )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0

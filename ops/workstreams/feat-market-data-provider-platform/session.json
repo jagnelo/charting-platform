@@ -75,7 +75,20 @@
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-market-data-provider-platform/session.json"
+    "ackend/app/services/provider_usage.py",
+    "backend/tests/live/live_usage.py",
+    "backend/tests/live/test_market_data_providers_live.py",
+    "backend/tests/live/test_tokenized_providers_live.py",
+    "backend/tests/unit/services/test_provider_usage.py",
+    "backend/tests/unit/test_provider_live_usage.py",
+    "backend/tests/unit/test_provider_secret_wiring.py",
+    "docs/project-todos.md",
+    "docs/provider-live-validation.md",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+    "scripts/merge-provider-live-usage.py",
+    "scripts/run-live-provider-probes.py"
   ],
   "docker": {
     "accounting_complete": true,
@@ -112,10 +125,10 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "034bc957bdb94f7863b2a131e3c6ed9d785031a4",
+  "head": "5a42bad3ab8770e475036947f4a7042329d279ad",
   "implementation_sha": "034bc957bdb94f7863b2a131e3c6ed9d785031a4",
-  "last_checkpoint": "2026-09-10T12:47:25.326628+00:00",
-  "last_human_progress_update": "2026-09-10T12:47:15.836099+00:00",
+  "last_checkpoint": "2026-09-10T13:04:58.352869+00:00",
+  "last_human_progress_update": "2026-09-10T13:03:58.020995+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -143,13 +156,13 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Latest complete live matrix passes 29/34 with temporary non-secret EDGAR_USER_AGENT and reviewed XNAS scope; missing ALPACA_API_KEY/ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY remain, Alpha Vantage is at documented 25-requests/day capacity, and GitHub owner authentication, provider-governance controls, venue reconciliation, deployment-owned SEC contact, and shadow activation remain unresolved. SEC placeholders are rejected consistently and checked-in examples are blank fail-closed; the backend shadow report exposes explicit D1 coverage threshold and capacity/anomaly evidence; live receipts now carry non-secret environment scopes, but no deployed 30-day run exists.",
+    "current_blocker": "Latest complete live matrix passes 29/34 with temporary non-secret EDGAR_USER_AGENT and reviewed XNAS scope; missing ALPACA_API_KEY/ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY remain, Alpha Vantage is at documented 25-requests/day capacity, and GitHub owner authentication, provider-governance controls, venue reconciliation, deployment-owned SEC contact, and shadow activation remain unresolved. New live runs now also require a distinct non-secret PROVIDER_LIVE_USAGE_SCOPE; direct receipts retain sanitized provider-capacity headers, but no deployed 30-day run exists.",
     "current_phase": "credentialed_live_validation",
     "next_action": "Restore jagnelo GitHub authentication; configure deployment-owned EDGAR_USER_AGENT and distinct PROVIDER_LIVE_USAGE_SCOPE values; verify trusted environment secrets and safety variables; obtain missing credential domains; rerun the complete manifest live matrix; then run the separately approved deployed 30-day shadow and reassess readiness without activating routing or deployment.",
     "total": 15,
-    "updated_at": "2026-09-10T12:47:15.835931+00:00"
+    "updated_at": "2026-09-10T13:03:58.020475+00:00"
   },
-  "remote": "034bc957bdb94f7863b2a131e3c6ed9d785031a4",
+  "remote": "5a42bad3ab8770e475036947f4a7042329d279ad",
   "remote_sha": "034bc957bdb94f7863b2a131e3c6ed9d785031a4",
   "remote_synchronized": true,
   "retained_docker_resources": [],

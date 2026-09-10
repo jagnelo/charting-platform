@@ -12,14 +12,68 @@ import fcntl
 import json
 import os
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
 DEFAULT_LEDGER = Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
-_observations: list[tuple[str, int, int]] = []
+_CAPACITY_HEADERS = {
+    "api-credits-left",
+    "api-credits-request",
+    "api-credits-used",
+    "content-length",
+    "record-limit",
+    "record-max-limit",
+    "record-offset",
+    "record-total",
+    "response-payload-max-size",
+    "retry-after",
+    "x-bapi-limit",
+    "x-bapi-limit-reset-timestamp",
+    "x-bapi-limit-status",
+    "x-mbx-order-count-1m",
+    "x-mbx-used-weight-1m",
+    "x-rate-limit-limit",
+    "x-rate-limit-remaining",
+    "x-rate-limit-reset",
+    "x-ratelimit-allowed",
+    "x-ratelimit-available",
+    "x-ratelimit-expiry",
+    "x-ratelimit-limit",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset",
+    "x-ratelimit-used",
+}
+_observations: list[tuple[str, int, int, dict[str, str]]] = []
 
 
-def record_observation(provider: str, *, http_requests: int, response_bytes: int) -> None:
+def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
+    """Keep only bounded provider-capacity headers, never auth/payload data."""
+
+    if not headers:
+        return {}
+    result: dict[str, str] = {}
+    for raw_name, raw_value in headers.items():
+        name = str(raw_name).strip().lower()
+        value = str(raw_value).strip()
+        if (
+            name in _CAPACITY_HEADERS
+            and name.isprintable()
+            and value
+            and len(value) <= 256
+            and value.isprintable()
+        ):
+            result[name] = value
+    return result
+
+
+def record_observation(
+    provider: str,
+    *,
+    http_requests: int,
+    response_bytes: int,
+    response_headers: Mapping[str, object] | None = None,
+) -> None:
     """Accumulate one measured live operation without retaining payload data."""
 
     _observations.append(
@@ -27,6 +81,7 @@ def record_observation(provider: str, *, http_requests: int, response_bytes: int
             str(provider).strip() or "unknown",
             max(0, int(http_requests)),
             max(0, int(response_bytes)),
+            _safe_headers(response_headers),
         )
     )
 
@@ -38,13 +93,19 @@ def flush_observations(exit_status: int) -> Path | None:
         return None
     path = Path(os.getenv("PROVIDER_LIVE_USAGE_LEDGER", str(DEFAULT_LEDGER))).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
-    grouped: dict[str, dict[str, int]] = defaultdict(
-        lambda: {"http_requests": 0, "response_bytes": 0, "operations": 0}
+    grouped: dict[str, dict[str, object]] = defaultdict(
+        lambda: {
+            "http_requests": 0,
+            "response_bytes": 0,
+            "operations": 0,
+            "response_headers": {},
+        }
     )
-    for provider, requests, response_bytes in _observations:
+    for provider, requests, response_bytes, response_headers in _observations:
         grouped[provider]["http_requests"] += requests
         grouped[provider]["response_bytes"] += response_bytes
         grouped[provider]["operations"] += 1
+        grouped[provider]["response_headers"].update(response_headers)
 
     run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or f"pid-{os.getpid()}"
     now = datetime.now(UTC).isoformat()
@@ -59,6 +120,7 @@ def flush_observations(exit_status: int) -> Path | None:
             "http_requests": values["http_requests"],
             "response_bytes": values["response_bytes"],
             "exit_status": int(exit_status),
+            "response_headers": dict(values["response_headers"]),
         }
         for provider, values in sorted(grouped.items())
     ]

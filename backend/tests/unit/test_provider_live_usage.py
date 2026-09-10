@@ -22,7 +22,12 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "run-test")
     live_usage._reset_for_test()
-    live_usage.record_observation("fred", http_requests=2, response_bytes=100)
+    live_usage.record_observation(
+        "fred",
+        http_requests=2,
+        response_bytes=100,
+        response_headers={"X-RateLimit-Remaining": "17", "Authorization": "secret"},
+    )
     live_usage.record_observation("fred", http_requests=1, response_bytes=50)
     live_usage.record_observation("coinbase", http_requests=1, response_bytes=25)
 
@@ -37,6 +42,7 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "provider": "coinbase",
             "response_bytes": 25,
             "run_id": "run-test",
+            "response_headers": {},
             "usage_scope": "unspecified",
         },
         {
@@ -47,6 +53,7 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "provider": "fred",
             "response_bytes": 150,
             "run_id": "run-test",
+            "response_headers": {"x-ratelimit-remaining": "17"},
             "usage_scope": "unspecified",
         },
     ]
@@ -176,3 +183,28 @@ def test_merge_provider_live_usage_rejects_malformed_rows_without_exposing_value
     assert result["accepted"] == 1
     assert result["rejected"] == 1
     assert len(destination.read_text().splitlines()) == 1
+
+
+def test_merge_provider_live_usage_rejects_non_capacity_headers(tmp_path: Path):
+    source = tmp_path / "receipt.jsonl"
+    destination = tmp_path / "provider-live-usage.jsonl"
+    source.write_text(
+        json.dumps(
+            {
+                "at": "2026-09-10T05:00:00+00:00",
+                "provider": "fred",
+                "operations": 1,
+                "http_requests": 1,
+                "response_bytes": 10,
+                "exit_status": 0,
+                "response_headers": {"authorization": "secret"},
+            }
+        )
+        + "\n"
+    )
+
+    result = _MERGER.merge_receipts([source], destination)
+
+    assert result["accepted"] == 0
+    assert result["rejected"] == 1
+    assert not destination.read_text()

@@ -3,7 +3,8 @@
 The live matrix is intentionally separate from normal unit/integration runs:
 
 ```sh
-RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend python scripts/run-live-provider-probes.py
+PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
+  rtk uv run --project backend python scripts/run-live-provider-probes.py
 ```
 
 The command performs a preflight, prints every missing environment variable,
@@ -36,8 +37,14 @@ payloads.
 Set the non-secret `PROVIDER_LIVE_USAGE_SCOPE` label separately for each local
 environment, GitHub environment, and deployment account. The scope is written
 into each receipt and is part of merger deduplication, so identical run IDs
-from different environments cannot be silently collapsed. An omitted scope is
-reported as `unspecified` and should be treated as a reconciliation warning.
+from different environments cannot be silently collapsed. Legacy receipts with
+an omitted scope are normalized to `unspecified`; the live runner now fails its
+preflight when a scope is absent so new quota-consuming runs cannot create
+unattributed usage. Receipts also retain only provider-native capacity headers
+observed by the transport (remaining credits, reset times, `Retry-After`, FINRA
+record bounds, or Binance/Bybit weight state); auth and payload headers are
+rejected. This snapshot is observational evidence, never a substitute for
+provider-account reconciliation or runtime quota reservations.
 When an operator mounts that redacted ledger into a backend deployment and sets
 the same `PROVIDER_LIVE_USAGE_LEDGER` path, the authenticated
 `/api/v1/providers/usage` response exposes a separate `live_test_usage` object

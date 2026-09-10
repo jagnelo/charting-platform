@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Live usage attribution and provider-capacity evidence
+
+- [x] Extend the external direct-live usage ledger to retain a bounded,
+      allow-listed snapshot of provider-native capacity headers (credits,
+      reset/remaining values, `Retry-After`, FINRA pagination bounds, and
+      exchange weight state). Headers are forwarded from both ordinary and
+      tokenized live probes, exposed as the latest redacted diagnostic snapshot,
+      and rejected when they are not on the allow-list; credentials and payload
+      headers never enter the ledger.
+- [x] Require a printable, bounded `PROVIDER_LIVE_USAGE_SCOPE` during the
+      manifest live preflight. Legacy receipts remain readable as
+      `unspecified`, but new quota-consuming live runs cannot create
+      unattributed cross-environment usage. Focused ledger/usage/secret-wiring
+      coverage passes `20/20` with Ruff and diff checks clean.
+
 ### 2026-09-10 — Shared provider capacity-envelope evidence
 
 - [x] Preserve provider-declared `Retry-After`/reset headers and retry times

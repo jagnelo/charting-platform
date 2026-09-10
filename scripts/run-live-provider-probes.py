@@ -92,6 +92,13 @@ def setting_is_configured(name: str) -> bool:
     return True
 
 
+def usage_scope_is_configured() -> bool:
+    """Require an attributable, bounded label for quota-consuming live runs."""
+
+    value = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip()
+    return bool(value) and len(value) <= 128 and value.isprintable()
+
+
 def routing_safety_preflight() -> dict[str, str]:
     """Describe safety controls that can block routing after a live read.
 
@@ -269,7 +276,9 @@ def main() -> int:
         absent = [name for name in names if not setting_is_configured(name)]
         if absent:
             missing[provider] = absent
-    print("live provider credential preflight:")
+    if not usage_scope_is_configured():
+        missing["usage accounting"] = ["PROVIDER_LIVE_USAGE_SCOPE"]
+    print("live provider credential/usage preflight:")
     if missing:
         for provider, names in missing.items():
             print(f"  BLOCKED {provider}: missing {', '.join(names)}")
