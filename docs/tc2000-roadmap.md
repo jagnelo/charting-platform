@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Historical analysis cutoffs normalize across consumers
+
+At product tip `9fcbd55c`, analysis bar truncation, technical snapshots,
+industry-proxy snapshots, ETF constituent snapshots, family member history,
+and concentration history now compare persisted timestamps against a canonical
+UTC cutoff. Offset-less API values and non-UTC aware values therefore follow
+one timeline instead of raising naive/aware errors or relying on database
+timezone coercion.
+
+The focused analysis/taxonomy regression suite passed `42/42`; the complete
+backend unit suite passed `1,438/1,438` with `68%` total coverage; Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker gate passed
+all non-visual stages, backend integration (`387/387`), and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+completed `104` cases with `98` passes and exactly the six protected
+state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125); the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+This closes one cross-consumer historical timestamp seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Historical industry classification honors fetch cutoff
 
 At product tip `3ab0d18c`, dated ETF industry and constituent reads now require

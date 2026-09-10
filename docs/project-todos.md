@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Historical analysis cutoffs normalize across consumers
+
+- [x] Route analysis bar truncation, technical/proxy snapshots, ETF constituent
+      reads, family history, and concentration history through canonical UTC
+      cutoff comparisons for offset-less and offset-bearing API values.
+- [x] Focused analysis/taxonomy regression coverage passed `42/42`; the full
+      backend unit suite passed `1,438/1,438` at `68%`; Ruff, formatting, and
+      diff checks passed.
+- [x] The exact gate passed non-visual stages, backend integration (`387/387`),
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`); visual parity was `98/104` with exactly the six protected diffs
+      and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Historical industry classification honors fetch cutoff
 
 - [x] Require dated profile snapshots to prove observed and fetched timestamps

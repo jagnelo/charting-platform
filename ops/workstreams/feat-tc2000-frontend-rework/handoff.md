@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Historical analysis cutoffs normalize across consumers
+
+Product tip `9fcbd55ca5c0a016651a16c24605ca6e562c62cf` closes a cross-consumer
+historical timestamp seam. Analysis bar truncation and SQL snapshot selection
+now normalize offset-less and non-UTC cutoffs to UTC across technical,
+industry-proxy, ETF constituent, family-history, and concentration consumers.
+Persisted timestamps are consequently evaluated on one timeline.
+
+Focused analysis/taxonomy regressions passed `42/42`; the full backend unit
+suite passed `1,438/1,438` at `68%`, with Ruff, formatting, and diff checks
+clean. The exact Docker-backed gate passed backend integration (`387/387`),
+functional Playwright (`165` passed, `107` documented skips across `272`), and
+all non-visual stages. Visual parity remains `98/104` with exactly the six
+established protected diffs; the gate exited at `e2e-visual` after clean scoped
+teardown. No visual, provider, fallback, or acceptance policy changed.
+
+Open work remains full provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7. Keep the branch at the
+review boundary; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-10 — Historical industry classification honors fetch cutoff
 
 Product tip `3ab0d18c37302b21b577d3a557f0548f9ad85fa9` closes a point-in-time
