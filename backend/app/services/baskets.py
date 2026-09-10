@@ -17,6 +17,7 @@ from app.schemas.basket import (
     BasketSnapshotOut,
     BasketUpdateRequest,
 )
+from app.services.ohlcv_coverage import _as_utc
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
 WEIGHT_TOLERANCE = Decimal("0.0001")
@@ -265,6 +266,8 @@ async def get_basket_synthetic_ohlcv(
     sum of each member's cumulative return from its own starting close.
     """
 
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
         raise BasketValidationError("Basket not found.")

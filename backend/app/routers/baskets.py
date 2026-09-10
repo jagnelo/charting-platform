@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,7 @@ from app.services.baskets import (
     list_baskets,
     update_basket,
 )
+from app.services.ohlcv_coverage import _as_utc
 
 router = APIRouter(prefix="/baskets", tags=["baskets"])
 
@@ -80,10 +81,8 @@ async def read_basket_synthetic_ohlcv(
     basket = await get_basket(db, basket_id, current_user.id)
     if basket is None:
         raise HTTPException(404, "Basket not found")
-    if start is not None and start.tzinfo is None:
-        start = start.replace(tzinfo=UTC)
-    if end is not None and end.tzinfo is None:
-        end = end.replace(tzinfo=UTC)
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
     return await get_basket_synthetic_ohlcv(
         db,
         basket_id,
