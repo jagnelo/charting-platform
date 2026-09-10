@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -52,11 +53,8 @@ def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypatch, tmp_path):
     async_db = AsyncSessionAdapter(db)
-    monkeypatch.setattr(
-        settings,
-        "PROVIDER_LIVE_USAGE_LEDGER",
-        str(tmp_path / "missing-provider-live-usage.jsonl"),
-    )
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     source = DataSource(
         name="yfinance",
         is_active=True,
@@ -130,6 +128,19 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
         )
     )
     db.commit()
+    ledger.write_text(
+        json.dumps(
+            {
+                "at": now.isoformat(),
+                "provider": "yfinance",
+                "operations": 2,
+                "http_requests": 3,
+                "response_bytes": 512,
+                "exit_status": 0,
+            }
+        )
+        + "\n"
+    )
 
     rows = await summarize_provider_usage(async_db)
     summary = next(row for row in rows if row["provider"] == "yfinance")
@@ -147,8 +158,16 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
     assert summary["active_quota_windows"][0]["available_units"] == 77
     assert summary["active_quota_windows"][0]["reserved_units"] == 3
     assert summary["active_quota_windows"][0]["distinct_identity_count"] == 1
-    assert summary["live_usage_ledger"]["status"] == "unavailable"
-    assert summary["live_test_usage"]["http_requests"] == 0
+    # Direct live probes consume the same provider account outside the runtime
+    # reservation path; their redacted totals must be visible without changing
+    # application request counts or the durable available quota.
+    assert summary["requests_24h"] == 2
+    assert summary["active_quota_windows"][0]["available_units"] == 77
+    assert summary["live_usage_ledger"]["status"] == "available"
+    assert summary["live_usage_ledger"]["rows"] == 1
+    assert summary["live_test_usage"]["operations"] == 2
+    assert summary["live_test_usage"]["http_requests"] == 3
+    assert summary["live_test_usage"]["response_bytes"] == 512
 
 
 @pytest.mark.asyncio

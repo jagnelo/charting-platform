@@ -355,3 +355,11 @@ existing operator environment. It collected 34 cases: `31 passed` in
 acceptance claim. FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit, and
 Tiingo/FMP controls remain explicitly fail-closed; only redacted telemetry was
 written to the external usage ledger.
+
+The usage-summary regression now proves that a temporary live-ledger row is
+visible as separate `live_test_usage` while runtime request totals and durable
+quota-window availability remain unchanged. Focused usage/router/live-ledger
+tests passed `13/13`; the authoritative gate completed at
+`2026-09-10T05:13Z` with `1860 passed`, `89` warnings, and `80.38%` line
+coverage in `388.17s`. Testcontainer session
+`1cf565df-7b9d-468f-acf8-bcb1349dc51b` was cleaned without host-wide pruning.
