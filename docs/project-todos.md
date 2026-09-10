@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Persisted factor completeness guard
+
+- [x] Reject durable split-factor provenance when any valid persisted split
+      observation lacks a factor version; keep partial or mixed refreshes
+      explicitly opaque.
+- [x] Regress factor/market-data coverage (`23/23`); the exact gate preserved
+      `1,385/387` backend, `990/990` frontend, `165` functional passes,
+      `107` documented skips, and the six visual diffs with clean teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue raw-versus-derived reconciliation, family/
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Durable factor provenance reconciliation
 
 - [x] Prefer durable normalized split/dividend observations when recording

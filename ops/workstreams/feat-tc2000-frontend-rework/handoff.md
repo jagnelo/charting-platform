@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Persisted factor completeness checkpoint
+
+Product tip `2cbf74a8` rejects durable split-factor provenance when any valid
+persisted split observation lacks its factor version. Partial or mixed
+refreshes therefore remain explicitly opaque instead of being reported as
+rebuildable. No dividend factor, price transformation, provider response,
+fallback, visible layout, pixels, or acceptance policy changed.
+
+Focused adjustment-factor/market-data coverage passed `23/23`; Ruff, format,
+and diff checks passed. The exact Docker-backed gate passed all non-visual
+stages, backend unit/integration `1,385`/`387` (`68%`/`81.18%`), frontend
+Vitest `990/990`, and functional Playwright `165` with `107` documented skips
+across `272`. Visual parity remained `98/104` with exactly the six established
+watchlist-column-editor-open/workspace-floating diffs; teardown removed all
+assigned resources and sessions cleanly.
+
+R1 remains active for provider dividend-factor application/rebuild
+verification, raw-versus-derived reconciliation, family/provider-history
+readiness, W1/MN continuity, source-declared cadence, and broader canonical
+population. R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Durable factor provenance reconciliation checkpoint
 
 Product tip `00dd7f1b` makes adjusted OHLCV dataset-state provenance prefer

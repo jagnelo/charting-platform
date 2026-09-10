@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "00dd7f1bb0b80db3e9cf749c83cbce93cbf90cb5",
-  "implementation_sha": "00dd7f1bb0b80db3e9cf749c83cbce93cbf90cb5",
+  "head": "2cbf74a854990614500e12050ce8db60032e4507",
+  "implementation_sha": "2cbf74a854990614500e12050ce8db60032e4507",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T02:15:00Z",
-  "last_human_progress_update": "2026-09-10T02:15:00Z",
+  "last_checkpoint": "2026-09-10T02:30:00Z",
+  "last_human_progress_update": "2026-09-10T02:30:00Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "ec1a344e6e36c1cc09713bac181ff0be08474b63fca85e4672324aa9630977de",
+  "plan_hash": "4415d6b97d3cd567034c801d2b51ea9312c45389f0bc19644a081047f57469b1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 00dd7f1b makes adjusted OHLCV dataset-state provenance prefer durable normalized split/dividend observations for the requested provider. One consistent valid split-factor version remains rebuildable; incomplete or mixed persisted evidence is explicitly opaque, with older event rows as a compatibility fallback. No dividend factor, bar/price transformation, provider response, fallback, visible layout, pixels, or acceptance policy changed. Focused adjustment-factor/market-data coverage passed 22/22; Ruff, format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1384/387 at 68%/81.18%, frontend 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Provider dividend-factor application and rebuild verification, raw-versus-derived reconciliation, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 remain open.",
+    "current_blocker": "Product tip 2cbf74a8 rejects durable split-factor provenance when any valid persisted split observation lacks its factor version. Partial or mixed refreshes remain explicitly opaque instead of being reported as rebuildable. No dividend factor, price transformation, provider response, fallback, visible layout, pixels, or acceptance policy changed. Focused adjustment-factor/market-data coverage passed 23/23; Ruff, format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1385/387 at 68%/81.18%, frontend 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Provider dividend-factor application and rebuild verification, raw-versus-derived reconciliation, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-10T02:15:00Z"
+    "updated_at": "2026-09-10T02:30:00Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

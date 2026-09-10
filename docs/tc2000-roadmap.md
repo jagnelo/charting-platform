@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Persisted factor completeness guard
+
+At product tip `2cbf74a8`, durable split-factor provenance refuses to promote
+rows when any valid split observation lacks its persisted version. Mixed or
+incomplete normalized evidence remains explicitly opaque, preventing a
+partial refresh from masquerading as a rebuildable factor set. No dividend
+factor, price transformation, provider response, fallback behavior, visible
+layout, pixels, or acceptance policy changed.
+
+The focused adjustment-factor and market-data suites passed `23/23`; Ruff,
+formatting, and diff checks passed. The exact Docker-backed gate passed all
+non-visual stages, backend unit/integration coverage (`1,385`/`387`,
+`68%`/`81.18%`), frontend Vitest (`990/990`), and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity completed
+`104` cases with `98` passes and the same six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+R1 remains active for provider-supplied dividend-factor coverage and factor
+application/rebuild verification, raw-versus-derived reconciliation, complete
+family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and broader canonical population; R2-R7 remain open.
+Next action: continue the next bounded evidence-backed R1 history/provenance
+seam and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Durable factor provenance reconciliation
 
 At product tip `00dd7f1b`, adjusted OHLCV dataset-state provenance now prefers
