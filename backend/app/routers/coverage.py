@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -133,7 +133,13 @@ async def instrument_ohlcv_coverage(
                     InstrumentDatasetState.fetched_at <= end,
                 )
                 .order_by(
-                    InstrumentDatasetState.dataset_key,
+                    case(
+                        *[
+                            (InstrumentDatasetState.dataset_key == key, priority)
+                            for priority, key in enumerate(dataset_keys)
+                        ],
+                        else_=len(dataset_keys),
+                    ),
                     InstrumentDatasetState.observed_at.desc(),
                 )
                 .limit(1)

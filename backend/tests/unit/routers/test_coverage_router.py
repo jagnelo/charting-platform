@@ -329,6 +329,82 @@ class TestCoverageRouter:
             "contract_version": 1,
         }
 
+    def test_range_coverage_prefers_lineage_specific_state_over_generic_state(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        start = datetime(2026, 2, 3, tzinfo=UTC)
+        provenance = {
+            "mode": "split_adjusted",
+            "source_kind": "local_split_ratio",
+            "factor_status": "rebuildable_split_factors",
+            "factor_version": "afv1-local-specific",
+            "contract_version": 1,
+        }
+        generic_provenance = {
+            **provenance,
+            "factor_version": "afv1-generic-fallback",
+        }
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    derivation_method="local_split_ratio",
+                    source_timeframe="D1",
+                ),
+                InstrumentDatasetState(
+                    instrument_id=instrument.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    observed_at=start,
+                    fetched_at=start,
+                    coverage_start=start,
+                    coverage_end=start,
+                    version=1,
+                    extra_data={"adjustment_provenance": generic_provenance},
+                ),
+                InstrumentDatasetState(
+                    instrument_id=instrument.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj:local_split_ratio",
+                    status=DatasetStatus.FRESH,
+                    observed_at=start,
+                    fetched_at=start,
+                    coverage_start=start,
+                    coverage_end=start,
+                    version=2,
+                    extra_data={"adjustment_provenance": provenance},
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": start.isoformat(),
+                "end": start.isoformat(),
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["adjustment_provenance"]["factor_version"] == ("afv1-local-specific")
+
     def test_range_coverage_does_not_project_future_factor_state(
         self, client, auth_headers, db, instrument
     ):
