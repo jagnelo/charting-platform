@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Raw/provider storage reconciliation evidence
+
+- [x] Add provider-bar versus raw-observation reconciliation evidence to the
+      adjusted OHLCV coverage contract, distinguishing reconciled, missing,
+      mismatched, orphaned, and not-observed states while excluding derived
+      rows from raw-observation requirements.
+- [x] Regress storage/coverage (`8/8`) and the backend unit-only suite
+      (`1,387/1,387`); the exact gate preserved `1,387/387` backend,
+      `990/990` frontend, `165` functional passes, `107` documented skips,
+      and the six visual diffs with clean teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue family/provider history, W1/MN continuity,
+      cadence, and canonical population.
+
 ### 2026-09-10 — Persisted factor completeness guard
 
 - [x] Reject durable split-factor provenance when any valid persisted split
