@@ -389,7 +389,10 @@ class _RESTProvider:
             _raise_http_error(self.name, exc)
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, redact_provider_message(str(exc))) from exc
-        payload = response.json()
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "provider returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload
 

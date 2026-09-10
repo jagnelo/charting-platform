@@ -677,6 +677,20 @@ def test_http_success_error_envelopes_do_not_become_empty_data(provider, setting
             provider.get_current_price("AAPL")
 
 
+def test_malformed_json_is_a_typed_provider_failure():
+    provider = TwelveDataProvider()
+    response = _response({})
+    response.json.side_effect = ValueError("not json")
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_current_price("AAPL")
+    assert exc_info.value.provider_name == "twelve_data"
+
+
 def test_http_success_rate_limit_envelope_is_typed_capacity_failure():
     provider = FinnhubProvider()
     with (
