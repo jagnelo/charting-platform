@@ -9,9 +9,9 @@ PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
 
 The command performs a preflight, prints every missing environment variable,
 runs one bounded read per provider (including the public tokenized-security
-matrix), and returns non-zero when a credentialed
-probe is blocked. A missing credential is never reported as a passing skip.
-The wrapper returns exit code `2` for an incomplete credential preflight.
+matrix), and returns non-zero when a credential or usage-attribution preflight
+is blocked. A missing credential is never reported as a passing skip. The
+wrapper returns exit code `2` for an incomplete credential/usage preflight.
 It also prints a routing-safety preflight for FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
 poll controls, and the operation-level Tiingo/FMP byte-bound maps. A direct
