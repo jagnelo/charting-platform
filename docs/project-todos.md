@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — UTC normalization at the bulk-history boundary
+
+- [x] Normalize offset-aware provider timestamps to UTC before bulk-history
+      comparisons and persistence, keeping canonical OHLCV keys consistent
+      across equivalent timestamp offsets.
+- [x] Regress the bulk worker (`7/7`) and full backend unit suite
+      (`1,406/1,406`, `67.76%` coverage against the `55%` threshold); Ruff,
+      formatting, and diff checks passed without changing visible or visual
+      policy.
+- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
+      coherent tip, and continue provider factor application/rebuild,
+      family/provider history, W1/MN continuity, cadence, and population.
+
 ### 2026-09-10 — Explicit intraday history requests
 
 - [x] Preserve explicit intraday-only history requests: the bulk worker now

@@ -98,13 +98,13 @@
   "goal_state": "active",
   "goal_unavailable_reason": null,
   "head": "66a3366ead0db06116795f1f1862209bdcd20e92",
-  "implementation_sha": "e8bef95c480a68d39e51aa4057e4aff619d757e3",
+  "implementation_sha": "6dbf5fac667e6ad60560a46bb308470aaa169ff3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T10:27:00Z",
-  "last_human_progress_update": "2026-09-10T10:27:00Z",
+  "last_checkpoint": "2026-09-10T10:33:00Z",
+  "last_human_progress_update": "2026-09-10T10:33:00Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip e8bef95c; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
-  "plan_hash": "0e22b774f5f349525311dc965b144f96fb45ea1ad69fac065f1fde8fb9e266d1",
+  "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip 6dbf5fac; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
+  "plan_hash": "257ba085fcb23ce9d1178fda9a7572de6cb4da1b4bcd62e66eb7d0566a64c4fa",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip e8bef95c fixes an order-dependent bulk-history guard: explicit intraday-only requests such as H1 now reach the provider, while the coarse-history skip optimization remains limited to mixed requests after all requested coarse timeframes have been attempted. Focused bulk-fetch coverage passed 6/6; full backend unit coverage passed 1405/1405 at 67.76% against the configured 55% threshold; Ruff, formatting, and diff checks passed. Product tip 794d5e35 hardens canonical OHLCV storage reconciliation on instrument, source, timeframe, UTC-normalized timestamp, and raw versus adjusted mode. The exact Docker-backed gate remains pending because Docker Desktop is stopped; no service restart was attempted. R1 remains active for provider-factor application/rebuild verification, family/provider-history readiness, W1/MN continuity, broader cadence, and canonical population; R2-R7 remain open.",
+    "current_blocker": "Product tip 6dbf5fac normalizes offset-aware provider timestamps to UTC before bulk-history comparison and persistence. Explicit intraday-only requests also reach the provider rather than being silently skipped. Focused bulk-fetch coverage passed 7/7; full backend unit coverage passed 1406/1406 at 67.76% against the configured 55% threshold; Ruff, formatting, and diff checks passed. Prices, bars, provider routing, fallback, visible layout, pixels, visual baselines, thresholds, skips, and acceptance policy are unchanged. The exact Docker-backed gate remains pending because Docker Desktop is stopped; no service restart was attempted. R1 remains active for provider-factor application/rebuild verification, family/provider-history readiness, W1/MN continuity, broader cadence, and canonical population; R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip e8bef95c; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
+    "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip 6dbf5fac; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
     "total": 19,
-    "updated_at": "2026-09-10T10:27:00Z"
+    "updated_at": "2026-09-10T10:33:00Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

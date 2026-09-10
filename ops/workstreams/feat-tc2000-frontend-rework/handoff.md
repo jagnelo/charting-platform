@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — UTC normalization at the bulk-history boundary
+
+Product tip `6dbf5fac` makes bulk-history timestamp coercion normalize
+offset-aware provider values to UTC before comparison and persistence. This
+keeps equivalent instants on one canonical OHLCV identity and aligns the worker
+with storage-reconciliation UTC semantics. Focused bulk-fetch coverage passed
+`7/7`; the full backend unit suite passed `1,406/1,406` at `67.76%` coverage
+against the configured `55%` threshold. Ruff, formatting, and diff checks
+passed. No prices, bars, provider routing, fallback, visible layout, visual
+baseline, threshold, skip, or acceptance policy changed.
+
+The exact Docker-backed gate remains pending at `bab365e9` and then the current
+coherent tip. Continue the next bounded R1 provider-factor/history seam once
+the branch-scoped Docker stack is available.
+
 ## 2026-09-10 — Explicit intraday history requests
 
 Product tip `e8bef95c` fixes an order-dependent bulk-history guard. An

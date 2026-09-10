@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — UTC normalization at the bulk-history boundary
+
+At product tip `6dbf5fac`, bulk-history timestamp coercion now converts
+offset-aware provider timestamps to UTC before comparison and persistence;
+naive timestamps continue to be treated as UTC. This keeps the canonical
+OHLCV bar contract consistent with the storage-reconciliation identity and
+prevents equivalent instants with different offsets from producing divergent
+stored keys. Focused bulk-fetch coverage passed `7/7`; the full backend unit
+suite passed `1,406/1,406` with `67.76%` coverage against its `55%` threshold.
+Ruff, formatting, and diff checks passed. Prices, bars, provider routing,
+fallback, visible layout, pixels, visual baselines, thresholds, skips, and
+acceptance policy are unchanged.
+
+R1 remains active for provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, broader cadence, and
+canonical population evidence; R2-R7 remain open. The exact Docker-backed gate
+still needs to be rerun at `bab365e9` and then at the current coherent tip when
+Docker is responsive.
+
 ## 2026-09-10 — Explicit intraday history requests
 
 At product tip `e8bef95c`, the bulk-history worker no longer silently skips an

@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 6dbf5fac normalizes offset-aware provider timestamps to UTC at
+  the bulk-history boundary before comparison and persistence, keeping
+  canonical OHLCV identities stable across equivalent offsets. Focused
+  bulk-fetch coverage passed 7/7; the full backend unit suite passed 1406/1406
+  with 67.76% coverage against the configured 55% threshold. Ruff, formatting,
+  and diff checks passed. Prices, bars, provider routing, fallback, visible
+  layout, pixels, visual baselines, thresholds, skips, and acceptance policy
+  are unchanged. The exact Docker-backed gate still needs to be rerun first at
+  bab365e9 and then at this coherent tip when Docker is responsive. R1 remains
+  active for provider-factor application/rebuild verification, family/provider-
+  history readiness, W1/MN continuity, broader cadence, and canonical
+  population; R2-R7 remain open.
   Product tip e8bef95c fixes an order-dependent bulk-history guard: an explicit
   intraday-only request such as H1 now reaches the provider, while the
   coarse-history skip optimization remains limited to mixed requests after all
