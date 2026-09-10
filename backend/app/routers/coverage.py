@@ -112,6 +112,8 @@ async def instrument_ohlcv_coverage(
         dataset_keys = [f"{timeframe.value}:adj"]
         if lineage.adjustment_provenance.get("source_kind") == "local_split_ratio":
             dataset_keys.insert(0, f"{timeframe.value}:adj:local_split_ratio")
+        elif lineage.adjustment_provenance.get("source_kind") == "provider_adjustment_factor":
+            dataset_keys.insert(0, f"{timeframe.value}:adj:provider_adjustment_factor")
         dataset_state = (
             await db.execute(
                 select(InstrumentDatasetState)

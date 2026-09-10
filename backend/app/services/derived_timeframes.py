@@ -97,51 +97,66 @@ async def _canonical_d1_factor_version(
                 return None
             versions.add(version)
 
-    local_row_statement = select(OHLCVBar.id).where(
+    local_row_statement = select(OHLCVBar.derivation_method).where(
         OHLCVBar.instrument_id == instrument_id,
         OHLCVBar.timeframe == Timeframe.D1,
         OHLCVBar.is_adjusted.is_(True),
         OHLCVBar.is_derived.is_(True),
-        OHLCVBar.derivation_method == "local_split_ratio",
+        OHLCVBar.derivation_method.in_(("local_split_ratio", "provider_adjustment_factor")),
     )
     if normalized_end is not None:
         local_row_statement = local_row_statement.where(OHLCVBar.ts <= normalized_end)
-    local_rows = (await db.execute(local_row_statement)).scalars().all()
-    if local_rows:
-        local_state = (
-            await db.execute(
-                select(InstrumentDatasetState).where(
-                    InstrumentDatasetState.instrument_id == instrument_id,
-                    InstrumentDatasetState.data_source_id.is_(None),
-                    InstrumentDatasetState.dataset_type == "ohlcv",
-                    InstrumentDatasetState.dataset_key == "D1:adj:local_split_ratio",
+    local_methods = {row for row in (await db.execute(local_row_statement)).scalars().all() if row}
+    if local_methods:
+        local_state_statement = select(InstrumentDatasetState).where(
+            InstrumentDatasetState.instrument_id == instrument_id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_type == "ohlcv",
+            InstrumentDatasetState.dataset_key.in_(
+                (
+                    "D1:adj:local_split_ratio",
+                    "D1:adj:provider_adjustment_factor",
                 )
-            )
-        ).scalar_one_or_none()
-        if local_state is None:
-            return None
-        if normalized_end is not None and (
-            local_state.coverage_end is None
-            or (
-                local_state.coverage_end
-                if local_state.coverage_end.tzinfo is not None
-                else local_state.coverage_end.replace(tzinfo=UTC)
-            ).astimezone(UTC)
-            > normalized_end
+            ),
+        )
+        local_states = (await db.execute(local_state_statement)).scalars().all()
+        expected_local_keys = {
+            f"D1:adj:{method}"
+            for method in local_methods
+            if method in {"local_split_ratio", "provider_adjustment_factor"}
+        }
+        if (
+            not expected_local_keys
+            or {state.dataset_key for state in local_states} != expected_local_keys
         ):
-            # The local factor state may include a later split event than the
-            # dated view.  Without a historical state version, keep lineage
-            # explicitly unversioned rather than claiming future evidence.
             return None
-        provenance = (local_state.extra_data or {}).get("adjustment_provenance")
-        if not isinstance(provenance, dict):
-            return None
-        if provenance.get("factor_status") != "rebuildable_split_factors":
-            return None
-        local_version = provenance.get("factor_version")
-        if not isinstance(local_version, str) or not local_version:
-            return None
-        versions.add(local_version)
+        for local_state in local_states:
+            if normalized_end is not None and (
+                local_state.coverage_end is None
+                or (
+                    local_state.coverage_end
+                    if local_state.coverage_end.tzinfo is not None
+                    else local_state.coverage_end.replace(tzinfo=UTC)
+                ).astimezone(UTC)
+                > normalized_end
+            ):
+                # The local factor state may include a later event than the
+                # dated view. Without a historical state version, keep
+                # lineage explicitly unversioned rather than claiming future
+                # evidence.
+                return None
+            provenance = (local_state.extra_data or {}).get("adjustment_provenance")
+            if not isinstance(provenance, dict):
+                return None
+            if provenance.get("factor_status") not in {
+                "rebuildable_split_factors",
+                "rebuildable_provider_factors",
+            }:
+                return None
+            local_version = provenance.get("factor_version")
+            if not isinstance(local_version, str) or not local_version:
+                return None
+            versions.add(local_version)
 
     if not versions:
         return None

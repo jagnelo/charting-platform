@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -320,21 +320,29 @@ def rebuild_provider_adjusted_bars(
     )
 
 
-async def materialize_local_split_adjusted_view(
+async def _materialize_local_adjusted_view(
     db: AsyncSession,
     *,
     instrument_id: int,
     timeframe: Timeframe = Timeframe.D1,
     start: datetime | None = None,
     end: datetime | None = None,
+    rebuilder: Callable[
+        [Iterable[object], Iterable[AdjustmentFactorObservation]], AdjustmentRebuildResult
+    ] = rebuild_split_adjusted_bars,
+    source_kind: str = "local_split_ratio",
+    dataset_key_suffix: str = "local_split_ratio",
+    adjustment_label: str = "split_adjusted",
+    source_requirement_reason: str = "local_split_view_requires_one_identified_raw_provider_source",
 ) -> PersistedAdjustmentViewResult:
-    """Persist a local split-adjusted view from one unadjusted source.
+    """Persist a local adjusted view from one unadjusted source.
 
     This is an explicit maintenance operation, not an automatic provider
     fallback. It refuses ambiguous raw-source mixes and unsupported or
     incomplete factor evidence, preserves provider-adjusted rows when their
     identity already exists, and records the derived view's factor version in
-    a provider-neutral dataset state.
+    a provider-neutral dataset state. The rebuilder and lineage labels are
+    supplied by the explicit split or provider-factor contract.
     """
 
     predicates = [
@@ -363,7 +371,7 @@ async def materialize_local_split_adjusted_view(
         return PersistedAdjustmentViewResult(
             status="ambiguous_raw_source",
             raw_bar_count=len(raw_bars),
-            reason="local_split_view_requires_one_identified_raw_provider_source",
+            reason=source_requirement_reason,
         )
     data_source_id = next(iter(source_ids))
     assert data_source_id is not None
@@ -386,7 +394,7 @@ async def materialize_local_split_adjusted_view(
         .scalars()
         .all()
     )
-    rebuilt = rebuild_split_adjusted_bars(raw_bars, observations)
+    rebuilt = rebuilder(raw_bars, observations)
     if rebuilt.status != "applied":
         return PersistedAdjustmentViewResult(
             status=rebuilt.status,
@@ -416,7 +424,7 @@ async def materialize_local_split_adjusted_view(
     for derived in rebuilt.bars:
         prior = existing_by_ts.get(_as_utc(derived.ts))
         if prior is not None and not (
-            prior.is_derived is True and prior.derivation_method == "local_split_ratio"
+            prior.is_derived is True and prior.derivation_method == source_kind
         ):
             skipped_provider += 1
             continue
@@ -451,7 +459,7 @@ async def materialize_local_split_adjusted_view(
             materialized_timestamps.append(derived.ts)
 
     if materialized_timestamps:
-        dataset_key = f"{timeframe.value}:adj:local_split_ratio"
+        dataset_key = f"{timeframe.value}:adj:{dataset_key_suffix}"
         state = (
             await db.execute(
                 select(InstrumentDatasetState).where(
@@ -482,15 +490,19 @@ async def materialize_local_split_adjusted_view(
         state.extra_data = {
             "bar_count": len(materialized_timestamps),
             "adjusted": True,
-            "adjustment": "split_adjusted",
-            "source_kind": "local_split_ratio",
+            "adjustment": adjustment_label,
+            "source_kind": source_kind,
             "provider_source_id": data_source_id,
             "source_timeframe": timeframe.value,
-            "derivation_method": "local_split_ratio",
+            "derivation_method": source_kind,
             "adjustment_provenance": {
-                "mode": "split_adjusted",
-                "source_kind": "local_split_ratio",
-                "factor_status": "rebuildable_split_factors",
+                "mode": adjustment_label,
+                "source_kind": source_kind,
+                "factor_status": (
+                    "rebuildable_provider_factors"
+                    if source_kind == "provider_adjustment_factor"
+                    else "rebuildable_split_factors"
+                ),
                 "factor_version": rebuilt.factor_version,
                 "contract_version": 1,
             },
@@ -503,6 +515,57 @@ async def materialize_local_split_adjusted_view(
         persisted_bar_count=persisted,
         updated_bar_count=updated,
         skipped_provider_bar_count=skipped_provider,
+    )
+
+
+async def materialize_local_split_adjusted_view(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe = Timeframe.D1,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> PersistedAdjustmentViewResult:
+    """Persist a local split-adjusted view from one unadjusted source."""
+
+    return await _materialize_local_adjusted_view(
+        db,
+        instrument_id=instrument_id,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+    )
+
+
+async def materialize_local_provider_adjusted_view(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: Timeframe = Timeframe.D1,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> PersistedAdjustmentViewResult:
+    """Persist a provider-factor-adjusted view from one unadjusted source.
+
+    Provider factors are applied only when the persisted observation contract
+    identifies one positive factor set and one factor version. The operation
+    is explicit and never replaces a provider-adjusted row at the same
+    timestamp.
+    """
+
+    return await _materialize_local_adjusted_view(
+        db,
+        instrument_id=instrument_id,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+        rebuilder=rebuild_provider_adjusted_bars,
+        source_kind="provider_adjustment_factor",
+        dataset_key_suffix="provider_adjustment_factor",
+        adjustment_label="provider_adjusted",
+        source_requirement_reason=(
+            "local_provider_view_requires_one_identified_raw_provider_source"
+        ),
     )
 
 

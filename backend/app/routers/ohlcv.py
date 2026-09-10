@@ -13,7 +13,10 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import LocalSplitMaterializationOut, OHLCVBarOut
-from app.services.adjustment_factors import materialize_local_split_adjusted_view
+from app.services.adjustment_factors import (
+    materialize_local_provider_adjusted_view,
+    materialize_local_split_adjusted_view,
+)
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
@@ -66,6 +69,45 @@ async def materialize_local_split(
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
     result = await materialize_local_split_adjusted_view(
+        db,
+        instrument_id=instrument.id,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+    )
+    await db.commit()
+    return result
+
+
+@router.post(
+    "/{symbol:path}/{timeframe}/materialize-local-provider",
+    response_model=LocalSplitMaterializationOut,
+)
+async def materialize_local_provider(
+    symbol: str,
+    timeframe: Timeframe,
+    start: datetime | None = Query(None),
+    end: datetime | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Build a local adjusted view from explicit provider adjustment factors."""
+
+    if start is not None and start.tzinfo is None:
+        start = start.replace(tzinfo=UTC)
+    if end is not None and end.tzinfo is None:
+        end = end.replace(tzinfo=UTC)
+    if start is not None and end is not None and end < start:
+        raise HTTPException(
+            422,
+            detail={"code": "invalid_ohlcv_range", "message": "end must be on or after start"},
+        )
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    ).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found.")
+    result = await materialize_local_provider_adjusted_view(
         db,
         instrument_id=instrument.id,
         timeframe=timeframe,

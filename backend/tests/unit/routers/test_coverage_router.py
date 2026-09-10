@@ -325,6 +325,70 @@ class TestCoverageRouter:
             "contract_version": 1,
         }
 
+    def test_range_coverage_exposes_provider_factor_derived_version(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        start = datetime(2026, 2, 2, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    derivation_method="provider_adjustment_factor",
+                    source_timeframe="D1",
+                ),
+                InstrumentDatasetState(
+                    instrument_id=instrument.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj:provider_adjustment_factor",
+                    status=DatasetStatus.FRESH,
+                    observed_at=start,
+                    fetched_at=start,
+                    version=1,
+                    extra_data={
+                        "adjustment_provenance": {
+                            "mode": "provider_adjusted",
+                            "source_kind": "provider_adjustment_factor",
+                            "factor_status": "rebuildable_provider_factors",
+                            "factor_version": "afv1-provider-derived-version",
+                            "contract_version": 1,
+                        }
+                    },
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": start.isoformat(),
+                "end": start.isoformat(),
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_adjustment_factor",
+            "factor_status": "rebuildable_provider_factors",
+            "factor_version": "afv1-provider-derived-version",
+            "contract_version": 1,
+        }
+
     def test_range_readiness_reports_mixed_provider_and_derived_lineage(
         self, client, auth_headers, db, instrument
     ):

@@ -10,6 +10,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentDatasetState
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
+    materialize_local_provider_adjusted_view,
     materialize_local_split_adjusted_view,
     persist_adjustment_factor_observations,
     rebuild_provider_adjusted_bars,
@@ -583,3 +584,112 @@ async def test_materialize_local_split_view_persists_lineage_and_preserves_provi
     )
     assert state.extra_data["source_kind"] == "local_split_ratio"
     assert state.extra_data["adjustment_provenance"]["factor_version"] == "afv1-local-split"
+
+
+@pytest.mark.asyncio
+async def test_materialize_local_provider_view_applies_factor_and_preserves_provider_rows(
+    db, instrument
+):
+    source = DataSource(name="provider-factor-price-provider")
+    db.add(source)
+    db.flush()
+    before = datetime(2024, 6, 7, 21, tzinfo=UTC)
+    after = datetime(2024, 6, 10, 21, tzinfo=UTC)
+    db.add_all(
+        [
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=before,
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                vwap=Decimal("100"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=after,
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                vwap=Decimal("100"),
+                is_adjusted=False,
+                is_derived=False,
+            ),
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=after,
+                open=Decimal("100"),
+                high=Decimal("102"),
+                low=Decimal("99"),
+                close=Decimal("101"),
+                volume=Decimal("100"),
+                vwap=Decimal("101"),
+                is_adjusted=True,
+                is_derived=False,
+            ),
+        ]
+    )
+    db.add(
+        AdjustmentFactorObservation(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            factor_type="dividend",
+            effective_at=after,
+            factor=Decimal("0.9975"),
+            factor_kind="provider_supplied",
+            amount=Decimal("0.25"),
+            source_event_key="dividend:2024-06-10",
+            observed_at=datetime(2024, 6, 11, tzinfo=UTC),
+            factor_version="afv1-provider-dividend",
+        )
+    )
+    db.flush()
+
+    result = await materialize_local_provider_adjusted_view(
+        AsyncSessionAdapter(db), instrument_id=instrument.id
+    )
+
+    assert result.status == "applied"
+    assert result.raw_bar_count == 2
+    assert result.persisted_bar_count == 1
+    assert result.updated_bar_count == 0
+    assert result.skipped_provider_bar_count == 1
+    derived = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .one()
+    )
+    assert derived.ts.replace(tzinfo=UTC) == before
+    assert derived.close == Decimal("99.75000000")
+    assert derived.volume == Decimal("100.2506")
+    assert derived.derivation_method == "provider_adjustment_factor"
+    state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "D1:adj:provider_adjustment_factor",
+        )
+        .one()
+    )
+    assert state.extra_data["source_kind"] == "provider_adjustment_factor"
+    assert state.extra_data["adjustment_provenance"]["factor_status"] == (
+        "rebuildable_provider_factors"
+    )
+    assert state.extra_data["adjustment_provenance"]["factor_version"] == ("afv1-provider-dividend")

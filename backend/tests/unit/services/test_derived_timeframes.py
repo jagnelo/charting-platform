@@ -279,6 +279,70 @@ async def test_materialize_derived_timeframes_inherits_local_split_factor_versio
 
 
 @pytest.mark.asyncio
+async def test_materialize_derived_timeframes_inherits_local_provider_factor_version(
+    db, instrument
+):
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method="provider_adjustment_factor",
+            )
+        )
+    db.add(
+        InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj:provider_adjustment_factor",
+            status=DatasetStatus.FRESH,
+            version=1,
+            extra_data={
+                "adjustment_provenance": {
+                    "mode": "provider_adjusted",
+                    "source_kind": "provider_adjustment_factor",
+                    "factor_status": "rebuildable_provider_factors",
+                    "factor_version": "afv1-provider-local",
+                    "contract_version": 1,
+                }
+            },
+        )
+    )
+    db.flush()
+
+    result = await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id)
+
+    assert result == {"W1": 1, "MN": 1}
+    weekly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert weekly_state.extra_data["adjustment_provenance"] == {
+        "mode": "split_adjusted",
+        "source_kind": "derived_from_canonical_d1",
+        "factor_status": "inherited_from_canonical_d1",
+        "factor_version": "afv1-provider-local",
+        "contract_version": 1,
+    }
+
+
+@pytest.mark.asyncio
 async def test_materialize_derived_timeframes_historical_end_preserves_newer_cache(db, instrument):
     for day, close in ((2, "10"), (3, "11")):
         db.add(

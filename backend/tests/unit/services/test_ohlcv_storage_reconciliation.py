@@ -163,3 +163,17 @@ def test_lineage_identifies_local_split_ratio_derived_rows():
     assert summary.source_lineage == "derived_only"
     assert summary.adjustment_provenance["source_kind"] == "local_split_ratio"
     assert summary.adjustment_provenance["factor_status"] == "rebuildable_split_factors"
+
+
+def test_lineage_identifies_provider_factor_derived_rows():
+    bar = _bar(
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        source_id=None,
+        derived=True,
+    )
+    bar.derivation_method = "provider_adjustment_factor"
+    summary = summarize_ohlcv_lineage([bar], adjusted=True)
+
+    assert summary.source_lineage == "derived_only"
+    assert summary.adjustment_provenance["source_kind"] == "provider_adjustment_factor"
+    assert summary.adjustment_provenance["factor_status"] == "rebuildable_provider_factors"
