@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b35d5f5e26638fe82ed6a74cf956e15f74fd5611",
-  "implementation_sha": "b35d5f5e26638fe82ed6a74cf956e15f74fd5611",
+  "head": "3ab0d18c37302b21b577d3a557f0548f9ad85fa9",
+  "implementation_sha": "3ab0d18c37302b21b577d3a557f0548f9ad85fa9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T18:52:12Z",
-  "last_human_progress_update": "2026-09-10T18:52:12Z",
+  "last_checkpoint": "2026-09-10T19:24:30Z",
+  "last_human_progress_update": "2026-09-10T19:24:30Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "dd6b1b079eeb1925001b96c866a7fdf016e89b0bae887cb723a6147df8931f9a",
+  "plan_hash": "25e6f3109a6dd42596d64d4199bbec42d829641c067218e7515a2c7d45b44de0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip b35d5f5e requires dated W1/MN materialization to prove both coverage_end and fetched_at before inheriting a D1 factor version; missing or future fetch proof remains conservative and cannot project later factor evidence into an earlier historical slice. Focused derived-timeframe regression coverage passed 9/9; full backend unit passed 1435/1435 at 68% with Ruff, formatting, and diff checks clean. The exact Docker-backed gate passed all non-visual stages and functional Playwright 165 passed with 107 documented skips across 272. Backend integration passed 387/387 with 81.36% combined coverage; visual parity completed 104 cases with 98 passes and exactly the six established protected diffs; the gate exited 1 at e2e-visual after clean branch-scoped teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip 3ab0d18c closes a point-in-time classification seam: dated ETF industry and constituent profile snapshots now require non-null fetched_at alongside observed_at, with both no later than the normalized UTC as_of cutoff. Holdings cutoffs and source classification normalize offset-less values to UTC, preventing a profile fetched after the historical cutoff from leaking future classification into a dated response. Focused taxonomy/router regression coverage passed 41/41; full backend unit passed 1437/1437 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed backend integration 387/387 with 81.36% combined coverage, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; the gate exited 1 at e2e-visual after clean branch-scoped teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T18:52:12Z"
+    "updated_at": "2026-09-10T19:24:30Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

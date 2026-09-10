@@ -8,6 +8,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Historical industry classification honors fetch cutoff
+
+Product tip `3ab0d18c37302b21b577d3a557f0548f9ad85fa9` closes a point-in-time
+classification seam. Dated ETF industry/constituent profile snapshots now
+require non-null `fetched_at` as well as `observed_at`, with both no later than
+the normalized UTC cutoff; holdings and source-classification cutoff handling
+also normalize offset-less values to UTC. Future-fetched profiles therefore
+cannot classify an earlier historical view.
+
+Focused taxonomy/router regressions passed `41/41`; the full backend unit suite
+passed `1,437/1,437` at `68%`, with Ruff, formatting, and diff checks clean. The
+exact Docker-backed gate passed backend integration (`387/387`, `81.36%`
+combined coverage), functional Playwright (`165` passed, `107` documented
+skips across `272`), and all non-visual stages. Visual parity remains `98/104`
+with exactly the six established protected diffs; the gate exited at
+`e2e-visual` after clean scoped teardown. No visual, provider, fallback, or
+acceptance policy changed.
+
+Open work remains full provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7. Keep the branch at the
+review boundary; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
 
 Product tip `b35d5f5e26638fe82ed6a74cf956e15f74fd5611` hardens dated W1/MN

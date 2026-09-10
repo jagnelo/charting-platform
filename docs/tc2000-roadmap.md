@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Historical industry classification honors fetch cutoff
+
+At product tip `3ab0d18c`, dated ETF industry and constituent reads now require
+profile snapshots to prove both `observed_at` and non-null `fetched_at` at or
+before the normalized UTC `as_of` cutoff. Holdings cutoffs use the same UTC
+normalization, and source classification accepts offset-less API cutoffs
+without mixing naive and aware timestamps. A profile observed before a
+historical date but fetched after it can no longer leak future classification
+into a dated response.
+
+The focused taxonomy/router regression suite passed `41/41`; the complete
+backend unit suite passed `1,437/1,437` with `68%` total coverage; Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker gate passed
+all non-visual stages, backend integration (`387/387` with `81.36%` combined
+coverage), and functional Playwright (`165` passed, `107` documented skips
+across `272`). Visual parity completed `104` cases with `98` passes and exactly
+the six protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes one historical classification fetch-time seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Historical coarse-timeframe factor proof honors fetch cutoff
 
 At product tip `b35d5f5e`, dated W1/MN materialization now requires both
