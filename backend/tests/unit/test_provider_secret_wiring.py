@@ -2,6 +2,8 @@ import importlib.util
 import re
 from pathlib import Path
 
+from app.config import provider_required_operation_byte_bounds
+
 ROOT = Path(__file__).resolve().parents[3]
 
 _LIVE_SCRIPT_SPEC = importlib.util.spec_from_file_location(
@@ -204,3 +206,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
 
 def test_fmp_byte_bound_preflight_covers_market_events_operation():
     assert "fetch_market_events" in _LIVE_SCRIPT.BYTE_BOUND_OPERATIONS["fmp"]
+
+
+def test_live_runner_byte_bound_operation_sets_match_runtime_policy():
+    for provider, operations in _LIVE_SCRIPT.BYTE_BOUND_OPERATIONS.items():
+        assert tuple(operations) == provider_required_operation_byte_bounds(provider)
