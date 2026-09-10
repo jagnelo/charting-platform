@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Coverage request boundaries normalize to UTC
+
+- [x] Normalize instrument OHLCV coverage `start`/`end` request boundaries to
+      UTC before validation, SQL selection, coverage/provenance assessment,
+      and response serialization.
+- [x] Focused coverage-router regressions passed `11/11`; the full backend
+      unit suite passed `1,446/1,446` at `68%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact elevated Docker-backed gate passed all non-visual stages,
+      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`); visual parity was `98/104` with exactly the six protected diffs
+      and clean branch-scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Market Map range and cache boundaries normalize to UTC
 
 - [x] Canonicalize Market Map membership, period, bar, reference, watermark,

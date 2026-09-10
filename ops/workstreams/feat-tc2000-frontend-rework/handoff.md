@@ -8,6 +8,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Coverage request boundaries normalize to UTC
+
+Product tip `c1f141a52c6dd296595c2b5998578cc79aac2f8d` closes the public
+instrument OHLCV coverage-request timestamp seam. Naive and offset-aware
+`start`/`end` boundaries are canonicalized to UTC before reversed-range
+validation, SQL selection, coverage/provenance assessment, and response
+serialization, keeping equivalent requests on one persisted timeline.
+
+Focused coverage-router regressions passed `11/11`; the full backend unit suite
+passed `1,446/1,446` at `68%`, with Ruff, formatting, and diff checks clean.
+The exact elevated Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`), frontend Vitest (`991/991`) and build, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established protected state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). The gate exited at
+`e2e-visual` after clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images. No visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed.
+
+This closes the public coverage-request seam only. Full provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, dense-data evidence, and R2-R7 remain open. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-10 — Market Map range and cache boundaries normalize to UTC
 
 Product tip `b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3` closes the Market Map
