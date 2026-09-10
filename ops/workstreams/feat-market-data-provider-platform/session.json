@@ -113,7 +113,7 @@
   "head": "9c4844775a72d8fd40f9555e137baefd82b69679",
   "implementation_sha": "36aa4b848024b748c5673fb9d238def23fd876b1",
   "last_checkpoint": "2026-09-10T04:34:49.090828+00:00",
-  "last_human_progress_update": "2026-09-10T04:00:59.759874+00:00",
+  "last_human_progress_update": "2026-09-10T04:35:12.874596+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -142,10 +142,10 @@
       "AC-RATE-FAILURE"
     ],
     "current_blocker": "Latest 34-case live matrix at 2026-09-10T03:59Z passed 31/34 with exact preflight failures for ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY. Provider-specific FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit, and Tiingo/FMP controls remain explicitly fail-closed; GitHub environment verification, complete NMS/OTC reconciliation, and the separately approved 30-day shadow run remain external acceptance gates.",
-    "current_phase": "credentialed_live_validation",
-    "next_action": "Keep all provider routing fail-closed; obtain the three missing credential domains and operator-reviewed safety/legal controls, restore jagnelo GitHub authentication to verify the environment-scoped live secrets and variables, then rerun the complete matrix and reassess ready_for_human_review. Do not activate routing or deploy.",
+    "current_phase": "provider_usage_observability_and_live_validation",
+    "next_action": "Keep provider routing fail-closed; use the new optional PROVIDER_LIVE_USAGE_LEDGER mount and /api/v1/providers/usage live_test_usage fields for cross-session probe accounting, obtain the three missing credential domains and reviewed safety/legal controls, restore jagnelo GitHub authentication, then rerun the complete matrix and reassess ready_for_human_review. Do not activate routing or deploy.",
     "total": 15,
-    "updated_at": "2026-09-10T04:00:59.759758+00:00"
+    "updated_at": "2026-09-10T04:35:12.874482+00:00"
   },
   "remote": "9c4844775a72d8fd40f9555e137baefd82b69679",
   "remote_sha": "36aa4b848024b748c5673fb9d238def23fd876b1",
