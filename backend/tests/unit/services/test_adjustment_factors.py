@@ -12,6 +12,7 @@ from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
     materialize_local_split_adjusted_view,
     persist_adjustment_factor_observations,
+    rebuild_provider_adjusted_bars,
     rebuild_split_adjusted_bars,
     summarize_persisted_adjustment_factor_provenance,
 )
@@ -332,6 +333,69 @@ def test_rebuild_split_adjusted_bars_requires_split_ratio_orientation():
     result = rebuild_split_adjusted_bars([], [provider_factor])
     assert result.status == "unsupported_provider_factors"
     assert result.reason == "provider_factor_orientation_requires_source_contract"
+    assert result.bars == ()
+
+
+def test_rebuild_provider_adjusted_bars_applies_explicit_dividend_multiplier():
+    dividend = AdjustmentFactorObservation(
+        factor_type="dividend",
+        factor=Decimal("0.9975"),
+        factor_kind="provider_supplied",
+        source_event_key="dividend:2024-06-10",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-provider-dividend",
+    )
+    result = rebuild_provider_adjusted_bars(
+        [
+            _bar(datetime(2024, 6, 7, 21, tzinfo=UTC), close="100"),
+            _bar(datetime(2024, 6, 10, 21, tzinfo=UTC), close="100"),
+        ],
+        [dividend],
+    )
+
+    assert result.status == "applied"
+    assert result.factor_version == "afv1-provider-dividend"
+    assert result.event_count == 1
+    assert result.applied_event_count == 1
+    before, after = result.bars
+    assert before.close == Decimal("99.750000")
+    assert before.volume == Decimal("100.2506265664160401002506266")
+    assert before.vwap == Decimal("99.750000")
+    assert before.derivation_method == "provider_adjustment_factor"
+    assert after.close == Decimal("100")
+    assert after.volume == Decimal("100")
+
+
+def test_rebuild_provider_adjusted_bars_rejects_mixed_or_incomplete_inputs():
+    provider = AdjustmentFactorObservation(
+        factor_type="dividend",
+        factor=Decimal("0.9975"),
+        factor_kind="provider_supplied",
+        source_event_key="dividend:provider",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-provider",
+    )
+    split = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("2"),
+        factor_kind="split_ratio",
+        source_event_key="split:ratio",
+        effective_at=datetime(2024, 6, 11, tzinfo=UTC),
+        factor_version="afv1-provider",
+    )
+    mixed = rebuild_provider_adjusted_bars([], [provider, split])
+    assert mixed.status == "provider_native_opaque_mixed_factor_kinds"
+    assert mixed.bars == ()
+
+    incomplete = AdjustmentFactorObservation(
+        factor_type="dividend",
+        factor_kind="provider_supplied",
+        source_event_key="dividend:missing-factor",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-provider",
+    )
+    result = rebuild_provider_adjusted_bars([], [incomplete])
+    assert result.status == "provider_native_opaque_incomplete_factor_set"
     assert result.bars == ()
 
 

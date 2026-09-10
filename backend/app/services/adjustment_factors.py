@@ -229,6 +229,97 @@ def rebuild_split_adjusted_bars(
     )
 
 
+def rebuild_provider_adjusted_bars(
+    raw_bars: Iterable[object],
+    observations: Iterable[AdjustmentFactorObservation],
+) -> AdjustmentRebuildResult:
+    """Apply an explicitly provider-supplied backward price-factor contract.
+
+    ``factor_kind=provider_supplied`` means the persisted factor is the
+    provider's multiplicative adjusted/raw price factor for bars before the
+    event.  This orientation is intentionally separate from
+    :func:`rebuild_split_adjusted_bars`, whose ``split_ratio`` inputs are raw
+    share ratios and therefore use the reciprocal.  Only explicit positive
+    provider factors sharing one version are applied; cash amounts, inferred
+    factors, mixed factor kinds, and incomplete versions remain opaque.
+    """
+
+    bars = tuple(raw_bars)
+    relevant = tuple(
+        observation
+        for observation in observations
+        if observation.factor_type
+        in {InstrumentEventType.SPLIT.value, InstrumentEventType.DIVIDEND.value}
+    )
+    if not relevant:
+        return AdjustmentRebuildResult(
+            status="not_observed",
+            reason="no_split_or_dividend_factor_observations",
+        )
+    if any(observation.factor_kind != "provider_supplied" for observation in relevant):
+        return AdjustmentRebuildResult(
+            status="provider_native_opaque_mixed_factor_kinds",
+            event_count=len(relevant),
+            reason="provider_adjustment_application_requires_explicit_provider_factors",
+        )
+    factors = tuple(
+        observation.factor if observation.factor is not None and observation.factor > 0 else None
+        for observation in relevant
+    )
+    if any(
+        factor is None or not observation.source_event_key or not observation.factor_version
+        for observation, factor in zip(relevant, factors, strict=True)
+    ):
+        return AdjustmentRebuildResult(
+            status="provider_native_opaque_incomplete_factor_set",
+            event_count=len(relevant),
+            reason="every_provider_factor_needs_a_positive_factor_and_version",
+        )
+    versions = {observation.factor_version for observation in relevant}
+    if len(versions) != 1:
+        return AdjustmentRebuildResult(
+            status="provider_native_opaque_inconsistent_factor_set",
+            event_count=len(relevant),
+            reason="all_provider_factors_must_share_one_factor_version",
+        )
+
+    ordered = tuple(
+        sorted(
+            zip(relevant, factors, strict=True),
+            key=lambda pair: (_as_utc(pair[0].effective_at).isoformat(), pair[0].source_event_key),
+        )
+    )
+    rebuilt: list[RebuiltOHLCVBar] = []
+    applied_event_keys: set[str] = set()
+    for bar in bars:
+        bar_ts = _as_utc(bar.ts)
+        cumulative = Decimal("1")
+        for observation, factor in ordered:
+            assert factor is not None  # guarded above; keeps Decimal typing precise
+            if _as_utc(observation.effective_at) > bar_ts:
+                cumulative *= factor
+                applied_event_keys.add(observation.source_event_key)
+        rebuilt.append(
+            RebuiltOHLCVBar(
+                ts=bar.ts,
+                open=Decimal(str(bar.open)) * cumulative,
+                high=Decimal(str(bar.high)) * cumulative,
+                low=Decimal(str(bar.low)) * cumulative,
+                close=Decimal(str(bar.close)) * cumulative,
+                volume=(Decimal(str(bar.volume)) / cumulative if bar.volume is not None else None),
+                vwap=(Decimal(str(bar.vwap)) * cumulative if bar.vwap is not None else None),
+                derivation_method="provider_adjustment_factor",
+            )
+        )
+    return AdjustmentRebuildResult(
+        status="applied",
+        factor_version=next(iter(versions)),
+        event_count=len(relevant),
+        applied_event_count=len(applied_event_keys),
+        bars=tuple(rebuilt),
+    )
+
+
 async def materialize_local_split_adjusted_view(
     db: AsyncSession,
     *,
