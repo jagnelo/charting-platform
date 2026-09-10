@@ -302,7 +302,14 @@ def test_daily_adapters_parse_common_rows():
     }
     for provider, setting, payload in (
         (TiingoProvider(), "TIINGO_API_KEY", [row]),
-        (MarketstackProvider(), "MARKETSTACK_API_KEY", {"data": [row]}),
+        (
+            MarketstackProvider(),
+            "MARKETSTACK_API_KEY",
+            {
+                "data": [row],
+                "pagination": {"limit": 100, "offset": 0, "count": 1, "total": 1},
+            },
+        ),
         (EODHDProvider(), "EODHD_API_KEY", [row]),
         (FMPProvider(), "FMP_API_KEY", [row]),
     ):
@@ -449,6 +456,23 @@ def test_marketstack_follows_response_pagination_and_reserves_each_page():
     assert [bar.close for bar in bars] == [10.5, 20.5]
     assert estimate_marketstack_ohlcv_request_count(Timeframe.D1, start, end) == 2
     assert estimate_marketstack_latest_ohlcv_request_count(Timeframe.D1, 100) == 2
+
+
+def test_marketstack_invalid_pagination_is_typed_instead_of_truncating_history():
+    provider = MarketstackProvider()
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"pagination": {"offset": 0, "count": "many", "total": 1}, "data": []},
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+            )
+    assert exc_info.value.provider_name == "marketstack"
 
 
 def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
@@ -620,6 +644,19 @@ def test_tradier_parses_documented_nested_history_and_singleton_quote_search_sha
         rows = provider.search_instruments("Apple")
     assert rows and rows[0].symbol == "AAPL"
     assert rows[0].name == "Apple Inc."
+
+
+def test_tradier_invalid_nested_wrapper_is_typed():
+    provider = TradierProvider()
+    with patch.object(provider, "_get", return_value={"history": {"day": "invalid"}}):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+            )
+    assert exc_info.value.provider_name == "tradier"
 
 
 def test_tradier_parses_option_expirations_and_chain_greeks():

@@ -793,13 +793,21 @@ class TradierProvider(_RESTProvider):
         if isinstance(wrapped, list):
             return [row for row in wrapped if isinstance(row, dict)]
         if not isinstance(wrapped, dict):
-            return []
+            if wrapped in (None, ""):
+                return []
+            raise ProviderResponseError(
+                "tradier", f"provider returned an invalid {container} wrapper"
+            )
         rows = wrapped.get(row_key)
         if isinstance(rows, list):
             return [row for row in rows if isinstance(row, dict)]
         if isinstance(rows, dict):
             return [rows]
-        return []
+        if rows in (None, ""):
+            return []
+        raise ProviderResponseError(
+            "tradier", f"provider returned an invalid {container}.{row_key} shape"
+        )
 
     def fetch_ohlcv(
         self,
@@ -1234,7 +1242,9 @@ class MarketstackProvider(_RESTProvider):
 
             pagination = payload.get("pagination") if isinstance(payload, dict) else None
             if not isinstance(pagination, dict):
-                break
+                raise ProviderResponseError(
+                    self.name, "provider omitted pagination metadata for an EOD page"
+                )
             try:
                 page_offset = int(pagination.get("offset", offset))
                 count = int(pagination.get("count", len(rows)))
@@ -1243,13 +1253,19 @@ class MarketstackProvider(_RESTProvider):
                 page_limit = max(
                     1, int(pagination.get("limit", _MARKETSTACK_POINTS_PER_REQUEST))
                 )
-            except (TypeError, ValueError):
-                break
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid EOD pagination metadata"
+                ) from exc
             if count <= 0 or page_offset < 0:
-                break
+                raise ProviderResponseError(
+                    self.name, "provider returned non-progressing EOD pagination metadata"
+                )
             next_offset = page_offset + count
             if next_offset <= offset:
-                break
+                raise ProviderResponseError(
+                    self.name, "provider returned non-progressing EOD pagination metadata"
+                )
             if total is not None and next_offset >= total:
                 break
             if total is None and count < page_limit:
