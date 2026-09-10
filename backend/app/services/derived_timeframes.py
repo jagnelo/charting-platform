@@ -23,6 +23,69 @@ DERIVATION_METHOD = "d1_ohlcv_xnys_calendar_aggregation"
 _BarLike = TypeVar("_BarLike", bound=OHLCVBar)
 
 
+async def _canonical_d1_factor_version(
+    db: AsyncSession, instrument_id: int, *, adjusted: bool
+) -> str | None:
+    """Return one verified D1 factor version suitable for derived lineage.
+
+    Coarse rows inherit the canonical adjusted D1 contract, but must not claim
+    a rebuildable factor version when the contributing provider sources disagree
+    or any source lacks explicit provenance. Raw rows never carry adjustment
+    provenance.
+    """
+
+    if not adjusted:
+        return None
+    source_ids = set(
+        (
+            await db.execute(
+                select(OHLCVBar.data_source_id).where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.is_derived.is_(False),
+                    OHLCVBar.data_source_id.is_not(None),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not source_ids:
+        return None
+
+    states = (
+        (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id == instrument_id,
+                    InstrumentDatasetState.data_source_id.in_(source_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == "D1:adj",
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if len(states) != len(source_ids):
+        return None
+
+    versions: set[str] = set()
+    for state in states:
+        provenance = (state.extra_data or {}).get("adjustment_provenance")
+        if not isinstance(provenance, dict):
+            return None
+        status = provenance.get("factor_status")
+        version = provenance.get("factor_version")
+        if status not in {"rebuildable_split_factors", "rebuildable_provider_factors"}:
+            return None
+        if not isinstance(version, str) or not version:
+            return None
+        versions.add(version)
+    return versions.pop() if len(versions) == 1 else None
+
+
 def _period_key(ts: datetime, timeframe: Timeframe) -> tuple[int, int]:
     value = ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
     value = value.astimezone(UTC)
@@ -111,6 +174,9 @@ async def materialize_derived_timeframes(
         .all()
     )
 
+    canonical_factor_version = await _canonical_d1_factor_version(
+        db, instrument_id, adjusted=adjusted
+    )
     result: dict[str, int] = {}
     for timeframe in (Timeframe.W1, Timeframe.MN):
         existing = (
@@ -208,7 +274,7 @@ async def materialize_derived_timeframes(
                 "mode": "split_adjusted" if adjusted else "raw",
                 "source_kind": "derived_from_canonical_d1",
                 "factor_status": "inherited_from_canonical_d1",
-                "factor_version": None,
+                "factor_version": canonical_factor_version,
                 "contract_version": 1,
             },
         }

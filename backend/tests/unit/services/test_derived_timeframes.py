@@ -5,8 +5,9 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import select
 
+from app.models.data_source import DataSource
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import InstrumentDatasetState
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.services.derived_timeframes import (
     DERIVATION_METHOD,
     aggregate_d1_bars,
@@ -151,3 +152,65 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
     assert len(monthly) == 1
     assert monthly[0].is_derived is True
     assert monthly[0].source_timeframe == "D1"
+
+
+@pytest.mark.asyncio
+async def test_materialize_derived_timeframes_inherits_verified_d1_factor_version(db, instrument):
+    source = DataSource(name="derived-factor-lineage-provider")
+    db.add(source)
+    db.flush()
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                is_derived=False,
+            )
+        )
+    db.add(
+        InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            version=1,
+            extra_data={
+                "adjustment_provenance": {
+                    "mode": "split_adjusted",
+                    "source_kind": "provider_observation",
+                    "factor_status": "rebuildable_provider_factors",
+                    "factor_version": "afv1-provider-d1",
+                    "contract_version": 1,
+                }
+            },
+        )
+    )
+    db.flush()
+
+    result = await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id)
+
+    assert result == {"W1": 1, "MN": 1}
+    weekly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert weekly_state.extra_data["adjustment_provenance"]["factor_status"] == (
+        "inherited_from_canonical_d1"
+    )
+    assert weekly_state.extra_data["adjustment_provenance"]["factor_version"] == (
+        "afv1-provider-d1"
+    )
