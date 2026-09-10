@@ -17,6 +17,8 @@ passed `11/11`; the full backend unit suite passed `1,403/1,403` with
 checks passed. Prices, bars,
 provider routing, fallback, visible layout, pixels, visual baselines,
 thresholds, skips, and acceptance policy are unchanged.
+The complete frontend Vitest suite also passed `991/991`; frontend type-check
+and production build passed with the existing large-chunk warning.
 
 R1 remains active for provider factor application/rebuild verification,
 family/provider-history readiness, W1/MN continuity, broader cadence, and

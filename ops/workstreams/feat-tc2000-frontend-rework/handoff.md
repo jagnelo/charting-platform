@@ -20,6 +20,8 @@ coverage passed `11/11`; the full backend unit suite passed `1,403/1,403` at
 checks passed. No prices,
 bars, provider routing, fallback, visual baseline, threshold, skip, or
 acceptance policy changed.
+The complete frontend Vitest suite also passed `991/991`; frontend type-check
+and production build passed with the existing large-chunk warning.
 
 The exact Docker-backed gate remains pending: first rerun from the conflict
 recovery product tip `bab365e9` when Docker is responsive, then rerun again at
