@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Durable factor provenance reconciliation
+
+- [x] Prefer durable normalized split/dividend observations when recording
+      provider adjusted-dataset provenance; preserve a rebuildable version
+      only for one consistent valid split-factor set and surface mixed or
+      incomplete persisted evidence as opaque.
+- [x] Regress durable reconciliation (`22/22` focused tests); the exact gate
+      preserved `1,384/387` backend, `990/990` frontend, `165` functional
+      passes, `107` documented skips, and the six visual diffs with clean
+      teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue raw-versus-derived reconciliation, family/
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Coverage exposes verified adjustment-factor version
 
 - [x] Make adjusted OHLCV coverage expose a verified provider `factor_version`

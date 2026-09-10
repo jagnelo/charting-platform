@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 00dd7f1b makes adjusted OHLCV dataset-state provenance prefer
+  durable normalized split/dividend observations for the requested provider.
+  One consistent valid split-factor version remains rebuildable; incomplete or
+  mixed persisted evidence is explicitly opaque, with older event rows as a
+  compatibility fallback. No dividend factor, bar/price transformation,
+  provider response, fallback, visible layout, pixels, or acceptance policy
+  changed. Focused adjustment-factor/market-data coverage passed 22/22; Ruff,
+  format, and diff checks passed. The exact Docker-backed gate passed all
+  non-visual stages, backend unit/integration 1384/387 at 68%/81.18%, frontend
+  990/990, and functional Playwright 165 with 107 documented skips across
+  272. Visual parity remains 98/104 with the same six established state-oracle
+  diffs; teardown and resource accounting were clean. Provider dividend-factor
+  application/rebuild verification, raw-versus-derived reconciliation,
+  family/provider-history readiness, W1/MN continuity, cadence, canonical
+  population, and R2-R7 remain open.
   Product tip e3a29a3d makes adjusted OHLCV coverage expose a verified
   provider factor_version/factor_status from the newest matching dataset-state
   provenance. Opaque or absent evidence remains unchanged; no dividend factor
@@ -755,6 +770,21 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 00dd7f1b makes adjusted OHLCV dataset-state provenance prefer
+    durable normalized split/dividend observations for the requested provider.
+    One consistent valid split-factor version remains rebuildable; incomplete
+    or mixed persisted evidence is explicitly opaque, with older event rows as
+    a compatibility fallback. No dividend factor, bar/price transformation,
+    provider response, fallback, visible layout, pixels, or acceptance policy
+    changed. Focused adjustment-factor/market-data coverage passed 22/22; Ruff,
+    format, and diff checks passed. The exact Docker-backed gate passed all
+    non-visual stages, backend unit/integration 1384/387 at 68%/81.18%,
+    frontend 990/990, and functional Playwright 165 with 107 documented skips
+    across 272. Visual parity remains 98/104 with the same six established
+    state-oracle diffs; teardown and resource accounting were clean. Provider
+    dividend-factor application/rebuild verification, raw-versus-derived
+    reconciliation, family/provider history readiness, W1/MN continuity,
+    cadence, canonical population, and R2-R7 remain open.
     Product tip e3a29a3d makes adjusted OHLCV coverage expose a verified
     provider factor_version/factor_status from the newest matching
     dataset-state provenance. Opaque or absent evidence remains unchanged; no
