@@ -23,6 +23,23 @@ DERIVATION_METHOD = "d1_ohlcv_xnys_calendar_aggregation"
 _BarLike = TypeVar("_BarLike", bound=OHLCVBar)
 
 
+def _state_has_historical_provenance(
+    state: InstrumentDatasetState,
+    end: datetime | None,
+) -> bool:
+    """Return whether factor state can certify a dated coarse-timeframe view."""
+
+    if end is None:
+        return True
+    for value in (state.coverage_end, state.fetched_at):
+        if value is None:
+            return False
+        normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        if normalized.astimezone(UTC) > end:
+            return False
+    return True
+
+
 async def _canonical_d1_factor_version(
     db: AsyncSession,
     instrument_id: int,
@@ -74,17 +91,10 @@ async def _canonical_d1_factor_version(
             return None
 
         for state in states:
-            if normalized_end is not None and (
-                state.coverage_end is None
-                or (
-                    state.coverage_end
-                    if state.coverage_end.tzinfo is not None
-                    else state.coverage_end.replace(tzinfo=UTC)
-                ).astimezone(UTC)
-                > normalized_end
-            ):
+            if not _state_has_historical_provenance(state, normalized_end):
                 # A provider state whose factor evidence extends beyond a
-                # historical cutoff cannot safely certify the earlier slice.
+                # historical cutoff, or lacks fetch/coverage timestamps, cannot
+                # safely certify the earlier slice.
                 return None
             provenance = (state.extra_data or {}).get("adjustment_provenance")
             if not isinstance(provenance, dict):
@@ -131,19 +141,11 @@ async def _canonical_d1_factor_version(
         ):
             return None
         for local_state in local_states:
-            if normalized_end is not None and (
-                local_state.coverage_end is None
-                or (
-                    local_state.coverage_end
-                    if local_state.coverage_end.tzinfo is not None
-                    else local_state.coverage_end.replace(tzinfo=UTC)
-                ).astimezone(UTC)
-                > normalized_end
-            ):
+            if not _state_has_historical_provenance(local_state, normalized_end):
                 # The local factor state may include a later event than the
-                # dated view. Without a historical state version, keep
-                # lineage explicitly unversioned rather than claiming future
-                # evidence.
+                # dated view, or may lack temporal proof. Without a historical
+                # state version, keep lineage explicitly unversioned rather than
+                # claiming future evidence.
                 return None
             provenance = (local_state.extra_data or {}).get("adjustment_provenance")
             if not isinstance(provenance, dict):

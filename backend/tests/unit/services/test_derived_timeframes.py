@@ -343,6 +343,121 @@ async def test_materialize_derived_timeframes_inherits_local_provider_factor_ver
 
 
 @pytest.mark.asyncio
+async def test_materialize_derived_timeframes_rejects_provider_factor_fetched_after_cutoff(
+    db, instrument
+):
+    source = DataSource(name="historical-provider-factor")
+    db.add(source)
+    db.flush()
+    cutoff = datetime(2025, 1, 3, 23, 59, tzinfo=UTC)
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                is_derived=False,
+            )
+        )
+    db.add(
+        InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status=DatasetStatus.FRESH,
+            version=1,
+            coverage_end=cutoff,
+            fetched_at=cutoff + timedelta(days=1),
+            extra_data={
+                "adjustment_provenance": {
+                    "factor_status": "rebuildable_provider_factors",
+                    "factor_version": "afv1-future-fetch",
+                }
+            },
+        )
+    )
+    db.flush()
+
+    await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id, end=cutoff)
+
+    weekly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert weekly_state.extra_data["adjustment_provenance"]["factor_version"] is None
+
+
+@pytest.mark.asyncio
+async def test_materialize_derived_timeframes_rejects_local_factor_without_cutoff_fetch_proof(
+    db, instrument
+):
+    cutoff = datetime(2025, 1, 3, 23, 59, tzinfo=UTC)
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method="local_split_ratio",
+            )
+        )
+    db.add(
+        InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            dataset_type="ohlcv",
+            dataset_key="D1:adj:local_split_ratio",
+            status=DatasetStatus.FRESH,
+            version=1,
+            coverage_end=cutoff,
+            fetched_at=None,
+            extra_data={
+                "adjustment_provenance": {
+                    "factor_status": "rebuildable_split_factors",
+                    "factor_version": "afv1-missing-fetch",
+                }
+            },
+        )
+    )
+    db.flush()
+
+    await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id, end=cutoff)
+
+    weekly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert weekly_state.extra_data["adjustment_provenance"]["factor_version"] is None
+
+
+@pytest.mark.asyncio
 async def test_materialize_derived_timeframes_historical_end_preserves_newer_cache(db, instrument):
     for day, close in ((2, "10"), (3, "11")):
         db.add(
