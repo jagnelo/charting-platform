@@ -118,6 +118,12 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "environment: provider-live-validation" in workflow
     assert "pull_request_target" not in workflow
     assert "schedule:" not in workflow
+    assert "PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl" in workflow
+    assert "uses: actions/upload-artifact@v4" in workflow
+    assert "name: provider-live-usage-${{ github.run_id }}" in workflow
+    assert "if: always()" in workflow
+    assert "retention-days: 90" in workflow
+    assert "if-no-files-found: ignore" in workflow
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:

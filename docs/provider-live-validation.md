@@ -60,6 +60,20 @@ push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
 
+The manual GitHub workflow sets `PROVIDER_LIVE_USAGE_LEDGER` to a runner
+temporary path and uploads the aggregate-only JSONL receipt with
+`actions/upload-artifact` for 90 days, even when probes fail. The artifact has
+no credentials, response payloads, or secret-bearing URLs; it is retained for
+operator reconciliation and is not automatically merged into runtime quota
+reservations. Downloaded receipts may be merged into an operator-owned ledger
+only after checking provider/account scope and avoiding duplicate runs.
+
+The workflow/artifact contract is covered by the provider secret-wiring tests;
+the focused wiring and usage suite passed `13/13`, and the authoritative gate
+after this change passed `1860` tests with `80.38%` coverage and 89 warnings in
+`393.90s`. Testcontainer session
+`ed0b76f0-f94e-4dfe-b994-d9a24c67250c` was cleaned without host-wide pruning.
+
 Provider usage is account- and/or IP-scoped by the vendor, not branch-scoped.
 The durable request log and quota windows preserve usage across application
 restarts and workers that share the same database, but a separate worktree,
