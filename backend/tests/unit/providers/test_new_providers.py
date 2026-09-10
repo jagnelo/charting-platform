@@ -253,6 +253,28 @@ class TestAlpacaCredentialWarning:
                     datetime(2024, 2, 1, tzinfo=UTC),
                 )
 
+    def test_transport_failures_are_typed_instead_of_empty_history(self):
+        provider = AlpacaProvider()
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://data.alpaca.markets/v2/stocks/bars"),
+        )
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", side_effect=failure),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "alpaca"
+
 
 # ── Alpaca OHLCV bar parsing ──────────────────────────────────────────────────
 
@@ -960,6 +982,26 @@ class TestFREDOHLCVParsing:
                 )
         assert exc_info.value.provider_name == "fred"
 
+    def test_transport_failures_are_typed_instead_of_empty_history(self):
+        provider = FREDProvider()
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://api.stlouisfed.org/fred/series/observations"),
+        )
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get", side_effect=failure),
+        ):
+            configured.FRED_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "fred"
+
 
 # ── CoinGecko ─────────────────────────────────────────────────────────────────
 
@@ -1179,6 +1221,26 @@ class TestEdgarTickerMap:
             configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
             with pytest.raises(httpx.HTTPStatusError):
                 provider.get_instrument_profile("AAPL")
+
+    def test_sec_transport_failure_is_not_converted_to_synthetic_profile(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {"AAPL": {"cik": 320193, "title": "Apple Inc."}}
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        edgar_module._profile_cache = {}
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://data.sec.gov/submissions/CIK0000320193.json"),
+        )
+        provider = EdgarProvider()
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", side_effect=failure),
+        ):
+            configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.get_instrument_profile("AAPL")
+        assert exc_info.value.provider_name == "edgar"
 
     def test_get_instrument_profile_returns_none_for_unknown_ticker(self):
         import app.providers.edgar as edgar_module

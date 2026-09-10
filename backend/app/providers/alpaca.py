@@ -29,7 +29,7 @@ from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentEventRecord
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -164,8 +164,7 @@ class AlpacaProvider:
                 # bars as if the provider had no observations.
                 raise
             except httpx.RequestError as exc:
-                logger.warning("alpaca fetch_ohlcv %s: %s", symbol, exc)
-                break
+                raise ProviderResponseError(self.name, str(exc)) from exc
 
             for b in data.get("bars", {}).get(alpaca_sym, []):
                 try:
@@ -239,7 +238,9 @@ class AlpacaProvider:
             return float(bar["c"]) if bar else None
         except httpx.HTTPStatusError:
             raise
-        except (httpx.RequestError, KeyError, TypeError, ValueError) as exc:
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (KeyError, TypeError, ValueError) as exc:
             logger.debug("alpaca get_current_price %s: %s", symbol, exc)
             return None
 
@@ -268,8 +269,7 @@ class AlpacaProvider:
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
-            logger.warning("alpaca fetch_instrument_events %s: %s", symbol, exc)
-            return []
+            raise ProviderResponseError(self.name, str(exc)) from exc
 
         ca = raw.get("corporate_actions") or raw
         events: list[InstrumentEventRecord] = []
@@ -458,8 +458,7 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
     except httpx.HTTPStatusError:
         raise
     except httpx.RequestError as exc:
-        logger.warning("alpaca _cached_assets %s: %s", asset_class, exc)
-        return _asset_cache.get(asset_class, [])
+        raise ProviderResponseError("alpaca", str(exc)) from exc
 
 
 def _asset_to_quote(asset: dict, quote_type: str) -> dict[str, Any]:

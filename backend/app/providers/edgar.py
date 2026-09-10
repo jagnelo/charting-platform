@@ -37,7 +37,7 @@ from app.providers.base import (
     ListingRecord,
     ProviderSearchResult,
 )
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -157,27 +157,7 @@ class EdgarProvider:
             # do not turn an upstream rejection into a synthetic profile.
             raise
         except httpx.RequestError as exc:
-            logger.warning("edgar get_instrument_profile %s (CIK %d): %s", symbol, cik, exc)
-            # Fall back to minimal profile from ticker map
-            profile = InstrumentProfile(
-                provider="edgar",
-                symbol=normalized_symbol,
-                canonical_symbol=normalized_symbol,
-                name=entry.get("title", normalized_symbol),
-                currency="USD",
-                quote_type="EQUITY",
-                exchange="",
-                listings=[
-                    ListingRecord(
-                        provider_symbol=symbol.upper(),
-                        currency="USD",
-                        is_primary=True,
-                    )
-                ],
-                extra={"cik": cik},
-            )
-            _profile_cache[normalized_symbol] = (time.time(), profile)
-            return profile
+            raise ProviderResponseError(self.name, str(exc)) from exc
 
         tickers = sub.get("tickers") or [symbol.upper()]
         exchanges = sub.get("exchanges") or []
@@ -256,8 +236,7 @@ class EdgarProvider:
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
-            logger.warning("edgar fetch_instrument_events %s (CIK %d): %s", symbol, cik, exc)
-            return []
+            raise ProviderResponseError(self.name, str(exc)) from exc
 
         events: list[InstrumentEventRecord] = []
         fetched = datetime.now(UTC)
@@ -307,8 +286,7 @@ class EdgarProvider:
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
-            logger.warning("edgar company facts %s: %s", cik, exc)
-            return []
+            raise ProviderResponseError(self.name, str(exc)) from exc
         facts = payload.get("facts") if isinstance(payload, dict) else None
         if not isinstance(facts, dict):
             return []
@@ -407,7 +385,7 @@ def _ensure_ticker_map(headers: dict) -> None:
     except httpx.HTTPStatusError:
         raise
     except httpx.RequestError as exc:
-        logger.warning("edgar _ensure_ticker_map: %s", exc)
+        raise ProviderResponseError("edgar", str(exc)) from exc
 
 
 def _ensure_exchange_directory(headers: dict) -> None:
@@ -472,4 +450,4 @@ def _ensure_exchange_directory(headers: dict) -> None:
     except httpx.HTTPStatusError:
         raise
     except httpx.RequestError as exc:
-        logger.warning("edgar _ensure_exchange_directory: %s", exc)
+        raise ProviderResponseError("edgar", str(exc)) from exc

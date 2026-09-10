@@ -403,3 +403,12 @@ compatibility. The strict parser regression suite passed `7/7`; the
 authoritative gate completed at `2026-09-10T05:48Z` with `1862 passed`, `89`
 warnings, and `80.38%` line coverage in `394.96s`. Testcontainer session
 `8ed2d4ef-04a8-47d2-8129-b228e18885a6` was cleaned without host-wide pruning.
+
+Transport failures are also typed for the first-party Alpaca, FRED, and SEC
+EDGAR adapters. Network errors no longer become empty history, empty event
+lists, or a synthetic SEC profile; legitimate unsupported symbols and valid
+empty provider responses remain unchanged. The focused provider suite passed
+`106/106`; the authoritative gate completed at `2026-09-10T06:02Z` with
+`1865 passed`, `89` warnings, and `80.39%` line coverage in `365.39s`.
+Testcontainer session `9aad314f-c0a9-4fd9-b902-83afd574e391` was cleaned
+without host-wide pruning.
