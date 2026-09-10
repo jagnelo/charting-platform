@@ -102,12 +102,21 @@ def _directory_rows() -> list[dict[str, Any]]:
 
 def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
     reader = csv.DictReader(io.StringIO(text), delimiter="|")
-    required_columns = (
-        {"Symbol", "Security Name"}
-        if source_name == "nasdaqlisted"
-        else {"ACT Symbol", "Security Name", "Exchange"}
-    )
-    if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+    fieldnames = set(reader.fieldnames or ())
+    if source_name == "nasdaqlisted":
+        required_columns = {"Symbol", "Security Name"}
+        valid_header = required_columns.issubset(fieldnames)
+    else:
+        # A few approved directory mirrors retain Nasdaq's ``Symbol`` header
+        # while the official ``otherlisted`` file uses ``ACT Symbol``.  Both
+        # are accepted; the security name is the minimum identity field and
+        # exchange is optional evidence on such mirrors.
+        required_columns = {"ACT Symbol", "Security Name"}
+        valid_header = (
+            {"Security Name"}.issubset(fieldnames)
+            and ("ACT Symbol" in fieldnames or "Symbol" in fieldnames)
+        )
+    if not reader.fieldnames or not valid_header:
         raise ValueError(
             f"missing required columns for {source_name}: {sorted(required_columns)}"
         )
@@ -133,7 +142,7 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             # Test issues are the only Nasdaq-listed directory rows excluded.
             active = not test_issue
         else:
-            symbol = str(row.get("ACT Symbol") or "").strip().upper()
+            symbol = str(row.get("ACT Symbol") or row.get("Symbol") or "").strip().upper()
             name = str(row.get("Security Name") or symbol).strip()
             code = str(row.get("Exchange") or "").strip().upper()
             exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(
