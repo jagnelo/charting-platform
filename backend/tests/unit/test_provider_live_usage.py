@@ -95,6 +95,16 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
                         "exit_status": 0,
                     }
                 ),
+                json.dumps(
+                    {
+                        "at": "2026-09-10T05:00:03+00:00",
+                        "provider": "invalid-fraction",
+                        "operations": 1.5,
+                        "http_requests": 1,
+                        "response_bytes": 20,
+                        "exit_status": 0,
+                    }
+                ),
             ]
         )
         + "\n"
@@ -104,7 +114,7 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
 
     assert result["accepted"] == 2
     assert result["duplicates"] == 1
-    assert result["rejected"] == 0
+    assert result["rejected"] == 1
     rows = [json.loads(line) for line in destination.read_text().splitlines()]
     assert len(rows) == 2
     assert all("payload" not in row for row in rows)

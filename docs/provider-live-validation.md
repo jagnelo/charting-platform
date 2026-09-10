@@ -395,3 +395,11 @@ tests passed `13/13`; the authoritative gate completed at
 `2026-09-10T05:13Z` with `1860 passed`, `89` warnings, and `80.38%` line
 coverage in `388.17s`. Testcontainer session
 `1cf565df-7b9d-468f-acf8-bcb1349dc51b` was cleaned without host-wide pruning.
+
+The live-ledger reader and receipt merger now reject booleans, fractional JSON
+numbers, negative values, and other non-integral usage fields instead of
+coercing them with `int()`. Digit strings remain accepted for redacted receipt
+compatibility. The strict parser regression suite passed `7/7`; the
+authoritative gate completed at `2026-09-10T05:48Z` with `1862 passed`, `89`
+warnings, and `80.38%` line coverage in `394.96s`. Testcontainer session
+`8ed2d4ef-04a8-47d2-8129-b228e18885a6` was cleaned without host-wide pruning.

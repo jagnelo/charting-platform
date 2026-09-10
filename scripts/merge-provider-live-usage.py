@@ -24,9 +24,11 @@ from typing import Any, Iterable
 def _nonnegative_int(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str) and value.strip().isdigit():
+        parsed = int(value.strip())
+    else:
         return None
     return parsed if parsed >= 0 else None
 
