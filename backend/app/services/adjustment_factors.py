@@ -49,6 +49,41 @@ class PersistedAdjustmentFactorProvenance:
     factor_kinds: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class RebuiltOHLCVBar:
+    """A pure, locally rebuilt split-adjusted bar.
+
+    The rebuilder deliberately returns a value object instead of mutating ORM
+    rows. Callers can compare or persist the result explicitly, preserving the
+    raw/provider series and making the derived lineage visible to storage
+    code. ``volume`` is scaled inversely to price so split-adjusted notional
+    remains comparable.
+    """
+
+    ts: datetime
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal | None
+    vwap: Decimal | None
+    is_adjusted: bool = True
+    is_derived: bool = True
+    derivation_method: str = "local_split_ratio"
+
+
+@dataclass(frozen=True, slots=True)
+class AdjustmentRebuildResult:
+    """Outcome of applying a complete, explicit split-factor set."""
+
+    status: str
+    factor_version: str | None = None
+    event_count: int = 0
+    applied_event_count: int = 0
+    bars: tuple[RebuiltOHLCVBar, ...] = ()
+    reason: str | None = None
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
@@ -69,6 +104,114 @@ def _event_factor(event: InstrumentEvent) -> Decimal | None:
     if event.event_type is InstrumentEventType.SPLIT:
         return event.split_ratio
     return None
+
+
+def _observation_factor(observation: AdjustmentFactorObservation) -> Decimal | None:
+    """Return a positive split ratio that has an explicit source identity."""
+
+    if observation.factor_type != InstrumentEventType.SPLIT.value:
+        return None
+    if observation.factor_kind not in (None, "split_ratio"):
+        return None
+    if observation.factor is None or observation.factor <= 0:
+        return None
+    if not observation.source_event_key or not observation.factor_version:
+        return None
+    return observation.factor
+
+
+def rebuild_split_adjusted_bars(
+    raw_bars: Iterable[object],
+    observations: Iterable[AdjustmentFactorObservation],
+) -> AdjustmentRebuildResult:
+    """Rebuild a split-adjusted view from raw bars and explicit split ratios.
+
+    A provider's dividend convention cannot be inferred from a cash amount,
+    and provider-labelled factors may use a convention that is not equivalent
+    to a split ratio. Those inputs therefore return an explicit unsupported or
+    incomplete result and no adjusted bars. For a complete split-only set,
+    each bar before an effective split is divided by the cumulative ratio;
+    volume is multiplied by that ratio. Events effective at or before a bar's
+    timestamp are treated as already reflected in that bar.
+    """
+
+    bars = tuple(raw_bars)
+    relevant = tuple(
+        observation
+        for observation in observations
+        if observation.factor_type
+        in {InstrumentEventType.SPLIT.value, InstrumentEventType.DIVIDEND.value}
+    )
+    if not relevant:
+        return AdjustmentRebuildResult(
+            status="not_observed",
+            reason="no_split_or_dividend_factor_observations",
+        )
+    if any(
+        observation.factor_type == InstrumentEventType.DIVIDEND.value for observation in relevant
+    ):
+        return AdjustmentRebuildResult(
+            status="unsupported_dividend_factors",
+            event_count=len(relevant),
+            reason="dividend_adjustment_convention_requires_provider_semantics",
+        )
+    if any(observation.factor_kind == "provider_supplied" for observation in relevant):
+        return AdjustmentRebuildResult(
+            status="unsupported_provider_factors",
+            event_count=len(relevant),
+            reason="provider_factor_orientation_requires_source_contract",
+        )
+
+    factors = tuple(_observation_factor(observation) for observation in relevant)
+    if any(factor is None for factor in factors):
+        return AdjustmentRebuildResult(
+            status="provider_native_opaque_incomplete_factor_set",
+            factor_version=None,
+            event_count=len(relevant),
+            reason="every_split_observation_needs_a_positive_ratio_and_version",
+        )
+    versions = {observation.factor_version for observation in relevant}
+    if len(versions) != 1:
+        return AdjustmentRebuildResult(
+            status="provider_native_opaque_inconsistent_factor_set",
+            event_count=len(relevant),
+            reason="all_split_observations_must_share_one_factor_version",
+        )
+
+    ordered = tuple(
+        sorted(
+            zip(relevant, factors, strict=True),
+            key=lambda pair: (_as_utc(pair[0].effective_at).isoformat(), pair[0].source_event_key),
+        )
+    )
+    rebuilt: list[RebuiltOHLCVBar] = []
+    applied_event_keys: set[str] = set()
+    for bar in bars:
+        bar_ts = _as_utc(bar.ts)
+        cumulative = Decimal("1")
+        for observation, factor in ordered:
+            assert factor is not None  # guarded above; keeps Decimal typing precise
+            if _as_utc(observation.effective_at) > bar_ts:
+                cumulative /= factor
+                applied_event_keys.add(observation.source_event_key)
+        rebuilt.append(
+            RebuiltOHLCVBar(
+                ts=bar.ts,
+                open=Decimal(str(bar.open)) * cumulative,
+                high=Decimal(str(bar.high)) * cumulative,
+                low=Decimal(str(bar.low)) * cumulative,
+                close=Decimal(str(bar.close)) * cumulative,
+                volume=(Decimal(str(bar.volume)) / cumulative if bar.volume is not None else None),
+                vwap=(Decimal(str(bar.vwap)) * cumulative if bar.vwap is not None else None),
+            )
+        )
+    return AdjustmentRebuildResult(
+        status="applied",
+        factor_version=next(iter(versions)),
+        event_count=len(relevant),
+        applied_event_count=len(applied_event_keys),
+        bars=tuple(rebuilt),
+    )
 
 
 def build_adjustment_factor_snapshot(

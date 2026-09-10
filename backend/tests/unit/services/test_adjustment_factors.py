@@ -9,6 +9,7 @@ from app.models.instrument_event import EventTimeHint, InstrumentEvent, Instrume
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
     persist_adjustment_factor_observations,
+    rebuild_split_adjusted_bars,
     summarize_persisted_adjustment_factor_provenance,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -214,6 +215,121 @@ def test_persisted_provider_dividend_factor_is_rebuildable():
     assert summary.rebuildable_observation_count == 1
     assert summary.opaque_observation_count == 0
     assert summary.factor_kinds == ("provider_supplied",)
+
+
+def _bar(ts: datetime, *, close: str, volume: str = "100"):
+    return type(
+        "RawBar",
+        (),
+        {
+            "ts": ts,
+            "open": Decimal(str(Decimal(close) - Decimal("1"))),
+            "high": Decimal(str(Decimal(close) + Decimal("1"))),
+            "low": Decimal(str(Decimal(close) - Decimal("2"))),
+            "close": Decimal(close),
+            "volume": Decimal(volume),
+            "vwap": Decimal(close),
+        },
+    )()
+
+
+def test_rebuild_split_adjusted_bars_scales_pre_event_prices_and_volume():
+    event = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("2"),
+        factor_kind="split_ratio",
+        source_event_key="split:2024-06-10",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-split",
+    )
+    result = rebuild_split_adjusted_bars(
+        [
+            _bar(datetime(2024, 6, 7, 21, tzinfo=UTC), close="100"),
+            _bar(datetime(2024, 6, 10, 21, tzinfo=UTC), close="50"),
+        ],
+        [event],
+    )
+
+    assert result.status == "applied"
+    assert result.factor_version == "afv1-split"
+    assert result.event_count == 1
+    assert result.applied_event_count == 1
+    before, after = result.bars
+    assert before.open == Decimal("49.5")
+    assert before.high == Decimal("50.5")
+    assert before.low == Decimal("49")
+    assert before.close == Decimal("50")
+    assert before.volume == Decimal("200")
+    assert before.vwap == Decimal("50")
+    assert after.close == Decimal("50")
+    assert after.volume == Decimal("100")
+    assert before.is_adjusted is True and before.is_derived is True
+
+
+def test_rebuild_split_adjusted_bars_rejects_incomplete_or_mixed_versions():
+    incomplete = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("2"),
+        source_event_key="split:missing-version",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+    )
+    result = rebuild_split_adjusted_bars(
+        [_bar(datetime(2024, 6, 7, 21, tzinfo=UTC), close="100")],
+        [incomplete],
+    )
+    assert result.status == "provider_native_opaque_incomplete_factor_set"
+    assert result.bars == ()
+
+    first = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("2"),
+        source_event_key="split:one",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-one",
+    )
+    second = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("3"),
+        source_event_key="split:two",
+        effective_at=datetime(2024, 6, 11, tzinfo=UTC),
+        factor_version="afv1-two",
+    )
+    result = rebuild_split_adjusted_bars([], [first, second])
+    assert result.status == "provider_native_opaque_inconsistent_factor_set"
+    assert result.bars == ()
+
+
+def test_rebuild_split_adjusted_bars_does_not_infer_dividend_convention():
+    dividend = AdjustmentFactorObservation(
+        factor_type="dividend",
+        factor=Decimal("0.9975"),
+        factor_kind="provider_supplied",
+        source_event_key="dividend:2024-06-10",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-provider",
+    )
+    result = rebuild_split_adjusted_bars(
+        [_bar(datetime(2024, 6, 7, 21, tzinfo=UTC), close="100")],
+        [dividend],
+    )
+    assert result.status == "unsupported_dividend_factors"
+    assert result.reason == "dividend_adjustment_convention_requires_provider_semantics"
+    assert result.bars == ()
+
+
+def test_rebuild_split_adjusted_bars_requires_split_ratio_orientation():
+    provider_factor = AdjustmentFactorObservation(
+        factor_type="split",
+        factor=Decimal("0.5"),
+        factor_kind="provider_supplied",
+        source_event_key="split:provider-factor",
+        effective_at=datetime(2024, 6, 10, tzinfo=UTC),
+        factor_version="afv1-provider",
+    )
+    result = rebuild_split_adjusted_bars([], [provider_factor])
+    assert result.status == "unsupported_provider_factors"
+    assert result.reason == "provider_factor_orientation_requires_source_contract"
+    assert result.bars == ()
 
 
 @pytest.mark.asyncio
