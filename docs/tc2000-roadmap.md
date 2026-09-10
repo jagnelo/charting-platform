@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Explicit provider-factor application contract
+
+At product tip `2f3e59c6`, the adjustment-factor service now has a pure
+`rebuild_provider_adjusted_bars` path for persisted `factor_kind=provider_supplied`
+observations. Its contract is explicit: the provider factor is an
+adjusted/raw price multiplier for bars strictly before the event, so prices and
+VWAP are multiplied and volume is scaled inversely. This remains separate from
+the split-only rebuilder, which uses reciprocal raw split ratios. Missing,
+non-positive, mixed-kind, mixed-version, and amount-only evidence returns an
+opaque structured result; no provider convention is inferred and raw/provider
+rows are not mutated.
+
+Focused adjustment-factor coverage passed `17/17`; the full backend unit suite
+passed `1,422/1,422` with `67.85%` coverage against the configured `55%`
+threshold; Ruff, formatting, and diff checks passed. The exact branch-scoped
+gate then passed backend integration `387/387`, frontend Vitest/type-check/
+build, uPlot and visual-policy checks, compose/health/performance checks, and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remained `98/104` with exactly the six protected state-oracle
+diffs (`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125); the
+gate exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+This is the bounded R1 factor-application/rebuild seam only; provider-factor
+materialization, family/provider history, W1/MN continuity beyond the bounded
+path, canonical population, and dense-data evidence remain open. Preserve the
+six protected visual assertions and continue without integration or deployment.
+
 ## 2026-09-10 — Bounded historical coarse-timeframe materialization
 
 At product tip `cacdeb4e`, dated bulk-history fetches now pass their inclusive

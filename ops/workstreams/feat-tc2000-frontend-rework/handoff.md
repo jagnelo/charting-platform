@@ -8,6 +8,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Explicit provider-factor application contract
+
+Product tip `2f3e59c6` adds a pure `rebuild_provider_adjusted_bars` contract
+for explicit `provider_supplied` factors. These are provider-declared
+adjusted/raw price multipliers applied only to bars before each event (prices
+and VWAP multiply; volume scales inversely), distinct from reciprocal
+split-ratio rebuilding. Missing, invalid, mixed-kind, mixed-version, and
+amount-only inputs remain structured opaque results; raw/provider rows and the
+existing split-only behavior are unchanged.
+
+Focused adjustment-factor coverage passed `17/17`; full backend unit coverage
+passed `1,422/1,422` at `67.85%`, with Ruff, formatting, and diff checks clean.
+The exact gate passed backend integration `387/387`, frontend tests/type-check/
+build, uPlot/visual policy, compose/health/performance, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six protected state-oracle diffs; the gate
+exited `1` at `e2e-visual` after clean teardown. No visual or acceptance policy
+changed.
+
+This is a pure application/rebuild seam, not provider materialization. Continue
+provider/family history, W1/MN continuity, canonical population, and dense-data
+evidence without integrating or deploying from this worktree.
+
 ## 2026-09-10 — Bounded historical coarse-timeframe materialization
 
 Product tip `cacdeb4e` makes dated bulk-history requests pass an inclusive UTC

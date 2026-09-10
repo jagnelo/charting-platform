@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-10 — Explicit provider adjustment-factor application
+
+- [x] Add a pure provider-factor rebuilder for persisted
+      `factor_kind=provider_supplied` observations, with explicit
+      adjusted/raw multiplier semantics for pre-event prices/VWAP and inverse
+      volume scaling; keep split-only reciprocal rebuilding separate.
+- [x] Reject missing, invalid, mixed-kind, mixed-version, and amount-only
+      inputs with structured opaque results; preserve raw/provider rows and do
+      not infer a provider convention.
+- [x] Focused adjustment-factor coverage passed `17/17`; full backend unit
+      coverage passed `1,422/1,422` at `67.85%`; Ruff, formatting, and diff
+      checks passed. The exact gate passed backend integration `387/387`,
+      frontend/build/runtime checks, and functional Playwright (`165` passed,
+      `107` documented skips across `272`); visual parity remains `98/104`
+      with exactly the six protected diffs and clean teardown.
+- [ ] Wire this explicit provider-factor contract into provider/materialized
+      history, then continue family/provider history, W1/MN continuity,
+      canonical population, and dense-data evidence; preserve protected visual
+      assertions.
+
 ### 2026-09-10 — Bounded historical coarse-timeframe materialization
 
 - [x] Pass dated bulk-history cutoffs into W1/MN materialization, filter D1
