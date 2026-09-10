@@ -103,24 +103,29 @@ def build_adjustment_factor_snapshot(
             event.source_event_key,
         ),
     )
-    payload = [
-        {
+    includes_provider_factors = any(event.adjustment_factor is not None for event in ordered)
+    payload = []
+    for event in ordered:
+        entry = {
             "effective_at": _as_utc(event.event_time).isoformat(),
             "factor": _decimal_text(_event_factor(event)),
-            "factor_kind": (
-                "provider_supplied" if event.adjustment_factor is not None else "split_ratio"
-            ),
             "source": event.source,
             "source_event_key": event.source_event_key,
         }
-        for event in ordered
-    ]
+        # Keep legacy split-only afv1 fingerprints stable. The discriminator
+        # is part of the payload only when at least one explicit provider
+        # factor is present and therefore changes the adjustment input set.
+        if includes_provider_factors:
+            entry["factor_kind"] = (
+                "provider_supplied" if event.adjustment_factor is not None else "split_ratio"
+            )
+        payload.append(entry)
     encoded = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
     return AdjustmentFactorSnapshot(
         version=f"afv1-{hashlib.sha256(encoded).hexdigest()}",
         status=(
             "rebuildable_provider_factors"
-            if any(event.adjustment_factor is not None for event in ordered)
+            if includes_provider_factors
             else "rebuildable_split_factors"
         ),
         event_count=len(ordered),
@@ -190,7 +195,14 @@ def summarize_persisted_adjustment_factor_provenance(
         version=versions[0],
         status=(
             "rebuildable_provider_factors"
-            if any(observation.factor_kind == "provider_supplied" for observation in relevant)
+            if any(
+                observation.factor_kind == "provider_supplied"
+                or (
+                    observation.factor_type == InstrumentEventType.DIVIDEND.value
+                    and observation.factor is not None
+                )
+                for observation in relevant
+            )
             else "rebuildable_split_factors"
         ),
         observation_count=len(relevant),

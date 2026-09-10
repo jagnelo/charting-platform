@@ -60,7 +60,7 @@ def test_split_factor_snapshot_is_stable_and_order_independent():
     assert first == second
     assert first.status == "rebuildable_split_factors"
     assert first.event_count == 2
-    assert first.version is not None and first.version.startswith("afv1-")
+    assert first.version == "afv1-ca98881ebcfac8db36594c89dddd9ede60ee793928b8f1c7f09cf798cd944dda"
 
 
 def test_dividend_event_keeps_adjustment_factors_explicitly_opaque():
