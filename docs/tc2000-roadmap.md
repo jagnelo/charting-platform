@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Exact integration gate receipt at the coherent product tip
+
+The prescribed `make validate-integration` gate ran against product tip
+`02bc0bd8` in the branch-scoped TC2000 worktree. Backend unit coverage passed
+`1,407/1,407`; the isolated backend integration suite passed `387/387` with
+`81.30%` combined coverage; frontend Vitest, type-check, production build,
+compose contract, health, performance, and acceptance checks passed. Provider
+probes were skipped because this tip has no provider-related changes, and the
+research-runner probe reported the expected sandbox/resource denials. The
+authenticated functional Playwright suite passed `165` with `107` documented
+skips across `272` tests.
+
+Visual parity completed `104` cases with `98` passes and exactly the six
+protected state-oracle diffs: `watchlist-column-editor-open` at
+`visual-1080p-100/125`, and `workspace-floating` at
+`visual-1080p-100/125` and `visual-1440p-100/125`. The gate therefore exited
+at `e2e-visual` with status `2`; no baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy was changed. Branch-scoped containers,
+volumes, network, images, and test sessions were cleaned up by the gate.
+
+This is an explicit reproducible visual blocker, not a Docker blocker. Continue
+the next bounded R1 provider-factor/history/provenance seam and R6 dense-data
+proof; rerun the exact gate after the next coherent product change while
+preserving the six protected assertions.
+
 ## 2026-09-10 — Linear-time OHLCV reconciliation
 
 At product tip `02bc0bd8`, canonical OHLCV storage reconciliation now

@@ -13,6 +13,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped integration gate ran at coherent product tip
+  02bc0bd8. Backend unit coverage passed 1407/1407; backend integration passed
+  387/387 with 81.30% combined coverage; frontend Vitest, type-check/build,
+  compose contract, health/performance/acceptance checks, and authenticated
+  functional Playwright passed (165 passed, 107 documented skips across 272).
+  Provider probes were skipped because no provider-related files changed, and
+  the research-runner probe returned the expected sandbox/resource denials.
+  Visual parity passed 98/104; the only failures were the six protected
+  state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 and
+  workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. The gate
+  exited 2 at e2e-visual after clean branch-scoped teardown. No baseline,
+  mask, threshold, skip, provider, fallback, or acceptance policy changed.
+  This is an explicit reproducible visual blocker, not a Docker blocker.
+  Continue the next bounded R1/R6 provider-factor/history/provenance and
+  dense-data seam; rerun the exact gate after the next coherent product
+  change while preserving the six protected assertions.
   Product tip 02bc0bd8 makes canonical OHLCV storage reconciliation linear in
   provider bars plus observations by precomputing complete provider identities
   before orphan counting. Focused storage and coverage-router coverage passed

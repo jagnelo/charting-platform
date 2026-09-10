@@ -81,8 +81,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_ready": {
-    "ready": false,
-    "reason": "Docker Desktop status is stopped; no service restart was attempted.",
+    "ready": true,
+    "reason": "The exact gate's docker-ready helper reported the branch-scoped daemon ready; no desktop restart was attempted.",
     "started_desktop": false,
     "wait_seconds": 0
   },
@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "66a3366ead0db06116795f1f1862209bdcd20e92",
+  "head": "cdca9e3268561fe5fe3be17e339c7a7d4470ef0a",
   "implementation_sha": "02bc0bd8b18c24994398166947e0d7ff23c7f48d",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T10:42:00Z",
-  "last_human_progress_update": "2026-09-10T10:42:00Z",
+  "last_checkpoint": "2026-09-10T10:05:00Z",
+  "last_human_progress_update": "2026-09-10T10:05:00Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip 02bc0bd8; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
-  "plan_hash": "80765e58792dccd037c840905228f256ef0ebb52872e039f090eff33e80a0c8c",
+  "next_action": "Continue the next bounded evidence-backed R1 provider-factor/history/provenance and R6 dense-data seam; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
+  "plan_hash": "798e15a75d0713d310dd463fdd73e1851ce1d791a795548d36275d74415fac8f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 02bc0bd8 makes canonical OHLCV storage reconciliation linear in provider bars plus observations by precomputing complete identities before orphan counting. Product tip 6dbf5fac normalizes offset-aware provider timestamps to UTC before bulk-history comparison and persistence; explicit intraday-only requests reach the provider rather than being silently skipped. Focused storage/coverage-router coverage passed 12/12, bulk-fetch coverage 7/7, and full backend unit coverage passed 1406/1406 at 67.76% against the configured 55% threshold; Ruff, formatting, and diff checks passed. Prices, bars, provider routing, fallback, visible layout, pixels, visual baselines, thresholds, skips, and acceptance policy are unchanged. The live 100k-point proof is still unclaimed. The exact Docker-backed gate remains pending because Docker Desktop is stopped; no service restart was attempted. R1/R6 remain active for provider-factor/history readiness, W1/MN continuity, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
+    "current_blocker": "The exact branch-scoped integration gate ran at coherent product tip 02bc0bd8. Backend unit coverage passed 1407/1407; backend integration passed 387/387 with 81.30% combined coverage; frontend Vitest/type-check/build, compose contract, health/performance/acceptance checks, and authenticated functional Playwright passed (165 passed, 107 documented skips across 272). Provider probes were skipped because no provider-related files changed; the research-runner probe reported expected sandbox/resource denials. Visual parity passed 98/104; the only failures were the six protected state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. The gate exited 2 at e2e-visual after clean branch-scoped teardown. No baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. This is an explicit reproducible visual blocker, not a Docker blocker. Product tip 02bc0bd8 also makes canonical OHLCV reconciliation linear, while 6dbf5fac normalizes bulk-history timestamps to UTC and e8bef95c preserves explicit intraday requests. The live 100k-point proof is still unclaimed. R1/R6 remain active for provider-factor/history readiness, W1/MN continuity, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Rerun the exact gate at bab365e9 when Docker is responsive, then at coherent tip 02bc0bd8; preserve the six visual state-oracle assertions and provider/fallback rules, then continue the next bounded evidence-backed R1 history or provenance seam.",
-    "total": 19,
-    "updated_at": "2026-09-10T10:42:00Z"
+    "next_action": "Continue the next bounded evidence-backed R1 provider-factor/history/provenance and R6 dense-data seam; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
+    "total": 20,
+    "updated_at": "2026-09-10T10:05:00Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Exact integration gate receipt at the coherent product tip
+
+The prescribed branch-scoped gate ran at product tip `02bc0bd8`. Backend unit
+coverage passed `1,407/1,407`; backend integration passed `387/387` with
+`81.30%` combined coverage; frontend Vitest, type-check/build, compose
+contract, provider/runner/health/performance/acceptance checks, and the
+functional Playwright suite passed (`165` passed, `107` documented skips out
+of `272`). Provider probes were skipped because no provider-related files
+changed, and the research-runner probe produced the expected sandbox/resource
+denials.
+
+Visual parity completed `104` cases with `98` passes and exactly the six
+protected state-oracle diffs: `watchlist-column-editor-open` at
+`visual-1080p-100/125`, plus `workspace-floating` at
+`visual-1080p-100/125` and `visual-1440p-100/125`. The gate exited `2` at
+`e2e-visual`; no baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Its branch-scoped containers, volumes, network,
+images, and test sessions were cleaned up.
+
+This is an explicit reproducible visual blocker, not a Docker blocker. Keep
+the six assertions protected, continue the next bounded R1/R6
+provider/history/provenance and dense-data seam, and rerun the exact gate
+after the next coherent product change.
+
 ## 2026-09-10 — Linear-time OHLCV reconciliation
 
 Product tip `02bc0bd8` replaces the canonical storage reconciliation's nested

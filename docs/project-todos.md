@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Exact integration gate at the coherent product tip
+
+- [x] Run the prescribed branch-scoped gate at product tip `02bc0bd8`:
+      backend unit `1,407/1,407`, backend integration `387/387` with `81.30%`
+      combined coverage, frontend Vitest/type-check/build, compose/health/
+      performance/acceptance checks, and functional Playwright `165` passed
+      with `107` documented skips across `272`.
+- [x] Record visual parity `98/104`; the six failures are exactly the
+      protected `watchlist-column-editor-open` and `workspace-floating`
+      state-oracle diffs. Scoped Docker resources were cleaned up.
+- [ ] Do not change visual baselines, masks, thresholds, skips, providers,
+      fallbacks, or acceptance policy. Continue provider factor
+      application/rebuild, family/provider history, W1/MN continuity,
+      cadence/population, and live 100k-point evidence; rerun the exact gate
+      after the next coherent product change.
+
 ### 2026-09-10 — Linear-time OHLCV reconciliation
 
 - [x] Replace nested provider/observation orphan scans with a precomputed
