@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Coverage exposes verified adjustment-factor version
+
+At product tip `e3a29a3d`, adjusted OHLCV coverage now consumes the newest
+provider dataset-state provenance for the requested timeframe and exposes a
+verified `factor_version`/`factor_status` pair when a deterministic split-factor
+fingerprint exists. Provider-native opaque or absent factor evidence remains
+unchanged; the endpoint does not invent dividend factors or alter bars, prices,
+fallback behavior, visible layout, pixels, or acceptance policy.
+
+The focused coverage-router and adjustment-factor regressions passed `10/10`,
+with the previously verified factor/event suites at `20/20`, adjacent
+derived-timeframe/OHLCV units at `13/13`, and OHLCV integration at `19/19`;
+Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed
+all non-visual stages, backend unit/integration coverage (`1,381`/`387`,
+`68%`/`81.17%`), frontend Vitest (`990/990`), and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity completed
+`104` cases with `98` passes and the same six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+R1 remains active for provider-supplied dividend-factor coverage and factor
+application/rebuild verification, raw-versus-derived reconciliation, complete
+family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and broader canonical population; R2-R7 remain open.
+Next action: continue the next bounded evidence-backed R1 history/provenance
+seam and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Durable normalized adjustment-factor observations
 
 At product tip `91bc8f5d` (with required import-order correction

@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Coverage adjustment-factor provenance checkpoint
+
+Product tip `e3a29a3d` makes adjusted OHLCV coverage consume the newest
+provider dataset-state provenance for the requested timeframe and expose a
+verified deterministic `factor_version` plus `factor_status`. Opaque or absent
+factor evidence remains unchanged; no dividend factor is fabricated and no
+bars, prices, fallback, visible layout, pixels, or acceptance policy changed.
+
+Focused coverage-router/factor regressions passed `10/10`; previously verified
+factor/event coverage passed `20/20`, adjacent derived-timeframe/OHLCV
+coverage `13/13`, and OHLCV integration `19/19`; Ruff, format, and diff checks
+passed. The exact Docker-backed gate passed all non-visual stages, backend
+unit/integration `1,381`/`387` (`68%`/`81.17%`), frontend Vitest `990/990`,
+and functional Playwright `165` with `107` documented skips across `272`.
+Visual parity remained `98/104` with exactly the six established
+watchlist-column-editor-open/workspace-floating diffs; teardown removed all
+assigned resources and sessions cleanly.
+
+R1 remains active for provider dividend-factor application/rebuild
+verification, raw-versus-derived reconciliation, family/provider-history
+readiness, W1/MN continuity, source-declared cadence, and broader canonical
+population. R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Durable normalized adjustment-factor observations checkpoint
 
 Product tip `91bc8f5d` (followed by required import ordering correction

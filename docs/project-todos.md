@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Coverage exposes verified adjustment-factor version
+
+- [x] Make adjusted OHLCV coverage expose a verified provider `factor_version`
+      and `factor_status` from the newest matching dataset-state provenance,
+      while leaving opaque/absent factor evidence unchanged.
+- [x] Regress the coverage-router and factor contract (`10/10`), preserve the
+      factor/event (`20/20`), adjacent OHLCV/derived-timeframe (`13/13`), and
+      OHLCV integration (`19/19`) receipts; the exact gate preserved
+      `1,381/387` backend, `990/990` frontend, `165` functional passes,
+      `107` documented skips, and the six visual diffs with clean teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue raw-versus-derived reconciliation, family/
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Durable normalized adjustment-factor observations
 
 - [x] Add the additive `adjustment_factor_observation` model and migration;
