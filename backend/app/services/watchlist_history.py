@@ -81,12 +81,20 @@ def state_factor_evidence(
     if not state_rows or not lineage_rows:
         return None
 
-    states: dict[tuple[int, int | None], tuple[str | None, str]] = {}
+    states: dict[tuple[int, int | None, str], tuple[str | None, str]] = {}
     for row in state_rows:
         if len(row) < 4:
             continue
         instrument_id, data_source_id, dataset_key, extra_data = row[:4]
-        if dataset_key != f"{timeframe_key}:adj":
+        valid_dataset_keys = {f"{timeframe_key}:adj"}
+        if timeframe_key == Timeframe.D1.value:
+            valid_dataset_keys.update(
+                {
+                    "D1:adj:local_split_ratio",
+                    "D1:adj:provider_adjustment_factor",
+                }
+            )
+        if dataset_key not in valid_dataset_keys:
             continue
         if not isinstance(instrument_id, int):
             continue
@@ -94,11 +102,11 @@ def state_factor_evidence(
             extra_data.get("adjustment_provenance") if isinstance(extra_data, dict) else None
         )
         if not isinstance(provenance, dict):
-            states[(instrument_id, data_source_id)] = (None, "not_observed")
+            states[(instrument_id, data_source_id, dataset_key)] = (None, "not_observed")
             continue
         version = provenance.get("factor_version")
         status = str(provenance.get("factor_status") or "not_observed")
-        states[(instrument_id, data_source_id)] = (
+        states[(instrument_id, data_source_id, dataset_key)] = (
             version.strip() if isinstance(version, str) and version.strip() else None,
             status,
         )
@@ -125,7 +133,17 @@ def state_factor_evidence(
         if not source_ids:
             continue
         covered_count += 1
-        member_evidence = [states.get((instrument_id, source_id)) for source_id in source_ids]
+        member_evidence: list[tuple[str | None, str] | None] = []
+        derived_methods = {
+            str(method) for method in (member.get("derived_methods") or ()) if method
+        }
+        for source_id in source_ids:
+            dataset_keys = [f"{timeframe_key}:adj"]
+            if source_id is None and timeframe_key == Timeframe.D1.value and derived_methods:
+                dataset_keys = [f"D1:adj:{method}" for method in sorted(derived_methods)]
+            member_evidence.extend(
+                states.get((instrument_id, source_id, dataset_key)) for dataset_key in dataset_keys
+            )
         if any(item is None for item in member_evidence):
             unavailable_count += 1
             continue
@@ -389,6 +407,7 @@ async def build_watchlist_source_history_status(
                     func.count(OHLCVBar.id).label("bar_count"),
                     OHLCVBar.is_derived,
                     OHLCVBar.data_source_id,
+                    OHLCVBar.derivation_method,
                 )
                 .where(
                     OHLCVBar.instrument_id.in_(instrument_ids),
@@ -401,6 +420,7 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.timeframe,
                     OHLCVBar.is_derived,
                     OHLCVBar.data_source_id,
+                    OHLCVBar.derivation_method,
                 )
             )
         ).all()
@@ -426,6 +446,7 @@ async def build_watchlist_source_history_status(
                 "provider_bar_count": 0,
                 "derived_bar_count": 0,
                 "provider_source_ids": set(),
+                "derived_methods": set(),
             },
         )
         member["bar_count"] += bar_count
@@ -433,6 +454,8 @@ async def build_watchlist_source_history_status(
         member["derived_bar_count" if is_derived else "provider_bar_count"] += bar_count
         if not is_derived and len(row) > 4 and row[4] is not None:
             member["provider_source_ids"].add(int(row[4]))
+        if is_derived and len(row) > 5 and row[5]:
+            member["derived_methods"].add(str(row[5]))
 
     # Dataset state is the authoritative source for adjustment-factor
     # provenance. Restrict provider states to source IDs actually represented
@@ -455,6 +478,14 @@ async def build_watchlist_source_history_status(
         state_filters = [InstrumentDatasetState.data_source_id.is_(None)]
         if provider_source_ids:
             state_filters.append(InstrumentDatasetState.data_source_id.in_(provider_source_ids))
+        state_dataset_keys = [f"{timeframe.value}:adj" for timeframe in normalized_timeframes]
+        if Timeframe.D1.value in normalized_timeframes:
+            state_dataset_keys.extend(
+                [
+                    "D1:adj:local_split_ratio",
+                    "D1:adj:provider_adjustment_factor",
+                ]
+            )
         state_rows = (
             await db.execute(
                 select(
@@ -466,9 +497,7 @@ async def build_watchlist_source_history_status(
                     InstrumentDatasetState.instrument_id.in_(instrument_ids),
                     InstrumentDatasetState.dataset_type == "ohlcv",
                     or_(*state_filters),
-                    InstrumentDatasetState.dataset_key.in_(
-                        [f"{timeframe.value}:adj" for timeframe in normalized_timeframes]
-                    ),
+                    InstrumentDatasetState.dataset_key.in_(state_dataset_keys),
                 )
             )
         ).all()

@@ -520,3 +520,97 @@ async def test_watchlist_history_status_exposes_consistent_factor_version(monkey
         "factor_opaque_member_count": 0,
         "factor_unavailable_member_count": 0,
     }
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_status_reads_local_provider_factor_state(monkeypatch):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "source_ids": ["watchlist:derived"],
+            "timeframes": ["D1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "instrument_ids": [10],
+            "available_instrument_count": 1,
+            "selected_instrument_count": 1,
+            "limited": False,
+            "sources": [
+                {
+                    "source_id": "watchlist:derived",
+                    "source_kind": "personal",
+                    "name": "Derived",
+                    "locked": False,
+                    "status": "ready",
+                    "excluded_count": 0,
+                    "member_disposition": {
+                        "canonical": 1,
+                        "placeholder": 0,
+                        "unresolved": 0,
+                        "excluded": 0,
+                    },
+                    "membership_version": "v1",
+                    "message": None,
+                }
+            ],
+        }
+
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def __init__(self, call_number):
+                    self.call_number = call_number
+
+                def all(self_inner):
+                    if self_inner.call_number == 1:
+                        return [
+                            SimpleNamespace(
+                                timeframe=SimpleNamespace(value="D1"),
+                                covered_count=1,
+                                bar_count=252,
+                                oldest=datetime(2025, 1, 2, tzinfo=UTC),
+                                newest=datetime(2025, 12, 31, tzinfo=UTC),
+                            )
+                        ]
+                    if self_inner.call_number == 2:
+                        return [
+                            (
+                                10,
+                                SimpleNamespace(value="D1"),
+                                252,
+                                True,
+                                None,
+                                "provider_adjustment_factor",
+                            )
+                        ]
+                    return [
+                        (
+                            10,
+                            None,
+                            "D1:adj:provider_adjustment_factor",
+                            {
+                                "adjustment_provenance": {
+                                    "factor_status": "rebuildable_provider_factors",
+                                    "factor_version": "afv1-provider-local",
+                                }
+                            },
+                        )
+                    ]
+
+            return FakeResult(self.calls)
+
+    monkeypatch.setattr(history, "plan_watchlist_source_history_refresh", fake_plan)
+    status = await history.build_watchlist_source_history_status(
+        FakeDB(), 42, source_id="watchlist:derived", timeframes=["D1"]
+    )
+
+    provenance = status["timeframes"][0]["adjustment_provenance"]
+    assert provenance["factor_version"] == "afv1-provider-local"
+    assert provenance["factor_status"] == "rebuildable_provider_factors"
+    assert provenance["factor_versioned_member_count"] == 1
+    assert provenance["factor_opaque_member_count"] == 0
+    assert provenance["factor_unavailable_member_count"] == 0
