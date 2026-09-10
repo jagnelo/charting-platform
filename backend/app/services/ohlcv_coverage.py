@@ -134,8 +134,17 @@ def reconcile_ohlcv_storage(
         ): observation
         for observation in observations
     }
+    provider_keys = {
+        (
+            bar.instrument_id,
+            bar.data_source_id,
+            bar.timeframe,
+            _as_utc(bar.ts),
+            bar.is_adjusted,
+        )
+        for bar in provider_bars
+    }
     matched = missing = mismatched = 0
-    observed_keys: set[tuple[int, int, Timeframe, datetime, bool]] = set()
     for bar in provider_bars:
         key = (
             bar.instrument_id,
@@ -148,7 +157,6 @@ def reconcile_ohlcv_storage(
         if observation is None:
             missing += 1
             continue
-        observed_keys.add(key)
         if any(
             left != right
             for left, right in (
@@ -163,22 +171,11 @@ def reconcile_ohlcv_storage(
             mismatched += 1
         else:
             matched += 1
-    orphan = sum(
-        1
-        for key in observation_by_key
-        if key not in observed_keys
-        and not any(
-            (
-                bar.instrument_id,
-                bar.data_source_id,
-                bar.timeframe,
-                _as_utc(bar.ts),
-                bar.is_adjusted,
-            )
-            == key
-            for bar in provider_bars
-        )
-    )
+    # Compare observations with a precomputed provider identity set.  The
+    # previous nested scan was O(observations × provider_bars), which made a
+    # large-range reconciliation prohibitively expensive even though the
+    # identity itself is already fully hashable.
+    orphan = sum(1 for key in observation_by_key if key not in provider_keys)
     if not provider_bars and not observations:
         status = "not_observed"
     elif missing or mismatched or orphan:

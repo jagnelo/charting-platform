@@ -134,3 +134,18 @@ def test_reconciliation_normalizes_offset_aware_observation_timestamps():
 
     assert result.status == "reconciled"
     assert result.matched_observation_count == 1
+
+
+def test_reconciliation_counts_orphans_by_complete_identity():
+    timestamp = datetime(2026, 1, 2, tzinfo=UTC)
+
+    result = reconcile_ohlcv_storage(
+        [_bar(ts=timestamp, source_id=7, timeframe=Timeframe.D1, adjusted=True)],
+        [
+            _observation(ts=timestamp, source_id=7, timeframe=Timeframe.W1, adjusted=True),
+            _observation(ts=timestamp, source_id=7, timeframe=Timeframe.D1, adjusted=False),
+        ],
+    )
+
+    assert result.status == "inconsistent"
+    assert result.orphan_observation_count == 2
