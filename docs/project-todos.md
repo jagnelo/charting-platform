@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
+
+- [x] Rerun the prescribed branch-scoped gate from HEAD `e1fa2478` after the
+      point-in-time factor regression: backend unit `1,409/1,409`, backend
+      integration `387/387`, frontend Vitest/type-check/build,
+      compose/provider/runner/health/performance/acceptance checks, and
+      functional Playwright `165` passed with `107` documented skips across
+      `272`.
+- [x] Confirm visual parity remains `98/104` with exactly the six protected
+      `watchlist-column-editor-open` and `workspace-floating` state-oracle
+      diffs across the four declared projects; scoped Docker resources were
+      cleaned up. No visual policy or fallback behavior changed.
+- [ ] Continue provider factor application/rebuild, family/provider history,
+      W1/MN continuity, canonical population, and live 100k-point evidence;
+      preserve the six protected assertions and rerun the exact gate after
+      the next coherent product change.
+
 ### 2026-09-10 — Point-in-time factor cutoff regression completion
 
 - [x] Cover both normalized observation and legacy event fallback paths for

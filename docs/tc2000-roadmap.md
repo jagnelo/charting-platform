@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
+
+The prescribed `make validate-integration` gate reran from branch HEAD
+`e1fa2478` (product behavior `95f3b67a`, regression tip `d793e5a9`) after the
+point-in-time factor cutoff tests were added. Backend unit coverage passed
+`1,409/1,409`; the isolated backend integration suite passed `387/387`; and
+frontend Vitest, type-check/build, compose contract, provider/runner/health/
+performance/acceptance checks, and authenticated functional Playwright all
+passed (`165` passed, `107` documented skips across `272`). Provider probes
+were skipped because no provider-related files changed, and the
+research-runner probe reported the expected sandbox/resource denials.
+
+Visual parity completed `104` cases with `98` passes and exactly the six
+protected state-oracle diffs: `watchlist-column-editor-open` at
+`visual-1080p-100/125`, and `workspace-floating` at
+`visual-1080p-100/125` and `visual-1440p-100/125`. The gate exited `2` at
+`e2e-visual` after clean branch-scoped teardown. No baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. This confirms the
+same reproducible visual blocker after the factor-provenance regression and
+does not claim the live 100k-point proof.
+
+R1/R6 remain active for provider-factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, canonical population,
+and dense-data evidence; R2-R5 and R7 remain open. Continue the next bounded
+evidence-backed seam and rerun the exact gate after the next coherent product
+change while preserving the six protected assertions.
+
 ## 2026-09-10 — Point-in-time factor cutoff regression completion
 
 The follow-up regression at test tip `d793e5a9` covers both adjustment-factor

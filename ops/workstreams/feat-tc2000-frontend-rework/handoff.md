@@ -8,6 +8,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
+
+The prescribed `make validate-integration` gate reran from branch HEAD
+`e1fa2478` (product behavior `95f3b67a`, regression tip `d793e5a9`) after the
+point-in-time factor cutoff tests were added. Backend unit coverage passed
+`1,409/1,409`; backend integration passed `387/387`; frontend Vitest,
+type-check/build, compose contract, provider/runner/health/performance/
+acceptance checks, and authenticated functional Playwright passed (`165`
+passed, `107` documented skips across `272`). Provider probes were skipped
+because no provider-related files changed; research-runner sandbox/resource
+probes returned the expected denials.
+
+Visual parity completed `104` cases with `98` passes and exactly the six
+protected state-oracle diffs: `watchlist-column-editor-open` at
+`visual-1080p-100/125`, plus `workspace-floating` at
+`visual-1080p-100/125` and `visual-1440p-100/125`. The gate exited `2` at
+`e2e-visual` after clean branch-scoped teardown. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. This is
+the same explicit visual blocker, not a Docker blocker, and the live 100k-point
+proof remains unclaimed.
+
+Continue the next bounded R1/R6 provider-factor/history/provenance and
+dense-data seam, preserving all six protected visual assertions, then rerun
+the exact gate at the next coherent product tip.
+
 ## 2026-09-10 — Point-in-time factor cutoff regression completion
 
 Test tip `d793e5a9` completes coverage for both normalized adjustment
