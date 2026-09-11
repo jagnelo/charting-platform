@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-11 — Bootstrap readiness requires canonical members
+
+- [x] Align core workstation bootstrap with the canonical ETF member
+      readiness contract: materialized snapshots need a resolved,
+      non-placeholder equity member; metadata-only snapshots retain the raw
+      `resolved_count` compatibility path (`a4571fdb`).
+- [x] Add focused readiness/bootstrap regressions; the bounded suite passed
+      `26/26`, with Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,475/1,475` at `69%` isolated
+      coverage. The exact gate passed backend integration `391/391`, frontend
+      checks, and functional Playwright (`165` passed, `107` documented skips
+      across `272`). Visual parity remained `98/104` with the same six
+      protected diffs; teardown removed all resources and four images. No
+      visual, provider, fallback, or acceptance policy changed.
+- [ ] Continue provider/family history breadth, canonical population, W1/MN
+      continuity, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Family coverage requires canonical snapshot members
 
 - [x] Require materialized benchmark-family snapshots to expose at least one

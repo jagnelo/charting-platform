@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Bootstrap readiness requires canonical members
+
+At product tip `a4571fdb`, core workstation bootstrap now uses the same
+canonical-member readiness contract as ETF refresh: a materialized snapshot
+must contain at least one resolved, non-placeholder equity member before it
+can satisfy bootstrap readiness. Legacy metadata-only snapshots retain the
+raw `resolved_count` compatibility path when no holding rows are present, so
+existing summary metadata remains usable without allowing a non-equity-only
+materialized disclosure to bootstrap the workstation.
+
+The focused bootstrap/readiness suite passed `26/26`; Ruff, formatting, and
+diff checks passed; and the full backend unit suite passed `1,475/1,475` at
+`69%` isolated coverage. The exact elevated branch-scoped gate passed all
+non-visual stages, including backend integration `391/391`, frontend
+static/build/test/contracts/probes, and functional Playwright `165` passed
+with `107` documented skips across `272`. Visual parity remained `98/104`
+with exactly the six established protected diffs
+(`watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+1080p-100/125 and 1440p-100/125). Teardown removed all branch resources and
+four images. No visual, provider, fallback, or acceptance policy changed.
+Continue R1 provider/family history breadth, canonical population, W1/MN
+continuity, dense-data evidence, and R2-R7 without changing protected visual
+policy.
+
 ## 2026-09-11 — Family coverage requires canonical snapshot members
 
 At product tip `f3943b82`, benchmark-family coverage now treats a materialized
