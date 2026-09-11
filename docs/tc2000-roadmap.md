@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Generic breadth consumers share canonical member eligibility
+
+At product tip `09c7930c`, the shared generic breadth-universe resolver now
+uses the canonical holding contract across breadth history, peer-reference
+series, and Python/Study Lab consumers: rows must be resolved security
+equities, use normalized issuer labels (including `common stock` variants),
+and point to non-placeholder instruments. Family member-bar and metadata
+readiness use the same normalized predicates, so issuer casing or punctuation
+cannot make W1/MN or classification coverage disagree with breadth. The
+focused Docker-backed historical ETF breadth regression passed `1/1`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,472/1,472` with `69%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; no inactive temporary builder
+remained after verification. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, canonical population, W1/MN continuity, dense-data evidence,
+and R2-R7.
+
 ## 2026-09-11 — Canonical ETF source reads isolate controlled fixtures
 
 At product tip `83bddc9a`, workstation source listing and resolution now apply
