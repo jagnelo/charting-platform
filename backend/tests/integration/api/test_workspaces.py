@@ -1386,6 +1386,75 @@ class TestWorkspaces:
             for warning in response.json()["exclusions"]
         )
 
+    def test_benchmark_family_coverage_does_not_treat_resolved_non_equity_as_canonical(
+        self, client, auth_headers, db, instrument_type, instrument
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="partial",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="family-resolved-non-equity-only",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name="Resolved cash disclosure",
+                weight=1.0,
+                holding_type="cash",
+                row_type="security",
+                source_row_hash="family-resolved-non-equity-only-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        assert cap["available"] is True
+        assert cap["status"] == "holdings_snapshot_unresolved"
+        assert cap["point_in_time_supported"] is False
+        assert cap["member_count"] == 0
+        assert cap["weighted_member_count"] == 0
+        assert cap["weights_status"] == "unavailable"
+        assert cap["classification_status"] == "unavailable"
+        assert response.json()["coverage"] == 0
+
     def test_benchmark_family_coverage_uses_historical_profile_snapshot_for_classification(
         self, client, auth_headers, db, instrument_type, instrument, instrument_b
     ):

@@ -4013,11 +4013,17 @@ async def benchmark_family_coverage(
             snapshot_rows = (
                 (
                     await db.execute(
-                        statement.order_by(
+                        statement.options(
+                            selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                                ETFHolding.constituent_instrument
+                            )
+                        )
+                        .order_by(
                             ETFHoldingsSnapshot.composition_date.desc(),
                             ETFHoldingsSnapshot.known_at.desc().nullslast(),
                             ETFHoldingsSnapshot.id.desc(),
-                        ).limit(limit)
+                        )
+                        .limit(limit)
                     )
                 )
                 .scalars()
@@ -4069,9 +4075,29 @@ async def benchmark_family_coverage(
             observed_cadence_median_interval_days = cadence.median_interval_days
             observed_cadence_min_interval_days = cadence.min_interval_days
             observed_cadence_max_interval_days = cadence.max_interval_days
-            resolved_snapshots = [snapshot for snapshot in snapshots if snapshot.resolved_count > 0]
+            canonical_snapshot_ids = {
+                row.id: {
+                    int(holding.constituent_instrument_id)
+                    for holding in row.rows
+                    if normalize_holding_type(holding.row_type) == "security"
+                    and is_equity_holding_type(holding.holding_type)
+                    and holding.is_resolved
+                    and holding.constituent_instrument_id is not None
+                    and holding.constituent_instrument is not None
+                    and not is_placeholder_symbol(holding.constituent_instrument.symbol)
+                }
+                for row in snapshot_rows
+            }
+            # ``resolved_count`` is raw disclosure provenance.  A snapshot is
+            # usable for the locked canonical source only when at least one
+            # eligible canonical equity member is actually present.
+            resolved_snapshots = [
+                snapshot
+                for snapshot in snapshots
+                if canonical_snapshot_ids.get(snapshot.snapshot_id)
+            ]
             selected_snapshot = next(
-                (row for row in snapshot_rows if row.resolved_count > 0),
+                (row for row in snapshot_rows if canonical_snapshot_ids.get(row.id)),
                 None,
             )
             source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
