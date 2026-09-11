@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,17 +31,23 @@ from app.models.provider_observation import (
     MarketBarObservation,
 )
 from app.models.provider_runtime import ProviderCapability
-from app.providers import (
-    ensure_data_source,
-    provider_symbol_for_instrument,
-)
+from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import InstrumentProfile
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
     summarize_persisted_adjustment_factor_provenance,
 )
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
-from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
+from app.services.ohlcv_coverage import (
+    assess_ohlcv_coverage,
+    missing_range_slices,
+)
+from app.services.ohlcv_coverage import (
+    bar_visible_through as _bar_visible_through,
+)
+from app.services.ohlcv_coverage import (
+    bar_visible_through_clause as _bar_visible_through_clause,
+)
 from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
@@ -113,37 +119,6 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
-
-
-def _bar_visible_through_clause(cutoff: datetime):
-    """Keep derived coarse bars out of a cutoff until their source closes.
-
-    Derived W1/MN rows use the first source session as ``ts`` but aggregate
-    through ``source_end``.  Comparing only ``ts`` would therefore expose a
-    partially observed period to a historical caller.  Provider rows retain
-    their existing timestamp contract; derived rows need explicit source-end
-    evidence to be visible at the cutoff.
-    """
-
-    normalized_cutoff = _as_utc(cutoff)
-    return or_(
-        OHLCVBar.is_derived.is_(False),
-        and_(
-            OHLCVBar.is_derived.is_(True),
-            OHLCVBar.source_end.is_not(None),
-            OHLCVBar.source_end <= normalized_cutoff,
-        ),
-    )
-
-
-def _bar_visible_through(bar: OHLCVBar, cutoff: datetime) -> bool:
-    """Return whether one ORM bar has complete source evidence by cutoff."""
-
-    if not bar.is_derived:
-        return True
-    if bar.source_end is None:
-        return False
-    return _as_utc(bar.source_end) <= _as_utc(cutoff)
 
 
 def _historical_repair_start(

@@ -22,6 +22,7 @@ from app.services.ohlcv_coverage import (
     _as_utc,
     assess_observed_ohlcv_cadence,
     assess_ohlcv_coverage,
+    bar_visible_through_clause,
     reconcile_ohlcv_storage,
     summarize_ohlcv_lineage,
 )
@@ -46,6 +47,7 @@ async def instrument_ohlcv_coverage(
     # envelope before issuing SQL predicates or returning it to the client.
     start = _as_utc(start)
     end = _as_utc(end)
+    visibility_cutoff = end if mode == "historical" else datetime.now(UTC)
     if end < start:
         raise HTTPException(
             422,
@@ -67,6 +69,7 @@ async def instrument_ohlcv_coverage(
                     OHLCVBar.is_adjusted.is_(adjusted),
                     OHLCVBar.ts >= start,
                     OHLCVBar.ts <= end,
+                    bar_visible_through_clause(visibility_cutoff),
                 )
                 .order_by(OHLCVBar.ts)
             )

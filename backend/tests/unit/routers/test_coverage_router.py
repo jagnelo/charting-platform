@@ -301,6 +301,61 @@ class TestCoverageRouter:
         assert body["covered_start"] == "2026-01-02T00:00:00Z"
         assert body["bar_count"] == 1
 
+    def test_range_coverage_excludes_derived_period_not_closed_at_cutoff(
+        self, client, auth_headers, db, instrument
+    ):
+        start = datetime(2026, 2, 2, tzinfo=UTC)
+        end = start + timedelta(days=8)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe="D1",
+                    source_end=start + timedelta(days=4),
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=start + timedelta(days=7),
+                    open=Decimal("11"),
+                    high=Decimal("12"),
+                    low=Decimal("10"),
+                    close=Decimal("11"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe="D1",
+                    source_end=end + timedelta(days=1),
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "W1",
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["bar_count"] == 1
+        assert body["covered_start"] == start.isoformat().replace("+00:00", "Z")
+        assert body["covered_end"] == start.isoformat().replace("+00:00", "Z")
+        assert body["lineage"]["derived_bar_count"] == 1
+
     def test_range_coverage_exposes_derived_factor_version(
         self, client, auth_headers, db, instrument
     ):
@@ -321,6 +376,7 @@ class TestCoverageRouter:
                     is_adjusted=True,
                     is_derived=True,
                     source_timeframe="D1",
+                    source_end=start,
                 ),
                 InstrumentDatasetState(
                     instrument_id=instrument.id,
@@ -398,6 +454,7 @@ class TestCoverageRouter:
                     is_derived=True,
                     derivation_method="local_split_ratio",
                     source_timeframe="D1",
+                    source_end=start,
                 ),
                 InstrumentDatasetState(
                     instrument_id=instrument.id,
@@ -529,6 +586,7 @@ class TestCoverageRouter:
                     is_derived=True,
                     derivation_method="provider_adjustment_factor",
                     source_timeframe="D1",
+                    source_end=start,
                 ),
                 InstrumentDatasetState(
                     instrument_id=instrument.id,
@@ -602,6 +660,7 @@ class TestCoverageRouter:
                     is_adjusted=True,
                     is_derived=True,
                     source_timeframe="D1",
+                    source_end=start + timedelta(days=7),
                 ),
             ]
         )

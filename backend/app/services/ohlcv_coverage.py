@@ -9,6 +9,8 @@ from enum import StrEnum
 from statistics import median
 from typing import Literal
 
+from sqlalchemy import and_, or_
+
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import MarketBarObservation
 
@@ -268,6 +270,37 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def bar_visible_through_clause(cutoff: datetime):
+    """Keep derived coarse bars out of a cutoff until their source closes.
+
+    Derived W1/MN rows use the first source session as ``ts`` but aggregate
+    through ``source_end``. Comparing only ``ts`` would expose a partially
+    observed period to a historical caller. Provider rows retain their
+    observation-timestamp contract; derived rows need explicit source-end
+    evidence to be visible at the cutoff.
+    """
+
+    normalized_cutoff = _as_utc(cutoff)
+    return or_(
+        OHLCVBar.is_derived.is_(False),
+        and_(
+            OHLCVBar.is_derived.is_(True),
+            OHLCVBar.source_end.is_not(None),
+            OHLCVBar.source_end <= normalized_cutoff,
+        ),
+    )
+
+
+def bar_visible_through(bar: OHLCVBar, cutoff: datetime) -> bool:
+    """Return whether one ORM bar has complete source evidence by cutoff."""
+
+    if not bar.is_derived:
+        return True
+    if bar.source_end is None:
+        return False
+    return _as_utc(bar.source_end) <= _as_utc(cutoff)
 
 
 def _observed_fixed_holiday(year: int, month: int, day: int) -> date:
