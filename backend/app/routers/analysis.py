@@ -674,6 +674,7 @@ def _role_readiness(
         holdings_status == "available"
         and member_bar_status == "ready"
         and entitlement_status == "verified"
+        and point_in_time_supported
         and weights_status == "ready"
         and classification_status == "ready"
     ):

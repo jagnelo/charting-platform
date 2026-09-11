@@ -27,6 +27,7 @@ from app.routers.analysis import (
     _performance_cells,
     _python_breadth_occurrences,
     _python_breadth_point,
+    _role_readiness,
     _rotation_state,
     _sample_aligned_points,
     _technical_cells_for_series,
@@ -83,6 +84,38 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "verified"
     entitlement.live_probe_status = "failure"
     assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=False,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "partial"
+    assert reasons == ["point_in_time_unavailable"]
+
+
+def test_role_readiness_is_ready_when_all_canonical_gates_are_supported():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=True,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "ready"
+    assert reasons == []
 
 
 @pytest.mark.asyncio
