@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-11 — Family coverage requires canonical snapshot members
+
+- [x] Require materialized benchmark-family snapshots to expose at least one
+      resolved, non-placeholder canonical equity member before reporting
+      point-in-time coverage as available; preserve raw-count evidence only for
+      legacy metadata-only snapshots (`f3943b82`).
+- [x] Add focused regressions for canonical, non-equity-only, and metadata-only
+      family snapshots; coverage passed `3/3`, with Ruff, formatting, and diff
+      checks clean.
+- [x] The full backend unit suite passed `1,474/1,474` at `68%` isolated
+      coverage. The exact gate passed backend integration `391/391`, frontend
+      checks, and functional Playwright (`165` passed, `107` documented skips
+      across `272`). Visual parity remained `98/104` with the same six
+      protected diffs; teardown removed all resources and four images. No
+      visual, provider, fallback, or acceptance policy changed.
+- [ ] Continue provider/family history breadth, canonical population, W1/MN
+      continuity, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Family readiness metadata matches canonical members
 
 - [x] Deduplicate benchmark-family coverage metadata readiness by canonical

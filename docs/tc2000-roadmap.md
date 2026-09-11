@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Family coverage requires canonical snapshot members
+
+At product tip `f3943b82`, benchmark-family coverage now treats a materialized
+holdings snapshot as usable only when it contains at least one resolved,
+non-placeholder canonical equity member. Raw `resolved_count` remains a
+compatibility signal for legacy metadata-only snapshots that intentionally
+persist summary counts without holding rows. This prevents non-equity-only
+disclosures from making point-in-time family coverage appear available while
+preserving older summary metadata.
+
+The focused Docker-backed coverage regressions passed `3/3`; Ruff, formatting,
+and diff checks passed; and the full backend unit suite passed `1,474/1,474` at
+`68%` isolated coverage. The exact elevated branch-scoped gate passed all
+non-visual stages, including backend integration `391/391` (`82.69%` combined
+coverage), frontend static/build/test/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established protected diffs
+(`watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+1080p-100/125 and 1440p-100/125). Teardown removed all branch resources and
+four images. No visual, provider, fallback, or acceptance policy changed.
+Continue R1 provider/family history breadth, canonical population, W1/MN
+continuity, dense-data evidence, and R2-R7 without changing protected visual
+policy.
+
 ## 2026-09-11 — Family readiness metadata matches canonical members
 
 At product tip `184cedd6`, benchmark-family coverage metadata readiness now

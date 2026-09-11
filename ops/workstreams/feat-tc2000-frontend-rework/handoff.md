@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Family coverage requires canonical snapshot members
+
+Product tip `f3943b82` closes the family-coverage eligibility seam. A
+materialized holdings snapshot is now available for canonical point-in-time
+coverage only when its rows include a resolved, non-placeholder equity member.
+Legacy metadata-only snapshots retain their raw `resolved_count` compatibility
+path because they intentionally contain no persisted holding rows; materialized
+non-equity-only disclosures remain unresolved. Focused Docker-backed coverage
+regressions passed `3/3`; Ruff, format, and diff checks passed; and the full
+backend unit suite passed `1,474/1,474` at `68%` isolated coverage.
+
+The exact branch-scoped gate passed all non-visual stages: backend integration
+`391/391` (`82.69%` combined coverage), frontend static/build/test/contracts/
+probes, and functional Playwright `165` passed with `107` documented skips
+across `272`. Visual parity remained `98/104` with exactly the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125). Teardown removed all
+branch resources and four images. No visual, provider, fallback, or acceptance
+policy changed. Continue R1 provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Family readiness metadata matches canonical members
 
 Product tip `184cedd6` closes the remaining family-coverage metadata
