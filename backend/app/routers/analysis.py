@@ -533,6 +533,21 @@ async def _family_member_metadata_readiness(
             and not is_placeholder_symbol(row.constituent_instrument.symbol)
         )
     ]
+    # A provider disclosure may repeat the same canonical instrument (for
+    # example, because two source rows carry the same identifier).  Family
+    # readiness is expressed per canonical member, matching source resolution,
+    # breadth, baskets, and Strategy Lab rather than per raw disclosure row.
+    weighted_member_ids = {
+        int(row.constituent_instrument_id)
+        for row in rows
+        if row.weight is not None and row.constituent_instrument_id is not None
+    }
+    unique_rows: dict[int, ETFHolding] = {}
+    for row in rows:
+        instrument_id = row.constituent_instrument_id
+        if instrument_id is not None:
+            unique_rows.setdefault(int(instrument_id), row)
+    rows = list(unique_rows.values())
     member_count = len(rows)
     if not member_count:
         return 0, 0, "unavailable", 0, "unavailable"
@@ -576,7 +591,11 @@ async def _family_member_metadata_readiness(
             if isinstance(industry, str) and industry.strip():
                 historical_profile_industry.add(instrument_id)
 
-    weighted_count = sum(row.weight is not None for row in rows)
+    weighted_count = sum(
+        int(row.constituent_instrument_id) in weighted_member_ids
+        for row in rows
+        if row.constituent_instrument_id is not None
+    )
     classified_count = 0
     for row in rows:
         detail = row.constituent_instrument.equity_detail if row.constituent_instrument else None

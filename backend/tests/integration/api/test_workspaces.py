@@ -1268,6 +1268,87 @@ class TestWorkspaces:
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 1
 
+    def test_benchmark_family_coverage_deduplicates_metadata_readiness_members(
+        self, client, auth_headers, db, instrument_type, instrument
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail, Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        db.add(EquityDetail(instrument_id=instrument.id, industry="Technology"))
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=2,
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="family-metadata-duplicate-members",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=None,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="family-metadata-duplicate-a",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=1,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="family-metadata-duplicate-b",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        assert cap["member_count"] == 1
+        assert cap["weighted_member_count"] == 1
+        assert cap["weights_status"] == "ready"
+        assert cap["classified_member_count"] == 1
+        assert cap["classification_status"] == "ready"
+
     def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
         self, client, auth_headers, db, instrument_type
     ):
