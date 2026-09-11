@@ -101,6 +101,28 @@ def _canonical_member_descriptor(
     )
 
 
+def _snapshot_canonical_member_count(snapshot: ETFHoldingsSnapshot | None) -> int | None:
+    """Count publishable canonical IDs when the snapshot rows are eagerly loaded."""
+
+    if snapshot is None:
+        return None
+    rows = snapshot.__dict__.get("rows")
+    if rows is None:
+        return None
+    return len(
+        {
+            holding.constituent_instrument_id
+            for holding in rows
+            if normalize_holding_type(holding.row_type) == "security"
+            and is_equity_holding_type(holding.holding_type)
+            and holding.is_resolved
+            and holding.constituent_instrument_id is not None
+            and holding.constituent_instrument is not None
+            and not is_placeholder_symbol(holding.constituent_instrument.symbol)
+        }
+    )
+
+
 def _version(prefix: str, identifier: object, effective_at: datetime | None = None) -> str:
     return f"{prefix}:{identifier}:{wire_datetime(effective_at) or 'current'}"
 
@@ -354,6 +376,7 @@ def _benchmark_family_role_descriptor(
         source = snapshot.source_provider if snapshot is not None else group.source
         mapping_state = declared.get("verification_state")
     mapping_label = declared.get("label") or (selected.get("label") if selected else None)
+    canonical_member_count = _snapshot_canonical_member_count(snapshot)
     snapshot_key = (
         snapshot.snapshot_hash or str(snapshot.id) if snapshot is not None else "unavailable"
     )
@@ -380,7 +403,11 @@ def _benchmark_family_role_descriptor(
         membership_version=membership_version,
         # The source catalog advertises resolvable canonical members, not raw
         # provider rows. Raw and unresolved counts remain in provenance.
-        member_count=(snapshot.resolved_count if snapshot is not None else 0),
+        member_count=(
+            canonical_member_count
+            if canonical_member_count is not None
+            else (snapshot.resolved_count if snapshot is not None else 0)
+        ),
         source=source,
         provenance={
             "family_key": group.stable_key,
@@ -417,6 +444,7 @@ def _etf_descriptor(
     snapshot: ETFHoldingsSnapshot | None,
 ) -> WatchlistSourceRead:
     composition = snapshot.composition_date if snapshot else None
+    canonical_member_count = _snapshot_canonical_member_count(snapshot)
     return WatchlistSourceRead(
         source_id=f"etf-holdings:{instrument.symbol}",
         source_kind="etf_holdings",
@@ -432,7 +460,11 @@ def _etf_descriptor(
         ),
         # Keep the picker count aligned with the members that the resolver can
         # actually publish; raw provider rows remain provenance evidence.
-        member_count=(snapshot.resolved_count if snapshot else 0),
+        member_count=(
+            canonical_member_count
+            if canonical_member_count is not None
+            else (snapshot.resolved_count if snapshot else 0)
+        ),
         source=snapshot.source_provider
         if snapshot
         else (profile.adapter_key if profile else "canonical_etf_pending"),
@@ -830,6 +862,11 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
                     ranked_snapshots.c.snapshot_id == ETFHoldingsSnapshot.id,
                 )
                 .where(ranked_snapshots.c.row_number == 1)
+                .options(
+                    selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                        ETFHolding.constituent_instrument
+                    )
+                )
             )
         )
         .scalars()

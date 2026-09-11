@@ -1864,6 +1864,7 @@ class TestWatchlistsCrud:
         )
         assert source["locked"] is True
         assert source["symbol"] == "MDY"
+        assert source["member_count"] == 1
         assert source["provenance"]["derived"] is True
         assert source["provenance"]["availability"] == "available"
         assert source["provenance"]["membership_semantics"] == (
@@ -2349,27 +2350,41 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
+            row_count=2,
+            resolved_count=2,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="watchlist-etf-source-fixture",
         )
         db.add(snapshot)
         db.flush()
-        db.add(
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=instrument_b.id,
-                position=0,
-                reported_symbol=instrument_b.symbol,
-                reported_name=instrument_b.name,
-                weight=1.0,
-                holding_type="equity",
-                row_type="security",
-                source_row_hash="watchlist-etf-source-row",
-                is_resolved=True,
-            )
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=0,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.75,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="watchlist-etf-source-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=1,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="Security",
+                    source_row_hash="watchlist-etf-source-duplicate-row",
+                    is_resolved=True,
+                ),
+            ]
         )
         db.add_all(
             [
@@ -2410,8 +2425,8 @@ class TestWatchlistsCrud:
         assert Decimal(str(source["provenance"]["adapter_confidence"])) == Decimal("0.92")
         assert source["provenance"]["snapshot_source_quality"] == "issuer_disclosed"
         assert source["provenance"]["snapshot_completeness_status"] == "complete"
-        assert source["provenance"]["snapshot_row_count"] == 1
-        assert source["provenance"]["snapshot_resolved_count"] == 1
+        assert source["provenance"]["snapshot_row_count"] == 2
+        assert source["provenance"]["snapshot_resolved_count"] == 2
         assert source["provenance"]["snapshot_unresolved_count"] == 0
         empty_source = next(
             item
