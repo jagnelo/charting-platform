@@ -24,6 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
@@ -58,10 +59,7 @@ MIN_CORE_D1_BARS = 252
 def _wire_datetime(value: datetime | None) -> str | None:
     """Serialize bootstrap provenance timestamps on the canonical UTC timeline."""
 
-    if value is None:
-        return None
-    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
-    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return wire_datetime(value)
 
 
 _BENCHMARK_PROXY_NAMES = {
@@ -254,6 +252,7 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
 
     from app.services.benchmark_family_history import (
         canonical_history_job_id,
+        history_end_iso,
         plan_benchmark_family_history_refresh,
     )
 
@@ -263,7 +262,7 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
     for instrument_id in plan["instrument_ids"]:
         job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
         if plan.get("as_of") is not None:
-            job_args.extend([None, plan["as_of"].isoformat()])
+            job_args.extend([None, history_end_iso(plan["as_of"])])
         try:
             job = await redis.enqueue_job(
                 *job_args,

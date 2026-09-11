@@ -330,6 +330,7 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     plan = {
         "instrument_ids": [10, 20],
         "timeframes": ["MN", "W1", "D1"],
+        "as_of": datetime.fromisoformat("2026-01-02T03:04:05+02:00"),
         "available_instrument_count": 2,
         "selected_instrument_count": 2,
         "limited": False,
@@ -361,8 +362,16 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     assert result["queue_errors"] == []
     assert result["queue_error_count"] == 0
     assert len(redis.calls) == 2
-    assert redis.calls[0][0] == ("task_bulk_fetch_instrument", 10, ["MN", "W1", "D1"])
-    assert redis.calls[0][1]["_job_id"] == "watchlist-source-history:10:D1,W1,MN"
+    assert redis.calls[0][0] == (
+        "task_bulk_fetch_instrument",
+        10,
+        ["MN", "W1", "D1"],
+        None,
+        "2026-01-02T01:04:05Z",
+    )
+    assert redis.calls[0][1]["_job_id"] == (
+        "watchlist-source-history:10:D1,W1,MN:end=2026-01-02T01:04:05Z"
+    )
 
 
 def test_core_workstation_history_queue_retains_member_errors_and_continues(monkeypatch):
