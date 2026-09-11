@@ -19,7 +19,11 @@ from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
-from app.services.etf_holdings import is_equity_holding_type, is_placeholder_symbol
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.member_dispositions import MEMBER_DISPOSITION_KEYS, member_disposition_counts
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.watchlist_sources import (
@@ -414,7 +418,7 @@ async def queue_snapshot_member_history(
         _snapshot_id, instrument_id, row_type, holding_type, is_resolved = row[:5]
         symbol = row[5] if len(row) > 5 else None
         if (
-            row_type != "security"
+            normalize_holding_type(row_type) != "security"
             or not is_equity_holding_type(holding_type)
             or not is_resolved
             or instrument_id is None

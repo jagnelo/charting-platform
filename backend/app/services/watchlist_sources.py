@@ -1246,7 +1246,7 @@ async def resolve_watchlist_source(
         valid_rows = [
             holding
             for holding in rows
-            if holding.row_type == "security"
+            if normalize_holding_type(holding.row_type) == "security"
             and is_equity_holding_type(holding.holding_type)
             and holding.is_resolved
             and holding.constituent_instrument_id is not None

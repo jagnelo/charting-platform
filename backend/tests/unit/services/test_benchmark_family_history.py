@@ -597,7 +597,7 @@ async def test_queue_snapshot_member_history_accepts_issuer_equity_label_variant
     class Result:
         def all(self):
             return [
-                (101, 10, "security", "common stock", True),
+                (101, 10, "Security", "common stock", True),
                 (101, 20, "security", "real estate investment trust", True),
                 (101, 30, "security", "money market fund, taxable", True),
             ]

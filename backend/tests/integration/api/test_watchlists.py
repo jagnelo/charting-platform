@@ -1820,7 +1820,7 @@ class TestWatchlistsCrud:
                 reported_name=instrument.name,
                 weight=1.0,
                 holding_type="equity",
-                row_type="security",
+                row_type="Security",
                 source_row_hash="family-derived-equal-row",
                 is_resolved=True,
             )
@@ -1834,7 +1834,7 @@ class TestWatchlistsCrud:
                 reported_name=placeholder.name,
                 weight=0.25,
                 holding_type="equity",
-                row_type="security",
+                row_type="Security",
                 source_row_hash="family-derived-placeholder-row",
                 is_resolved=True,
             )
