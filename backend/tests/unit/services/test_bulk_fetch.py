@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -136,6 +137,102 @@ async def test_bulk_fetch_passes_historical_end_to_derived_materializer(monkeypa
     )
 
     assert materializer_ends == [(True, end)]
+
+
+@pytest.mark.asyncio
+async def test_bounded_coarse_fetch_preserves_future_derived_rows(db, instrument, monkeypatch):
+    from app.models.data_source import DataSource
+    from app.models.ohlcv import OHLCVBar
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    source = DataSource(name="bounded-coarse-provider")
+    db.add(source)
+    db.flush()
+
+    future_ts = datetime(2025, 1, 6, tzinfo=UTC)
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.W1,
+            ts=future_ts,
+            open=Decimal("90"),
+            high=Decimal("95"),
+            low=Decimal("89"),
+            close=Decimal("92"),
+            volume=Decimal("100"),
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe=Timeframe.D1.value,
+            derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+            derived_at=datetime(2025, 1, 7, tzinfo=UTC),
+            source_bar_count=5,
+            source_start=datetime(2025, 1, 2, tzinfo=UTC),
+            source_end=datetime(2025, 1, 6, tzinfo=UTC),
+        )
+    )
+    db.flush()
+
+    provider_bar = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.W1,
+        ts=datetime(2024, 1, 2, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("110"),
+        low=Decimal("99"),
+        close=Decimal("105"),
+        volume=Decimal("200"),
+        is_adjusted=True,
+    )
+
+    async def fake_execute(*_args, **_kwargs):
+        return SimpleNamespace(
+            result=[provider_bar],
+            data_source=source,
+            provider_name="bounded-coarse-provider",
+        )
+
+    async def no_record(*_args, **_kwargs):
+        return None
+
+    async def no_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(bulk_fetch, "_record_bar_observations", no_record)
+    monkeypatch.setattr(bulk_fetch, "_touch_ohlcv_dataset_state", no_touch)
+    monkeypatch.setattr(bulk_fetch, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await bulk_fetch._do_fetch_and_store(
+        db=AsyncSessionAdapter(db),
+        instrument=instrument,
+        ticker_sym=instrument.symbol,
+        timeframe=Timeframe.W1,
+        adjusted=True,
+        end=datetime(2024, 1, 3, tzinfo=UTC),
+    )
+
+    assert result == 1
+    rows = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.W1,
+            OHLCVBar.is_adjusted.is_(True),
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+
+    def as_utc(value):
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+    assert any(as_utc(row.ts) == future_ts and row.is_derived is True for row in rows)
+    assert any(
+        as_utc(row.ts) == datetime(2024, 1, 2, tzinfo=UTC)
+        and row.data_source_id == source.id
+        and row.is_derived is False
+        for row in rows
+    )
 
 
 @pytest.mark.asyncio

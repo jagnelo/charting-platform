@@ -291,16 +291,20 @@ async def _do_fetch_and_store(
 
     # A later provider response must be allowed to replace a previously
     # materialised coarse bar.  Remove only derived rows; provider rows remain
-    # immutable source evidence and are still de-duplicated below.
+    # immutable source evidence and are still de-duplicated below. A bounded
+    # historical fetch must not erase derived rows newer than its evaluation
+    # cutoff; the following materializer deliberately preserves that future
+    # slice while rebuilding only the requested historical range.
     if timeframe in (Timeframe.W1, Timeframe.MN):
-        await db.execute(
-            delete(OHLCVBar).where(
-                OHLCVBar.instrument_id == instrument.id,
-                OHLCVBar.timeframe == timeframe,
-                OHLCVBar.is_adjusted.is_(adjusted),
-                OHLCVBar.is_derived.is_(True),
-            )
+        delete_statement = delete(OHLCVBar).where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.is_derived.is_(True),
         )
+        if end is not None:
+            delete_statement = delete_statement.where(OHLCVBar.ts <= end)
+        await db.execute(delete_statement)
         await db.flush()
 
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
