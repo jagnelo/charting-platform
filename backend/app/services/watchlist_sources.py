@@ -8,11 +8,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
+from app.config import settings
 from app.lib.time_utils import wire_datetime
 from app.models.asset_class import InstrumentType
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
@@ -273,6 +274,22 @@ def _holdings_route_provenance(
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 _EXPLICIT_LIBRARY_KIND = "explicit_watchlist"
 _MAX_EXPLICIT_MEMBERS = 500
+
+
+def _snapshot_visibility_conditions() -> list[object]:
+    """Keep controlled browser holdings isolated from canonical source reads."""
+
+    if settings.E2E_SEED_MARKET_DATA:
+        return [
+            ETFHoldingsSnapshot.provenance == "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider == "e2e_reference",
+        ]
+    return [
+        or_(
+            ETFHoldingsSnapshot.provenance != "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider != "e2e_reference",
+        )
+    ]
 
 
 def _benchmark_family_role_selection(
@@ -788,18 +805,22 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         .scalars()
         .all()
     )
-    ranked_snapshots = select(
-        ETFHoldingsSnapshot.id.label("snapshot_id"),
-        func.row_number()
-        .over(
-            partition_by=ETFHoldingsSnapshot.etf_profile_id,
-            order_by=(
-                ETFHoldingsSnapshot.composition_date.desc(),
-                ETFHoldingsSnapshot.id.desc(),
-            ),
+    ranked_snapshots = (
+        select(
+            ETFHoldingsSnapshot.id.label("snapshot_id"),
+            func.row_number()
+            .over(
+                partition_by=ETFHoldingsSnapshot.etf_profile_id,
+                order_by=(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ),
+            )
+            .label("row_number"),
         )
-        .label("row_number"),
-    ).subquery()
+        .where(*_snapshot_visibility_conditions())
+        .subquery()
+    )
     snapshots = (
         (
             await db.execute(
@@ -1173,7 +1194,8 @@ async def resolve_watchlist_source(
             )
         profile, instrument = row
         statement = select(ETFHoldingsSnapshot).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            *_snapshot_visibility_conditions(),
         )
         if as_of is not None:
             evaluation_at = _as_utc(as_of)
@@ -1354,7 +1376,8 @@ async def resolve_watchlist_source(
             )
         profile, instrument = row
         statement = select(ETFHoldingsSnapshot).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            *_snapshot_visibility_conditions(),
         )
         if as_of is not None:
             evaluation_at = _as_utc(as_of)

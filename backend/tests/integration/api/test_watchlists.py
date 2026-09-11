@@ -15,6 +15,110 @@ class TestWatchlistsAuth:
 
 
 class TestWatchlistsCrud:
+    def test_canonical_etf_source_reads_ignore_controlled_e2e_snapshot(
+        self, client, auth_headers, db, asset_class, instrument, monkeypatch
+    ):
+        """Normal source reads must not let the seeded fixture replace canonical holdings."""
+
+        from app.config import settings
+        from app.models.asset_class import InstrumentType
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="VISIBILITY-ETF",
+            name="Visibility ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="ready")
+        db.add(profile)
+        db.flush()
+
+        canonical = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="canonical_provider",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="visibility-canonical",
+        )
+        fixture = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 2, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 2, 2, tzinfo=UTC),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            source_quality="deterministic",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="visibility-fixture",
+        )
+        db.add_all([canonical, fixture])
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=canonical.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="visibility-canonical-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=fixture.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="visibility-fixture-row",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        source = next(
+            item for item in listed.json() if item["source_id"] == "etf-holdings:VISIBILITY-ETF"
+        )
+        assert source["provenance"]["snapshot_id"] == canonical.id
+        assert source["provenance"]["snapshot_source_identifier"] is None
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/etf-holdings:VISIBILITY-ETF",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["source"]["composition_date"] == "2024-01-01"
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument.id]
+
     def test_canonical_etf_without_profile_is_a_pending_locked_market_map_source(
         self, client, auth_headers, db, asset_class
     ):
