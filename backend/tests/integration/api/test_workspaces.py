@@ -2679,8 +2679,22 @@ class TestWorkspaces:
             instrument_type_id=instrument.instrument_type_id,
             is_active=True,
         )
-        db.add_all([cash, derivative])
+        placeholder = Instrument(
+            symbol="HOLDING-INDUSTRY-PLACEHOLDER",
+            name="Unresolved industry placeholder",
+            currency="USD",
+            instrument_type_id=instrument.instrument_type_id,
+            is_active=True,
+        )
+        placeholder_detail = EquityDetail(
+            instrument_id=placeholder.id,
+            industry="Semiconductors",
+            field_provenance={"industry": {"classification_system": "provider_native"}},
+        )
+        db.add_all([cash, derivative, placeholder])
         db.flush()
+        placeholder_detail.instrument_id = placeholder.id
+        db.add(placeholder_detail)
         profile = ETFProfile(instrument_id=instrument.id)
         db.add(profile)
         db.flush()
@@ -2750,6 +2764,15 @@ class TestWorkspaces:
                     constituent_instrument_id=None,
                     position=5,
                     source_row_hash="inconsistent-resolved-row",
+                    is_resolved=True,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=placeholder.id,
+                    position=6,
+                    source_row_hash="placeholder-industry-row",
                     is_resolved=True,
                     holding_type="equity",
                     row_type="security",

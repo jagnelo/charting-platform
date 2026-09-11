@@ -24,7 +24,11 @@ from app.schemas.workstation import (
     InstrumentReferenceOut,
     MarketGroupOut,
 )
-from app.services.etf_holdings import is_equity_holding_type, normalize_holding_type
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.top_down_taxonomy import (
     industry_proxy_candidates,
     seed_top_down_taxonomy,
@@ -42,7 +46,7 @@ def _as_utc(value: datetime) -> datetime:
     return normalized.astimezone(UTC)
 
 
-def _holding_exclusion_code(row: ETFHolding) -> str | None:
+def _holding_exclusion_code(row: ETFHolding, constituent_symbol: str | None = None) -> str | None:
     """Return the explicit reason a holding cannot be an equity taxonomy member."""
 
     holding_type = normalize_holding_type(row.holding_type)
@@ -55,6 +59,8 @@ def _holding_exclusion_code(row: ETFHolding) -> str | None:
     # inconsistent. Treat it as unresolved rather than allowing it into the
     # coverage denominator where the constituent endpoint cannot return it.
     if not row.is_resolved or row.constituent_instrument_id is None:
+        return "unresolved_holding"
+    if constituent_symbol is not None and is_placeholder_symbol(constituent_symbol):
         return "unresolved_holding"
     if row_type != "security" or not is_equity_holding_type(row.holding_type):
         return "non_equity_holding"
@@ -208,10 +214,12 @@ async def etf_industry_composition(
         await db.execute(
             select(
                 ETFHolding,
+                Instrument.symbol,
                 EquityDetail.industry,
                 EquityDetail.sector,
                 EquityDetail.field_provenance,
             )
+            .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
             .outerjoin(
                 EquityDetail, EquityDetail.instrument_id == ETFHolding.constituent_instrument_id
             )
@@ -222,8 +230,11 @@ async def etf_industry_composition(
         db,
         {
             row.constituent_instrument_id
-            for row, *_ in rows
-            if row.is_resolved and row.constituent_instrument_id is not None
+            for row, constituent_symbol, *_ in rows
+            if (
+                _holding_exclusion_code(row, constituent_symbol) is None
+                and row.constituent_instrument_id is not None
+            )
         },
         as_of,
     )
@@ -231,8 +242,8 @@ async def etf_industry_composition(
     exclusions: list[str] = []
     classified_rows = 0
     classification_systems_seen: set[str] = set()
-    for row, industry, sector, field_provenance in rows:
-        exclusion = _holding_exclusion_code(row)
+    for row, constituent_symbol, industry, sector, field_provenance in rows:
+        exclusion = _holding_exclusion_code(row, constituent_symbol)
         if exclusion:
             exclusions.append(exclusion)
         else:
@@ -281,8 +292,15 @@ async def etf_industry_composition(
         exclusions=sorted(set(exclusions)),
         classification_systems=sorted(classification_systems_seen),
         classification_coverage=classified_rows
-        / sum(1 for row, *_ in rows if _holding_exclusion_code(row) is None)
-        if any(_holding_exclusion_code(row) is None for row, *_ in rows)
+        / sum(
+            1
+            for row, constituent_symbol, *_ in rows
+            if _holding_exclusion_code(row, constituent_symbol) is None
+        )
+        if any(
+            _holding_exclusion_code(row, constituent_symbol) is None
+            for row, constituent_symbol, *_ in rows
+        )
         else 0,
     )
 
@@ -356,11 +374,13 @@ async def etf_industry_proxies(
             await db.execute(
                 select(
                     ETFHolding,
+                    Instrument.symbol,
                     EquityDetail.instrument_id,
                     EquityDetail.industry,
                     EquityDetail.sector,
                     EquityDetail.field_provenance,
                 )
+                .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
                 .outerjoin(
                     EquityDetail,
                     EquityDetail.instrument_id == ETFHolding.constituent_instrument_id,
@@ -370,7 +390,7 @@ async def etf_industry_proxies(
         ).all()
         classified_instrument_ids = {
             instrument_id
-            for _row, instrument_id, *_ in classifications
+            for _row, _constituent_symbol, instrument_id, *_ in classifications
             if instrument_id is not None
         }
         historical_profiles = await _historical_profile_payloads(
@@ -392,14 +412,21 @@ async def etf_industry_proxies(
                     else None
                 )
             )
-            if _holding_exclusion_code(row) is None
+            if _holding_exclusion_code(row, constituent_symbol) is None
             else None
-            for row, instrument_id, industry_value, sector_value, field_provenance in classifications
+            for (
+                row,
+                constituent_symbol,
+                instrument_id,
+                industry_value,
+                sector_value,
+                field_provenance,
+            ) in classifications
         ]
         classified_count = sum(1 for value in classification_labels if value)
         matching_count = sum(1 for value in classification_labels if value == industry)
-        for row, *_ in classifications:
-            exclusion = _holding_exclusion_code(row)
+        for row, constituent_symbol, *_ in classifications:
+            exclusion = _holding_exclusion_code(row, constituent_symbol)
             if exclusion and exclusion not in exclusions:
                 exclusions.append(f"candidate_{exclusion}:{candidate}")
         if not matching_count:
@@ -485,7 +512,7 @@ async def etf_industry_constituents(
         {
             instrument.id
             for row, instrument, *_ in classified_rows
-            if _holding_exclusion_code(row) is None
+            if _holding_exclusion_code(row, instrument.symbol) is None
         },
         as_of,
     )
@@ -494,7 +521,7 @@ async def etf_industry_constituents(
     eligible_rows = 0
     classified_rows_count = 0
     for row, constituent, industry_value, sector_value, field_provenance in classified_rows:
-        if _holding_exclusion_code(row) is not None:
+        if _holding_exclusion_code(row, constituent.symbol) is not None:
             continue
         eligible_rows += 1
         label, system = source_classification_for_as_of(
