@@ -305,12 +305,14 @@ async def _family_member_bar_history(
             OHLCVBar.derivation_method,
         )
     )
+    # Current readiness must not count a locally-derived coarse row whose
+    # source period is still open.  Keep provider observations governed by
+    # their established timestamp semantics (including future provider rows),
+    # while applying the shared source-end visibility contract to every read.
+    cutoff = _as_utc(as_of) if as_of is not None else datetime.now(UTC)
+    bars_query = bars_query.where(_bar_visible_through_clause(cutoff))
     if as_of is not None:
-        cutoff = _as_utc(as_of)
-        bars_query = bars_query.where(
-            OHLCVBar.ts <= cutoff,
-            _bar_visible_through_clause(cutoff),
-        )
+        bars_query = bars_query.where(OHLCVBar.ts <= cutoff)
     bar_rows = (await db.execute(bars_query)).all()
 
     # Aggregate provider and locally derived rows per member before applying

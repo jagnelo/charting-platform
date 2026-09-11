@@ -1011,6 +1011,21 @@ class TestWorkspaces:
                     is_adjusted=True,
                     data_source_id=factor_source.id,
                 ),
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.W1,
+                    ts=base,
+                    open=100,
+                    high=101,
+                    low=99,
+                    close=100,
+                    volume=1_000,
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe=Timeframe.D1.value,
+                    source_end=datetime.now(UTC) + timedelta(days=1),
+                    derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+                ),
             ]
         )
         db.add_all(
@@ -1083,6 +1098,14 @@ class TestWorkspaces:
         assert daily["required_bar_count"] == 252
         assert daily["analysis_ready_member_count"] == 1
         assert daily["analysis_ready_percent"] == 50.0
+        weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
+        assert weekly["covered_member_count"] == 1
+
+        historical_weekly = next(
+            item for item in historical.json()["roles"] if item["role"] == "cap_weight"
+        )["member_bar_history"]["timeframes"]
+        historical_weekly = next(item for item in historical_weekly if item["timeframe"] == "W1")
+        assert historical_weekly["covered_member_count"] == 2
         assert daily["bar_count"] == 253
         assert daily["provider_member_count"] == 2
         assert daily["derived_member_count"] == 0
@@ -1106,14 +1129,23 @@ class TestWorkspaces:
         assert weekly["covered_member_count"] == 1
         assert weekly["analysis_ready_member_count"] == 0
         assert weekly["provider_member_count"] == 1
-        assert weekly["derived_member_count"] == 1
-        assert weekly["provider_only_member_count"] == 0
+        assert weekly["derived_member_count"] == 0
+        assert weekly["provider_only_member_count"] == 1
         assert weekly["derived_only_member_count"] == 0
-        assert weekly["mixed_member_count"] == 1
+        assert weekly["mixed_member_count"] == 0
         assert weekly["provider_bar_count"] == 1
-        assert weekly["derived_bar_count"] == 1
-        assert weekly["bar_count"] == 2
-        assert weekly["source_lineage"] == "provider_and_derived"
+        assert weekly["derived_bar_count"] == 0
+        assert weekly["bar_count"] == 1
+        assert weekly["source_lineage"] == "provider_only"
+        assert historical_weekly["provider_member_count"] == 1
+        assert historical_weekly["derived_member_count"] == 1
+        assert historical_weekly["provider_only_member_count"] == 1
+        assert historical_weekly["derived_only_member_count"] == 1
+        assert historical_weekly["mixed_member_count"] == 0
+        assert historical_weekly["provider_bar_count"] == 1
+        assert historical_weekly["derived_bar_count"] == 1
+        assert historical_weekly["bar_count"] == 2
+        assert historical_weekly["source_lineage"] == "provider_and_derived"
 
     def test_benchmark_family_readiness_excludes_placeholder_members_from_canonical_counts(
         self, client, auth_headers, db, instrument_type, instrument
