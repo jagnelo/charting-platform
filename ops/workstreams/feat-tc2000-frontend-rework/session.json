@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7aa41b1a1811d5591091f51d060ff8c1d8e79926",
+  "head": "85eaf4da35e9adef75bbabdc418aae1c89e13efa",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T20:38:30.678074+00:00",
-  "last_human_progress_update": "2026-09-11T20:38:11.154162+00:00",
+  "last_checkpoint": "2026-09-11T21:14:21.041376+00:00",
+  "last_human_progress_update": "2026-09-11T21:14:00.190289+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product 6365ec5a makes low-level ETF constituent resolution and snapshot reconcile require normalized security plus supported-equity rows; focused 4/4; backend unit 1474/1474 at 69%; exact gate backend integration 391/391 at 81.65%, frontend stages, functional 165 passed plus 107 skips, visual 98/104 with six established protected diffs; teardown clean; no policy changes.",
+    "current_blocker": "Product 85eaf4da deduplicates canonical WatchlistSource and generic ETF breadth members; focused Docker-backed regressions 2/2; backend unit 1474/1474 at 69%; exact gate backend integration 391/391 at 81.65%, frontend stages and functional 165 passed plus 107 skips, visual 98/104 with six established protected diffs; teardown clean; no policy changes.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Continue next bounded R1 provider/family history or canonical-population seam after resolver eligibility",
+    "next_action": "Continue next bounded R1 provider/family history or canonical-population seam after canonical WatchlistSource deduplication",
     "total": 10,
-    "updated_at": "2026-09-11T20:38:11.154043+00:00"
+    "updated_at": "2026-09-11T21:14:00.189903+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

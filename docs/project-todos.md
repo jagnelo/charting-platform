@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Canonical ETF source resolution deduplicates member IDs
+
+- [x] Deduplicate resolved WatchlistSource and generic ETF breadth members by
+      canonical instrument ID; derived equal-weight sources use unique IDs and
+      native ETF weights aggregate duplicate disclosure rows (`85eaf4da`).
+- [x] Add Docker-backed duplicate-row regressions; focused coverage passed
+      `2/2`, with Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,474/1,474` at `69%` coverage.
+      The exact gate passed backend integration `391/391`, frontend checks,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`). Visual parity remained `98/104` with the same six protected
+      diffs; teardown removed all resources and four images. No visual,
+      provider, fallback, or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — ETF resolver enforces canonical equity eligibility
 
 - [x] Make low-level ETF constituent resolution and snapshot reconcile use the

@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Canonical ETF source resolution deduplicates member IDs
+
+Product tip `85eaf4da` closes the duplicate-disclosure seam in the canonical
+ETF source contract. WatchlistSource resolution emits one member per canonical
+instrument ID; derived equal weights use the unique-ID denominator, native
+weights aggregate duplicate rows, and both generic ETF breadth paths consume
+the same deduplicated member set. Raw snapshot rows/provenance remain intact.
+Focused Docker-backed regressions passed `2/2`; Ruff, format, and diff checks
+passed; the backend unit suite passed `1,474/1,474` at `69%` coverage.
+
+The exact branch-scoped gate passed all non-visual stages: backend integration
+`391/391` (`81.65%` combined coverage), frontend static/build/test/contracts/
+probes, and functional Playwright `165` passed with `107` documented skips
+across `272`. Visual parity remained `98/104` with exactly the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125). Teardown removed all
+branch resources and four images. No visual, provider, fallback, or acceptance
+policy changed. Continue R1 provider/family history breadth, remaining
+canonical population, W1/MN continuity, dense-data evidence, and R2-R7; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — ETF resolver enforces canonical equity eligibility
 
 Product tip `6365ec5a` closes the low-level ETF resolver consistency gap. Both
