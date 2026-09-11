@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Generic ETF breadth excludes unresolved and placeholder members
+
+Product tip `01dc3682` aligns the generic `etf_holdings` breadth resolver with
+the canonical member contract. Unresolved holdings, rows without a resolved
+instrument, internal `HOLDING-*` placeholders, non-security rows, and
+unsupported holding labels are excluded from evaluation; disclosed source rows
+and `unresolved_member` diagnostics remain visible. The mixed-row
+Docker-backed API regression passed `1/1`; Ruff, format, and diff checks passed;
+the complete backend unit suite passed `1,472/1,472` at `68.57%` isolated
+coverage.
+
+The exact branch-scoped gate passed every non-visual stage: backend integration
+`389/389` (`81.56%` combined coverage), frontend Vitest `991/991`/build/
+contracts/probes, and functional Playwright `165` passed with `107`
+documented skips across `272`. Visual parity remained `98/104` with the six
+established protected diffs (`watchlist-column-editor-open` at 1080p-100/125
+and `workspace-floating` at 1080p-100/125 and 1440p-100/125), so the gate
+exited at `e2e-visual` only. Teardown removed all branch-scoped resources and
+four images; no inactive temporary builder remained after verification. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 provider/family history breadth, remaining canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7 remain open; do
+not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Direct family breadth excludes unresolved and placeholder members
 
 Product tip `76de35a5` aligns direct benchmark-family breadth with the

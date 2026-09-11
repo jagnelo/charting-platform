@@ -120,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "76de35a5d91fc0645d157ec3cfd09f100403c263",
+  "head": "01dc3682449f1cbaf329f61b147f0d82dd406730",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T15:24:14.319136+00:00",
-  "last_human_progress_update": "2026-09-11T15:23:50.718899+00:00",
+  "last_checkpoint": "2026-09-11T15:58:11.835395+00:00",
+  "last_human_progress_update": "2026-09-11T15:57:32.753422+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -140,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 76de35a5 excludes unresolved and internal placeholder holdings from direct benchmark-family breadth denominators and surfaces unresolved_member; focused API 1/1, full unit 1472/1472, and exact gate non-visual stages pass with integration 389/389 at 81.56%, frontend 991/991, functional 165/272, and visual 98/104 with the six established protected diffs. R1/R2-R7 remain open.",
+    "current_blocker": "Product tip 01dc3682 excludes unresolved and internal placeholder holdings from generic ETF holdings breadth and accepts canonical issuer equity labels; focused API 1/1, full unit 1472/1472, and exact gate non-visual stages pass with integration 389/389 at 81.56%, frontend 991/991, functional 165/272, and visual 98/104 with the six established protected diffs. R1/R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T15:23:50.718786+00:00"
+    "updated_at": "2026-09-11T15:57:32.753160+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

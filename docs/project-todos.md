@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-11 — Generic ETF breadth excludes unresolved and placeholder members
+
+- [x] Align generic `etf_holdings` breadth with canonical member eligibility:
+      resolved non-placeholder security rows and supported equity issuer labels
+      only; preserve disclosed source rows and explicit `unresolved_member`
+      exclusions (`01dc3682`).
+- [x] Add the mixed canonical/placeholder/unresolved ETF breadth regression;
+      the Docker-backed API check passed `1/1`, and Ruff, formatting, and diff
+      checks passed.
+- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` isolated
+      coverage. The exact tip gate passed all non-visual stages, including
+      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only after clean branch-scoped teardown removed all resources and four
+      images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Direct family breadth excludes unresolved and placeholder members
 
 - [x] Align direct benchmark-family breadth with the canonical member

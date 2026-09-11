@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Generic ETF breadth excludes unresolved and placeholder members
+
+At product tip `01dc3682`, the generic `etf_holdings` breadth resolver now
+uses the canonical member eligibility contract: holdings must be resolved,
+have a resolved instrument, point to a non-placeholder symbol, be security
+rows, and use a supported equity issuer label (including `common stock` and
+REIT variants). Disclosed source rows remain transparent in requested and
+excluded counts, while unresolved and internal `HOLDING-*` rows become
+`unresolved_member` diagnostics instead of entering the evaluated denominator.
+The mixed-row Docker-backed API regression passed `1/1`; Ruff, formatting, and
+diff checks passed. The full backend unit suite passed `1,472/1,472` with
+`68.57%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; no inactive temporary builder
+remained after verification. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, remaining canonical population, W1/MN continuity, dense-data
+evidence, and R2-R7.
+
 ## 2026-09-11 — Direct family breadth excludes unresolved and placeholder members
 
 At product tip `76de35a5`, direct benchmark-family breadth now uses the same
