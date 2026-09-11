@@ -281,8 +281,21 @@ async def materialize_derived_timeframes(
             .scalars()
             .all()
         )
+        # A bounded rebuild must only let provider rows visible at the same
+        # historical cutoff win over a derived period.  A newer provider row
+        # in the same week/month is not evidence that the period was available
+        # at ``end`` and must not erase the historical derived observation.
         provider_periods = {
-            _period_key(bar.ts, timeframe) for bar in existing if not bar.is_derived
+            _period_key(bar.ts, timeframe)
+            for bar in existing
+            if not bar.is_derived
+            and (
+                normalized_end is None
+                or (bar.ts if bar.ts.tzinfo is not None else bar.ts.replace(tzinfo=UTC)).astimezone(
+                    UTC
+                )
+                <= normalized_end
+            )
         }
         delete_statement = delete(OHLCVBar).where(
             OHLCVBar.instrument_id == instrument_id,

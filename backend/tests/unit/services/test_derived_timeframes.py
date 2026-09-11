@@ -549,3 +549,66 @@ async def test_materialize_derived_timeframes_historical_end_preserves_newer_cac
         datetime(2025, 1, 2, tzinfo=UTC),
         datetime(2025, 2, 3, tzinfo=UTC),
     ]
+
+
+@pytest.mark.asyncio
+async def test_historical_derivation_does_not_let_future_provider_period_hide_visible_period(
+    db, instrument
+):
+    """A provider row after the cutoff cannot suppress the same historical period."""
+
+    source = DataSource(name="future-coarse-provider")
+    db.add(source)
+    db.flush()
+    for day, close in ((2, "10"), (3, "11")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+    # Jan 5 is in the same ISO week as the visible Jan 2/3 D1 bars, but it is
+    # after the historical cutoff and must not own that period yet.
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            timeframe=Timeframe.W1,
+            ts=datetime(2025, 1, 5, 21, tzinfo=UTC),
+            open=Decimal("9"),
+            high=Decimal("12"),
+            low=Decimal("8"),
+            close=Decimal("11"),
+            volume=Decimal("200"),
+            is_adjusted=True,
+            is_derived=False,
+        )
+    )
+    db.flush()
+
+    await materialize_derived_timeframes(
+        AsyncSessionAdapter(db),
+        instrument.id,
+        end=datetime(2025, 1, 3, 23, 59, tzinfo=UTC),
+    )
+
+    weekly = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.W1,
+        )
+        .order_by(OHLCVBar.ts)
+        .all()
+    )
+    assert [(row.ts.replace(tzinfo=UTC), row.is_derived) for row in weekly] == [
+        (datetime(2025, 1, 2, tzinfo=UTC), True),
+        (datetime(2025, 1, 5, 21, tzinfo=UTC), False),
+    ]
