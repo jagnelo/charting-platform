@@ -1484,6 +1484,57 @@ async def test_classification_maintenance_is_bounded_per_profile(db, monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_classification_maintenance_skips_excluded_only_snapshots(db, monkeypatch):
+    """Cash/non-member disclosures do not keep classification work pending."""
+
+    async_db = AsyncSessionAdapter(db)
+    etf = await ensure_lightweight_etf_instrument(
+        async_db, symbol="XLK", name="Technology Select Sector SPDR"
+    )
+    await ensure_etf_profile(async_db, etf, issuer="State Street")
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=None,
+                name="U.S. Dollar",
+                weight=Decimal("0.01"),
+                holding_type="cash",
+                row_type="Security",
+            )
+        ],
+        composition_date=date(2026, 8, 13),
+        provenance="issuer_current_holdings",
+        source_provider="spdr",
+    )
+    db.flush()
+
+    calls = []
+
+    async def fake_reconcile(db_arg, snapshot_arg, *, max_classification_enrichment):
+        calls.append((db_arg, snapshot_arg.id, max_classification_enrichment))
+        return snapshot_arg
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.reconcile_snapshot_constituents",
+        fake_reconcile,
+    )
+
+    summary = await reconcile_all_etf_holdings_classifications(
+        async_db,
+        max_profiles=1,
+        max_enrichments_per_profile=7,
+    )
+
+    assert snapshot.rows[0].is_resolved is False
+    assert summary["profiles"] == 0
+    assert summary["processed"] == 0
+    assert summary["remaining"] == 0
+    assert calls == []
+
+
+@pytest.mark.asyncio
 async def test_classification_maintenance_visits_bounded_historical_snapshots(db, monkeypatch):
     """Canonical dated snapshots are not left permanently unresolved behind latest-only work."""
 

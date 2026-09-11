@@ -30,7 +30,9 @@ from app.services.etf_holdings import (
     get_etf_profile_for_instrument,
     get_latest_snapshot,
     ingest_holdings_snapshot,
+    is_equity_holding_type,
     is_placeholder_symbol,
+    normalize_holding_type,
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import (
@@ -706,6 +708,14 @@ async def reconcile_all_etf_holdings_classifications(
         snapshots_selected += len(snapshots)
 
         def row_needs_enrichment(row: ETFHolding) -> bool:
+            # Classification maintenance only applies to canonical member
+            # candidates. Cash, derivatives, and other disclosed non-member
+            # rows remain evidence-only and must not keep a snapshot in the
+            # enrichment queue forever.
+            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
+                row.holding_type
+            ):
+                return False
             instrument = row.constituent_instrument
             if (
                 instrument is None
