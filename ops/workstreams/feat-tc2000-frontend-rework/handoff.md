@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Analysis universe provenance retry receipt
+
+Product tip `d46e76cd` canonicalizes the remaining ETF/family constituent and
+breadth-universe `known_at` and requested `as_of` response timestamps through
+the shared UTC wire formatter. Focused analysis-router coverage passed `26/26`;
+the full backend unit suite passed `1,453/1,453` at `68%`, with Ruff,
+formatting, and diff checks clean.
+
+The first exact elevated Docker-backed gate had one isolated F8u real-drag
+timeout while waiting for the RSI plot header (`164` passed, `107` documented
+skips). An authorized fresh-stack retry passed all functional Playwright
+coverage (`165` passed, `107` documented skips across `272`), backend
+integration (`387/387`, `81.46%` combined coverage), frontend Vitest
+(`991/991`), build, compose/provider contracts, and research-runner probes.
+Visual parity remains `98/104` with exactly the six established protected
+state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). The retry
+exited at `e2e-visual` only for those unchanged diffs; teardown removed all
+branch-scoped containers, volumes, network, testcontainer sessions, and four
+images. The F8u timeout is therefore recorded as non-reproducible, not as a
+product defect. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. R1 and R2-R7 remain open; do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
 
 Checkpoint bookkeeping for this in-progress context currently owns these dirty
@@ -57,6 +81,17 @@ integration expectation in `backend/tests/integration/api/test_workspaces.py`;
 the roadmap and validation records will be refreshed after focused and full
 validation. The change must preserve point-in-time membership selection,
 provider neutrality, and all existing visual acceptance assertions.
+
+The exact gate at product tip `d46e76cd` completed backend units (`1,453/1,453`),
+integration (`387/387`), frontend Vitest (`991/991`), build, and stack/resource
+probes successfully. Functional Playwright reached `164` passed and `107`
+documented skips, but `F8u` failed waiting for the RSI chart-plot header after
+the real drag path (`flows.spec.ts:4814`); the run then completed the visual
+projects and performed clean branch-scoped teardown. This is not one of the
+six protected visual diffs. The next action is an isolated authorized retry of
+that exact F8u flow against a fresh branch-scoped stack; if it reproduces,
+inspect the chart-plot drag/activation path and add a focused regression rather
+than weakening the assertion.
 
 ## 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
 

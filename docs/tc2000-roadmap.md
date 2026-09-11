@@ -3,7 +3,37 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-10
+Last reconciled: 2026-09-11
+
+## 2026-09-11 — Analysis universe provenance gate retry receipt
+
+At product tip `d46e76cd`, the remaining ETF/family constituent and breadth
+universe provenance envelopes now serialize `known_at` and requested `as_of`
+timestamps through the shared canonical UTC wire formatter. Point-in-time
+membership selection, provider precedence, fallback boundaries, and cache
+identity semantics are unchanged.
+
+Focused analysis-router coverage passed `26/26`; the complete backend unit
+suite passed `1,453/1,453` at `68%` total coverage; Ruff, formatting, and diff
+checks passed. The first exact elevated Docker-backed gate had one isolated
+F8u real-drag timeout (`164` passed, `107` documented skips), so the exact
+gate was rerun against a fresh branch-scoped stack. The retry passed all
+functional Playwright cases (`165` passed, `107` documented skips across
+`272`), backend integration (`387/387`, `81.46%` combined coverage), frontend
+Vitest (`991/991`), build, compose/provider contracts, and research-runner
+probes. Visual parity remains `98/104` with exactly the six established
+protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125). The retry exited at `e2e-visual` only for those known
+diffs; branch-scoped teardown removed all containers, volumes, network,
+testcontainer sessions, and four images. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
+The F8u timeout is recorded as non-reproducible on the fresh stack, not as a
+product defect. This closes the analysis-universe provenance serialization
+seam only. Full provider/family history breadth, W1/MN continuity beyond the
+bounded lineage path, canonical population, dense-data evidence, and R2-R7
+goals remain open; continue without integration or deployment.
 
 ## 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
 

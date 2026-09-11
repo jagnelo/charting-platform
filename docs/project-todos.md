@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Analysis universe provenance gate retry receipt
+
+- [x] Serialize ETF/family constituent and breadth-universe `known_at` and
+      requested `as_of` provenance through the canonical UTC wire formatter at
+      product tip `d46e76cd`, without changing membership, provider, fallback,
+      or cache-identity semantics.
+- [x] Focused analysis-router coverage passed `26/26`; the full backend unit
+      suite passed `1,453/1,453` at `68%`; Ruff, formatting, and diff checks
+      passed.
+- [x] The first exact gate exposed one isolated F8u real-drag timeout; the
+      authorized fresh-stack retry passed all functional Playwright cases
+      (`165` passed, `107` documented skips across `272`), backend integration
+      (`387/387`, `81.46%` combined coverage), frontend Vitest (`991/991`),
+      build, compose/provider contracts, and research-runner probes. Visual
+      parity remained `98/104` with exactly the six established protected
+      diffs; teardown removed all branch-scoped resources and four images.
+- [ ] Treat F8u as non-reproducible on the retry, preserve the six protected
+      visual assertions, and continue full provider/family history breadth,
+      W1/MN continuity, canonical population, dense-data evidence, and R2-R7.
+
 ### 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
 
 - [x] Serialize Market Map profile, membership, bar/event watermark, and
