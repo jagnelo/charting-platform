@@ -300,7 +300,11 @@ async def _family_member_bar_history(
         )
     )
     if as_of is not None:
-        bars_query = bars_query.where(OHLCVBar.ts <= _as_utc(as_of))
+        cutoff = _as_utc(as_of)
+        bars_query = bars_query.where(
+            OHLCVBar.ts <= cutoff,
+            _bar_visible_through_clause(cutoff),
+        )
     bar_rows = (await db.execute(bars_query)).all()
 
     # Aggregate provider and locally derived rows per member before applying
@@ -604,6 +608,20 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
+
+
+def _bar_visible_through_clause(cutoff: datetime):
+    """Require complete source evidence for derived coarse bars at a cutoff."""
+
+    normalized_cutoff = _as_utc(cutoff)
+    return or_(
+        OHLCVBar.is_derived.is_(False),
+        (
+            OHLCVBar.is_derived.is_(True)
+            & OHLCVBar.source_end.is_not(None)
+            & (OHLCVBar.source_end <= normalized_cutoff)
+        ),
+    )
 
 
 def _entitlement_state(

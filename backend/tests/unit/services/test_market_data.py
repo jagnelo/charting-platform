@@ -7,6 +7,7 @@ import pytest
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 from app.services.market_data import (
     _as_utc,
+    _bar_visible_through,
     _historical_repair_start,
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
@@ -773,6 +774,28 @@ async def test_provider_enabled_range_merges_partial_coarse_rows_with_derived_hi
         .count()
         > 0
     )
+
+
+@pytest.mark.asyncio
+async def test_historical_coarse_read_excludes_derived_period_not_closed_at_cutoff(
+    db, instrument, ohlcv_bars
+):
+    """A W1 aggregate must not expose D1 sessions after a historical cutoff."""
+
+    cutoff = datetime(2024, 1, 10, 12, tzinfo=UTC)
+    rows = await fetch_ohlcv(
+        AsyncSessionAdapter(db),
+        instrument,
+        Timeframe.W1,
+        datetime(2024, 1, 1, tzinfo=UTC),
+        cutoff,
+        allow_provider_fetch=False,
+    )
+
+    assert rows
+    assert all(_bar_visible_through(row, cutoff) for row in rows)
+    assert all(not row.is_derived or row.source_end.replace(tzinfo=UTC) <= cutoff for row in rows)
+    assert all(not (row.is_derived and row.source_end.replace(tzinfo=UTC) > cutoff) for row in rows)
 
 
 @pytest.mark.asyncio

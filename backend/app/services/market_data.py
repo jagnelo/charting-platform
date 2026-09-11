@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -113,6 +113,37 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
+
+
+def _bar_visible_through_clause(cutoff: datetime):
+    """Keep derived coarse bars out of a cutoff until their source closes.
+
+    Derived W1/MN rows use the first source session as ``ts`` but aggregate
+    through ``source_end``.  Comparing only ``ts`` would therefore expose a
+    partially observed period to a historical caller.  Provider rows retain
+    their existing timestamp contract; derived rows need explicit source-end
+    evidence to be visible at the cutoff.
+    """
+
+    normalized_cutoff = _as_utc(cutoff)
+    return or_(
+        OHLCVBar.is_derived.is_(False),
+        and_(
+            OHLCVBar.is_derived.is_(True),
+            OHLCVBar.source_end.is_not(None),
+            OHLCVBar.source_end <= normalized_cutoff,
+        ),
+    )
+
+
+def _bar_visible_through(bar: OHLCVBar, cutoff: datetime) -> bool:
+    """Return whether one ORM bar has complete source evidence by cutoff."""
+
+    if not bar.is_derived:
+        return True
+    if bar.source_end is None:
+        return False
+    return _as_utc(bar.source_end) <= _as_utc(cutoff)
 
 
 def _historical_repair_start(
@@ -783,6 +814,7 @@ async def fetch_ohlcv(
         OHLCVBar.ts >= start,
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
+        _bar_visible_through_clause(end),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -805,7 +837,11 @@ async def fetch_ohlcv(
         if timeframe in (Timeframe.W1, Timeframe.MN):
             materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
             if materialized:
-                cached = [bar for bar in materialized if start <= _as_utc(bar.ts) <= end]
+                cached = [
+                    bar
+                    for bar in materialized
+                    if start <= _as_utc(bar.ts) <= end and _bar_visible_through(bar, end)
+                ]
         cached.sort(key=lambda b: b.ts)
         return cached
 
@@ -856,7 +892,7 @@ async def fetch_ohlcv(
             cached = [
                 bar
                 for bar in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-                if start <= bar.ts <= end
+                if start <= _as_utc(bar.ts) <= end and _bar_visible_through(bar, end)
             ]
             if not cached:
                 raise provider_gap
@@ -868,7 +904,11 @@ async def fetch_ohlcv(
     if timeframe in (Timeframe.W1, Timeframe.MN):
         materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
         if materialized:
-            cached = [bar for bar in materialized if start <= _as_utc(bar.ts) <= end]
+            cached = [
+                bar
+                for bar in materialized
+                if start <= _as_utc(bar.ts) <= end and _bar_visible_through(bar, end)
+            ]
 
     cached.sort(key=lambda b: b.ts)
     return cached
@@ -1181,6 +1221,7 @@ async def fetch_ohlcv_page_before(
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
         OHLCVBar.ts < before,
+        _bar_visible_through_clause(before),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -1195,7 +1236,11 @@ async def fetch_ohlcv_page_before(
         if timeframe in (Timeframe.W1, Timeframe.MN):
             materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
             if materialized:
-                rows = [row for row in materialized if _as_utc(row.ts) < before][-limit:]
+                rows = [
+                    row
+                    for row in materialized
+                    if _as_utc(row.ts) < before and _bar_visible_through(row, before)
+                ][-limit:]
         rows.sort(key=lambda b: b.ts)
         return rows
 
@@ -1232,13 +1277,17 @@ async def fetch_ohlcv_page_before(
             rows = [
                 row
                 for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-                if _as_utc(row.ts) < before
+                if _as_utc(row.ts) < before and _bar_visible_through(row, before)
             ][-limit:]
 
     if timeframe in (Timeframe.W1, Timeframe.MN):
         materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
         if materialized:
-            rows = [row for row in materialized if _as_utc(row.ts) < before][-limit:]
+            rows = [
+                row
+                for row in materialized
+                if _as_utc(row.ts) < before and _bar_visible_through(row, before)
+            ][-limit:]
 
     rows.sort(key=lambda b: b.ts)
     return rows

@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -69,6 +69,20 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
+
+
+def _bar_visible_through_clause(cutoff: datetime):
+    """Require complete source evidence for derived coarse bars at a cutoff."""
+
+    normalized_cutoff = _as_utc(cutoff)
+    return or_(
+        OHLCVBar.is_derived.is_(False),
+        and_(
+            OHLCVBar.is_derived.is_(True),
+            OHLCVBar.source_end.is_not(None),
+            OHLCVBar.source_end <= normalized_cutoff,
+        ),
+    )
 
 
 def state_factor_evidence(
@@ -418,7 +432,10 @@ async def build_watchlist_source_history_status(
     )
     evaluation_at = _as_utc(as_of) if as_of is not None else None
     if evaluation_at is not None:
-        bar_query = bar_query.where(OHLCVBar.ts <= evaluation_at)
+        bar_query = bar_query.where(
+            OHLCVBar.ts <= evaluation_at,
+            _bar_visible_through_clause(evaluation_at),
+        )
     bar_rows = (
         (await db.execute(bar_query.group_by(OHLCVBar.timeframe))).all() if instrument_ids else []
     )
@@ -438,6 +455,11 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.instrument_id.in_(instrument_ids),
                     OHLCVBar.timeframe.in_(normalized_timeframes),
                     OHLCVBar.is_adjusted.is_(True),
+                    *(
+                        [_bar_visible_through_clause(evaluation_at)]
+                        if evaluation_at is not None
+                        else []
+                    ),
                     *([OHLCVBar.ts <= evaluation_at] if evaluation_at is not None else []),
                 )
                 .group_by(
