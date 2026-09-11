@@ -458,8 +458,21 @@ async def _touch_ohlcv_dataset_state(
     state.fetched_at = fetched_at
     state.stale_after = fetched_at + _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     if bars:
-        state.coverage_start = min(bar.ts for bar in bars)
-        state.coverage_end = max(bar.ts for bar in bars)
+        # Incremental and bounded backfills may arrive in either chronological
+        # order.  Dataset coverage describes the persisted union, not just the
+        # latest provider response; replacing these bounds with the current
+        # slice would make a fully hydrated history appear partial and could
+        # hide older factor evidence from coverage/readiness consumers.
+        fetched_start = min(_as_utc(bar.ts) for bar in bars)
+        fetched_end = max(_as_utc(bar.ts) for bar in bars)
+        existing_start = _as_utc(state.coverage_start) if state.coverage_start else None
+        existing_end = _as_utc(state.coverage_end) if state.coverage_end else None
+        state.coverage_start = (
+            min(existing_start, fetched_start) if existing_start is not None else fetched_start
+        )
+        state.coverage_end = (
+            max(existing_end, fetched_end) if existing_end is not None else fetched_end
+        )
         factor_version = None
         factor_status = "not_applied" if not adjusted else "provider_native_opaque"
         factor_evidence: dict[str, object] = {}

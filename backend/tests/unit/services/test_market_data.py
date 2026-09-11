@@ -234,6 +234,65 @@ async def test_provider_dataset_state_marks_opaque_adjustment_factors_explicitly
 
 
 @pytest.mark.asyncio
+async def test_provider_dataset_state_preserves_union_of_incremental_coverage(db, instrument):
+    from app.models.data_source import DataSource
+    from app.models.ohlcv import OHLCVBar
+    from app.models.provider_observation import InstrumentDatasetState
+
+    source = DataSource(name="incremental-coverage-provider")
+    db.add(source)
+    db.flush()
+
+    def bar(ts: datetime) -> OHLCVBar:
+        return OHLCVBar(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            timeframe=Timeframe.D1,
+            ts=ts,
+            open=Decimal("10"),
+            high=Decimal("11"),
+            low=Decimal("9"),
+            close=Decimal("10"),
+            is_adjusted=True,
+        )
+
+    # A recent slice is fetched first, then an older bounded backfill arrives.
+    # The state must retain the complete persisted range rather than the last
+    # response's narrow bounds.
+    await _touch_ohlcv_dataset_state(
+        AsyncSessionAdapter(db),
+        instrument,
+        data_source_id=source.id,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        bars=[bar(datetime(2026, 1, 10, tzinfo=UTC))],
+        fetched_at=datetime(2026, 1, 11, tzinfo=UTC),
+    )
+    await _touch_ohlcv_dataset_state(
+        AsyncSessionAdapter(db),
+        instrument,
+        data_source_id=source.id,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        bars=[bar(datetime(2025, 1, 2, tzinfo=UTC))],
+        fetched_at=datetime(2026, 1, 12, tzinfo=UTC),
+    )
+
+    state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id == source.id,
+            InstrumentDatasetState.dataset_key == "D1:adj",
+        )
+        .one()
+    )
+    assert _as_utc(state.coverage_start) == datetime(2025, 1, 2, tzinfo=UTC)
+    assert _as_utc(state.coverage_end) == datetime(2026, 1, 10, tzinfo=UTC)
+    assert _as_utc(state.fetched_at) == datetime(2026, 1, 12, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
 async def test_provider_dataset_state_records_rebuildable_split_factor_version(db, instrument):
     from app.models.data_source import DataSource
     from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
