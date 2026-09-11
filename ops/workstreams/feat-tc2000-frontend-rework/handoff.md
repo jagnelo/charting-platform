@@ -2,6 +2,21 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Bounded coarse fetch preserves future derived history
+
+Product tip `fdd875d0` constrains bounded coarse provider deletion to rows at
+or before the requested cutoff, preserving future derived W1/MN observations
+while leaving unbounded refresh behavior unchanged. Focused bulk-fetch
+coverage passed `9/9`; the full backend unit suite passed `1,466/1,466` at
+`68.55%` total coverage. The exact elevated gate passed backend integration
+`388/388` (`81.54%`), frontend Vitest `991/991`/build/contracts/probes, and
+functional Playwright `165` passed with `107` documented skips across `272`;
+visual parity remained `98/104` with the six established protected diffs.
+Clean teardown removed all branch-scoped resources and four images, and the
+temporary builder was removed. No visual, provider, fallback, or acceptance
+policy changed. R1 and R2-R7 remain open; do not integrate, promote, deploy,
+or mutate another worktree.
+
 ## 2026-09-11 — Preserve bounded derived history beside future provider rows
 
 Product tip `8ac6df20` keeps a future provider W1/MN row from suppressing a

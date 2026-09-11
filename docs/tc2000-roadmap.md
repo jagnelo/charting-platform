@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Bounded coarse fetch preserves future derived history
+
+At product tip `fdd875d0`, bounded coarse provider fetches now constrain
+deletion of derived W1/MN rows to observations at or before the requested
+cutoff. A historical rebuild therefore cannot erase newer derived rows that
+remain valid for later periods; unbounded refresh behavior is unchanged. The
+regression covers a future derived row surviving beside the bounded provider
+row. Focused bulk-fetch coverage passed `9/9`; Ruff, formatting, and diff
+checks passed. The full backend unit suite passed `1,466/1,466` with `68.55%`
+total coverage.
+
+The exact elevated Docker-backed gate passed backend unit `1,466/1,466`,
+integration `388/388` (`81.54%` combined coverage), frontend Vitest `991/991`/
+build/contracts/probes, and functional Playwright `165` passed with `107`
+documented skips across `272`. Visual parity remained `98/104` with exactly
+the six established protected state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images; the temporary
+retry builder was removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
+report server. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. Continue provider/family history breadth, W1/MN
+continuity, canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Preserve bounded derived history beside future provider rows
 
 At product tip `8ac6df20`, bounded W1/MN derivation now lets only provider

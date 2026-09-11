@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Bounded coarse fetch preserves future derived history
+
+- [x] Constrain bounded coarse provider deletion to the requested cutoff so
+      future derived W1/MN rows survive historical rebuilds (`fdd875d0`);
+      unbounded refresh behavior remains unchanged.
+- [x] Add regression coverage proving a future derived row survives beside a
+      bounded provider row; focused bulk-fetch coverage passed `9/9`, with
+      Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,466/1,466` at `68.55%` total
+      coverage; the exact tip gate passed integration `388/388` at `81.54%`,
+      frontend Vitest `991/991`/build/contracts/probes, and functional
+      Playwright (`165` passed, `107` documented skips across `272`). Visual
+      parity remained `98/104` with exactly the six established protected
+      diffs and clean teardown; the temporary retry builder was removed.
+      `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report server. No
+      visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Preserve bounded derived history beside future provider rows
 
 - [x] Keep future provider W1/MN rows from suppressing a visible historical
