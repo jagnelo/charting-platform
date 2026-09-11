@@ -3793,6 +3793,107 @@ class TestWorkspaces:
         assert history_payload["universe"]["proxy_symbol"] == "SPY"
         assert history_payload["points"]
 
+    def test_generic_breadth_etf_holdings_excludes_unresolved_and_placeholder_members(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, date, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf = Instrument(
+            symbol="MIXD",
+            name="Mixed breadth ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        placeholder = Instrument(
+            symbol="HOLDING-MIXD-PLACEHOLDER",
+            name="Unresolved mixed breadth placeholder",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([etf, placeholder])
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 8, 30),
+            known_at=datetime(2026, 8, 31, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="mixed-breadth-test",
+            completeness_status="partial",
+            row_count=3,
+            resolved_count=2,
+            unresolved_count=1,
+            snapshot_hash="mixed-breadth-etf-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    holding_type="common stock",
+                    row_type="security",
+                    source_row_hash="mixed-breadth-canonical",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=placeholder.id,
+                    position=1,
+                    reported_symbol=placeholder.symbol,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="mixed-breadth-placeholder",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=None,
+                    position=2,
+                    reported_symbol="UNKNOWN-MIXD",
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="mixed-breadth-unresolved",
+                    is_resolved=False,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "etf_holdings", "key": "MIXD"},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 2, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["universe"]["kind"] == "etf_holdings_proxy"
+        assert payload["universe"]["etf_symbol"] == "MIXD"
+        assert payload["requested_count"] == 3
+        assert payload["eligible_count"] == 1
+        assert payload["excluded_count"] == 2
+        assert payload["coverage"] == 1 / 3
+        assert [member["symbol"] for member in payload["members"]] == [instrument.symbol]
+        assert [item["code"] for item in payload["exclusions"]].count("unresolved_member") == 2
+
     def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

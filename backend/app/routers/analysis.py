@@ -8758,10 +8758,18 @@ async def evaluate_generic_breadth(
                 detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
             )
         for holding in snapshot.rows:
-            if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+            if (
+                not holding.is_resolved
+                or not holding.constituent_instrument_id
+                or holding.constituent_instrument is None
+                or is_placeholder_symbol(holding.constituent_instrument.symbol)
+            ):
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
                 continue
-            if holding.holding_type != "equity" or holding.row_type != "security":
+            if (
+                holding.holding_type not in EQUITY_HOLDING_TYPE_VALUES
+                or holding.row_type != "security"
+            ):
                 universe_warnings.append(
                     AnalysisWarning(
                         code="non_equity_holding",
