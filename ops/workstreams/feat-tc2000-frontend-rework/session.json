@@ -54,13 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ocs/project-todos.md",
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -120,7 +114,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5819244dd07dc5faff495e4317c2db7446535851",
+  "head": "12337412e7cf117f662dde46c9c4d8d97fa65f94",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
   "last_checkpoint": "2026-09-11T21:44:30.160060+00:00",
