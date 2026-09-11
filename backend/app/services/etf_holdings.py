@@ -1008,7 +1008,11 @@ async def _resolve_or_create_constituent(
     source_provider: str,
     allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    if normalize_holding_type(row.row_type) != "security" or row.holding_type in {
+        "cash",
+        "currency",
+        "collateral",
+    }:
         return None, None, None
 
     for identifier_type, value in [
@@ -1454,7 +1458,11 @@ async def ingest_holdings_snapshot(
 
 
 def _holding_needs_reconcile(row: ETFHolding) -> bool:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    if normalize_holding_type(row.row_type) != "security" or row.holding_type in {
+        "cash",
+        "currency",
+        "collateral",
+    }:
         return False
     if not row.is_resolved or row.constituent_instrument is None:
         return True

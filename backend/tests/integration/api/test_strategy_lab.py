@@ -842,7 +842,13 @@ class TestStrategyLabAPI:
                         "name": instrument.name,
                         "weight": "0.05",
                         "shares": "100",
-                    }
+                        "holding_type": "Common Stock",
+                        "row_type": "Security",
+                    },
+                    {
+                        "name": "Unresolved issuer placeholder",
+                        "weight": "0.01",
+                    },
                 ],
             },
         )
@@ -971,7 +977,13 @@ class TestStrategyLabAPI:
                         "name": instrument.name,
                         "weight": "1.0",
                         "shares": "100",
-                    }
+                        "holding_type": "Common Stock",
+                        "row_type": "Security",
+                    },
+                    {
+                        "name": "Unresolved issuer placeholder",
+                        "weight": "0.01",
+                    },
                 ],
             },
         )

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.basket import Basket, BasketMember, BasketSnapshot
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
@@ -30,6 +30,11 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.research_jobs import collect_research_result, enqueue_research_run
 from app.services.strategy_lab_nautilus import (
     NautilusOpenPosition,
@@ -966,7 +971,11 @@ async def _resolve_universe_instruments(
         snapshot_stmt = (
             select(ETFHoldingsSnapshot)
             .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
+            )
         )
         if snapshot_date is not None:
             snapshot_stmt = snapshot_stmt.where(
@@ -994,10 +1003,17 @@ async def _resolve_universe_instruments(
         unresolved_count = 0
         non_security_count = 0
         for row in snapshot.rows:
-            if row.row_type != "security":
+            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
+                row.holding_type
+            ):
                 non_security_count += 1
                 continue
-            if row.constituent_instrument_id is None:
+            if (
+                not row.is_resolved
+                or row.constituent_instrument_id is None
+                or row.constituent_instrument is None
+                or is_placeholder_symbol(row.constituent_instrument.symbol)
+            ):
                 unresolved_count += 1
                 continue
             if row.constituent_instrument_id in seen_holding_ids:
@@ -1150,7 +1166,9 @@ async def _resolve_dynamic_etf_universe(
     snapshot_stmt = (
         select(ETFHoldingsSnapshot)
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-        .options(selectinload(ETFHoldingsSnapshot.rows))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .order_by(
             ETFHoldingsSnapshot.composition_date.asc(),
             ETFHoldingsSnapshot.known_at.asc().nullsfirst(),
@@ -1176,10 +1194,17 @@ async def _resolve_dynamic_etf_universe(
     for snapshot in etf_snapshots:
         snapshot_member_ids: set[int] = set()
         for row in snapshot.rows:
-            if row.row_type != "security":
+            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
+                row.holding_type
+            ):
                 non_security_count += 1
                 continue
-            if row.constituent_instrument_id is None:
+            if (
+                not row.is_resolved
+                or row.constituent_instrument_id is None
+                or row.constituent_instrument is None
+                or is_placeholder_symbol(row.constituent_instrument.symbol)
+            ):
                 unresolved_count += 1
                 continue
             snapshot_member_ids.add(row.constituent_instrument_id)
