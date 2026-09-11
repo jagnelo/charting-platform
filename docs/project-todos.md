@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Historical coarse reads exclude incomplete derived periods
+
+- [x] Require derived W1/MN history rows to have a persisted `source_end` at or
+      before the requested cutoff, consistently across range reads, pagination,
+      family readiness history, and watchlist-source history (`8528205d`).
+- [x] Add the incomplete-derived-period regression; focused market-data
+      coverage passed `24/24`, adjacent analysis-router/watchlist-history
+      coverage passed `38/38`, and Ruff, formatting, and diff checks passed.
+- [x] The full backend unit suite passed `1,468/1,468` at `68.56%` total
+      coverage; the exact tip gate passed all non-visual stages, backend
+      integration `388/388` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only for those unchanged diffs after clean teardown and removal of four
+      images and the temporary builder. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
 
 - [x] Pass the wall-clock fetch timestamp into canonical RFR OHLCV persistence

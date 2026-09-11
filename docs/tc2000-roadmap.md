@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Historical coarse reads exclude incomplete derived periods
+
+At product tip `8528205d`, canonical OHLCV history reads now require derived
+W1/MN rows to be closed through the requested historical cutoff: provider rows
+remain visible by observation timestamp, while derived rows are visible only
+when their persisted `source_end` is non-null and no later than the cutoff.
+The guard is applied consistently to range reads, cursor pagination, benchmark-
+family readiness history, and generic watchlist-source history. Legacy derived
+rows without a source-end are excluded from bounded historical reads rather than
+silently leaking future observations. Focused market-data coverage passed
+`24/24`; adjacent analysis-router and watchlist-history coverage passed
+`38/38`; Ruff, formatting, and diff checks passed. The full backend unit suite
+passed `1,468/1,468` with `68.56%` total coverage.
+
+The exact elevated Docker-backed gate passed every non-visual stage, including
+backend unit `1,468/1,468`, integration `388/388` (`81.56%` combined coverage),
+frontend Vitest `991/991`/build/contracts/probes, and functional Playwright
+`165` passed with `107` documented skips across `272`. Visual parity completed
+`104` cases with `98` passes and exactly the six established protected
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exited `1` at `e2e-visual` only for those unchanged diffs. Clean branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions, and
+four images; the temporary cutoff builder was removed. `PLAYWRIGHT_HTML_OPEN=never`
+only suppressed the report server. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, W1/MN continuity, canonical population, dense-data evidence,
+and R2-R7.
+
 ## 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
 
 At product tip `2cdfc3c4`, the risk-free-rate provider path now passes the

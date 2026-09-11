@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Historical coarse reads exclude incomplete derived periods
+
+Product tip `8528205d` requires derived W1/MN rows to be closed through the
+requested historical cutoff (`source_end <= cutoff`) across canonical range
+reads, cursor pagination, family readiness history, and generic watchlist
+history. Legacy derived rows without `source_end` fail closed for bounded
+reads, preventing a period stamped at its start from leaking later sessions.
+Focused market-data coverage passed `24/24`; adjacent analysis-router and
+watchlist-history coverage passed `38/38`; Ruff, formatting, and diff checks
+passed. The full backend unit suite passed `1,468/1,468` at `68.56%` coverage.
+The exact elevated Docker-backed gate passed all non-visual stages: backend
+integration `388/388` (`81.56%` combined), frontend Vitest `991/991`/build/
+contracts/probes, and functional Playwright `165` passed with `107` documented
+skips across `272`. Visual parity was `98/104` with exactly the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125); the gate exited `1`
+at `e2e-visual` only for those unchanged diffs. Teardown removed all
+branch-scoped resources and four images; the temporary cutoff builder was
+removed. No visual, provider, fallback, or acceptance policy changed. R1 and
+R2-R7 remain open; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
 
 Product tip `2cdfc3c4` makes the risk-free-rate provider path persist the
