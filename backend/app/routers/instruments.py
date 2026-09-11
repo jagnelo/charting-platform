@@ -53,6 +53,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
+
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Serialize persisted provenance timestamps on one canonical UTC timeline."""
+
+    if value is None:
+        return None
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
 # A symbol can be hydrated by several linked workstation tools at once.  Keep
 # the one-to-one stats row creation serialized inside a worker, while the
 # IntegrityError recovery below also handles requests landing on different
@@ -1075,9 +1085,9 @@ async def get_instrument_provenance(
                 "currency": row.currency,
                 "is_primary": row.is_primary,
                 "is_active": row.is_active,
-                "effective_at": row.effective_at,
-                "known_at": row.known_at,
-                "delisted_at": row.delisted_at,
+                "effective_at": _wire_datetime(row.effective_at),
+                "known_at": _wire_datetime(row.known_at),
+                "delisted_at": _wire_datetime(row.delisted_at),
                 "exchange": (
                     {
                         "id": row.exchange.id,
@@ -1098,8 +1108,8 @@ async def get_instrument_provenance(
         "profile_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": row.observed_at,
-                "fetched_at": row.fetched_at,
+                "observed_at": _wire_datetime(row.observed_at),
+                "fetched_at": _wire_datetime(row.fetched_at),
                 "profile_hash": row.profile_hash,
                 "payload": row.payload,
             }
@@ -1108,8 +1118,8 @@ async def get_instrument_provenance(
         "identifier_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": row.observed_at,
-                "fetched_at": row.fetched_at,
+                "observed_at": _wire_datetime(row.observed_at),
+                "fetched_at": _wire_datetime(row.fetched_at),
                 "snapshot_hash": row.snapshot_hash,
                 "payload": row.payload,
             }
@@ -1118,8 +1128,8 @@ async def get_instrument_provenance(
         "latest_price_snapshots": [
             {
                 "provider_symbol": row.provider_symbol,
-                "observed_at": row.observed_at,
-                "fetched_at": row.fetched_at,
+                "observed_at": _wire_datetime(row.observed_at),
+                "fetched_at": _wire_datetime(row.fetched_at),
                 "price": float(row.price),
                 "payload": row.payload,
             }
@@ -1130,11 +1140,11 @@ async def get_instrument_provenance(
                 "dataset_type": row.dataset_type,
                 "dataset_key": row.dataset_key,
                 "status": row.status.value,
-                "coverage_start": row.coverage_start,
-                "coverage_end": row.coverage_end,
-                "observed_at": row.observed_at,
-                "fetched_at": row.fetched_at,
-                "stale_after": row.stale_after,
+                "coverage_start": _wire_datetime(row.coverage_start),
+                "coverage_end": _wire_datetime(row.coverage_end),
+                "observed_at": _wire_datetime(row.observed_at),
+                "fetched_at": _wire_datetime(row.fetched_at),
+                "stale_after": _wire_datetime(row.stale_after),
                 "extra_data": row.extra_data,
             }
             for row in dataset_states

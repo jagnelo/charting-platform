@@ -160,6 +160,42 @@ class TestInstruments:
             }
         ]
 
+    def test_provenance_listing_lifecycle_timestamps_use_canonical_utc_wire_values(
+        self, client, auth_headers, instrument, db
+    ):
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                ticker=instrument.symbol,
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                effective_at=datetime.fromisoformat("2026-01-02T05:04:05+02:00"),
+                known_at=datetime(2026, 1, 2, 3, 4, 5),
+                delisted_at=datetime.fromisoformat("2026-01-02T08:04:05+02:00"),
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/provenance",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["listings"] == [
+            {
+                "ticker": "AAPL",
+                "currency": "USD",
+                "is_primary": True,
+                "is_active": True,
+                "effective_at": "2026-01-02T03:04:05Z",
+                "known_at": "2026-01-02T03:04:05Z",
+                "delisted_at": "2026-01-02T06:04:05Z",
+                "exchange": None,
+            }
+        ]
+
     @patch("app.routers.instruments.get_provider_profile_async")
     def test_existing_instrument_read_does_not_fan_out_to_provider_metadata(
         self, provider_profile, client, auth_headers, instrument

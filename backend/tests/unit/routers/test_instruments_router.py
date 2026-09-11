@@ -15,8 +15,18 @@ from app.routers.instruments import (
     _ensure_52w_stats,
     _instrument_search_exchange,
     _needs_52w_stats_refresh,
+    _wire_datetime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_wire_datetime_normalizes_aware_and_naive_provenance_values():
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)) == ("2026-01-02T03:04:05Z")
+    assert _wire_datetime(datetime.fromisoformat("2026-01-02T05:04:05+02:00")) == (
+        "2026-01-02T03:04:05Z"
+    )
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5)) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(None) is None
 
 
 class TestInstrumentAutoCreate:
