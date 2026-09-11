@@ -34,6 +34,14 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def _strike_label(value: Decimal) -> str:
     normalized = value.normalize()
     text = format(normalized, "f")
@@ -635,6 +643,10 @@ async def sync_option_quote_history(
     end: datetime,
     refresh: bool = False,
 ) -> None:
+    start = _as_utc(start)
+    end = _as_utc(end)
+    assert start is not None
+    assert end is not None
     dataset_key = "default"
     if not refresh:
         fresh_state = (
@@ -800,8 +812,8 @@ async def get_option_quote_history(
     if option_instrument is None:
         return []
 
-    effective_start = start or (_now_utc() - timedelta(days=30))
-    effective_end = end or _now_utc()
+    effective_start = _as_utc(start) or (_now_utc() - timedelta(days=30))
+    effective_end = _as_utc(end) or _now_utc()
     await sync_option_quote_history(
         db,
         option_instrument,
