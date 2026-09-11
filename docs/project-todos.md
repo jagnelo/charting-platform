@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Family-history queue bounds canonicalize to UTC
+
+- [x] Canonicalize benchmark-family history planning and ETF/watchlist queue
+      `as_of`/history-end arguments to UTC `Z` (`9406a1c3`, `d8a539e9`) without
+      changing provider routing, history semantics, or job identity.
+- [x] Focused family-history services, workers, and task coverage passed
+      `58/58`; Ruff, formatting, and diff checks passed.
+- [x] The exact tip gate passed backend unit `1,462/1,462`, integration
+      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
+      probes, and functional Playwright (`165` passed, `107` documented skips
+      across `272`); visual parity remained `98/104` with exactly the six
+      established protected diffs and clean teardown. The temporary retry
+      builder was removed; no visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
 
 - [x] Serialize provider status, entitlement, reconciliation, availability,

@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tips d8a539e9 and 9406a1c3 canonicalize benchmark-family history
+  planning and ETF/watchlist queue as_of/history-end arguments to UTC Z.
+  Focused family-history services, workers, and task coverage passed 58/58;
+  Ruff, formatting, and diff checks passed. The exact elevated Docker-backed
+  gate passed backend unit 1462/1462 at 68% unit coverage, backend integration
+  388/388 at 81.49% combined coverage, frontend Vitest 991/991/build/
+  contracts/probes, and functional Playwright 165 passed with 107 documented
+  skips across 272. Visual parity remains 98/104 with exactly the six
+  established protected diffs after clean branch-scoped teardown removed all
+  containers, volumes, network, testcontainer sessions, and four images; the
+  temporary retry builder was removed. No visual baseline, mask, threshold,
+  skip, provider, fallback, or acceptance policy changed. Continue provider/
+  family history breadth, W1/MN continuity, canonical population, dense-data
+  evidence, and R2-R7; preserve protected visual assertions and the
+  no-integration/no-deployment boundary.
   Product tip 6b3fe038 canonicalizes provider-governance provenance timestamps
   to UTC Z across provider status, entitlement, reconciliation, availability,
   and maintenance read contracts. Focused provider-governance coverage passed

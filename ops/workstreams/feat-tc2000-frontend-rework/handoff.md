@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Family-history queue bounds canonicalize to UTC
+
+Product tips `9406a1c3` and `d8a539e9` now serialize benchmark-family history
+planning and ETF/watchlist queue `as_of`/history-end arguments through the
+canonical UTC `Z` contract. Focused family-history services, workers, and task
+coverage passed `58/58`; Ruff, formatting, and diff checks passed. The exact
+elevated Docker-backed gate passed backend unit `1,462/1,462` at `68%` unit
+coverage, integration `388/388` at `81.49%` combined coverage, frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+exactly the six established protected state-oracle diffs; teardown removed all
+branch-scoped resources and four images, and the temporary retry builder was
+removed. No visual, provider, fallback, or acceptance policy changed. R1 and
+R2-R7 remain open; continue without integrating, promoting, or deploying.
+
 ## 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
 
 Product tip `6b3fe038` now serializes provider status, entitlement,

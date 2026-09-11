@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Family-history queue bounds canonicalize to UTC
+
+At product tips `9406a1c3` and `d8a539e9`, benchmark-family history queue
+planning and the ETF/watchlist enqueue paths now share the canonical UTC `Z`
+wire spelling for bounded `as_of`/history-end arguments. Legacy naive and
+offset-aware values therefore produce one stable queue contract without
+changing provider routing, history semantics, or job identity.
+
+Focused family-history services, workers, and task coverage passed `58/58`;
+Ruff, formatting, and diff checks passed. The exact elevated Docker-backed
+gate passed backend unit `1,462/1,462` with `68%` unit coverage, backend
+integration `388/388` with `81.49%` combined coverage, frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+exactly the six established protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Clean
+branch-scoped teardown removed all containers, volumes, network, testcontainer
+sessions, and four images; the temporary retry builder was removed. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. Continue provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
 
 At product tip `6b3fe038`, provider status, entitlement, reconciliation,
