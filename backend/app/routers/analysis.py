@@ -4075,8 +4075,9 @@ async def benchmark_family_coverage(
             observed_cadence_median_interval_days = cadence.median_interval_days
             observed_cadence_min_interval_days = cadence.min_interval_days
             observed_cadence_max_interval_days = cadence.max_interval_days
-            canonical_snapshot_ids = {
-                row.id: {
+            canonical_snapshot_usable = {}
+            for row in snapshot_rows:
+                eligible_ids = {
                     int(holding.constituent_instrument_id)
                     for holding in row.rows
                     if normalize_holding_type(holding.row_type) == "security"
@@ -4086,18 +4087,22 @@ async def benchmark_family_coverage(
                     and holding.constituent_instrument is not None
                     and not is_placeholder_symbol(holding.constituent_instrument.symbol)
                 }
-                for row in snapshot_rows
-            }
-            # ``resolved_count`` is raw disclosure provenance.  A snapshot is
-            # usable for the locked canonical source only when at least one
-            # eligible canonical equity member is actually present.
+                # ``resolved_count`` is raw disclosure provenance.  It is
+                # still the only available evidence for legacy metadata-only
+                # snapshots, which intentionally do not persist holding rows.
+                # Once row detail is materialized, canonical readiness must be
+                # established from at least one eligible equity member rather
+                # than from the raw count alone.
+                canonical_snapshot_usable[row.id] = bool(eligible_ids) or (
+                    not row.rows and row.resolved_count > 0
+                )
             resolved_snapshots = [
                 snapshot
                 for snapshot in snapshots
-                if canonical_snapshot_ids.get(snapshot.snapshot_id)
+                if canonical_snapshot_usable.get(snapshot.snapshot_id, False)
             ]
             selected_snapshot = next(
-                (row for row in snapshot_rows if canonical_snapshot_ids.get(row.id)),
+                (row for row in snapshot_rows if canonical_snapshot_usable.get(row.id, False)),
                 None,
             )
             source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
