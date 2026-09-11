@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-11 — Current readiness excludes open derived periods
+
+- [x] Apply the shared current wall-clock `source_end` visibility cutoff to
+      benchmark-family readiness while preserving future provider observations
+      and explicit historical `as_of` behavior (`9b13e33c`).
+- [x] Add the current-versus-historical incomplete-derived-period regression;
+      focused analysis/Market Map unit coverage passed `40/40`, the
+      Docker-backed readiness API regression passed `1/1`, and Ruff,
+      formatting, and diff checks passed.
+- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
+      coverage. The exact tip gate passed all non-visual stages, including
+      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only after clean branch-scoped teardown removed all resources and four
+      images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, canonical population, W1/MN
+      continuity, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Analytics consumers exclude incomplete derived periods
 
 - [x] Route Market Map member/reference reads and analysis truncation through

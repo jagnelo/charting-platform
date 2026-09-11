@@ -2,6 +2,32 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Current readiness excludes open derived periods
+
+Product tip `9b13e33c` makes benchmark-family readiness apply the canonical
+OHLCV `source_end` visibility cutoff to current reads. Derived W1/MN rows are
+excluded until their source period is closed at the wall-clock evaluation
+cutoff; provider observations retain their established current-read behavior.
+Explicit historical `as_of` reads use that historical cutoff, and the new
+regression proves the same row is hidden currently but visible historically
+once closed. Focused analysis/Market Map unit coverage passed `40/40`, the
+Docker-backed readiness regression passed `1/1`, Ruff/format/diff checks
+passed, and the full backend unit suite passed `1,472/1,472` at `69%` isolated
+coverage.
+
+The exact elevated gate passed all non-visual stages: integration `389/389`
+(`81.56%` combined coverage), frontend Vitest `991/991`/build/contracts/
+probes, and functional Playwright `165` passed with `107` documented skips
+across `272`. Visual parity remained `98/104` with the six established
+protected state-oracle diffs (`watchlist-column-editor-open` at 1080p-100/125
+and `workspace-floating` at 1080p-100/125 and 1440p-100/125), so the gate
+exited `1` at `e2e-visual` only. Teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; the temporary builder was
+removed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. R1 provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7 remain open; do
+not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Analytics consumers exclude incomplete derived periods
 
 Product tip `c288b2a8` (analytics implementation `9a8d9ff2`) makes Market Map

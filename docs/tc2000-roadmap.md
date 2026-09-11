@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Current readiness excludes open derived periods
+
+At product tip `9b13e33c`, benchmark-family readiness now applies the shared
+canonical OHLCV `source_end` visibility contract for current reads as well as
+historical reads. Current readiness uses one wall-clock cutoff: derived W1/MN
+rows are admitted only when their persisted source period is closed, while
+provider observations remain visible by observation timestamp. Explicit
+historical `as_of` reads retain their requested cutoff semantics, so a derived
+row becomes visible once its source period is closed by that historical point
+in time. The regression distinguishes these two contracts in the Docker-backed
+benchmark-family readiness API test. Focused analysis/Market Map unit coverage
+passed `40/40`; the Docker-backed readiness regression passed `1/1`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,472/1,472` with `69%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; the temporary builder was
+removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report server. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Analytics consumers exclude incomplete derived periods
 
 At product tip `c288b2a8` (analytics implementation `9a8d9ff2`), Market Map
