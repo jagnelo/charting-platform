@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Watchlist source versions stabilize equivalent timestamps
+
+At product tip `44a8ef35`, watchlist membership digests and market-group/ETF
+source-version strings now normalize timestamp inputs through the canonical UTC
+`Z` formatter. Equivalent instants no longer create divergent cache or lineage
+identities, while membership ordering, resolver cutoffs, and source semantics
+remain unchanged.
+
+Focused watchlist-source coverage passed `6/6`; Ruff, formatting, and diff
+checks passed. The exact elevated Docker-backed gate passed backend unit
+`1,464/1,464` with `68%` unit coverage, backend integration `388/388` with
+`81.49%` combined coverage, frontend Vitest `991/991`/build/contracts/probes,
+and functional Playwright `165` passed with `107` documented skips across
+`272`. Visual parity remained `98/104` with exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images; the temporary retry
+builder was removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report
+server; no assertions, thresholds, baselines, masks, skips, provider,
+fallback, or acceptance policy changed. Continue provider/family history
+breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Watchlist-source provenance timestamps canonicalize to UTC
 
 At product tip `00c3242e`, raw watchlist-source provenance now serializes
