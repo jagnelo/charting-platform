@@ -13,6 +13,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip b460ee98 canonicalizes Study Lab dynamic-universe execution-log
+  universe_snapshot_known_at and summary snapshot timestamps through the shared
+  UTC wire formatter. Focused Study Lab service coverage passed 2/2; the full
+  backend unit suite passed 1455/1455 at approximately 68%; Ruff, formatting,
+  and diff checks passed. The exact elevated Docker-backed gate passed all
+  non-visual stages, backend integration 387/387 with 81.46% combined
+  coverage, frontend Vitest 991/991 and build, compose/provider contracts,
+  research-runner probes, and functional Playwright 165 passed with 107
+  documented skips across 272. Visual parity remains 98/104 with exactly the
+  six established protected diffs; the gate exited at e2e-visual only for
+  those unchanged diffs and clean teardown removed all branch-scoped resources
+  and four images. No visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. Continue full provider/family
+  history breadth, W1/MN continuity beyond the bounded lineage path,
+  canonical population, dense-data evidence, and R2-R7 goals; the
+  no-integration/no-deployment boundary holds.
   Product tip d46e76cd canonicalizes the remaining ETF/family constituent and
   breadth-universe known_at and requested as_of provenance timestamps through
   the shared UTC wire formatter. Focused analysis-router coverage passed 26/26;

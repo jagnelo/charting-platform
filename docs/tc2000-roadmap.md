@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Study Lab universe provenance gate receipt
+
+At product tip `b460ee98`, Study Lab dynamic-universe execution logs now
+serialize `universe_snapshot_known_at` and summary snapshot timestamps through
+the shared canonical UTC `Z` formatter. This keeps the frontend-visible
+provenance envelope stable for offset-aware and legacy naive timestamps without
+changing universe membership, provider routing, fallback, or cache semantics.
+
+Focused Study Lab service coverage passed `2/2`; the complete backend unit
+suite passed `1,455/1,455` at approximately `68%` total coverage, with Ruff,
+formatting, and diff checks clean. The exact elevated Docker-backed gate passed
+all non-visual stages, backend integration (`387/387`, `81.46%` combined
+coverage), frontend Vitest (`991/991`) and build, compose/provider contracts,
+research-runner probes, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity remains `98/104` with exactly
+the six established protected state-oracle diffs (watchlist-column-editor-open
+at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125). The gate exited at `e2e-visual` only for those unchanged
+diffs; clean branch-scoped teardown removed all containers, volumes, network,
+testcontainer sessions, and four images. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
+This closes the Study Lab universe-provenance serialization seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-11 — Analysis universe provenance gate retry receipt
 
 At product tip `d46e76cd`, the remaining ETF/family constituent and breadth

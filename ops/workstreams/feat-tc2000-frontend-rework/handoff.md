@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Study Lab universe provenance gate receipt
+
+Product tip `b460ee98` canonicalizes Study Lab dynamic-universe execution-log
+`universe_snapshot_known_at` and summary snapshot timestamps through the shared
+UTC wire formatter. Focused Study Lab service coverage passed `2/2`; the full
+backend unit suite passed `1,455/1,455` at approximately `68%`, with Ruff,
+formatting, and diff checks clean.
+
+The exact elevated Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`, `81.46%` combined coverage), frontend Vitest
+(`991/991`) and build, compose/provider contracts, research-runner probes, and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six established protected
+state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). The gate
+exited at `e2e-visual` only for those unchanged diffs; clean branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions, and
+four images. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. R1 and R2-R7 remain open; continue without
+integration, promotion, deployment, or other worktree mutation.
+
 ## 2026-09-11 — Analysis universe provenance retry receipt
 
 Product tip `d46e76cd` canonicalizes the remaining ETF/family constituent and

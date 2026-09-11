@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Study Lab universe provenance gate receipt
+
+- [x] Serialize Study Lab dynamic-universe `universe_snapshot_known_at` and
+      summary snapshot timestamps through the canonical UTC `Z` formatter at
+      product tip `b460ee98`, without changing membership, provider, fallback,
+      or cache-identity semantics.
+- [x] Focused Study Lab service coverage passed `2/2`; the full backend unit
+      suite passed `1,455/1,455` at approximately `68%`; Ruff, formatting, and
+      diff checks passed.
+- [x] The exact elevated Docker-backed gate passed all non-visual stages,
+      backend integration (`387/387`, `81.46%` combined coverage), frontend
+      Vitest (`991/991`) and build, compose/provider contracts,
+      research-runner probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the six established protected diffs; teardown removed all
+      branch-scoped resources and four images.
+- [ ] Continue full provider/family history breadth, W1/MN continuity,
+      canonical population, dense-data evidence, and R2-R7; preserve the
+      protected visual assertions and no-integration boundary.
+
 ### 2026-09-11 — Analysis universe provenance gate retry receipt
 
 - [x] Serialize ETF/family constituent and breadth-universe `known_at` and

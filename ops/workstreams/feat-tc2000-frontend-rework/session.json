@@ -121,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d46e76cd269f79d03f88ac516e0a68e5ce37a4ef",
+  "head": "b460ee988020bb751bd1386a84be7a201a1e9dd1",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T03:16:52.748961+00:00",
-  "last_human_progress_update": "2026-09-11T03:16:43.175268+00:00",
+  "last_checkpoint": "2026-09-11T03:45:07.056879+00:00",
+  "last_human_progress_update": "2026-09-11T03:44:58.247526+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "904fae6fa7fedbb7d33c93971516ce5532b62c06dcfbb6dc8a26532dcd216ae2",
+  "plan_hash": "cfb2c84314425c73bbb1ba8030b643b7002408b43f8cb6c460a63e8ad14b950c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -141,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip d46e76cd canonicalizes ETF/family constituent and breadth-universe provenance timestamps to UTC. Focused analysis-router coverage passed 26/26; full backend unit passed 1453/1453 at 68%; Ruff, formatting, and diff checks passed. The first exact gate had one isolated F8u real-drag timeout (164 passed, 107 documented skips); the authorized fresh-stack retry passed functional Playwright 165 with 107 documented skips across 272, backend integration 387/387 with 81.46% combined coverage, frontend Vitest 991/991 and build, compose/provider contracts, and research-runner probes. Visual parity remains 98/104 with exactly the six established protected diffs; retry exited only at e2e-visual and clean teardown removed all branch-scoped resources and four images. F8u is treated as non-reproducible. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1/R2-R7 with no integration or deployment.",
+    "current_blocker": "Product tip b460ee98 canonicalizes Study Lab dynamic-universe universe_snapshot_known_at and summary snapshot timestamps through the shared UTC wire formatter. Focused Study Lab service coverage passed 2/2; full backend unit passed 1455/1455 at approximately 68%; Ruff, formatting, and diff checks passed. The exact elevated Docker-backed gate passed all non-visual stages: backend integration 387/387 with 81.46% combined coverage, frontend Vitest 991/991 and build, compose/provider contracts, research-runner probes, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established protected diffs; the gate exited at e2e-visual only for those unchanged diffs and clean teardown removed all branch-scoped resources and four images. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1/R2-R7 with no integration or deployment.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 10,
-    "updated_at": "2026-09-11T03:16:43.174331+00:00"
+    "updated_at": "2026-09-11T03:44:58.247189+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
