@@ -2,6 +2,25 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Coverage readiness excludes incomplete derived periods
+
+Product tip `b3f1b99c` makes the canonical coverage readiness endpoint use the
+same source-end visibility predicate as market-data range/latest reads.
+Historical coverage uses the requested `end` cutoff; latest coverage uses a
+single wall-clock cutoff. Provider rows remain timestamp-visible, while
+derived rows require a non-null `source_end` no later than the cutoff. Focused
+coverage-router plus market-data coverage passed `37/37`; the full backend
+unit suite passed `1,470/1,470` at `68.57%`. The exact elevated gate passed
+all non-visual stages, including integration `388/388` (`81.56%` combined),
+frontend Vitest `991/991`/build/contracts/probes, and functional Playwright
+`165` passed with `107` documented skips across `272`. Visual parity remained
+`98/104` with exactly the six established protected state-oracle diffs; the
+gate exited `1` at `e2e-visual` only. Teardown removed all containers,
+volumes, network, testcontainer sessions, and four images; the temporary
+builder was removed. No visual, provider, fallback, or acceptance policy
+changed. R1 and R2-R7 remain open; do not integrate, promote, deploy, or
+mutate another worktree.
+
 ## 2026-09-11 — Latest coarse reads exclude incomplete derived periods
 
 Product tip `64783149` applies a single wall-clock visibility cutoff to all

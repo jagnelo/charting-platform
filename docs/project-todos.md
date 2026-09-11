@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-11 — Coverage readiness excludes incomplete derived periods
+
+- [x] Align `/coverage/instruments/{symbol}/ohlcv` with the shared derived
+      `source_end` visibility cutoff used by canonical range/latest reads
+      (`b3f1b99c`), using the requested historical `end` or one current-time
+      latest cutoff without hiding provider rows.
+- [x] Focused coverage-router plus market-data coverage passed `37/37`; Ruff,
+      formatting, and diff checks passed. The full backend unit suite passed
+      `1,470/1,470` at `68.57%` total coverage.
+- [x] The exact tip gate passed all non-visual stages, including integration
+      `388/388` at `81.56%`, frontend Vitest `991/991`/build/contracts/probes,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`). Visual parity remained `98/104` with the same six protected
+      diffs; the gate exited at `e2e-visual` only after clean teardown removed
+      all resources and four images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Latest coarse reads exclude incomplete derived periods
 
 - [x] Apply one current-time visibility cutoff to every `fetch_ohlcv_latest`

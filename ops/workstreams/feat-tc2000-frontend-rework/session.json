@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9c8597057e28ec639257067ee03e9dceb1ba4237",
+  "head": "b3f1b99ccb8eb5b4a968b9edea47555537f9b9c0",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T13:05:43.622333+00:00",
-  "last_human_progress_update": "2026-09-11T13:05:22.932219+00:00",
+  "last_checkpoint": "2026-09-11T13:36:36.939208+00:00",
+  "last_human_progress_update": "2026-09-11T13:36:16.030884+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 64783149 closes the latest coarse-read visibility gap; exact gate non-visual stages pass with 1469/1469 backend, 388/388 integration at 81.56%, 991/991 frontend, 165/272 functional, and 98/104 visual with six protected diffs; R1/R2-R7 remain open.",
+    "current_blocker": "Product tip b3f1b99c aligns coverage readiness with derived source-end cutoffs; exact gate non-visual stages pass with 1470/1470 backend, 388/388 integration at 81.56%, 991/991 frontend, 165/272 functional, and 98/104 visual with six protected diffs; R1/R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T13:05:22.932101+00:00"
+    "updated_at": "2026-09-11T13:36:16.030153+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
