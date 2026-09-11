@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
@@ -41,10 +42,7 @@ def history_end_for_date(value: date) -> datetime:
 def history_end_iso(end: datetime | None) -> str | None:
     """Return a stable UTC ISO representation for a history queue bound."""
 
-    if end is None:
-        return None
-    normalized = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
-    return normalized.astimezone(UTC).isoformat()
+    return wire_datetime(end)
 
 
 def canonical_history_job_id(
