@@ -437,6 +437,9 @@ def test_relative_rotation_states_cover_all_quadrants_and_mean_is_explicit():
 def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     timestamp = datetime(2024, 1, 2, 3, 4, tzinfo=UTC)
     assert _wire_datetime(timestamp) == "2024-01-02T03:04:00Z"
+    assert _wire_datetime(datetime.fromisoformat("2024-01-02T05:04:00+02:00")) == (
+        "2024-01-02T03:04:00Z"
+    )
     assert _wire_datetime(None) is None
     assert _truncate_bars_at({7: [_bar(7, 2024, 1, "100")]}, None)[7]
     assert _sample_aligned_points([], 3) == []

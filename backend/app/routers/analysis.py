@@ -1213,7 +1213,7 @@ def _wire_datetime(value: datetime | None) -> str | None:
     """Use one canonical UTC spelling in provenance fields and cache identities."""
     if value is None:
         return None
-    encoded = value.isoformat()
+    encoded = _as_utc(value).isoformat()
     return encoded.replace("+00:00", "Z")
 
 
