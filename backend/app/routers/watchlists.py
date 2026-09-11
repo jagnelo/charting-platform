@@ -28,7 +28,7 @@ from app.schemas.watchlist import (
     WatchlistSourceRead,
     WatchlistSourceResolvedRead,
 )
-from app.services.benchmark_family_history import canonical_history_job_id
+from app.services.benchmark_family_history import canonical_history_job_id, history_end_iso
 from app.services.watchlist_history import (
     build_watchlist_source_history_status,
     plan_watchlist_source_history_refresh,
@@ -280,7 +280,7 @@ async def queue_watchlist_source_history_refresh(
                     run.id,
                 ]
                 if plan["as_of"] is not None:
-                    job_args.append(plan["as_of"].isoformat())
+                    job_args.append(history_end_iso(plan["as_of"]))
                 job = await redis.enqueue_job(
                     *job_args,
                     _job_id=canonical_history_job_id(

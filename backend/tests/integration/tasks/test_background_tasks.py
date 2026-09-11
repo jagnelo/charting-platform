@@ -401,12 +401,12 @@ class TestBenchmarkFamilyHistoryBackfill:
                     instrument.id,
                     ["MN", "W1", "D1"],
                     None,
-                    "2026-06-30T23:59:59.999999+00:00",
+                    "2026-06-30T23:59:59.999999Z",
                 ),
                 {
                     "_job_id": (
                         f"watchlist-source-history:{instrument.id}:D1,W1,MN:"
-                        "end=2026-06-30T23:59:59.999999+00:00"
+                        "end=2026-06-30T23:59:59.999999Z"
                     )
                 },
             )

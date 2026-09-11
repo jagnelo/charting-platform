@@ -1507,9 +1507,9 @@ class TestWatchlistsCrud:
             instrument.id,
             ["D1"],
             historical_body["run_id"],
-            "2024-01-02T00:00:00+00:00",
+            "2024-01-02T00:00:00Z",
         )
-        assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-1][1]["_job_id"]
+        assert "end=2024-01-02T00:00:00Z" in redis.calls[-1][1]["_job_id"]
 
         status = client.get(
             f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}",

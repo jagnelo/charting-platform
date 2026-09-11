@@ -60,7 +60,10 @@ from app.schemas.etf_holdings_history import (
     BenchmarkFamilyHoldingsRefreshRunRequest,
 )
 from app.services.baskets import basket_to_out, materialize_etf_holdings_basket
-from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
+from app.services.benchmark_family_history import (
+    history_end_iso,
+    plan_benchmark_family_history_refresh,
+)
 from app.services.benchmark_family_holdings_runs import plan_benchmark_family_holdings_refresh
 from app.services.etf_holdings import (
     coverage_summary,
@@ -290,7 +293,7 @@ async def queue_benchmark_family_history_refresh(
             for instrument_id in plan["instrument_ids"]:
                 job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
                 if plan["as_of"] is not None:
-                    job_args.extend([None, plan["as_of"].isoformat()])
+                    job_args.extend([None, history_end_iso(plan["as_of"])])
                 try:
                     job = await redis.enqueue_job(
                         *job_args,
