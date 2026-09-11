@@ -8,6 +8,36 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Synthetic basket history ranges canonicalize to UTC
+
+Product tip `40b790db71847bc15f4ed7bfc655f670d6666379` closes the synthetic
+basket/ratio history timestamp seam. The basket router and service now
+canonicalize naive and offset-aware `start`/`end` values to UTC before direct
+SQL selection and synthetic rebasing, so equivalent offset-bearing requests
+cannot drift across the persisted timeline.
+
+Focused basket integration coverage passed `4/4`; the complete backend unit
+suite passed `1,448/1,448` at `68%`, with Ruff, formatting, and diff checks
+clean. The exact elevated Docker-backed gate passed all non-visual stages,
+backend integration (`387/387`), frontend Vitest (`991/991`) and build, and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six established protected
+state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). The gate
+exited at `e2e-visual` after clean branch-scoped teardown removed all
+containers, volumes, network, testcontainer sessions, and four images. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+R1 remains active for complete canonical family/provider-history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue provider/family history breadth, W1/MN continuity
+beyond the bounded lineage seam, canonical population, and R6 dense-data
+evidence while preserving the six visual state-oracle assertions and rerunning
+the exact gate after the next coherent product change. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-10 — OHLCV router boundaries canonicalize to UTC
 
 Product tip `22742ac1d44966f88a9c9dbb2e28bff3fba454f0` closes the chart OHLCV

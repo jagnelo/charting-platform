@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-11 — Synthetic basket history ranges canonicalize to UTC
+
+At product tip `40b790db71847bc15f4ed7bfc655f670d6666379`, synthetic basket and
+ratio history now normalize naive and offset-aware `start`/`end` boundaries to
+UTC in both the router and service before direct SQL selection and rebasing.
+Equivalent API ranges therefore use one persisted timeline instead of relying
+on database/session timezone behavior.
+
+Focused basket integration coverage passed `4/4`; the complete backend unit
+suite passed `1,448/1,448` at `68%` total coverage; Ruff, formatting, and diff
+checks passed. The exact elevated Docker-backed gate passed all non-visual
+stages, backend integration (`387/387`), frontend Vitest (`991/991`) and build,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity completed `104` cases with `98` passes and exactly the six
+established protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125). The gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown removed all containers, volumes, network, testcontainer
+sessions, and four images. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes the synthetic basket/ratio timestamp seam only. Full provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, dense-data evidence, and R2-R7 goals remain open; continue without
+integration or deployment.
+
 ## 2026-09-10 — OHLCV router boundaries canonicalize to UTC
 
 At product tip `22742ac1d44966f88a9c9dbb2e28bff3fba454f0`, the chart OHLCV
