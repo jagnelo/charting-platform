@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-11 — Normalize family history queue and derived equal-weight labels
+
+- [x] Normalize provider `row_type` labels in benchmark-family history queue
+      planning and derived equal-weight source membership (`c058eb0b`) so
+      `Security` variants retain canonical members and weights.
+- [x] Add focused queue and Docker-backed benchmark-family source regressions;
+      both passed `1/1`, with Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,472/1,472` at `69%` isolated
+      coverage. The exact tip gate passed all non-visual stages, including
+      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only after clean teardown removed all resources and four images. No
+      visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Generic breadth consumers share canonical member eligibility
 
 - [x] Align the shared generic breadth resolver and family readiness metadata

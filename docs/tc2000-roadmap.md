@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Normalize family history queue and derived equal-weight labels
+
+At product tip `c058eb0b`, benchmark-family history enqueue planning and the
+derived equal-weight source denominator now normalize provider `row_type`
+labels before applying the canonical security predicate. A `Security` spelling
+therefore cannot silently drop a canonical member from queued D1/W1/MN history
+or make a derived equal-weight source publish an unweighted member. The focused
+queue regression and Docker-backed benchmark-family source workflow passed
+`1/1` each; Ruff, formatting, and diff checks passed. The full backend unit
+suite passed `1,472/1,472` with `69%` total coverage on the isolated
+invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; no inactive temporary builder
+remained after verification. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, canonical population, W1/MN continuity, dense-data evidence,
+and R2-R7.
+
 ## 2026-09-11 — Generic breadth consumers share canonical member eligibility
 
 At product tip `09c7930c`, the shared generic breadth-universe resolver now

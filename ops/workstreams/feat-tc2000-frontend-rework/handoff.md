@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Normalize family history queue and derived equal-weight labels
+
+Product tip `c058eb0b` normalizes provider `row_type` labels in the
+benchmark-family history enqueue planner and derived equal-weight source
+denominator. Canonical `Security` variants now remain eligible for queued
+history and retain their derived equal weight. The focused queue regression and
+Docker-backed benchmark-family source workflow passed `1/1` each; Ruff, format,
+and diff checks passed; and the full backend unit suite passed `1,472/1,472` at
+`69%` isolated coverage.
+
+The exact branch-scoped gate passed all non-visual stages: backend integration
+`389/389` (`81.56%` combined coverage), frontend Vitest `991/991`/build/
+contracts/probes, and functional Playwright `165` passed with `107` documented
+skips across `272`. Visual parity remained `98/104` with the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125), so the gate exited at
+`e2e-visual` only. Teardown removed all branch-scoped resources and four
+images; no inactive temporary builder remained after verification. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. R1 provider/family history breadth, canonical population, W1/MN
+continuity, dense-data evidence, and R2-R7 remain open; do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Generic breadth consumers share canonical member eligibility
 
 Product tip `09c7930c` aligns the shared generic breadth resolver and family
