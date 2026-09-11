@@ -13,6 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 4f0abd68 canonicalizes per-instrument and aggregate Strategy Lab
+  universe-coverage available/requested bar timestamps through the shared UTC
+  wire formatter, aligning them with dynamic-universe provenance fields.
+  Focused Strategy Lab coverage passed 14/14; Ruff, formatting, and diff checks
+  passed. The exact full integration gate is pending for this serialization-only
+  slice. Continue full provider/family history breadth, W1/MN continuity,
+  canonical population, dense-data evidence, and R2-R7 goals; preserve the
+  no-integration/no-deployment boundary.
   Product tip b460ee98 canonicalizes Study Lab dynamic-universe execution-log
   universe_snapshot_known_at and summary snapshot timestamps through the shared
   UTC wire formatter. Focused Study Lab service coverage passed 2/2; the full

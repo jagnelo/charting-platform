@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Strategy Lab coverage timestamps canonicalize to UTC
+
+Product tip `4f0abd68` now emits per-instrument and aggregate Strategy Lab
+universe-coverage timestamps through the shared canonical UTC `Z` formatter.
+Focused coverage passed `14/14`; Ruff, formatting, and diff checks passed.
+The exact full integration gate is pending for this serialization-only slice.
+R1 and R2-R7 remain open; no integration, promotion, deployment, or other
+worktree mutation is authorized by this workstream.
+
 ## 2026-09-11 — Study Lab universe provenance gate receipt
 
 Product tip `b460ee98` canonicalizes Study Lab dynamic-universe execution-log

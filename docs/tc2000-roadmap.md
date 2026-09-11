@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Strategy Lab coverage timestamps canonicalize to UTC
+
+At product tip `4f0abd68`, the Strategy Lab universe-coverage envelope now
+serializes per-instrument and aggregate available/requested bar timestamps
+through the shared canonical UTC `Z` formatter. Offset-aware and legacy naive
+database timestamps therefore have one stable wire representation alongside
+the existing dynamic-universe provenance fields; coverage status, membership,
+provider routing, cache semantics, and visible visual states are unchanged.
+
+Focused Strategy Lab coverage passed `14/14`; Ruff, formatting, and diff checks
+passed. The exact full integration gate has not yet been rerun for this bounded
+serialization-only change. R1 remains open for complete provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, and R2-R7 evidence; continue without integration or deployment.
+
 ## 2026-09-11 — Study Lab universe provenance gate receipt
 
 At product tip `b460ee98`, Study Lab dynamic-universe execution logs now

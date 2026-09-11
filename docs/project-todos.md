@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-11 — Strategy Lab coverage timestamps canonicalize to UTC
+
+- [x] Serialize per-instrument and aggregate Strategy Lab universe-coverage
+      timestamps through the shared canonical UTC `Z` formatter (`4f0abd68`),
+      keeping coverage status, membership, provider routing, cache semantics,
+      and visual behavior unchanged.
+- [x] Focused Strategy Lab coverage passed `14/14`; Ruff, formatting, and diff
+      checks passed.
+- [ ] Rerun the exact full integration gate at the next coherent product
+      checkpoint. Complete provider/family history breadth, W1/MN continuity,
+      canonical population, and R2-R7 evidence remain open.
+
 ### 2026-09-11 — Study Lab universe provenance gate receipt
 
 - [x] Serialize Study Lab dynamic-universe `universe_snapshot_known_at` and
