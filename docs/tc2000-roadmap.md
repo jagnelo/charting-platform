@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Watchlist-source provenance timestamps canonicalize to UTC
+
+At product tip `00c3242e`, raw watchlist-source provenance now serializes
+membership departure, saved-source known-at exclusions, and holdings snapshot
+publication timestamps through the canonical UTC `Z` formatter. Offset-aware
+and legacy naive persisted values therefore have one stable API spelling while
+source membership semantics, resolver cutoffs, and version identity remain
+unchanged.
+
+Focused watchlist-source coverage passed `5/5`; the Docker-backed managed
+watchlist departure-at-as-of API regression passed `1/1`; Ruff, formatting, and
+diff checks passed. The exact elevated Docker-backed gate passed backend unit
+`1,463/1,463` with `68%` unit coverage, backend integration `388/388` with
+`81.49%` combined coverage, frontend Vitest `991/991`/build/contracts/probes,
+and functional Playwright `165` passed with `107` documented skips across
+`272`. Visual parity remained `98/104` with exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images; the temporary retry
+builder was removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report
+server; no assertions, thresholds, baselines, masks, skips, provider,
+fallback, or acceptance policy changed. Continue provider/family history
+breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Workstation bootstrap family-history queue bounds canonicalize to UTC
 
 At product tip `389d3db0`, workstation bootstrap now serializes bounded

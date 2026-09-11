@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Watchlist-source provenance timestamps canonicalize to UTC
+
+- [x] Serialize watchlist membership departure, saved-source known-at
+      exclusions, and holdings snapshot publication timestamps as canonical UTC
+      `Z` values (`00c3242e`) without changing membership semantics, cutoffs, or
+      source-version identity.
+- [x] Focused watchlist-source coverage passed `5/5`; the Docker-backed managed
+      departure-at-as-of API regression passed `1/1`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact tip gate passed backend unit `1,463/1,463`, integration
+      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
+      probes, and functional Playwright (`165` passed, `107` documented skips
+      across `272`); visual parity remained `98/104` with exactly the six
+      established protected diffs and clean teardown. The temporary retry
+      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
+      report server. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Workstation bootstrap family-history queue bounds canonicalize to UTC
 
 - [x] Canonicalize workstation bootstrap family-member history `as_of` queue

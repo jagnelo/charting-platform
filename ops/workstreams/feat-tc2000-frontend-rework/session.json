@@ -54,7 +54,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a8927cf21a07d603f61cf106cc63142173babc43",
+  "head": "00c3242ed58dd9ac6b845413a332ddf6d5291824",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T08:51:21.209430+00:00",
-  "last_human_progress_update": "2026-09-11T08:50:52.496206+00:00",
+  "last_checkpoint": "2026-09-11T09:18:50.152354+00:00",
+  "last_human_progress_update": "2026-09-11T09:18:28.190117+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "1aa0fb2554dcfff990575c3a91c943cac195265eb136e9cc82915a67133b43b7",
+  "plan_hash": "8c3d626477ed316e1366f7ef640f8f3584be99a624db542d737ea4240db3d0dd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 389d3db0 canonicalizes workstation bootstrap bounded family-member history as_of arguments and canonical job identity to UTC Z, matching benchmark-family, ETF, and watchlist queue contracts. Focused workstation-bootstrap and benchmark-family-history coverage passed 35/35; Ruff, formatting, and diff checks passed. The exact elevated Docker-backed gate passed backend unit 1462/1462 at 68% unit coverage, backend integration 388/388 at 81.49% combined coverage, frontend Vitest 991/991/build/contracts/probes, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly six established protected diffs after clean branch-scoped teardown removed all containers, volumes, network, testcontainer sessions, and four images; temporary retry builder removed. PLAYWRIGHT_HTML_OPEN=never only suppressed report server. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7; preserve protected visual assertions and no-integration/no-deployment boundary.",
+    "current_blocker": "Product tip 00c3242e canonicalizes raw watchlist-source membership departure, saved-source known-at exclusions, and holdings snapshot publication timestamps to UTC Z without changing membership semantics, resolver cutoffs, or source-version identity. Focused watchlist-source coverage passed 5/5; the Docker-backed managed departure-at-as-of API regression passed 1/1; Ruff, formatting, and diff checks passed. The exact elevated Docker-backed gate passed backend unit 1463/1463 at 68% unit coverage, backend integration 388/388 at 81.49% combined coverage, frontend Vitest 991/991/build/contracts/probes, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly six established protected diffs after clean branch-scoped teardown removed all containers, volumes, network, testcontainer sessions, and four images; temporary retry builder removed. PLAYWRIGHT_HTML_OPEN=never only suppressed report server. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7; preserve protected visual assertions and no-integration/no-deployment boundary.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T08:50:52.495957+00:00"
+    "updated_at": "2026-09-11T09:18:28.189875+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
