@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Strategy Lab ETF universes use canonical membership
+
+At product tip `b131cfa6`, Strategy Lab's static and dynamic ETF universe
+resolvers now share the canonical member contract used by watchlists, breadth,
+and basket materialization. Provider row-type casing is normalized; only
+resolved security equities with a linked non-placeholder instrument enter the
+universe. Unresolved rows, non-equity disclosures, and internal `HOLDING-*`
+placeholders remain evidence-only. Direct ETF ingestion also accepts provider
+security-label casing variants without losing the raw audit fields. The
+Docker-backed static/dynamic regression coverage passed as part of integration
+`391/391`; Ruff, formatting, and diff checks passed. The full backend unit
+suite passed `1,472/1,472` with `68.57%` total coverage on the repository
+invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend integration `391/391` (`81.65%` combined coverage), frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity completed `104` cases with
+`98` passes and exactly the six established protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exited at `e2e-visual` only for those unchanged diffs. Final branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions, and
+four images; only the default and desktop-linux Docker builders remained. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Enforce canonical ETF basket membership
 
 At product tip `404a5e70`, read-only ETF holdings basket materialization now

@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Strategy Lab ETF universes use canonical membership
+
+Product tip `b131cfa6` aligns static and dynamic Strategy Lab ETF universe
+resolution with the canonical resolved security/equity contract. Row-type
+casing is normalized; unresolved rows, non-equity disclosures, and linked
+`HOLDING-*` placeholders remain evidence-only. Direct ETF ingestion accepts
+case-variant security labels while preserving raw audit fields. Regression
+coverage passed within Docker integration `391/391`; the backend unit suite
+passed `1,472/1,472` at `68.57%`; Ruff, format, and diff checks passed.
+
+The exact branch-scoped gate passed all non-visual stages: combined backend
+coverage `81.65%`, frontend Vitest `991/991`/build/contracts/probes, and
+functional Playwright `165` passed with `107` documented skips across `272`.
+Visual parity was `98/104` with only the six established protected diffs
+(`watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+1080p-100/125 and 1440p-100/125), so the gate exited at visual comparison only.
+Teardown removed all branch-scoped resources and four images; only default and
+desktop-linux builders remained. No visual, provider, fallback, or acceptance
+policy changed. R1 provider/family history breadth, canonical population,
+W1/MN continuity, dense-data evidence, and R2-R7 remain open; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Enforce canonical ETF basket membership
 
 Product tip `404a5e70` aligns read-only ETF holdings basket materialization

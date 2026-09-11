@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-11 — Strategy Lab ETF universes use canonical membership
+
+- [x] Align static and dynamic Strategy Lab ETF universe resolution with the
+      canonical resolved security/equity member contract, normalizing provider
+      row-type casing and excluding unresolved rows, non-equities, and linked
+      `HOLDING-*` placeholders (`b131cfa6`).
+- [x] Preserve raw provider audit labels while allowing direct ETF ingestion to
+      resolve case-variant security labels; the Docker-backed static/dynamic
+      regression coverage passed within integration `391/391`, with Ruff,
+      formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` coverage.
+      The exact tip gate passed all non-visual stages, including frontend
+      Vitest `991/991`/build/contracts/probes and functional Playwright
+      (`165` passed, `107` documented skips). Visual parity remained `98/104`
+      with exactly the six established protected diffs; clean teardown removed
+      all branch resources and four images. No visual or acceptance policy
+      changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Enforce canonical ETF basket membership
 
 - [x] Align read-only ETF holdings basket materialization with the canonical
