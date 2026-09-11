@@ -8,6 +8,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.provider_observation import (
@@ -126,9 +127,9 @@ async def list_stale_dataset_states(
             "dataset_type": state.dataset_type,
             "dataset_key": state.dataset_key,
             "status": state.status.value,
-            "stale_after": state.stale_after,
-            "observed_at": state.observed_at,
-            "fetched_at": state.fetched_at,
+            "stale_after": wire_datetime(state.stale_after),
+            "observed_at": wire_datetime(state.observed_at),
+            "fetched_at": wire_datetime(state.fetched_at),
             "extra_data": state.extra_data,
         }
         for state, instrument, data_source in rows

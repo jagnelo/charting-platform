@@ -19,6 +19,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.ohlcv import Timeframe
 from app.models.provider_runtime import (
@@ -385,9 +386,9 @@ async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
                 "consecutive_failures": observation.consecutive_failures,
                 "recovered": observation.recovered,
                 "error_message": observation.error_message,
-                "observed_at": observation.created_at,
-                "last_success_at": health.last_success_at if health else None,
-                "last_failure_at": health.last_failure_at if health else None,
+                "observed_at": wire_datetime(observation.created_at),
+                "last_success_at": wire_datetime(health.last_success_at) if health else None,
+                "last_failure_at": wire_datetime(health.last_failure_at) if health else None,
                 "response_shape": observation.response_shape,
             }
         )
@@ -410,8 +411,8 @@ async def recent_availability_runs(db: AsyncSession, limit: int = 10) -> list[di
             "status": run.status,
             "application_version": run.application_version,
             "probe_contract_version": run.probe_contract_version,
-            "started_at": run.started_at,
-            "finished_at": run.finished_at,
+            "started_at": wire_datetime(run.started_at),
+            "finished_at": wire_datetime(run.finished_at),
             "error": run.error,
         }
         for run in rows

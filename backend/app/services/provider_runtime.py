@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
@@ -869,9 +870,9 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "cooldown_seconds": policy.cooldown_seconds,
             "freshness_seconds": policy.freshness_seconds,
             "failure_streak": health.failure_streak,
-            "last_success_at": health.last_success_at,
-            "last_failure_at": health.last_failure_at,
-            "circuit_open_until": health.circuit_open_until,
+            "last_success_at": wire_datetime(health.last_success_at),
+            "last_failure_at": wire_datetime(health.last_failure_at),
+            "circuit_open_until": wire_datetime(health.circuit_open_until),
             "ewma_latency_ms": float(health.ewma_latency_ms),
             "ewma_success_rate": float(health.ewma_success_rate),
             "ewma_completeness": float(health.ewma_completeness),

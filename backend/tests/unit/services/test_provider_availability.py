@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
@@ -6,7 +7,9 @@ from app.models.provider_runtime import ProviderCapability
 from app.services.provider_availability import (
     classify_exception,
     classify_response,
+    latest_availability,
     notification_due,
+    recent_availability_runs,
     representative_request,
     response_shape,
 )
@@ -139,3 +142,61 @@ def test_notification_policy_covers_first_failure_cooldown_and_recovery(monkeypa
         )
         == "recovery"
     )
+
+
+def test_availability_read_models_emit_canonical_wire_timestamps():
+    observation = SimpleNamespace(
+        capability=ProviderCapability.PRICE_HISTORY,
+        classification="success",
+        success=True,
+        latency_ms=12,
+        consecutive_failures=0,
+        recovered=False,
+        error_message=None,
+        created_at=datetime(2026, 9, 11, 14, 30),
+        response_shape={"type": "array"},
+    )
+    source = SimpleNamespace(id=1, name="yfinance")
+    health = SimpleNamespace(
+        last_success_at=datetime(2026, 9, 11, 12, 30),
+        last_failure_at=None,
+    )
+
+    class AvailabilityResult:
+        def all(self):
+            return [(observation, source, health)]
+
+    class RunResult:
+        def scalars(self):
+            return [
+                SimpleNamespace(
+                    id=1,
+                    mode="daily_core",
+                    status="completed",
+                    application_version="test",
+                    probe_contract_version="v1",
+                    started_at=datetime(2026, 9, 11, 12, 0),
+                    finished_at=datetime(2026, 9, 11, 12, 1, tzinfo=UTC),
+                    error=None,
+                )
+            ]
+
+    class FakeDb:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+            return AvailabilityResult() if self.calls == 1 else RunResult()
+
+    # ``datetime.timezone`` is used through ``tzinfo`` so the helper receives
+    # an offset-aware value without involving database setup.
+    observation.created_at = datetime.fromisoformat("2026-09-11T14:30:00+02:00")
+    db = FakeDb()
+    availability = asyncio.run(latest_availability(db))
+    assert availability[0]["observed_at"] == "2026-09-11T12:30:00Z"
+    assert availability[0]["last_success_at"] == "2026-09-11T12:30:00Z"
+
+    runs = asyncio.run(recent_availability_runs(db))
+    assert runs[0]["started_at"] == "2026-09-11T12:00:00Z"
+    assert runs[0]["finished_at"] == "2026-09-11T12:01:00Z"

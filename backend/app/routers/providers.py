@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user, require_admin
 from app.config import settings
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.provider_runtime import (
@@ -91,7 +92,7 @@ async def get_providers(
                 "provider": row["provider"],
                 "supported_capabilities": row["supported_capabilities"],
                 "capabilities": [],
-                "updated_at": datetime.now(),
+                "updated_at": wire_datetime(datetime.now(UTC)),
             },
         )
         entry["capabilities"].append(row["capability"])
@@ -132,8 +133,8 @@ async def get_provider_entitlements(
             "venue_coverage": entitlement.venue_coverage,
             "freshness_semantics": entitlement.freshness_semantics,
             "enabled_environments": entitlement.enabled_environments,
-            "effective_at": entitlement.effective_at,
-            "review_due_at": entitlement.review_due_at,
+            "effective_at": wire_datetime(entitlement.effective_at),
+            "review_due_at": wire_datetime(entitlement.review_due_at),
             "live_probe_status": entitlement.live_probe_status,
             "revision": entitlement.revision,
         }
@@ -187,11 +188,11 @@ async def get_provider_entitlement_history(
             "venue_coverage": row.venue_coverage,
             "freshness_semantics": row.freshness_semantics,
             "enabled_environments": row.enabled_environments,
-            "effective_at": row.effective_at,
-            "review_due_at": row.review_due_at,
+            "effective_at": wire_datetime(row.effective_at),
+            "review_due_at": wire_datetime(row.review_due_at),
             "live_probe_status": row.live_probe_status,
             "change_reason": row.change_reason,
-            "created_at": row.created_at,
+            "created_at": wire_datetime(row.created_at),
         }
         for row in rows
     ]
@@ -246,9 +247,9 @@ async def get_provider_health(
             "provider": row["provider"],
             "capability": row["capability"],
             "failure_streak": row["failure_streak"],
-            "last_success_at": row["last_success_at"],
-            "last_failure_at": row["last_failure_at"],
-            "circuit_open_until": row["circuit_open_until"],
+            "last_success_at": wire_datetime(row["last_success_at"]),
+            "last_failure_at": wire_datetime(row["last_failure_at"]),
+            "circuit_open_until": wire_datetime(row["circuit_open_until"]),
             "ewma_latency_ms": row["ewma_latency_ms"],
             "ewma_success_rate": row["ewma_success_rate"],
             "ewma_completeness": row["ewma_completeness"],
@@ -335,8 +336,8 @@ async def get_reconciliation_issues(
             "status": issue.status,
             "candidates": issue.candidates,
             "payload": issue.payload,
-            "observed_at": issue.observed_at,
-            "resolved_at": issue.resolved_at,
+            "observed_at": wire_datetime(issue.observed_at),
+            "resolved_at": wire_datetime(issue.resolved_at),
             "resolution": issue.resolution,
             "resolved_by": (
                 {

@@ -73,6 +73,7 @@ class TestProvidersRouter:
         assert listed.status_code == 200
         assert listed.json()[0]["provider_symbol"] == "ABC"
         assert listed.json()[0]["provider"] == "edgar"
+        assert listed.json()[0]["observed_at"].endswith("Z")
 
         updated = client.patch(
             f"/api/v1/providers/reconciliation/issues/{issue.id}",
@@ -95,6 +96,17 @@ class TestProvidersRouter:
         assert res.status_code == 200
         rows = res.json()
         assert rows
+
+        providers = client.get("/api/v1/providers", headers=admin_headers)
+        assert providers.status_code == 200
+        assert providers.json()[0]["updated_at"].endswith("Z")
+
+        health = client.get("/api/v1/providers/health", headers=admin_headers)
+        assert health.status_code == 200
+        assert all(
+            row["last_success_at"] is None or row["last_success_at"].endswith("Z")
+            for row in health.json()
+        )
 
         target = rows[0]
         provider = target["provider"]
@@ -146,6 +158,8 @@ class TestProvidersRouter:
         assert changed["freshness_semantics"] == "delayed"
         assert changed["effective_at"].startswith("2026-01-01T00:00:00")
         assert changed["review_due_at"].startswith("2030-01-01T00:00:00")
+        assert changed["effective_at"].endswith("Z")
+        assert changed["review_due_at"].endswith("Z")
         assert changed["revision"] == target["revision"] + 1
 
         history = client.get(
@@ -160,6 +174,7 @@ class TestProvidersRouter:
         assert revisions[0]["revision"] == changed["revision"]
         assert revisions[0]["change_reason"] == "api_patch"
         assert revisions[-1]["revision"] == target["revision"]
+        assert revisions[0]["created_at"].endswith("Z")
 
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)
@@ -217,6 +232,10 @@ class TestProvidersRouter:
         stale = client.get("/api/v1/providers/datasets/stale", headers=auth_headers)
         assert stale.status_code == 200
         assert any(row["symbol"] == "AAPL" for row in stale.json())
+        stale_row = next(row for row in stale.json() if row["symbol"] == "AAPL")
+        assert stale_row["stale_after"].endswith("Z")
+        assert stale_row["observed_at"].endswith("Z")
+        assert stale_row["fetched_at"].endswith("Z")
 
         reset = client.post(
             "/api/v1/providers/health/yfinance/price_history/reset",
