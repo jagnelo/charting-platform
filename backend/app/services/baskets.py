@@ -17,6 +17,11 @@ from app.schemas.basket import (
     BasketSnapshotOut,
     BasketUpdateRequest,
 )
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.ohlcv_coverage import _as_utc
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
@@ -200,7 +205,14 @@ async def materialize_etf_holdings_basket(
     seen_instruments: set[int] = set()
     position = 0
     for row in snapshot.rows:
-        if row.row_type != "security" or row.constituent_instrument_id is None:
+        if (
+            normalize_holding_type(row.row_type) != "security"
+            or not is_equity_holding_type(row.holding_type)
+            or not row.is_resolved
+            or row.constituent_instrument_id is None
+            or row.constituent_instrument is None
+            or is_placeholder_symbol(row.constituent_instrument.symbol)
+        ):
             continue
         if row.constituent_instrument_id in seen_instruments:
             continue

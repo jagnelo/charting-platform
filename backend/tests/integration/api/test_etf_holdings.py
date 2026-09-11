@@ -3417,11 +3417,30 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
                     "row_type": "cash",
                     "currency": "USD",
                 },
+                {
+                    "name": "Unresolved issuer placeholder",
+                    "weight": "0.02",
+                },
+                {
+                    "weight": "0.01",
+                },
             ],
         },
         headers=admin_headers,
     )
     assert ingest.status_code == 200
+
+    latest = client.get("/api/v1/etf-holdings/DIA/latest", headers=auth_headers)
+    assert latest.status_code == 200
+    latest_holdings = latest.json()
+    assert latest_holdings["row_count"] == 5
+    assert latest_holdings["resolved_count"] == 3
+    assert latest_holdings["unresolved_count"] == 2
+    assert any(
+        (row["constituent_symbol"] or "").startswith("HOLDING-")
+        for row in latest_holdings["holdings"]
+    )
+    assert any(row["constituent_symbol"] is None for row in latest_holdings["holdings"])
 
     materialized = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
     assert materialized.status_code == 200
