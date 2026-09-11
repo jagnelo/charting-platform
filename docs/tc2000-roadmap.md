@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Source catalog counts match canonical ETF members
+
+At product tip `5819244d`, latest ETF and benchmark-family source descriptors
+now derive `member_count` from the eagerly loaded publishable canonical
+instrument IDs rather than raw `resolved_count`. This keeps the source picker
+aligned with the deduplicated resolver stream while raw snapshot row and
+resolved-row counts remain visible in provenance. The focused Docker-backed
+source-listing/resolver regressions passed `3/3`; Ruff, formatting, and diff
+checks passed. The full backend unit suite passed `1,474/1,474` with `69%`
+total coverage.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend integration `391/391` (`81.65%` combined coverage), frontend
+dependency/lint/format/type-check/Vitest/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and the same six established protected
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Teardown
+removed all branch-scoped containers, volumes, network, testcontainer
+sessions, and four images. No visual, provider, fallback, or acceptance policy
+changed. Continue provider/family history breadth, remaining canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7 without changing
+protected visual policy.
+
 ## 2026-09-11 — Canonical ETF source resolution deduplicates member IDs
 
 At product tip `85eaf4da`, WatchlistSource resolution now emits one canonical

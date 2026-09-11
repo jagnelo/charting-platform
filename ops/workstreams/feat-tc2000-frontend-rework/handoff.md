@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Source catalog counts match canonical ETF members
+
+Product tip `5819244d` closes the metadata seam left by canonical source
+deduplication. Latest ETF and benchmark-family descriptors now count the
+publishable canonical instrument IDs loaded for the snapshot, so source-picker
+counts match the resolver; raw row/resolved-row totals remain provenance
+evidence. Focused Docker-backed source-listing/resolver coverage passed `3/3`;
+Ruff, format, and diff checks passed; the backend unit suite passed
+`1,474/1,474` at `69%` coverage.
+
+The exact branch-scoped gate passed all non-visual stages: backend integration
+`391/391` (`81.65%` combined coverage), frontend static/build/test/contracts/
+probes, and functional Playwright `165` passed with `107` documented skips
+across `272`. Visual parity remained `98/104` with exactly the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125). Teardown removed all
+branch resources and four images. No visual, provider, fallback, or acceptance
+policy changed. Continue R1 provider/family history breadth, remaining
+canonical population, W1/MN continuity, dense-data evidence, and R2-R7; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Canonical ETF source resolution deduplicates member IDs
 
 Product tip `85eaf4da` closes the duplicate-disclosure seam in the canonical
