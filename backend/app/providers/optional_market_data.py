@@ -1070,7 +1070,11 @@ class MarketDataAppProvider(_RESTProvider):
         if not resolution:
             return []
         payload = self._get(
-            f"stocks/candles/{resolution}/{symbol.upper()}",
+            # MarketData.app canonicalizes candle resources with a trailing
+            # slash; omitting it causes a 301 redirect that the shared REST
+            # client intentionally does not follow for response-integrity
+            # reasons.
+            f"stocks/candles/{resolution}/{symbol.upper()}/",
             {
                 "from": _bounded_datetime(start).date().isoformat(),
                 "to": _bounded_datetime(end).date().isoformat(),

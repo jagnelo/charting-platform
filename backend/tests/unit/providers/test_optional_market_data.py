@@ -681,7 +681,7 @@ def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
         )
 
     assert provider.base_url == "https://api.marketdata.app/v1"
-    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL"
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
     assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
 
@@ -712,7 +712,7 @@ def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
         ):
             assert provider.get_current_price("AAPL") == 101.0
 
-    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL"
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
 
 
 def test_tradier_parses_documented_nested_history_and_singleton_quote_search_shapes():

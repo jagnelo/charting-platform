@@ -268,27 +268,18 @@ progress:
     - optional REST HTTP capacity failures now retain only allow-listed provider headers, excluding authorization and other sensitive response headers; boolean numeric/timestamp inputs fail closed. Focused optional/provider coverage remains green, with no generic quota fallback introduced
     - provider quota-contract limits and windows now require strict positive integers at both diagnostics and runtime admission; booleans, fractions, and numeric strings cannot be coerced into a provider quota. Marketstack EOD pagination counters likewise fail closed on non-integral or contradictory metadata, preventing malformed provider responses from widening or truncating the budgeted history read
     - the external live-usage ledger now exposes rolling 30-day operation/request/byte totals and chooses its capacity-header snapshot by observation timestamp rather than receipt file order; calendar-reset usage remains explicitly observational and requires provider-native/operator reconciliation
+    - on 2026-09-11 the supplied local credentials produced passing EDGAR and Alpaca live probes (2/2) and a passing MarketData.app probe after fixing its required trailing-slash candle URL; Dinari's sandbox credentialed probe reached the provider and returned typed HTTP 401, so no success or quota entitlement was inferred
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
-    The latest elevated complete backend live collection at 2026-09-10T16:30Z
-    passed 29/37 with no secret values persisted. Eight outcomes fail honestly:
-    ALPACA_API_KEY/ALPACA_SECRET_KEY, TRADIER_API_KEY,
-    MARKETDATA_APP_API_KEY, IBKR_READ_ONLY_URL/IBKR_READ_ONLY_SESSION_COOKIE,
-    DINARI_API_KEY_ID/DINARI_API_SECRET_KEY, and ONDO_GLOBAL_MARKETS_API_KEY
-    are absent, while the configured Alpha Vantage key is at its documented
-    25-requests/day capacity for both daily history and IPO-calendar reads.
-    These are typed preflight/capacity failures, not parser errors. All public
-    tokenized probes pass, and xStocks returned observed native limit headers
-    during this run; those observations are not promoted to a contractual
-    quota. The GitHub `jagnelo` live environment is not externally verifiable
-    until owner authentication is restored; FRED's three explicit review
-    controls (scope, conservative limit, and series terms), FINRA OTC's
-    positive operation-cost map plus terms/completeness/redistribution/poll
-    controls, Nasdaq polling allowance, xStocks public quota and
-    US-person/jurisdiction/redistribution eligibility, Bybit xStocks endpoint/
-    UID limits, complete reviewed Tiingo/FMP byte maps including `bulk_fetch`,
-    complete NMS/OTC reconciliation, and shadow activation remain
-    post-deployment or operator-review gates; each deployment must also provide
-    its own non-secret SEC User-Agent
-  next_action: restore owner authentication for the `jagnelo` GitHub account, configure the deployment-owned non-secret EDGAR_USER_AGENT, verify or populate the environment's provider secrets and safety variables, obtain the missing credential domains, rerun the complete manifest live matrix, then reassess readiness; do not activate routing or deploy before that evidence, and do not promote Tiingo/FMP until complete reviewed byte-bound maps are supplied
+    Newly supplied local credentials produced passing EDGAR, Alpaca, and
+    MarketData.app probes after a trailing-slash adapter fix; Dinari reached the
+    sandbox endpoint but returned HTTP 401 and has no live acceptance evidence.
+    Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
+    intentionally unconfigured. Alpha Vantage remains at its documented
+    25-requests/day capacity for daily history and IPO-calendar reads. FRED,
+    FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
+    Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
+    deployment-owned SEC contact distribution, and the separately approved
+    30-day shadow remain open review or deployment gates.
+  next_action: verify or regenerate Dinari sandbox credentials, rerun its bounded live case, then rerun the complete manifest matrix with the explicitly deferred providers still recorded as intentional credential preflights; complete provider-specific quota/legal and reconciliation reviews before any routing activation or deployment
