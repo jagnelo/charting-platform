@@ -14,9 +14,16 @@ Product tip `d1f3da4d` now requires `point_in_time_supported` for a benchmark-
 family role to report composite readiness `ready`; otherwise the role remains
 partial with an explicit `point_in_time_unavailable` reason. Focused
 analysis-router coverage passed `28/28`, benchmark-family integration coverage
-passed `9/9` with Docker, and Ruff/format/diff checks passed. The exact full
-integration gate is pending for this bounded readiness fix. R1 and R2-R7 remain
-open; preserve the no-integration, no-promotion, no-deployment boundary.
+passed `9/9` with Docker, and Ruff/format/diff checks passed. The first full
+gate backend run had a transient Postgres termination (`148` passed, `240`
+setup errors), while the fresh backend-coverage retry passed unit `1,459/1,459`
+and integration `387/387` at `81.47%` combined coverage. The subsequent exact
+gate passed every non-visual stage, frontend Vitest `991/991`, build/contracts/
+probes, and functional Playwright `165` with `107` documented skips across
+`272`; visual parity remained `98/104` with exactly the six established
+protected diffs and clean teardown of all branch-scoped resources and four
+images. R1 and R2-R7 remain open; preserve the no-integration, no-promotion,
+no-deployment boundary.
 
 ## 2026-09-11 — Workstation bootstrap provenance gate receipt
 

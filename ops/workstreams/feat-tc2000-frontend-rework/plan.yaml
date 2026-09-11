@@ -17,10 +17,21 @@ current_blocker: >-
   role cannot report ready without point-in-time holdings evidence. Focused
   analysis-router coverage passed 28/28; benchmark-family coverage/readiness
   integration coverage passed 9/9 with Docker; Ruff, formatting, and diff
-  checks passed. The exact elevated Docker-backed gate is pending for this
-  bounded readiness fix. Continue provider/family history breadth, W1/MN
-  continuity, canonical population, dense-data evidence, and R2-R7; preserve
-  protected visual assertions and the no-integration/no-deployment boundary.
+  checks passed. The first exact backend stage had a transient Postgres
+  termination after 148 passed tests and 240 setup errors; a fresh retry passed
+  unit 1459/1459 and integration 387/387 at 81.47% combined coverage. The
+  subsequent exact elevated Docker-backed gate passed every non-visual stage,
+  frontend Vitest 991/991, build/contracts/probes, and functional Playwright
+  165 passed with 107 documented skips across 272. Visual parity remains 98/104
+  with exactly the six established protected diffs: watchlist-column-editor-open
+  at visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+  visual-1440p-100/125. The gate exited at e2e-visual only for those unchanged
+  diffs after clean branch-scoped teardown removed all containers, volumes,
+  network, testcontainer sessions, and four images. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Continue
+  provider/family history breadth, W1/MN continuity, canonical population,
+  dense-data evidence, and R2-R7; preserve protected visual assertions and the
+  no-integration/no-deployment boundary.
   Product tip ee42a67c canonicalizes curated workstation identity-bootstrap
   provenance timestamps to the UTC Z wire spelling for new and existing
   registry entries, without changing identity, provider binding, taxonomy,

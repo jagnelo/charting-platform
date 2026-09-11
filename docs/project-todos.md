@@ -8,9 +8,18 @@
 - [x] Focused analysis-router coverage passed `28/28`; benchmark-family
       coverage/readiness integration coverage passed `9/9` with Docker; Ruff,
       formatting, and diff checks passed.
-- [ ] Rerun the exact full integration gate at this product tip, then continue
-      provider/family history breadth, W1/MN continuity, canonical population,
-      dense-data evidence, and R2-R7 without changing protected visual policy.
+- [x] The first full-gate backend run had a transient Postgres termination
+      (`148` passed, `240` setup errors); the fresh backend-coverage retry passed
+      unit `1,459/1,459` and integration `387/387` at `81.47%` combined
+      coverage.
+- [x] The subsequent exact full integration gate passed all non-visual stages,
+      frontend Vitest `991/991`, build/contracts/probes, and functional
+      Playwright `165` passed with `107` documented skips across `272`; visual
+      parity remained `98/104` with exactly the six established protected diffs
+      and clean teardown of all branch-scoped resources and four images.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
 
 ### 2026-09-11 — Workstation bootstrap provenance gate receipt
 

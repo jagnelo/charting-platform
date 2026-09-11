@@ -15,10 +15,23 @@ AC2 boundary against projecting current membership into historical readiness.
 
 Focused analysis-router coverage passed `28/28`; the nine benchmark-family
 coverage/readiness integration cases passed `9/9` with Docker; Ruff, formatting,
-and diff checks passed. The exact full integration gate is pending for this
-bounded readiness fix. Continue provider/family history breadth, W1/MN
-continuity, canonical population, dense-data evidence, and R2-R7 without
-changing protected visual or acceptance policy.
+and diff checks passed. The first full-gate backend run lost its ephemeral
+Postgres after `148` integration tests and produced `240` setup errors; a fresh
+backend-coverage retry passed `1,459/1,459` unit tests and `387/387`
+integration tests at `81.47%` combined coverage. The subsequent exact full gate
+passed every non-visual stage: frontend dependency/lint/format/type-check,
+Vitest `991/991`, build, compose/provider contracts, research-runner probes,
+and functional Playwright `165` passed with `107` documented skips across
+`272`. Visual parity completed `104` cases with `98` passes and exactly the six
+established protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited at `e2e-visual` only for those unchanged
+diffs; clean branch-scoped teardown removed all containers, volumes, network,
+testcontainer sessions, and four images. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Continue
+provider/family history breadth, W1/MN continuity, canonical population,
+dense-data evidence, and R2-R7 without changing protected visual or acceptance
+policy.
 
 ## 2026-09-11 — Workstation bootstrap provenance gate receipt
 
