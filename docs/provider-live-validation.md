@@ -232,11 +232,23 @@ logs, health state, capacity events, or live-probe failure output. The redactor
 removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
-Current local validation (2026-09-11) has passing EDGAR and Alpaca probes and a
-passing MarketData.app candle probe after correcting its required trailing
-slash. Dinari reaches the sandbox endpoint but returns typed HTTP 401;
-Tradier, Ondo, and IBKR are intentionally deferred. Every deployment and CI
-environment must still provide its own operator contact value. A provider may
+Current local validation (2026-09-11) has passing EDGAR, Alpaca, MarketData.app,
+and Dinari Sandbox probes. MarketData.app required its provider-mandated
+trailing slash. Dinari initially returned typed HTTP 401 because the
+operator-only endpoint was still the live host; after switching to the
+documented Sandbox host, the replacement Sandbox pair passed the full bounded
+stock metadata, quote/history/news, dividend, and split case. Tradier, Ondo,
+and IBKR are intentionally deferred. Every deployment and CI
+environment must still provide its own operator contact value.
+
+The complete 37-case manifest rerun at 2026-09-11T17:43:45Z passed 33 cases.
+The four honest outcomes were Alpha Vantage's documented 25-requests/day
+capacity response for IPO-calendar and exact credential preflights for the
+intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
+response-byte telemetry was written outside Git; no credential or payload was
+persisted.
+
+A provider may
 have a green live probe and remain non-routable when any external constraint
 cannot yet be accounted safely. Every registered synchronous adapter now reports
 observed HTTP request counts, response bytes, and selected provider headers

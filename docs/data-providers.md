@@ -22,8 +22,10 @@ supplies, its priority level per capability, and where to configure its credenti
 > A reviewed plan and configured credential are still not enough to route a
 > provider: its capability must carry `passed` (or genuinely `not_required`)
 > live-probe evidence. The current local validation snapshot (2026-09-11)
-> has passing EDGAR, Alpaca, and MarketData.app probes; Dinari reaches its
-> sandbox but returns HTTP 401; Tradier, Ondo, and IBKR are intentionally
+> has passing EDGAR, Alpaca, MarketData.app, and Dinari Sandbox probes. The
+> Dinari probe initially used the live host and returned HTTP 401; after the
+> operator-only endpoint was corrected to the documented Sandbox host, the
+> replacement Sandbox pair passed. Tradier, Ondo, and IBKR are intentionally
 > deferred. None of these observations alone overrides the separate quota,
 > terms, entitlement, and reconciliation gates.
 
