@@ -5572,15 +5572,15 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `ee42a67c`; focused workstation-bootstrap
-provenance coverage passed `10/10`, and the exact-tip exhaustive gate returned `165` functional
-passes with `107` documented skips across `272`, plus `98/104` visual passes with the same six
-known state-oracle diffs. All non-visual and functional stages pass, while the unchanged six
-visual state-oracle diffs remain explicit: column-editor-open at both 1080p projects and
-workspace-floating at all four visual projects. Preserve the declared provider fallback
-boundaries and all existing acceptance policy while expanding the remaining canonical
-population/history coverage, richer Study Lab targets, native-window/accessibility/security
-evidence, dense-data budgets, and R2-R7 work.
+with authenticated evidence. The latest product tip is `d1f3da4d`; focused family-readiness
+coverage passed `28/28` plus `9/9` Docker integration cases, and the exact-tip exhaustive gate
+returned `165` functional passes with `107` documented skips across `272`, plus `98/104` visual
+passes with the same six known state-oracle diffs. All non-visual and functional stages pass,
+while the unchanged six visual state-oracle diffs remain explicit: column-editor-open at both
+1080p projects and workspace-floating at all four visual projects. Preserve the declared
+provider fallback boundaries and all existing acceptance policy while expanding the remaining
+canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
+security evidence, dense-data budgets, and R2-R7 work.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
