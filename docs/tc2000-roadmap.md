@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Workstation bootstrap family-history queue bounds canonicalize to UTC
+
+At product tip `389d3db0`, workstation bootstrap now serializes bounded
+family-member history `as_of` arguments through the canonical UTC `Z` contract,
+matching the benchmark-family, ETF, and watchlist queue paths. Offset-aware and
+legacy naive values therefore produce one stable worker argument and canonical
+job identity without changing family selection, provider routing, history
+semantics, or deduplication behavior.
+
+Focused workstation-bootstrap and benchmark-family-history coverage passed
+`35/35`; Ruff, formatting, and diff checks passed. The exact elevated
+Docker-backed gate passed backend unit `1,462/1,462` with `68%` unit coverage,
+backend integration `388/388` with `81.49%` combined coverage, frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+exactly the six established protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Clean
+branch-scoped teardown removed all containers, volumes, network, testcontainer
+sessions, and four images; the temporary retry builder was removed. The gate
+used `PLAYWRIGHT_HTML_OPEN=never` only to suppress the report server after the
+run; no assertions, thresholds, baselines, masks, skips, provider, fallback,
+or acceptance policy changed. Continue provider/family history breadth, W1/MN
+continuity, canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Family-history queue bounds canonicalize to UTC
 
 At product tips `9406a1c3` and `d8a539e9`, benchmark-family history queue

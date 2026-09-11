@@ -8,6 +8,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Workstation bootstrap family-history queue bounds canonicalize to UTC
+
+Product tip `389d3db0` routes workstation bootstrap bounded family-member
+history `as_of` arguments and canonical job identity through UTC `Z`, matching
+the benchmark-family, ETF, and watchlist queue contracts. Focused
+workstation-bootstrap and benchmark-family-history coverage passed `35/35`;
+Ruff, formatting, and diff checks passed. The exact elevated Docker-backed gate
+passed backend unit `1,462/1,462` (`68%`), integration `388/388` (`81.49%`),
+frontend Vitest `991/991`/build/contracts/probes, and functional Playwright
+`165` passed with `107` documented skips across `272`. Visual parity remained
+`98/104` with exactly the six established protected diffs; clean teardown
+removed all branch-scoped resources and four images, and the temporary retry
+builder was removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the report
+server. No assertions, thresholds, baselines, masks, skips, provider,
+fallback, or acceptance policy changed. R1 and R2-R7 remain open; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Family-history queue bounds canonicalize to UTC
 
 Product tips `9406a1c3` and `d8a539e9` now serialize benchmark-family history
