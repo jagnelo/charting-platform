@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Family readiness metadata matches canonical members
+
+At product tip `184cedd6`, benchmark-family coverage metadata readiness now
+deduplicates publishable holdings by canonical instrument ID before counting
+members, weights, and classifications. A duplicate disclosure therefore cannot
+inflate family coverage or make a partially weighted/classified universe appear
+ready. If duplicate rows disagree on weight presence, the canonical member is
+weighted when any eligible disclosure supplies a weight; raw rows remain source
+evidence.
+
+The focused Docker-backed coverage regression passed `1/1`; Ruff, formatting,
+and diff checks passed; and the full backend unit suite passed `1,474/1,474` at
+`68%` isolated coverage. The exact elevated branch-scoped gate passed all
+non-visual stages, including backend integration `391/391` (`82.69%` combined
+coverage), frontend static/build/test/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established protected diffs
+(`watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+1080p-100/125 and 1440p-100/125). Teardown removed all branch resources and
+four images. No visual, provider, fallback, or acceptance policy changed.
+Continue R1 provider/family history breadth, canonical population, W1/MN
+continuity, dense-data evidence, and R2-R7 without changing protected visual
+policy.
+
 ## 2026-09-11 — Source catalog counts match canonical ETF members
 
 At product tip `5819244d`, latest ETF and benchmark-family source descriptors

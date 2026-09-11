@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "12337412e7cf117f662dde46c9c4d8d97fa65f94",
+  "head": "184cedd63e957e630bd1d9b6ae45a5333d5b8e99",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T21:44:30.160060+00:00",
-  "last_human_progress_update": "2026-09-11T21:44:08.195024+00:00",
+  "last_checkpoint": "2026-09-11T22:13:26.740000+00:00",
+  "last_human_progress_update": "2026-09-11T22:13:14.719755+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product 5819244d aligns source catalog counts with canonical ETF/family members; focused Docker-backed source-listing/resolver regressions 3/3; backend unit 1474/1474 at 69%; exact gate backend integration 391/391 at 81.65%, frontend stages and functional 165 passed plus 107 skips, visual 98/104 with six established protected diffs; teardown clean; no policy changes.",
+    "current_blocker": "Product 184cedd6 makes benchmark-family coverage metadata readiness count unique canonical IDs and treat any weighted duplicate as weighted; focused Docker-backed regression 1/1; backend unit 1474/1474 at 68%; exact gate backend integration 391/391 at 82.69%, frontend stages and functional 165 passed plus 107 skips, visual 98/104 with six established protected diffs; teardown clean; no policy changes.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Continue next bounded R1 provider/family history or canonical-population seam after source catalog canonical member counts",
+    "next_action": "Continue next bounded R1 provider/family history or canonical-population seam after family metadata readiness deduplication",
     "total": 10,
-    "updated_at": "2026-09-11T21:44:08.194897+00:00"
+    "updated_at": "2026-09-11T22:13:14.719629+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
