@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
+
+At product tip `2cdfc3c4`, the risk-free-rate provider path now passes the
+wall-clock fetch timestamp into canonical OHLCV persistence. Historical `^IRX`
+or equivalent provider bar timestamps remain market-observation dates and no
+longer make a successful refresh immediately appear stale in dataset state or
+provider-observation lineage. The service documentation now matches the
+persisted behavior. Focused risk-free-rate coverage passed `1/1`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,467/1,467` with `68.55%` total coverage.
+
+The exact elevated Docker-backed gate passed backend unit `1,467/1,467`,
+integration `388/388` (`81.54%` combined coverage), frontend Vitest `991/991`/
+build/contracts/probes, and functional Playwright `165` passed with `107`
+documented skips across `272`. Visual parity remained `98/104` with exactly
+the six established protected state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images; the temporary
+freshness builder was removed. `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
+report server. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. Continue provider/family history breadth, W1/MN
+continuity, canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Dataset coverage preserves cumulative incremental history
 
 At product tip `33738bf8`, `_touch_ohlcv_dataset_state` now normalizes fetched

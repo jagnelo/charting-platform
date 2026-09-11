@@ -2,6 +2,20 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Risk-free provider refreshes retain fetch-time freshness
+
+Product tip `2cdfc3c4` makes the risk-free-rate provider path persist the
+wall-clock fetch timestamp instead of the historical market-session timestamp
+as OHLCV observation/freshness time. Focused risk-free-rate coverage passed
+`1/1`; full backend unit coverage passed `1,467/1,467` at `68.55%`. The exact
+elevated gate passed backend integration `388/388` (`81.54%`), frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`; visual parity remained `98/104` with the
+same six established protected diffs. Clean teardown removed all branch-scoped
+resources and four images, and the temporary builder was removed. No visual,
+provider, fallback, or acceptance policy changed. R1 and R2-R7 remain open;
+do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Dataset coverage preserves cumulative incremental history
 
 Product tip `33738bf8` makes `InstrumentDatasetState` coverage bounds
