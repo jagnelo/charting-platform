@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Enforce canonical ETF basket membership
+
+At product tip `404a5e70`, read-only ETF holdings basket materialization now
+uses the canonical member contract already shared by breadth and history
+consumers. Basket members must be resolved security equities with a linked
+non-placeholder instrument; provider row-type casing is normalized, while
+cash, unsupported labels, unresolved rows, and internal `HOLDING-*` rows stay
+in holdings evidence without entering the synthetic basket universe. The
+Docker-backed mixed snapshot materialization regression passed `1/1`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,472/1,472` with `69%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend integration `389/389` (`81.56%` combined coverage), frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity completed `104` cases with
+`98` passes and exactly the six established protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exited at `e2e-visual` only for those unchanged diffs. Final branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions,
+and four images; `docker buildx ls` showed only the default and desktop-linux
+builders. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Normalize family history queue and derived equal-weight labels
 
 At product tip `c058eb0b`, benchmark-family history enqueue planning and the

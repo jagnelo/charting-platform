@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "74b5c258bdaf4e41fa14fd5d0e1e1567fd8b390a",
+  "head": "404a5e70d7893bdc4e6d9b7583f6e0bb3bf907d4",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T18:34:01.854968+00:00",
-  "last_human_progress_update": "2026-09-11T18:33:41.551718+00:00",
+  "last_checkpoint": "2026-09-11T19:04:33.994552+00:00",
+  "last_human_progress_update": "2026-09-11T19:04:12.030748+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip c058eb0b normalizes provider Security row labels in family-history queue planning and derived equal-weight source denominators; focused queue and Docker-backed source regressions passed 1/1 each, full unit 1472/1472 at 69%, and exact gate non-visual stages pass with integration 389/389 at 81.56%, frontend 991/991, functional 165/272, and visual 98/104 with the six protected diffs; R1/R2-R7 remain open.",
+    "current_blocker": "Product tip 404a5e70 aligns ETF holdings basket materialization with canonical resolved security/equity membership; focused Docker regression passed 1/1, full unit 1472/1472 at 69%, and exact gate non-visual stages pass with integration 389/389 at 81.56%, frontend 991/991, functional 165/272, and visual 98/104 with the six protected diffs; R1/R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T18:33:41.551607+00:00"
+    "updated_at": "2026-09-11T19:04:12.030441+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
