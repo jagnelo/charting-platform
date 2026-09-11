@@ -74,11 +74,34 @@ def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -
     coverage evidence but cannot make a locked source retry-ineligible.
     """
 
-    return bool(
-        snapshot is not None
-        and getattr(snapshot, "completeness_status", None) in USABLE_HOLDINGS_COMPLETENESS
-        and int(getattr(snapshot, "resolved_count", 0) or 0) > 0
-    )
+    if (
+        snapshot is None
+        or getattr(snapshot, "completeness_status", None) not in USABLE_HOLDINGS_COMPLETENESS
+    ):
+        return False
+    rows = getattr(snapshot, "holdings", None)
+    if rows is None:
+        rows = getattr(snapshot, "rows", None)
+    if rows:
+        return any(
+            normalize_holding_type(getattr(row, "row_type", None)) == "security"
+            and is_equity_holding_type(getattr(row, "holding_type", None))
+            and bool(getattr(row, "is_resolved", False))
+            and getattr(row, "constituent_instrument_id", None) is not None
+            and (
+                getattr(row, "constituent_symbol", None)
+                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
+            )
+            and not is_placeholder_symbol(
+                getattr(row, "constituent_symbol", None)
+                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
+            )
+            for row in rows
+        )
+    # Legacy metadata-only snapshots intentionally persist summary counters
+    # without row detail. Keep their raw resolved count as compatibility
+    # evidence; materialized rows above must satisfy the canonical predicate.
+    return int(getattr(snapshot, "resolved_count", 0) or 0) > 0
 
 
 @asynccontextmanager

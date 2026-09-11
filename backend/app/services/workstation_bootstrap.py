@@ -22,10 +22,11 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.lib.time_utils import wire_datetime
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -34,6 +35,7 @@ from app.services.etf_holdings_adapters import known_etf_route_metadata
 from app.services.etf_holdings_refresh import (
     USABLE_HOLDINGS_COMPLETENESS,
     bootstrap_etf_holdings_profile,
+    holdings_snapshot_is_bootstrap_ready,
 )
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data import fetch_ohlcv
@@ -385,19 +387,30 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
         if instrument is None:
             holdings[symbol] = {"status": "error", "error_type": "missing_identity"}
             continue
-        usable_snapshot_count = (
-            await db.execute(
-                select(func.count(ETFHoldingsSnapshot.id))
-                .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
-                .where(
-                    ETFProfile.instrument_id == instrument.id,
-                    ETFHoldingsSnapshot.provenance != "controlled_fixture",
-                    ETFHoldingsSnapshot.source_provider != "e2e_reference",
-                    ETFHoldingsSnapshot.completeness_status.in_(USABLE_HOLDINGS_COMPLETENESS),
-                    ETFHoldingsSnapshot.resolved_count > 0,
+        candidate_snapshots = (
+            (
+                await db.execute(
+                    select(ETFHoldingsSnapshot)
+                    .options(
+                        selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                            ETFHolding.constituent_instrument
+                        )
+                    )
+                    .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
+                    .where(
+                        ETFProfile.instrument_id == instrument.id,
+                        ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                        ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                        ETFHoldingsSnapshot.completeness_status.in_(USABLE_HOLDINGS_COMPLETENESS),
+                    )
                 )
             )
-        ).scalar_one()
+            .scalars()
+            .all()
+        )
+        usable_snapshot_count = sum(
+            holdings_snapshot_is_bootstrap_ready(snapshot) for snapshot in candidate_snapshots
+        )
         if usable_snapshot_count:
             holdings[symbol] = {
                 "status": "ready",
