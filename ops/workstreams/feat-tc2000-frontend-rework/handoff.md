@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Canonical ETF source reads isolate controlled fixtures
+
+Product tip `83bddc9a` applies the canonical-vs-controlled-fixture visibility
+boundary to workstation source descriptors and ETF/benchmark-family source
+resolution. Normal reads cannot let a newer `controlled_fixture` /
+`e2e_reference` disclosure replace a canonical provider snapshot; seeded browser
+mode remains explicitly fixture-scoped. The real-Postgres regression passed
+`1/1`; Ruff, format, and diff checks passed; and the complete backend unit suite
+passed `1,472/1,472` at `68.55%` isolated coverage.
+
+The exact branch-scoped gate passed every non-visual stage: backend integration
+`389/389` (`81.56%` combined coverage), frontend Vitest `991/991`/build/
+contracts/probes, and functional Playwright `165` passed with `107` documented
+skips across `272`. Visual parity remained `98/104` with the six established
+protected diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125), so the gate exited at
+`e2e-visual` only. Teardown removed all branch-scoped resources and four
+images; no inactive temporary builder remained after verification. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. R1 provider/family history breadth, remaining canonical population,
+W1/MN continuity, dense-data evidence, and R2-R7 remain open; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Industry drill-down excludes canonical placeholders
 
 Product tip `699624db` makes the market-groups industry composition, curated
