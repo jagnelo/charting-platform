@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Industry drill-down excludes canonical placeholders
+
+- [x] Reject linked internal `HOLDING-*` placeholder instruments in industry
+      composition, curated proxy verification, and constituent drill-downs so
+      valid-looking placeholder classifications cannot enter canonical
+      coverage or results (`699624db`).
+- [x] Add the placeholder industry regression; the Docker-backed API checks
+      passed `2/2`, and Ruff, formatting, and diff checks passed.
+- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` isolated
+      coverage. The exact tip gate passed all non-visual stages, including
+      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only after clean teardown removed all resources and four images. No
+      visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Direct family breadth accepts canonical equity labels
 
 - [x] Use the shared supported-equity label set in direct benchmark-family

@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Industry drill-down excludes canonical placeholders
+
+At product tip `699624db`, the market-groups industry composition, curated
+proxy verification, and constituent drill-down paths now reject linked internal
+`HOLDING-*` placeholder instruments through the shared holding exclusion
+contract. A placeholder with a valid-looking industry classification therefore
+cannot inflate industry coverage, proxy classifications, or constituent
+results. The focused Docker-backed industry regressions passed `2/2`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,472/1,472` with `68.57%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; no inactive temporary builder
+remained after verification. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, remaining canonical population, W1/MN continuity, dense-data
+evidence, and R2-R7.
+
 ## 2026-09-11 — Direct family breadth accepts canonical equity labels
 
 At product tip `a1b08108`, the direct benchmark-family breadth resolver now
