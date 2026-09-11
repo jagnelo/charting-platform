@@ -58,9 +58,7 @@
     "ocs/project-todos.md",
     "docs/tc2000-roadmap.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -121,10 +119,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bb0203f6b35b6371e9bb05362bd71cbc2733425c",
+  "head": "6c6c88fcd67e5171f740be8d7d8ec53d54ce013f",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T04:47:26.948936+00:00",
+  "last_checkpoint": "2026-09-11T04:49:20.149940+00:00",
   "last_human_progress_update": "2026-09-11T04:47:17.396756+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",

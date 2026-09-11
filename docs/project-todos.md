@@ -25,9 +25,12 @@
       hydration, or queue behavior.
 - [x] Focused workstation-bootstrap coverage passed `10/10`; Ruff, formatting,
       and diff checks passed.
-- [ ] Rerun the exact full integration gate at the next coherent checkpoint;
-      complete provider/family history breadth, W1/MN continuity, canonical
-      population, and R2-R7 evidence remain open.
+- [x] Rerun the exact full integration gate at product tip `ee42a67c`; all
+      non-visual and functional stages passed, while visual parity remained
+      `98/104` with the six established protected diffs and clean teardown.
+- [ ] Complete provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7; preserve the no-integration
+      boundary and protected visual assertions.
 
 ### 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 

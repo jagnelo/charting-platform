@@ -29,9 +29,10 @@ Product tip `ee42a67c` now emits curated workstation identity-bootstrap
 provenance timestamps as canonical UTC `Z` values for both new identities and
 existing registry audit entries. Focused workstation-bootstrap coverage passed
 `10/10`; Ruff, formatting, and diff checks passed. The exact full integration
-gate is pending for this bounded provenance-only slice. R1 and R2-R7 remain
-open; no integration, promotion, deployment, or other worktree mutation is
-authorized by this workstream.
+gate receipt is recorded above: all non-visual and functional stages passed,
+while visual parity remained `98/104` with the six established protected diffs.
+R1 and R2-R7 remain open; no integration, promotion, deployment, or other
+worktree mutation is authorized by this workstream.
 
 ## 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 

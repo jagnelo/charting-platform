@@ -36,10 +36,12 @@ values are normalized without changing identity selection, provider bindings,
 ETF profiles, taxonomy relationships, or hydration/queue behavior.
 
 Focused workstation-bootstrap coverage passed `10/10`; Ruff, formatting, and
-diff checks passed. The exact full integration gate is pending for this bounded
-provenance-only change. R1 remains open for complete provider/family history
-breadth, W1/MN continuity beyond the bounded lineage path, canonical
-population, and R2-R7 evidence; continue without integration or deployment.
+diff checks passed. The exact full integration gate receipt is recorded above:
+all non-visual and functional stages passed, while visual parity remained
+`98/104` with the six established protected diffs. R1 remains open for complete
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, and R2-R7 evidence; continue without integration
+or deployment.
 
 ## 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 
@@ -5542,15 +5544,15 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `251c8ace` (product behavior from
-`9a80c8f7`); the focused OHLCV lineage/accessibility checks passed, and the exact-tip exhaustive
-gate returned `165` functional passes with `107` documented skips across `272`, plus `98/104`
-visual passes with the same six known state-oracle diffs. All non-visual and functional stages
-pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open at
-both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
-provider fallback boundaries and all existing acceptance policy while expanding the remaining
-canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
-security evidence, dense-data budgets, and R2-R7 work.
+with authenticated evidence. The latest product tip is `ee42a67c`; focused workstation-bootstrap
+provenance coverage passed `10/10`, and the exact-tip exhaustive gate returned `165` functional
+passes with `107` documented skips across `272`, plus `98/104` visual passes with the same six
+known state-oracle diffs. All non-visual and functional stages pass, while the unchanged six
+visual state-oracle diffs remain explicit: column-editor-open at both 1080p projects and
+workspace-floating at all four visual projects. Preserve the declared provider fallback
+boundaries and all existing acceptance policy while expanding the remaining canonical
+population/history coverage, richer Study Lab targets, native-window/accessibility/security
+evidence, dense-data budgets, and R2-R7 work.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
