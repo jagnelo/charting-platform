@@ -54,7 +54,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "35ed9c1c20d25da8b788030fd3ef2cd112247d89",
+  "head": "affde1640e7f799059b62325f56571f260f4124f",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T05:33:52.968305+00:00",
-  "last_human_progress_update": "2026-09-11T05:33:44.627007+00:00",
+  "last_checkpoint": "2026-09-11T06:03:53.341225+00:00",
+  "last_human_progress_update": "2026-09-11T06:03:43.342596+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "d76b3dd11d73e154ebb6b8870eaafe570c121dc835599fdbd14ab535c04f0e61",
+  "plan_hash": "05ad6c9fee7c876dfd0e065c7cd167afc0a3217b269041cf7d818f40e930d375",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact tip d1f3da4d gate passed all non-visual and functional stages (unit 1459/1459, integration 387/387, 81.47% combined, frontend Vitest 991/991, functional 165 passed with 107 skips); visual remains 98/104 with exactly six established protected diffs and clean teardown. First backend attempt had transient Postgres termination; fresh retry passed. No visual, provider, fallback, or acceptance policy changed.",
+    "current_blocker": "Exact tip affde164 gate passed all non-visual and functional stages (unit 1460/1460, integration 387/387, 81.47% combined, frontend Vitest 991/991, functional 165 passed with 107 skips); visual remains 98/104 with exactly six established protected diffs and clean teardown. Instrument provenance timestamps now serialize canonically to UTC Z. No visual, provider, fallback, or acceptance policy changed.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7; preserve established visual diffs and no-integration/no-deployment boundary.",
     "total": 10,
-    "updated_at": "2026-09-11T05:33:44.626141+00:00"
+    "updated_at": "2026-09-11T06:03:43.341809+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

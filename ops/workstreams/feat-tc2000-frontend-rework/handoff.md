@@ -8,6 +8,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
+
+Product tip `affde164` canonicalizes listing lifecycle, profile/identifier/
+latest-price snapshot, and dataset-state timestamps in the untyped instrument-
+provenance endpoint to UTC `Z`. Focused router coverage passed `7/7`, the
+Docker-backed provenance API regression passed `1/1`, and the full backend unit
+suite passed `1,460/1,460` at `68.44%`; Ruff, format, and diff checks passed.
+The exact gate passed all non-visual stages and functional Playwright (`165`
+passed, `107` documented skips across `272`), while visual parity remained
+`98/104` with exactly the six established protected diffs and clean teardown of
+all branch-scoped resources and four images. R1 and R2-R7 remain open; preserve
+the no-integration, no-promotion, no-deployment boundary.
+
 ## 2026-09-11 — Family readiness requires dated evidence
 
 Product tip `d1f3da4d` now requires `point_in_time_supported` for a benchmark-

@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
+
+- [x] Serialize listing lifecycle, profile/identifier/latest-price snapshot,
+      and dataset-state timestamps from the untyped instrument-provenance
+      endpoint through canonical UTC `Z` values (`affde164`).
+- [x] Focused instrument-router coverage passed `7/7`; the Docker-backed
+      provenance API regression passed `1/1`; full backend unit coverage passed
+      `1,460/1,460` at `68.44%`; Ruff, formatting, and diff checks passed.
+- [x] The exact tip gate passed all non-visual stages and functional
+      Playwright (`165` passed, `107` documented skips across `272`), while
+      visual parity remained `98/104` with exactly the six established
+      protected diffs and clean teardown of all branch-scoped resources and
+      four images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Family readiness requires dated evidence
 
 - [x] Require `point_in_time_supported` for a benchmark-family role to report

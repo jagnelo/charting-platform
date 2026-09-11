@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
+
+At product tip `affde164`, the untyped instrument-provenance endpoint now
+serializes listing lifecycle, profile/identifier/latest-price snapshot, and
+dataset-state timestamps through the canonical UTC `Z` formatter. Offset-aware
+and legacy naive persisted values therefore have one stable wire spelling for
+diagnostics and workstation lineage consumers; identity, provider routing,
+listing state, and stored provenance payloads are unchanged.
+
+Focused instrument-router coverage passed `7/7`; the Docker-backed provenance
+API regression passed `1/1`; the full backend unit suite passed `1,460/1,460`
+with `68.44%` unit coverage; Ruff, formatting, and diff checks passed. The exact
+tip gate passed all non-visual stages, backend integration `387/387` with
+`81.47%` combined coverage, frontend Vitest `991/991`/build/contracts/probes,
+and functional Playwright `165` passed with `107` documented skips across
+`272`. Visual parity remained `98/104` with exactly the six established
+protected state-oracle diffs; clean branch-scoped teardown removed all
+containers, volumes, network, testcontainer sessions, and four images. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Family readiness requires dated evidence
 
 At product tip `d1f3da4d`, the benchmark-family composite readiness gate now
