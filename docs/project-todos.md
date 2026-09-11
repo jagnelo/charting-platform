@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Workstation bootstrap provenance gate receipt
+
+- [x] The exact elevated Docker-backed branch-scoped integration gate at
+      product tip `ee42a67c` passed every non-visual stage: backend unit
+      `1,457/1,457` (approximately `68%` total), backend integration `387/387`
+      (`81.47%` combined), frontend Vitest `991/991`, build, compose/provider
+      contracts, research-runner probes, and functional Playwright `165` passed
+      with `107` documented skips across `272`.
+- [x] Visual parity completed `104` cases with `98` passes and exactly the six
+      established protected diffs (`watchlist-column-editor-open` at
+      visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+      visual-1440p-100/125); clean branch-scoped teardown removed all resources
+      and four images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7; preserve the no-integration
+      boundary and protected visual assertions.
+
 ### 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
 
 - [x] Serialize curated workstation identity-bootstrap provenance timestamps

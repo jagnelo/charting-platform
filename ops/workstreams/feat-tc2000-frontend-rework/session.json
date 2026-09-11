@@ -121,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ee42a67c15c2e8e3c706fa6e2605deb16f871ae6",
+  "head": "bb0203f6b35b6371e9bb05362bd71cbc2733425c",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T04:22:55.688806+00:00",
-  "last_human_progress_update": "2026-09-11T04:22:47.362334+00:00",
+  "last_checkpoint": "2026-09-11T04:47:26.948936+00:00",
+  "last_human_progress_update": "2026-09-11T04:47:17.396756+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "ee3bbce75e0eabae016025da296dc5436c5f1a690fe73cb84d6d92dc0e6a5624",
+  "plan_hash": "d6e12815d8054ab060e32ef3037febc3be0880bbc7f4ad7addf72ef4b43b8af4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -141,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip ee42a67c canonicalizes curated workstation identity-bootstrap provenance timestamps to UTC Z for new and existing registry entries. Focused workstation-bootstrap coverage passed 10/10; Ruff, formatting, and diff checks passed. Exact full integration gate is pending; preserve no-integration/no-deployment boundary and protected visual assertions.",
+    "current_blocker": "Product tip ee42a67c has passed all non-visual exact gate stages: backend unit 1457/1457, backend integration 387/387 at 81.47% combined, frontend Vitest 991/991/build, compose/provider and research-runner probes, and functional Playwright 165 passed with 107 documented skips. Visual parity is 98/104 with exactly six established protected diffs (watchlist-column-editor-open at 1080p-100/125; workspace-floating at 1080p-100/125 and 1440p-100/125). Gate exited at e2e-visual only after clean teardown; no visual/provider/fallback/acceptance policy changes.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Run the exact full integration gate at product tip ee42a67c, then continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7.",
+    "next_action": "Continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7; preserve protected visual assertions and no-integration/no-deployment boundary.",
     "total": 10,
-    "updated_at": "2026-09-11T04:22:47.362226+00:00"
+    "updated_at": "2026-09-11T04:47:17.395890+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

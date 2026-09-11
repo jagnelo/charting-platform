@@ -17,11 +17,22 @@ current_blocker: >-
   provenance timestamps to the UTC Z wire spelling for new and existing
   registry entries, without changing identity, provider binding, taxonomy,
   hydration, or queue behavior. Focused workstation-bootstrap coverage passed
-  10/10; Ruff, formatting, and diff checks passed. The exact full integration
-  gate is pending for this provenance-only slice. Continue provider/family
-  history breadth, W1/MN continuity beyond the bounded lineage path, canonical
-  population, dense-data evidence, and R2-R7 goals; preserve the
-  no-integration/no-deployment boundary.
+  10/10; Ruff, formatting, and diff checks passed. The exact elevated
+  Docker-backed branch-scoped gate then passed every non-visual stage: backend
+  unit 1457/1457 at approximately 68% total coverage, backend integration
+  387/387 with 81.47% combined coverage, frontend Vitest 991/991 and build,
+  compose/provider contracts, research-runner probes, and functional
+  Playwright 165 passed with 107 documented skips across 272. Visual parity
+  remains 98/104 with exactly the six established protected diffs:
+  watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating
+  at visual-1080p-100/125 and visual-1440p-100/125. The gate exited at
+  e2e-visual only for those unchanged diffs after clean branch-scoped teardown
+  removed all containers, volumes, network, testcontainer sessions, and four
+  images. No visual baseline, mask, threshold, skip, provider, fallback, or
+  acceptance policy changed. Continue provider/family history breadth, W1/MN
+  continuity beyond the bounded lineage path, canonical population, dense-data
+  evidence, and R2-R7 goals; preserve the no-integration/no-deployment
+  boundary.
   Exact elevated Docker-backed gate completed at product tip 4f0abd68. Backend
   unit passed 1456/1456 at approximately 68% total coverage; backend
   integration passed 387/387 with 81.47% combined coverage; frontend Vitest

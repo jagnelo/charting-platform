@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Workstation bootstrap provenance gate receipt
+
+The exact elevated Docker-backed branch-scoped gate completed at product tip
+`ee42a67c`. Backend unit passed `1,457/1,457` (approximately `68%` total
+coverage), backend integration `387/387` (`81.47%` combined), frontend Vitest
+`991/991` and build, compose/provider contracts, research-runner probes, and
+functional Playwright `165` passed with `107` documented skips across `272`.
+Visual parity was `98/104` with exactly the six established protected
+state-oracle diffs (`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125). The gate
+exited at `e2e-visual` only for those unchanged diffs; teardown removed all
+branch-scoped resources and four images. No visual, provider, fallback, or
+acceptance policy changed. R1 and R2-R7 remain open; do not integrate, promote,
+deploy, or mutate another worktree.
+
 ## 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
 
 Product tip `ee42a67c` now emits curated workstation identity-bootstrap

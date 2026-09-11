@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Workstation bootstrap provenance gate receipt
+
+At product tip `ee42a67c`, the exact elevated Docker-backed branch-scoped
+integration gate completed every non-visual stage. Backend unit coverage passed
+`1,457/1,457` (approximately `68%` total coverage); backend integration passed
+`387/387` (`81.47%` combined coverage); frontend dependency, lint, format,
+type-check, Vitest (`991/991`), build, compose/provider contracts, and
+research-runner probes passed; and functional Playwright passed `165` cases with
+`107` documented skips across `272`. Visual parity completed `104` cases with
+`98` passes and exactly the six established protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and `workspace-floating`
+at visual-1080p-100/125 and visual-1440p-100/125. The gate exited at
+`e2e-visual` only for those unchanged diffs; clean branch-scoped teardown
+removed all containers, volumes, network, testcontainer sessions, and four
+images. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+This validates the workstation-bootstrap provenance serialization seam only.
+R1 remains open for complete provider/family history breadth, W1/MN continuity
+beyond the bounded lineage path, canonical population, dense-data evidence, and
+R2-R7 goals; continue without integration or deployment.
+
 ## 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
 
 At product tip `ee42a67c`, curated workstation identity-bootstrap provenance
