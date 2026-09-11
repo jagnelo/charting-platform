@@ -24,6 +24,7 @@ from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
     MIN_CORE_D1_BARS,
+    _wire_datetime,
     ensure_core_workstation_identities,
     queue_core_family_member_history,
 )
@@ -64,6 +65,10 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
     assert first["created"] == len(expected)
     assert second["created"] == 0
     assert first["data_status"] == "identity_only_until_provider_history_and_holdings_load"
+    spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
+    assert spy.field_provenance["symbol"]["observed_at"].endswith("Z")
+    assert "+00:00" not in spy.field_provenance["symbol"]["observed_at"]
+    assert spy.field_provenance["name"]["observed_at"].endswith("Z")
 
     bindings = db.execute(select(InstrumentProviderSymbol)).scalars().all()
     assert len(bindings) == len(expected)
@@ -102,6 +107,15 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
         for family in BENCHMARK_FAMILY_REGISTRY
     )
     assert len(members) == 5 + 11 + expected_proxy_members
+
+
+def test_workstation_bootstrap_wire_datetime_normalizes_aware_and_naive_values():
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(datetime.fromisoformat("2026-01-02T05:04:05+02:00")) == (
+        "2026-01-02T03:04:05Z"
+    )
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5)) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(None) is None
 
 
 def test_all_benchmark_family_proxy_routes_have_explicit_local_probe_support():

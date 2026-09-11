@@ -54,6 +54,16 @@ CORE_WORKSTATION_REGISTRY = "curated_workstation_registry_v1"
 # technical contract rather than row existence.
 MIN_CORE_D1_BARS = 252
 
+
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Serialize bootstrap provenance timestamps on the canonical UTC timeline."""
+
+    if value is None:
+        return None
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
 _BENCHMARK_PROXY_NAMES = {
     str(mapping["symbol"]): f"{mapping.get('label') or symbol}"
     for family in BENCHMARK_FAMILY_REGISTRY
@@ -127,13 +137,13 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
                 field_provenance={
                     "symbol": {
                         "source": CORE_WORKSTATION_REGISTRY,
-                        "observed_at": observed_at.isoformat(),
+                        "observed_at": _wire_datetime(observed_at),
                         "selection_reason": "required by immutable US Top Down layout",
                         "provider_claim": "curated identity only; not an exchange listing assertion",
                     },
                     "name": {
                         "source": CORE_WORKSTATION_REGISTRY,
-                        "observed_at": observed_at.isoformat(),
+                        "observed_at": _wire_datetime(observed_at),
                         "selection_reason": "human-readable product label",
                     },
                 },
@@ -148,7 +158,7 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             registry.update(
                 {
                     "source": CORE_WORKSTATION_REGISTRY,
-                    "observed_at": observed_at.isoformat(),
+                    "observed_at": _wire_datetime(observed_at),
                     "selection_reason": "required by immutable US Top Down layout",
                 }
             )
