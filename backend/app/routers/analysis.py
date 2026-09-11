@@ -1285,7 +1285,13 @@ def _truncate_bars_at(
         instrument_id: [
             bar
             for bar in bars
-            if _as_utc(bar.ts) <= evaluation_at and _bar_visible_through(bar, evaluation_at)
+            # Explicit historical views are bounded by the requested
+            # observation time.  Current snapshots retain the established
+            # provider-row behavior (provider observations are selected by
+            # their stored timestamp/query range); only derived rows need the
+            # wall-clock source-end completeness guard here.
+            if (as_of is None or _as_utc(bar.ts) <= evaluation_at)
+            and _bar_visible_through(bar, evaluation_at)
         ]
         for instrument_id, bars in bars_by_id.items()
     }
