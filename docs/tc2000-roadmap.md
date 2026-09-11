@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Direct family breadth accepts canonical equity labels
+
+At product tip `a1b08108`, the direct benchmark-family breadth resolver now
+uses the shared supported-equity label set rather than accepting only the
+literal `equity` spelling. Issuer labels such as `common stock` therefore
+remain eligible while unresolved rows, placeholders, and non-security or
+non-equity rows retain their explicit exclusions. The existing mixed-family
+Docker-backed API regression now exercises a `common stock` member and passed
+`1/1`; Ruff, formatting, and diff checks passed. The full backend unit suite
+passed `1,472/1,472` with `68.57%` total coverage on the isolated invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; no inactive branch-scoped
+builder remained after verification. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Continue provider and
+family history breadth, remaining canonical population, W1/MN continuity,
+dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Generic ETF breadth excludes unresolved and placeholder members
 
 At product tip `01dc3682`, the generic `etf_holdings` breadth resolver now
