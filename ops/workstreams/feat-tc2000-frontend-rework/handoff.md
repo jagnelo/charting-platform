@@ -47,6 +47,17 @@ evidence while preserving the six visual state-oracle assertions and rerunning
 the exact gate after the next coherent product change. Do not integrate,
 promote, deploy, or mutate another worktree.
 
+## 2026-09-11 — Analysis universe provenance follows the canonical UTC wire timeline
+
+Next context: normalize the remaining ETF/family constituent and breadth
+universe provenance envelopes that still call `datetime.isoformat()` directly.
+Owned paths are `backend/app/routers/analysis.py`,
+`backend/tests/unit/routers/test_analysis_router.py`, and the related
+integration expectation in `backend/tests/integration/api/test_workspaces.py`;
+the roadmap and validation records will be refreshed after focused and full
+validation. The change must preserve point-in-time membership selection,
+provider neutrality, and all existing visual acceptance assertions.
+
 ## 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
 
 Product tip `59357f54ec6cc3acc86e7747bd5f73ae67b3dc46` closes the shared breadth

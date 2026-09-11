@@ -4552,7 +4552,8 @@ class TestWorkspaces:
         assert payload["provenance"] == "issuer_native"
         assert payload["source_provider"] == "issuer"
         assert payload["as_of"] == "2024-06-01T00:00:00Z"
-        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
+        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00Z"
+        assert payload["universe_provenance"]["known_at"] == "2024-05-31T00:00:00Z"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
