@@ -1,5 +1,6 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,6 +11,7 @@ from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
     _build_dense_portfolio_history,
+    _build_universe_coverage_summary,
     _extract_risk_and_exit_config,
     _queue_python_signal_research,
     _symbol_performance_snapshot,
@@ -24,6 +26,22 @@ class _ScalarResult:
 
     def scalar_one_or_none(self):
         return self.value
+
+
+class _RowsResult:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
+class _CoverageDB:
+    def __init__(self, *results):
+        self._results = list(results)
+
+    async def execute(self, _statement):
+        return _RowsResult(self._results.pop(0))
 
 
 class _ResearchQueueDB:
@@ -87,6 +105,35 @@ async def test_python_signal_strategy_queues_immutable_isolated_research(monkeyp
     assert run.status == "queued"
     assert run.result_summary["research_run_id"] == 77
     assert run.result_summary["output_contract"] == "events"
+
+
+@pytest.mark.asyncio
+async def test_universe_coverage_summary_serializes_all_timestamps_as_canonical_utc():
+    offset = timezone(timedelta(hours=2))
+    available_from = datetime(2024, 1, 1, 2, tzinfo=offset)
+    available_to = datetime(2024, 1, 2, 2, tzinfo=offset)
+    instrument = SimpleNamespace(id=1, symbol="SPY", equity_detail=None)
+    db = _CoverageDB(
+        [(1, 2, available_from, available_to)],
+        [(1, 2, available_from, available_to)],
+    )
+
+    summary = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=[instrument],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 1, tzinfo=UTC),
+        date_to=datetime(2024, 1, 2, tzinfo=UTC),
+    )
+
+    assert summary["requested_first_bar_at"] == "2024-01-01T00:00:00Z"
+    assert summary["requested_last_bar_at"] == "2024-01-02T00:00:00Z"
+    assert summary["any_coverage_from"] == "2024-01-01T00:00:00Z"
+    assert summary["any_coverage_to"] == "2024-01-02T00:00:00Z"
+    assert summary["collective_coverage_from"] == "2024-01-01T00:00:00Z"
+    assert summary["collective_coverage_to"] == "2024-01-02T00:00:00Z"
+    assert summary["instruments"][0]["available_from"] == "2024-01-01T00:00:00Z"
+    assert summary["instruments"][0]["available_to"] == "2024-01-02T00:00:00Z"
 
 
 @pytest.mark.asyncio

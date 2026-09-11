@@ -596,14 +596,10 @@ async def _build_universe_coverage_summary(
             {
                 "instrument_id": instrument.id,
                 "symbol": instrument.symbol,
-                "available_from": available_from.isoformat() if available_from else None,
-                "available_to": available_to.isoformat() if available_to else None,
-                "requested_first_bar_at": requested_first_bar_at.isoformat()
-                if requested_first_bar_at
-                else None,
-                "requested_last_bar_at": requested_last_bar_at.isoformat()
-                if requested_last_bar_at
-                else None,
+                "available_from": _wire_datetime(available_from),
+                "available_to": _wire_datetime(available_to),
+                "requested_first_bar_at": _wire_datetime(requested_first_bar_at),
+                "requested_last_bar_at": _wire_datetime(requested_last_bar_at),
                 "total_bars": total_bars,
                 "requested_bars": requested_bars,
                 "requested_status": requested_status,
@@ -663,16 +659,14 @@ async def _build_universe_coverage_summary(
         "instruments_with_partial_requested_coverage": instruments_with_partial_requested_coverage,
         "instruments_without_requested_coverage": instruments_without_requested_coverage,
         "total_bars": sum(int(row["requested_bars"]) for row in instrument_summaries),
-        "requested_first_bar_at": min(requested_starts).isoformat() if requested_starts else None,
-        "requested_last_bar_at": max(requested_ends).isoformat() if requested_ends else None,
-        "any_coverage_from": any_coverage_from.isoformat() if any_coverage_from else None,
-        "any_coverage_to": any_coverage_to.isoformat() if any_coverage_to else None,
-        "collective_coverage_from": collective_coverage_from.isoformat()
-        if collective_coverage_from
+        "requested_first_bar_at": _wire_datetime(min(requested_starts))
+        if requested_starts
         else None,
-        "collective_coverage_to": collective_coverage_to.isoformat()
-        if collective_coverage_to
-        else None,
+        "requested_last_bar_at": _wire_datetime(max(requested_ends)) if requested_ends else None,
+        "any_coverage_from": _wire_datetime(any_coverage_from),
+        "any_coverage_to": _wire_datetime(any_coverage_to),
+        "collective_coverage_from": _wire_datetime(collective_coverage_from),
+        "collective_coverage_to": _wire_datetime(collective_coverage_to),
         "requested_fits_collective_range": _requested_range_fits(
             date_from=date_from,
             date_to=date_to,
