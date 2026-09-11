@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Direct family breadth excludes unresolved and placeholder members
+
+At product tip `76de35a5`, direct benchmark-family breadth now uses the same
+canonical member contract as the generic watchlist resolver and family member
+history. Holdings that are unresolved, lack a resolved instrument, or point to
+an internal `HOLDING-*` placeholder are excluded from breadth denominators and
+reported as `unresolved_member` diagnostics. A Docker-backed API regression
+proves that a mixed family snapshot counts only its two canonical rows while
+retaining the placeholder exclusion in the response. The focused regression
+passed `1/1`; Ruff, formatting, and diff checks passed. The full backend unit
+suite passed `1,472/1,472` with `68.56%` total coverage on the isolated
+invocation.
+
+The exact elevated branch-scoped gate passed every non-visual stage, including
+backend unit `1,472/1,472`, integration `389/389` (`81.56%` combined
+coverage), frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` at `e2e-visual` only for those
+unchanged diffs. Final branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images; the inactive branch-scoped
+builder was removed after verification. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Continue provider and
+family history breadth, remaining canonical population, W1/MN continuity,
+dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Current readiness excludes open derived periods
 
 At product tip `9b13e33c`, benchmark-family readiness now applies the shared
