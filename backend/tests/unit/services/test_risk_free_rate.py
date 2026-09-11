@@ -56,3 +56,7 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
     assert calls["kwargs"]["data_source_id"] == 9
     assert calls["kwargs"]["timeframe"] == Timeframe.D1
     assert calls["kwargs"]["bars"] == bars
+    # A historical provider bar must not make the newly fetched dataset look
+    # stale.  The cache helper receives the request timestamp as observation
+    # time, not the bar's market-session timestamp.
+    assert calls["kwargs"]["observed_at"] > bars[0].ts
