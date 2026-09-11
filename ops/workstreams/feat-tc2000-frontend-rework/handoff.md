@@ -2,6 +2,24 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Latest coarse reads exclude incomplete derived periods
+
+Product tip `64783149` applies a single wall-clock visibility cutoff to all
+`fetch_ohlcv_latest` coarse-read branches. Derived W1/MN rows require a
+non-null `source_end` no later than that cutoff; provider rows remain visible by
+observation timestamp. This closes the latest-read path alongside the earlier
+range, pagination, family-readiness, and watchlist-history guards. Focused
+market-data coverage passed `25/25`; the full backend unit suite passed
+`1,469/1,469` at `68.57%`. The exact elevated gate passed all non-visual
+stages: backend integration `388/388` (`81.56%` combined), frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with the
+six established protected diffs and the gate exited `1` at `e2e-visual` only;
+teardown removed all branch resources and four images, and the temporary
+builder was removed. No visual, provider, fallback, or acceptance policy
+changed. R1 and R2-R7 remain open; do not integrate, promote, deploy, or
+mutate another worktree.
+
 ## 2026-09-11 — Historical coarse reads exclude incomplete derived periods
 
 Product tip `8528205d` requires derived W1/MN rows to be closed through the

@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Latest coarse reads exclude incomplete derived periods
+
+At product tip `64783149`, `fetch_ohlcv_latest` now applies one wall-clock
+visibility cutoff to every canonical coarse-read branch. Provider rows remain
+visible by observation timestamp; derived W1/MN rows are admitted only when
+their persisted `source_end` is non-null and no later than the cutoff. The
+guard covers the initial cache query, local-only materialization, provider-gap
+fallback, and final coarse merge, closing the remaining latest-read leak of an
+incomplete period. The focused market-data suite passed `25/25`; Ruff,
+formatting, and diff checks passed. The full backend unit suite passed
+`1,469/1,469` with `68.57%` total coverage.
+
+The exact elevated Docker-backed gate passed every non-visual stage, including
+backend unit `1,469/1,469`, integration `388/388` (`81.56%` combined coverage),
+frontend Vitest `991/991`/build/contracts/probes, and functional Playwright
+`165` passed with `107` documented skips across `272`. Visual parity completed
+`104` cases with `98` passes and exactly the six established protected
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exited `1` at `e2e-visual` only for those unchanged diffs. Clean branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions, and
+four images; the temporary builder was removed. `PLAYWRIGHT_HTML_OPEN=never`
+only suppressed the report server. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue provider/family
+history breadth, W1/MN continuity, canonical population, dense-data evidence,
+and R2-R7.
+
 ## 2026-09-11 — Historical coarse reads exclude incomplete derived periods
 
 At product tip `8528205d`, canonical OHLCV history reads now require derived

@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "49b062e1af084dd05261cb52b8d917256b7deab6",
+  "head": "6478314916271e1c971973011a6048c77945dbaf",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T12:31:22.437359+00:00",
-  "last_human_progress_update": "2026-09-11T12:31:03.374107+00:00",
+  "last_checkpoint": "2026-09-11T13:05:43.622333+00:00",
+  "last_human_progress_update": "2026-09-11T13:05:22.932219+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 8528205d enforces complete derived-history cutoffs through source_end <= cutoff across canonical range, pagination, family readiness, and watchlist history. Focused checks passed 24/24 and 38/38; full backend unit passed 1468/1468 at 68.56%. Exact tip gate passed all non-visual stages, backend integration 388/388 at 81.56%, frontend Vitest 991/991, functional Playwright 165/272 with 107 documented skips, and visual 98/104 with the six established protected diffs after clean teardown. R1 and R2-R7 remain open.",
+    "current_blocker": "Product tip 64783149 closes the latest coarse-read visibility gap; exact gate non-visual stages pass with 1469/1469 backend, 388/388 integration at 81.56%, 991/991 frontend, 165/272 functional, and 98/104 visual with six protected diffs; R1/R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T12:31:03.373863+00:00"
+    "updated_at": "2026-09-11T13:05:22.932101+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
