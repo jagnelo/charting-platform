@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
+
+At product tip `59357f54ec6cc3acc86e7747bd5f73ae67b3dc46`, the shared breadth
+occurrence engine now normalizes offset-aware and legacy naive point timestamps
+to UTC before emitting occurrence payloads and deterministic IDs. Generic and
+Study Lab breadth-history consumers therefore expose one canonical timeline
+without changing member eligibility or provider behavior.
+
+Focused breadth-service coverage passed `28/28`; the complete backend unit suite
+passed `1,451/1,451` at `68%` total coverage; Ruff, formatting, and diff checks
+passed. The exact elevated Docker-backed gate passed all non-visual stages,
+backend integration (`387/387`), frontend Vitest (`991/991`) and build, and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity completed `104` cases with `98` passes and exactly the six
+established protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125). The gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown removed all containers, volumes, network, testcontainer
+sessions, and four images. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes the breadth occurrence timestamp seam only. Full provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, dense-data evidence, and R2-R7 goals remain open; continue without
+integration or deployment.
+
 ## 2026-09-11 — Analysis provenance timestamps serialize canonically
 
 At product tip `8c77d03459d6fc432453251730a79abdce6c4821`, analysis provenance

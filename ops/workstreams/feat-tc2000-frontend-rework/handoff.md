@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
+
+Product tip `59357f54ec6cc3acc86e7747bd5f73ae67b3dc46` closes the shared breadth
+occurrence timestamp seam. Generic occurrence output now normalizes offset-aware
+and legacy naive point timestamps to UTC before building payloads and IDs, so
+Study Lab and direct breadth-history consumers share one canonical timeline.
+
+Focused breadth-service coverage passed `28/28`; the complete backend unit suite
+passed `1,451/1,451` at `68%`, with Ruff, formatting, and diff checks clean. The
+exact elevated Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`), frontend Vitest (`991/991`) and build, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established protected state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). The gate exited at
+`e2e-visual` after clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images. No visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete canonical family/provider-history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue provider/family history breadth, W1/MN continuity
+beyond the bounded lineage seam, canonical population, and R6 dense-data
+evidence while preserving the six visual state-oracle assertions and rerunning
+the exact gate after the next coherent product change. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Analysis provenance timestamps serialize canonically
 
 Product tip `8c77d03459d6fc432453251730a79abdce6c4821` closes the analysis

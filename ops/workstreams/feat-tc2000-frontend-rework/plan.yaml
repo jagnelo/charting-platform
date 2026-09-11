@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 59357f54ec6cc3acc86e7747bd5f73ae67b3dc46 closes the shared breadth
+  occurrence timestamp seam: generic occurrence output now normalizes naive and
+  offset-aware point timestamps to UTC before payload and deterministic ID
+  construction. Focused breadth-service coverage passed 28/28; full backend
+  unit passed 1451/1451 at 68%; Ruff, formatting, and diff checks passed. The
+  exact elevated Docker-backed gate passed all non-visual stages, backend
+  integration 387/387, frontend Vitest 991/991 and build, and functional
+  Playwright 165 passed with 107 documented skips across 272. Visual parity
+  remains 98/104 with exactly the six established protected diffs; the gate
+  exited 1 at e2e-visual after clean branch-scoped teardown removed all
+  containers, volumes, network, testcontainer sessions, and four images. No
+  visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+  policy changed. Continue full provider/family history breadth, W1/MN
+  continuity beyond the bounded lineage path, canonical population, dense-data
+  evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.
   Product tip 8c77d03459d6fc432453251730a79abdce6c4821 closes the analysis
   provenance serialization seam: _wire_datetime now normalizes naive and
   offset-aware timestamps to UTC before emitting canonical Z values. Focused
