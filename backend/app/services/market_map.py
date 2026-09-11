@@ -634,8 +634,8 @@ def _snapshot_classification(snapshot: InstrumentProfileSnapshot) -> dict[str, o
         "snapshot_id": snapshot.id,
         "data_source_id": snapshot.data_source_id,
         "provider_name": snapshot.data_source.name if snapshot.data_source is not None else None,
-        "observed_at": snapshot.observed_at.isoformat(),
-        "fetched_at": snapshot.fetched_at.isoformat(),
+        "observed_at": _utc_iso(snapshot.observed_at),
+        "fetched_at": _utc_iso(snapshot.fetched_at),
         "point_in_time": True,
     }
 
@@ -645,6 +645,12 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
+
+
+def _utc_iso(value: datetime | None) -> str | None:
+    """Serialize an optional timestamp on the canonical UTC timeline."""
+
+    return _as_utc(value).isoformat() if value is not None else None
 
 
 def _entitlement_revision_for(
@@ -697,8 +703,8 @@ def _profile_area_provenance(
             if provider_rank is not None
             else "unranked_snapshot_fallback"
         ),
-        "observed_at": snapshot.observed_at.isoformat(),
-        "fetched_at": snapshot.fetched_at.isoformat(),
+        "observed_at": _utc_iso(snapshot.observed_at),
+        "fetched_at": _utc_iso(snapshot.fetched_at),
         "point_in_time": True,
     }
     if conflict is not None:
@@ -748,7 +754,7 @@ def _profile_field_conflict(
                 "snapshot_id": snapshot.id,
                 "data_source_id": snapshot.data_source_id,
                 "provider_name": snapshot.data_source.name if snapshot.data_source else None,
-                "observed_at": snapshot.observed_at.isoformat(),
+                "observed_at": _utc_iso(snapshot.observed_at),
                 "value": value,
             }
             for snapshot, value in sorted(candidates, key=lambda item: item[0].id)
@@ -865,22 +871,12 @@ async def _profile_snapshot_provider_policy(
             "entitlement_revision": (
                 revision.revision if revision is not None else entitlement.revision
             ),
-            "entitlement_effective_at": (
-                entitlement_view.effective_at.isoformat()
-                if entitlement_view.effective_at is not None
-                else None
-            ),
-            "entitlement_review_due_at": (
-                entitlement_view.review_due_at.isoformat()
-                if entitlement_view.review_due_at is not None
-                else None
-            ),
-            "entitlement_known_at": (
-                revision.created_at.isoformat() if revision is not None else None
-            ),
+            "entitlement_effective_at": _utc_iso(entitlement_view.effective_at),
+            "entitlement_review_due_at": _utc_iso(entitlement_view.review_due_at),
+            "entitlement_known_at": _utc_iso(revision.created_at if revision is not None else None),
             "entitlement_historical": revision is not None,
             "entitlement_revision_missing": historical_revision_missing,
-            "policy_evaluation_at": evaluation_at.isoformat(),
+            "policy_evaluation_at": _utc_iso(evaluation_at),
             "eligible": eligible_now,
         }
         provider_metadata[data_source.id] = metadata
@@ -902,7 +898,7 @@ async def _profile_snapshot_provider_policy(
                 "adapter_capable": adapter_capable,
                 "eligible": eligible_now,
                 "environment": environment,
-                "evaluation_at": evaluation_at.isoformat(),
+                "evaluation_at": _utc_iso(evaluation_at),
             }
         )
         if eligible_now:
@@ -954,16 +950,12 @@ def _cache_key(
         "calculation_version": "market-map-v1",
         "membership_version": membership_version,
         "member_ids": sorted(member_ids),
-        "bar_watermark": bar_watermark.isoformat() if bar_watermark else None,
-        "reference_bar_watermark": (
-            reference_watermark.isoformat() if reference_watermark else None
-        ),
-        "event_watermark": event_watermark.isoformat() if event_watermark else None,
+        "bar_watermark": _utc_iso(bar_watermark),
+        "reference_bar_watermark": (_utc_iso(reference_watermark)),
+        "event_watermark": _utc_iso(event_watermark),
         "reference_membership_version": reference_membership_version,
         "reference_member_ids": sorted(reference_member_ids or []),
-        "profile_snapshot_watermark": (
-            profile_snapshot_watermark.isoformat() if profile_snapshot_watermark else None
-        ),
+        "profile_snapshot_watermark": (_utc_iso(profile_snapshot_watermark)),
         "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
         "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
         "classification_snapshot_ids": sorted(classification_snapshot_ids or []),
@@ -1488,10 +1480,8 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "point_in_time_membership",
                     "source": member.source,
-                    "effective_at": member.effective_at.isoformat()
-                    if member.effective_at
-                    else None,
-                    "known_at": member.known_at.isoformat() if member.known_at else None,
+                    "effective_at": _utc_iso(member.effective_at),
+                    "known_at": _utc_iso(member.known_at),
                     "membership_version": resolved.descriptor.membership_version,
                 }
             if area is None:
@@ -1508,7 +1498,7 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "local_ohlcv",
                     "field": "volume",
-                    "observed_at": rows[-1].ts.isoformat(),
+                    "observed_at": _utc_iso(rows[-1].ts),
                     "adjustment": "raw_volume",
                 }
             if area is None:
@@ -1562,7 +1552,7 @@ async def build_market_map(
                     area_provenance = {
                         "kind": "point_in_time_unavailable",
                         "field": request.area_field or "unknown",
-                        "evaluation_at": end_hint.isoformat(),
+                        "evaluation_at": _utc_iso(end_hint),
                     }
                     area_code = "historical_area_field_unavailable"
                 else:
@@ -1642,7 +1632,7 @@ async def build_market_map(
                     area_provenance = {
                         "kind": "point_in_time_unavailable",
                         "field": "market_cap",
-                        "evaluation_at": end_hint.isoformat(),
+                        "evaluation_at": _utc_iso(end_hint),
                     }
                     warnings.append(
                         _warning(

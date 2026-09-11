@@ -9,17 +9,27 @@ from app.services.market_map import (
     _cache_key,
     _condition_tree_matches_declared,
     _period_bounds,
+    _profile_area_provenance,
     _profile_field_conflict,
     _return,
+    _snapshot_classification,
 )
 
 
-def _snapshot(snapshot_id: int, source_id: int, provider: str, observed_at: datetime, value: float):
+def _snapshot(
+    snapshot_id: int,
+    source_id: int,
+    provider: str,
+    observed_at: datetime,
+    value: float,
+    fetched_at: datetime | None = None,
+):
     return SimpleNamespace(
         id=snapshot_id,
         data_source_id=source_id,
         data_source=SimpleNamespace(name=provider),
         observed_at=observed_at,
+        fetched_at=fetched_at or observed_at,
         payload={"market_cap": value},
     )
 
@@ -52,6 +62,63 @@ def test_profile_field_conflict_preserves_provider_candidates():
         "provider-a",
         "provider-b",
     }
+
+
+def test_market_map_provenance_serializes_snapshot_timestamps_on_utc_timeline():
+    observed_at = datetime.fromisoformat("2024-01-02T00:00:00+02:00")
+    fetched_at = datetime.fromisoformat("2024-01-02T01:00:00+02:00")
+    snapshot = _snapshot(1, 10, "provider-a", observed_at, 100, fetched_at)
+    snapshot.payload = {
+        "market_cap": 100,
+        "sector": "Information Technology",
+        "industry": "Software",
+    }
+
+    classification = _snapshot_classification(snapshot)
+    area = _profile_area_provenance(
+        snapshot,
+        "market_cap",
+        0,
+        {10: {"policy_evaluation_at": "2024-01-01T00:00:00+00:00"}},
+    )
+
+    assert classification["observed_at"] == "2024-01-01T22:00:00+00:00"
+    assert classification["fetched_at"] == "2024-01-01T23:00:00+00:00"
+    assert area["observed_at"] == "2024-01-01T22:00:00+00:00"
+    assert area["fetched_at"] == "2024-01-01T23:00:00+00:00"
+
+
+def test_market_map_cache_key_normalizes_watermark_offsets():
+    request = MarketMapRequest(
+        source_id="benchmark-family:us:cap_weight",
+        period="CUSTOM",
+        start=datetime(2024, 1, 1, 21, tzinfo=UTC),
+        end=datetime(2024, 1, 1, 22, tzinfo=UTC),
+    )
+    common = {
+        "membership_version": "v1",
+        "member_ids": [1],
+        "reference_membership_version": None,
+        "reference_member_ids": [],
+    }
+    utc_key = _cache_key(
+        request,
+        **common,
+        bar_watermark=datetime(2024, 1, 1, 22, tzinfo=UTC),
+        reference_watermark=datetime(2024, 1, 1, 22, tzinfo=UTC),
+        event_watermark=datetime(2024, 1, 1, 22, tzinfo=UTC),
+        profile_snapshot_watermark=datetime(2024, 1, 1, 22, tzinfo=UTC),
+    )
+    offset_key = _cache_key(
+        request,
+        **common,
+        bar_watermark=datetime.fromisoformat("2024-01-02T00:00:00+02:00"),
+        reference_watermark=datetime.fromisoformat("2024-01-02T00:00:00+02:00"),
+        event_watermark=datetime.fromisoformat("2024-01-02T00:00:00+02:00"),
+        profile_snapshot_watermark=datetime.fromisoformat("2024-01-02T00:00:00+02:00"),
+    )
+
+    assert utc_key == offset_key
 
 
 def _bar(ts: datetime, close: float):
