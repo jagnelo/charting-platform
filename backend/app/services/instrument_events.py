@@ -214,6 +214,10 @@ async def query_instrument_events(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> list[InstrumentEvent]:
+    if start is not None:
+        start = start.replace(tzinfo=UTC) if start.tzinfo is None else start.astimezone(UTC)
+    if end is not None:
+        end = end.replace(tzinfo=UTC) if end.tzinfo is None else end.astimezone(UTC)
     stmt = select(InstrumentEvent).where(InstrumentEvent.instrument_id == instrument.id)
     if start is not None:
         stmt = stmt.where(InstrumentEvent.event_time >= start)
