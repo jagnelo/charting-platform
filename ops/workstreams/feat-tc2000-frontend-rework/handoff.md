@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Analytics consumers exclude incomplete derived periods
+
+Product tip `c288b2a8` (analytics implementation `9a8d9ff2`) makes Market Map
+member/reference reads and analysis truncation use the canonical OHLCV
+`source_end` visibility contract. Derived W1/MN rows are admitted only when
+their source is closed through the evaluation cutoff; provider rows retain
+their established observation-timestamp behavior, including current
+snapshots. Focused Market Map/analysis unit coverage passed `40/40`, the
+Docker-backed Market Map API regression passed `1/1`, Ruff/format/diff checks
+passed, and the complete backend unit suite passed `1,472/1,472` at `68.57%`.
+
+The exact elevated gate passed all non-visual stages: integration `389/389`
+(`81.56%` combined coverage), frontend Vitest `991/991`/build/contracts/probes,
+and functional Playwright `165` passed with `107` documented skips across
+`272`. Visual parity remained `98/104` with the six established protected
+state-oracle diffs (`watchlist-column-editor-open` at 1080p-100/125 and
+`workspace-floating` at 1080p-100/125 and 1440p-100/125), so the gate exited
+`1` at `e2e-visual` only. Teardown removed all containers, volumes, network,
+testcontainer sessions, and four images; the temporary builder was removed.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 provider/family history breadth and R2-R7 remain open; do
+not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Coverage readiness excludes incomplete derived periods
 
 Product tip `b3f1b99c` makes the canonical coverage readiness endpoint use the

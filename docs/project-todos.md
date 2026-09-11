@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-11 — Analytics consumers exclude incomplete derived periods
+
+- [x] Route Market Map member/reference reads and analysis truncation through
+      the shared derived `source_end` cutoff (`9a8d9ff2`, regression fix
+      `c288b2a8`) while retaining provider observations in current snapshots.
+- [x] Focused Market Map/analysis unit coverage passed `40/40`; the
+      Docker-backed Market Map API regression passed `1/1`; Ruff, formatting,
+      and diff checks passed.
+- [x] The full backend unit suite passed `1,472/1,472` at `68.57%` total
+      coverage. The exact tip gate passed all non-visual stages, including
+      integration `389/389` at `81.56%`, frontend Vitest `991/991`/build/
+      contracts/probes, and functional Playwright (`165` passed, `107`
+      documented skips across `272`). Visual parity remained `98/104` with
+      exactly the same six protected diffs; the gate exited at `e2e-visual`
+      only after clean branch-scoped teardown removed all resources and four
+      images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Coverage readiness excludes incomplete derived periods
 
 - [x] Align `/coverage/instruments/{symbol}/ohlcv` with the shared derived
