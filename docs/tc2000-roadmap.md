@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Historical backfill requires canonical snapshot rows
+
+At product tip `f3523bdd`, the benchmark-family member-history backfill planner
+now selects only persisted snapshots containing at least one resolved,
+non-placeholder canonical equity/security row. A positive raw `resolved_count`
+without a queueable canonical row (including materialized cash-only or other
+non-equity disclosures) no longer creates a misleading history candidate;
+metadata-only snapshots likewise remain outside this queueable history plan.
+The existing provider-neutral member queue and inclusive composition-date bound
+are unchanged.
+
+The real-Postgres backfill regression passed `1/1`; the complete benchmark
+family-history service suite passed `25/25`; and Ruff, formatting, and diff
+checks passed. The full backend unit suite passed `1,475/1,475` at `68%`
+isolated coverage. The exact elevated branch-scoped gate passed all non-visual
+stages, including backend integration `391/391`, frontend static/build/test/
+contracts/probes, and functional Playwright `165` passed with `107` documented
+skips across `272`. Visual parity remained `98/104` with exactly the six
+established protected diffs (`watchlist-column-editor-open` at 1080p-100/125
+and `workspace-floating` at 1080p-100/125 and 1440p-100/125). Teardown removed
+all branch resources and four images. No visual, provider, fallback, or
+acceptance policy changed. Continue R1 provider/family history breadth,
+canonical population, W1/MN continuity, dense-data evidence, and R2-R7
+without changing protected visual policy.
+
 ## 2026-09-11 — Bootstrap readiness requires canonical members
 
 At product tip `a4571fdb`, core workstation bootstrap now uses the same

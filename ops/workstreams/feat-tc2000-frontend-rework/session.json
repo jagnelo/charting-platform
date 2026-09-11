@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "09b8d72d192304d16f5003b7bbf78e8173433489",
+  "head": "f3523bdd3871e278365867effb53421fd3c5ca33",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T23:24:31.616245+00:00",
-  "last_human_progress_update": "2026-09-11T23:23:53.690311+00:00",
+  "last_checkpoint": "2026-09-11T23:57:30.126100+00:00",
+  "last_human_progress_update": "2026-09-11T23:55:54.880450+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product a4571fdb aligns core bootstrap readiness with canonical materialized equity members while preserving metadata-only fallback; focused bootstrap/readiness suite 26/26; backend unit 1475/1475 at 69%; exact gate passed all non-visual stages and functional Playwright 165/272 with 107 skips, while visual parity remains 98/104 with six established protected diffs; teardown clean; no policy changes.",
+    "current_blocker": "Product f3523bdd restricts family-history backfill to persisted snapshots with canonical resolved equity/security rows; focused Postgres regression 1/1 and history service suite 25/25; backend unit 1475/1475 at 68%; exact gate passed all non-visual stages and functional Playwright 165/272 with 107 skips, while visual parity remains 98/104 with six established protected diffs; teardown clean; no policy changes.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Continue next bounded R1 provider/family history or canonical-population seam after bootstrap readiness alignment",
+    "next_action": "Continue next bounded R1 canonical population, W1/MN continuity, or provider/family history seam after planner eligibility alignment",
     "total": 10,
-    "updated_at": "2026-09-11T23:23:53.690200+00:00"
+    "updated_at": "2026-09-11T23:55:54.880038+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
