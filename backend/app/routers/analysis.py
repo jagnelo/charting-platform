@@ -6675,7 +6675,7 @@ async def _resolve_benchmark_family_breadth_universe(
         ):
             warnings.append(_generic_breadth_warning("unresolved_member", None))
             continue
-        if holding.holding_type != "equity" or holding.row_type != "security":
+        if holding.holding_type not in EQUITY_HOLDING_TYPE_VALUES or holding.row_type != "security":
             warnings.append(
                 AnalysisWarning(
                     code="non_equity_holding",

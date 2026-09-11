@@ -2143,6 +2143,7 @@ class TestWorkspaces:
                 reported_symbol=instrument.symbol,
                 reported_name=instrument.name,
                 weight=Decimal("1"),
+                holding_type="common stock",
                 source_row_hash="test-family-breadth-aapl",
                 is_resolved=True,
             )
