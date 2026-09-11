@@ -12,8 +12,9 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
@@ -129,8 +130,11 @@ async def plan_benchmark_family_snapshot_history_refresh(
     The normal dated refresh path queues member bars for snapshots it creates. A
     deployment may already contain older canonical disclosures, however, and
     those rows must be queued independently of a new provider fetch. This
-    planner is deliberately local-only: it selects persisted, resolved family
-    snapshots and leaves provider work to the existing per-instrument worker.
+    planner is deliberately local-only: it selects persisted family snapshots
+    with at least one canonical resolved equity row and leaves provider work to
+    the existing per-instrument worker. Metadata-only and non-equity-only
+    snapshots cannot produce queueable member history and therefore remain out
+    of the plan.
     """
 
     if max_snapshots < 1 or max_snapshots > MAX_HISTORY_SNAPSHOTS:
@@ -160,6 +164,30 @@ async def plan_benchmark_family_snapshot_history_refresh(
             "limited": False,
         }
 
+    snapshot_instrument = aliased(Instrument)
+    canonical_member = exists(
+        select(1)
+        .select_from(ETFHolding)
+        .join(snapshot_instrument, snapshot_instrument.id == ETFHolding.constituent_instrument_id)
+        .where(
+            ETFHolding.snapshot_id == ETFHoldingsSnapshot.id,
+            func.lower(func.trim(ETFHolding.row_type)) == "security",
+            func.lower(func.trim(ETFHolding.holding_type)).in_(
+                (
+                    "equity",
+                    "stock",
+                    "common stock",
+                    "common_stock",
+                    "real estate investment trust",
+                    "real_estate_investment_trust",
+                )
+            ),
+            ETFHolding.is_resolved.is_(True),
+            ETFHolding.constituent_instrument_id.is_not(None),
+            snapshot_instrument.symbol.is_not(None),
+            ~func.upper(func.trim(snapshot_instrument.symbol)).like("HOLDING-%"),
+        )
+    )
     rows = (
         await db.execute(
             select(
@@ -172,7 +200,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
             .join(Instrument, Instrument.id == ETFProfile.instrument_id)
             .where(
                 Instrument.symbol.in_(tuple(symbol_roles)),
-                ETFHoldingsSnapshot.resolved_count > 0,
+                canonical_member,
                 ETFHoldingsSnapshot.provenance != "controlled_fixture",
                 ETFHoldingsSnapshot.source_provider != "e2e_reference",
             )

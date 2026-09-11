@@ -352,7 +352,19 @@ class TestBenchmarkFamilyHistoryBackfill:
             unresolved_count=0,
             snapshot_hash="integration-history-fixture",
         )
-        db.add_all([canonical, fixture])
+        non_equity = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 8, 31),
+            provenance="sec_nport",
+            source_provider="sec",
+            source_quality="sec_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="integration-history-non-equity",
+        )
+        db.add_all([canonical, fixture, non_equity])
         db.flush()
         db.add(
             ETFHolding(
@@ -364,6 +376,19 @@ class TestBenchmarkFamilyHistoryBackfill:
                 holding_type="equity",
                 row_type="security",
                 source_row_hash="integration-history-member",
+                is_resolved=True,
+            )
+        )
+        db.add(
+            ETFHolding(
+                snapshot_id=non_equity.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                holding_type="cash",
+                row_type="security",
+                source_row_hash="integration-history-non-equity-member",
                 is_resolved=True,
             )
         )
