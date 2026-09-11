@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — ETF resolver enforces canonical equity eligibility
+
+Product tip `6365ec5a` closes the low-level ETF resolver consistency gap. Both
+constituent resolution and snapshot reconcile now normalize provider row type
+and require a supported equity holding label; non-equity disclosures such as
+`Fixed Income` remain evidence-only and cannot fan out to providers or
+classification enrichment. The focused resolver/reconcile regression passed
+`4/4`; Ruff, format, and diff checks passed; the backend unit suite passed
+`1,474/1,474` with `69%` coverage.
+
+The exact branch-scoped gate passed backend integration `391/391`, all frontend
+static/build/test/probe stages, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+only the six established protected diffs (`watchlist-column-editor-open` at
+1080p-100/125 and `workspace-floating` at 1080p-100/125 and 1440p-100/125).
+Teardown removed all branch resources and four images. No visual, provider,
+fallback, or acceptance policy changed. R1 provider/family history breadth,
+remaining canonical population, W1/MN continuity, dense-data evidence, and
+R2-R7 remain open; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-11 — Classification maintenance targets canonical ETF candidates
 
 Product tip `b504810f` narrows ETF classification-maintenance queueing to the
