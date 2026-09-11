@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-11 — Calendar-event history ranges canonicalize to UTC
+
+- [x] Normalize direct calendar-event history `start`/`end` bounds to UTC
+      before SQL predicates, covering internal callers outside the HTTP router.
+- [x] Focused calendar-event coverage passed `2/2`; the full backend unit suite
+      passed `1,450/1,450` at `68%`; Ruff, formatting, and diff checks passed.
+- [x] The exact elevated Docker-backed gate passed all non-visual stages,
+      backend integration (`387/387`), frontend Vitest (`991/991`) and build,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`); visual parity was `98/104` with exactly the six protected diffs
+      and clean branch-scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-11 — Option quote history ranges canonicalize to UTC
 
 - [x] Normalize option quote-history `start`/`end` values to UTC before

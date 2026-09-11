@@ -8,6 +8,35 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Calendar-event history ranges canonicalize to UTC
+
+Product tip `707b783906704bfb41a7460f2030d11808bf8d2c` closes the calendar-event
+history timestamp seam. Direct service queries now canonicalize naive and
+offset-aware `start`/`end` boundaries to UTC before SQL selection, so internal
+callers that bypass the HTTP router share the public request timeline.
+
+Focused calendar-event coverage passed `2/2`; the complete backend unit suite
+passed `1,450/1,450` at `68%`, with Ruff, formatting, and diff checks clean.
+The exact elevated Docker-backed gate passed all non-visual stages, backend
+integration (`387/387`), frontend Vitest (`991/991`) and build, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established protected state-oracle
+diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). The gate
+exited at `e2e-visual` after clean branch-scoped teardown removed all
+containers, volumes, network, testcontainer sessions, and four images. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+R1 remains active for complete canonical family/provider-history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue provider/family history breadth, W1/MN continuity
+beyond the bounded lineage seam, canonical population, and R6 dense-data
+evidence while preserving the six visual state-oracle assertions and rerunning
+the exact gate after the next coherent product change. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Option quote history ranges canonicalize to UTC
 
 Product tip `b657c2c4da537bccb915511aab1a8146cecbef37` closes the option
