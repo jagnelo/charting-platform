@@ -2,6 +2,20 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Preserve bounded derived history beside future provider rows
+
+Product tip `8ac6df20` keeps a future provider W1/MN row from suppressing a
+visible historical derived period during bounded rebuilds; unbounded provider
+precedence is unchanged. Focused derived-timeframe coverage passed `10/10`.
+The exact elevated gate passed backend unit `1,465/1,465`, integration
+`388/388`, frontend Vitest `991/991`/build/contracts/probes, and functional
+Playwright `165` passed with `107` documented skips across `272`; visual parity
+remained `98/104` with the six established protected diffs. Teardown removed
+all branch-scoped resources and four images, and the temporary builder was
+removed. No visual, provider, fallback, or acceptance policy changed. R1 and
+R2-R7 remain open; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## Human authorization
 
 - Recorded at: 2026-08-30T18:48:28.951896+00:00

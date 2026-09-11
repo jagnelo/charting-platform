@@ -54,7 +54,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "eb4fd887abf3087b536df17c6a5f482341851cbc",
+  "head": "8ac6df20637d68809189d0b271d5464b3e794e35",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T09:45:52.641260+00:00",
-  "last_human_progress_update": "2026-09-11T09:45:10.856344+00:00",
+  "last_checkpoint": "2026-09-11T10:21:36.213694+00:00",
+  "last_human_progress_update": "2026-09-11T10:18:51.297753+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "cd7dabc69db09015480f06f4a467a4fd6e9bc47a294531c41ecfe46e657aa757",
+  "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 44a8ef35 stabilizes watchlist membership digests and market-group/ETF source-version strings by normalizing timestamp inputs to canonical UTC Z, preserving membership semantics and resolver cutoffs. Focused watchlist-source coverage passed 6/6; Ruff, formatting, and diff checks passed. The exact elevated Docker-backed gate passed backend unit 1464/1464 at 68% unit coverage, backend integration 388/388 at 81.49% combined coverage, frontend Vitest 991/991/build/contracts/probes, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly six established protected diffs after clean branch-scoped teardown removed all containers, volumes, network, testcontainer sessions, and four images; temporary retry builder removed. PLAYWRIGHT_HTML_OPEN=never only suppressed report server. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue provider/family history breadth, W1/MN continuity, canonical population, dense-data evidence, and R2-R7; preserve protected visual assertions and no-integration/no-deployment boundary.",
+    "current_blocker": "Product tip 8ac6df20 preserves historical derived W1/MN periods when a newer provider row exists in the same calendar period. Focused derived-timeframe coverage passed 10/10; exact gate passed backend unit 1465/1465, integration 388/388, frontend Vitest 991/991, functional 165/272, and visual 98/104 with the six established protected diffs after clean teardown. No visual or acceptance policy changed; R1 and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T09:45:10.856234+00:00"
+    "updated_at": "2026-09-11T10:18:51.297487+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

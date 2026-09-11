@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-11 — Preserve bounded derived history beside future provider rows
+
+- [x] Keep future provider W1/MN rows from suppressing a visible historical
+      derived period during bounded rebuilds (`8ac6df20`); unbounded provider
+      precedence remains unchanged.
+- [x] Focused derived-timeframe coverage passed `10/10`; Ruff, formatting, and
+      diff checks passed.
+- [x] The exact tip gate passed backend unit `1,465/1,465`, integration
+      `388/388` (`81.49%` combined), frontend Vitest `991/991`/build/contracts/
+      probes, and functional Playwright (`165` passed, `107` documented skips
+      across `272`); visual parity remained `98/104` with exactly the six
+      established protected diffs and clean teardown. The temporary retry
+      builder was removed; `PLAYWRIGHT_HTML_OPEN=never` only suppressed the
+      report server. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Watchlist source versions stabilize equivalent timestamps
 
 - [x] Normalize timestamp inputs in watchlist membership digests and
