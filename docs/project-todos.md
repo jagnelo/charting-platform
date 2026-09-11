@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-11 — Dataset coverage preserves cumulative incremental history
+
+- [x] Union incremental and out-of-order provider fetch bounds into the
+      persisted `InstrumentDatasetState` coverage range (`33738bf8`), while
+      keeping freshness timestamps tied to the newest input.
+- [x] Add regression coverage for the recent-fetch-then-older-backfill union;
+      focused market-data coverage passed `23/23`, with Ruff, formatting, and
+      diff checks clean.
+- [x] The full backend unit suite passed `1,467/1,467` at `68.55%` total
+      coverage; the exact tip gate passed integration `388/388` at `81.54%`,
+      frontend Vitest `991/991`/build/contracts/probes, and functional
+      Playwright (`165` passed, `107` documented skips across `272`). Visual
+      parity remained `98/104` with exactly the same six protected diffs and
+      clean teardown; the temporary builder was removed. No visual or
+      acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Bounded coarse fetch preserves future derived history
 
 - [x] Constrain bounded coarse provider deletion to the requested cutoff so

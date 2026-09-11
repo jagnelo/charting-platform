@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b86188265855ea3c00d0d304ab8c528c19613ecc",
+  "head": "33738bf8c45631b2ac8c64c799539e4baf58420f",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-11T10:56:34.456018+00:00",
-  "last_human_progress_update": "2026-09-11T10:56:10.682913+00:00",
+  "last_checkpoint": "2026-09-11T11:30:37.758214+00:00",
+  "last_human_progress_update": "2026-09-11T11:30:16.923213+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip fdd875d0 preserves future derived W1/MN rows during bounded coarse provider fetches. Focused bulk-fetch coverage passed 9/9; full backend unit passed 1466/1466 at 68.55%; exact gate passed backend integration 388/388 at 81.54%, frontend Vitest 991/991, functional 165/272, and visual 98/104 with the six established protected diffs after clean teardown. No visual or acceptance policy changed; R1 and R2-R7 remain open.",
+    "current_blocker": "Product tip 33738bf8 preserves cumulative InstrumentDatasetState coverage across incremental and out-of-order provider backfills. Focused market-data coverage passed 23/23; full backend unit passed 1467/1467 at 68.55%; exact gate passed all non-visual stages, functional Playwright 165/272 with 107 documented skips, and visual 98/104 with the same six established protected diffs after clean teardown. No visual or acceptance policy changed; R1 and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded R1 provider/family history, canonical-population, W1/MN continuity, or dense-data seam, then rerun focused checks and the exact tip gate.",
     "total": 10,
-    "updated_at": "2026-09-11T10:56:10.682540+00:00"
+    "updated_at": "2026-09-11T11:30:16.923095+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
