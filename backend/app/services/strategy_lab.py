@@ -1588,11 +1588,18 @@ def _dynamic_snapshot_fields(snapshot: DynamicUniverseSnapshot | None) -> dict[s
     return {
         "universe_snapshot_id": snapshot.id,
         "universe_snapshot_composition_date": snapshot.composition_date.isoformat(),
-        "universe_snapshot_known_at": snapshot.known_at.isoformat()
-        if snapshot.known_at is not None
-        else None,
+        "universe_snapshot_known_at": _wire_datetime(snapshot.known_at),
         "universe_snapshot_source_type": snapshot.source_type,
     }
+
+
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Serialize Study Lab provenance timestamps on the canonical UTC timeline."""
+
+    if value is None:
+        return None
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _annotate_dynamic_universe_execution_log(
@@ -2869,9 +2876,7 @@ async def _run_rules_backtest(
                 {
                     "id": snapshot.id,
                     "composition_date": snapshot.composition_date.isoformat(),
-                    "known_at": snapshot.known_at.isoformat()
-                    if snapshot.known_at is not None
-                    else None,
+                    "known_at": _wire_datetime(snapshot.known_at),
                     "source_type": snapshot.source_type,
                 }
                 for snapshot in dynamic_universe.snapshots
