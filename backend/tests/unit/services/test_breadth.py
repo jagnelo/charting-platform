@@ -321,6 +321,30 @@ def test_history_occurrences_report_only_known_member_state_transitions():
     assert occurrences[1]["pass_count"] == 0
 
 
+def test_history_occurrences_serialize_offset_timestamps_on_the_utc_timeline():
+    points = [
+        {
+            "timestamp": datetime.fromisoformat("2026-01-01T02:00:00+02:00"),
+            "percentage": 0.0,
+            "pass_count": 0,
+            "eligible_count": 1,
+            "members": [{"instrument_id": 1, "symbol": "A", "name": "A", "value": False}],
+        },
+        {
+            "timestamp": datetime.fromisoformat("2026-01-02T02:00:00+02:00"),
+            "percentage": 1.0,
+            "pass_count": 1,
+            "eligible_count": 1,
+            "members": [{"instrument_id": 1, "symbol": "A", "name": "A", "value": True}],
+        },
+    ]
+
+    occurrences = detect_breadth_occurrences(points)
+
+    assert occurrences[0]["timestamp"] == datetime(2026, 1, 2, tzinfo=UTC)
+    assert occurrences[0]["occurrence_id"] == "1:2026-01-02T00:00:00+00:00:member_entered"
+
+
 def test_composite_conditions_and_comparison_fields_are_reusable():
     condition = {
         "kind": "all",

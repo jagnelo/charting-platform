@@ -51,6 +51,13 @@ class BreadthMemberResult:
     diagnostics: tuple[BreadthConditionDiagnostic, ...] = ()
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize breadth timestamps before IDs and API projections are built."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
+
+
 def build_equal_reference_series(
     bars_by_instrument: Mapping[int, list[Any]],
 ) -> tuple[list[Any], dict[str, int | float | str]]:
@@ -1569,6 +1576,7 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
     occurrences: list[dict[str, Any]] = []
     for point in points:
         timestamp = point.get("timestamp")
+        timestamp_value = _as_utc(timestamp) if isinstance(timestamp, datetime) else timestamp
         percentage = point.get("percentage")
         pass_count = int(point.get("pass_count", 0))
         eligible_count = int(point.get("eligible_count", 0))
@@ -1589,14 +1597,16 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
             if prior is not None and current is not None and prior is not current:
                 kind = "member_entered" if current else "member_exited"
                 occurrence_timestamp = (
-                    timestamp.isoformat() if hasattr(timestamp, "isoformat") else str(timestamp)
+                    timestamp_value.isoformat()
+                    if hasattr(timestamp_value, "isoformat")
+                    else str(timestamp_value)
                 )
                 occurrences.append(
                     {
                         "occurrence_id": (
-                            f"{instrument_id}:{occurrence_timestamp if timestamp else 'unknown'}:{kind}"
+                            f"{instrument_id}:{occurrence_timestamp if timestamp_value else 'unknown'}:{kind}"
                         ),
-                        "timestamp": timestamp,
+                        "timestamp": timestamp_value,
                         "kind": kind,
                         "instrument_id": instrument_id,
                         "symbol": symbol,
