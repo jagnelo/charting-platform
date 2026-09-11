@@ -1046,10 +1046,12 @@ async def fetch_ohlcv_latest(
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         return bars[-limit:] if len(bars) > limit else bars
+    visibility_cutoff = datetime.now(UTC)
     predicates = [
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
+        _bar_visible_through_clause(visibility_cutoff),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -1064,7 +1066,9 @@ async def fetch_ohlcv_latest(
         if timeframe in (Timeframe.W1, Timeframe.MN):
             materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
             if materialized:
-                rows = materialized[-limit:] if len(materialized) > limit else materialized
+                rows = [
+                    row for row in materialized if _bar_visible_through(row, visibility_cutoff)
+                ][-limit:]
                 rows.sort(key=lambda b: b.ts)
         return rows
 
@@ -1091,7 +1095,11 @@ async def fetch_ohlcv_latest(
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
         if not rows and provider_gap is not None:
-            rows = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            rows = [
+                row
+                for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+                if _bar_visible_through(row, visibility_cutoff)
+            ]
             if not rows:
                 raise provider_gap
     elif len(rows) < limit:
@@ -1154,7 +1162,9 @@ async def fetch_ohlcv_latest(
     if timeframe in (Timeframe.W1, Timeframe.MN):
         materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
         if materialized:
-            rows = materialized[-limit:] if len(materialized) > limit else materialized
+            rows = [row for row in materialized if _bar_visible_through(row, visibility_cutoff)][
+                -limit:
+            ]
             rows.sort(key=lambda b: b.ts)
 
     return rows

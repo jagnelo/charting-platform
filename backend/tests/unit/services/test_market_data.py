@@ -831,6 +831,73 @@ async def test_provider_enabled_latest_merges_partial_coarse_rows_with_derived_h
 
 
 @pytest.mark.asyncio
+async def test_latest_coarse_read_excludes_derived_period_not_closed_at_now(
+    db, instrument, ohlcv_bars
+):
+    """Latest coarse reads must not expose a derived row whose source extends into the future."""
+
+    from app.models.ohlcv import OHLCVBar
+
+    future = datetime.now(UTC) + timedelta(days=1)
+    closed = datetime.now(UTC) - timedelta(days=30)
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            timeframe=Timeframe.W1,
+            ts=closed,
+            open=Decimal("99"),
+            high=Decimal("101"),
+            low=Decimal("98"),
+            close=Decimal("100"),
+            volume=Decimal("1"),
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe=Timeframe.D1.value,
+            derivation_method="aggregate_d1",
+            source_bar_count=1,
+            source_start=closed,
+            source_end=closed + timedelta(days=4),
+            derived_at=closed + timedelta(days=4),
+        )
+    )
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            data_source_id=None,
+            timeframe=Timeframe.W1,
+            ts=future,
+            open=Decimal("999"),
+            high=Decimal("1001"),
+            low=Decimal("998"),
+            close=Decimal("1000"),
+            volume=Decimal("1"),
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe=Timeframe.D1.value,
+            derivation_method="aggregate_d1",
+            source_bar_count=1,
+            source_start=future,
+            source_end=future,
+            derived_at=future,
+        )
+    )
+    db.flush()
+
+    rows = await fetch_ohlcv_latest(
+        AsyncSessionAdapter(db),
+        instrument,
+        Timeframe.W1,
+        500,
+        allow_provider_fetch=False,
+    )
+
+    assert rows
+    assert all(_bar_visible_through(row, datetime.now(UTC)) for row in rows)
+    assert all(_as_utc(row.ts) < future for row in rows)
+
+
+@pytest.mark.asyncio
 async def test_provider_enabled_historical_page_merges_partial_coarse_rows_with_derived_history(
     db, instrument, ohlcv_bars, monkeypatch
 ):
