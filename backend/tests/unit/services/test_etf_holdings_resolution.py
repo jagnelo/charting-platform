@@ -329,6 +329,50 @@ async def test_resolver_enriches_security_rows_through_provider_metadata(db, mon
 
 
 @pytest.mark.asyncio
+async def test_resolver_skips_non_equity_holding_type_variants(db, monkeypatch):
+    """Non-equity disclosures never enter constituent resolution."""
+
+    async_db = AsyncSessionAdapter(db)
+
+    def unexpected_provider_call():
+        raise AssertionError("non-equity holdings must not fan out to providers")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="BOND",
+            name="Issuer Bond",
+            currency="USD",
+            holding_type="Fixed Income",
+            row_type="Security",
+        ),
+        source_provider="issuer",
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert note is None
+    assert (
+        _holding_needs_reconcile(
+            ETFHolding(
+                reported_symbol="BOND",
+                reported_name="Issuer Bond",
+                row_type="Security",
+                holding_type="Fixed Income",
+            )
+        )
+        is False
+    )
+
+
+@pytest.mark.asyncio
 async def test_resolver_rejects_foreign_listing_for_us_isin_and_uses_us_search_bridge(
     db, monkeypatch
 ):
