@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 6b3fe038 canonicalizes provider-governance provenance timestamps
+  to UTC Z across provider status, entitlement, reconciliation, availability,
+  and maintenance read contracts. Focused provider-governance coverage passed
+  17/17; full backend unit coverage passed 1462/1462 at 68.48%; Ruff,
+  formatting, and diff checks passed. The exact elevated Docker-backed gate
+  passed all non-visual stages, backend integration 387/387 with 81.47%
+  combined coverage, frontend Vitest 991/991/build/contracts/probes, and
+  functional Playwright 165 passed with 107 documented skips across 272.
+  Visual parity remains 98/104 with exactly the six established protected
+  diffs after clean branch-scoped teardown removed all containers, volumes,
+  network, testcontainer sessions, and four images. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Continue
+  provider/family history breadth, W1/MN continuity, canonical population,
+  dense-data evidence, and R2-R7; preserve protected visual assertions and the
+  no-integration/no-deployment boundary.
   Product tip affde164 canonicalizes instrument-provenance listing lifecycle,
   profile/identifier/latest-price snapshot, and dataset-state timestamps to UTC
   Z. Focused instrument-router coverage passed 7/7; the Docker-backed

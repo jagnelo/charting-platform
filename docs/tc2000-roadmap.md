@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
+
+At product tip `6b3fe038`, provider status, entitlement, reconciliation,
+availability, and maintenance read contracts now serialize provenance-facing
+timestamps through one canonical UTC `Z` formatter. Offset-aware and legacy
+naive persisted values therefore have a stable wire spelling for provider
+readiness and workstation lineage consumers; provider routing, entitlement
+semantics, and dataset state are unchanged.
+
+Focused provider-governance coverage passed `17/17`; the full backend unit
+suite passed `1,462/1,462` with `68.48%` unit coverage; Ruff, formatting, and
+diff checks passed. The exact tip gate passed all non-visual stages, backend
+integration `387/387` with `81.47%` combined coverage, frontend Vitest
+`991/991`/build/contracts/probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remained `98/104` with
+exactly the six established protected state-oracle diffs; clean branch-scoped
+teardown removed all containers, volumes, network, testcontainer sessions,
+and four images. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Continue provider/family history
+breadth, W1/MN continuity, canonical population, dense-data evidence, and
+R2-R7.
+
 ## 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
 
 At product tip `affde164`, the untyped instrument-provenance endpoint now

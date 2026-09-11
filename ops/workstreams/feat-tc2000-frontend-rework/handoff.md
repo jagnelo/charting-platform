@@ -8,6 +8,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
+
+Product tip `6b3fe038` now serializes provider status, entitlement,
+reconciliation, availability, and maintenance provenance timestamps through a
+shared canonical UTC `Z` formatter. Focused provider-governance coverage passed
+`17/17`; the full backend unit suite passed `1,462/1,462` at `68.48%`; Ruff,
+formatting, and diff checks passed. The exact elevated Docker-backed gate
+passed every non-visual stage, backend integration `387/387` with `81.47%`
+combined coverage, frontend Vitest `991/991`/build/contracts/probes, and
+functional Playwright `165` passed with `107` documented skips across `272`.
+Visual parity remained `98/104` with exactly the six established protected
+state-oracle diffs; clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images. No visual,
+provider, fallback, or acceptance policy changed. R1 and R2-R7 remain open;
+continue provider/family history breadth, W1/MN continuity, canonical
+population, and dense-data evidence without integrating, promoting, or
+deploying.
+
 ## 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
 
 Product tip `affde164` canonicalizes listing lifecycle, profile/identifier/

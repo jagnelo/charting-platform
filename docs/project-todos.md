@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Provider-governance provenance timestamps canonicalize to UTC
+
+- [x] Serialize provider status, entitlement, reconciliation, availability,
+      and maintenance provenance timestamps through the shared canonical UTC
+      `Z` formatter (`6b3fe038`), preserving routing and dataset semantics.
+- [x] Focused provider-governance coverage passed `17/17`; full backend unit
+      coverage passed `1,462/1,462` at `68.48%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact tip gate passed all non-visual stages and functional
+      Playwright (`165` passed, `107` documented skips across `272`), while
+      visual parity remained `98/104` with exactly the six established
+      protected diffs and clean teardown of all branch-scoped resources and
+      four images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, W1/MN continuity, canonical
+      population, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-11 — Instrument provenance timestamps canonicalize to UTC
 
 - [x] Serialize listing lifecycle, profile/identifier/latest-price snapshot,
