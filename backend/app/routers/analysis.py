@@ -6667,7 +6667,12 @@ async def _resolve_benchmark_family_breadth_universe(
     member_ids: list[int] = []
     warnings: list[AnalysisWarning] = []
     for holding in snapshot.rows:
-        if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+        if (
+            not holding.is_resolved
+            or not holding.constituent_instrument_id
+            or holding.constituent_instrument is None
+            or is_placeholder_symbol(holding.constituent_instrument.symbol)
+        ):
             warnings.append(_generic_breadth_warning("unresolved_member", None))
             continue
         if holding.holding_type != "equity" or holding.row_type != "security":

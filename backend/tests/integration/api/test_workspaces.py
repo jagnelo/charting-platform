@@ -2107,6 +2107,15 @@ class TestWorkspaces:
         )
         db.add(rsp)
         db.flush()
+        placeholder = Instrument(
+            symbol="HOLDING-RSP-PLACEHOLDER",
+            name="Unresolved RSP holding",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(placeholder)
+        db.flush()
         profile = ETFProfile(instrument_id=rsp.id, adapter_status="resolved")
         db.add(profile)
         db.flush()
@@ -2118,8 +2127,8 @@ class TestWorkspaces:
             source_provider="fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
+            row_count=2,
+            resolved_count=2,
             unresolved_count=0,
             total_weight=Decimal("1"),
             snapshot_hash="test-family-breadth-rsp",
@@ -2138,6 +2147,20 @@ class TestWorkspaces:
                 is_resolved=True,
             )
         )
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=placeholder.id,
+                position=1,
+                reported_symbol=placeholder.symbol,
+                reported_name=placeholder.name,
+                weight=Decimal("0.25"),
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="test-family-breadth-placeholder",
+                is_resolved=True,
+            )
+        )
         db.flush()
 
         response = client.get(
@@ -2153,6 +2176,10 @@ class TestWorkspaces:
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
+        assert any(
+            warning["code"] == "unresolved_member"
+            for warning in roles["equal_weight"]["exclusions"]
+        )
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
         assert payload["near_threshold"] == 0.02
         assert payload["universe_provenance"]["breadth_semantics"] == (
