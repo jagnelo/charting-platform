@@ -101,7 +101,7 @@ def _canonical_member_descriptor(
 
 
 def _version(prefix: str, identifier: object, effective_at: datetime | None = None) -> str:
-    return f"{prefix}:{identifier}:{effective_at.isoformat() if effective_at else 'current'}"
+    return f"{prefix}:{identifier}:{wire_datetime(effective_at) or 'current'}"
 
 
 def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
@@ -115,26 +115,10 @@ def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
             "relationship_type": getattr(item, "relationship_type", None),
             "source": getattr(item, "source", None),
             "verification_state": getattr(item, "verification_state", None),
-            "added_at": (
-                getattr(item, "added_at", None).isoformat()
-                if getattr(item, "added_at", None) is not None
-                else None
-            ),
-            "left_screener_at": (
-                getattr(item, "left_screener_at", None).isoformat()
-                if getattr(item, "left_screener_at", None) is not None
-                else None
-            ),
-            "effective_at": (
-                getattr(item, "effective_at", None).isoformat()
-                if getattr(item, "effective_at", None) is not None
-                else None
-            ),
-            "known_at": (
-                getattr(item, "known_at", None).isoformat()
-                if getattr(item, "known_at", None) is not None
-                else None
-            ),
+            "added_at": (wire_datetime(getattr(item, "added_at", None))),
+            "left_screener_at": (wire_datetime(getattr(item, "left_screener_at", None))),
+            "effective_at": (wire_datetime(getattr(item, "effective_at", None))),
+            "known_at": (wire_datetime(getattr(item, "known_at", None))),
         }
         for item in sorted(
             items,
@@ -224,7 +208,7 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
         stable_key=group.stable_key,
         membership_version=(
             f"market-group:{group.stable_key}:"
-            f"{group.effective_at.isoformat() if group.effective_at else 'current'}:{membership_digest}"
+            f"{wire_datetime(group.effective_at) or 'current'}:{membership_digest}"
         ),
         member_count=len(group.members),
         source=group.source,

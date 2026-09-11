@@ -82,6 +82,38 @@ def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
     assert provenance["snapshot_published_at"] == "2024-01-01T00:00:00Z"
 
 
+def test_source_versions_and_membership_digests_are_invariant_to_timestamp_offsets():
+    utc_value = datetime(2024, 1, 1, 0, 0, tzinfo=UTC)
+    offset_value = datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2)))
+    utc_item = SimpleNamespace(
+        instrument_id=17,
+        position=1,
+        weight=0.5,
+        relationship_type="member",
+        source="provider",
+        verification_state="verified",
+        added_at=utc_value,
+        left_screener_at=None,
+        effective_at=utc_value,
+        known_at=utc_value,
+    )
+    offset_item = SimpleNamespace(
+        instrument_id=17,
+        position=1,
+        weight=0.5,
+        relationship_type="member",
+        source="provider",
+        verification_state="verified",
+        added_at=offset_value,
+        left_screener_at=None,
+        effective_at=offset_value,
+        known_at=offset_value,
+    )
+
+    assert sources._version("source", "demo", offset_value) == "source:demo:2024-01-01T00:00:00Z"
+    assert sources._membership_digest([utc_item]) == sources._membership_digest([offset_item])
+
+
 @pytest.mark.asyncio
 async def test_market_group_resolver_normalizes_membership_cutoff():
     item = SimpleNamespace(
