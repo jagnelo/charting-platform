@@ -29,7 +29,7 @@ def test_watchlist_membership_cutoffs_normalize_persisted_timestamps_to_utc():
     ) == {
         "instrument_id": 17,
         "reason": "membership_not_active_at_as_of",
-        "left_screener_at": "2024-02-01T00:00:00+00:00",
+        "left_screener_at": "2024-02-01T00:00:00Z",
     }
 
 
@@ -46,15 +46,40 @@ def test_saved_explicit_source_known_at_cutoff_normalizes_to_utc():
         {
             "instrument_id": 17,
             "reason": "membership_not_known_at_as_of",
-            "known_at": "2024-01-01T00:00:00+00:00",
+            "known_at": "2024-01-01T00:00:00Z",
         },
         {
             "instrument_id": 23,
             "reason": "membership_not_known_at_as_of",
-            "known_at": "2024-01-01T00:00:00+00:00",
+            "known_at": "2024-01-01T00:00:00Z",
         },
     )
     assert sources._saved_explicit_known_at_exclusions(item, [17, 23], at_known_at) == ()
+
+
+def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
+    profile = SimpleNamespace(
+        adapter_key="demo",
+        adapter_status="verified",
+        adapter_confidence=0.9,
+    )
+    snapshot = SimpleNamespace(
+        source_quality="provider",
+        completeness_status="complete",
+        row_count=2,
+        resolved_count=2,
+        unresolved_count=0,
+        total_weight=1.0,
+        published_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+        parser_version="v1",
+        source_identifier="demo:2024-01-01",
+        source_provider="demo",
+        extra_data={},
+    )
+
+    provenance = sources._holdings_route_provenance(profile, snapshot)
+
+    assert provenance["snapshot_published_at"] == "2024-01-01T00:00:00Z"
 
 
 @pytest.mark.asyncio

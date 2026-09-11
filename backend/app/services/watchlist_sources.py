@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
+from app.lib.time_utils import wire_datetime
 from app.models.asset_class import InstrumentType
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
@@ -184,7 +185,7 @@ def _watchlist_item_as_of_exclusion(item: object, as_of: datetime | None) -> dic
         return {
             "instrument_id": getattr(item, "instrument_id", None),
             "reason": "membership_not_active_at_as_of",
-            "left_screener_at": left_at.isoformat(),
+            "left_screener_at": wire_datetime(left_at),
         }
     return {
         "instrument_id": getattr(item, "instrument_id", None),
@@ -272,7 +273,7 @@ def _holdings_route_provenance(
             else None
         ),
         "snapshot_published_at": (
-            snapshot.published_at.isoformat()
+            wire_datetime(snapshot.published_at)
             if snapshot is not None and snapshot.published_at is not None
             else None
         ),
@@ -611,7 +612,7 @@ def _saved_explicit_known_at_exclusions(
         {
             "instrument_id": instrument_id,
             "reason": "membership_not_known_at_as_of",
-            "known_at": known_at.isoformat() if known_at is not None else None,
+            "known_at": wire_datetime(known_at),
         }
         for instrument_id in instrument_ids
     )
