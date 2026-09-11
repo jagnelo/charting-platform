@@ -6917,6 +6917,7 @@ async def _resolve_generic_breadth_universe(
             raise HTTPException(
                 404, detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol}
             )
+        seen_member_ids: set[int] = set()
         for holding in snapshot.rows:
             if (
                 not holding.is_resolved
@@ -6938,6 +6939,9 @@ async def _resolve_generic_breadth_universe(
                 )
                 continue
             instrument = holding.constituent_instrument
+            if instrument.id in seen_member_ids:
+                continue
+            seen_member_ids.add(instrument.id)
             members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
             member_ids.append(instrument.id)
         membership_version_payload = {
@@ -8777,6 +8781,7 @@ async def evaluate_generic_breadth(
                 404,
                 detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
             )
+        seen_member_ids: set[int] = set()
         for holding in snapshot.rows:
             if (
                 not holding.is_resolved
@@ -8798,6 +8803,9 @@ async def evaluate_generic_breadth(
                 )
                 continue
             instrument = holding.constituent_instrument
+            if instrument.id in seen_member_ids:
+                continue
+            seen_member_ids.add(instrument.id)
             members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
             member_ids.append(instrument.id)
         membership_version_payload = {

@@ -1803,8 +1803,8 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
+            row_count=3,
+            resolved_count=3,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="family-derived-equal-source",
@@ -1818,7 +1818,7 @@ class TestWatchlistsCrud:
                 position=0,
                 reported_symbol=instrument.symbol,
                 reported_name=instrument.name,
-                weight=1.0,
+                weight=0.5,
                 holding_type="equity",
                 row_type="Security",
                 source_row_hash="family-derived-equal-row",
@@ -1828,8 +1828,22 @@ class TestWatchlistsCrud:
         db.add(
             ETFHolding(
                 snapshot_id=snapshot.id,
-                constituent_instrument_id=placeholder.id,
+                constituent_instrument_id=instrument.id,
                 position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=0.25,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="family-derived-equal-duplicate-row",
+                is_resolved=True,
+            )
+        )
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=placeholder.id,
+                position=2,
                 reported_symbol=placeholder.symbol,
                 reported_name=placeholder.name,
                 weight=0.25,
@@ -2466,8 +2480,8 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=2,
-            resolved_count=2,
+            row_count=3,
+            resolved_count=3,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="etf-placeholder-resolver-fixture",
@@ -2500,6 +2514,18 @@ class TestWatchlistsCrud:
                     source_row_hash="etf-placeholder-placeholder-row",
                     is_resolved=True,
                 ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=2,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-canonical-duplicate-row",
+                    is_resolved=True,
+                ),
             ]
         )
         db.flush()
@@ -2516,6 +2542,7 @@ class TestWatchlistsCrud:
         assert payload["source"]["provenance"]["canonical_member_count"] == 1
         assert payload["source"]["provenance"]["placeholder_member_count"] == 1
         assert [member["instrument_id"] for member in payload["members"]] == [instrument_b.id]
+        assert payload["members"][0]["weight"] == 1.0
         assert len(payload["exclusions"]) == 1
         assert payload["exclusions"][0]["reason"] == "unresolved_holding"
 

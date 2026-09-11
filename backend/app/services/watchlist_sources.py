@@ -1243,8 +1243,14 @@ async def resolve_watchlist_source(
             .scalars()
             .all()
         )
-        valid_rows = [
-            holding
+        # A disclosed snapshot may contain more than one issuer row that
+        # resolves to the same canonical instrument (for example, duplicate
+        # share-class rows or a corrected duplicate disclosure).  The
+        # WatchlistSource contract is one canonical member stream, so derived
+        # equal weights must use unique instrument IDs and native ETF weights
+        # must be aggregated rather than repeated.
+        valid_instrument_ids = {
+            holding.constituent_instrument_id
             for holding in rows
             if normalize_holding_type(holding.row_type) == "security"
             and is_equity_holding_type(holding.holding_type)
@@ -1252,11 +1258,24 @@ async def resolve_watchlist_source(
             and holding.constituent_instrument_id is not None
             and holding.constituent_instrument is not None
             and not is_placeholder_symbol(holding.constituent_instrument.symbol)
-        ]
-        equal_weight = 1.0 / len(valid_rows) if derived and valid_rows else None
+        }
+        equal_weight = 1.0 / len(valid_instrument_ids) if derived and valid_instrument_ids else None
+        native_weights: dict[int, float | None] = {}
+        for holding in rows:
+            if holding.constituent_instrument_id not in valid_instrument_ids:
+                continue
+            value = float(holding.weight) if holding.weight is not None else None
+            if holding.constituent_instrument_id not in native_weights:
+                native_weights[holding.constituent_instrument_id] = value
+            elif value is not None:
+                prior = native_weights[holding.constituent_instrument_id]
+                native_weights[holding.constituent_instrument_id] = (
+                    value if prior is None else prior + value
+                )
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
         placeholder_ids: set[int] = set()
+        seen_member_ids: set[int] = set()
         for holding in rows:
             holding_type = normalize_holding_type(holding.holding_type)
             row_type = normalize_holding_type(holding.row_type)
@@ -1278,13 +1297,16 @@ async def resolve_watchlist_source(
                 placeholder_ids.add(holding.constituent_instrument_id)
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
+            if holding.constituent_instrument_id in seen_member_ids:
+                continue
+            seen_member_ids.add(holding.constituent_instrument_id)
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
                     weight=equal_weight
                     if derived
-                    else (float(holding.weight) if holding.weight is not None else None),
+                    else native_weights.get(holding.constituent_instrument_id),
                     relationship_type="derived_equal_weight_constituent"
                     if derived
                     else "etf_proxy_constituent",
@@ -1422,6 +1444,25 @@ async def resolve_watchlist_source(
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
         placeholder_ids: set[int] = set()
+        native_weights: dict[int, float | None] = {}
+        for holding in rows:
+            if (
+                normalize_holding_type(holding.row_type) != "security"
+                or not is_equity_holding_type(holding.holding_type)
+                or not holding.is_resolved
+                or holding.constituent_instrument_id is None
+                or holding.constituent_instrument is None
+                or is_placeholder_symbol(holding.constituent_instrument.symbol)
+            ):
+                continue
+            value = float(holding.weight) if holding.weight is not None else None
+            instrument_id = holding.constituent_instrument_id
+            if instrument_id not in native_weights:
+                native_weights[instrument_id] = value
+            elif value is not None:
+                prior = native_weights[instrument_id]
+                native_weights[instrument_id] = value if prior is None else prior + value
+        seen_member_ids: set[int] = set()
         for holding in rows:
             holding_type = normalize_holding_type(holding.holding_type)
             row_type = normalize_holding_type(holding.row_type)
@@ -1443,11 +1484,14 @@ async def resolve_watchlist_source(
                 placeholder_ids.add(holding.constituent_instrument_id)
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
+            if holding.constituent_instrument_id in seen_member_ids:
+                continue
+            seen_member_ids.add(holding.constituent_instrument_id)
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
-                    weight=float(holding.weight) if holding.weight is not None else None,
+                    weight=native_weights.get(holding.constituent_instrument_id),
                     relationship_type="etf_proxy_constituent",
                     source=snapshot.source_provider,
                     effective_at=datetime.combine(snapshot.composition_date, datetime.min.time()),
