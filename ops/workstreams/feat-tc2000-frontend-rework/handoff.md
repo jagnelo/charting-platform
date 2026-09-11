@@ -8,6 +8,16 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
+
+Product tip `ee42a67c` now emits curated workstation identity-bootstrap
+provenance timestamps as canonical UTC `Z` values for both new identities and
+existing registry audit entries. Focused workstation-bootstrap coverage passed
+`10/10`; Ruff, formatting, and diff checks passed. The exact full integration
+gate is pending for this bounded provenance-only slice. R1 and R2-R7 remain
+open; no integration, promotion, deployment, or other worktree mutation is
+authorized by this workstream.
+
 ## 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 
 The exact elevated Docker-backed gate completed at product tip `4f0abd68`.

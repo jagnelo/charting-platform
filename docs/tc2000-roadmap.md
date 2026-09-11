@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
+
+At product tip `ee42a67c`, curated workstation identity-bootstrap provenance
+timestamps now use the canonical UTC `Z` wire spelling for both newly-created
+identities and existing registry audit entries. Offset-aware and legacy naive
+values are normalized without changing identity selection, provider bindings,
+ETF profiles, taxonomy relationships, or hydration/queue behavior.
+
+Focused workstation-bootstrap coverage passed `10/10`; Ruff, formatting, and
+diff checks passed. The exact full integration gate is pending for this bounded
+provenance-only change. R1 remains open for complete provider/family history
+breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, and R2-R7 evidence; continue without integration or deployment.
+
 ## 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 
 At product tip `4f0abd68`, the exact elevated Docker-backed integration gate

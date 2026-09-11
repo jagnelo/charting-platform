@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-11 — Workstation bootstrap provenance canonicalizes to UTC
+
+- [x] Serialize curated workstation identity-bootstrap provenance timestamps
+      through the canonical UTC `Z` formatter for new and existing registry
+      entries (`ee42a67c`), without changing identity, provider, taxonomy,
+      hydration, or queue behavior.
+- [x] Focused workstation-bootstrap coverage passed `10/10`; Ruff, formatting,
+      and diff checks passed.
+- [ ] Rerun the exact full integration gate at the next coherent checkpoint;
+      complete provider/family history breadth, W1/MN continuity, canonical
+      population, and R2-R7 evidence remain open.
+
 ### 2026-09-11 — Strategy Lab coverage timestamp gate receipt
 
 - [x] The exact elevated Docker-backed integration gate completed at product
