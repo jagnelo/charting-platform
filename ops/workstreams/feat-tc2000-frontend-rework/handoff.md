@@ -8,6 +8,16 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-11 — Family readiness requires dated evidence
+
+Product tip `d1f3da4d` now requires `point_in_time_supported` for a benchmark-
+family role to report composite readiness `ready`; otherwise the role remains
+partial with an explicit `point_in_time_unavailable` reason. Focused
+analysis-router coverage passed `28/28`, benchmark-family integration coverage
+passed `9/9` with Docker, and Ruff/format/diff checks passed. The exact full
+integration gate is pending for this bounded readiness fix. R1 and R2-R7 remain
+open; preserve the no-integration, no-promotion, no-deployment boundary.
+
 ## 2026-09-11 — Workstation bootstrap provenance gate receipt
 
 The exact elevated Docker-backed branch-scoped gate completed at product tip

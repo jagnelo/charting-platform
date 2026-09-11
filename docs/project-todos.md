@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-11 — Family readiness requires dated evidence
+
+- [x] Require `point_in_time_supported` for a benchmark-family role to report
+      composite readiness `ready` (`d1f3da4d`); missing dated holdings evidence
+      remains partial with the explicit `point_in_time_unavailable` reason.
+- [x] Focused analysis-router coverage passed `28/28`; benchmark-family
+      coverage/readiness integration coverage passed `9/9` with Docker; Ruff,
+      formatting, and diff checks passed.
+- [ ] Rerun the exact full integration gate at this product tip, then continue
+      provider/family history breadth, W1/MN continuity, canonical population,
+      dense-data evidence, and R2-R7 without changing protected visual policy.
+
 ### 2026-09-11 — Workstation bootstrap provenance gate receipt
 
 - [x] The exact elevated Docker-backed branch-scoped integration gate at

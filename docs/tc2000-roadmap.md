@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Family readiness requires dated evidence
+
+At product tip `d1f3da4d`, the benchmark-family composite readiness gate now
+requires `point_in_time_supported` before a role can be reported as `ready`.
+Roles with complete current-looking inputs but no dated holdings evidence remain
+explicitly partial with the `point_in_time_unavailable` reason, preserving the
+AC2 boundary against projecting current membership into historical readiness.
+
+Focused analysis-router coverage passed `28/28`; the nine benchmark-family
+coverage/readiness integration cases passed `9/9` with Docker; Ruff, formatting,
+and diff checks passed. The exact full integration gate is pending for this
+bounded readiness fix. Continue provider/family history breadth, W1/MN
+continuity, canonical population, dense-data evidence, and R2-R7 without
+changing protected visual or acceptance policy.
+
 ## 2026-09-11 — Workstation bootstrap provenance gate receipt
 
 At product tip `ee42a67c`, the exact elevated Docker-backed branch-scoped
