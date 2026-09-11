@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
+
+At product tip `2eecb822`, Market Map now serializes persisted profile,
+membership, bar-watermark, event-watermark, and provider-policy timestamps on
+the canonical UTC timeline. Equivalent offset-bearing observations therefore
+retain one provenance and cache identity representation without changing source
+precedence, fallback boundaries, or map calculations.
+
+Focused Market Map coverage passed `10/10`; the complete backend unit suite
+passed `1,453/1,453` at `68.26%` total coverage; Ruff, formatting, and diff
+checks passed. The exact elevated Docker-backed gate passed all non-visual
+stages, backend integration (`387/387`, `81.46%` combined coverage), frontend
+Vitest (`991/991`) and build, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity completed `104` cases with `98`
+passes and exactly the six established protected state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). The gate exited at
+`e2e-visual` after clean branch-scoped teardown removed all containers,
+volumes, network, testcontainer sessions, and four images. No visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed.
+
+This closes the Market Map provenance serialization seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
 
 At product tip `59357f54ec6cc3acc86e7747bd5f73ae67b3dc46`, the shared breadth

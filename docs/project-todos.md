@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-11 — Market Map provenance timestamps canonicalize to UTC
+
+- [x] Serialize Market Map profile, membership, bar/event watermark, and
+      provider-policy timestamps on the canonical UTC timeline, including
+      offset-bearing persisted observations and cache inputs.
+- [x] Focused Market Map coverage passed `10/10`; the full backend unit suite
+      passed `1,453/1,453` at `68.26%`; Ruff, formatting, and diff checks
+      passed.
+- [x] The exact elevated Docker-backed gate passed all non-visual stages,
+      backend integration (`387/387`, `81.46%` combined coverage), frontend
+      Vitest (`991/991`) and build, and functional Playwright (`165` passed,
+      `107` documented skips across `272`); visual parity was `98/104` with
+      exactly the six protected diffs and clean branch-scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-11 — Breadth occurrence timestamps canonicalize to UTC
 
 - [x] Normalize breadth-history occurrence timestamps and IDs to UTC for
