@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-11 — Classification maintenance targets canonical ETF candidates
+
+At product tip `b504810f`, ETF classification maintenance now applies the
+canonical member predicate before queueing enrichment: provider row type is
+normalized to `security`, and only supported equity holding types are
+eligible. Cash, derivatives, and other non-member disclosures remain source
+evidence and cannot keep a snapshot's classification queue pending or distort
+profile selection. The focused exclusion and bounded-maintenance regressions
+passed `3/3`; Ruff, formatting, and diff checks passed. The full backend unit
+suite passed `1,473/1,473` with `69%` total coverage.
+
+The exact elevated branch-scoped gate reached all stages, with backend unit
+`1,473/1,473`, backend integration `391/391` (`81.65%` combined coverage),
+frontend dependency/lint/format/type-check/Vitest/build/contracts/probes
+green, and functional Playwright at `164` passed plus `107` documented skips
+across `272`. One first-run functional case (`F9e-easyscan-builder-keyboard`)
+failed while opening the menu; the same focused test passed twice against a
+fresh branch-scoped stack, so no product defect was reproducible. Visual parity
+completed `104` cases with `98` passes and exactly the six established
+protected state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Teardown removed all branch resources and four images.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue provider/family history breadth, remaining canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7.
+
 ## 2026-09-11 — Strategy Lab ETF universes use canonical membership
 
 At product tip `b131cfa6`, Strategy Lab's static and dynamic ETF universe

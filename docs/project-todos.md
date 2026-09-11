@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-11 — Classification maintenance targets canonical ETF candidates
+
+- [x] Restrict ETF classification-maintenance queueing to normalized
+      `security` rows with supported equity holding types; cash, derivatives,
+      and other non-member disclosures remain evidence-only (`b504810f`).
+- [x] Add bounded-maintenance and excluded-only snapshot regressions; focused
+      coverage passed `3/3`, with Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,473/1,473` at `69%` coverage.
+      The exact gate reached backend integration `391/391`, frontend checks,
+      and functional Playwright (`164` passed, `107` documented skips); one
+      first-run EasyScan case was non-reproducible and passed twice when
+      rerun against a fresh stack. Visual parity remained `98/104` with the
+      same six protected diffs; teardown removed all resources and four
+      images. No visual or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Strategy Lab ETF universes use canonical membership
 
 - [x] Align static and dynamic Strategy Lab ETF universe resolution with the

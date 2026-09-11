@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-11 — Classification maintenance targets canonical ETF candidates
+
+Product tip `b504810f` narrows ETF classification-maintenance queueing to the
+canonical resolved security/equity member contract. Row-type casing is
+normalized; cash, derivatives, unsupported holding labels, and other
+non-member disclosures remain evidence-only and cannot keep snapshot
+classification maintenance pending. Focused regressions passed `3/3`; Ruff,
+format, and diff checks passed; the backend unit suite passed `1,473/1,473`
+with `69%` coverage.
+
+The exact branch-scoped gate reached backend integration `391/391`, all
+frontend static/build/test/probe stages, and functional Playwright at `164`
+passed with `107` documented skips. One first-run EasyScan keyboard case
+failed during menu opening, but passed twice in focused reruns against a fresh
+stack, so it is recorded as a transient non-reproducible gate failure rather
+than a product defect. Visual parity remained `98/104` with the six
+established protected diffs (`watchlist-column-editor-open` at 1080p-100/125
+and `workspace-floating` at 1080p-100/125 and 1440p-100/125). Teardown removed
+all branch resources and four images. No visual, provider, fallback, or
+acceptance policy changed. R1 provider/family history breadth, remaining
+canonical population, W1/MN continuity, dense-data evidence, and R2-R7 remain
+open; do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-11 — Strategy Lab ETF universes use canonical membership
 
 Product tip `b131cfa6` aligns static and dynamic Strategy Lab ETF universe
