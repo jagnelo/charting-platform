@@ -845,6 +845,67 @@ class TestWatchlistsCrud:
         assert body["coverage"] == 0
         assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
 
+    def test_market_map_excludes_derived_period_not_closed_at_cutoff(
+        self, client, auth_headers, db, watchlist, instrument
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=datetime(2024, 1, 1, tzinfo=UTC),
+                    open=100,
+                    high=101,
+                    low=99,
+                    close=100,
+                    volume=1_000,
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe=Timeframe.D1.value,
+                    source_end=datetime(2024, 1, 5, tzinfo=UTC),
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=datetime(2024, 1, 8, tzinfo=UTC),
+                    open=120,
+                    high=121,
+                    low=119,
+                    close=120,
+                    volume=1_000,
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe=Timeframe.D1.value,
+                    source_end=datetime(2024, 1, 12, tzinfo=UTC),
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "timeframe": "W1",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-10T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        cell = response.json()["cells"][0]
+        assert cell["return_value"] is None
+        assert cell["observation_time"] == "2024-01-01T00:00:00Z"
+        assert any(item["code"] == "insufficient_history" for item in cell["warnings"])
+
     def test_historical_market_map_does_not_use_current_area_metadata_fallback(
         self, client, auth_headers, db, instrument
     ):

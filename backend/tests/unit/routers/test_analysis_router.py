@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -495,6 +495,31 @@ def test_historical_bar_truncation_normalizes_offsetless_and_offset_cutoffs():
     assert _as_utc(datetime.fromisoformat("2024-01-15T01:00:00+02:00")) == datetime(
         2024, 1, 14, 23, tzinfo=UTC
     )
+
+
+def test_bar_truncation_excludes_derived_period_until_source_closes():
+    cutoff = datetime(2024, 1, 10, tzinfo=UTC)
+    closed = _bar(7, 2024, 1, "100")
+    closed.is_derived = True
+    closed.source_end = datetime(2024, 1, 8, tzinfo=UTC)
+    incomplete = _bar(7, 2024, 1, "120")
+    incomplete.ts = datetime(2024, 1, 9, tzinfo=UTC)
+    incomplete.is_derived = True
+    incomplete.source_end = datetime(2024, 1, 12, tzinfo=UTC)
+
+    truncated = _truncate_bars_at({7: [closed, incomplete]}, cutoff)
+
+    assert [bar.close for bar in truncated[7]] == [Decimal("100")]
+
+
+def test_current_bar_truncation_excludes_derived_period_that_reaches_into_future():
+    incomplete = _bar(7, 2024, 1, "120")
+    incomplete.is_derived = True
+    incomplete.source_end = datetime.now(UTC) + timedelta(days=1)
+
+    truncated = _truncate_bars_at({7: [incomplete]}, None)
+
+    assert truncated[7] == []
 
 
 def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():

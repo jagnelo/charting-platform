@@ -41,6 +41,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_condition,
 )
+from app.services.ohlcv_coverage import bar_visible_through_clause
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -1052,6 +1053,7 @@ async def build_market_map(
                     OHLCVBar.is_adjusted.is_(request.adjusted),
                     OHLCVBar.ts >= history_start,
                     OHLCVBar.ts <= end_hint,
+                    bar_visible_through_clause(end_hint),
                 )
                 .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
             )
@@ -1225,6 +1227,7 @@ async def build_market_map(
                             OHLCVBar.is_adjusted.is_(request.adjusted),
                             OHLCVBar.ts >= history_start,
                             OHLCVBar.ts <= period_end,
+                            bar_visible_through_clause(end_hint),
                         )
                         .order_by(OHLCVBar.ts)
                     )
@@ -1273,6 +1276,7 @@ async def build_market_map(
                         OHLCVBar.is_adjusted.is_(request.adjusted),
                         OHLCVBar.ts >= history_start,
                         OHLCVBar.ts <= period_end,
+                        bar_visible_through_clause(end_hint),
                     )
                     .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
                 )

@@ -148,6 +148,12 @@ from app.services.etf_holdings import EQUITY_HOLDING_TYPE_VALUES, is_placeholder
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
+from app.services.ohlcv_coverage import (
+    bar_visible_through as _bar_visible_through,
+)
+from app.services.ohlcv_coverage import (
+    bar_visible_through_clause as _bar_visible_through_clause,
+)
 from app.services.parameter_validation import validate_parameter_values
 from app.services.provider_availability import latest_availability, provider_configured
 from app.services.research_jobs import (
@@ -608,20 +614,6 @@ def _as_utc(value: datetime) -> datetime:
 
     normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return normalized.astimezone(UTC)
-
-
-def _bar_visible_through_clause(cutoff: datetime):
-    """Require complete source evidence for derived coarse bars at a cutoff."""
-
-    normalized_cutoff = _as_utc(cutoff)
-    return or_(
-        OHLCVBar.is_derived.is_(False),
-        (
-            OHLCVBar.is_derived.is_(True)
-            & OHLCVBar.source_end.is_not(None)
-            & (OHLCVBar.source_end <= normalized_cutoff)
-        ),
-    )
 
 
 def _entitlement_state(
@@ -1288,11 +1280,13 @@ def _group_members_at(
 def _truncate_bars_at(
     bars_by_id: dict[int, list[OHLCVBar]], as_of: datetime | None
 ) -> dict[int, list[OHLCVBar]]:
-    if as_of is None:
-        return bars_by_id
-    evaluation_at = _as_utc(as_of)
+    evaluation_at = _as_utc(as_of or datetime.now(UTC))
     return {
-        instrument_id: [bar for bar in bars if _as_utc(bar.ts) <= evaluation_at]
+        instrument_id: [
+            bar
+            for bar in bars
+            if _as_utc(bar.ts) <= evaluation_at and _bar_visible_through(bar, evaluation_at)
+        ]
         for instrument_id, bars in bars_by_id.items()
     }
 
