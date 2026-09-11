@@ -21,8 +21,11 @@ supplies, its priority level per capability, and where to configure its credenti
 >
 > A reviewed plan and configured credential are still not enough to route a
 > provider: its capability must carry `passed` (or genuinely `not_required`)
-> live-probe evidence. Alpaca, Tradier, and MarketData.app remain `not_run` in
-> this revision and cannot enter a chain merely because a key is later added.
+> live-probe evidence. The current local validation snapshot (2026-09-11)
+> has passing EDGAR, Alpaca, and MarketData.app probes; Dinari reaches its
+> sandbox but returns HTTP 401; Tradier, Ondo, and IBKR are intentionally
+> deferred. None of these observations alone overrides the separate quota,
+> terms, entitlement, and reconciliation gates.
 
 Operation-cost maps are provider-specific and reviewed against the adapter's
 actual transport shape. Alpha Vantage's search, daily history, latest-price,

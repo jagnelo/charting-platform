@@ -232,12 +232,13 @@ logs, health state, capacity events, or live-probe failure output. The redactor
 removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
-The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app.
-The authoritative rerun supplied a temporary non-secret SEC EDGAR User-Agent
-and passed the EDGAR cases; every deployment and CI environment must still
-provide its own operator contact value. A provider may have a green live probe
-and remain non-routable when any external constraint cannot yet be accounted
-safely. Every registered synchronous adapter now reports
+Current local validation (2026-09-11) has passing EDGAR and Alpaca probes and a
+passing MarketData.app candle probe after correcting its required trailing
+slash. Dinari reaches the sandbox endpoint but returns typed HTTP 401;
+Tradier, Ondo, and IBKR are intentionally deferred. Every deployment and CI
+environment must still provide its own operator contact value. A provider may
+have a green live probe and remain non-routable when any external constraint
+cannot yet be accounted safely. Every registered synchronous adapter now reports
 observed HTTP request counts, response bytes, and selected provider headers
 into the runtime context; that telemetry is durable in
 `provider_request_log`, and the provider usage endpoint exposes the latest
@@ -361,8 +362,8 @@ root during this checkpoint: versioned resources are under
 the documented 100-credit daily free window, its 09:30 America/New_York reset,
 and the 50-request concurrent ceiling; the adapter path, Bearer-auth shape, and
 durable release-only in-flight reservation are covered by fixture/unit tests.
-A credentialed live read is still required before this provider can be accepted
-for routing.
+A credentialed live read passed on 2026-09-11, but the provider remains subject
+to the documented quota/terms review before routing admission.
 
 After the FMP live-preflight correction, the complete manifest was rerun at
 `2026-09-10T03:36Z` with the existing operator-owned keys plus temporary
