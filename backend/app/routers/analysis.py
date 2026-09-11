@@ -144,7 +144,11 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
-from app.services.etf_holdings import EQUITY_HOLDING_TYPE_VALUES, is_placeholder_symbol
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
@@ -236,7 +240,9 @@ async def _family_member_bar_history(
         holding_type,
         row_type,
     ) in member_rows:
-        if row_type != "security" or holding_type not in EQUITY_HOLDING_TYPE_VALUES:
+        if normalize_holding_type(row_type) != "security" or not is_equity_holding_type(
+            holding_type
+        ):
             excluded_member_count += 1
         elif not bool(is_resolved) or instrument_id is None or symbol is None:
             unresolved_member_count += 1
@@ -259,8 +265,8 @@ async def _family_member_bar_history(
             if bool(is_resolved)
             and instrument_id is not None
             and symbol is not None
-            and row_type == "security"
-            and holding_type in EQUITY_HOLDING_TYPE_VALUES
+            and normalize_holding_type(row_type) == "security"
+            and is_equity_holding_type(holding_type)
             and not is_placeholder_symbol(symbol)
         )
     )
@@ -507,8 +513,6 @@ async def _family_member_metadata_readiness(
                 )
                 .where(
                     ETFHolding.snapshot_id == snapshot.id,
-                    ETFHolding.row_type == "security",
-                    ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
                     ETFHolding.is_resolved.is_(True),
                     ETFHolding.constituent_instrument_id.is_not(None),
                 )
@@ -521,8 +525,13 @@ async def _family_member_metadata_readiness(
     rows = [
         row
         for row in rows
-        if row.constituent_instrument is not None
-        and not is_placeholder_symbol(row.constituent_instrument.symbol)
+        if (
+            normalize_holding_type(row.row_type) == "security"
+            and is_equity_holding_type(row.holding_type)
+            and row.constituent_instrument is not None
+            and row.constituent_instrument_id is not None
+            and not is_placeholder_symbol(row.constituent_instrument.symbol)
+        )
     ]
     member_count = len(rows)
     if not member_count:
@@ -6675,7 +6684,10 @@ async def _resolve_benchmark_family_breadth_universe(
         ):
             warnings.append(_generic_breadth_warning("unresolved_member", None))
             continue
-        if holding.holding_type not in EQUITY_HOLDING_TYPE_VALUES or holding.row_type != "security":
+        if (
+            not is_equity_holding_type(holding.holding_type)
+            or normalize_holding_type(holding.row_type) != "security"
+        ):
             warnings.append(
                 AnalysisWarning(
                     code="non_equity_holding",
@@ -6906,10 +6918,18 @@ async def _resolve_generic_breadth_universe(
                 404, detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol}
             )
         for holding in snapshot.rows:
-            if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+            if (
+                not holding.is_resolved
+                or not holding.constituent_instrument_id
+                or holding.constituent_instrument is None
+                or is_placeholder_symbol(holding.constituent_instrument.symbol)
+            ):
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
                 continue
-            if holding.holding_type != "equity" or holding.row_type != "security":
+            if (
+                not is_equity_holding_type(holding.holding_type)
+                or normalize_holding_type(holding.row_type) != "security"
+            ):
                 universe_warnings.append(
                     AnalysisWarning(
                         code="non_equity_holding",
@@ -8767,8 +8787,8 @@ async def evaluate_generic_breadth(
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
                 continue
             if (
-                holding.holding_type not in EQUITY_HOLDING_TYPE_VALUES
-                or holding.row_type != "security"
+                not is_equity_holding_type(holding.holding_type)
+                or normalize_holding_type(holding.row_type) != "security"
             ):
                 universe_warnings.append(
                     AnalysisWarning(

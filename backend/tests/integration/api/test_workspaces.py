@@ -3918,6 +3918,32 @@ class TestWorkspaces:
         assert [member["symbol"] for member in payload["members"]] == [instrument.symbol]
         assert [item["code"] for item in payload["exclusions"]].count("unresolved_member") == 2
 
+        history = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "etf_holdings", "key": "MIXD"},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 2, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+                "limit": 5,
+            },
+        )
+        assert history.status_code == 200, history.text
+        history_payload = history.json()
+        assert len(history_payload["points"]) == 5
+        assert all(point["requested_count"] == 1 for point in history_payload["points"])
+        assert all(
+            [member["symbol"] for member in point["members"]] == [instrument.symbol]
+            for point in history_payload["points"]
+        )
+        assert [item["code"] for item in history_payload["exclusions"]].count(
+            "unresolved_member"
+        ) == 2
+
     def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
