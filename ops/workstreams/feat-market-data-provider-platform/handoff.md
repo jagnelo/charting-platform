@@ -1139,3 +1139,10 @@ Update this handoff at each coherent boundary.
   defaults. The wiring regression passes `17/17`; workflow YAML parsing, Ruff,
   compileall, and diff checks pass. No provider calls or credentials were used,
   and no frontend or ETF-provider files changed.
+
+- Source checkpoint `24370c37` removes an unsafe local quota fallback. The
+  process-local token bucket and policy lookup now reject zero, negative,
+  boolean, and non-integer rate/burst limits instead of normalizing them to a
+  one-token allowance. Focused runtime coverage passes `11/11`; the complete
+  backend unit suite passes `1,943/1,943` with 37 warnings. No provider calls or
+  credentials were used, and no frontend or ETF-provider files changed.
