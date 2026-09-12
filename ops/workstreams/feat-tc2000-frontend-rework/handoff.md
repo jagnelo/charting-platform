@@ -2,6 +2,15 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Radar hydration teardown
+
+Product commit `579eaa91` fences Radar refresh/filter, detection/history,
+scan, basket, alert, and watchlist flows by mounted lifecycle state and keeps
+DOM refresh handlers event-safe. Focused coverage passed `6/6`; full frontend
+Vitest passed `1051/1051`; type-check/build/diff checks passed with only the
+existing chunk-size warning. Radar/API, chart handoff, visual, and acceptance
+contracts are unchanged. Continue in this worktree only.
+
 ## 2026-09-12 — Fence ChartView selection hydration
 
 Product commit `75bc03a3` fences ChartView symbol/timeframe hydration,

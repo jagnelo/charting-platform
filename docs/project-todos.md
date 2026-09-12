@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Radar hydration teardown
+
+- [x] Fence Radar refresh/filter, detection/history, scan, basket hydration,
+      and alert/watchlist actions by mounted lifecycle state; event-safe
+      refresh preserves DOM filter behavior (`579eaa91`).
+- [x] Focused Radar coverage passed `6/6`; full frontend Vitest passed
+      `1051/1051`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence ChartView selection hydration
 
 - [x] Fence ChartView symbol/timeframe, linked-panel, comparison, drawings,
