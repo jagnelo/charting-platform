@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Coverage and freshness responses use canonical wire timestamps
+
+- [x] Serialize instrument coverage, dataset state, local ranges, OHLCV
+      requested/covered ranges, and missing slices as canonical UTC `Z` values
+      through the coverage schemas (`a1b97145`).
+- [x] Focused coverage-router coverage passed `13/13`; full backend unit
+      coverage passed `1492/1492` at `68.57%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `a1b97145`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
+      visual stage ran.
+- [ ] Restore Docker Desktop health, rerun the pending API regressions and
+      exact gate, then continue provider/history or compatible chart/list/gauge
+      work.
+
 ### 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
 
 - [x] Serialize workspace, tab/window, library-item, instrument-note,

@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Coverage and freshness responses use canonical wire timestamps
+
+Product commit `a1b97145` closes the canonical local coverage response seam.
+Instrument coverage, dataset state, local ranges, OHLCV requested/covered
+ranges, and bounded missing slices now serialize through the shared UTC `Z`
+helper. Readiness and provenance consumers therefore receive one stable
+timeline without changing coverage assessment, lineage, adjustment, or
+provider-neutral semantics.
+
+Focused coverage-router schema/API coverage passed `13/13`; the full backend
+unit suite passed `1492/1492` at `68.57%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `a1b97145` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker `/v1.55/info` returned HTTP 500. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker Desktop health and rerun the pending alert,
+indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation,
+and coverage API regressions plus the exact gate, then continue the next
+bounded provider/history or compatible chart/list/gauge seam while preserving
+the six protected visual state-oracle diffs and the no-integration/
+no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
 
 Product commit `54f08a5c` closes the persisted workstation response seam.

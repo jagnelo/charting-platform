@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Coverage and freshness responses use canonical wire timestamps
+
+Product commit `a1b97145` makes instrument coverage, dataset state, local
+ranges, OHLCV requested/covered ranges, and bounded missing slices emit
+canonical UTC `Z` timestamps through the shared serializer. Readiness and
+provenance consumers now share one stable timeline; coverage assessment,
+lineage, adjustment, and provider-neutral semantics are unchanged.
+
+Focused coverage-router schema/API coverage passed `13/13`; the full backend
+unit suite passed `1492/1492` at `68.57%` coverage; Ruff, formatting, and diff
+checks passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker `/v1.55/info`
+returned HTTP 500. No backend integration, provider, browser, or visual stage
+ran. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/coverage.py` and
+`backend/tests/unit/routers/test_coverage_router.py`. Restore Docker Desktop
+health, rerun the pending API regressions and exact gate, then advance the
+next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
 
 Product commit `54f08a5c` makes workspace, tab/window, library-item,

@@ -1909,6 +1909,19 @@ current_blocker: >-
   workstation API regressions plus the exact gate, then continue the next bounded provider/history
   or compatible chart/list/gauge seam while preserving the six protected visual state-oracle
   diffs and the no-integration/no-deployment boundary.
+  Product tip a1b97145 canonicalizes instrument coverage, dataset state, local ranges, OHLCV
+  requested/covered ranges, and bounded missing-slice timestamps through the shared UTC Z wire
+  serializer. Focused coverage-router schema/API coverage passed 13/13; the full backend unit
+  suite passed 1492/1492 at 68.57% coverage; Ruff, formatting, and git diff --check passed. The
+  exact branch-scoped gate at this tip passed repository/workstream, dependency/migration,
+  frontend-preparation, and lint/type-check setup, then stopped at backend-coverage after 180
+  seconds because Docker /v1.55/info returned HTTP 500. No backend integration, provider, browser,
+  or visual stage ran. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+  policy changed. Restore Docker Desktop health, rerun pending alert, indicator-batch,
+  instrument-coverage, OHLCV, watchlist-history, workstation, and coverage API regressions plus
+  the exact gate, then continue the next bounded provider/history or compatible chart/list/gauge
+  seam while preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
