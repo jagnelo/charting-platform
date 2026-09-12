@@ -995,3 +995,8 @@ Update this handoff at each coherent boundary.
   Docker still produces setup errors only for PostgreSQL/Redis-backed integration
   fixtures because the local Docker API is unavailable. No routing entitlement
   or provider policy changed, and only aggregate usage was written outside Git.
+
+- The SEC probe setup now uses pytest restoration for the cache globals, so the
+  test also leaves later live cases isolated. The standalone credentialed probe
+  passed `1/1` after this refinement; no provider policy, quota contract, or
+  routing entitlement changed.

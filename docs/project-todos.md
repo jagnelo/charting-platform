@@ -16329,6 +16329,9 @@ The current source also passes the focused authenticated top-down browser slice 
       The complete backend unit suite passed `1,923/1,923` with 69.68%
       coverage; the all-test command still reports only the known Docker API
       500 integration setup errors when PostgreSQL/Redis containers are absent.
+- [x] Use pytest restoration for the SEC cache reset so the standalone probe
+      also leaves later live cases isolated; the refined credentialed probe
+      passed `1/1`.
 - [ ] Keep provider quota, account-plan, terms, redistribution, Docker,
       deployment, and shadow gates unchanged; this test correction adds no
       routing entitlement and persisted only aggregate usage outside Git.

@@ -1023,6 +1023,11 @@ progress:
       coverage. The all-test profile still reports only Docker-dependent
       PostgreSQL/Redis setup errors when the local Docker API is unavailable;
       no provider policy or routing entitlement changed.
+    - >-
+      The SEC live probe now applies that cache reset with pytest restoration,
+      leaving subsequent live cases isolated as well. The refined standalone
+      credentialed probe passed 1/1; this remains transport/test-isolation
+      evidence only and does not widen SEC routing or quota admission.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
