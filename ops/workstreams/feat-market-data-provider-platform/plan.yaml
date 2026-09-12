@@ -531,6 +531,16 @@ progress:
       remain eligible, including bulk-history jobs. Registry, resolver, and
       bulk-fetch regressions plus the complete backend unit suite pass
       `1,783/1,783`; no provider calls were made.
+    - >-
+      The registry now advertises `adjusted_price_history` as a separate
+      semantic capability for providers admitted to adjusted history (currently
+      Alpaca and the explicit legacy yfinance compatibility path). Raw-only
+      adapters do not inherit that capability from their OHLCV method. Focused
+      registry/provider coverage passes `261/261`; Ruff, compilation, diff,
+      workstream, and Compose-contract checks pass. A fresh bounded live
+      revalidation of the newly credentialed providers also passed `9/9`:
+      Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox. Aggregate usage
+      remains in the owner-managed external ledger only.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

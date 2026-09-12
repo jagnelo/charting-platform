@@ -455,3 +455,12 @@ Update this handoff at each coherent boundary.
   Registry/resolver/bulk regressions, Ruff, compilation, and the complete
   backend unit suite pass `1,783/1,783`; no provider calls were made for this
   change.
+- The registry now exposes `adjusted_price_history` as a separate semantic
+  capability for providers admitted to adjusted history (currently Alpaca and
+  the explicit legacy yfinance compatibility path). Raw-only adapters do not
+  inherit that capability from an OHLCV-shaped method. Focused registry/provider
+  coverage passes `261/261`; Ruff, compilation, diff, workstream, and Compose
+  contract checks pass. A fresh bounded live revalidation of the newly
+  credentialed Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox cases
+  passed `9/9` under run `9c961135-70dc-49ab-9e01-e456530a2e4f`; aggregate
+  provider usage remains outside Git.
