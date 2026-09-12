@@ -770,3 +770,16 @@ Update this handoff at each coherent boundary.
   materialization, including its explicit opt-in, bounded lookahead/event
   limits, quarantine behavior, and prohibition on ticker-only identity merges.
   Source commit `eeb8b36e` is pushed; no runtime/provider calls were made.
+- Added a separately disabled durable EDGAR issuer-universe scan. The ARQ
+  worker advances through canonical issuer rows with non-null CIKs in bounded
+  batches, composes the existing per-CIK pipeline with `commit=False`, and
+  commits provider observations and cursor state together. The admin-only
+  `/api/v1/market-data/event-scan-state` route exposes cursor, cycle, batch,
+  failure, and provenance diagnostics. Focused scan coverage passes `56/56`;
+  the complete backend unit suite passes `1,876/1,876` with the known 37
+  warnings; Ruff, compileall, diff checks, and both Compose parses pass. Source
+  commit `137f1103` is pushed. This is a bounded best-effort scan of known
+  canonical issuers, not proof of complete SEC/global candidate coverage;
+  Docker-backed migration/full-stack validation remains unavailable and no
+  provider calls were made in this change. No frontend or ETF-provider files
+  changed.
