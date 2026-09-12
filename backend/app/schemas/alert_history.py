@@ -2,7 +2,9 @@ import json
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
+
+from app.lib.time_utils import wire_datetime
 
 
 class AlertFiringEventOut(BaseModel):
@@ -27,3 +29,7 @@ class AlertFiringEventOut(BaseModel):
         if isinstance(v, dict):
             return v
         return {}
+
+    @field_serializer("fired_at", "created_at")
+    def serialize_timestamp(self, value: datetime) -> str:
+        return wire_datetime(value) or ""

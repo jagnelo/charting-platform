@@ -1,10 +1,12 @@
 import json
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 
 from app.models.price_alert import AlertStatus
+from app.schemas.alert_history import AlertFiringEventOut
 from app.services import alert_engine
 
 
@@ -72,3 +74,24 @@ async def test_fire_indicator_alert_persists_and_broadcasts_output_keys(monkeypa
     assert payload["output_b"] == "sma"
     assert payload["triggered_at"].endswith("Z")
     assert db.committed is True
+
+
+def test_alert_history_schema_serializes_timestamps_as_canonical_utc_z():
+    event = SimpleNamespace(
+        id=12,
+        instrument_id=42,
+        instrument_symbol="SPY",
+        alert_type="indicator",
+        alert_id=7,
+        fired_at=datetime(2026, 9, 12, 14, 30, tzinfo=UTC),
+        trigger_value=501.25,
+        condition_snapshot='{"indicator":"bb","output_a":"bb_upper"}',
+        is_viewed=False,
+        created_at=datetime(2026, 9, 12, 15, 30),
+    )
+
+    payload = AlertFiringEventOut.model_validate(event).model_dump(mode="json")
+
+    assert payload["fired_at"] == "2026-09-12T14:30:00Z"
+    assert payload["created_at"] == "2026-09-12T15:30:00Z"
+    assert payload["condition_snapshot"] == {"indicator": "bb", "output_a": "bb_upper"}
