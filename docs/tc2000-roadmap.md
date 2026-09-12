@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize Study Lab fallback timestamps
+
+Product commit `780ef1e3` closes the no-date Study Lab timeline fallback seam.
+Benchmark and strategy result builders now use the shared UTC-`Z` formatter
+when a run has no explicit start date; date-only request fields and timeline
+key semantics remain unchanged.
+
+Focused Study Lab coverage passed `3/3`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact history worker timing gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `7d40c1d4` after the

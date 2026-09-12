@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize Study Lab fallback timestamps
+
+- [x] Route no-date Study Lab benchmark/strategy timeline fallbacks through the
+      shared UTC-`Z` formatter (`780ef1e3`) without changing date-only request
+      fields or timeline key semantics.
+- [x] Focused Study Lab coverage passed `3/3`; Ruff, formatting, and diff checks
+      passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact history worker timing gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `7d40c1d4`; repository/workstream,

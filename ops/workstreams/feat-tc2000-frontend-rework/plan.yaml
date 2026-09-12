@@ -13,6 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 780ef1e3 canonicalizes no-date Study Lab benchmark/strategy
+  timeline fallbacks through the shared UTC Z serializer. Focused Study Lab
+  coverage passed 3/3; Ruff, formatting, and git diff --check passed. The
+  exact branch-scoped gate is pending at this coherent product tip. No visual
+  baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+  changed. Run the exact gate, then continue the next bounded provider/history
+  or compatible chart/list/gauge seam. No integration, promotion, deployment,
+  or other-worktree mutation.
   The exact branch-scoped gate was rerun at product tip 7d40c1d4 after the
   scheduled benchmark-family history worker timing slice. Repository/workstream
   validation, dependency resolution, migration checks, frontend preparation,
