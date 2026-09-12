@@ -1,8 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
+from app.lib.time_utils import wire_datetime
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus
 
@@ -49,6 +50,10 @@ class PriceAlertOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("triggered_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class IndicatorAlertCreate(BaseModel):
     instrument_id: int
@@ -86,6 +91,10 @@ class IndicatorAlertOut(BaseModel):
     last_value_b: Decimal | None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("triggered_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class IndicatorAlertUpdate(BaseModel):

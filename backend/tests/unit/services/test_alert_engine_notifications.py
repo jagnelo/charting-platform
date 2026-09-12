@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.models.price_alert import AlertStatus
+from app.schemas.alert import IndicatorAlertOut, PriceAlertOut
 from app.schemas.alert_history import AlertFiringEventOut
 from app.services import alert_engine
 
@@ -95,3 +96,58 @@ def test_alert_history_schema_serializes_timestamps_as_canonical_utc_z():
     assert payload["fired_at"] == "2026-09-12T14:30:00Z"
     assert payload["created_at"] == "2026-09-12T15:30:00Z"
     assert payload["condition_snapshot"] == {"indicator": "bb", "output_a": "bb_upper"}
+
+
+def test_alert_list_schemas_serialize_timestamps_as_canonical_utc_z():
+    price = SimpleNamespace(
+        id=1,
+        instrument_id=42,
+        instrument_currency="USD",
+        instrument_symbol="SPY",
+        condition="crosses_above",
+        threshold_price=501.25,
+        reference_price=None,
+        price_field="close",
+        within_percent=None,
+        status="active",
+        repeat=False,
+        show_projection=False,
+        notes=None,
+        triggered_at=datetime(2026, 9, 12, 14, 30),
+        trigger_count=0,
+        last_known_price=None,
+        created_at=datetime(2026, 9, 12, 15, 30, tzinfo=UTC),
+        updated_at=datetime(2026, 9, 12, 16, 30),
+    )
+    indicator = SimpleNamespace(
+        id=2,
+        instrument_id=42,
+        instrument_currency="USD",
+        instrument_symbol="SPY",
+        timeframe="D1",
+        indicator_a_type="bb",
+        indicator_a_params={"period": 20, "output": "bb_upper"},
+        condition="crosses_above",
+        threshold_value=501.25,
+        indicator_b_type=None,
+        indicator_b_params=None,
+        status="active",
+        repeat=False,
+        notes=None,
+        triggered_at=None,
+        trigger_count=0,
+        last_value_a=None,
+        last_value_b=None,
+        created_at=datetime(2026, 9, 12, 15, 30, tzinfo=UTC),
+        updated_at=datetime(2026, 9, 12, 16, 30),
+    )
+
+    price_payload = PriceAlertOut.model_validate(price).model_dump(mode="json")
+    indicator_payload = IndicatorAlertOut.model_validate(indicator).model_dump(mode="json")
+
+    assert price_payload["triggered_at"] == "2026-09-12T14:30:00Z"
+    assert price_payload["created_at"] == "2026-09-12T15:30:00Z"
+    assert price_payload["updated_at"] == "2026-09-12T16:30:00Z"
+    assert indicator_payload["triggered_at"] is None
+    assert indicator_payload["created_at"] == "2026-09-12T15:30:00Z"
+    assert indicator_payload["updated_at"] == "2026-09-12T16:30:00Z"
