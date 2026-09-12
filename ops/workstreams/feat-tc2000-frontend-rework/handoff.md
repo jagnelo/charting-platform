@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Add continuity and cadence evidence to snapshot backfill
+
+Product commit `79faf3783` adds observed-only continuity and cadence diagnostics
+to the scheduled benchmark-family snapshot-history plan. The plan now reports
+per-symbol gaps, maximum observed intervals, and cadence samples, and attaches
+the same evidence to each selected snapshot without inferring an official
+publication schedule or changing queue semantics. Focused history coverage
+passed `26/26`; the full backend unit suite passed `1528/1528` with `69.04%`
+total coverage and the existing `34` dependency warnings. No migration,
+provider, fallback, visual, or acceptance policy changed. The exact gate remains
+Docker-dependent at the current API-level failure recorded below.
+
+## 2026-09-12 — Exact gate rechecked at snapshot-continuity tip
+
+At product tip `79faf3783`, the exact branch-scoped gate passed git-diff,
+workstream validation (`30` records), locked dependency and migration checks,
+frontend dependency preparation, Ruff check/format, and TypeScript.
+`backend-coverage` then exited `2` after the fixed 180-second Docker readiness
+window because Docker returned HTTP 500 for API `v1.55` at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Exact gate rechecked at backfill-provenance tip
 
 At documentation tip `82225bc0a` (product tip `a0f62def3`), the exact
