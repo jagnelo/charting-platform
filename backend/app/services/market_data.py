@@ -10,8 +10,10 @@ of the system (chart, alert, indicator, screener) reads them transparently.
 import asyncio
 import hashlib
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import TypeVar
 
 import numpy as np
 from sqlalchemy import and_, func, select
@@ -74,6 +76,7 @@ from app.services.provider_runtime import (
 )
 
 logger = logging.getLogger(__name__)
+_T = TypeVar("_T")
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
@@ -682,8 +685,8 @@ async def _with_ohlcv_refresh_gate(
     adjusted: bool,
     *,
     allow_provider_fetch: bool,
-    operation,
-):
+    operation: Callable[[], Awaitable[_T]],
+) -> _T:
     """Coalesce one provider-capable OHLCV operation in this process.
 
     The operation is supplied as a coroutine factory so cache-only and
