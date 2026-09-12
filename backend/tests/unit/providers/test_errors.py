@@ -6,6 +6,7 @@ from app.config import settings
 from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
+    bounded_redact_provider_message,
     provider_retry_at_from_headers,
     raise_for_provider_error_envelope,
     redact_provider_message,
@@ -30,6 +31,21 @@ def test_provider_message_redacts_unknown_credential_bearing_url_and_header_valu
     assert "unknown-token" not in redacted
     assert "apikey=<redacted>" in redacted
     assert "Authorization: Bearer <redacted>" in redacted
+
+
+def test_bounded_provider_message_redacts_before_truncating():
+    message = bounded_redact_provider_message(
+        "GET https://provider.test/data?api_key=unknown-secret " + "x" * 2000,
+        max_length=1000,
+    )
+    assert "unknown-secret" not in message
+    assert "<redacted>" in message
+    assert len(message) == 1000
+
+
+def test_bounded_provider_message_rejects_negative_limits():
+    with pytest.raises(ValueError, match="non-negative"):
+        bounded_redact_provider_message("error", max_length=-1)
 
 
 def test_error_envelope_redacts_provider_echo_before_typed_rate_failure(monkeypatch):

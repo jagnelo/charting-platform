@@ -106,6 +106,14 @@ def redact_provider_message(message: object) -> str:
     return _HEADER_SECRET_RE.sub(r"\1<redacted>", text)
 
 
+def bounded_redact_provider_message(message: object, *, max_length: int = 1000) -> str:
+    """Redact provider credentials and cap diagnostic text for storage/logging."""
+
+    if max_length < 0:
+        raise ValueError("max_length must be non-negative")
+    return redact_provider_message(message)[:max_length]
+
+
 class ProviderNotConfiguredError(RuntimeError):
     """The adapter needs a credential or endpoint that is not configured."""
 

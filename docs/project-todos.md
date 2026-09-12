@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Central bounded provider diagnostics
+
+- [x] Centralize credential redaction plus bounded diagnostic output for the
+      provider runtime's request logs, health state, capacity events, fallback
+      diagnostics, and availability probes. Focused runtime/error coverage
+      passes 38/38; the full backend unit suite passes 1741/1741 with Ruff,
+      compilation, and diff checks clean.
+
 ### 2026-09-12 — Bounded provider adapter diagnostics
 
 - [x] Bound redacted transport-exception messages emitted by Alpaca, Binance,

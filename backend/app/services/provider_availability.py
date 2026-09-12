@@ -30,7 +30,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
 )
 from app.providers import get_provider, provider_configuration_required, provider_is_configured
-from app.providers.errors import redact_provider_message
+from app.providers.errors import bounded_redact_provider_message
 from app.services.onesignal import send_provider_availability_notification
 
 CLASSIFICATIONS = {
@@ -114,7 +114,7 @@ def classify_exception(exc: BaseException) -> str:
 def availability_error_message(exc: BaseException) -> str:
     """Return a bounded, credential-redacted error for durable probe evidence."""
 
-    return redact_provider_message(exc)[:1000]
+    return bounded_redact_provider_message(exc)
 
 
 def response_shape(value: Any) -> dict[str, Any]:
