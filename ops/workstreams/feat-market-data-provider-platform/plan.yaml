@@ -637,6 +637,15 @@ progress:
       No provider is promoted by this evidence: MarketData.app plan/option
       bounds, Alpaca event-page bounds, provider-specific terms/quota controls,
       and deferred-provider credentials remain fail-closed.
+    - >-
+      Tokenized refresh-service failure evidence now passes through the shared
+      provider credential redactor before being returned to callers. This
+      closes the gap between transport-level redaction and per-asset/event
+      failure summaries, with focused tokenized-service coverage passing `7/7`
+      and the complete backend unit suite passing `1,808/1,808`; Ruff,
+      compileall, and diff checks are clean. Source commit `836b4b72145746eb5006c46e9d7a1d1890725c89`
+      is pushed; no live provider calls were needed for this transport-neutral
+      safety fix.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

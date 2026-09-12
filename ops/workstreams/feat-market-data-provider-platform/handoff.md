@@ -546,3 +546,10 @@ Update this handoff at each coherent boundary.
   compileall, diff, and workstream validation all passed. The required
   Docker-backed PostgreSQL/Redis/full-profile gate remains unverified because
   Docker readiness is unavailable; no services were started.
+- Tokenized asset and corporate-action refresh summaries now pass provider
+  exceptions through the shared bounded credential redactor before returning
+  per-asset/event failure evidence. Focused tokenized-service coverage passed
+  `7/7`; the complete backend unit suite passed `1,808/1,808` with the known
+  37 warnings; Ruff, compileall, and diff checks passed. Source commit
+  `836b4b72145746eb5006c46e9d7a1d1890725c89` is pushed. This was a
+  transport-neutral safety fix, so no new live calls were made.
