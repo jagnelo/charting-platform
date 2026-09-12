@@ -301,6 +301,34 @@ class TestDataPipeline:
         assert result["instruments_refreshed"] >= 2
         assert mock_fetch.call_count >= 2
 
+    @patch("app.tasks.data_tasks.materialize_derived_timeframes", new_callable=AsyncMock)
+    @patch("app.tasks.data_tasks.fetch_ohlcv")
+    async def test_nightly_refresh_materializes_missing_coarse_history_from_d1(
+        self, mock_fetch, mock_materialize, db, instrument
+    ):
+        from app.tasks.data_tasks import fetch_all_instruments_history
+
+        mock_fetch.return_value = []
+        mock_materialize.return_value = {"W1": 52, "MN": 24}
+        newest = instrument.created_at
+
+        with (
+            patch(
+                "app.tasks.data_tasks.AsyncSessionLocal",
+                return_value=AsyncSessionContext(db),
+            ),
+            patch(
+                "app.tasks.data_tasks._get_newest_bar_ts",
+                new_callable=AsyncMock,
+                side_effect=lambda *_args, **_kwargs: newest,
+            ),
+        ):
+            result = await fetch_all_instruments_history({})
+
+        assert result["derived_bars"] == {"W1": 52, "MN": 24}
+        assert mock_materialize.await_count == 1
+        mock_materialize.assert_awaited_once_with(db, instrument.id)
+
 
 class TestBenchmarkFamilyHistoryBackfill:
     async def test_backfill_uses_persisted_canonical_snapshot_and_excludes_fixture(

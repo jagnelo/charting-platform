@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv
 
 logger = logging.getLogger(__name__)
@@ -71,14 +72,18 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
 
         logger.info(f"Refreshing data for {len(instruments)} instruments")
         total_bars = 0
+        derived_bars = {Timeframe.W1.value: 0, Timeframe.MN.value: 0}
 
         for instrument in instruments:
+            has_daily_history = False
             for tf in NIGHTLY_REFRESH_TIMEFRAMES:
                 try:
                     newest = await _get_newest_bar_ts(db, instrument.id, tf)
                     if newest is None:
                         # No data for this TF yet — bulk fetch handles this, skip
                         continue
+                    if tf == Timeframe.D1:
+                        has_daily_history = True
                     # Small overlap buffer to catch any late-arriving bars
                     start = newest - timedelta(hours=1)
                     bars = await fetch_ohlcv(db, instrument, tf, start)
@@ -86,4 +91,24 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
                 except Exception as e:
                     logger.error(f"Refresh failed {instrument.symbol} {tf.value}: {e}")
 
-        return {"instruments_refreshed": len(instruments), "total_bars": total_bars}
+            # Public providers often expose D1 while omitting W1/MN.  The
+            # per-timeframe loop intentionally skips a missing coarse cache,
+            # so rebuild those views from the complete persisted D1 history
+            # after the refresh.  This keeps the scheduled path aligned with
+            # the canonical bulk-fetch contract without issuing extra provider
+            # requests or inventing observations.
+            if has_daily_history:
+                try:
+                    derived = await materialize_derived_timeframes(db, instrument.id)
+                    for timeframe in (Timeframe.W1.value, Timeframe.MN.value):
+                        derived_bars[timeframe] += int(derived.get(timeframe, 0))
+                    await db.commit()
+                except Exception as e:
+                    await db.rollback()
+                    logger.error(f"Coarse history materialization failed {instrument.symbol}: {e}")
+
+        return {
+            "instruments_refreshed": len(instruments),
+            "total_bars": total_bars,
+            "derived_bars": derived_bars,
+        }
