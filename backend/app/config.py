@@ -909,6 +909,12 @@ class Settings(BaseSettings):
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
                 "bulk_fetch": 1,
+                # The provider documents one credit per expiration lookup.
+                # ``fetch_option_chain`` is intentionally absent: current
+                # chains are billed per returned contract (and historical
+                # chains per 1,000 contracts), so a fixed request cost would
+                # under-account the response-dependent charge.
+                "list_option_expirations": 1,
             },
         },
         "coinbase": {

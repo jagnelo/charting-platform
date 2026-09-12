@@ -58,6 +58,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "instrument_events" in list_provider_capabilities("finnhub")
     assert "market_events" in list_provider_capabilities("finnhub")
     assert "option_chain" in list_provider_capabilities("tradier")
+    assert "option_chain" in list_provider_capabilities("marketdata_app")
 
 
 def test_twelve_data_parses_intraday_values():
@@ -713,6 +714,97 @@ def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
             assert provider.get_current_price("AAPL") == 101.0
 
     assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
+
+
+def test_marketdata_app_parses_documented_option_expirations():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "expirations": ["2024-01-19", "2024-01-05", "2024-01-19"],
+        "updated": 1700000000,
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        expirations = provider.list_option_expirations("AAPL")
+
+    assert expirations == [date(2024, 1, 5), date(2024, 1, 19)]
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/options/expirations/AAPL/"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+
+
+def test_marketdata_app_parses_parallel_option_chain_arrays_and_greeks():
+    provider = MarketDataAppProvider()
+    updated = int(datetime(2024, 1, 2, 21, tzinfo=UTC).timestamp())
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "underlying": ["AAPL"],
+        "expiration": [int(datetime(2024, 1, 19, 21, tzinfo=UTC).timestamp())],
+        "side": ["call"],
+        "strike": [100],
+        "bid": [5.15],
+        "ask": [5.25],
+        "mid": [5.2],
+        "last": [5.25],
+        "volume": [977],
+        "openInterest": [61289],
+        "iv": [0.3468],
+        "delta": [0.347],
+        "gamma": [0.015],
+        "theta": [-0.05],
+        "vega": [0.264],
+        "updated": [updated],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        contracts = provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
+
+    assert len(contracts) == 1
+    contract = contracts[0]
+    assert contract.provider_symbol == "AAPL240119C00100000"
+    assert contract.expiry_date == date(2024, 1, 19)
+    assert contract.strike == Decimal("100")
+    assert contract.right == "call"
+    assert contract.mark == Decimal("5.2")
+    assert contract.delta == Decimal("0.347")
+    assert contract.observed_at == datetime(2024, 1, 2, 21, tzinfo=UTC)
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/options/chain/AAPL/"
+    assert get.call_args.kwargs["params"] == {"expiration": "2024-01-19"}
+
+
+def test_marketdata_app_mismatched_option_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "underlying": ["AAPL"],
+        "expiration": [1705698000],
+        "side": ["call"],
+        "strike": [100],
+        "bid": [],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="mismatched option bid array"):
+            provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
 
 
 def test_tradier_parses_documented_nested_history_and_singleton_quote_search_shapes():

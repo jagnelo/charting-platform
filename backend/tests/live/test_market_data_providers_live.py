@@ -236,6 +236,12 @@ def test_alpaca_credentialed_history():
     assert rows and rows[-1].close > 0
 
 
+def test_alpaca_credentialed_latest_price():
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    price, _ = _observed_read(lambda: AlpacaProvider().get_current_price("AAPL"), "alpaca")
+    assert price is not None and price > 0
+
+
 def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
     rows, _ = _observed_read(
@@ -438,6 +444,28 @@ def test_eodhd_free_plan_profile_entitlement_is_explicit():
     with pytest.raises(ProviderResponseError) as exc_info:
         _observed_read(lambda: EODHDProvider().get_instrument_profile("AAPL"), "eodhd")
     assert exc_info.value.status_code == 403
+
+
+def test_marketdata_app_credentialed_option_surface():
+    """Exercise the documented free/trial option expiration and chain paths."""
+
+    _require("MARKETDATA_APP_API_KEY")
+    provider = MarketDataAppProvider()
+    expirations, _ = _observed_read(
+        lambda: provider.list_option_expirations("AAPL"), provider.name
+    )
+    assert expirations
+    expiration = next(
+        (value for value in expirations if value >= date.today()), expirations[-1]
+    )
+    contracts, _ = _observed_read(
+        lambda: provider.fetch_option_chain("AAPL", expiration=expiration), provider.name
+    )
+    assert contracts
+    assert all(contract.underlying_symbol == "AAPL" for contract in contracts)
+    assert all(contract.expiry_date == expiration for contract in contracts)
+    assert all(contract.right in {"call", "put"} for contract in contracts)
+    assert all(contract.strike > 0 for contract in contracts)
 
 
 def test_finnhub_credentialed_company_profile():

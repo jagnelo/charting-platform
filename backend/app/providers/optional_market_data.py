@@ -430,6 +430,94 @@ def _parallel_candle_rows(payload: Any, provider_name: str) -> list[dict[str, An
     ]
 
 
+def _parallel_option_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
+    """Expand MarketData.app's parallel option-chain arrays safely.
+
+    The documented options endpoints return one array per field rather than a
+    list of objects.  Zipping arrays of different lengths would silently
+    discard contracts, so required and present optional arrays must all have
+    the same length before a row is constructed.  Optional columns are filled
+    with ``None`` only when the provider omits the entire column; a partially
+    missing column is malformed provider data.
+    """
+
+    if not isinstance(payload, dict):
+        raise ProviderResponseError(provider_name, "provider returned an invalid option-chain object")
+    status = str(payload.get("s") or "").strip().lower()
+    if status == "no_data":
+        return []
+    if status != "ok":
+        raise ProviderResponseError(
+            provider_name,
+            f"provider returned an invalid option-chain status: {status or '<missing>'}",
+        )
+
+    required_fields = ("optionSymbol", "underlying", "expiration", "side", "strike")
+    optional_fields = (
+        "firstTraded",
+        "dte",
+        "ask",
+        "askSize",
+        "bid",
+        "bidSize",
+        "mid",
+        "last",
+        "volume",
+        "openInterest",
+        "underlyingPrice",
+        "inTheMoney",
+        "intrinsicValue",
+        "extrinsicValue",
+        "updated",
+        "iv",
+        "delta",
+        "gamma",
+        "theta",
+        "vega",
+        "rho",
+    )
+    arrays: dict[str, list[Any]] = {}
+    for field in required_fields:
+        value = payload.get(field)
+        if not isinstance(value, list):
+            raise ProviderResponseError(
+                provider_name, f"provider returned an invalid option {field} array"
+            )
+        arrays[field] = value
+    expected_length = len(arrays[required_fields[0]])
+    if any(len(arrays[field]) != expected_length for field in required_fields[1:]):
+        raise ProviderResponseError(provider_name, "provider returned mismatched option arrays")
+    for field in optional_fields:
+        value = payload.get(field)
+        if value is None:
+            arrays[field] = [None] * expected_length
+        elif not isinstance(value, list) or len(value) != expected_length:
+            raise ProviderResponseError(
+                provider_name, f"provider returned a mismatched option {field} array"
+            )
+        else:
+            arrays[field] = value
+
+    rows: list[dict[str, Any]] = []
+    for index in range(expected_length):
+        row = {field: values[index] for field, values in arrays.items()}
+        symbol = str(row["optionSymbol"] or "").strip()
+        underlying = str(row["underlying"] or "").strip()
+        if not symbol or not underlying:
+            raise ProviderResponseError(
+                provider_name, "provider returned an option without symbol or underlying"
+            )
+        if _option_expiry(row["expiration"]) is None:
+            raise ProviderResponseError(provider_name, "provider returned an invalid option expiration")
+        if _option_right(row["side"]) is None:
+            raise ProviderResponseError(provider_name, "provider returned an invalid option side")
+        strike = _checked_decimal(row["strike"], provider_name, "option strike")
+        if strike is None or strike <= 0:
+            raise ProviderResponseError(provider_name, "provider returned an invalid option strike")
+        rows.append(row)
+    return rows
+
+
 class _RESTProvider:
     """Small shared REST/normalisation layer used by the optional adapters.
 
@@ -1098,6 +1186,104 @@ class MarketDataAppProvider(_RESTProvider):
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(
             seconds=_TF_SECONDS.get(timeframe, 86400) * max(1, limit)
+        )
+
+    def list_option_expirations(self, symbol: str) -> list[date]:
+        """Return the documented expiration dates for one US option root."""
+
+        payload = self._get(f"options/expirations/{symbol.upper()}/")
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid option-expirations object"
+            )
+        status = str(payload.get("s") or "").strip().lower()
+        if status == "no_data":
+            return []
+        if status != "ok":
+            raise ProviderResponseError(
+                self.name,
+                f"provider returned an invalid option-expirations status: {status or '<missing>'}",
+            )
+        values = payload.get("expirations")
+        if not isinstance(values, list):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid option-expirations array"
+            )
+        expirations: set[date] = set()
+        for value in values:
+            parsed = _option_expiry(value)
+            if parsed is None:
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid option expiration"
+                )
+            expirations.add(parsed)
+        return sorted(expirations)
+
+    def fetch_option_chain(
+        self,
+        symbol: str,
+        *,
+        expiration: date | None = None,
+    ) -> list[OptionContractRecord]:
+        """Normalize a bounded MarketData.app option chain.
+
+        MarketData.app bills current option chains per returned contract and
+        historical chains per 1,000 contracts.  The adapter therefore exposes
+        the documented data faithfully, while the provider policy keeps chain
+        routing disabled until a response-dependent credit bound is supplied.
+        """
+
+        params: dict[str, Any] = {}
+        if expiration is not None:
+            params["expiration"] = expiration.isoformat()
+        payload = self._get(f"options/chain/{symbol.upper()}/", params)
+        rows = _parallel_option_rows(payload, self.name)
+        contracts: list[OptionContractRecord] = []
+        for row in rows:
+            parsed_expiration = _option_expiry(row["expiration"])
+            right = _option_right(row["side"])
+            strike = _checked_decimal(row["strike"], self.name, "option strike")
+            if parsed_expiration is None or right is None or strike is None:
+                # ``_parallel_option_rows`` already validates these values;
+                # keep this guard local so a future helper change cannot
+                # construct a partially identified contract.
+                raise ProviderResponseError(self.name, "provider returned an invalid option contract")
+
+            def checked(field: str) -> Decimal | None:
+                return _checked_decimal(row.get(field), self.name, f"option {field}")
+
+            contracts.append(
+                OptionContractRecord(
+                    provider_symbol=str(row["optionSymbol"]).strip(),
+                    underlying_symbol=str(row["underlying"]).strip().upper(),
+                    expiry_date=parsed_expiration,
+                    strike=strike,
+                    right=right,
+                    currency="USD",
+                    bid=checked("bid"),
+                    ask=checked("ask"),
+                    mark=checked("mid"),
+                    last_price=checked("last"),
+                    volume=checked("volume"),
+                    open_interest=checked("openInterest"),
+                    implied_vol=checked("iv"),
+                    delta=checked("delta"),
+                    gamma=checked("gamma"),
+                    theta=checked("theta"),
+                    vega=checked("vega"),
+                    rho=checked("rho"),
+                    observed_at=_timestamp(row.get("updated")),
+                    raw_payload=dict(row),
+                )
+            )
+        return sorted(
+            contracts,
+            key=lambda contract: (
+                contract.expiry_date,
+                contract.strike,
+                contract.right,
+                contract.provider_symbol,
+            ),
         )
 
 
