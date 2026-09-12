@@ -1027,3 +1027,8 @@ Update this handoff at each coherent boundary.
   `40/46` with only the documented Alpha Vantage capacity responses and the
   intentionally deferred Tradier/IBKR/Ondo preflights; Docker-backed
   PostgreSQL/Redis validation remains unavailable in this environment.
+
+- The complete backend unit suite was rerun after the source change and passed
+  `1,925/1,925` in 65.61 seconds with 37 warnings. This is unit evidence only;
+  the required PostgreSQL/Redis full-stack gate remains blocked by the local
+  Docker API. No additional live provider calls were made.
