@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence stale Market Map Python runs
+
+- [x] Fence queued Python breadth/area run responses and polling by the active
+      Market Map run generation and mounted state so stale source/run callbacks
+      cannot publish an old run ID, loading state, or map request (`95ed93ce`).
+- [x] Market Map component coverage passed `39/39`; full frontend Vitest passed
+      `1013/1013`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence dated benchmark coverage races
 
 - [x] Fence Market Map benchmark-family coverage reads by request generation,

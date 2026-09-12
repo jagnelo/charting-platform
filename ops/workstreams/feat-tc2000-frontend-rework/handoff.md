@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence stale Market Map Python runs
+
+Product commit `95ed93ce` fences queued Python breadth/area run responses and
+polling by the active Market Map run generation and mounted state. A slower
+response from a prior source or refresh can no longer publish an old run ID,
+re-enable Python loading, or continue into a stale map request. Focused Market
+Map coverage passed `39/39`, full frontend Vitest passed `1013/1013`, and
+frontend type-check plus diff checks passed. No provider, fallback, visual, or
+acceptance policy changed. The exact gate remains pending behind the Docker
+socket permission failure; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Fence dated benchmark coverage races
 
 Product commit `6096ba0e` extends Market Map request fencing to benchmark-family
