@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Code Library refresh lifecycle
+
+Product commit `53d57c1d` closes a bounded R6 lifecycle gap in the Python
+Library. Refresh responses are now fenced by the mounted component and the
+latest refresh generation, so a late response after unmount or an overlapping
+older request cannot publish stale assets, errors, or loading cleanup. Focused
+Code Library component coverage passed `6/6`; full frontend Vitest passed
+`1019/1019` across 115 files; frontend type-check and production build passed
+with only the existing chunk-size warning; and `git diff --check` passed. No
+provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+policy changed. Continue the next bounded provider/history or compatible
+R4/R2-R7 seam while preserving the six visual state-oracle assertions.
+
 ## 2026-09-12 — Preserve Research Results selection during rerun
 
 Product commit `4939c094` closes a bounded R6 selection race in Research

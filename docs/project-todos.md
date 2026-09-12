@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Code Library refresh lifecycle
+
+- [x] Fence Python Library refresh responses by mounted state and refresh
+      generation so late or superseded responses cannot publish stale assets,
+      errors, or loading cleanup (`53d57c1d`).
+- [x] Focused Code Library coverage passed `6/6`; full frontend Vitest passed
+      `1019/1019` across 115 files; frontend type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Preserve Research Results selection during rerun
 
 - [x] Keep a slower rerun response from replacing a newer user-selected run

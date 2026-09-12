@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Code Library refresh lifecycle
+
+Product commit `53d57c1d` fences Python Library refresh responses by mounted
+state and refresh generation. A late response after unmount or from an older
+overlapping request cannot publish stale assets, errors, or loading cleanup.
+Focused coverage passed `6/6`; full frontend Vitest passed `1019/1019` across
+115 files; type-check, production build, and `git diff --check` passed with
+only the existing chunk-size warning. No provider, fallback, visual, or
+acceptance policy changed. Continue implementation in this worktree only.
+
 ## 2026-09-12 — Preserve Research Results selection during rerun
 
 Product commit `4939c094` fixes a Research Results selection race: a slower
