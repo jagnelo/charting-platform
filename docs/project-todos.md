@@ -10593,8 +10593,10 @@ Historical note: the current provider adapter/quota ledger is maintained in the
 2026-09-05 entry above. This item remains open specifically for credentialed
 activation and richer options/forward-estimate surfaces, not because the basic
 MarketData.app or FMP REST adapters are absent. MarketData.app's bounded
-credentialed candle path is now live-proven; its options/earnings entitlements
-remain separately unverified.
+credentialed candle and options (expirations plus current-chain normalization)
+paths are now live-proven. Its response-dependent chain/quote credit cost is
+intentionally not routed until a reviewed maximum reservation bound exists;
+earnings entitlements remain separately unverified.
 
 Context:
 - The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR,
@@ -10607,16 +10609,19 @@ Context:
   - **Analyst price targets and recommendations**
 
 Low-budget candidates already anticipated in config.py:
-- `MARKETDATA_APP_API_KEY` → MarketData.app — delayed US candles, with options/earnings surfaces requiring entitlement validation
+- `MARKETDATA_APP_API_KEY` → MarketData.app — delayed US candles and current option expirations/chains; response-dependent chain/quote credits require a reviewed reservation bound, and earnings surfaces still require entitlement validation
 - `FMP_API_KEY` → Financial Modeling Prep ($15/month) — forward estimates, analyst data, richer fundamentals
 - IBKR TWS API (free with account) — comprehensive US + international options, futures, real greeks;
   requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
 
 What remains:
 - Credentialed live validation and entitlement review for the remaining optional adapters;
-  Alpaca and MarketData.app bounded reads, plus Dinari Sandbox tokenized reads, are now live-proven.
-- Add/validate a dedicated `OptionChainProvider` with real greeks and a forward-earnings
-  `EventProvider` only when the selected plan/API contract supports those surfaces.
+  Alpaca latest-price/history and MarketData.app candle/options reads, plus Dinari
+  Sandbox tokenized reads, are now live-proven.
+- Keep validating the dedicated `OptionChainProvider`'s real-greeks path and add a
+  forward-earnings `EventProvider` only when the selected plan/API contract supports
+  those surfaces; MarketData.app chain/quote routing must remain disabled until its
+  response-dependent credit bound is reviewed.
 - Validate/activate the FMP stable `earnings-calendar` event surface and add
   analyst-estimate/price-target adapters only when the selected plan/API
   contract supports those surfaces. The earnings-calendar adapter now has

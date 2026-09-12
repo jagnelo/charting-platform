@@ -87,7 +87,20 @@ def test_xstocks_public_asset_and_price():
         lambda: provider.get_tokenized_price(rows[0].symbol), "xstocks"
     )
     assert quote_measurement.http_requests >= 2
-    _assert_asset(priced, require_quote=True)
+    _assert_asset(priced)
+    if priced.price is None and priced.bid is None and priced.ask is None:
+        # xStocks returns an explicit null quote while the selected token's
+        # trading session is closed. Treat that as a valid, observed market
+        # state rather than fabricating a price or failing a transport probe.
+        price_payload = priced.raw_payload.get("price", {})
+        asset_payload = priced.raw_payload.get("asset", {})
+        assert isinstance(price_payload, dict)
+        assert price_payload.get("quote") is None
+        trading = asset_payload.get("trading", {})
+        assert isinstance(trading, dict)
+        assert trading.get("currentPeriod") == "closed"
+    else:
+        _assert_asset(priced, require_quote=True)
 
 
 def test_xstocks_public_corporate_actions():

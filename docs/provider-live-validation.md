@@ -255,6 +255,23 @@ quote/history, news, dividend, and split case. Both refreshes used the
 operator-owned environment and retained only aggregate transport telemetry
 outside Git.
 
+The same credentialed refresh also passed the bounded Alpaca latest-price probe
+and the MarketData.app options surface probe (expirations plus a current chain),
+2/2 focused cases. The options adapter validates the provider's parallel-array
+response shape and preserves contract fields/Greeks. MarketData.app documents
+response-dependent credit charging for chain/quote reads, so the implementation
+deliberately leaves those operations outside routing until a reviewed maximum
+reservation bound is supplied; a green transport probe is not quota admission.
+
+The subsequent complete matrix rerun at 2026-09-12 collected 39 cases and passed
+35 with positive transport observations. The four honest outcomes were
+Alpha Vantage's documented 25-requests/day capacity response for IPO-calendar
+and exact credential preflights for intentionally deferred Tradier, IBKR, and
+Ondo. The xStocks quote endpoint returned an explicit null quote while the
+selected token reported `currentPeriod=closed`; the live test records that
+provider state and does not fabricate a price. The wrapper made no acceptance
+claim because the deferred credential and provider-governance gates remain open.
+
 A provider may
 have a green live probe and remain non-routable when any external constraint
 cannot yet be accounted safely. Every registered synchronous adapter now reports
@@ -336,12 +353,13 @@ cache-aware: the cache-populating read must produce transport evidence, while
 subsequent locally served pages are validated for completeness without being
 misreported as new network calls.
 
-The still-missing variables are `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
-`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` was
-supplied as a temporary non-secret override for the latest local run, but
-remains an explicit per-environment configuration requirement. Until the three
-credential domains are supplied and their cases pass, the complete manifest
-matrix remains an open acceptance gate.
+The current operator environment has Alpaca and MarketData.app credentials and
+an EDGAR contact, and their bounded probes pass. The intentionally deferred
+credential domains are `TRADIER_API_KEY`, `IBKR_READ_ONLY_URL` plus
+`IBKR_READ_ONLY_SESSION_COOKIE`, and `ONDO_GLOBAL_MARKETS_API_KEY`; their live
+cases remain explicit preflight outcomes rather than skips. Every deployment,
+CI environment, and isolated worktree still needs its own approved secret
+distribution and EDGAR contact configuration.
 
 Marketstack history and discovery are intentionally separate gates: a key is
 enough for the bounded EOD history probe, while venue discovery also requires
