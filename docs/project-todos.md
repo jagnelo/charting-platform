@@ -27,6 +27,17 @@
       `as_of` preservation. The full backend unit suite is green; the
       database-backed regression remains subject to Docker readiness.
 
+### 2026-09-12 — Benchmark-family role ranking freshness boundary
+
+- [x] Apply the persisted OHLCV freshness gate to current benchmark-family
+      role rankings. Expired role bars are withheld, rankings and performance
+      cells are not produced from them, and explicit `stale_data` warnings plus
+      freshness accounting identify the affected role; historical `as_of`
+      ranking remains unchanged.
+- [x] Close the existing database-backed regression expectation for stale
+      `equal_weight` ranking data. Focused and full unit checks are green; the
+      integration case remains blocked only by Docker readiness.
+
 ### 2026-09-12 — Credentialed live confirmation for newly supplied providers
 
 - [x] Run bounded live integration cases with the owner-managed runtime

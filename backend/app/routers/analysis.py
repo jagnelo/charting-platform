@@ -5177,6 +5177,14 @@ async def benchmark_family_ranking(
         ),
         as_of,
     )
+    ranking_ids = [instrument.id for instrument in instrument_by_role.values()]
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, ranking_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     role_cells: dict[str, dict[str, AnalysisCell]] = {}
     rows: list[BenchmarkFamilyRankingRoleOut] = []
     for role in ("cap_weight", "equal_weight", "value", "growth"):
@@ -5200,6 +5208,26 @@ async def benchmark_family_ranking(
                             message="The mapped role has no canonical instrument or bars.",
                         )
                     ],
+                )
+            )
+            continue
+        if instrument.id in stale_ids:
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; ranking values were withheld.",
+                instrument_id=instrument.id,
+            )
+            role_cells[role] = {}
+            warnings.append(warning)
+            rows.append(
+                BenchmarkFamilyRankingRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    performance={},
+                    warnings=[warning],
                 )
             )
             continue
@@ -5242,7 +5270,7 @@ async def benchmark_family_ranking(
     for rank, row in enumerate(ranked, start=1):
         row.rank = rank
     freshness, freshness_detail = await _batch_freshness(
-        db, [instrument.id for instrument in instrument_by_role.values()], timeframe, adjusted
+        db, ranking_ids, timeframe, adjusted
     )
     return BenchmarkFamilyRankingOut(
         family_key=family_key,
