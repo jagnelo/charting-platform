@@ -503,6 +503,53 @@ async def test_distinct_identity_dimension_is_durable_and_not_request_counted(db
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_units", [True, 1.5, "1", -1])
+async def test_contract_reservation_rejects_malformed_dimension_units(db, invalid_units):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="invalid-dimension-units-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_source="unit-test provider contract",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test provider contract",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="invalid-dimension-units-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+
+    result = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        dimension_units={"requests_per_minute": invalid_units},
+        now=datetime(2026, 9, 9, 12, 0, tzinfo=UTC),
+    )
+
+    assert result is None
+    assert db.query(ProviderQuotaWindow).count() == 0
+
+
+@pytest.mark.asyncio
 async def test_rolling_quota_reservation_accumulates_across_second_buckets(db):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(name="rolling-provider", is_active=True)

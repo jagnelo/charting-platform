@@ -39,6 +39,40 @@ async def test_durable_quota_reservation_rejects_over_limit(db):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("units", 0),
+        ("units", -1),
+        ("units", True),
+        ("units", 1.5),
+        ("limit_units", 0),
+        ("limit_units", True),
+        ("limit_units", 1.5),
+        ("window_seconds", 0),
+        ("window_seconds", True),
+        ("window_seconds", 1.5),
+    ],
+)
+async def test_durable_quota_reservation_rejects_malformed_contract_values(db, field, value):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name=f"invalid-quota-{field}", is_active=True)
+    db.add(source)
+    db.flush()
+    arguments = {
+        "data_source_id": source.id,
+        "capability": "price_history",
+        "units": 1,
+        "limit_units": 3,
+        "window_seconds": 60,
+    }
+    arguments[field] = value
+
+    assert await reserve_provider_quota(async_db, **arguments) is None
+    assert db.query(ProviderQuotaWindow).count() == 0
+
+
+@pytest.mark.asyncio
 async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(name="calendar-quota-test", is_active=True)

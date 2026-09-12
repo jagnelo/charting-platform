@@ -206,7 +206,20 @@ async def reserve_provider_quota(
 ) -> ProviderQuotaWindow | None:
     """Atomically reserve units in a durable fixed or rolling window."""
 
-    if units <= 0 or limit_units <= 0:
+    # These values are provider-contract units, not user-facing quantities.
+    # Reject malformed values instead of relying on implicit int coercion or
+    # allowing booleans to masquerade as one unit.
+    if (
+        isinstance(units, bool)
+        or not isinstance(units, int)
+        or units <= 0
+        or isinstance(limit_units, bool)
+        or not isinstance(limit_units, int)
+        or limit_units <= 0
+        or isinstance(window_seconds, bool)
+        or not isinstance(window_seconds, int)
+        or window_seconds <= 0
+    ):
         return None
     effective_quota_group = str(quota_group or capability).strip() or str(capability)
     current = now or datetime.now(UTC)
@@ -349,6 +362,10 @@ async def reserve_provider_contract(
 ) -> list[ProviderQuotaWindow] | None:
     """Reserve every documented quota dimension or none of them."""
 
+    if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+        return None
+    if dimension_units is not None and not isinstance(dimension_units, dict):
+        return None
     if not policy_has_known_quota(resolved.policy):
         return None
     windows: list[ProviderQuotaWindow] = []
@@ -372,11 +389,17 @@ async def reserve_provider_contract(
         if is_distinct_identity and not usage_identity:
             return None
         raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
-        if int(raw_reserved_units) <= 0:
+        if (
+            isinstance(raw_reserved_units, bool)
+            or not isinstance(raw_reserved_units, int)
+            or raw_reserved_units < 0
+        ):
+            return None
+        if raw_reserved_units == 0:
             continue
         # One invocation occupies one concurrent slot regardless of how many
         # request/credit units the provider-specific operation costs.
-        reserved_units = 1 if is_in_flight else max(1, int(raw_reserved_units))
+        reserved_units = 1 if is_in_flight else raw_reserved_units
         window_start, rolling = _window_start_for_dimension(dimension, reset=reset, now=now)
         window = await reserve_provider_quota(
             db,
@@ -398,8 +421,10 @@ async def reserve_provider_contract(
                 # Roll back the actual reservation amount. In-flight
                 # dimensions always reserve one slot, independent of an
                 # operation's request/credit workload units.
-                prior_units = 1 if prior_name in in_flight_dimensions else max(
-                    0, int((dimension_units or {}).get(prior_name, units))
+                prior_units = (
+                    1
+                    if prior_name in in_flight_dimensions
+                    else (dimension_units or {}).get(prior_name, units)
                 )
                 if prior_name in distinct_identity_dimensions:
                     # The identity row is intentionally retained, so convert
