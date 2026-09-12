@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Reset stale Market Map clone state
+
+Product commit `cfc31024` closes the source-switch follow-on in Market Map.
+Changing the active universe now clears invalidated clone busy, message, error,
+and retry state, so a clone canceled by a source change cannot leave the next
+universe disabled. Focused Market Map coverage passed `47/47`; full frontend
+Vitest passed `1037/1037` across 115 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. No provider, fallback, visual baseline, mask, threshold, skip, or
+acceptance policy changed.
+
+## 2026-09-12 — Exact stale-state gate rechecked
+
+At product tip `cfc31024`, the exact branch-scoped gate passed git-diff,
+workstream validation (30 records), dependency resolution, migration
+head/compatibility, frontend dependency preparation, Ruff, formatting, and
+TypeScript. `backend-coverage` then exited 2 after the fixed 180-second Docker
+readiness window because Docker returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Market Map source cloning
 
 Product commit `8d78eb61` closes a bounded R6 lifecycle gap in Market Map's
