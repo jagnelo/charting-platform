@@ -1,9 +1,9 @@
 """Backend-only market-data governance and diagnostics endpoints."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
@@ -18,6 +18,7 @@ from app.models.market_data_foundation import (
     MarketCoverageSnapshot,
     MarketDataAnomaly,
     MarketEvent,
+    MarketRefreshJob,
     MarketSeries,
     MarketUniverseLifecycleObservation,
     MarketUniverseReconciliationRun,
@@ -33,6 +34,74 @@ from app.models.user import User
 from app.services.market_data_monitoring import build_shadow_report
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
+
+
+def _refresh_lease_expired(job: MarketRefreshJob, now: datetime) -> bool:
+    if job.status != "leased" or job.leased_until is None:
+        return False
+    lease_until = job.leased_until
+    if lease_until.tzinfo is None:
+        lease_until = lease_until.replace(tzinfo=UTC)
+    return lease_until < now
+
+
+@router.get("/refresh/queue")
+async def get_refresh_queue_status(
+    status: str | None = Query(default=None),
+    capability: str | None = Query(default=None),
+    instrument_id: int | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose bounded refresh-queue state without returning lease ownership tokens."""
+
+    filters = []
+    if status:
+        filters.append(MarketRefreshJob.status == status)
+    if capability:
+        filters.append(MarketRefreshJob.capability == capability)
+    if instrument_id is not None:
+        filters.append(MarketRefreshJob.instrument_id == instrument_id)
+
+    count_query = select(MarketRefreshJob.status, func.count(MarketRefreshJob.id)).group_by(
+        MarketRefreshJob.status
+    )
+    if filters:
+        count_query = count_query.where(*filters)
+    count_rows = (await db.execute(count_query)).all()
+    counts = {job_status: int(count) for job_status, count in count_rows}
+
+    query = (
+        select(MarketRefreshJob)
+        .order_by(MarketRefreshJob.priority, MarketRefreshJob.next_attempt_at, MarketRefreshJob.id)
+        .limit(limit)
+    )
+    if filters:
+        query = query.where(*filters)
+    rows = (await db.execute(query)).scalars().all()
+    now = datetime.now(UTC)
+    return {
+        "counts": counts,
+        "jobs": [
+            {
+                "id": job.id,
+                "request_key": job.request_key,
+                "instrument_id": job.instrument_id,
+                "capability": job.capability,
+                "timeframe": job.timeframe,
+                "priority": job.priority,
+                "status": job.status,
+                "attempts": job.attempts,
+                "next_attempt_at": job.next_attempt_at,
+                "leased_until": job.leased_until,
+                "lease_expired": _refresh_lease_expired(job, now),
+                "last_error": job.last_error,
+                "metadata": job.metadata_payload,
+            }
+            for job in rows
+        ],
+    }
 
 
 @router.get("/tokenized-assets")

@@ -11,6 +11,10 @@
       that avoids retrying after lease loss. Focused queue/worker coverage
       passes 32/32; the full backend unit suite passes 1733/1733 with Ruff,
       compilation, and diff checks clean.
+- [x] Expose bounded admin-only `/api/v1/market-data/refresh/queue` diagnostics
+      with status counts, lease-expiry/degradation state, retry metadata, and
+      last errors while deliberately omitting lease tokens. The API contract
+      regression is present; its PostgreSQL-backed execution is Docker-gated.
 
 ### 2026-09-12 — Dinari Sandbox default host alignment
 

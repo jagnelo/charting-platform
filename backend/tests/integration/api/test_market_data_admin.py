@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from app.models.data_source import DataSource
+from app.models.market_data_foundation import MarketRefreshJob
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
@@ -35,6 +36,32 @@ def test_capacity_events_are_admin_only_and_expose_reset_evidence(client, admin_
     assert row["status_code"] == 429
     assert row["scope"] == "api_key"
     assert row["response_headers"]["retry-after"] == "30"
+
+
+def test_refresh_queue_status_is_admin_only_and_hides_lease_tokens(
+    client, admin_headers, db, instrument
+):
+    assert client.get("/api/v1/market-data/refresh/queue").status_code == 401
+
+    db.add(
+        MarketRefreshJob(
+            request_key=f"admin-refresh:{instrument.id}",
+            capability="price_history",
+            instrument_id=instrument.id,
+            timeframe="D1",
+            next_attempt_at=datetime.now(UTC),
+            metadata_payload={"source": "integration"},
+        )
+    )
+    db.commit()
+
+    response = client.get("/api/v1/market-data/refresh/queue", headers=admin_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["counts"]["queued"] == 1
+    row = next(item for item in payload["jobs"] if item["instrument_id"] == instrument.id)
+    assert row["status"] == "queued"
+    assert "lease_token" not in row
 
 
 def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
