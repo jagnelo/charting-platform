@@ -1033,3 +1033,17 @@ terminal, so no additional continuation request was needed. Fixture coverage
 passed `64/64`, and the complete backend unit suite passed `1,910/1,910`.
 This remains transport/schema evidence only; Dinari quota, fees, eligibility,
 display/cache, redistribution, and commercial routing gates remain fail-closed.
+
+The superseding bounded credentialed rerun on 2026-09-12 passed all `10/10`
+selected provider tests after the Dinari UUID miss-safety correction: SEC EDGAR
+profile, filing/facts, and complete ticker/exchange-directory pagination passed
+`3/3` (5 operations, 6 HTTP requests); Alpaca paper daily/intraday/latest/assets
+and corporate-action transport passed `4/4` (5 operations, 5 HTTP requests);
+MarketData.app option and five-minute history passed `2/2` (4 operations, 4
+HTTP requests); and Dinari Sandbox metadata, fair price, quote, all four
+documented history windows, news, dividends, and splits passed `1/1` (12
+operations, 23 HTTP requests). The network-enabled receipt was merged into the
+owner-managed ledger with `accepted=4`, `duplicates=0`, `rejected=0`; the
+earlier sandbox-DNS attempt recorded zero requests and was not merged. This is
+positive transport/schema evidence only: no provider quota, account-plan,
+commercial, redistribution, or response-dependent routing gate was promoted.

@@ -990,6 +990,16 @@ progress:
       coverage passes 65/65 and the complete backend unit suite passes
       1,911/1,911. Source commit `51fed55b` is pushed; no frontend or
       ETF-provider files changed.
+    - >-
+      A superseding network-enabled credentialed rerun after the Dinari UUID
+      correction passed all 10/10 selected provider tests: SEC EDGAR 3/3
+      (5 operations/6 requests), Alpaca paper 4/4 (5/5), MarketData.app 2/2
+      (4/4), and Dinari Sandbox 1/1 (12 operations/23 requests). Only the
+      successful aggregate receipt was merged into the owner-managed ledger
+      (accepted=4, duplicates=0, rejected=0); the earlier sandbox-DNS attempt
+      measured zero requests and was excluded. This is transport/schema
+      evidence only, so provider quota, plan, commercial, redistribution, and
+      response-dependent routing gates remain fail-closed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-

@@ -16282,3 +16282,18 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Complete Dinari catalogue enumeration and provider quota/terms review
       before routing admission; callers must advance the documented cursor
       explicitly when resolving UUIDs beyond the first page.
+
+### 2026-09-12 — Superseding credentialed provider rerun
+
+- [x] Re-run the bounded live suite after the Dinari UUID miss-safety correction
+      using the operator-configured Alpaca paper, SEC EDGAR, MarketData.app, and
+      Dinari Sandbox credentials. All `10/10` selected tests passed: EDGAR `3/3`
+      (5 operations/6 requests), Alpaca `4/4` (5/5), MarketData.app `2/2` (4/4),
+      and Dinari `1/1` (12 operations/23 requests).
+- [x] Merge only the successful aggregate-only receipt into the owner-managed
+      cross-session ledger (`accepted=4`, `duplicates=0`, `rejected=0`). The
+      preceding network-sandbox attempt measured zero requests and was excluded;
+      no credentials or provider payloads were persisted.
+- [ ] Keep provider quota, account-plan, commercial, redistribution, and
+      response-dependent routing gates fail-closed until their exact reviewed
+      contracts are supplied; this live rerun is transport/schema evidence only.

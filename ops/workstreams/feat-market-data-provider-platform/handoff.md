@@ -935,3 +935,18 @@ Update this handoff at each coherent boundary.
   passes `1,911/1,911`. Source commit `51fed55b` is pushed; no frontend or
   ETF-provider files changed. Dinari quota, terms, and routing admission remain
   fail-closed.
+
+- A superseding network-enabled rerun on 2026-09-12 passed all `10/10` selected
+  credentialed provider tests after the Dinari UUID correction. SEC EDGAR
+  profile, filing/facts, and complete ticker/exchange-directory pagination
+  passed `3/3` (5 operations/6 requests); Alpaca paper daily/intraday/latest/
+  assets/corporate-actions passed `4/4` (5/5); MarketData.app options and
+  five-minute history passed `2/2` (4/4); and Dinari Sandbox metadata, fair
+  price, quote, four history windows, news, dividends, and splits passed `1/1`
+  (12 operations/23 requests). The successful aggregate-only receipt was merged
+  into `/Users/jagnelo/.config/charting-platform/provider-live-usage.jsonl`
+  (`accepted=4`, `duplicates=0`, `rejected=0`). The preceding sandbox-DNS
+  attempt measured zero requests and was excluded. Provider quota, plan,
+  commercial, US-eligibility, redistribution, and response-dependent routing
+  gates remain independently fail-closed; no credentials or payloads entered
+  Git.
