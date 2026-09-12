@@ -9,6 +9,7 @@ selection and provider I/O remain worker responsibilities.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -131,6 +132,9 @@ async def preflight_ohlcv(
     calendar: CalendarName | None = None,
     queue_repairs: bool = False,
     now: datetime | None = None,
+    adjusted: bool | None = None,
+    cached_bars: Mapping[int, Sequence[OHLCVBar]] | None = None,
+    minimum_bars: int | None = None,
 ) -> EvaluatorPreflight:
     """Assess exact local coverage and optionally enqueue missing slices.
 
@@ -153,22 +157,36 @@ async def preflight_ohlcv(
             observed_at=observed_at,
         )
 
-    statement = (
-        select(OHLCVBar)
-        .where(
-            OHLCVBar.instrument_id.in_(ordered_ids),
-            OHLCVBar.timeframe == timeframe,
+    if cached_bars is None:
+        statement = (
+            select(OHLCVBar)
+            .where(
+                OHLCVBar.instrument_id.in_(ordered_ids),
+                OHLCVBar.timeframe == timeframe,
+            )
+            .order_by(OHLCVBar.instrument_id.asc(), OHLCVBar.ts.asc())
         )
-        .order_by(OHLCVBar.instrument_id.asc(), OHLCVBar.ts.asc())
-    )
-    if date_from is not None:
-        statement = statement.where(OHLCVBar.ts >= date_from)
-    if date_to is not None:
-        statement = statement.where(OHLCVBar.ts <= date_to)
-    rows = list((await db.execute(statement)).scalars().all())
-    bars_by_instrument: dict[int, list[OHLCVBar]] = defaultdict(list)
-    for row in rows:
-        bars_by_instrument[int(row.instrument_id)].append(row)
+        if date_from is not None:
+            statement = statement.where(OHLCVBar.ts >= date_from)
+        if date_to is not None:
+            statement = statement.where(OHLCVBar.ts <= date_to)
+        if adjusted is not None:
+            statement = statement.where(OHLCVBar.is_adjusted.is_(adjusted))
+        rows = list((await db.execute(statement)).scalars().all())
+        bars_by_instrument: dict[int, list[OHLCVBar]] = defaultdict(list)
+        for row in rows:
+            bars_by_instrument[int(row.instrument_id)].append(row)
+    else:
+        bars_by_instrument = {
+            instrument_id: [
+                bar
+                for bar in cached_bars.get(instrument_id, ())
+                if (date_from is None or _as_utc(bar.ts) >= _as_utc(date_from))
+                and (date_to is None or _as_utc(bar.ts) <= _as_utc(date_to))
+                and (adjusted is None or bool(bar.is_adjusted) is adjusted)
+            ]
+            for instrument_id in ordered_ids
+        }
 
     items: list[EvaluatorCoverageItem] = []
     for instrument_id in ordered_ids:
@@ -202,6 +220,17 @@ async def preflight_ohlcv(
             covered_start = assessment.covered_start
             covered_end = assessment.covered_end
             bar_count = assessment.bar_count
+
+        if (
+            status == CoverageStatus.READY
+            and minimum_bars is not None
+            and bar_count < max(1, minimum_bars)
+        ):
+            status = CoverageStatus.PARTIAL
+            explanation = (
+                f"Only {bar_count} local bars are available; at least "
+                f"{minimum_bars} are required by this evaluator."
+            )
 
         items.append(
             EvaluatorCoverageItem(

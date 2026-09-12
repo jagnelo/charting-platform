@@ -12,9 +12,14 @@
       default behavior is read-only. Focused preflight coverage passes 4/4 and
       the complete Strategy Lab API suite passes 20/20. No frontend or ETF
       provider-adapter files changed.
-- [ ] Extend the same preflight contract to breadth snapshots and any future
-      non-Strategy signal engines, then persist evaluator run status separately
-      from the existing Strategy Lab `completed` transport status.
+- [x] Extend the same preflight contract to the current reusable `/breadth`
+      snapshot. It now evaluates the already-loaded local bars against the
+      declared condition's required history, withholds unresolved members, and
+      returns the serialized per-instrument readiness report without making a
+      provider call. Focused stale/current breadth regressions pass 2/2.
+- [ ] Extend the contract to benchmark-family breadth, future non-Strategy
+      signal engines, and persist evaluator run status separately from the
+      existing Strategy Lab `completed` transport status.
 
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
 

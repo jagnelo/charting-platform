@@ -128,3 +128,26 @@ async def test_preflight_is_partial_when_only_some_instruments_are_ready(
     assert result.status == "partial"
     assert result.ready_instrument_ids == frozenset({instrument.id})
     assert [item.status.value for item in result.items] == ["ready", "missing"]
+
+
+@pytest.mark.asyncio
+async def test_preflight_accepts_cached_bars_and_enforces_minimum_history(db, instrument):
+    start = datetime(2026, 5, 1, tzinfo=UTC)
+    cached = _bars(instrument.id, start, 2)
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(db),
+        evaluator="test_cached",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.D1,
+        date_from=None,
+        date_to=None,
+        cached_bars={instrument.id: cached},
+        minimum_bars=3,
+        now=start + timedelta(days=2),
+    )
+
+    assert result.status == "deferred"
+    assert result.items[0].status.value == "partial"
+    assert result.items[0].bar_count == 2
+    assert "at least 3" in result.items[0].explanation

@@ -130,6 +130,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
@@ -8187,6 +8188,32 @@ async def promote_python_breadth_run_to_study(
     return asset
 
 
+def _breadth_required_bars(condition: Mapping[str, object]) -> int:
+    """Return the minimum local bars needed by a breadth condition tree."""
+
+    maximum = 2
+
+    def visit(node: object) -> None:
+        nonlocal maximum
+        if not isinstance(node, Mapping):
+            if isinstance(node, list):
+                for child in node:
+                    visit(child)
+            return
+        params = node.get("params")
+        if isinstance(params, Mapping):
+            for key in ("period", "lookback", "window", "fast_period", "slow_period"):
+                value = params.get(key)
+                if isinstance(value, int | float) and not isinstance(value, bool):
+                    maximum = max(maximum, int(value) + 1)
+            visit(params.get("conditions"))
+        visit(node.get("conditions"))
+        visit(node.get("condition"))
+
+    visit(condition)
+    return max(3, maximum)
+
+
 @router.post("/breadth", response_model=BreadthDefinitionOut)
 async def evaluate_generic_breadth(
     definition: BreadthDefinitionRequest,
@@ -8397,6 +8424,21 @@ async def evaluate_generic_breadth(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="generic_breadth",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=definition.as_of,
+        adjusted=definition.adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_breadth_required_bars(condition_definition.model_dump(mode="json")),
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
+    for instrument_id in member_ids:
+        if instrument_id not in preflight_ready_ids:
+            bars_by_id[instrument_id] = []
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
@@ -8545,6 +8587,7 @@ async def evaluate_generic_breadth(
             if int(aggregate["requested_count"]) + len(universe_warnings)
             else 0.0
         ),
+        coverage_preflight=coverage_preflight.to_dict(),
         members=member_outputs,
         exclusions=warnings,
     )

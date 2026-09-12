@@ -2658,6 +2658,8 @@ class TestWorkspaces:
         assert generic_payload["eligible_count"] == 0
         assert generic_payload["coverage"] == 0
         assert generic_payload["members"][0]["warning"]["code"] == "stale_data"
+        assert generic_payload["coverage_preflight"]["status"] == "deferred"
+        assert generic_payload["coverage_preflight"]["ready_instrument_count"] == 0
         assert any(item["code"] == "stale_data" for item in generic_payload["exclusions"])
 
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
@@ -2698,6 +2700,8 @@ class TestWorkspaces:
         assert payload["coverage"] == 1
         assert payload["members"][0]["symbol"] == instrument.symbol
         assert payload["members"][0]["value"] in {True, False}
+        assert payload["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["ready_instrument_count"] == 1
 
         saved_condition = client.put(
             "/api/v1/workspaces/library/conditions/breadth-sma",
