@@ -250,6 +250,45 @@ async def test_edgar_directory_scan_create_missing_materializes_only_issuers(db,
 
 
 @pytest.mark.asyncio
+async def test_edgar_directory_scan_does_not_mutate_existing_issuer_name(db, monkeypatch):
+    existing = _issuer(42)
+    existing.legal_name = "Historical Legal Name"
+    db.add(existing)
+    db.flush()
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        provider = SimpleNamespace(
+            discover_issuer_ciks_page=lambda offset, *, limit: {
+                "total": 1,
+                "offset": offset,
+                "limit": limit,
+                "issuers": [
+                    {"cik": "0000000042", "name": "New Directory Name", "tickers": ["EXM"]}
+                ],
+            }
+        )
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_refresh(_db, _ciks, **_kwargs):
+        return {"status": "no_events", "events": 0, "failures": 0, "issuers": []}
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+
+    result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db),
+        max_issuers=1,
+        max_submissions_requests=1,
+        issuer_materialization_mode="create_missing",
+    )
+
+    issuer = db.execute(select(Issuer).where(Issuer.cik == "0000000042")).scalar_one()
+    assert result["issuers_materialized"] == 0
+    assert result["existing_issuers"] == 1
+    assert issuer.legal_name == "Historical Legal Name"
+
+
+@pytest.mark.asyncio
 async def test_edgar_directory_scan_materialization_rejects_missing_name(db, monkeypatch):
     async def fake_execute(_db, _capability, _operation, **kwargs):
         provider = SimpleNamespace(
