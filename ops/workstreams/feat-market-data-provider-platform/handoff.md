@@ -986,3 +986,12 @@ Update this handoff at each coherent boundary.
   open. The parallel `feat/etf-holdings-constituents` branch remains untouched;
   only the generic issuer/identity surface is shared and must be reconciled at
   staging integration.
+
+- The SEC complete unique-CIK live probe now resets the provider's in-process
+  directory cache before measuring its first request, so the case is isolated
+  from preceding SEC probes. The bounded credentialed SEC/Alpaca/MarketData.app/
+  Dinari selection passed `9/9` after this correction. The complete backend unit
+  profile passed `1,923/1,923` with 69.68% coverage; running all tests without
+  Docker still produces setup errors only for PostgreSQL/Redis-backed integration
+  fixtures because the local Docker API is unavailable. No routing entitlement
+  or provider policy changed, and only aggregate usage was written outside Git.

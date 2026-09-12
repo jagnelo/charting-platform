@@ -16317,3 +16317,18 @@ The current source also passes the focused authenticated top-down browser slice 
       directory, not a tradability/listing-date guarantee. Production SEC
       request budgeting, canonical issuer materialization policy, and the
       broader NMS/OTC reconciliation and provider-terms gates remain open.
+
+### 2026-09-12 — Isolated SEC directory live probe
+
+- [x] Make the complete unique-CIK SEC directory live case reset its provider
+      cache before measuring transport. This keeps the case independently
+      runnable after other SEC probes and prevents a cache hit from being
+      misreported as missing live evidence.
+- [x] Re-run the bounded credentialed provider cases after the isolation fix:
+      SEC EDGAR, Alpaca paper, MarketData.app, and Dinari Sandbox passed `9/9`.
+      The complete backend unit suite passed `1,923/1,923` with 69.68%
+      coverage; the all-test command still reports only the known Docker API
+      500 integration setup errors when PostgreSQL/Redis containers are absent.
+- [ ] Keep provider quota, account-plan, terms, redistribution, Docker,
+      deployment, and shadow gates unchanged; this test correction adds no
+      routing entitlement and persisted only aggregate usage outside Git.
