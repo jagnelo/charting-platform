@@ -1154,3 +1154,11 @@ Update this handoff at each coherent boundary.
   passes `1,949/1,949` with 37 warnings. Ruff, compileall, and diff checks pass.
   No provider calls or credentials were used, and no frontend or ETF-provider
   files changed.
+
+- Source checkpoint `c1c505ee` removes fractional operation-cost rounding.
+  Reviewed operation costs and caller overrides must be positive integral
+  request/credit/weight units; reservation and settlement no longer apply a
+  one-unit fallback. Focused quota coverage passes `93/93` selected cases and
+  the complete backend unit suite passes `1,953/1,953` with 37 warnings. Ruff,
+  compileall, and diff checks pass. No provider calls or credentials were
+  used, and no frontend or ETF-provider files changed.
