@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence stale Market Map snapshot mutations
+
+- [x] Fence Market Map snapshot save/delete responses by shared generation,
+      mounted state, current map cache, and selected snapshot so stale
+      mutations cannot overwrite a newer map (`0e04d489`).
+- [x] Market Map component coverage passed `42/42`; full frontend Vitest passed
+      `1016/1016`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence stale Market Map snapshots
 
 - [x] Fence Market Map snapshot loads by selection generation, current

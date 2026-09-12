@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence stale Market Map snapshot mutations
+
+Product commit `0e04d489` closes a bounded R6 snapshot-mutation race. Save and
+delete operations now share the snapshot generation fence and verify mounted
+state plus the current map cache or snapshot selection before applying a late
+response. A save started for an older map can no longer select or label that
+snapshot after a newer map refresh completes.
+
+The focused Market Map component suite passed `42/42`; the full frontend
+Vitest suite passed `1016/1016`; frontend type-check and `git diff --check`
+passed. Existing expected watchlist-store failure-path stderr remains confined
+to its tests. No provider, fallback, visual baseline, mask, threshold, skip,
+or acceptance policy changed. The exact branch gate remains pending behind the
+Docker socket permission failure; continue the next bounded provider/history
+or compatible R4/R2-R7 seam at this coherent tip.
+
 ## 2026-09-12 — Fence stale Market Map snapshots
 
 Product commit `fc012ad0` closes a bounded R6 snapshot-selection race in the

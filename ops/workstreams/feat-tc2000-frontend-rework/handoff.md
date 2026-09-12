@@ -2,6 +2,17 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence stale Market Map snapshot mutations
+
+Product commit `0e04d489` fences Market Map snapshot save/delete responses by
+shared generation, mounted state, current map cache, and selected snapshot. A
+save begun for an older map can no longer select or label that snapshot after a
+newer refresh completes. Focused Market Map coverage passed `42/42`, full
+frontend Vitest passed `1016/1016`, and frontend type-check plus diff checks
+passed. No provider, fallback, visual, or acceptance policy changed. The exact
+gate remains pending behind the Docker socket permission failure; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence stale Market Map snapshots
 
 Product commit `fc012ad0` fences Market Map snapshot loads by selection
