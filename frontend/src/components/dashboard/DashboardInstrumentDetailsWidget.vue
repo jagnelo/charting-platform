@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import type { Instrument } from '@/types'
@@ -34,6 +34,7 @@ const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
 let refreshSeq = 0
+let mounted = false
 
 const rows = computed(() => {
   const detail = instrument.value?.equity_detail
@@ -80,20 +81,24 @@ async function refresh() {
   error.value = null
   try {
     const target = await resolveTarget(symbol.value)
-    if (seq !== refreshSeq) return
-    instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+    if (!mounted || seq !== refreshSeq) return
+    const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+    if (!mounted || seq !== refreshSeq) return
+    instrument.value = loadedInstrument
     if (
       !instrument.value.is_synthetic
       && (!instrument.value.stats?.week52_high || !instrument.value.stats?.week52_low)
     ) {
       await api.get(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 260 })
-      if (seq !== refreshSeq) return
-      instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+      if (!mounted || seq !== refreshSeq) return
+      const refreshedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+      if (!mounted || seq !== refreshSeq) return
+      instrument.value = refreshedInstrument
     }
   } catch (e: any) {
-    if (seq === refreshSeq) error.value = e?.message ?? 'Instrument unavailable'
+    if (mounted && seq === refreshSeq) error.value = e?.message ?? 'Instrument unavailable'
   } finally {
-    if (seq === refreshSeq) loading.value = false
+    if (mounted && seq === refreshSeq) loading.value = false
   }
 }
 
@@ -102,7 +107,14 @@ async function resolveTarget(target: string) {
 }
 
 watch(symbol, refresh)
-onMounted(refresh)
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshSeq += 1
+})
 </script>
 
 <style scoped>
