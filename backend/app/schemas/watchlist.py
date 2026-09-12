@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class WatchlistCreate(BaseModel):
@@ -26,6 +28,10 @@ class WatchlistItemRead(BaseModel):
     symbol: str | None = None
     name: str | None = None
 
+    @field_serializer("added_at", "left_screener_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class WatchlistItemUpdate(BaseModel):
     flagged: bool | None = None
@@ -47,6 +53,10 @@ class WatchlistRead(BaseModel):
     position: int = 0
     created_at: datetime
     items: list[WatchlistItemRead] = []
+
+    @field_serializer("last_screener_run_at", "created_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 WatchlistSourceKind = str
@@ -75,6 +85,10 @@ class WatchlistSourceRead(BaseModel):
     known_at: datetime | None = None
     composition_date: str | None = None
 
+    @field_serializer("effective_at", "known_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class SavedExplicitWatchlistSourceCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
@@ -91,6 +105,10 @@ class WatchlistSourceMemberRead(BaseModel):
     source: str | None = None
     effective_at: datetime | None = None
     known_at: datetime | None = None
+
+    @field_serializer("effective_at", "known_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class WatchlistSourceResolvedRead(BaseModel):
@@ -140,6 +158,10 @@ class WatchlistSourceHistoryRefreshSummary(BaseModel):
     sources: list[WatchlistSourceHistoryRefreshSourceOut] = Field(default_factory=list)
     message: str | None = None
 
+    @field_serializer("as_of")
+    def serialize_as_of(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class WatchlistHistoryRefreshRunOut(BaseModel):
     """Durable status for a bounded canonical-source history refresh."""
@@ -164,6 +186,10 @@ class WatchlistHistoryRefreshRunOut(BaseModel):
     finished_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("as_of", "started_at", "finished_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class WatchlistSourceHistoryTimeframeStatus(BaseModel):
@@ -190,6 +216,10 @@ class WatchlistSourceHistoryTimeframeStatus(BaseModel):
     complete_count: int = 0
     failed_count: int = 0
     pending_count: int = 0
+
+    @field_serializer("oldest", "newest")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class WatchlistSourceHistoryStatus(BaseModel):
@@ -220,3 +250,7 @@ class WatchlistSourceHistoryStatus(BaseModel):
     analysis_ready_status: str = "pending"
     timeframes: list[WatchlistSourceHistoryTimeframeStatus] = Field(default_factory=list)
     message: str | None = None
+
+    @field_serializer("as_of", "effective_at", "known_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

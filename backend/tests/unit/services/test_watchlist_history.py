@@ -3,6 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.schemas.watchlist import (
+    WatchlistHistoryRefreshRunOut,
+    WatchlistSourceHistoryStatus,
+    WatchlistSourceHistoryTimeframeStatus,
+)
 from app.services import watchlist_history as history
 
 
@@ -17,6 +22,61 @@ def test_watchlist_history_normalizers_dedupe_sources_and_timeframes():
         history.normalize_source_ids([])
     with pytest.raises(ValueError, match="Unsupported history timeframe"):
         history.normalize_history_timeframes(["TICK"])
+
+
+def test_watchlist_history_schemas_serialize_timestamps_as_canonical_utc_z():
+    timeframe = WatchlistSourceHistoryTimeframeStatus(
+        timeframe="D1",
+        oldest=datetime(2026, 1, 2, 14, 30),
+        newest=datetime(2026, 9, 12, 16, 30, tzinfo=UTC),
+    )
+    status = WatchlistSourceHistoryStatus(
+        source_id="market-group:sp500",
+        source_kind="index_membership",
+        name="S&P 500",
+        as_of=datetime(2026, 9, 12, 17, 30),
+        max_instruments=5000,
+        effective_at=datetime(2026, 1, 1, 14, 30, tzinfo=UTC),
+        known_at=datetime(2026, 1, 2, 14, 30),
+        published_at=datetime(2026, 1, 3, 14, 30, tzinfo=UTC),
+        overall_status="covered",
+        timeframes=[timeframe],
+    )
+    run = SimpleNamespace(
+        id=9,
+        source_ids=["market-group:sp500"],
+        timeframes=["D1"],
+        membership_versions={},
+        as_of=datetime(2026, 9, 12, 17, 30, tzinfo=UTC),
+        max_instruments=5000,
+        available_instrument_count=500,
+        selected_instrument_count=500,
+        queued_count=500,
+        already_queued_count=0,
+        status="completed",
+        cancel_requested=False,
+        progress={},
+        error=None,
+        started_at=datetime(2026, 9, 12, 17, 0),
+        finished_at=datetime(2026, 9, 12, 18, 0, tzinfo=UTC),
+        created_at=datetime(2026, 9, 12, 16, 0),
+        updated_at=datetime(2026, 9, 12, 18, 0),
+    )
+
+    status_payload = status.model_dump(mode="json")
+    run_payload = WatchlistHistoryRefreshRunOut.model_validate(run).model_dump(mode="json")
+
+    assert status_payload["as_of"] == "2026-09-12T17:30:00Z"
+    assert status_payload["effective_at"] == "2026-01-01T14:30:00Z"
+    assert status_payload["known_at"] == "2026-01-02T14:30:00Z"
+    assert status_payload["published_at"] == "2026-01-03T14:30:00Z"
+    assert status_payload["timeframes"][0]["oldest"] == "2026-01-02T14:30:00Z"
+    assert status_payload["timeframes"][0]["newest"] == "2026-09-12T16:30:00Z"
+    assert run_payload["as_of"] == "2026-09-12T17:30:00Z"
+    assert run_payload["started_at"] == "2026-09-12T17:00:00Z"
+    assert run_payload["finished_at"] == "2026-09-12T18:00:00Z"
+    assert run_payload["created_at"] == "2026-09-12T16:00:00Z"
+    assert run_payload["updated_at"] == "2026-09-12T18:00:00Z"
 
 
 def test_state_factor_evidence_does_not_project_future_state_into_historical_views():
