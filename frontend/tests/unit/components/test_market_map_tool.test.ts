@@ -933,6 +933,43 @@ describe('MarketMapTool', () => {
     expect(areaRequest).toEqual(expect.objectContaining({ area_metric: 'python', python_run_id: 42 }))
   })
 
+  it('ignores stale Python run resolution after the source changes', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      ...previousSources,
+      { ...previousSources[0], source_id: 'market-group:nasdaq', name: 'Nasdaq 100' },
+    ]
+    let resolveFirstStatus!: (value: { status: string }) => void
+    const firstStatus = new Promise<{ status: string }>(resolve => { resolveFirstStatus = resolve })
+    let pythonQueue = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])
+      if (path === '/analysis/breadth/python/runs/1') return firstStatus
+      if (path === '/analysis/breadth/python/runs/2') return Promise.resolve({ status: 'completed' })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: ++pythonQueue })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, source: { ...response.source, source_id: body?.source_id }, color_metric: body?.color_metric, python_run_id: body?.python_run_id })
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500', color_metric: 'python', python_code_version_id: 17 } } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/analysis/breadth/python/runs/1'))
+
+    await wrapper.get('[aria-label="Market Map universe"]').setValue('market-group:nasdaq')
+    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/breadth/python')).toHaveLength(2))
+    await vi.waitFor(() => expect(apiPost.mock.calls.filter(([path, body]) => path === '/analysis/market-map' && body?.source_id === 'market-group:nasdaq')).toHaveLength(1))
+
+    resolveFirstStatus({ status: 'completed' })
+    await flushPromises()
+
+    expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map')).toHaveLength(1)
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ python_run_id: 2, source_id: 'market-group:nasdaq' }))
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('runs a Python breadth condition tree before colouring the map', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }])

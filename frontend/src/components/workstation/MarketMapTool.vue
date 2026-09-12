@@ -1217,7 +1217,7 @@ async function loadPythonAssets() {
   }
 }
 
-async function resolvePythonRun() {
+async function resolvePythonRun(generation = runGeneration) {
   pythonRunError.value = ''
   if (pythonCodeVersionId.value == null) throw new Error('Select a Boolean or numeric-series Python asset first.')
   const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
@@ -1231,11 +1231,14 @@ async function resolvePythonRun() {
     adjusted: true,
     history: false,
   })
+  if (!componentMounted || generation !== runGeneration) return
   pythonRunLoading.value = true
   try {
     for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (!componentMounted || generation !== runGeneration) return
       const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
       if (result.status === 'completed') {
+        if (!componentMounted || generation !== runGeneration) return
         pythonRunId.value = queued.run_id
         return
       }
@@ -1244,11 +1247,11 @@ async function resolvePythonRun() {
     }
     throw new Error('Python colour run did not finish within 60 seconds; its run remains available for retry.')
   } finally {
-    pythonRunLoading.value = false
+    if (generation === runGeneration) pythonRunLoading.value = false
   }
 }
 
-async function resolvePythonBreadthRun() {
+async function resolvePythonBreadthRun(generation = runGeneration) {
   pythonRunError.value = ''
   const condition = breadthCondition.value
   const anchor = pythonConditionAnchorId(breadthPythonLeaf.value)
@@ -1275,11 +1278,14 @@ async function resolvePythonBreadthRun() {
     ...(referenceUniverse ? { reference_universe: referenceUniverse } : {}),
     history: false,
   })
+  if (!componentMounted || generation !== runGeneration) return
   pythonRunLoading.value = true
   try {
     for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (!componentMounted || generation !== runGeneration) return
       const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
       if (result.status === 'completed') {
+        if (!componentMounted || generation !== runGeneration) return
         pythonRunId.value = queued.run_id
         return
       }
@@ -1288,7 +1294,7 @@ async function resolvePythonBreadthRun() {
     }
     throw new Error('Python breadth condition run did not finish within 60 seconds; its run remains available for retry.')
   } finally {
-    pythonRunLoading.value = false
+    if (generation === runGeneration) pythonRunLoading.value = false
   }
 }
 
@@ -1658,8 +1664,9 @@ async function run() {
       }
     }
     if (!componentMounted || generation !== runGeneration) return
-    if (colorMetric.value === 'breadth' && breadthUsesPython.value) await resolvePythonBreadthRun()
-    else if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
+    if (colorMetric.value === 'breadth' && breadthUsesPython.value) await resolvePythonBreadthRun(generation)
+    else if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun(generation)
+    if (!componentMounted || generation !== runGeneration) return
     const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' || (colorMetric.value === 'breadth' && breadthUsesPython.value) ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
     if (!componentMounted || generation !== runGeneration) return
     map.value = nextMap
