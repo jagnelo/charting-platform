@@ -11,12 +11,20 @@ and Strategy signals; the isolated runner evaluates the selected scalar per
 declared canonical member and retains source/run/output/membership lineage.
 Focused runner coverage passed `114/114`, code-asset integration `24/24` with
 two existing warnings, Research Results `35/35`, Study Lab `28/28`, type-check,
-Ruff, formatting, and diff checks passed. The exact gate is pending at this
-tip. No visual/provider/fallback/acceptance policy changed; preserve the six
-protected visual state-oracle diffs.
+Ruff, formatting, and diff checks passed. The exact elevated branch-scoped
+Docker-backed gate then passed every non-visual stage at this tip: backend
+units `1,477/1,477`, backend integration `398/398`, all frontend
+dependency/lint/format/type-check/Vitest/build/contracts/probes,
+compose/provider contracts, research-runner probes, and functional Playwright
+(`165` passed, `107` documented skips across `272` tests). Visual parity
+completed `98/104`; the six failures were exactly the established protected
+`watchlist-column-editor-open` (1080p-100/125) and `workspace-floating`
+(1080p-100/125, 1440p-100/125) state-oracle diffs. The gate exited at
+`e2e-visual` only; teardown removed all branch-scoped resources and four
+images. No visual/provider/fallback/acceptance policy changed.
 
-Next: rerun the exact branch-scoped gate at `af142b1d`, then continue a bounded
-provider/history or compatible chart/list/gauge seam. Do not integrate,
+Next: continue a bounded provider/history or compatible chart/list/gauge seam.
+Do not integrate,
 promote, deploy, or mutate another worktree.
 
 ## 2026-09-12 — Exact gate after named event-filter artifact guard

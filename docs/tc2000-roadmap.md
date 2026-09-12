@@ -19,10 +19,19 @@ preserved and non-finite or incompatible values fail closed.
 Focused runner coverage passed `114/114`, code-asset integration passed
 `24/24` with two existing warnings, Research Results plus Study Lab component
 coverage passed `35/35` and `28/28`, frontend type-check passed, and Ruff,
-formatting, and diff checks passed. The exact branch-scoped gate is pending at
-this product tip. No visual, provider, fallback, or acceptance policy changed;
-rerun the gate before the next bounded slice and preserve the six protected
-visual state-oracle diffs.
+formatting, and diff checks passed. The exact elevated branch-scoped
+Docker-backed gate then passed every non-visual stage at this product tip:
+backend units `1,477/1,477`, backend integration `398/398`, frontend
+dependency/lint/format/type-check/Vitest/build/contracts/probes,
+compose/provider contracts, research-runner probes, and functional Playwright
+`165` passed with `107` documented skips across `272` tests. Visual parity
+completed `104` cases with `98` passes; the only six failures were the
+established protected state-oracle set: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `1` only at `e2e-visual` after clean
+branch-scoped teardown removed all containers, volumes, network, testcontainer
+sessions, and four images. No visual, provider, fallback, or acceptance policy
+changed; preserve those diffs and rerun the gate after the next bounded slice.
 
 ## 2026-09-12 — Exact gate after named event-filter artifact guard
 

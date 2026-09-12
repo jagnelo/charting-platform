@@ -10,9 +10,20 @@
 - [x] Add focused regressions: runner `114/114`, code-asset integration `24/24`
       (two existing warnings), Research Results `35/35`, Study Lab `28/28`,
       frontend type-check, Ruff, formatting, and diff checks all passed.
-- [ ] Rerun the exact branch-scoped gate at product tip `af142b1d`; continue
-      provider/history or compatible chart/list/gauge work without changing the
-      six protected visual state-oracle diffs or acceptance policy.
+- [x] Rerun the exact elevated branch-scoped Docker-backed gate at product tip
+      `af142b1d`. Backend units passed `1,477/1,477`; backend integration passed
+      `398/398`; frontend dependency/lint/format/type-check/Vitest/build/
+      contracts/probes, compose/provider contracts, research-runner probes, and
+      functional Playwright passed (`165` passed, `107` documented skips across
+      `272` tests). Visual parity completed `104` cases with `98` passes and
+      exactly the six established protected state-oracle diffs:
+      `watchlist-column-editor-open` at visual-1080p-100/125 and
+      `workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+      The gate exited `1` only at `e2e-visual`; teardown removed all
+      branch-scoped containers, volumes, network, testcontainer sessions, and
+      four images. No visual, provider, fallback, or acceptance policy changed.
+- [ ] Continue provider/history or compatible chart/list/gauge work without
+      changing the six protected visual state-oracle diffs or acceptance policy.
 
 ### 2026-09-12 — Exact gate after named event-filter artifact guard
 
