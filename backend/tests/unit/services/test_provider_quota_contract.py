@@ -879,6 +879,32 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert seed.get("max_concurrency") is None
 
 
+def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(monkeypatch):
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    conservative = provider_rate_limit_seed("marketdata_app")
+    assert conservative["quota_contract"]["dimensions"][0]["limit"] == 100
+    assert "account_plan" not in conservative["quota_contract"]["dimensions"][0]
+
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+    reviewed = provider_rate_limit_seed("marketdata_app")
+    dimension = reviewed["quota_contract"]["dimensions"][0]
+    assert dimension["limit"] == 10000
+    assert dimension["account_plan"] == "starter"
+    assert dimension["account_limit_reviewed"] is True
+
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100)
+    mismatched = provider_rate_limit_seed("marketdata_app")
+    assert mismatched["quota_contract"]["dimensions"][0]["limit"] == 100
+    assert "account_plan" not in mismatched["quota_contract"]["dimensions"][0]
+
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "quant")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100000)
+    unsupported = provider_rate_limit_seed("marketdata_app")
+    assert unsupported["quota_contract"]["dimensions"][0]["limit"] == 100
+
+
 def test_marketdata_app_option_chain_cost_requires_explicit_symbol_bound(monkeypatch):
     monkeypatch.setattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
     assert "fetch_option_chain" not in get_provider_usage_profile("marketdata_app")[

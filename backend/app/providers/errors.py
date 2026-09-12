@@ -176,7 +176,12 @@ def provider_retry_at_from_headers(
             return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
         except (TypeError, ValueError, OverflowError):
             pass
-    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
+    for name in (
+        "x-api-ratelimit-reset",
+        "x-ratelimit-reset",
+        "x-rate-limit-reset",
+        "ratelimit-reset",
+    ):
         value = normalized.get(name)
         if not value:
             continue

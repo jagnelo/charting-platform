@@ -15,7 +15,12 @@ import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import provider_positive_integer, provider_rate_limit_seed, settings
+from app.config import (
+    marketdata_app_reviewed_plan,
+    provider_positive_integer,
+    provider_rate_limit_seed,
+    settings,
+)
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
@@ -215,6 +220,19 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
         override = capability_overrides.get(capability.value)
         if isinstance(override, dict):
             base.update(override)
+    if provider_name == "marketdata_app":
+        reviewed_plan = marketdata_app_reviewed_plan()
+        if reviewed_plan is None:
+            base["configured_plan"] = "unreviewed"
+            base["usage_terms"] = (
+                "MarketData.app plan, credits, and licensing terms require explicit account review."
+            )
+        else:
+            plan, _ = reviewed_plan
+            base["configured_plan"] = f"marketdata-{plan}-operator-reviewed"
+            base["usage_terms"] = (
+                f"MarketData.app {plan} account plan; provider credits and licensing terms apply."
+            )
     base.setdefault(
         "live_probe_status",
         settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS.get(provider_name, "not_run"),
@@ -970,6 +988,10 @@ def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]
         "api-credits-request",
         "api-credits-used",
         "api-credits-left",
+        "x-api-ratelimit-limit",
+        "x-api-ratelimit-remaining",
+        "x-api-ratelimit-reset",
+        "x-api-ratelimit-consumed",
         "x-ratelimit-limit",
         "x-ratelimit-remaining",
         "x-ratelimit-reset",
@@ -1110,9 +1132,15 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 quota_policy = dict(entitlement.quota_policy or {})
                 quota_policy.setdefault("contract", dict(rate_seed["quota_contract"]))
                 entitlement.quota_policy = quota_policy
+            repository_seed_plans = {
+                "unreviewed",
+                "free-forever",
+                "account-plan-review-required",
+            }
             if (
                 not entitlement_was_new
-                and entitlement.configured_plan == "unreviewed"
+                and str(entitlement.configured_plan or "").strip().lower()
+                in repository_seed_plans
                 and entitlement_seed
             ):
                 # Upgrade rows created by older builds without overwriting an

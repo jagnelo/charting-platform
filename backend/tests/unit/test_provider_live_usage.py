@@ -26,7 +26,12 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         "fred",
         http_requests=2,
         response_bytes=100,
-        response_headers={"X-RateLimit-Remaining": "17", "Authorization": "secret"},
+        response_headers={
+            "X-RateLimit-Remaining": "17",
+            "X-Api-Ratelimit-Remaining": "87",
+            "Total-Records-On-Page": "2",
+            "Authorization": "secret",
+        },
     )
     live_usage.record_observation("fred", http_requests=1, response_bytes=50)
     live_usage.record_observation("coinbase", http_requests=1, response_bytes=25)
@@ -53,7 +58,11 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "provider": "fred",
             "response_bytes": 150,
             "run_id": "run-test",
-            "response_headers": {"x-ratelimit-remaining": "17"},
+            "response_headers": {
+                "x-api-ratelimit-remaining": "87",
+                "x-ratelimit-remaining": "17",
+                "total-records-on-page": "2",
+            },
             "usage_scope": "unspecified",
         },
     ]
@@ -74,6 +83,12 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
                 "http_requests": 2,
                 "response_bytes": 100,
                 "exit_status": 0,
+                "response_headers": {
+                    "x-api-ratelimit-limit": "100",
+                    "x-api-ratelimit-remaining": "96",
+                    "x-api-ratelimit-reset": "1700000000",
+                    "x-api-ratelimit-consumed": "4",
+                },
                 "payload": "must-not-be-copied",
             }
         )
@@ -128,6 +143,13 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
     assert len(rows) == 2
     assert all("payload" not in row for row in rows)
     assert {row["provider"] for row in rows} == {"fred", "coinbase"}
+    fred_row = next(row for row in rows if row["provider"] == "fred")
+    assert fred_row["response_headers"] == {
+        "x-api-ratelimit-consumed": "4",
+        "x-api-ratelimit-limit": "100",
+        "x-api-ratelimit-remaining": "96",
+        "x-api-ratelimit-reset": "1700000000",
+    }
     assert destination.stat().st_mode & 0o077 == 0
 
 

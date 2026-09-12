@@ -1251,3 +1251,30 @@ def test_http_status_rate_limit_preserves_reset_header():
     assert exc_info.value.retry_at is not None
     assert "demo-secret" not in str(exc_info.value)
     assert exc_info.value.headers == {"Retry-After": "7"}
+
+
+def test_marketdata_app_rate_limit_parses_native_reset_header():
+    provider = MarketDataAppProvider()
+    response = MagicMock(
+        status_code=429,
+        headers={
+            "X-Api-Ratelimit-Reset": "1700000000",
+            "X-Api-Ratelimit-Remaining": "0",
+            "Authorization": "Bearer must-not-be-retained",
+        },
+    )
+    request = httpx.Request("GET", "https://api.marketdata.app/v1/stocks/candles/AAPL/")
+    failure = httpx.HTTPStatusError("429 Too Many Requests", request=request, response=response)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "marketdata-secret"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.fetch_ohlcv("AAPL", Timeframe.D1, datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 2, tzinfo=UTC))
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.retry_at == datetime.fromtimestamp(1700000000, tz=UTC)
+    assert exc_info.value.headers == {
+        "X-Api-Ratelimit-Reset": "1700000000",
+        "X-Api-Ratelimit-Remaining": "0",
+    }

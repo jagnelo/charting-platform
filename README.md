@@ -167,6 +167,12 @@ OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
 # zero unless an operator has reviewed the request filters and selected a
 # conservative maximum symbol count.
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
+# MarketData.app daily plan/limit must be reviewed together. Supported pairs:
+# free_forever/100, starter/10000, trader/100000. Leave blank/0 until the
+# account's current entitlement is confirmed; native response headers never
+# widen this automatically.
+MARKETDATA_APP_REVIEWED_PLAN=
+MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 PROVIDER_CHAIN_SEEDS={}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}

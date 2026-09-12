@@ -73,3 +73,6 @@ def test_provider_retry_at_header_parser_rejects_unknown_values_without_guessing
     assert provider_retry_at_from_headers({"X-RateLimit-Reset": "12"}, now=now) == datetime(
         2026, 9, 10, 10, 0, 12, tzinfo=UTC
     )
+    assert provider_retry_at_from_headers(
+        {"X-Api-Ratelimit-Reset": "12"}, now=now
+    ) == datetime(2026, 9, 10, 10, 0, 12, tzinfo=UTC)

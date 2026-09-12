@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
+    marketdata_app_reviewed_plan,
     provider_positive_integer,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
@@ -479,6 +480,13 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     ),
     "tiingo": ("TIINGO_OPERATION_BYTE_BOUNDS",),
     "fmp": ("FMP_OPERATION_BYTE_BOUNDS",),
+    # MarketData.app account plans have distinct daily credit pools.  Native
+    # response headers are telemetry; admission uses only this explicit
+    # operator-reviewed plan/limit pair.
+    "marketdata_app": (
+        "MARKETDATA_APP_REVIEWED_PLAN",
+        "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+    ),
 }
 
 
@@ -580,6 +588,8 @@ def provider_missing_routing_controls(name: str) -> list[str]:
         if not terms_reviewed:
             missing.append("FRED_SERIES_TERMS_REVIEWED")
         return missing
+    if name == "marketdata_app":
+        return [] if marketdata_app_reviewed_plan() is not None else list(required)
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)

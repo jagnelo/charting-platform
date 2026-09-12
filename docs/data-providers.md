@@ -612,14 +612,21 @@ receive delayed data and only one year of historical data. See the provider's
 [free-account](https://www.marketdata.app/docs/account/free-accounts/),
 [option-chain](https://www.marketdata.app/docs/api/options/chain/), and
 [option-quotes](https://www.marketdata.app/docs/api/options/quotes/)
-documentation.
+documentation. The repository's 100-credit seed is specifically the documented
+Free Forever contract; an account that returns another native limit is not
+silently promoted. Record the reviewed account plan and exact matching daily
+limit in `MARKETDATA_APP_REVIEWED_PLAN` (`free_forever`, `starter`, or `trader`)
+and `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` (`100`, `10000`, or `100000`).
+Quant/Prime plans use a different per-minute contract and remain outside this
+daily-plan gate until their dimensions are modeled explicitly.
 
 Option expiration lookups cost one credit. Current chains/quotes cost one
 credit per returned option symbol; historical chains/quotes cost one credit
 per 1,000 returned symbols/quotes. The runtime records the provider-native
 `X-Api-Ratelimit-*` headers, settles the actual per-response charge, and
 reconciles cumulative remaining-credit state only when the returned limit
-matches the reviewed 100-credit contract. Since a current chain is
+matches the reviewed account contract. A native limit mismatch is retained as
+telemetry but cannot widen local admission or settle a different quota. Since a current chain is
 response-priced, routing requires a positive operator-reviewed
 `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` value. The adapter applies the
 documented `strikeLimit` filter and rejects a response larger than that bound;
@@ -777,6 +784,11 @@ FINNHUB_API_KEY=
 MARKETSTACK_API_KEY=
 EODHD_API_KEY=
 MARKETDATA_APP_API_KEY=       # MarketData.app — US delayed stocks/options
+# Account plan/limit must be explicitly reviewed together. Supported daily
+# pairs are free_forever/100, starter/10000, and trader/100000. Leave blank/0
+# when the account entitlement is not confirmed; native headers never widen it.
+MARKETDATA_APP_REVIEWED_PLAN=
+MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Current option chains consume one credit per returned symbol. Set this only
 # after reviewing the exact request filters; zero keeps chain routing closed.
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0

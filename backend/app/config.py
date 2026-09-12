@@ -1351,10 +1351,13 @@ class Settings(BaseSettings):
             "freshness_semantics": "Production real-time; sandbox delayed 15 minutes",
         },
         "marketdata_app": {
-            "configured_plan": "free-forever",
+            # The public 100-credit Free Forever contract is a provider seed,
+            # not an assertion about the operator's account.  The account
+            # plan is supplied only through the explicit reviewed settings.
+            "configured_plan": "unreviewed",
             "is_free": True,
             "authentication_required": True,
-            "usage_terms": "MarketData.app Free Forever credits and licensing terms apply.",
+            "usage_terms": "MarketData.app plan, credits, and licensing terms require explicit account review.",
             "history_depth": "Free-plan endpoint dependent",
             "venue_coverage": "Provider-supported US equities and options",
             "freshness_semantics": "Plan-dependent delayed/current data",
@@ -1523,6 +1526,13 @@ class Settings(BaseSettings):
     EODHD_API_KEY: str = ""
     TRADIER_API_KEY: str = ""
     MARKETDATA_APP_API_KEY: str = ""
+    # MarketData.app exposes materially different credit pools by account
+    # plan.  Keep the provider's public Free Forever seed conservative, but
+    # require an operator-reviewed plan/limit pair before widening it to a
+    # Starter or Trader account.  Quant/Prime use a different per-minute
+    # contract and are intentionally not accepted by this daily-limit gate.
+    MARKETDATA_APP_REVIEWED_PLAN: str = ""
+    MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: int = 0
     # MarketData.app current option-chain responses are billed per returned
     # contract.  A chain call may therefore be admitted only when operations
     # supplies a positive, conservative maximum contract count for the exact
@@ -1686,6 +1696,12 @@ _BYTE_BOUND_OPERATIONS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+_MARKETDATA_APP_DAILY_CREDIT_LIMITS: dict[str, int] = {
+    "free_forever": 100,
+    "starter": 10_000,
+    "trader": 100_000,
+}
+
 
 def provider_required_operation_byte_bounds(provider_name: str) -> tuple[str, ...]:
     """Return the complete reviewed byte-bound operation set for a provider."""
@@ -1699,6 +1715,26 @@ def provider_positive_integer(value: object) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         return None
     return value
+
+
+def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
+    """Return a documented MarketData.app daily plan only when reviewed.
+
+    The provider's response headers describe the current account entitlement,
+    but a runtime observation must not silently rewrite durable policy.  An
+    operator therefore records both the named plan and its documented daily
+    credit limit.  Requiring the exact pair prevents a typo or an expired
+    trial entitlement from widening admission by accident.
+    """
+
+    plan = str(getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or "").strip().lower()
+    expected_limit = _MARKETDATA_APP_DAILY_CREDIT_LIMITS.get(plan)
+    configured_limit = provider_positive_integer(
+        getattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    )
+    if expected_limit is None or configured_limit != expected_limit:
+        return None
+    return plan, expected_limit
 
 
 def provider_reviewed_flag(value: object) -> bool:
@@ -1723,16 +1759,38 @@ def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
 
 
 def provider_rate_limit_seed(provider_name: str) -> dict:
-    """Return a provider quota seed with reviewed byte budgets applied.
+    """Return a provider quota seed with reviewed provider controls applied.
 
     Tiingo and FMP publish bandwidth pools but not a universal response-size
     ceiling.  The base seed therefore remains explicitly untracked.  An
     operator can promote the provider only by supplying a positive bound for
     every operation exposed by its adapter; the helper then moves that
     documented pool into the normal multidimensional reservation contract.
+    MarketData.app similarly requires an exact, operator-reviewed account
+    plan/limit pair before the documented Free Forever seed is widened.
     """
 
     seed = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {}))
+    if provider_name == "marketdata_app":
+        reviewed_plan = marketdata_app_reviewed_plan()
+        if reviewed_plan is not None:
+            plan, daily_limit = reviewed_plan
+            contract = seed.get("quota_contract")
+            if isinstance(contract, dict):
+                contract["dimensions"] = [
+                    {
+                        **dimension,
+                        "limit": daily_limit,
+                        "account_plan": plan,
+                        "account_limit_reviewed": True,
+                    }
+                    if isinstance(dimension, dict)
+                    and dimension.get("name") == "credits_per_day"
+                    else dimension
+                    for dimension in contract.get("dimensions") or []
+                ]
+                seed["quota_contract"] = contract
+        return seed
     if provider_name == "fred":
         # The public v1 error contract gives a numeric threshold, but not a
         # durable enforcement scope and permits the provider to adjust limits.

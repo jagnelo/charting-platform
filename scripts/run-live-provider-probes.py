@@ -195,6 +195,20 @@ def routing_safety_preflight() -> dict[str, str]:
         if os.getenv("MARKETSTACK_DISCOVERY_EXCHANGE", "").strip()
         else "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
+    marketdata_plan = os.getenv("MARKETDATA_APP_REVIEWED_PLAN", "").strip().lower()
+    marketdata_limits = {"free_forever": 100, "starter": 10000, "trader": 100000}
+    try:
+        marketdata_limit = int(
+            os.getenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0").strip() or "0"
+        )
+    except ValueError:
+        marketdata_limit = 0
+    expected_marketdata_limit = marketdata_limits.get(marketdata_plan)
+    result["marketdata.app account plan"] = (
+        "routable"
+        if expected_marketdata_limit is not None and marketdata_limit == expected_marketdata_limit
+        else "non-routable: explicit reviewed plan/limit pair required"
+    )
 
     for provider, operations in BYTE_BOUND_OPERATIONS.items():
         variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"

@@ -3,8 +3,18 @@
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 
 - [x] Preserve MarketData.app's `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`,
-      and per-response `Consumed` headers through transport telemetry and
-      diagnostics, filtering all other response headers.
+      and per-response `Consumed` headers through transport telemetry,
+      diagnostics, capacity events, and the external live-ledger/receipt
+      merger, filtering all other response headers.
+- [x] Parse the provider-native reset header into typed retry timing wherever
+      MarketData.app rate-limit errors are raised; malformed or absent resets
+      remain unknown rather than receiving an invented delay.
+- [x] Keep the same provider-native capacity headers available in runtime
+      capacity events, cross-session summaries, and merged live receipts, while
+      retaining FINRA pagination evidence and rejecting non-capacity secrets.
+- [x] Exercise the native credit headers through the provider runtime itself,
+      including durable cumulative-total settlement, not only isolated parser
+      helpers or direct adapter telemetry.
 - [x] Settle actual credit consumption and cumulative remaining-credit usage
       only when the returned limit matches the reviewed 100-credit contract;
       never infer a response-priced option charge from a generic request unit.
@@ -20,6 +30,20 @@
       preflights remaining.
 - [ ] Obtain operator review of the bound, option entitlements, and
       redistribution terms before enabling current-chain routing.
+- [ ] Record the current MarketData.app account plan explicitly. The live key
+      returned a native 10,000-credit daily limit (Starter-shaped) on
+      2026-09-12, while the repository seed remains the documented
+      Free-Forever 100-credit contract. Do not widen admission until the
+      operator confirms the plan and sets the matching
+      `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`
+      pair; Quant/Prime require a separate per-minute contract model.
+- [x] Wire the MarketData.app account-plan/limit gate through routing
+      diagnostics, local/RPi Compose, the manual GitHub live workflow, and
+      environment examples. The authoritative backend gate passed 2078/2078
+      at 80.69% coverage; the final live matrix passed 35/39 with only the
+      documented Alpha Vantage capacity response and intentionally deferred
+      Tradier/IBKR/Ondo credential preflights remaining (plus this new
+      explicit MarketData.app plan review gate).
 
 ### 2026-09-10 — Ondo market-summary surface
 

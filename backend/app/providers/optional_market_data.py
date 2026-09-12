@@ -82,7 +82,12 @@ def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:
             except (TypeError, ValueError, OverflowError):
                 pass
     now = datetime.now(UTC)
-    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
+    for name in (
+        "x-api-ratelimit-reset",
+        "x-ratelimit-reset",
+        "x-rate-limit-reset",
+        "ratelimit-reset",
+    ):
         value = headers.get(name) or headers.get(name.title())
         if not value:
             continue

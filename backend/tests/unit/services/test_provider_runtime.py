@@ -38,12 +38,20 @@ def test_capacity_response_headers_retain_provider_native_usage_state_only():
             "X-Bapi-Limit": "50",
             "X-Bapi-Limit-Status": "49",
             "X-Bapi-Limit-Reset-Timestamp": "1700000000000",
+            "X-Api-Ratelimit-Limit": "100",
+            "X-Api-Ratelimit-Remaining": "87",
+            "X-Api-Ratelimit-Reset": "1700000000",
+            "X-Api-Ratelimit-Consumed": "4",
             "Authorization": "secret",
         }
     ) == {
         "x-bapi-limit": "50",
         "x-bapi-limit-status": "49",
         "x-bapi-limit-reset-timestamp": "1700000000000",
+        "x-api-ratelimit-limit": "100",
+        "x-api-ratelimit-remaining": "87",
+        "x-api-ratelimit-reset": "1700000000",
+        "x-api-ratelimit-consumed": "4",
     }
 
 
@@ -168,6 +176,105 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
     assert windows["response_bytes"].consumed_units == len(b"measured-response")
     assert windows["credits_per_minute"].consumed_units == 3
     assert all(item.reserved_units == 0 for item in windows.values())
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_settles_marketdata_app_native_credit_charge(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="marketdata_app",
+        is_active=True,
+        config={
+            "usage_tracking": {
+                "mode": "credit_count",
+                "unit_label": "credits",
+                "operation_costs": {"get_current_price": 12},
+            }
+        },
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        quota_scope="api_key",
+        quota_source="MarketData.app rate-limiting documentation",
+        quota_contract={
+            "reset": "09:30 America/New_York",
+            "dimensions": [
+                {
+                    "name": "credits_per_day",
+                    "limit": 100,
+                    "window_seconds": 86400,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "https://www.marketdata.app/docs/api/rate-limiting/",
+                }
+            ],
+        },
+    )
+    db.add(policy)
+    db.flush()
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    db.add(health)
+    db.flush()
+    resolved = ResolvedProvider(
+        provider_name="marketdata_app",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+
+    def invoke(_provider, _symbol):
+        response = type(
+            "Response",
+            (),
+            {
+                "content": b"marketdata-response",
+                "headers": {
+                    "x-api-ratelimit-limit": "100",
+                    "x-api-ratelimit-remaining": "87",
+                    "x-api-ratelimit-reset": "1700000000",
+                    "x-api-ratelimit-consumed": "4",
+                },
+            },
+        )()
+        observe_response(response)
+        return 123.45
+
+    await execute_provider_call(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        "get_current_price",
+        invoke=invoke,
+    )
+    row = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert row.response_headers == {
+        "x-api-ratelimit-limit": "100",
+        "x-api-ratelimit-remaining": "87",
+        "x-api-ratelimit-reset": "1700000000",
+        "x-api-ratelimit-consumed": "4",
+    }
+    window = db.execute(select(ProviderQuotaWindow)).scalar_one()
+    assert window.consumed_units == 13
+    assert window.reserved_units == 0
 
 
 @pytest.mark.asyncio
@@ -411,6 +518,35 @@ async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeyp
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
     assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_plan(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(
+        select(DataSource).where(DataSource.name == "marketdata_app")
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+
+    assert entitlement.configured_plan == "marketdata-starter-operator-reviewed"
+    assert policy.quota_contract["dimensions"][0]["limit"] == 10000
+    assert policy.quota_contract["dimensions"][0]["account_plan"] == "starter"
 
 
 @pytest.mark.asyncio

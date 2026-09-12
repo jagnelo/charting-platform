@@ -106,6 +106,7 @@ remaining_gaps:
   - the 2026-09-11T17:43:45Z matrix supersedes the earlier missing-credential run: 33/37 passed, with only Alpha Vantage IPO-calendar capacity plus the explicitly deferred Tradier, IBKR, and Ondo credential preflights remaining. The run wrote only aggregate telemetry to `/private/tmp/charting-provider-live-usage-resume.jsonl`; no credentials or payloads entered Git.
   - the post-options complete matrix rerun at 2026-09-12 collected 39 cases and passed 35. The four honest outcomes were Alpha Vantage's documented 25-requests/day IPO-calendar capacity response plus exact intentional credential preflights for Tradier, IBKR, and Ondo. xStocks returned an explicit null quote while its selected token reported a closed trading period; the test records that provider state without fabricating a price. No acceptance claim was made.
   - MarketData.app now exposes provider-native per-response credit telemetry and the runtime settles actual `X-Api-Ratelimit-Consumed` values plus cumulative remaining-credit observations when the returned limit matches the reviewed plan. Current option-chain routing still requires the explicit positive `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound; the default zero remains non-routable. Historical single-contract quote reservations are range-derived from the provider's documented end-of-day semantics. This closes accounting visibility but not the wider provider-terms, CI/deployment, reconciliation, or shadow gates.
+  - The live MarketData.app key returned a native 10,000-credit daily limit, which is Starter-shaped rather than the repository's conservative Free Forever 100-credit seed. Native headers remain observational; routing now requires the exact reviewed `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` pair, with documented Free Forever/Starter/Trader values only. Quant/Prime remain outside this daily contract until their per-minute dimensions are modeled.
 progress:
   completed:
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
@@ -277,6 +278,10 @@ progress:
     - the post-options complete live matrix on 2026-09-12 collected 39 cases and passed 35 with positive transport observations; Alpha Vantage's typed 25-requests/day capacity response and the exact deferred Tradier, IBKR, and Ondo credential preflights remain. xStocks' explicit closed-session null quote is accepted as provider state only, never as a fabricated price
     - MarketData.app usage accounting now captures its provider-native `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`, and per-response `Consumed` headers. Successful responses settle the actual credit charge and reconcile cumulative remaining-credit state only when the returned limit matches the reviewed 100-credit contract. Current option-chain routing accepts only an explicit positive `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound, applies the documented `strikeLimit` filter, rejects larger responses, and remains fail-closed at the default zero bound; historical single-contract quote history derives its date-range credit reservation from the documented end-of-day semantics. Focused provider/quota/telemetry/options coverage passes 168/168 with Ruff and diff checks clean.
     - the revision's authoritative Docker-backed combined backend gate passed 2074/2074 with 89 warnings and 80.67% line coverage in 452.68s using isolated PostgreSQL/Redis testcontainer session b383e6c8-ba85-477b-af0d-66343893d2a0; the final complete 39-case live matrix rerun passed 35/39, with only Alpha Vantage's documented 25-requests/day response and intentional Tradier/IBKR/Ondo credential preflights remaining; a follow-up 138/138 focused check corrected the historical quote bound to use the inclusive date range
+    - the MarketData.app native limit/remaining/reset/consumed headers now survive runtime capacity-event persistence and external live-ledger/receipt-merger sanitization; focused runtime/live-ledger/usage/telemetry coverage passes 37/37 with authorization excluded
+    - MarketData.app native reset parsing now drives typed retry timestamps in shared error handling and the optional REST adapter; focused provider/runtime/usage coverage passes 107/107 with authorization still excluded
+    - the authoritative Docker-backed combined backend gate after native-reset propagation passed 2075/2075 with 89 warnings and 80.68% line coverage in 424.58s using isolated PostgreSQL/Redis testcontainer session 5b5c1410-eefc-4737-a7bf-bca01fc5fae1; no credentials or provider payloads were persisted
+    - a runtime end-to-end MarketData.app-shaped response now proves native telemetry persistence and durable settlement to the provider-observed cumulative credit total; focused runtime/adapter/error/usage/ledger coverage passes 39/39
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -287,7 +292,9 @@ progress:
     operator-only base URL to be corrected from the live sbt host to the
     documented Sandbox host; the replacement pair then passed its bounded
     credentialed case. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
-    intentionally unconfigured. Alpha Vantage remains at its documented
+    intentionally unconfigured. MarketData.app routing is also intentionally
+    closed until the account plan/limit pair is explicitly reviewed; its live
+    key currently reports a 10,000-credit daily header. Alpha Vantage remains at its documented
     25-requests/day capacity for daily history and IPO-calendar reads. FRED,
     FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
     Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,

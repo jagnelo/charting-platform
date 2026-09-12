@@ -259,6 +259,14 @@ class TestProviderRegistry:
             "TIINGO_OPERATION_BYTE_BOUNDS"
         ]
         assert provider_missing_routing_controls("fmp") == ["FMP_OPERATION_BYTE_BOUNDS"]
+        assert provider_routing_control_settings("marketdata_app") == (
+            "MARKETDATA_APP_REVIEWED_PLAN",
+            "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+        )
+        assert provider_missing_routing_controls("marketdata_app") == [
+            "MARKETDATA_APP_REVIEWED_PLAN",
+            "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+        ]
 
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 1024)
         monkeypatch.setattr(
@@ -376,6 +384,14 @@ class TestProviderRegistry:
         assert fred_seed["quota_contract"]["dimensions"][0]["scope"] == "api_key"
         assert provider_missing_routing_controls("tiingo") == []
         assert provider_missing_routing_controls("fmp") == []
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+        assert provider_missing_routing_controls("marketdata_app") == []
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", True)
+        assert provider_missing_routing_controls("marketdata_app") == [
+            "MARKETDATA_APP_REVIEWED_PLAN",
+            "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+        ]
 
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")
