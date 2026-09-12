@@ -397,6 +397,7 @@ async def test_quota_windows_are_isolated_by_dimension(db):
         dimension="per_minute",
         units=1,
         limit_units=2,
+        window_seconds=60,
         now=now,
     )
     month = await reserve_provider_quota(
@@ -1146,6 +1147,7 @@ async def test_ungrouped_quota_dimensions_remain_capability_scoped(db):
         dimension="requests_per_minute",
         units=1,
         limit_units=1,
+        window_seconds=60,
         now=now,
     )
     second = await reserve_provider_quota(
@@ -1155,6 +1157,7 @@ async def test_ungrouped_quota_dimensions_remain_capability_scoped(db):
         dimension="requests_per_minute",
         units=1,
         limit_units=1,
+        window_seconds=60,
         now=now,
     )
 

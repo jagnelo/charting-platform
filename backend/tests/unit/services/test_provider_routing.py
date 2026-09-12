@@ -22,6 +22,7 @@ async def test_durable_quota_reservation_rejects_over_limit(db):
         capability="price_history",
         units=2,
         limit_units=3,
+        window_seconds=60,
         now=now,
     )
     assert first is not None
@@ -32,6 +33,7 @@ async def test_durable_quota_reservation_rejects_over_limit(db):
         capability="price_history",
         units=2,
         limit_units=3,
+        window_seconds=60,
         now=now,
     )
     assert second is None
@@ -51,6 +53,7 @@ async def test_durable_quota_reservation_rejects_over_limit(db):
         ("limit_units", True),
         ("limit_units", 1.5),
         ("window_seconds", 0),
+        ("window_seconds", None),
         ("window_seconds", True),
         ("window_seconds", 1.5),
     ],
@@ -87,6 +90,7 @@ async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
         dimension="per_minute",
         units=1,
         limit_units=10,
+        window_seconds=60,
         now=now,
     )
     month = await reserve_provider_quota(

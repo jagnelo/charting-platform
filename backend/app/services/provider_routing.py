@@ -198,7 +198,7 @@ async def reserve_provider_quota(
     quota_group: str | None = None,
     units: int,
     limit_units: int,
-    window_seconds: int = 60,
+    window_seconds: int,
     dimension: str = "default",
     window_started_at: datetime | None = None,
     now: datetime | None = None,
