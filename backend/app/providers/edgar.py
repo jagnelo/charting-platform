@@ -182,8 +182,38 @@ class EdgarProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
 
-        tickers = sub.get("tickers") or [symbol.upper()]
-        exchanges = sub.get("exchanges") or []
+        raw_tickers = sub.get("tickers")
+        if raw_tickers is None:
+            tickers = [normalized_symbol]
+        elif (
+            not isinstance(raw_tickers, list)
+            or any(not isinstance(value, str) or not value.strip() for value in raw_tickers)
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned an invalid tickers array",
+            )
+        else:
+            tickers = [value.strip().upper() for value in raw_tickers]
+
+        raw_exchanges = sub.get("exchanges")
+        if raw_exchanges is None:
+            exchanges = []
+        elif (
+            not isinstance(raw_exchanges, list)
+            or any(not isinstance(value, str) or not value.strip() for value in raw_exchanges)
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned an invalid exchanges array",
+            )
+        else:
+            exchanges = [value.strip() for value in raw_exchanges]
+        if exchanges and len(exchanges) != len(tickers):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned mismatched ticker/exchange arrays",
+            )
         name = sub.get("name") or entry.get("title") or symbol.upper()
         sic_desc = sub.get("sicDescription") or ""
 

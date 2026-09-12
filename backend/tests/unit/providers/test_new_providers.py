@@ -2387,6 +2387,38 @@ class TestEdgarTickerMap:
                 provider.get_instrument_profile("AAPL")
         assert exc_info.value.provider_name == "edgar"
 
+    @pytest.mark.parametrize(
+        ("field", "value", "message"),
+        [
+            ("tickers", "AAPL", "invalid tickers array"),
+            ("exchanges", "XNAS", "invalid exchanges array"),
+            ("exchanges", ["XNAS", "XNYS"], "mismatched ticker/exchange arrays"),
+        ],
+    )
+    def test_sec_profile_rejects_malformed_listing_arrays(self, field, value, message):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {"AAPL": {"cik": 320193, "title": "Apple Inc."}}
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        edgar_module._profile_cache = {}
+        payload = {
+            "name": "Apple Inc.",
+            "tickers": ["AAPL"],
+            "exchanges": ["XNAS"],
+        }
+        payload[field] = value
+        response = MagicMock()
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        provider = EdgarProvider()
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
+        ):
+            configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
+            with pytest.raises(ProviderResponseError, match=message):
+                provider.get_instrument_profile("AAPL")
+
     def test_get_instrument_profile_returns_none_for_unknown_ticker(self):
         import app.providers.edgar as edgar_module
 
