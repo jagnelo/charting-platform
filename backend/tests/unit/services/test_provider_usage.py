@@ -70,6 +70,11 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
     assert summary["units_24h"] == pytest.approx(2.0)
     assert summary["failure_rate_24h"] == pytest.approx(50.0)
     assert summary["timeout_rate_24h"] == pytest.approx(50.0)
+    assert summary["last_request_at"].endswith("Z")
+    assert summary["last_success_at"].endswith("Z")
+    assert summary["last_failure_at"].endswith("Z")
+    assert all(bucket["bucket_start"].endswith("Z") for bucket in summary["hourly_buckets"])
+    assert all(bucket["bucket_start"].endswith("Z") for bucket in summary["daily_buckets"])
     assert summary["top_operations"][0]["operation_family"] == "search_instruments"
 
 

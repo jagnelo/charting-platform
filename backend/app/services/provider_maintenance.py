@@ -92,8 +92,8 @@ async def summarize_provider_observations(db: AsyncSession) -> list[dict[str, An
             {
                 "dataset": target.name,
                 "rows": int(row[0] or 0),
-                "oldest_at": row[1],
-                "newest_at": row[2],
+                "oldest_at": wire_datetime(row[1]),
+                "newest_at": wire_datetime(row[2]),
                 "retention_days": target.retention_days,
             }
         )

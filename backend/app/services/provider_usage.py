@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderRequestLog
 from app.services.provider_runtime import seed_provider_runtime
@@ -235,8 +236,8 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "quota_limit": quota_limit,
                 "estimated_quota_limit": estimated_quota_limit,
                 "quota_window_seconds": quota_window_seconds,
-                "current_window_started_at": current_window_started_at,
-                "current_window_ends_at": current_window_ends_at,
+                "current_window_started_at": wire_datetime(current_window_started_at),
+                "current_window_ends_at": wire_datetime(current_window_ends_at),
                 "current_window_requests": current_window_requests,
                 "current_window_units": current_window_units,
                 "current_window_utilization_pct": current_window_utilization,
@@ -255,24 +256,28 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 if latency_24h
                 else None,
                 "p95_latency_ms_24h": _p95(latency_24h),
-                "last_request_at": _ensure_aware(provider_logs[-1].requested_at)
-                if provider_logs
-                else None,
-                "last_success_at": max(
-                    (
-                        _ensure_aware(log.completed_at)
-                        for log in provider_logs
-                        if log.success and log.completed_at
-                    ),
-                    default=None,
+                "last_request_at": wire_datetime(
+                    _ensure_aware(provider_logs[-1].requested_at) if provider_logs else None
                 ),
-                "last_failure_at": max(
-                    (
-                        _ensure_aware(log.completed_at)
-                        for log in provider_logs
-                        if not log.success and log.completed_at
-                    ),
-                    default=None,
+                "last_success_at": wire_datetime(
+                    max(
+                        (
+                            _ensure_aware(log.completed_at)
+                            for log in provider_logs
+                            if log.success and log.completed_at
+                        ),
+                        default=None,
+                    )
+                ),
+                "last_failure_at": wire_datetime(
+                    max(
+                        (
+                            _ensure_aware(log.completed_at)
+                            for log in provider_logs
+                            if not log.success and log.completed_at
+                        ),
+                        default=None,
+                    )
                 ),
                 "top_operations": sorted(
                     operation_agg.values(),
@@ -286,8 +291,14 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     {"error_type": error_type, "count": count}
                     for error_type, count in error_counts.most_common(6)
                 ],
-                "hourly_buckets": list(hourly_map.values()),
-                "daily_buckets": list(daily_map.values()),
+                "hourly_buckets": [
+                    {**row, "bucket_start": wire_datetime(row["bucket_start"])}
+                    for row in hourly_map.values()
+                ],
+                "daily_buckets": [
+                    {**row, "bucket_start": wire_datetime(row["bucket_start"])}
+                    for row in daily_map.values()
+                ],
             }
         )
     return summaries
