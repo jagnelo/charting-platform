@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize SEC filing timing metadata
+
+- [x] Route reconstructed SEC EDGAR fallback `known_at` and `published_at`
+      through the shared UTC-`Z` formatter (`5c8f3009`) without changing filing
+      identity, composition dates, route resolution, or source semantics.
+- [x] Focused SEC fallback coverage passed `4/4`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact paper-forward gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `530e8723`; repository/workstream,

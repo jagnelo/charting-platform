@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize SEC filing timing metadata
+
+Product commit `5c8f3009` closes the SEC EDGAR fallback timing seam. Reconstructed
+holdings now preserve `known_at` and `published_at` through the shared UTC-`Z`
+formatter, keeping legal disclosure timing canonical without changing filing
+identity, composition dates, route resolution, or source semantics.
+
+Focused SEC fallback coverage passed `4/4`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact paper-forward gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `530e8723` after the

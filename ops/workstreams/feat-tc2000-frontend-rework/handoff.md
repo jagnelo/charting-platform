@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize SEC filing timing metadata
+
+Product commit `5c8f3009` routes reconstructed SEC EDGAR fallback `known_at`
+and `published_at` through the shared UTC-`Z` serializer. Filing identity,
+composition dates, route resolution, and source semantics are unchanged.
+
+Focused SEC fallback coverage passed `4/4`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact paper-forward gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `530e8723` after the
