@@ -337,3 +337,9 @@ Update this handoff at each coherent boundary.
 - Non-mutating Compose contract parsing passed for both root and RPi manifests. The migration-compatibility helper ran successfully but correctly skipped because the latest commit contained no migration changes; this is not a fresh-database integration result.
 - The explicit staging-to-feature migration compatibility gate was attempted with `--base-sha staging` but Docker's local API returned HTTP 500 during its readiness ping before PostgreSQL startup. Cleanup left no temporary test worktree/container; the migration gate remains unverified rather than being called passed.
 - Full provider/runtime lint and compilation passed across adapters, routing, usage, live probes, and their focused tests; `git diff --check` also passed.
+- The non-secret Alpaca `ALPACA_DATA_FEED` setting is now explicitly passed
+  through the manual GitHub live workflow, matching local/RPi Compose and
+  retaining the safe `iex` default. Provider wiring coverage passes `13/13`,
+  the complete backend unit suite passes `1,752/1,752` with the known 37
+  warnings, and static checks are clean. This only aligns configuration
+  propagation; it does not widen feed or corporate-action entitlements.

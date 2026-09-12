@@ -34,6 +34,7 @@ jobs:
       MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_DATA_FEED: ${{ vars.ALPACA_DATA_FEED || 'iex' }}
       ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}
       ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}
       MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}

@@ -56,6 +56,7 @@ PROVIDER_SAFETY_SETTINGS = {
     "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS",
 }
 PROVIDER_CONFIGURATION_SETTINGS = {
+    "ALPACA_DATA_FEED",
     "ALPACA_TRADING_BASE_URL",
     "FINRA_OTC_SYMBOL_DIRECTORY_URL",
     "MARKETSTACK_DISCOVERY_EXCHANGE",
@@ -142,6 +143,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     for name in PROVIDER_SAFETY_SETTINGS:
         assert f"{name}:" in workflow
     assert "ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}" in workflow
+    assert "ALPACA_DATA_FEED: ${{ vars.ALPACA_DATA_FEED || 'iex' }}" in workflow
     assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}" in workflow
     assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
