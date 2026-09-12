@@ -528,3 +528,21 @@ Update this handoff at each coherent boundary.
   persistence. Focused market-data coverage passes `29/29`; the complete
   backend unit suite passes `1,807/1,807`; no provider calls were needed and
   PostgreSQL/full-stack validation remains Docker-gated.
+- The complete bounded live matrix was rerun on 2026-09-12 with the
+  owner-managed environment after the newly supplied credentials were made
+  available. It collected all 42 cases and passed 37: Alpaca paper
+  history/latest/assets/corporate-actions, SEC EDGAR profile/filings/Company
+  Facts, MarketData.app expirations/option-chain/option-quote history, and the
+  rotated Dinari Sandbox metadata/price/quote/history/news/dividend/split
+  paths all passed. Alpha Vantage returned its typed documented 25-requests/day
+  capacity response for IPO-calendar and earnings after the shared key was
+  exercised. Tradier, IBKR, and Ondo remained exact missing-key preflights per
+  the operator's explicit deferral. The run wrote aggregate-only usage to the
+  external owner-managed ledger; no credentials or provider payloads entered
+  Git. Routing remains fail-closed for the unreviewed provider-specific
+  controls and deferred providers.
+- The complete backend unit suite was rerun after the live validation and
+  passed `1,807/1,807` with the repository's known 37 warnings. Ruff,
+  compileall, diff, and workstream validation all passed. The required
+  Docker-backed PostgreSQL/Redis/full-profile gate remains unverified because
+  Docker readiness is unavailable; no services were started.

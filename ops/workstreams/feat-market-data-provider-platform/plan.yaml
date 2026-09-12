@@ -623,6 +623,20 @@ progress:
       before persistence. Focused market-data coverage passes `29/29`; the
       complete backend unit suite passes `1,807/1,807`; no provider calls were
       needed and PostgreSQL/full-stack validation remains Docker-gated.
+    - >-
+      The newly credentialed provider matrix was rerun against the owner-managed
+      environment on 2026-09-12. All 42 bounded cases executed; 37 passed,
+      including Alpaca paper history/latest/assets/corporate-actions, SEC EDGAR
+      profile/filings/Company Facts, MarketData.app option and quote history,
+      and the rotated Dinari Sandbox metadata/quote/history/news/dividend/split
+      surface. Alpha Vantage returned its typed documented 25-requests/day
+      capacity response for IPO-calendar and earnings after the shared key was
+      exercised; Tradier, IBKR, and Ondo remained exact intentional missing-key
+      preflights. The run wrote aggregate-only telemetry to the external
+      owner-managed ledger; no credentials or provider payloads entered Git.
+      No provider is promoted by this evidence: MarketData.app plan/option
+      bounds, Alpaca event-page bounds, provider-specific terms/quota controls,
+      and deferred-provider credentials remain fail-closed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
