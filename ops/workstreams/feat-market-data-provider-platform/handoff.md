@@ -783,3 +783,15 @@ Update this handoff at each coherent boundary.
   Docker-backed migration/full-stack validation remains unavailable and no
   provider calls were made in this change. No frontend or ETF-provider files
   changed.
+
+- Tokenized-security persistence now enforces stable-ID-first linkage for
+  economic underlyings. A supplied ISIN is resolved against both the canonical
+  instrument field and active ISIN identifier registry; unresolved or
+  ambiguous ISIN evidence never falls back to a ticker, while ticker-only
+  records still require one active listing. Provenance now records
+  `linked_by_isin`, `linked_by_symbol`, or the explicit unresolved status.
+  Focused tokenized service coverage passes 10/10 and the complete backend
+  unit suite passes 1,879/1,879 with the known 37 warnings. No frontend or
+  ETF-constituent adapter files changed. Source commit and metadata checkpoint
+  are pending for this continuation; Docker-backed validation remains
+  unavailable.

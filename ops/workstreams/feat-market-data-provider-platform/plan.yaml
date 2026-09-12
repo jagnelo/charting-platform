@@ -870,8 +870,17 @@ progress:
       This is a best-effort scan of known canonical issuers, not global SEC
       completeness; Docker-backed migration/full-stack validation remains
       unavailable.
+    - >-
+      Tokenized-security persistence now resolves a supplied underlying ISIN
+      before considering ticker compatibility. It checks both the canonical
+      instrument field and active ISIN identifier registry, refuses ticker
+      fallback when the stable identifier is unresolved or ambiguous, and
+      records explicit `linked_by_isin`, `linked_by_symbol`, or unresolved
+      provenance. Focused tokenized service coverage passes 10/10 and the
+      complete backend unit suite passes 1,879/1,879 with the known 37
+      warnings; no frontend or ETF-provider adapter files changed.
   total: 15
-  current_phase: edgar_issuer_universe_scan
+  current_phase: tokenized_underlying_identity
   current_blocker: >-
     The latest local matrix collects 45 cases and remains 39/45: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
