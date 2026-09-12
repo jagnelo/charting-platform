@@ -201,6 +201,14 @@ def _positive_integer_cost(value: Any) -> int | None:
     return int(parsed)
 
 
+def _nonnegative_integer(value: Any) -> int | None:
+    """Return a strict non-negative integer, preserving malformed values."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
 _DIMENSION_RATE_UNITS = {
     "request",
     "requests",
@@ -389,11 +397,15 @@ def _consumed_dimension_costs(
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
         unit = str(dimension.get("unit") or "").lower()
-        raw_reserved = reserved_units.get(name, 1)
-        try:
-            raw_reserved_int = int(raw_reserved)
-        except (TypeError, ValueError):
-            raw_reserved_int = 0
+        if name not in reserved_units:
+            raise ProviderQuotaUnknownError(
+                f"Missing reserved dimension cost for {name} during settlement"
+            )
+        raw_reserved_int = _nonnegative_integer(reserved_units[name])
+        if raw_reserved_int is None:
+            raise ProviderQuotaUnknownError(
+                f"Invalid reserved dimension cost for {name} during settlement"
+            )
         # An explicit zero means this dimension is not applicable to the
         # operation (for example an async-download budget on a synchronous
         # call). Preserve that decision during settlement instead of charging
@@ -405,8 +417,16 @@ def _consumed_dimension_costs(
         if unit in {"byte", "bytes"}:
             # If an adapter did not emit telemetry, retain the full
             # reservation rather than under-reporting a bandwidth budget.
-            observed_requests = int(getattr(measurement, "http_requests", 0) or 0)
-            observed_bytes = int(getattr(measurement, "response_bytes", 0) or 0)
+            observed_requests = _nonnegative_integer(
+                getattr(measurement, "http_requests", 0) or 0
+            )
+            observed_bytes = _nonnegative_integer(
+                getattr(measurement, "response_bytes", 0) or 0
+            )
+            if observed_requests is None or observed_bytes is None:
+                raise ProviderQuotaUnknownError(
+                    f"Invalid transport measurement for {name} during settlement"
+                )
             consumed[name] = max(0, observed_bytes) if observed_requests else reserved
         elif (
             unit in {"credit", "credits"}

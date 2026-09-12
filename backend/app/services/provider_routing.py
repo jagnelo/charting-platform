@@ -25,6 +25,7 @@ from app.models.market_data_foundation import (
 )
 from app.models.provider_runtime import ProviderCapability
 from app.services.provider_runtime import (
+    ProviderQuotaUnknownError,
     ResolvedProvider,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
@@ -471,17 +472,28 @@ def settle_provider_contract(
 ) -> None:
     """Move one runtime reservation into consumption without a separate lease."""
 
-    settled_units = max(0, units)
+    if isinstance(units, bool) or not isinstance(units, int) or units < 0:
+        raise ProviderQuotaUnknownError(
+            "provider settlement requires non-negative integer units"
+        )
+    settled_units = units
     for window in windows:
         dimension = str(window.dimension)
-        reserved = max(
-            0,
-            int((reserved_dimension_units or {}).get(dimension, settled_units)),
-        )
-        consumed = max(
-            0,
-            int((consumed_dimension_units or {}).get(dimension, settled_units)),
-        )
+        raw_reserved = (reserved_dimension_units or {}).get(dimension, settled_units)
+        raw_consumed = (consumed_dimension_units or {}).get(dimension, settled_units)
+        if (
+            isinstance(raw_reserved, bool)
+            or not isinstance(raw_reserved, int)
+            or raw_reserved < 0
+            or isinstance(raw_consumed, bool)
+            or not isinstance(raw_consumed, int)
+            or raw_consumed < 0
+        ):
+            raise ProviderQuotaUnknownError(
+                f"Invalid settlement units for dimension {dimension}"
+            )
+        reserved = raw_reserved
+        consumed = raw_consumed
         window.reserved_units = max(0, window.reserved_units - reserved)
         if dimension in (release_only_dimensions or set()):
             continue
@@ -492,7 +504,15 @@ def settle_provider_contract(
                 # Provider-native usage headers may include calls made by
                 # other workers/processes. Never let a stale or malformed
                 # observation reduce locally recorded consumption.
-                window.consumed_units = max(window.consumed_units, int(observed_total))
+                if (
+                    isinstance(observed_total, bool)
+                    or not isinstance(observed_total, int)
+                    or observed_total < 0
+                ):
+                    raise ProviderQuotaUnknownError(
+                        f"Invalid observed settlement total for dimension {dimension}"
+                    )
+                window.consumed_units = max(window.consumed_units, observed_total)
 
 
 async def select_provider(

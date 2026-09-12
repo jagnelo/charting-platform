@@ -23,6 +23,7 @@ from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ProviderRateLimitError,
     ResolvedProvider,
+    _consumed_dimension_costs,
     _dimension_costs_for_operation,
     _observed_dimension_totals,
     policy_has_known_quota,
@@ -739,6 +740,34 @@ def test_operation_costs_reject_non_integral_values(invalid_cost):
     assert not provider_contract_operation_cost_known(
         policy, source, "get_current_price", operation_cost_override=invalid_cost
     )
+
+
+@pytest.mark.parametrize("invalid_reserved", [True, 1.5, "1", -1])
+def test_settlement_measurement_rejects_malformed_reserved_units(invalid_reserved):
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "response_bytes",
+                    "limit": 1000,
+                    "window_seconds": 60,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ProviderQuotaUnknownError):
+        _consumed_dimension_costs(
+            policy,
+            SimpleNamespace(http_requests=1, response_bytes=10),
+            {"response_bytes": invalid_reserved},
+        )
 
 
 def test_byte_dimension_requires_explicit_operation_bound():
