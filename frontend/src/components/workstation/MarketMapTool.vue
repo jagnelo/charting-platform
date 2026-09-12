@@ -424,6 +424,7 @@ let runGeneration = 0
 // source's coverage or resurrect its refresh run.
 let historyGeneration = 0
 let benchmarkCoverageGeneration = 0
+let pythonAssetsGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -1202,18 +1203,21 @@ function pythonUniverse() {
 }
 
 async function loadPythonAssets() {
+  const generation = ++pythonAssetsGeneration
   pythonAssetsLoading.value = true
   try {
     const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number; output_contract?: string }> }>>('/code/assets')
+    if (!componentMounted || generation !== pythonAssetsGeneration) return
     pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition').flatMap(asset => {
       const version = asset.versions.slice(-1)[0]
       if (version?.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
       return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, outputContract: version.output_contract }]
     })
   } catch (cause) {
+    if (!componentMounted || generation !== pythonAssetsGeneration) return
     pythonRunError.value = cause instanceof Error ? cause.message : 'Unable to load Python code assets'
   } finally {
-    pythonAssetsLoading.value = false
+    if (generation === pythonAssetsGeneration) pythonAssetsLoading.value = false
   }
 }
 
@@ -1759,6 +1763,7 @@ onMounted(async () => {
 })
 onUnmounted(() => {
   componentMounted = false
+  pythonAssetsGeneration += 1
   runGeneration += 1
   historyGeneration += 1
   benchmarkCoverageGeneration += 1

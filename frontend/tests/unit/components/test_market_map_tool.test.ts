@@ -970,6 +970,23 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('ignores a late Python asset response after unmount', async () => {
+    let resolveAssets!: (value: Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number; output_contract: 'series' }> }>) => void
+    const assets = new Promise<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number; output_contract: 'series' }> }>>(resolve => { resolveAssets = resolve })
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return assets
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { color_metric: 'python' } } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/code/assets'))
+
+    wrapper.unmount()
+    resolveAssets([{ kind: 'condition', name: 'Late asset', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).pythonAssets).toEqual([])
+  })
+
   it('runs a Python breadth condition tree before colouring the map', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }])
