@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Server-side event filter promotion requires named output
+
+The follow-up to the named event-signal seam closes the remaining API
+ambiguity. Direct multi-output `events` runs now require `artifact_name` for
+filter/alert promotion as well as Strategy signal promotion; the selected
+artifact and declared canonical member scope remain in the resulting adapter
+lineage. The Strategy Lab integration regression covers both missing-name
+rejection and a successful named filter (`27/27`, 54 warnings); Ruff,
+formatting, and diff checks pass.
+
+The exact exhaustive gate is still recorded at the preceding product tip and
+must be rerun at this follow-up tip. Preserve its six established visual
+state-oracle diffs and unchanged acceptance policy. Continue the next bounded
+provider/history or compatible chart/list/gauge seam, then R1 canonical
+population/history breadth, W1/MN continuity, dense-data evidence, and R2-R7.
+
 ## 2026-09-12 — Named event-artifact promotion preserves output selection
 
 Product tip `ea7eccf1` closes a concrete R4 fan-out ambiguity. A direct

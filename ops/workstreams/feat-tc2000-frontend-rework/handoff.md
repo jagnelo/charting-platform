@@ -2,6 +2,21 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Server-side event filter promotion requires named output
+
+Follow-up commit `df4c127f` closes the remaining direct multi-output event
+adapter ambiguity. The filter/alert promotion endpoint now rejects an unnamed
+direct `events` run with multiple named artifacts and preserves the selected
+artifact plus declared canonical member scope when named. Strategy Lab
+integration passed `27/27` with 54 warnings; Ruff, formatting, and diff checks
+passed. The exact gate is pending at this follow-up tip; the prior gate's six
+protected visual state-oracle diffs and no-policy-change boundary remain the
+recorded baseline.
+
+Next: rerun the exact gate at `df4c127f`, then continue a bounded
+provider/history or compatible chart/list/gauge seam and the remaining R1-R7
+work. Do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Named event-artifact promotion preserves output selection
 
 Product commit `ea7eccf1` makes direct multi-output `events` promotions

@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Server-side event filter promotion requires named output
+
+- [x] Close the remaining direct multi-output event adapter ambiguity. The
+      filter/alert promotion endpoint now rejects an unnamed direct `events`
+      run with multiple named artifacts instead of adapting the first output;
+      named selections retain the source artifact and canonical member scope.
+- [x] Extend the integration regression to cover missing-name rejection and a
+      successful named filter alongside the existing named Strategy signal.
+      Strategy Lab integration passed `27/27` with 54 warnings; Ruff,
+      formatting, and diff checks passed. The last exact gate at the preceding
+      product tip remains the recorded baseline (`98/104` visual with the same
+      six protected state-oracle diffs); rerun the exhaustive gate at this tip.
+- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
+      seam, then R1 canonical population/history breadth, W1/MN continuity,
+      dense-data evidence, and R2-R7 without changing protected visual policy.
+
 ### 2026-09-12 — Named event-artifact promotion preserves output selection
 
 - [x] Close the direct multi-output events promotion gap. The API now requires
