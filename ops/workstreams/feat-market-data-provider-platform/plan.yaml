@@ -108,7 +108,7 @@ remaining_gaps:
   - the post-options complete matrix rerun at 2026-09-12 collected 39 cases and passed 35. The four honest outcomes were Alpha Vantage's documented 25-requests/day IPO-calendar capacity response plus exact intentional credential preflights for Tradier, IBKR, and Ondo. xStocks returned an explicit null quote while its selected token reported a closed trading period; the test records that provider state without fabricating a price. No acceptance claim was made.
   - MarketData.app now exposes provider-native per-response credit telemetry and the runtime settles actual `X-Api-Ratelimit-Consumed` values plus cumulative remaining-credit observations when the returned limit matches the reviewed plan. Current option-chain routing still requires the explicit positive `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound; the default zero remains non-routable. Historical single-contract quote reservations are range-derived from the provider's documented end-of-day semantics. This closes accounting visibility but not the wider provider-terms, CI/deployment, reconciliation, or shadow gates.
   - The live MarketData.app key returned a native 10,000-credit daily limit, which is Starter-shaped rather than the repository's conservative Free Forever 100-credit seed. Native headers remain observational; routing now requires the exact reviewed `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` pair, with documented Free Forever/Starter/Trader values only. Quant/Prime remain outside this daily contract until their per-minute dimensions are modeled.
-  - The 2026-09-12 local credentialed matrix collected 45 cases and passed 39. Alpaca paper, EDGAR, MarketData.app, and rotated Dinari Sandbox cases passed; Alpha Vantage returned typed documented 25-requests/day capacity responses for IPO-calendar and both earnings reads, while Tradier, IBKR, and Ondo remained exact intentional credential preflights. Aggregate-only usage is recorded under run `ef7c9f58-f408-4501-b25a-2dcf6ae298fe` in the owner-managed external ledger; this is not acceptance evidence.
+  - The 2026-09-12 local credentialed matrix collected 46 cases and passed 40 after the SEC live-probe isolation refinement. Alpaca paper, EDGAR, MarketData.app, and rotated Dinari Sandbox cases passed; Alpha Vantage returned typed documented 25-requests/day capacity responses for IPO-calendar and both earnings reads, while Tradier, IBKR, and Ondo remained exact intentional credential preflights. Aggregate-only usage is recorded under the owner-managed external ledger; this is not acceptance evidence.
 progress:
   completed:
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
@@ -1028,10 +1028,17 @@ progress:
       leaving subsequent live cases isolated as well. The refined standalone
       credentialed probe passed 1/1; this remains transport/test-isolation
       evidence only and does not widen SEC routing or quota admission.
+    - >-
+      The complete manifest-driven live matrix was rerun after the SEC
+      isolation refinement: 46 cases were collected and 40 passed. The six
+      non-passes were the typed Alpha Vantage 25-requests/day capacity responses
+      for IPO-calendar and both earnings reads plus exact missing-credential
+      preflights for intentionally deferred Tradier, IBKR, and Ondo; no
+      unexpected provider failure or routing-policy change occurred.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
-    The latest local matrix collects 45 cases and remains 39/45: newly supplied
+    The latest local matrix collects 46 cases and remains 40/46: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
     Sandbox probes, including the MarketData.app expirations/option-chain
     surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.

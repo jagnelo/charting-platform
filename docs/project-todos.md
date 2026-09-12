@@ -16335,3 +16335,15 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Keep provider quota, account-plan, terms, redistribution, Docker,
       deployment, and shadow gates unchanged; this test correction adds no
       routing entitlement and persisted only aggregate usage outside Git.
+
+### 2026-09-12 — Complete provider matrix after SEC probe isolation
+
+- [x] Run the full manifest-driven live matrix with the existing operator-owned
+      credentials and the shared usage lock/ledger. `40/46` cases passed.
+- [x] Preserve the six honest non-passes: Alpha Vantage returned its typed
+      documented 25-requests/day capacity response for IPO-calendar and both
+      earnings reads; Tradier, IBKR, and Ondo remained exact intentional
+      credential preflights. No unexpected provider failure was observed.
+- [ ] Keep the matrix result non-accepting until deferred credentials and the
+      provider-specific quota, terms, routing, Docker, deployment, and shadow
+      gates are resolved; the live run changed no routing entitlement.

@@ -1000,3 +1000,11 @@ Update this handoff at each coherent boundary.
   test also leaves later live cases isolated. The standalone credentialed probe
   passed `1/1` after this refinement; no provider policy, quota contract, or
   routing entitlement changed.
+
+- The complete manifest-driven live matrix was rerun after the SEC isolation
+  refinement with the existing operator-owned environment. It collected 46
+  cases and passed `40/46`. The six non-passes were the expected typed Alpha
+  Vantage 25-requests/day capacity responses for IPO-calendar and both earnings
+  reads plus the exact missing-credential preflights for intentionally deferred
+  Tradier, IBKR, and Ondo. The wrapper retained its nonzero/no-acceptance result;
+  no unexpected provider failure or routing-policy change occurred.
