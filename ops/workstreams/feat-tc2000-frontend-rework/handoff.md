@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Snapshot backfill collapses same-date revisions
+
+Product commit `07c62953e` makes the scheduled benchmark-family member-history
+backfill retain only the latest-known persisted disclosure for each
+symbol/effective composition date. Corrected same-date disclosures remain in
+the source history and audit trail, while redundant queue work and bounded
+snapshot-cap consumption are removed. Focused history coverage passes `27/27`,
+the full backend unit suite passes `1529/1529`, and Ruff, formatting, and diff
+checks pass. No provider, fallback, migration, visual, or acceptance policy
+changed. Full canonical provider population, bar floors, and R2–R7 remain
+open.
+
 ## 2026-09-12 — Exact gate at point-in-time history tip
 
 At product tip `fdb274af4` and documentation tip `a6cba5845`, the exact

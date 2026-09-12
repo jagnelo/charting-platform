@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Snapshot backfill collapses same-date revisions
+
+The scheduled benchmark-family member-history backfill now keeps the
+latest-known persisted disclosure for each symbol/effective composition date.
+Corrected same-date rows remain intact in source history and the audit trail,
+but they no longer consume the bounded backfill snapshot cap or enqueue
+duplicate instrument/date work. The regression proves the corrected revision
+wins deterministically from the existing known-at ordering; focused history
+coverage passes `27/27`, the full backend unit suite passes `1529/1529`, and
+Ruff, formatting, and diff checks pass. No provider, fallback, migration,
+visual, or acceptance policy changed. This is a bounded R1 rebalance-continuity
+maintenance closure; full provider population, bar floors, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-12 — Exact gate at point-in-time history tip
 
 At product tip `fdb274af4` and documentation tip `a6cba5845`, the exact

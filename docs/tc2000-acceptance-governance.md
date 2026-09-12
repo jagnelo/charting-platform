@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Backfill uses the latest-known effective disclosure
+
+The scheduled benchmark-family member-history maintenance contract now
+collapses persisted revisions sharing one symbol and effective composition
+date, selecting the latest-known row using the existing `known_at`/ID ordering.
+Corrected disclosures remain available for source-history and audit inspection;
+only redundant queue work and bounded snapshot-cap consumption are removed.
+The focused regression passes `27/27` and the full backend unit suite passes
+`1529/1529`. This does not waive provider-backed population, D1/W1/MN floors,
+or the remaining rebalance and Version 25 acceptance gates. No provider,
+fallback, visual, migration, or acceptance policy changed.
+
 ## 2026-09-12 — Exact full-stack gate rechecked at point-in-time history tip
 
 The exact branch-scoped gate passed backend unit (`1528/1528`), backend
