@@ -24,6 +24,7 @@ from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.providers.errors import redact_provider_message
 from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
 from app.services.instrument_mastering import (
     ensure_external_identifier,
@@ -650,7 +651,11 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                 )
                 profile = execution.result
             except Exception as exc:
-                logger.info("No metadata refresh available for %s: %s", inst.symbol, exc)
+                logger.info(
+                    "No metadata refresh available for %s: %s",
+                    inst.symbol,
+                    redact_provider_message(exc),
+                )
                 profile = None
             await asyncio.sleep(settings.INSTRUMENT_METADATA_DELAY_SECONDS)
 
@@ -801,6 +806,6 @@ async def run_tracked_sync(
     except Exception as exc:
         run.status = "failed"
         run.finished_at = datetime.now(UTC)
-        run.error = str(exc)
+        run.error = redact_provider_message(exc)[:4000]
         await db.commit()
         raise

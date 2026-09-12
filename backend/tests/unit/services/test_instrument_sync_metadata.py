@@ -1,6 +1,12 @@
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 
+import pytest
+
+from app.models.instrument_sync_run import InstrumentSyncRun
+from app.services import instrument_sync
 from app.services.instrument_sync import _listing_evidence
+from tests.unit.conftest import AsyncSessionAdapter
 
 
 def test_listing_evidence_preserves_provider_dates_and_provenance():
@@ -35,3 +41,21 @@ def test_listing_evidence_does_not_create_empty_lifecycle_claims():
         )
         is None
     )
+
+
+@pytest.mark.asyncio
+async def test_tracked_sync_redacts_failure_error(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(instrument_sync, "_provider_chain_label", AsyncMock(return_value="fixture"))
+
+    async def failing_seed(*_args, **_kwargs):
+        raise RuntimeError("GET https://provider.test/data?api_key=sync-secret")
+
+    monkeypatch.setattr(instrument_sync, "seed_universe", failing_seed)
+
+    with pytest.raises(RuntimeError, match="sync-secret"):
+        await instrument_sync.run_tracked_sync(async_db, "seed-universe")
+
+    run = db.query(InstrumentSyncRun).one()
+    assert "sync-secret" not in (run.error or "")
+    assert "<redacted>" in (run.error or "")

@@ -220,6 +220,39 @@ async def test_universe_reconciliation_rejects_page_without_completion_evidence(
 
 
 @pytest.mark.asyncio
+async def test_universe_reconciliation_redacts_run_error(db, monkeypatch):
+    from app.services import market_universe
+
+    source = DataSource(name="fixture-error-redaction", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    resolved = SimpleNamespace(provider_name="fixture-error-redaction", data_source=source)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def failing_page(*_args, **_kwargs):
+        raise RuntimeError("GET https://provider.test/data?api_key=universe-secret")
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: _DiscoveryProvider())
+    monkeypatch.setattr(market_universe, "execute_provider_call", failing_page)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-error-redaction"
+    )
+
+    assert result["status"] == "failed"
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert "universe-secret" not in (run.error or "")
+    assert "<redacted>" in (run.error or "")
+
+
+@pytest.mark.asyncio
 async def test_universe_reconciliation_follows_cursor_until_explicit_completion(db, monkeypatch):
     from app.services import market_universe
 

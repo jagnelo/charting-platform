@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Provider-run diagnostic error redaction
+
+- [x] Extend credential redaction to the durable instrument-sync and US-universe
+      reconciliation error fields and to their provider-failure log messages.
+      Regression coverage passes 24/24 across the affected provider/run services;
+      the full backend unit suite passes 1739/1739 with Ruff, compilation, and
+      diff checks clean.
+
 ### 2026-09-12 — Provider diagnostic error redaction
 
 - [x] Enforce credential redaction at provider-availability and provider-support

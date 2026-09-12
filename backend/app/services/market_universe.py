@@ -32,6 +32,7 @@ from app.models.market_data_foundation import (
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import get_discovery_provider
+from app.providers.errors import redact_provider_message
 from app.services.exchange_catalog import (
     coerce_listing_lifecycle_at,
     ensure_exchange,
@@ -781,12 +782,12 @@ async def reconcile_us_universe(
                 # A failed/empty provider run is never treated as a complete
                 # universe.  Its snapshots and error remain inspectable.
                 run.status = "failed"
-                run.error = str(exc)[:4000]
+                run.error = redact_provider_message(exc)[:4000]
                 logger.warning(
                     "universe reconciliation %s/%s failed: %s",
                     resolved.provider_name,
                     quote_type,
-                    exc,
+                    redact_provider_message(exc),
                 )
             run.finished_at = _utc()
             await db.commit()
