@@ -29,6 +29,15 @@ def test_wire_datetime_normalizes_aware_and_naive_provenance_values():
     assert _wire_datetime(None) is None
 
 
+def test_instrument_read_contract_timestamps_share_canonical_wire_format():
+    """Membership/coverage consumers must not leak Python's ``+00:00`` spelling."""
+
+    aware = datetime.fromisoformat("2026-01-02T05:04:05+02:00")
+    naive = datetime(2026, 1, 2, 3, 4, 5)
+    assert _wire_datetime(aware) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(naive) == "2026-01-02T03:04:05Z"
+
+
 class TestInstrumentAutoCreate:
     @pytest.mark.asyncio
     async def test_rejects_non_exact_provider_match(self, db, monkeypatch):

@@ -926,7 +926,7 @@ async def get_instrument_membership(
             {
                 "id": sd.id,
                 "name": sd.name,
-                "last_run_at": latest_result.run_at.isoformat() if latest_result else None,
+                "last_run_at": _wire_datetime(latest_result.run_at) if latest_result else None,
                 "in_current_results": in_current,
             }
         )
@@ -960,8 +960,8 @@ async def get_data_coverage(
 
     coverage = {
         row.timeframe.value: {
-            "oldest": row.oldest.isoformat() if row.oldest else None,
-            "newest": row.newest.isoformat() if row.newest else None,
+            "oldest": _wire_datetime(row.oldest) if row.oldest else None,
+            "newest": _wire_datetime(row.newest) if row.newest else None,
             "bar_count": row.bar_count,
         }
         for row in rows
