@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Alert-list API timestamps use the canonical wire format
+
+Product commit `a466b3c3` makes the `/alerts/price` and `/alerts/indicator`
+response schemas serialize persisted `triggered_at`, `created_at`, and
+`updated_at` values as canonical UTC `Z` strings through the shared wire
+helper. Aware and legacy naive datetimes normalize consistently without
+changing alert persistence, ordering, or state transitions.
+
+Focused notification/schema coverage passed `3/3`; the full backend unit suite
+passed `1487/1487` at `68.53%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Checkpoint scope: `backend/app/schemas/alert.py` and
+`backend/tests/unit/services/test_alert_engine_notifications.py`. Restore
+Docker access, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Alert-history API timestamps use the canonical wire format
 
 Product commit `1a4c1f70` makes `AlertFiringEventOut` serialize persisted

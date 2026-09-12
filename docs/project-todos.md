@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Alert-list API timestamps use the canonical wire format
+
+- [x] Serialize price- and indicator-alert list response timestamps
+      (`triggered_at`, `created_at`, `updated_at`) as canonical UTC `Z` values
+      through the shared response schemas (`a466b3c3`).
+- [x] Focused notification/schema coverage passed `3/3`; full backend unit
+      coverage passed `1487/1487` at `68.53%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `a466b3c3`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
+      No later API, provider, browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Alert-history API timestamps use the canonical wire format
 
 - [x] Serialize alert-history `fired_at` and `created_at` values as canonical

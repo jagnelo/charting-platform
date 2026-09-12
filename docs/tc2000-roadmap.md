@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Alert-list API timestamps use the canonical wire format
+
+Product commit `a466b3c3` closes the alert-list response seam. The shared
+`PriceAlertOut` and `IndicatorAlertOut` schemas now serialize persisted
+`triggered_at`, `created_at`, and `updated_at` values through the UTC `Z` wire
+helper, normalizing aware and legacy naive datetimes without changing alert
+ordering, persistence, or status semantics.
+
+Focused alert notification/schema coverage passed `3/3`; the full backend unit
+suite passed `1487/1487` at `68.53%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `a466b3c3` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker returned permission denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, and instrument-coverage API regressions plus the exact gate,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam while preserving the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Alert-history API timestamps use the canonical wire format
 
 Product commit `1a4c1f70` closes the alert-history response boundary. The
