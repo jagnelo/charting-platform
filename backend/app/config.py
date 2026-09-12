@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = False
     MARKET_UNIVERSE_MISSING_CONFIRMATIONS: int = 3
+    # Forward market-event ingestion is opt-in. The worker persists a bounded
+    # window from every eligible market_events provider; provider routing and
+    # quotas remain the final authority for whether a source is called.
+    MARKET_EVENTS_REFRESH_ENABLED: bool = False
+    MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS: int = 90
+    MARKET_EVENTS_REFRESH_MAX_PROVIDERS: int = 8
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False

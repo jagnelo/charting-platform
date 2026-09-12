@@ -11264,10 +11264,12 @@ Product goals:
 What remains:
 
 - The normalized `market_events` provider capability is now distinct from the
-  instrument-event history model and supports multiple contributors. The
-  remaining work is persistence/reconciliation and the calendar-facing product
-  surfaces; do not overload the per-instrument event fetch path with market-wide
-  future events.
+  instrument-event history model and supports multiple contributors. A
+  backend-only, opt-in refresh service now persists provider observations with
+  exact provider-symbol/CIK linkage and per-provider failure outcomes. The
+  remaining work is cross-provider reconciliation, pre-listing materialization,
+  EDGAR/Alpha feed completion, and calendar-facing product surfaces; do not
+  overload the per-instrument event fetch path with market-wide future events.
 
 - Provider implementations for the free sources that actually make sense are now
   partially in place:

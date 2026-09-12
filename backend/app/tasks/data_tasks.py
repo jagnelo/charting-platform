@@ -214,6 +214,27 @@ async def reconcile_market_universe(ctx: dict) -> dict:
         return {"reconciliation": reconciliation, "coverage": coverage}
 
 
+async def refresh_market_events(ctx: dict) -> dict:
+    """Persist one bounded forward market-event window when enabled."""
+
+    from app.config import settings
+    from app.services.market_events import refresh_market_events as _refresh_market_events
+
+    if not settings.MARKET_EVENTS_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "market-events refresh disabled"}
+
+    today = datetime.now(UTC).date()
+    lookahead_days = max(1, int(settings.MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS))
+    max_providers = max(1, int(settings.MARKET_EVENTS_REFRESH_MAX_PROVIDERS))
+    async with AsyncSessionLocal() as db:
+        return await _refresh_market_events(
+            db,
+            start=today,
+            end=today + timedelta(days=lookahead_days),
+            max_providers=max_providers,
+        )
+
+
 async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
     """Refresh a bounded tokenized quote batch through durable provider routing."""
 

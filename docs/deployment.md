@@ -52,6 +52,16 @@ feed terms and quota contracts have been reviewed. These values must also be
 present for both `backend` and `worker`; the schedule is otherwise disabled
 and does not consume provider quota.
 
+Market-wide IPO, earnings-calendar, and exchange-event persistence is also
+opt-in. Set `MARKET_EVENTS_REFRESH_ENABLED=true`,
+`MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS`, and
+`MARKET_EVENTS_REFRESH_MAX_PROVIDERS` in the shared `app.env` only after the
+provider-specific market-event entitlements and quota contracts have been
+reviewed. The values must reach both `backend` and `worker`; the daily worker
+refreshes a bounded UTC forward window and records per-provider failures
+without discarding successful observations. The default is disabled and no
+provider calls occur until explicitly enabled.
+
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
 contracts, and reconciliation completeness have been reviewed, set

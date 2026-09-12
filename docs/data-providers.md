@@ -362,6 +362,31 @@ retained unlinked for later reconciliation rather than guessed onto an
 underlying ticker. Exchange token adapters without an action endpoint are
 reported as unsupported and never invoked.
 
+Market-wide event feeds use the separate `market_events` capability. The
+backend service `app.services.market_events.refresh_market_events` fans out a
+bounded window to selected providers that advertise this capability and
+persists each `MarketEventRecord` idempotently by `(source, event_key)`. Exact
+provider-symbol mappings and unique SEC CIK matches are linked to canonical
+instruments/issuers; ticker-only matches that resolve to more than one active
+venue remain unlinked for reconciliation. A provider failure is returned as a
+per-provider result while successful observations from other providers are
+retained. The ARQ entry point is disabled by default; enable it in both backend
+and worker environments with:
+
+```env
+MARKET_EVENTS_REFRESH_ENABLED=true
+MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS=90
+MARKET_EVENTS_REFRESH_MAX_PROVIDERS=8
+```
+
+The worker refreshes a bounded UTC `today`-through-lookahead window once per
+day. Provider-specific operation costs, entitlement gates, and quota
+dimensions remain authoritative, so enabling the schedule cannot make an
+unknown or non-routable provider callable. This backend persistence path does
+not add a frontend calendar surface; reconciliation, pre-listing
+materialization, and calendar UX remain tracked separately in
+`project-todos.md`.
+
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
 | alpaca     | Primary     | API key + secret        | Free     |
