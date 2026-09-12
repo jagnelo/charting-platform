@@ -328,6 +328,7 @@ progress:
     - The MarketData.app live option-chain probe now supplies an explicit 20-contract maximum, exercising the adapter's documented `strikeLimit` safety path instead of issuing an unbounded response-priced request. The bounded credentialed option surface passed 1/1, observed three HTTP requests and 5,544 response bytes, and its redacted aggregate receipt was accepted into the owner-managed external ledger; optional-provider fixtures passed 69/69 with Ruff, compilation, and diff checks clean.
     - The Alpaca assets/corporate-actions live probe now applies a test-only two-page cursor bound. The bounded case passed 1/1 with two HTTP requests and 6,460,094 response bytes; the aggregate receipt was accepted externally. This protects live validation from an unbounded history walk without promoting the deployment's still-unreviewed `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` control.
     - Registry descriptor metadata now matches concrete transport hosts for FMP (`/stable`), Dinari Sandbox (`/api/v2`), and Ondo Global Markets (`api.gm.ondo.finance`). A regression covers the three mappings; registry tests pass 21/21 with Ruff, compilation, and diff checks clean.
+    - The descriptor audit also corrected Kraken's public host to include `/0/public`; the same registry regression now covers all four concrete host alignments and remains green at 21/21.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

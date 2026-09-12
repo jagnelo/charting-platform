@@ -71,7 +71,9 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
         "coinbase", "https://api.exchange.coinbase.com", "Optional crypto market-data provider."
     ),
     "kraken": ConfiguredProvider(
-        "kraken", "https://api.kraken.com", "Optional crypto/futures market-data provider."
+        "kraken",
+        "https://api.kraken.com/0/public",
+        "Optional crypto/futures market-data provider.",
     ),
     "xstocks": ConfiguredProvider(
         "xstocks",

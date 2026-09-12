@@ -1,5 +1,6 @@
 from app.config import provider_rate_limit_seed, settings
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
+from app.providers.crypto_market_data import KrakenProvider
 from app.providers.optional_market_data import FMPProvider
 from app.providers.registry import (
     get_default_discovery_provider,
@@ -69,6 +70,7 @@ class TestProviderRegistry:
             OPTIONAL_PROVIDER_DESCRIPTORS["ondo_global_markets"].base_url
             == OndoGlobalMarketsProvider.base_url
         )
+        assert OPTIONAL_PROVIDER_DESCRIPTORS["kraken"].base_url == KrakenProvider.base_url
 
     def test_new_workstation_defaults_are_free_source_first(self):
         assert get_default_market_data_provider().name == "alpaca"
