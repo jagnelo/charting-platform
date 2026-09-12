@@ -138,7 +138,7 @@ async def test_upsert_links_underlying_by_figi_before_ticker(db, instrument_type
         symbol="dAAPL",
         name="Apple Token",
         underlying_symbol="AAPL",
-        underlying_figi="BBG000B9XRY4",
+        underlying_figi=" bbg000b9xry4 ",
         raw_payload={},
     )
     token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)

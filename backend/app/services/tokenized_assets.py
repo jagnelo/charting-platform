@@ -19,6 +19,7 @@ from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import bounded_redact_provider_message
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
+from app.services.market_data_identity import normalize_identifier_value
 from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -45,6 +46,15 @@ _TOKENIZED_SYMBOL_FIELDS = (
     "assetSymbol",
     "asset_symbol",
 )
+
+
+def _normalized_optional_identifier(value: Any) -> str | None:
+    """Canonicalize provider identifiers while preserving the raw payload."""
+
+    if value is None or isinstance(value, bool):
+        return None
+    normalized = normalize_identifier_value(str(value))
+    return normalized or None
 _EVENT_ID_FIELDS = (
     "eventId",
     "event_id",
@@ -211,11 +221,11 @@ async def _underlying_instrument(
         ("isin", isin, InstrumentIdentifierType.ISIN),
         ("cusip", cusip, InstrumentIdentifierType.CUSIP),
     )
-    supplied = [
-        (label, str(value).strip().upper(), identifier_type)
-        for label, value, identifier_type in stable_identifiers
-        if str(value or "").strip()
-    ]
+    supplied: list[tuple[str, str, InstrumentIdentifierType]] = []
+    for label, value, identifier_type in stable_identifiers:
+        normalized = _normalized_optional_identifier(value)
+        if normalized:
+            supplied.append((label, normalized, identifier_type))
     if supplied:
         candidates: dict[int, Instrument] = {}
         matched_labels: list[str] = []
@@ -304,13 +314,17 @@ async def upsert_tokenized_asset(
         instrument.isin = record.isin or instrument.isin
         instrument.is_active = record.status not in {"inactive", "delisted", "halted"}
 
+    underlying_figi = _normalized_optional_identifier(record.underlying_figi)
+    underlying_composite_figi = _normalized_optional_identifier(record.underlying_composite_figi)
+    underlying_isin = _normalized_optional_identifier(record.underlying_isin)
+    underlying_cusip = _normalized_optional_identifier(record.underlying_cusip)
     underlying, underlying_link_status = await _underlying_instrument(
         db,
         symbol=record.underlying_symbol,
-        figi=record.underlying_figi,
-        composite_figi=record.underlying_composite_figi,
-        isin=record.underlying_isin,
-        cusip=record.underlying_cusip,
+        figi=underlying_figi,
+        composite_figi=underlying_composite_figi,
+        isin=underlying_isin,
+        cusip=underlying_cusip,
     )
     detail = (
         await db.execute(
@@ -330,10 +344,10 @@ async def upsert_tokenized_asset(
     detail.token_symbol = record.symbol
     detail.isin = record.isin
     detail.underlying_symbol = record.underlying_symbol
-    detail.underlying_figi = record.underlying_figi
-    detail.underlying_composite_figi = record.underlying_composite_figi
-    detail.underlying_isin = record.underlying_isin
-    detail.underlying_cusip = record.underlying_cusip
+    detail.underlying_figi = underlying_figi
+    detail.underlying_composite_figi = underlying_composite_figi
+    detail.underlying_isin = underlying_isin
+    detail.underlying_cusip = underlying_cusip
     detail.backing_type = record.backing_type
     detail.multiplier = record.multiplier
     detail.circulating_supply = record.circulating_supply
