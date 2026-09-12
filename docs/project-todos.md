@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-13 — Shared evaluator coverage preflight
+
+- [x] Add a provider-neutral OHLCV preflight coordinator for broad Strategy Lab
+      rules and Radar signal replay. It loads the requested local bars once per
+      instrument/timeframe, uses the exact missing-slice/freshness planner,
+      withholds unresolved instruments from evaluation, and reports full,
+      partial, deferred, stale-blocked, or empty readiness without making a
+      provider call. An explicit `queue_coverage_repairs` execution assumption
+      may enqueue only the bounded slices through the durable refresh queue;
+      default behavior is read-only. Focused preflight coverage passes 4/4 and
+      the complete Strategy Lab API suite passes 20/20. No frontend or ETF
+      provider-adapter files changed.
+- [ ] Extend the same preflight contract to breadth snapshots and any future
+      non-Strategy signal engines, then persist evaluator run status separately
+      from the existing Strategy Lab `completed` transport status.
+
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
 
 - [x] Persist durable refresh-job `started_at`, `finished_at`, and redacted

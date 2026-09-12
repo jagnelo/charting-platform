@@ -579,6 +579,12 @@ symbol APIs:
   `/api/v1/market-data/refresh/queue` response exposes these fields so broad
   evaluators and operators can distinguish completed, empty, retry, deferred,
   and still-leased work without making a provider call inside evaluation.
+- Strategy Lab rules and Radar signal replay now run a shared local OHLCV
+  coverage preflight before evaluation. The preflight reports exact required
+  ranges, bounded missing slices, freshness state, and per-timeframe readiness;
+  unresolved instruments are withheld from evaluation. Repair enqueueing is
+  opt-in through the run's `queue_coverage_repairs` assumption and always uses
+  the durable refresh queue, so evaluators never call a provider directly.
 - `market_coverage_snapshot`, `provider_shadow_observation`, and
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`

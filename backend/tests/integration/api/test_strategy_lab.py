@@ -220,6 +220,8 @@ class TestStrategyLabAPI:
         assert run_payload["result_summary"]["result_kind"] == "rules_backtest"
         assert run_payload["result_summary"]["coverage"]["instrument_count"] == 1
         assert run_payload["result_summary"]["coverage"]["total_bars"] >= 1
+        assert run_payload["result_summary"]["coverage"]["preflight"]["status"] == "full"
+        assert run_payload["result_summary"]["coverage"]["preflight"]["ready_instrument_count"] == 1
         assert run_payload["result_summary"]["performance"]["trade_count"] is not None
         assert len(run_payload["result_summary"]["equity_curve"]) >= len(ohlcv_bars)
         assert len(run_payload["result_summary"]["portfolio_timeline"]) >= len(ohlcv_bars)

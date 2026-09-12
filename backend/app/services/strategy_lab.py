@@ -30,6 +30,7 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
 from app.services.research_jobs import collect_research_result, enqueue_research_run
 from app.services.strategy_lab_nautilus import (
     NautilusOpenPosition,
@@ -1305,6 +1306,64 @@ async def _load_bars_for_strategy(
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def _strategy_coverage_preflight(
+    db: AsyncSession,
+    *,
+    evaluator: str,
+    instrument_ids: list[int],
+    timeframes: list[Timeframe],
+    date_from: datetime | None,
+    date_to: datetime | None,
+    queue_repairs: bool,
+) -> tuple[frozenset[int], dict[str, Any]]:
+    """Run shared local-data preflight for every dataset a strategy needs."""
+
+    unique_timeframes = list(dict.fromkeys(timeframes))
+    preflights: list[EvaluatorPreflight] = []
+    ready_ids = set(instrument_ids)
+    for timeframe in unique_timeframes:
+        preflight = await preflight_ohlcv(
+            db,
+            evaluator=evaluator,
+            instrument_ids=instrument_ids,
+            timeframe=timeframe,
+            date_from=date_from,
+            date_to=date_to,
+            queue_repairs=queue_repairs,
+        )
+        preflights.append(preflight)
+        ready_ids.intersection_update(preflight.ready_instrument_ids)
+
+    statuses = [preflight.status for preflight in preflights]
+    if not preflights:
+        aggregate_status = "empty"
+    elif all(status == "empty" for status in statuses):
+        aggregate_status = "empty"
+    elif all(status == "full" for status in statuses):
+        aggregate_status = "full"
+    elif ready_ids:
+        aggregate_status = "partial"
+    elif any(status == "stale-blocked" for status in statuses):
+        aggregate_status = "stale-blocked"
+    else:
+        aggregate_status = "deferred"
+
+    return frozenset(ready_ids), {
+        "status": aggregate_status,
+        "evaluator": evaluator,
+        "required_timeframes": [timeframe.value for timeframe in unique_timeframes],
+        "ready_instrument_count": len(ready_ids),
+        "queue_repairs": queue_repairs,
+        "queued_request_keys": [
+            key for preflight in preflights for key in preflight.queued_request_keys
+        ],
+        "timeframes": {
+            timeframe.value: preflight.to_dict()
+            for timeframe, preflight in zip(unique_timeframes, preflights, strict=True)
+        },
+    }
+
+
 def _iter_condition_nodes(node: Any) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if isinstance(node, dict):
@@ -2565,12 +2624,34 @@ async def _run_rules_backtest(
         and timeframe != Timeframe.W1
     )
 
+    required_timeframes = [timeframe]
+    if requires_daily_aux:
+        required_timeframes.append(Timeframe.D1)
+    if requires_weekly_aux:
+        required_timeframes.append(Timeframe.W1)
+    preflight_ready_ids, coverage_preflight = await _strategy_coverage_preflight(
+        db,
+        evaluator="strategy_rules_backtest",
+        instrument_ids=[instrument.id for instrument in instrument_rows],
+        timeframes=required_timeframes,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        queue_repairs=run.execution_assumptions.get("queue_coverage_repairs") is True,
+    )
+    coverage["preflight"] = coverage_preflight
+
     if not conditions:
         warnings.append("No entry conditions were defined; no trades can be simulated.")
 
     capital_slice = initial_capital / max(len(instrument_rows), 1)
 
     for instrument in instrument_rows:
+        if instrument.id not in preflight_ready_ids:
+            warnings.append(
+                f"{instrument.symbol} was withheld from simulation because coverage preflight "
+                "did not establish complete local data for every required timeframe."
+            )
+            continue
         bars = await _load_bars_for_strategy(
             db,
             instrument_id=instrument.id,
@@ -3236,8 +3317,24 @@ async def _run_radar_signal_research(
         preview_mode=coverage_preview_mode,
         preview_note=coverage_preview_note,
     )
+    preflight_ready_ids, coverage_preflight = await _strategy_coverage_preflight(
+        db,
+        evaluator="strategy_radar_signal_replay",
+        instrument_ids=[instrument.id for instrument in instrument_rows],
+        timeframes=[timeframe],
+        date_from=run.date_from,
+        date_to=run.date_to,
+        queue_repairs=run.execution_assumptions.get("queue_coverage_repairs") is True,
+    )
+    coverage["preflight"] = coverage_preflight
 
     for instrument in instrument_rows:
+        if instrument.id not in preflight_ready_ids:
+            warnings.append(
+                f"{instrument.symbol} was withheld from signal replay because coverage "
+                "preflight did not establish complete local data."
+            )
+            continue
         detections = signal_groups.get(instrument.id, [])
         signal_events: list[dict] = []
         for detection in detections:
