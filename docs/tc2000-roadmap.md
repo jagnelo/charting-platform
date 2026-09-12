@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact instrument-sync provenance gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `cc714b1b` after the
+instrument-sync provenance slice. Repository/workstream validation,
+dependency resolution, migration checks, frontend preparation, Ruff,
+formatting, and TypeScript passed. The `backend-coverage` stage then stopped
+after the fixed 180-second Docker readiness window because the Docker socket
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health outside the worktree, rerun pending API
+regressions and the exact gate at this tip, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Canonicalize instrument-sync provenance timestamps
 
 Product commit `cc714b1b` closes a nested provider-lineage seam in instrument
