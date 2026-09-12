@@ -349,6 +349,11 @@ progress:
       branch remains clean and pushed; session metadata records the exact
       blocked preflight rather than bypassing the Docker gate or claiming a
       new PostgreSQL/Redis validation result.
+    - The provider TODO ledger now reflects the current credential state, with
+      newly configured Alpaca, EDGAR, MarketData.app, and Dinari evidence is
+      marked complete, while intentionally deferred Tradier/Ondo/IBKR work is
+      retained as an explicit operator decision rather than a stale missing-key
+      requirement.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

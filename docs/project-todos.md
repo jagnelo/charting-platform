@@ -597,16 +597,22 @@ current capability/quota ledger.
       runtime deferral: explicit 25-requests/day messages, including the
       observed CSV `Information` response, now produce a rolling 24-hour retry
       timestamp instead of a generic cooldown or an immediate retry storm.
-- [ ] Supply and live-prove Alpaca Trading API key/secret, a Tradier individual
-      token, and a MarketData.app token. The authoritative local matrix already
-      passed SEC EDGAR with an operator-supplied temporary contact User-Agent;
-      every deployment/CI environment must configure its own non-secret value.
-      Positive live
-      evidence is now a runtime routing prerequisite, so merely configuring a
-      missing key cannot activate those providers. No 30-day observation run
-      may start before this gate and the NMS/OTC reconciliation gate are
-      complete. Tiingo, FINRA, and FMP also remain non-routable until their
-      monthly bandwidth constraints can be accounted.
+- [x] Supply and live-prove the newly configured Alpaca Trading API
+      key/secret, MarketData.app token, SEC EDGAR contact, and Dinari Sandbox
+      pair. The 2026-09-12 bounded probes passed for those providers, including
+      Alpaca paper assets/corporate actions, MarketData.app option paths, EDGAR
+      filings/Company Facts, and Dinari metadata/quote/history/news/dividend/
+      split reads. Positive live evidence is a runtime prerequisite, but does
+      not by itself promote unreviewed quota, entitlement, or redistribution
+      controls; every deployment/CI environment still needs its own non-secret
+      EDGAR contact value.
+- [ ] Provision and live-prove a Tradier individual token only if that provider
+      is re-enabled by the operator. Tradier, Ondo, and IBKR are intentionally
+      deferred in the current plan, so their exact credential preflights remain
+      explicit failures rather than skipped evidence. No 30-day observation run
+      may start before the NMS/OTC reconciliation and provider-governance gates
+      are complete. Tiingo, FINRA, and FMP also remain non-routable until their
+      provider-specific bandwidth/terms constraints are reviewed.
 
 ### 2026-09-04 — US-first market-data provider platform foundation
 

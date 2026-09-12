@@ -348,3 +348,7 @@ Update this handoff at each coherent boundary.
   section on the local Docker Desktop API. The branch is clean and pushed;
   `session.json` records the blocked preflight explicitly rather than bypassing
   the Docker gate or claiming new PostgreSQL/Redis evidence.
+- The current project TODO ledger now marks the supplied Alpaca, EDGAR,
+  MarketData.app, and Dinari credentials/live evidence as complete and keeps
+  Tradier/Ondo/IBKR as intentionally deferred operator decisions, avoiding an
+  obsolete “missing Alpaca/MarketData key” blocker.
