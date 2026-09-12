@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Coverage Summary lifecycle
+
+- [x] Fence canonical coverage and OHLCV-range responses on unmount so late
+      responses cannot repopulate a closed Coverage Summary surface
+      (`05f5a4e9`).
+- [x] Focused Coverage Summary coverage passed `5/5`; full frontend Vitest
+      passed `1033/1033` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Coverage Summary gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `05f5a4e9037e58b5938ea191bd4c679501b35f3b`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence workstation hydration lifecycle
 
 - [x] Fence WorkstationView initial hydration, pop-out retry, symbol loading,

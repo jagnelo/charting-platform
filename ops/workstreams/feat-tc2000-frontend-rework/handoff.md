@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Coverage Summary lifecycle
+
+Product commit `05f5a4e9` fences canonical Coverage Summary and OHLCV-range
+responses on unmount, preventing late responses from repopulating a closed
+surface or overwriting teardown state. Focused coverage passed `5/5`; full
+frontend Vitest passed `1033/1033` across 115 files; type-check, production
+build, and `git diff --check` passed with only the existing chunk-size warning.
+No provider, fallback, visual, or acceptance policy changed. Continue
+implementation in this worktree only.
+
+## 2026-09-12 — Exact Coverage Summary gate rechecked
+
+At product tip `05f5a4e9037e58b5938ea191bd4c679501b35f3b`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence workstation hydration lifecycle
 
 Product commit `d85bcc78` fences WorkstationView initial hydration, pop-out
