@@ -54,20 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "backend/app/routers/code.py",
-    "backend/research_runner/runner.py",
-    "backend/tests/integration/api/test_code.py",
-    "backend/tests/unit/services/test_research_runner.py",
-    "docs/project-todos.md",
-    "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/src/components/workstation/StudyLabTool.vue",
-    "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "frontend/tests/unit/components/test_study_lab_tool.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "scripts/agent-session.py"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -127,7 +114,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "64ca6f7e24c0608c5f03fb49f909f86a200c1406",
+  "head": "60b485b3ea9fb516a2ca0084ca15e9bd11824293",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T03:34:20.796737+00:00",
