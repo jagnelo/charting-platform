@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize paper-forward Study Lab timestamps
+
+Product commit `530e8723` closes the paper-forward monitoring timeline seam.
+Monitor snapshot timestamps now use the shared UTC-`Z` formatter, keeping
+repeated Study Lab observations aligned with the benchmark and Nautilus
+execution contracts. Snapshot retention, equity selection, monitor status, and
+forward-window semantics are unchanged.
+
+Focused Study Lab service coverage passed `13/13`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact benchmark timeline gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `2e2d7b78` after the

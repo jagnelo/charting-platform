@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize paper-forward Study Lab timestamps
+
+Product commit `530e8723` routes paper-forward monitor snapshot timestamps
+through the shared UTC-`Z` serializer. Snapshot retention, equity selection,
+monitor status, and forward-window semantics are unchanged.
+
+Focused Study Lab service coverage passed `13/13`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact benchmark timeline gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `2e2d7b78` after the

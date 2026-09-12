@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize paper-forward Study Lab timestamps
+
+- [x] Route paper-forward monitor snapshot timestamps through the shared
+      UTC-`Z` formatter (`530e8723`) without changing retention, equity,
+      status, or window semantics.
+- [x] Focused Study Lab service coverage passed `13/13`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact benchmark timeline gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `2e2d7b78`; repository/workstream,
