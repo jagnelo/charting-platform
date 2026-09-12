@@ -314,7 +314,7 @@ async def task_refresh_instrument_data(ctx: dict, instrument_id: int, timeframe:
             return
         tf = Timeframe(timeframe)
         start = datetime.now(UTC) - timedelta(days=7)
-        bars = await fetch_ohlcv(db, instrument, tf, start)
+        bars = await fetch_ohlcv(db, instrument, tf, start, redis=ctx.get("redis"))
         return {"bars_fetched": len(bars)}
 
 

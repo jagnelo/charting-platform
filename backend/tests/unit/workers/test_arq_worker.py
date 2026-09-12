@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.config import settings
+from app.models.ohlcv import Timeframe
 from app.tasks import data_tasks
 from app.workers import arq_worker
 
@@ -123,6 +124,29 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
     complete.assert_awaited_once_with(session, job)
     retry.assert_not_awaited()
     assert session.commits == 1
+
+
+@pytest.mark.asyncio
+async def test_single_instrument_refresh_forwards_worker_redis_to_canonical_fetch(monkeypatch):
+    session = _RefreshQueueSession()
+    redis = object()
+    calls = []
+
+    async def fake_fetch(db, instrument, timeframe, start, **kwargs):
+        calls.append((db, instrument.id, timeframe, start, kwargs))
+        return ["bar-1", "bar-2"]
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr("app.services.market_data.fetch_ohlcv", fake_fetch)
+
+    result = await arq_worker.task_refresh_instrument_data(
+        {"redis": redis}, 42, "D1"
+    )
+
+    assert result == {"bars_fetched": 2}
+    assert len(calls) == 1
+    assert calls[0][1:3] == (42, Timeframe.D1)
+    assert calls[0][4] == {"redis": redis}
 
 
 @pytest.mark.asyncio
