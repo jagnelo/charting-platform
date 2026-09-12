@@ -69,7 +69,9 @@ def _deployments(payload: dict[str, Any], provider_name: str) -> list[dict[str, 
     if raw is None:
         return []
     if not isinstance(raw, list) or any(not isinstance(item, dict) for item in raw):
-        raise ProviderResponseError(provider_name, "provider returned an invalid deployment row container")
+        raise ProviderResponseError(
+            provider_name, "provider returned an invalid deployment row container"
+        )
     return raw
 
 
@@ -163,9 +165,7 @@ def _http_json_bounded_rate_retry(
     attempts = max(1, min(int(max_attempts), 3))
     for attempt in range(attempts):
         try:
-            return _http_json(
-                url, provider_name=provider_name, params=params, headers=headers
-            )
+            return _http_json(url, provider_name=provider_name, params=params, headers=headers)
         except ProviderRateLimitError as exc:
             if exc.status_code != 429 or attempt == attempts - 1:
                 raise
@@ -210,7 +210,9 @@ def _required_rows(
         raise ProviderResponseError(provider_name, f"provider omitted the {field} rows")
     rows = body[field]
     if not isinstance(rows, list):
-        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} row container")
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid {field} row container"
+        )
     if any(not isinstance(row, dict) for row in rows):
         raise ProviderResponseError(provider_name, f"provider returned a non-object {field} row")
     return rows
@@ -246,7 +248,9 @@ def _gate_orderbook_rows(payload: dict[str, Any], field: str) -> list[dict[str, 
     if rows is None:
         return []
     if not isinstance(rows, list):
-        raise ProviderResponseError("gate_tradfi", f"provider returned an invalid {field} row container")
+        raise ProviderResponseError(
+            "gate_tradfi", f"provider returned an invalid {field} row container"
+        )
     if any(not isinstance(row, dict) for row in rows):
         raise ProviderResponseError("gate_tradfi", f"provider returned a non-object {field} row")
     return rows
@@ -283,7 +287,9 @@ class XStocksProvider:
         key = str(getattr(settings, "XSTOCKS_API_KEY", "") or "").strip()
         return {"X-API-KEY": key} if key else {}
 
-    def _record(self, payload: dict[str, Any], *, price: Decimal | None = None) -> TokenizedAssetRecord:
+    def _record(
+        self, payload: dict[str, Any], *, price: Decimal | None = None
+    ) -> TokenizedAssetRecord:
         underlying = payload.get("underlying") or {}
         if not isinstance(underlying, dict):
             raise ProviderResponseError(self.name, "provider returned an invalid underlying object")
@@ -369,7 +375,12 @@ class XStocksProvider:
         return asset
 
     def fetch_tokenized_corporate_actions(
-        self, *, symbol: str | None = None, upcoming: bool = False, page: int = 1, page_size: int = 100
+        self,
+        *,
+        symbol: str | None = None,
+        upcoming: bool = False,
+        page: int = 1,
+        page_size: int = 100,
     ) -> list[dict[str, Any]]:
         endpoint = "upcoming" if upcoming else "history"
         payload = _http_json(
@@ -410,7 +421,13 @@ class RobinhoodTokenProvider:
             payload, RobinhoodTokenProvider.name, "asset identifier", "id", "tokenSymbol", "symbol"
         )
         name = _required_text(
-            payload, RobinhoodTokenProvider.name, "name", "tokenName", "name", "tokenSymbol", "symbol"
+            payload,
+            RobinhoodTokenProvider.name,
+            "name",
+            "tokenName",
+            "name",
+            "tokenSymbol",
+            "symbol",
         )
         first = deployments[0] if deployments else {}
         network, chain_id, address = _network_chain_id(first)
@@ -427,10 +444,15 @@ class RobinhoodTokenProvider:
                 if price is not None
                 else None
             ),
-            multiplier=_checked_decimal(payload.get("currentMultiplier"), RobinhoodTokenProvider.name, "current multiplier"),
+            multiplier=_checked_decimal(
+                payload.get("currentMultiplier"), RobinhoodTokenProvider.name, "current multiplier"
+            ),
             status=str(payload.get("status") or "unknown").lower(),
             backing_type="economic_exposure_debt_security",
-            collateral={"deployments": deployments, "trading_capabilities": payload.get("tradingCapabilities")},
+            collateral={
+                "deployments": deployments,
+                "trading_capabilities": payload.get("tradingCapabilities"),
+            },
             observed_at=_now(),
             raw_payload=payload,
         )
@@ -445,9 +467,10 @@ class RobinhoodTokenProvider:
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
         needle = identifier.lower()
         for row in self._assets():
-            if str(row.get("id", "")).lower() == needle or str(
-                row.get("tokenSymbol", "")
-            ).lower() == needle:
+            if (
+                str(row.get("id", "")).lower() == needle
+                or str(row.get("tokenSymbol", "")).lower() == needle
+            ):
                 return self._record(row)
         return None
 
@@ -469,13 +492,15 @@ class RobinhoodTokenProvider:
         record.raw_payload = {"asset": record.raw_payload, "price": quote}
         return record
 
-    def fetch_tokenized_corporate_actions(self, *, symbol: str | None = None) -> list[dict[str, Any]]:
-        payload = _http_json(
-            f"{self.base_url}/corporate-actions", provider_name=self.name
-        )
+    def fetch_tokenized_corporate_actions(
+        self, *, symbol: str | None = None
+    ) -> list[dict[str, Any]]:
+        payload = _http_json(f"{self.base_url}/corporate-actions", provider_name=self.name)
         rows = _required_rows(payload, self.name, "corpActions")
         if symbol:
-            rows = [row for row in rows if str(row.get("tokenSymbol", "")).upper() == symbol.upper()]
+            rows = [
+                row for row in rows if str(row.get("tokenSymbol", "")).upper() == symbol.upper()
+            ]
         return rows
 
 
@@ -507,7 +532,9 @@ class BybitXStocksProvider:
         if quote is None:
             quote = {}
         if not isinstance(quote, dict):
-            raise ProviderResponseError(BybitXStocksProvider.name, "provider returned an invalid ticker object")
+            raise ProviderResponseError(
+                BybitXStocksProvider.name, "provider returned an invalid ticker object"
+            )
         return TokenizedAssetRecord(
             provider=BybitXStocksProvider.name,
             asset_id=symbol,
@@ -609,10 +636,7 @@ class GateTradfiProvider:
         body = _required_object(payload, self.name, "symbol catalogue")
         data = _required_object(body.get("data"), self.name, "symbol catalogue data")
         rows = _required_rows(data, self.name, "list", context="symbol catalogue list")
-        return [
-            self._record(row)
-            for row in rows[: max(1, page_size)]
-        ]
+        return [self._record(row) for row in rows[: max(1, page_size)]]
 
     @staticmethod
     def _record(row: dict[str, Any], quote: dict[str, Any] | None = None) -> TokenizedAssetRecord:
@@ -620,7 +644,9 @@ class GateTradfiProvider:
         if quote is None:
             quote = {}
         if not isinstance(quote, dict):
-            raise ProviderResponseError(GateTradfiProvider.name, "provider returned an invalid quote object")
+            raise ProviderResponseError(
+                GateTradfiProvider.name, "provider returned an invalid quote object"
+            )
         return TokenizedAssetRecord(
             provider=GateTradfiProvider.name,
             asset_id=symbol,
@@ -669,11 +695,7 @@ class GateTradfiProvider:
         row = {
             "bid": bid,
             "ask": ask,
-            "price": (
-                (bid + ask) / 2
-                if bid is not None and ask is not None
-                else bid or ask
-            ),
+            "price": ((bid + ask) / 2 if bid is not None and ask is not None else bid or ask),
         }
         record = asset or self._record({"symbol": identifier}, row)
         if isinstance(row, dict):
@@ -707,9 +729,7 @@ class KrakenXStocksProvider:
     def discover_tokenized_assets(
         self, *, page: int = 0, page_size: int = 100
     ) -> list[TokenizedAssetRecord]:
-        payload = _http_json(
-            f"{self.base_url}/AssetPairs", provider_name=self.name
-        )
+        payload = _http_json(f"{self.base_url}/AssetPairs", provider_name=self.name)
         body = _required_object(payload, self.name, "asset-pairs response")
         rows = _required_object(body.get("result"), self.name, "asset-pairs result")
         if any(not isinstance(value, dict) for value in rows.values()):
@@ -730,7 +750,9 @@ class KrakenXStocksProvider:
         if quote is None:
             quote = {}
         if not isinstance(quote, dict):
-            raise ProviderResponseError(KrakenXStocksProvider.name, "provider returned an invalid ticker object")
+            raise ProviderResponseError(
+                KrakenXStocksProvider.name, "provider returned an invalid ticker object"
+            )
 
         def quote_value(*keys: str) -> Any:
             for key in keys:
@@ -743,7 +765,8 @@ class KrakenXStocksProvider:
                     return value[0]
                 if key in {"c", "b", "a"}:
                     raise ProviderResponseError(
-                        KrakenXStocksProvider.name, f"provider returned an invalid {key} quote field"
+                        KrakenXStocksProvider.name,
+                        f"provider returned an invalid {key} quote field",
                     )
                 return value
             return None
@@ -755,7 +778,9 @@ class KrakenXStocksProvider:
             name=str(row.get("wsname") or symbol),
             underlying_symbol=str(row.get("base") or symbol),
             currency=str(row.get("quote") or "USD"),
-            price=_checked_decimal(quote_value("c", "last"), KrakenXStocksProvider.name, "last price"),
+            price=_checked_decimal(
+                quote_value("c", "last"), KrakenXStocksProvider.name, "last price"
+            ),
             bid=_checked_decimal(quote_value("b", "bid"), KrakenXStocksProvider.name, "bid price"),
             ask=_checked_decimal(quote_value("a", "ask"), KrakenXStocksProvider.name, "ask price"),
             status="active",
@@ -784,6 +809,7 @@ class KrakenXStocksProvider:
             raise ProviderResponseError(self.name, "provider returned a non-object ticker row")
         quote = next(iter(result.values()))
         record = asset or self._record({"symbol": identifier}, quote)
+
         def quote_value(*keys: str) -> Any:
             for key in keys:
                 if key not in quote:
@@ -812,11 +838,15 @@ def _iso_datetime(value: Any, provider_name: str, field: str) -> datetime:
     """Parse an RFC3339 value without turning malformed provider data into ``now``."""
 
     if not isinstance(value, str) or not value.strip():
-        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} timestamp")
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid {field} timestamp"
+        )
     try:
         parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
     except (TypeError, ValueError) as exc:
-        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} timestamp") from exc
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid {field} timestamp"
+        ) from exc
     return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
@@ -872,9 +902,10 @@ class DinariTokenProvider:
         return {"X-API-Key-Id": key_id, "X-API-Secret-Key": secret}
 
     def _require_configured(self) -> None:
-        if not str(getattr(settings, "DINARI_API_KEY_ID", "") or "").strip() or not str(
-            getattr(settings, "DINARI_API_SECRET_KEY", "") or ""
-        ).strip():
+        if (
+            not str(getattr(settings, "DINARI_API_KEY_ID", "") or "").strip()
+            or not str(getattr(settings, "DINARI_API_SECRET_KEY", "") or "").strip()
+        ):
             raise ProviderNotConfiguredError(
                 "dinari requires DINARI_API_KEY_ID and DINARI_API_SECRET_KEY"
             )
@@ -888,9 +919,13 @@ class DinariTokenProvider:
         # continue with the documented page/page_size compatibility mode.
         self._require_configured()
         if isinstance(page, bool) or not isinstance(page, int) or page < 0:
-            raise ProviderResponseError(self.name, "Dinari stock page must be a non-negative integer")
+            raise ProviderResponseError(
+                self.name, "Dinari stock page must be a non-negative integer"
+            )
         if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
-            raise ProviderResponseError(self.name, "Dinari stock page size must be a positive integer")
+            raise ProviderResponseError(
+                self.name, "Dinari stock page size must be a positive integer"
+            )
         requested_page_size = min(page_size, 100)
         limit = max(20, requested_page_size)
         cursor_key = (limit, page)
@@ -932,20 +967,28 @@ class DinariTokenProvider:
             next_cursor = metadata["next"]
             if next_cursor is not None:
                 if isinstance(next_cursor, bool) or not isinstance(next_cursor, str):
-                    raise ProviderResponseError(self.name, "provider returned an invalid stock pagination cursor")
+                    raise ProviderResponseError(
+                        self.name, "provider returned an invalid stock pagination cursor"
+                    )
                 next_cursor = next_cursor.strip()
                 if not next_cursor:
-                    raise ProviderResponseError(self.name, "provider returned an empty stock pagination cursor")
+                    raise ProviderResponseError(
+                        self.name, "provider returned an empty stock pagination cursor"
+                    )
                 previous_cursor = params.get("next")
                 if previous_cursor is not None and next_cursor == previous_cursor:
-                    raise ProviderResponseError(self.name, "provider repeated the stock pagination cursor")
+                    raise ProviderResponseError(
+                        self.name, "provider repeated the stock pagination cursor"
+                    )
                 self._stock_cursors[(limit, page + 1)] = next_cursor
             else:
                 self._stock_exhausted_pages.add((limit, page + 1))
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-            raise ProviderResponseError(self.name, "provider returned an invalid stock row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid stock row container"
+            )
         return rows
 
     def _record(self, payload: dict[str, Any]) -> TokenizedAssetRecord:
@@ -1030,7 +1073,9 @@ class DinariTokenProvider:
             "stock price",
         )
         if str(payload.get("stock_id") or "") != asset.asset_id:
-            raise ProviderResponseError(self.name, "provider returned a price for a different Stock")
+            raise ProviderResponseError(
+                self.name, "provider returned a price for a different Stock"
+            )
         price = _decimal(payload.get("price"))
         if price is None or not price.is_finite():
             raise ProviderResponseError(self.name, "provider returned an invalid Stock price")
@@ -1054,7 +1099,9 @@ class DinariTokenProvider:
             "stock quote",
         )
         if str(payload.get("stock_id") or "") != asset.asset_id:
-            raise ProviderResponseError(self.name, "provider returned a quote for a different Stock")
+            raise ProviderResponseError(
+                self.name, "provider returned a quote for a different Stock"
+            )
         bid = _decimal(payload.get("bid_price"))
         ask = _decimal(payload.get("ask_price"))
         if bid is None or ask is None or not bid.is_finite() or not ask.is_finite():
@@ -1084,18 +1131,26 @@ class DinariTokenProvider:
             headers=self._headers(),
         )
         if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
-            raise ProviderResponseError(self.name, "provider returned an invalid historical price row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid historical price row container"
+            )
         result: list[dict[str, Any]] = []
         for row in payload:
             try:
                 timestamp = int(row["timestamp"])
             except (KeyError, TypeError, ValueError) as exc:
-                raise ProviderResponseError(self.name, "provider returned an invalid historical price timestamp") from exc
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid historical price timestamp"
+                ) from exc
             if timestamp <= 0:
-                raise ProviderResponseError(self.name, "provider returned an invalid historical price timestamp")
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid historical price timestamp"
+                )
             values = {field: _decimal(row.get(field)) for field in ("open", "high", "low", "close")}
             if any(value is None or not value.is_finite() for value in values.values()):
-                raise ProviderResponseError(self.name, "provider returned an invalid historical price row")
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid historical price row"
+                )
             result.append(
                 {
                     "stock_id": stock_id,
@@ -1118,12 +1173,16 @@ class DinariTokenProvider:
             headers=self._headers(),
         )
         if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
-            raise ProviderResponseError(self.name, "provider returned an invalid stock news row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid stock news row container"
+            )
         result: list[dict[str, Any]] = []
         for row in payload:
             required = ("article_url", "description", "image_url", "published_dt", "publisher")
             if any(not str(row.get(field) or "").strip() for field in required):
-                raise ProviderResponseError(self.name, "provider returned an incomplete stock news article")
+                raise ProviderResponseError(
+                    self.name, "provider returned an incomplete stock news article"
+                )
             published_at = _iso_datetime(row["published_dt"], self.name, "stock news")
             result.append({**row, "published_dt": published_at})
         return result
@@ -1138,7 +1197,9 @@ class DinariTokenProvider:
             headers=self._headers(),
         )
         if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
-            raise ProviderResponseError(self.name, "provider returned an invalid stock dividend row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid stock dividend row container"
+            )
         return payload
 
     def fetch_tokenized_splits(self, identifier: str) -> list[dict[str, Any]]:
@@ -1170,7 +1231,9 @@ class DinariTokenProvider:
                 or not isinstance(next_cursor, str)
                 or not next_cursor.strip()
             ):
-                raise ProviderResponseError(self.name, "provider returned an invalid split pagination cursor")
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid split pagination cursor"
+                )
             if next_cursor is not None:
                 raise ProviderResponseError(
                     self.name,
@@ -1179,7 +1242,9 @@ class DinariTokenProvider:
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-            raise ProviderResponseError(self.name, "provider returned an invalid stock split row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid stock split row container"
+            )
         return rows
 
 
@@ -1204,11 +1269,15 @@ class OndoGlobalMarketsProvider:
     def _location(addresses: list[Any]) -> tuple[str | None, int | None, str | None]:
         for item in addresses:
             if not isinstance(item, dict):
-                raise ProviderResponseError("ondo_global_markets", "provider returned an invalid contract address")
+                raise ProviderResponseError(
+                    "ondo_global_markets", "provider returned an invalid contract address"
+                )
             chain = str(item.get("networkChainId") or "").strip()
             address = str(item.get("address") or "").strip()
             if not chain or not address:
-                raise ProviderResponseError("ondo_global_markets", "provider returned an incomplete contract address")
+                raise ProviderResponseError(
+                    "ondo_global_markets", "provider returned an incomplete contract address"
+                )
             try:
                 network, chain_id_text = chain.rsplit("-", 1)
                 chain_id = int(chain_id_text)
@@ -1226,7 +1295,9 @@ class OndoGlobalMarketsProvider:
             headers=self._headers(),
         )
         if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
-            raise ProviderResponseError(self.name, "provider returned an invalid metadata row container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid metadata row container"
+            )
         return payload
 
     def _record(self, payload: dict[str, Any]) -> TokenizedAssetRecord:
@@ -1238,7 +1309,9 @@ class OndoGlobalMarketsProvider:
         if not symbol or not underlying_symbol or not name or not isinstance(tags, dict):
             raise ProviderResponseError(self.name, "provider returned incomplete asset metadata")
         if not isinstance(addresses, list):
-            raise ProviderResponseError(self.name, "provider returned an invalid asset address container")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid asset address container"
+            )
         network, chain_id, address = self._location(addresses)
         return TokenizedAssetRecord(
             provider=self.name,
@@ -1304,7 +1377,9 @@ class OndoGlobalMarketsProvider:
         if not isinstance(primary, dict) or not isinstance(underlying, dict):
             raise ProviderResponseError(self.name, "provider returned an incomplete asset price")
         if str(primary.get("symbol") or "") != asset.symbol:
-            raise ProviderResponseError(self.name, "provider returned a price for a different asset")
+            raise ProviderResponseError(
+                self.name, "provider returned a price for a different asset"
+            )
         price = _decimal(primary.get("price"))
         if price is None or not price.is_finite():
             raise ProviderResponseError(self.name, "provider returned an invalid asset price")
@@ -1312,7 +1387,9 @@ class OndoGlobalMarketsProvider:
         try:
             observed_at = datetime.fromtimestamp(float(timestamp) / 1000, tz=UTC)
         except (TypeError, ValueError, OverflowError, OSError) as exc:
-            raise ProviderResponseError(self.name, "provider returned an invalid asset price timestamp") from exc
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid asset price timestamp"
+            ) from exc
         asset.price = price
         asset.observed_at = observed_at
         asset.raw_payload = {"asset": asset.raw_payload, "price": payload}
@@ -1344,7 +1421,9 @@ class OndoGlobalMarketsProvider:
             payload.get("underlyingMarket"), self.name, "underlying market"
         )
         if str(primary.get("symbol") or "").strip() != asset.symbol:
-            raise ProviderResponseError(self.name, "provider returned market data for a different asset")
+            raise ProviderResponseError(
+                self.name, "provider returned market data for a different asset"
+            )
         if str(underlying.get("ticker") or "").strip() != asset.underlying_symbol:
             raise ProviderResponseError(
                 self.name, "provider returned underlying market data for a different asset"
@@ -1353,7 +1432,9 @@ class OndoGlobalMarketsProvider:
         def _required_decimal(body: dict[str, Any], field: str, context: str) -> Decimal:
             value = _decimal(body.get(field))
             if value is None or not value.is_finite():
-                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid {context} {field}"
+                )
             return value
 
         def _optional_decimal(body: dict[str, Any], field: str, context: str) -> Decimal | None:
@@ -1366,7 +1447,9 @@ class OndoGlobalMarketsProvider:
                 return None
             value = body.get(field)
             if isinstance(value, bool):
-                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid {context} {field}"
+                )
             try:
                 parsed = int(value)
             except (TypeError, ValueError) as exc:
@@ -1374,14 +1457,18 @@ class OndoGlobalMarketsProvider:
                     self.name, f"provider returned an invalid {context} {field}"
                 ) from exc
             if parsed < 0 or str(value).strip() != str(parsed):
-                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid {context} {field}"
+                )
             return parsed
 
         primary_history: list[dict[str, Any]] = []
         if "priceHistory24h" in primary:
             rows = primary["priceHistory24h"]
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-                raise ProviderResponseError(self.name, "provider returned an invalid primary price history")
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid primary price history"
+                )
             for row in rows:
                 try:
                     timestamp = int(row["timestamp"])
@@ -1407,16 +1494,22 @@ class OndoGlobalMarketsProvider:
             if not isinstance(raw_sessions, list) or any(
                 not isinstance(session, str) or not session.strip() for session in raw_sessions
             ):
-                raise ProviderResponseError(self.name, "provider returned invalid tradable sessions")
+                raise ProviderResponseError(
+                    self.name, "provider returned invalid tradable sessions"
+                )
             sessions = [session.strip() for session in raw_sessions]
 
         timestamp = payload.get("timestamp")
         try:
             observed_at = datetime.fromtimestamp(float(timestamp) / 1000, tz=UTC)
         except (TypeError, ValueError, OverflowError, OSError) as exc:
-            raise ProviderResponseError(self.name, "provider returned an invalid market-data timestamp") from exc
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid market-data timestamp"
+            ) from exc
         if observed_at <= datetime(1970, 1, 1, tzinfo=UTC):
-            raise ProviderResponseError(self.name, "provider returned an invalid market-data timestamp")
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid market-data timestamp"
+            )
 
         primary_data: dict[str, Any] = {
             "symbol": asset.symbol,
@@ -1436,7 +1529,9 @@ class OndoGlobalMarketsProvider:
             "price": _required_decimal(underlying, "price", "underlying market"),
         }
         if not underlying_data["name"]:
-            raise ProviderResponseError(self.name, "provider returned an incomplete underlying market name")
+            raise ProviderResponseError(
+                self.name, "provider returned an incomplete underlying market name"
+            )
         for source_field, target_field in (
             ("priceHigh52w", "price_high_52w"),
             ("priceLow52w", "price_low_52w"),
@@ -1497,27 +1592,43 @@ class OndoGlobalMarketsProvider:
             self.name,
             "OHLC response",
         )
-        markets = ("primaryMarket", "underlyingMarket") if normalized_market == "both" else (
-            ("primaryMarket",) if normalized_market == "primary" else ("underlyingMarket",)
+        markets = (
+            ("primaryMarket", "underlyingMarket")
+            if normalized_market == "both"
+            else (("primaryMarket",) if normalized_market == "primary" else ("underlyingMarket",))
         )
         result: list[dict[str, Any]] = []
         for market_key in markets:
             market_body = _required_object(payload.get(market_key), self.name, market_key)
-            expected_symbol = asset.symbol if market_key == "primaryMarket" else asset.underlying_symbol
-            actual_symbol = str(market_body.get("symbol") or market_body.get("ticker") or "").strip()
+            expected_symbol = (
+                asset.symbol if market_key == "primaryMarket" else asset.underlying_symbol
+            )
+            actual_symbol = str(
+                market_body.get("symbol") or market_body.get("ticker") or ""
+            ).strip()
             if not expected_symbol or actual_symbol != expected_symbol:
-                raise ProviderResponseError(self.name, "provider returned OHLC for a different asset")
+                raise ProviderResponseError(
+                    self.name, "provider returned OHLC for a different asset"
+                )
             rows = market_body.get("data")
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-                raise ProviderResponseError(self.name, f"provider returned an invalid {market_key} row container")
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid {market_key} row container"
+                )
             for row in rows:
                 try:
                     timestamp = int(row["timestamp"])
                 except (KeyError, TypeError, ValueError) as exc:
-                    raise ProviderResponseError(self.name, "provider returned an invalid OHLC timestamp") from exc
+                    raise ProviderResponseError(
+                        self.name, "provider returned an invalid OHLC timestamp"
+                    ) from exc
                 if timestamp <= 0:
-                    raise ProviderResponseError(self.name, "provider returned an invalid OHLC timestamp")
-                values = {field: _decimal(row.get(field)) for field in ("open", "high", "low", "close")}
+                    raise ProviderResponseError(
+                        self.name, "provider returned an invalid OHLC timestamp"
+                    )
+                values = {
+                    field: _decimal(row.get(field)) for field in ("open", "high", "low", "close")
+                }
                 if any(value is None or not value.is_finite() for value in values.values()):
                     raise ProviderResponseError(self.name, "provider returned an invalid OHLC row")
                 result.append(

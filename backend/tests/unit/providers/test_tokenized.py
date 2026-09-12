@@ -110,7 +110,13 @@ def test_bybit_record_uses_explicit_multiplier_fields_only():
 
 
 def test_exchange_tokenized_adapters_expose_required_provider_surface():
-    for provider in (XStocksProvider(), RobinhoodTokenProvider(), BybitXStocksProvider(), GateTradfiProvider(), KrakenXStocksProvider()):
+    for provider in (
+        XStocksProvider(),
+        RobinhoodTokenProvider(),
+        BybitXStocksProvider(),
+        GateTradfiProvider(),
+        KrakenXStocksProvider(),
+    ):
         assert "tokenized_assets" in list_provider_capabilities(provider.name)
         assert callable(provider.discover_tokenized_assets)
         assert callable(provider.get_tokenized_asset)
@@ -415,7 +421,9 @@ def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
         ),
     ],
 )
-def test_authenticated_tokenized_adapters_fail_closed_before_http(monkeypatch, provider, settings_to_clear, message):
+def test_authenticated_tokenized_adapters_fail_closed_before_http(
+    monkeypatch, provider, settings_to_clear, message
+):
     for setting_name in settings_to_clear:
         monkeypatch.setattr(settings, setting_name, "")
     with patch("app.providers.tokenized.httpx.get") as get:
@@ -503,7 +511,10 @@ def test_dinari_history_news_and_split_shapes_fail_closed():
             DinariTokenProvider().fetch_tokenized_news("AAPL")
     with patch(
         "app.providers.tokenized.httpx.get",
-        side_effect=[_response([stock]), _response({"data": [], "pagination_metadata": {"next": None}})],
+        side_effect=[
+            _response([stock]),
+            _response({"data": [], "pagination_metadata": {"next": None}}),
+        ],
     ) as get:
         assert DinariTokenProvider().fetch_tokenized_splits("AAPL") == []
     assert get.call_args_list[-1].kwargs["params"] == {"limit": 100, "order": "desc"}
@@ -648,11 +659,15 @@ def test_ondo_ohlc_requires_documented_interval_range_and_validates_both_markets
         "range": "3month",
         "primaryMarket": {
             "symbol": "AAPLon",
-            "data": [{"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}],
+            "data": [
+                {"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}
+            ],
         },
         "underlyingMarket": {
             "ticker": "AAPL",
-            "data": [{"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}],
+            "data": [
+                {"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}
+            ],
         },
     }
     with patch(
@@ -761,7 +776,9 @@ def test_tokenized_http_rate_limit_is_typed_redacted_and_keeps_retry_metadata():
 def test_tokenized_http_request_failure_is_typed():
     failure = httpx.ConnectError(
         "connection failed for https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token",
-        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token"),
+        request=httpx.Request(
+            "GET", "https://api.xstocks.fi/api/v2/public/assets?apiKey=secret-token"
+        ),
     )
     with patch("app.providers.tokenized.httpx.get", side_effect=failure):
         with pytest.raises(ProviderResponseError) as exc_info:
