@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Typed provider reset-header recovery
+
+- [x] Recover provider-declared retry timestamps in the runtime when a typed
+      adapter rate-limit error carries allow-listed reset headers but omitted
+      `retry_at`; absent or malformed reset values remain unknown rather than
+      receiving an invented delay. Focused capacity/quota coverage passes
+      `87/87`, and the complete backend unit suite passes `1,985/1,985` with
+      the known 37 warnings. Source checkpoint `a7c01524`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
 ### 2026-09-12 — Quota settlement coercion hardening
 
 - [x] Reject malformed reserved/consumed/observed quota units and missing

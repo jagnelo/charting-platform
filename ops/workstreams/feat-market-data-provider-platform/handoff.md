@@ -1188,3 +1188,12 @@ Update this handoff at each coherent boundary.
   backend unit suite passes `1,984/1,984` with 37 warnings. Ruff, compileall,
   and diff checks pass. No provider calls or credentials were used, and no
   frontend or ETF-provider files changed.
+
+- Source checkpoint `a7c01524` closes the typed reset-header propagation edge.
+  When an adapter raises `ProviderRateLimitError` with allow-listed reset
+  headers but no `retry_at`, the runtime now derives the provider-declared
+  retry timestamp. Missing or malformed values remain unknown; no generic
+  cooldown is invented. Focused capacity/quota coverage passes `87/87` selected
+  cases and the complete backend unit suite passes `1,985/1,985` with 37
+  warnings. Ruff, compileall, and diff checks pass; no provider calls or
+  credentials were used, and no frontend or ETF-provider files changed.
