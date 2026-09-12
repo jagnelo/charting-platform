@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact history-progress gate rechecked
+
+The exact gate was rerun at product tip `65e14448` after the history-progress
+timestamp closure. Repository/workstream, dependency/migration,
+frontend-preparation, Ruff, formatting, and TypeScript stages passed. The
+Docker-backed gate then stopped at `backend-coverage` after 180 seconds
+because Docker returned HTTP 500 for `/v1.55/info` on
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure
+was observed. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed.
+
+Restore Docker Desktop health, rerun pending API regressions and the exact
+gate, then advance the next bounded provider/history or compatible
+chart/list/gauge seam. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — History progress uses canonical wire timestamps
 
 Product commit `65e14448` makes Redis bulk-fetch progress and durable

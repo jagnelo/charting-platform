@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact history-progress gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `65e14448` after the
+history-progress timestamp closure. Repository/workstream validation,
+dependency resolution, migration checks, frontend dependency preparation,
+Ruff, formatting, and TypeScript all passed. The gate then stopped at
+`backend-coverage` after the fixed 180-second Docker readiness window because
+Docker returned HTTP 500 for `/v1.55/info` on
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker Desktop health, rerun the pending API
+regressions and exact gate, then continue the next bounded provider/history or
+compatible chart/list/gauge seam while preserving the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — History progress uses canonical wire timestamps
 
 Product commit `65e14448` closes a live refresh read-boundary gap. Redis bulk

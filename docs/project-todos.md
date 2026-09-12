@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact history-progress gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `65e14448`; all
+      repository/workstream, dependency, migration, frontend preparation,
+      Ruff, formatting, and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
+      HTTP 500 for `/v1.55/info` after the fixed 180-second readiness window.
+      No backend integration, provider, browser, or visual stage ran; no
+      product assertion or visual-policy failure was observed.
+- [ ] Restore Docker Desktop health, rerun the pending API regressions and
+      exact gate, then continue provider/history or compatible chart/list/gauge
+      work.
+
 ### 2026-09-12 — History progress uses canonical wire timestamps
 
 - [x] Emit Redis bulk-fetch and durable watchlist refresh progress `updated_at`
