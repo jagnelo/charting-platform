@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize instrument-sync provenance timestamps
+
+Product commit `cc714b1b` routes nested instrument discovery/sync provenance
+timestamps through the shared UTC-`Z` serializer. Listing evidence and symbol,
+profile, stats, equity, currency, and futures provenance now have one stable
+wire spelling; provider routing, identity promotion, lifecycle state, and
+evidence semantics are unchanged.
+
+Focused instrument-sync metadata and provider-persistence coverage passed
+`12/12`; Ruff, formatting, and `git diff --check` passed. The exact branch gate
+is pending at this coherent product tip because Docker access remains denied;
+no visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, rerun pending API regressions and the
+exact gate, then advance the next bounded provider/history or compatible
+chart/list/gauge seam. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact provider-reconciliation gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `a0f9e252` after the

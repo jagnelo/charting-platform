@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize instrument-sync provenance timestamps
+
+- [x] Route nested listing, symbol/profile/stats, equity, currency, and futures
+      provider-provenance writes through the shared UTC-`Z` formatter (`cc714b1b`).
+- [x] Focused instrument-sync metadata and provider-persistence coverage passed
+      `12/12`; Ruff, formatting, and diff checks passed.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
+      this product tip, then continue bounded provider/history or compatible
+      chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact provider-reconciliation gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `a0f9e252`; repository/workstream,

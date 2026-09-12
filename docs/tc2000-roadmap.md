@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize instrument-sync provenance timestamps
+
+Product commit `cc714b1b` closes a nested provider-lineage seam in instrument
+discovery and metadata sync. Listing observations plus symbol, profile, stats,
+equity, currency, and futures field-provenance writes now use the shared UTC-`Z`
+formatter, so later workstation reads do not inherit offset-specific
+`+00:00` spellings. Provider selection, identity promotion, lifecycle decisions,
+and stored evidence meaning are unchanged.
+
+Focused instrument-sync metadata and provider-persistence coverage passed
+`12/12`; Ruff, formatting, and `git diff --check` passed. The exact branch gate
+is pending at this new coherent product tip because Docker access remains
+permission-denied; no visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Restore Docker health, rerun the
+pending API regressions and exact gate, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Exact provider-reconciliation gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `a0f9e252` after the
