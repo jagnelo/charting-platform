@@ -1179,3 +1179,12 @@ Update this handoff at each coherent boundary.
   `1,971/1,971` with 37 warnings. Ruff, compileall, and diff checks pass. No
   provider calls or credentials were used, and no frontend or ETF-provider
   files changed.
+
+- Source checkpoint `265ec186` hardens the legacy workload-lease settlement
+  path. Malformed lease/consumed units, non-boolean success flags, and invalid
+  or duplicate durable quota-window IDs now fail closed instead of being
+  coerced or redirected to a timestamp compatibility lookup. Focused
+  quota/settlement coverage passes `112/112` selected cases and the complete
+  backend unit suite passes `1,984/1,984` with 37 warnings. Ruff, compileall,
+  and diff checks pass. No provider calls or credentials were used, and no
+  frontend or ETF-provider files changed.
