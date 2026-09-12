@@ -78,6 +78,10 @@
       stale members from evaluation and records their bounded IDs/counts;
       `queue_repairs=true` enqueues bounded `price_history` work without any
       provider call in the evaluator.
+- [x] Current group-breadth reads now exclude members with explicitly stale
+      persisted OHLCV state, report missing/stale/evaluated counts, and retain
+      historical `as_of` semantics. Chart routes and other future evaluators
+      still require their own coordinator-backed preflight.
 - [ ] Extend the same coordinator-backed preflight to chart routes and future
       breadth/signal engines; this radar checkpoint does not change those
       consumers.

@@ -2452,6 +2452,39 @@ class TestWorkspaces:
         assert history.status_code == 200
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
 
+    def test_current_breadth_excludes_expired_ohlcv_members(self, client, auth_headers, db, instrument, ohlcv_bars):
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="stale-breadth-test", group_type="test", name="Stale breadth"
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/breadth",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["evaluated_count"] == 0
+        assert payload["missing_count"] == 0
+        assert payload["stale_count"] == 1
+        assert payload["coverage"] == 0
+        assert any(item["code"] == "stale_data" for item in payload["exclusions"])
+        assert payload["member_metrics"][str(instrument.id)]["above_ma20"] is None
+
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

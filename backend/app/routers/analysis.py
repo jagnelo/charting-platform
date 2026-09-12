@@ -1270,7 +1270,11 @@ async def _batch_freshness(
             for entry in entries
         ):
             current += 1
-        elif any(entry.status == DatasetStatus.FRESH for entry in entries):
+        elif any(
+            entry.status == DatasetStatus.FRESH
+            or entry.status == DatasetStatus.STALE
+            for entry in entries
+        ):
             stale += 1
         else:
             other += 1
@@ -1282,6 +1286,74 @@ async def _batch_freshness(
     if stale and current == 0:
         return "stale", detail
     return "partial", detail
+
+
+async def _stale_instrument_ids(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    adjusted: bool = True,
+) -> set[int]:
+    """Return members whose persisted OHLCV state is explicitly stale.
+
+    Breadth is a local evaluator and must not turn an expired provider-backed
+    snapshot into a current signal. A historical ``as_of`` request does not
+    use this helper: current freshness cannot be projected backward onto a
+    point-in-time analysis.
+    """
+
+    if not instrument_ids:
+        return set()
+    dataset_keys = [f"{timeframe.value}:{'adj' if adjusted else 'raw'}", timeframe.value]
+    states = (
+        (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id.in_(instrument_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key.in_(dataset_keys),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    now = datetime.now(UTC)
+    by_instrument: dict[int, list[InstrumentDatasetState]] = defaultdict(list)
+    for state in states:
+        by_instrument[state.instrument_id].append(state)
+
+    stale_ids: set[int] = set()
+    for instrument_id in instrument_ids:
+        entries = by_instrument.get(instrument_id, [])
+        if any(
+            entry.status == DatasetStatus.FRESH
+            and entry.stale_after is not None
+            and (
+                entry.stale_after
+                if entry.stale_after.tzinfo
+                else entry.stale_after.replace(tzinfo=UTC)
+            )
+            > now
+            for entry in entries
+        ):
+            continue
+        if any(
+            entry.status == DatasetStatus.STALE
+            or (
+                entry.status == DatasetStatus.FRESH
+                and entry.stale_after is not None
+                and (
+                    entry.stale_after
+                    if entry.stale_after.tzinfo
+                    else entry.stale_after.replace(tzinfo=UTC)
+                )
+                <= now
+            )
+            for entry in entries
+        ):
+            stale_ids.add(instrument_id)
+    return stale_ids
 
 
 @router.get("/instruments/{symbol}/technical", response_model=TechnicalSnapshotOut)
@@ -5151,12 +5223,20 @@ async def group_breadth(
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
     requested_as_of = as_of
     members = _group_members_at(group, requested_as_of)
+    member_ids = [member.instrument_id for member in members]
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(
-            db, [member.instrument_id for member in members], timeframe, adjusted
-        ),
+        await _bars_by_instrument(db, member_ids, timeframe, adjusted),
         requested_as_of,
     )
+    # Current breadth must not treat expired provider-backed bars as current
+    # signals. Historical ``as_of`` requests deliberately retain their
+    # point-in-time semantics and therefore skip today's freshness state.
+    stale_ids = (
+        set()
+        if requested_as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+    )
+    missing_ids = {instrument_id for instrument_id in member_ids if not bars_by_id.get(instrument_id)}
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
     near_counts = {"high": 0, "low": 0}
@@ -5173,6 +5253,29 @@ async def group_breadth(
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         metrics: dict[str, float | int | None] = {}
+        if member.instrument_id in stale_ids:
+            member_metrics[str(member.instrument_id)] = {
+                "above_ma20": None,
+                "above_ma50": None,
+                "above_ma200": None,
+                "distance_ma20": None,
+                "distance_ma50": None,
+                "distance_ma200": None,
+                "near_52w_high": None,
+                "near_52w_low": None,
+                "new_high": None,
+                "new_low": None,
+                "uptrend": None,
+                "downtrend": None,
+            }
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; the member was excluded.",
+                    instrument_id=member.instrument_id,
+                )
+            )
+            continue
         if bars:
             latest_as_of = max(latest_as_of, bars[-1].ts) if latest_as_of else bars[-1].ts
         for period in counts:
@@ -5259,8 +5362,11 @@ async def group_breadth(
         universe_provenance=_group_provenance(group, requested_as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
-        evaluated_count=len(members),
-        coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(members), 1),
+        coverage=sum(
+            1
+            for instrument_id, bars in bars_by_id.items()
+            if bars and instrument_id not in stale_ids
+        ) / max(len(members), 1),
         coverage_detail={
             **{f"ma{period}": eligible[period] / max(len(members), 1) for period in eligible},
             "near_52w": near_eligible / max(len(members), 1),
@@ -5294,6 +5400,9 @@ async def group_breadth(
         },
         new_high_lookback=new_high_lookback,
         near_threshold=near_threshold,
+        evaluated_count=len(members) - len(missing_ids) - len(stale_ids),
+        missing_count=len(missing_ids),
+        stale_count=len(stale_ids),
         exclusions=exclusions,
     )
 

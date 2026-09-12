@@ -609,6 +609,8 @@ class BreadthOut(AnalysisResponseMetadata):
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     evaluated_count: int
+    missing_count: int = 0
+    stale_count: int = 0
     coverage: float = Field(ge=0, le=1)
     coverage_detail: dict[str, float] = Field(default_factory=dict)
     member_metrics: dict[str, dict[str, float | int | None]] = Field(default_factory=dict)
