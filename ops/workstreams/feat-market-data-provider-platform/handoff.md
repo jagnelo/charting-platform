@@ -1206,6 +1206,15 @@ Update this handoff at each coherent boundary.
   warnings; Ruff, compileall, and diff checks pass. No provider calls or
   credentials were used, and no frontend or ETF-provider files changed.
 
+- Source checkpoint `ba3a721d` closes an unsafe provider-usage diagnostic
+  fallback. Malformed durable quota-window durations are no longer coerced to
+  one second; such windows are excluded from active utilization and surfaced
+  with their ID, dimension, and exact validation reason. Focused usage-window
+  coverage passes `10/10`, and the complete backend unit suite passes
+  `2,007/2,007` with 37 warnings; Ruff, compileall, and diff checks pass. No
+  provider calls or credentials were used, and no frontend or ETF-provider
+  files changed.
+
 - Source checkpoint `f6482ed2` closes a third pagination-loop edge in Alpaca
   corporate-action history. The adapter now rejects repeated pagination-token
   cycles instead of relying only on an immediate self-repeat or an optional

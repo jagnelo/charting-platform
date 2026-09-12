@@ -16434,3 +16434,12 @@ The current source also passes the focused authenticated top-down browser slice 
       with 37 warnings; Ruff, compileall, and diff checks pass. Source
       checkpoint `71faddb0`; no provider calls, credentials, frontend files,
       or ETF-provider adapter files changed.
+### 2026-09-12 — Quota-window diagnostic safety
+
+- [x] Stop coercing malformed durable quota-window durations to one second.
+      Invalid windows are excluded from active utilization and surfaced with
+      their window ID, dimension, and exact validation reason. Focused
+      usage-window coverage passes `10/10`, and the complete backend unit suite
+      passes `2,007/2,007` with 37 warnings; Ruff, compileall, and diff checks
+      pass. Source checkpoint `ba3a721d`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
