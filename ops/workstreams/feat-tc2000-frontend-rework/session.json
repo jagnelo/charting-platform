@@ -57,7 +57,7 @@
   "dirty_paths": [],
   "docker": {
     "available": false,
-    "reason": "ERROR: request returned 500 Internal Server Error for API route and version http://%2FUsers%2Fjagnelo%2F.docker%2Frun%2Fdocker.sock/v1.55/info, check if the server supports the requested API version\nerrors pretty printing info"
+    "reason": "Docker Desktop UI reports running, but the API remains unavailable: HTTP 500 from unix:///Users/jagnelo/.docker/run/docker.sock while the VM endpoint 192.168.65.7:2376 reports no route to host."
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -97,7 +97,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1bd389809fc6ee4100e47ea074a4b12e874a0676",
+  "head": "5c6e7a5df9865980a03fa24c41677fa8d1448e27",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T03:34:20.796737+00:00",
