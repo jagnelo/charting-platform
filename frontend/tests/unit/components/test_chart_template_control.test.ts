@@ -1,4 +1,4 @@
-import { mount as vueMount } from '@vue/test-utils'
+import { flushPromises, mount as vueMount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -185,5 +185,19 @@ describe('ChartTemplateControl', () => {
     vi.unstubAllGlobals()
     addSpy.mockRestore()
     removeSpy.mockRestore()
+  })
+
+  it('does not publish a late template load after the control unmounts', async () => {
+    let resolveTemplates!: (value: any[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/items', { kind: 'chart_template' })
+
+    wrapper.unmount()
+    resolveTemplates([{ stable_key: 'late', name: 'Late template', version: 1, payload: { configuration: {} } }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).items).toEqual([])
   })
 })

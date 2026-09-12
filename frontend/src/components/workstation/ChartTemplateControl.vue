@@ -65,6 +65,8 @@ const renamingKey = ref<string | null>(null)
 const renameDraft = ref('')
 const renameInputs = new Map<string, HTMLInputElement>()
 const identityKeys = new Set(['symbol', 'instrument_id', 'expression'])
+let mounted = false
+let loadGeneration = 0
 const barTypes = CHART_BAR_TYPES
 function validatedBarType(value: unknown): ChartBarType {
   return typeof value === 'string' && barTypes.some(type => type.value === value)
@@ -183,17 +185,23 @@ function setBarType(value: string) {
 }
 
 async function load() {
+  const generation = ++loadGeneration
   loading.value = true
   error.value = ''
   try {
-    items.value = await queryClient.fetchQuery<TemplateItem[]>({
+    const nextItems = await queryClient.fetchQuery<TemplateItem[]>({
       queryKey: ['workstation', 'library-items', 'chart_template'],
       queryFn: async () => (await api.get<TemplateItem[]>('/workspaces/library/items', { kind: 'chart_template' })) ?? [],
       staleTime: 30_000,
     })
+    if (mounted && generation === loadGeneration) items.value = nextItems
   }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load chart templates' }
-  finally { loading.value = false }
+  catch (cause: any) {
+    if (mounted && generation === loadGeneration) error.value = cause?.message ?? 'Unable to load chart templates'
+  }
+  finally {
+    if (mounted && generation === loadGeneration) loading.value = false
+  }
 }
 
 async function persist(templateName: string, configuration: Record<string, unknown>, key = stableKey(templateName)) {
@@ -258,8 +266,13 @@ async function importItem(event: Event) {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import chart template' }
   finally { if (importInput.value) importInput.value.value = '' }
 }
-onMounted(() => { void load() })
+onMounted(() => {
+  mounted = true
+  void load()
+})
 onBeforeUnmount(() => {
+  mounted = false
+  loadGeneration += 1
   window.removeEventListener('resize', positionMenu)
   window.removeEventListener('scroll', positionMenu, true)
 })
