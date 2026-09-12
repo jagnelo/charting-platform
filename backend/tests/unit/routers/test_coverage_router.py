@@ -3,9 +3,98 @@ from decimal import Decimal
 
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.schemas.coverage import (
+    DatasetCoverageStateOut,
+    InstrumentCoverageOut,
+    LocalCoverageRangeOut,
+    OhlcvCoverageOut,
+    OhlcvCoverageSliceOut,
+)
 
 
 class TestCoverageRouter:
+    def test_coverage_response_schemas_serialize_timestamps_as_canonical_utc_z(self):
+        naive = datetime(2026, 9, 12, 14, 30)
+        aware = datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
+
+        local = LocalCoverageRangeOut(oldest=naive, newest=aware, bar_count=2)
+        state = DatasetCoverageStateOut(
+            dataset_type="ohlcv",
+            dataset_key="D1:adj",
+            status="ready",
+            coverage_start=naive,
+            coverage_end=aware,
+            observed_at=naive,
+            fetched_at=aware,
+            stale_after=naive,
+            version=1,
+        )
+        instrument = InstrumentCoverageOut(
+            instrument_id=7,
+            symbol="SPY",
+            adjustment="split_adjusted",
+            local_coverage={"D1": local},
+            dataset_states=[state],
+            refreshed_at=aware,
+        )
+        missing = OhlcvCoverageSliceOut(start=naive, end=aware)
+        coverage = OhlcvCoverageOut(
+            instrument_id=7,
+            symbol="SPY",
+            timeframe="D1",
+            adjusted=True,
+            mode="historical",
+            requested_start=naive,
+            requested_end=aware,
+            status="partial",
+            covered_start=naive,
+            covered_end=aware,
+            bar_count=2,
+            missing_slices=[missing],
+            explanation="partial local coverage",
+            lineage={
+                "provider_bar_count": 2,
+                "derived_bar_count": 0,
+                "unknown_bar_count": 0,
+                "source_lineage": "provider_only",
+            },
+            adjustment_provenance={
+                "mode": "split_adjusted",
+                "source_kind": "provider_observation",
+                "factor_status": "provider_native_opaque",
+                "contract_version": 1,
+            },
+            storage_evidence={
+                "status": "matched",
+                "provider_bar_count": 2,
+                "observation_count": 2,
+                "matched_observation_count": 2,
+                "missing_observation_count": 0,
+                "mismatched_observation_count": 0,
+                "orphan_observation_count": 0,
+            },
+            observed_cadence={"status": "observed_cadence"},
+        )
+
+        local_payload = local.model_dump(mode="json")
+        state_payload = state.model_dump(mode="json")
+        instrument_payload = instrument.model_dump(mode="json")
+        missing_payload = missing.model_dump(mode="json")
+        coverage_payload = coverage.model_dump(mode="json")
+
+        assert local_payload["oldest"] == "2026-09-12T14:30:00Z"
+        assert local_payload["newest"] == "2026-09-12T16:30:00Z"
+        assert state_payload["coverage_start"] == "2026-09-12T14:30:00Z"
+        assert state_payload["fetched_at"] == "2026-09-12T16:30:00Z"
+        assert instrument_payload["refreshed_at"] == "2026-09-12T16:30:00Z"
+        assert missing_payload == {
+            "start": "2026-09-12T14:30:00Z",
+            "end": "2026-09-12T16:30:00Z",
+        }
+        assert coverage_payload["requested_start"] == "2026-09-12T14:30:00Z"
+        assert coverage_payload["covered_end"] == "2026-09-12T16:30:00Z"
+        assert coverage_payload["missing_slices"][0] == missing_payload
+
     def test_returns_canonical_local_coverage_without_provider_routing(
         self, client, auth_headers, db, instrument
     ):
