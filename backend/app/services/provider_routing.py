@@ -624,7 +624,20 @@ async def settle_workload_lease(
 ) -> None:
     """Close a lease and move reserved units into durable consumption."""
 
-    units = max(0, consumed_units if consumed_units is not None else lease.units)
+    def _nonnegative_units(value: Any, *, field: str) -> int:
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ProviderQuotaUnknownError(
+                f"workload lease settlement requires a non-negative integer {field}"
+            )
+        return value
+
+    lease_units = _nonnegative_units(lease.units, field="lease units")
+    units = _nonnegative_units(
+        consumed_units if consumed_units is not None else lease_units,
+        field="consumed units",
+    )
+    if not isinstance(success, bool):
+        raise ProviderQuotaUnknownError("workload lease settlement requires a boolean success")
     lease_created_at = lease.created_at or datetime.now(UTC)
     metadata = dict(lease.request_metadata or {})
     release_only_dimensions = {
@@ -632,14 +645,24 @@ async def settle_workload_lease(
         for value in (metadata.get("release_only_dimensions") or [])
         if str(value).strip()
     }
+    has_window_ids = "quota_window_ids" in metadata
     raw_window_ids = metadata.get("quota_window_ids")
-    if isinstance(raw_window_ids, list) and raw_window_ids:
+    if has_window_ids:
+        if not isinstance(raw_window_ids, list):
+            raise ProviderQuotaUnknownError(
+                "workload lease settlement requires a list of quota window IDs"
+            )
         window_ids: list[int] = []
         for value in raw_window_ids:
-            try:
-                window_ids.append(int(value))
-            except (TypeError, ValueError):
-                continue
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ProviderQuotaUnknownError(
+                    "workload lease settlement contains an invalid quota window ID"
+                )
+            if value in window_ids:
+                raise ProviderQuotaUnknownError(
+                    "workload lease settlement contains duplicate quota window IDs"
+                )
+            window_ids.append(value)
         windows = (
             (
                 await db.execute(
@@ -678,7 +701,7 @@ async def settle_workload_lease(
             < window.window_started_at + timedelta(seconds=window.window_seconds)
         ]
     for window in active_windows:
-        window.reserved_units = max(0, window.reserved_units - lease.units)
+        window.reserved_units = max(0, window.reserved_units - lease_units)
         if str(window.dimension) in release_only_dimensions:
             continue
         if success:

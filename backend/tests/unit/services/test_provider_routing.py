@@ -5,6 +5,7 @@ import pytest
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaWindow, ProviderWorkloadLease
 from app.services.provider_routing import reserve_provider_quota, settle_workload_lease
+from app.services.provider_runtime import ProviderQuotaUnknownError
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -136,3 +137,60 @@ async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
     assert month.consumed_units == 0
     assert concurrent.reserved_units == 0
     assert concurrent.consumed_units == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("lease_units", "consumed_units"),
+    [
+        (True, None),
+        (1.5, None),
+        ("1", None),
+        (-1, None),
+        (1, True),
+        (1, 1.5),
+        (1, "1"),
+        (1, -1),
+    ],
+)
+async def test_settle_workload_lease_rejects_malformed_units(
+    db, lease_units, consumed_units
+):
+    async_db = AsyncSessionAdapter(db)
+    lease = ProviderWorkloadLease(
+        workload_key="invalid-settlement-units",
+        capability="price_history",
+        units=lease_units,
+        status="reserved",
+        lease_expires_at=datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
+        request_metadata={"quota_window_ids": []},
+    )
+
+    with pytest.raises(ProviderQuotaUnknownError):
+        await settle_workload_lease(async_db, lease, consumed_units=consumed_units)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"quota_window_ids": "1"},
+        {"quota_window_ids": [True]},
+        {"quota_window_ids": ["1"]},
+        {"quota_window_ids": [-1]},
+        {"quota_window_ids": [1, 1]},
+    ],
+)
+async def test_settle_workload_lease_rejects_malformed_window_metadata(db, metadata):
+    async_db = AsyncSessionAdapter(db)
+    lease = ProviderWorkloadLease(
+        workload_key="invalid-settlement-window-metadata",
+        capability="price_history",
+        units=1,
+        status="reserved",
+        lease_expires_at=datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
+        request_metadata=metadata,
+    )
+
+    with pytest.raises(ProviderQuotaUnknownError):
+        await settle_workload_lease(async_db, lease)
