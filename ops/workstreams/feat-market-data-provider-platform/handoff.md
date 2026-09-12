@@ -362,3 +362,6 @@ Update this handoff at each coherent boundary.
   reconciliation controls to backend and worker processes in both local and RPi
   manifests, while keeping them out of the research runner. The new wiring
   regression passes 14/14, and Compose contract parsing remains green.
+- The complete backend unit suite passes 1,753/1,753 in 61.91s with the
+  repository’s existing 37 deprecation warnings after this wiring change; no
+  services or provider calls were started.

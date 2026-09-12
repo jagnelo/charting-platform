@@ -366,6 +366,10 @@ progress:
       reconciliation controls to backend and worker processes in both local and
       RPi manifests, while keeping them out of the research runner; the wiring
       regression passes 14/14 and both Compose contract parses remain green.
+    - >-
+      The complete backend unit suite passes 1,753/1,753 in 61.91s with the
+      repository's existing 37 deprecation warnings after this wiring change;
+      no services or provider calls were started.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
