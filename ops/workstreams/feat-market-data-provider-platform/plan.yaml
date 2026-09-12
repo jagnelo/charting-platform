@@ -843,8 +843,22 @@ progress:
       `16/16`; the complete backend unit suite passes `1,857/1,857`, with Ruff,
       compileall, and diff checks clean. Source commit `84b949d8` is pushed;
       Docker-backed migration/full-stack validation remains required.
+    - >-
+      Added additive `market_event_prelisting_candidate` storage and a bounded
+      backend-only materialization/promotion workflow. Consensus groups produce
+      one auditable candidate and only validated stock evidence creates one
+      inactive provisional instrument with provider/stable-identifier
+      provenance. Conflicted, malformed, or taxonomy-missing evidence is
+      quarantined or skipped; promotion requires one unique active
+      FIGI/ISIN/CUSIP match or an exact provider-symbol plus exchange-MIC match,
+      while ticker-only and ambiguous matches remain pending. The opt-in worker,
+      admin evidence endpoint, environment examples, and local/RPi Compose
+      wiring are covered by focused `42/42` tests; the complete backend unit
+      suite passes `1,868/1,868` with the known 37 warnings. Ruff, compileall,
+      diff checks, and both Compose parses pass. Source commit `fc127db6` is
+      pushed; Docker-backed migration/full-stack validation remains unavailable.
   total: 15
-  current_phase: market_event_reconciliation
+  current_phase: prelisting_materialization
   current_blocker: >-
     The latest local matrix collects 45 cases and remains 39/45: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
@@ -883,12 +897,13 @@ progress:
     retired generic cooldown, concurrency, and burst defaults. Latest-price
     refresh coalescing is now covered at the process and explicit Redis-client
     boundaries, but its cross-process contention proof still requires Docker.
-    The normalized market-event persistence/worker path and durable
-    cross-provider candidate reconciliation are implemented and remain
-    disabled by default; the authenticated database-only calendar and
-    admin-consensus read APIs are available. Pre-listing materialization,
-    global EDGAR candidate enumeration, and frontend calendar surfaces remain
-    open. The new Alpha forward-calendar and EDGAR IPO-pipeline live reads are
+    The normalized market-event persistence/worker path, durable cross-provider
+    candidate reconciliation, and audited pre-listing materialization/promotion
+    workflow are implemented and remain disabled by default; the authenticated
+    database-only calendar, admin-consensus, and pre-listing evidence APIs are
+    available. Global EDGAR candidate enumeration, production NMS/OTC
+    reconciliation, and frontend calendar surfaces remain open. The new Alpha
+    forward-calendar and EDGAR IPO-pipeline live reads are
     still pending a reset/usable quota window, while Alpaca/MarketData.app/
     Dinari/EDGAR transport evidence is recorded above.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; complete provider-specific quota/legal reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, keep response-dependent routing fail-closed before any activation/integration/promotion/deployment, and implement pre-listing materialization only after the reconciled event candidate contract is reviewed; rerun the manifest after deferred credentials or reviewed entitlements change
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; complete provider-specific quota/legal reviews, global EDGAR candidate enumeration, and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change

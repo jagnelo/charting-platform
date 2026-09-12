@@ -131,7 +131,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker readiness for the required full-profile migration/session gate; complete provider-specific quota/legal reviews, global EDGAR candidate enumeration, and production NMS/OTC reconciliation. Keep pre-listing promotion, response-dependent routing, deferred provider credentials, and frontend calendar surfaces fail-closed/out of scope. Rerun the provider matrix after deferred credentials or reviewed entitlements change. Source commit fc127db66 is pushed; local 45-case live evidence remains 39/45 under run ef7c9f58-f408-4501-b25a-2dcf6ae298fe with no acceptance claim.",
   "parent_branch": "staging",
-  "plan_hash": "c2728b61ce2798ae87a1c09083654f5d80aebffa26dd4100ecc82a6738b73910",
+  "plan_hash": "1012b3cdc91bb147a7e1c94a6698a6eb34f988827413919fb434b52b07f03439",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
