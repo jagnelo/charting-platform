@@ -40,6 +40,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 ## Current implementation boundary
 
 - Phase: provider-transport usage implementation and credentialed/integration validation (not ready for review yet; three credential domains, GitHub live-environment verification, provider-terms reviews, and complete universe reconciliation remain pending).
+- Latest source checkpoint: `3950f477c` adds durable provider-native account-usage observations, the `ACCOUNT_USAGE` capability, MarketData.app account refresh/history admin endpoints, explicit operation accounting, and strict native counter/reset validation. The direct credentialed MarketData.app account probe passed `1/1`; only that provider currently exposes the native account snapshot contract. The reviewed plan/credit pair and response-priced option-chain bound remain fail-closed. Generic migration compatibility is blocked by the repository's pre-existing duplicate Alembic revision and multiple heads; this branch does not reconcile unrelated migration history.
 - Delivered in this boundary: additive FIGI/issuer identity, series and session/calendar models, durable multi-dimensional quota/routing/refresh queue primitives, typed durable provider capacity events, SEC facts/FINRA short-interest and OTC Daily List event records, a fail-closed configurable FINRA OTC symbol-directory adapter, QuantLib Greeks, and backend diagnostics; concrete opt-in Tiingo/Twelve Data/Finnhub/Marketstack/EODHD/FMP/Tradier/MarketData.app/Coinbase/Kraken adapters; official Nasdaq Trader directory ingestion; conservative worker-only US universe lifecycle reconciliation; exchange-aware core D1 coverage snapshots; the explicit-quota migration `ff5a6b7c8d9e`; the additive tokenized-asset migration `0b1c2d3e4f5a` with five public tokenized provider adapters and persisted product metadata; the provider transport-usage migration `1c2d3e4f5a6b` with durable byte/header observations and admin usage aggregates; and the distinct-symbol quota migration `2d3e4f5a6b7c`. All registered synchronous adapters now emit transport observations, including OpenFIGI's pooled HTTP client and the previously uncovered Alpaca, Alpha Vantage, CoinGecko, Coinbase/Kraken, EDGAR, Nasdaq Trader, Massive, and configurable FINRA OTC paths. The provider usage diagnostic also exposes the latest filtered header snapshot and active durable quota-window reservations for account/credit/reset inspection, while capacity events retain Binance weight and Bybit V5 provider-native limit/reset state. FINRA's async Query API submit/status/presigned-result flow is implemented with OAuth only on API legs and no Authorization header on the signed download leg; signed result downloads now enforce positive declared/measured byte bounds.
 - CIK is retained as issuer evidence rather than a security key. New symbols without a security-level identifier remain provisional/quarantined instead of being silently merged, while provider symbol/listing history and repeated-missing evidence remain durable.
 - Provider resolution treats blank or `unreviewed` entitlement plans as non-routable even when paid-provider routing is enabled; the paid switch only admits explicitly reviewed plans.
@@ -1263,3 +1264,16 @@ Update this handoff at each coherent boundary.
   `5/5`, and the complete backend unit suite passes `2,000/2,000` with 37
   warnings; Ruff, compileall, and diff checks pass. No provider calls or
   credentials were used, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `3950f477c` persists provider-native account-usage
+  observations independently of request logs. The new capability, model/table,
+  explicit MarketData.app operation cost, admin history/refresh endpoints, and
+  strict unit/counter/reset validation preserve native units, limits, remaining
+  values, consumed values, reset timestamps, and options entitlements across
+  sessions. Focused account-usage coverage passes `4/4`; the complete backend
+  unit suite passes `2,013/2,013`; the Docker-backed combined gate passes
+  `2,392/2,392` at `81.34%` combined coverage with 89 warnings; and the bounded
+  credentialed MarketData.app account snapshot passes `1/1`. The migration
+  compatibility validator is blocked by the repository's pre-existing duplicate
+  revision and multiple Alembic heads, so no unrelated migration graph changes
+  were made. No frontend or ETF-provider files changed.

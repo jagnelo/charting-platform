@@ -1055,6 +1055,20 @@ progress:
       values into routing. Fixture coverage and a bounded credentialed account
       probe pass, while the reviewed plan/credit pair and response-priced
       option-chain bound remain fail-closed. Source checkpoint: `b072b1e94`.
+    - >-
+      Durable provider-native account-usage observations are now persisted
+      independently of request logs. `ProviderCapability.ACCOUNT_USAGE`, the
+      provider-account-usage observation table, admin history/refresh endpoints,
+      explicit MarketData.app operation cost, and fail-closed counter/reset
+      validation preserve native units, limits, remaining values, consumed
+      values, reset timestamps, and options entitlements across sessions. The
+      bounded credentialed MarketData.app account snapshot passed 1/1; the
+      complete backend unit suite passed 2,013/2,013 and the Docker-backed
+      combined gate passed 2,392/2,392 at 81.34% coverage. Source checkpoint:
+      `3950f477c`. The new provider migration is correctly chained after the
+      provider/tokenized migration, but generic migration compatibility remains
+      blocked by the repository's pre-existing duplicate revision and multiple
+      Alembic heads; no unrelated heads were merged in this branch.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1096,6 +1110,14 @@ progress:
     retired generic cooldown, concurrency, and burst defaults. Latest-price
     refresh coalescing is now covered at the process and explicit Redis-client
     boundaries, but its cross-process contention proof still requires Docker.
+    Provider-native account-usage observations are now durable and exposed by
+    admin history/refresh endpoints; only MarketData.app currently supplies the
+    native account snapshot contract. The direct credentialed account probe
+    passed 1/1, but routing remains fail-closed until the reviewed plan/credit
+    pair and response-priced option bound are recorded. The new migration is
+    blocked from generic compatibility validation by the pre-existing duplicate
+    Alembic revision and multiple heads; this branch does not reconcile unrelated
+    migration history.
     The normalized market-event persistence/worker path, durable cross-provider
     candidate reconciliation, and audited pre-listing materialization/promotion
     workflow are implemented and remain disabled by default; the authenticated
@@ -1307,4 +1329,4 @@ progress:
       `81.33%` combined coverage and 89 warnings; its labeled test resources
       were cleaned. Source checkpoint `a8ee8573` contains no provider,
       frontend, or ETF-provider adapter changes.
-  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, MarketData.app account-usage introspection, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `a8ee8573`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, usage diagnostics, bounded MarketData.app account probe, and changed-file gates are green, while provider/legal/deployment/shadow gates remain open.
+  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; resolve the pre-existing duplicate Alembic revision/multiple-head graph in coordinator scope before promoting the new provider migration; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `3950f477c`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, account-usage, bounded MarketData.app live probe, and changed-file gates are green, while provider/legal/deployment/shadow and generic migration compatibility gates remain open.
