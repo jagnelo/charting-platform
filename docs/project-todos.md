@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Settings provider-readiness teardown
+
+- [x] Fence OneSignal initialization, backend health checks, provider policy
+      and availability loads/patches, and admin reconciliation review by
+      mounted lifecycle and request generations (`6df66ac3`). Detached or
+      superseded responses cannot publish stale readiness, policy, loading,
+      error, or issue state; existing API and provider contracts are unchanged.
+- [x] Focused Settings coverage passed `5/5`; full frontend Vitest passed
+      `1046/1046`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact reusable-basket gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `8632f1aa` / product tip

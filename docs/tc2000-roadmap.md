@@ -17,6 +17,22 @@ integration, provider, browser, or visual stage ran; no product assertion or
 visual-policy failure was observed. No visual baseline, mask, threshold, skip,
 provider, fallback, or acceptance policy changed.
 
+## 2026-09-12 — Fence Settings provider-readiness teardown
+
+Product commit `6df66ac3` closes a bounded R6 lifecycle gap in the provider
+readiness and reconciliation controls. OneSignal initialization, backend
+health checks, provider policy/usage/availability loads and patches, and
+admin reconciliation review now stop before publishing detached status,
+policy, loading, or issue state; request sequences also prevent superseded
+loads from winning. Existing provider API, entitlement, fallback, and
+reconciliation contracts are unchanged. Focused Settings coverage passed
+`5/5`; full frontend Vitest passed `1046/1046` across 115 files;
+frontend type-check and production build passed with only the existing
+chunk-size warning; and `git diff --check` passed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Continue
+the next bounded provider/history or compatible R4/R2-R7 seam while preserving
+the six protected visual state-oracle assertions.
+
 ## 2026-09-12 — Fence reusable basket teardown
 
 Product commit `f43ed459` closes a bounded R6 lifecycle gap in the reusable
