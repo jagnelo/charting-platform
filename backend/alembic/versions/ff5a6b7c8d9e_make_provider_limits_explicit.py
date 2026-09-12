@@ -54,7 +54,11 @@ def downgrade() -> None:
         batch.drop_column("quota_source")
         batch.drop_column("quota_scope")
         batch.drop_column("quota_contract")
-        batch.alter_column("max_concurrency", existing_type=sa.Integer(), nullable=False, server_default="2")
-        batch.alter_column("tokens_per_minute", existing_type=sa.Integer(), nullable=False, server_default="60")
-        batch.alter_column("burst_capacity", existing_type=sa.Integer(), nullable=False, server_default="15")
-        batch.alter_column("cooldown_seconds", existing_type=sa.Integer(), nullable=False, server_default="30")
+        # Keep a downgrade safety-preserving.  The pre-contract schema used
+        # generic defaults, but restoring them would reintroduce an unsafe
+        # entitlement assumption.  Older application code must explicitly
+        # supply reviewed limits after a downgrade.
+        batch.alter_column("max_concurrency", existing_type=sa.Integer(), nullable=True, server_default=None)
+        batch.alter_column("tokens_per_minute", existing_type=sa.Integer(), nullable=True, server_default=None)
+        batch.alter_column("burst_capacity", existing_type=sa.Integer(), nullable=True, server_default=None)
+        batch.alter_column("cooldown_seconds", existing_type=sa.Integer(), nullable=True, server_default=None)
