@@ -80,11 +80,14 @@
       summary; historical `as_of` ratios remain unchanged.
 - [x] Industry-proxy and classified-industry snapshots now withhold expired
       current proxy/member bars, label partial synthetic series coverage, and
-      emit explicit stale benchmark-relative cells; historical `as_of` reads
-continue to use their point-in-time bars.
+emit explicit stale benchmark-relative cells; historical `as_of` reads
+      continue to use their point-in-time bars.
 - [x] Benchmark-family breadth now excludes stale current role members,
       withholds a stale cap benchmark from relative participation, and includes
       the role/member freshness summary; historical breadth remains unchanged.
+- [x] Derived benchmark-family equal-weight series now exclude stale current
+      members and preserve historical `as_of` calculations, with explicit stale
+      exclusions alongside partial-coverage diagnostics.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 

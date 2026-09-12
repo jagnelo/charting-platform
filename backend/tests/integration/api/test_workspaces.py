@@ -1821,6 +1821,26 @@ class TestWorkspaces:
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
         )
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert stale.status_code == 200, stale.text
+        stale_payload = stale.json()
+        assert stale_payload["covered_member_count"] == 0
+        assert stale_payload["points"] == []
+        assert stale_payload["exclusions"][-1]["code"] == "stale_data"
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
             headers=auth_headers,

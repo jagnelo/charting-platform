@@ -5246,6 +5246,13 @@ async def benchmark_family_derived_equal_weight(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
     series = _equal_weight_series(bars_by_id, member_ids)
     exclusions: list[AnalysisWarning] = []
@@ -5273,6 +5280,14 @@ async def benchmark_family_derived_equal_weight(
                 message="Members without local bars were excluded from the aligned series.",
             )
         )
+    exclusions.extend(
+        AnalysisWarning(
+            code="stale_data",
+            message="Persisted OHLCV freshness has expired; the member was excluded from the derived series.",
+            instrument_id=instrument_id,
+        )
+        for instrument_id in sorted(stale_ids)
+    )
     freshness, freshness_detail = await _batch_freshness(db, member_ids, timeframe, adjusted)
     return BenchmarkFamilyDerivedEqualWeightOut(
         family_key=family_key,
