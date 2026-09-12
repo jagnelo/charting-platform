@@ -2,6 +2,21 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Structured Study Lab Boolean signal fan-out
+
+Product commit `1e128acd` exposes a named Strategy Lab signal action for
+Boolean artifacts in multi-output Study Lab runs. The action preserves the
+immutable source/output lineage and uses the existing signal consumer; no
+other artifact compatibility rules changed. Focused component coverage passed
+`30/30`, full frontend Vitest `1010/1010`, type-check/build, backend lint,
+formatting, and diff checks passed.
+
+The exact gate at this tip passed all pre-Docker stages, then stopped at
+`backend-coverage` after 180 seconds because Docker returned permission denied
+at `unix:///Users/jagnelo/.docker/run/docker.sock`. Restore Docker health and
+rerun the pending regressions and exact gate. No visual/provider/acceptance
+policy changed; do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Scheduled coarse-history readiness
 
 Product commit `9f86dc7b` makes the nightly history task materialize missing

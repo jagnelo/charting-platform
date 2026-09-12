@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped gate was rerun at product tip 1e128acd after the
+  structured Study Lab Boolean signal fan-out slice. Git-diff, workstream
+  validation, dependency/migration checks, frontend preparation, Ruff,
+  formatting, and TypeScript passed, then backend-coverage stopped after the
+  fixed 180-second Docker readiness window because the Docker socket returned
+  permission denied at unix:///Users/jagnelo/.docker/run/docker.sock. No
+  backend integration, provider, browser, or visual stage ran; no product
+  assertion or visual-policy failure was observed. Focused Study Lab coverage
+  passed 30/30 and full frontend Vitest passed 1010/1010; type-check, build,
+  lint, formatting, and diff checks passed. No visual baseline, mask, threshold,
+  skip, provider, fallback, or acceptance policy changed. Restore Docker health,
+  rerun pending API regressions and the exact gate at product tip 1e128acd, then
+  continue the next bounded provider/history or compatible chart/list/gauge
+  seam. No integration, promotion, deployment, or other-worktree mutation.
   The exact branch-scoped gate was rerun at product tip 9f86dc7b after the
   scheduled coarse-history slice. Git-diff, workstream validation, dependency
   resolution, migration checks, frontend preparation, Ruff, formatting, and

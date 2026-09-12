@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Expose structured Study Lab Boolean signals
+
+Product commit `1e128acd` closes an R4 fan-out cell in the primary Study Lab
+tool. Named Boolean artifacts from multi-output studies now expose the
+compatible Strategy Lab signal action alongside column, filter, scan, gauge,
+and alert targets. The action creates the existing immutable signal asset with
+the selected output name and lineage, then uses the existing Strategy-signal
+consumer; scalar, series, range, and events capability boundaries remain
+unchanged.
+
+Focused Study Lab component coverage passed `30/30`; full frontend Vitest
+passed `1010/1010`; type-check and production build passed (with only the
+existing chunk-size warning); backend Ruff, formatting, and `git diff --check`
+passed. The exact branch gate is pending at this coherent product tip. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+## 2026-09-12 — Exact structured-signal gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `1e128acd` after the
+structured Boolean signal slice. Git-diff, workstream validation,
+dependency/migration checks, frontend preparation, Ruff, formatting, and
+TypeScript passed. The `backend-coverage` stage then stopped after the fixed
+180-second Docker readiness window because the Docker socket returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, rerun pending API regressions and the
+exact gate at this tip, then continue the next bounded provider/history or
+compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Materialize scheduled coarse history from canonical D1
 
 Product commit `9f86dc7b` closes the scheduled R1 history gap where nightly

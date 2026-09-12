@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Structured Study Lab Boolean signal fan-out
+
+- [x] Add the missing named Strategy Lab signal action for Boolean artifacts
+      from multi-output Study Lab runs. It reuses the immutable source and
+      selected output lineage alongside the existing column/filter/scan/gauge/
+      alert targets (`1e128acd`); other artifact shapes retain explicit
+      capability boundaries.
+- [x] Focused Study Lab component coverage passed `30/30`; full frontend
+      Vitest passed `1010/1010`; type-check, production build, backend lint,
+      formatting, and diff checks passed.
+- [x] The exact gate passed all pre-Docker stages and stopped at
+      `backend-coverage` after 180 seconds on Docker socket permission denied.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
+      then continue remaining R4 fan-out, provider/history, and R2-R7 evidence.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Scheduled coarse-history readiness
 
 - [x] Close the nightly refresh gap where missing W1/MN provider rows were
