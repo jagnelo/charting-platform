@@ -77,6 +77,9 @@ class RadarRun(Base, TimestampMixin):
     coverage_missing_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
+    coverage_stale_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     coverage_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 

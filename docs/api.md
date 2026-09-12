@@ -276,11 +276,15 @@ Return recent radar scan executions.
 
 ### POST /radar/run
 Trigger a synchronous radar scan over the current active instrument universe.
+The evaluator reads local bars only. Set `queue_repairs` to `true` to enqueue
+bounded, durable `price_history` repairs for missing or stale members; queued
+work is processed by the worker's normal provider/quota admission path.
 
 **Request body**
 ```json
 {
-  "timeframe": "H4"
+  "timeframe": "H4",
+  "queue_repairs": false
 }
 ```
 
@@ -295,6 +299,11 @@ Trigger a synchronous radar scan over the current active instrument universe.
   "completed_at": "2026-05-04T10:00:04Z",
   "evaluated_count": 842,
   "detection_count": 37,
+  "coverage_status": "full",
+  "coverage_total_count": 842,
+  "coverage_missing_count": 0,
+  "coverage_stale_count": 0,
+  "coverage_summary": {},
   "error_summary": null
 }
 ```

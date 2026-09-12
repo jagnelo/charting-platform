@@ -127,6 +127,33 @@ class TestRadarAPI:
         assert run_data["evaluated_count"] == 1
         assert run_data["coverage_summary"]["missing_instrument_ids"] == [instrument_b.id]
 
+    def test_run_can_enqueue_bounded_repairs_without_provider_io(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.market_data_foundation import MarketRefreshJob
+
+        _seed_radar_bars(
+            db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98]
+        )
+
+        run_res = client.post(
+            "/api/v1/radar/run",
+            headers=auth_headers,
+            json={"queue_repairs": True},
+        )
+
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["coverage_missing_count"] == 1
+        assert run_data["coverage_stale_count"] == 0
+        repair = db.query(MarketRefreshJob).filter_by(
+            request_key=f"radar:D1:{instrument_b.id}"
+        ).one()
+        assert repair.status == "queued"
+        assert repair.capability == "price_history"
+        assert repair.metadata_payload["schedule"] == "radar_coverage_repair"
+        assert repair.metadata_payload["coverage_reason"] == "missing"
+
     def test_run_and_filter_by_custom_timeframe(self, client, auth_headers, db, instrument):
         from app.models.ohlcv import Timeframe
 

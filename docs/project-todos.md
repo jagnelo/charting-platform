@@ -72,9 +72,15 @@
       partial run cannot be mistaken for a fully evaluated universe.
 - [x] Bound persisted missing-ID evidence and cover full/partial/unavailable/
       empty classifications with unit regression tests.
-- [ ] Add freshness-aware radar preflight and coordinator-backed repair/queue
-      semantics; this change reports absence explicitly but does not fetch
-      provider data from the evaluator.
+- [x] Add freshness-aware radar preflight and an opt-in coordinator-backed
+      repair queue. Persisted `InstrumentDatasetState.stale_after` evidence (or
+      a conservative timeframe fallback when no state exists) now excludes
+      stale members from evaluation and records their bounded IDs/counts;
+      `queue_repairs=true` enqueues bounded `price_history` work without any
+      provider call in the evaluator.
+- [ ] Extend the same coordinator-backed preflight to chart routes and future
+      breadth/signal engines; this radar checkpoint does not change those
+      consumers.
 
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 

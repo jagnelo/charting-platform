@@ -1,7 +1,7 @@
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +9,9 @@ from sqlalchemy.orm import selectinload
 
 from app.models.basket import Basket, BasketMember
 from app.models.instrument import Instrument
-from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.provider_runtime import ProviderCapability
 from app.models.radar import (
     RadarDetection,
     RadarOutcomeStatus,
@@ -211,10 +213,15 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
 
 
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
 def _radar_coverage_summary(
     instrument_ids: list[int],
     bars_by_instrument: dict[int, list[OHLCVBar]],
     timeframe: Timeframe,
+    stale_instrument_ids: list[int] | None = None,
 ) -> tuple[str, dict]:
     """Classify local radar coverage without contacting a provider.
 
@@ -226,10 +233,17 @@ def _radar_coverage_summary(
     missing_instrument_ids = [
         instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
     ]
-    evaluated_count = len(instrument_ids) - len(missing_instrument_ids)
+    missing_set = set(missing_instrument_ids)
+    stale_ids = [
+        instrument_id
+        for instrument_id in stale_instrument_ids or []
+        if instrument_id in instrument_ids and instrument_id not in missing_set
+    ]
+    evaluated_count = len(instrument_ids) - len(missing_instrument_ids) - len(stale_ids)
+    unavailable_count = len(missing_instrument_ids) + len(stale_ids)
     if not instrument_ids:
         status = "empty"
-    elif missing_instrument_ids:
+    elif unavailable_count:
         status = "unavailable" if evaluated_count == 0 else "partial"
     else:
         status = "full"
@@ -237,8 +251,161 @@ def _radar_coverage_summary(
         "timeframe": timeframe.value,
         "missing_instrument_ids": missing_instrument_ids[:100],
         "missing_instrument_ids_truncated": len(missing_instrument_ids) > 100,
+        "stale_instrument_ids": stale_ids[:100],
+        "stale_instrument_ids_truncated": len(stale_ids) > 100,
+        "stale_count": len(stale_ids),
         "evaluated_count": evaluated_count,
     }
+
+
+_RADAR_FRESHNESS: dict[Timeframe, int] = {
+    # A latest bar can legitimately be older than one nominal interval when
+    # an exchange is closed. Keep the fallback conservative while allowing
+    # the persisted dataset state's provider-specific ``stale_after`` to take
+    # precedence whenever it exists.
+    Timeframe.M1: 5 * 60,
+    Timeframe.M5: 15 * 60,
+    Timeframe.M15: 45 * 60,
+    Timeframe.M30: 90 * 60,
+    Timeframe.H1: 3 * 60 * 60,
+    Timeframe.H2: 6 * 60 * 60,
+    Timeframe.H4: 12 * 60 * 60,
+    Timeframe.H12: 36 * 60 * 60,
+    Timeframe.D1: 3 * 24 * 60 * 60,
+    Timeframe.W1: 14 * 24 * 60 * 60,
+    Timeframe.MN: 62 * 24 * 60 * 60,
+}
+
+
+async def _load_ohlcv_freshness_states(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    *,
+    adjusted: bool = True,
+) -> dict[int, list[InstrumentDatasetState]]:
+    """Load persisted OHLCV freshness evidence for a radar universe.
+
+    Multiple provider states can exist for one instrument. A single failed
+    fallback provider must not hide a still-fresh canonical state, so the
+    caller evaluates all rows and accepts freshness when any state is current.
+    """
+
+    if not instrument_ids:
+        return {}
+    dataset_key = f"{timeframe.value}:{'adj' if adjusted else 'raw'}"
+    rows = (
+        (
+            await db.execute(
+                select(InstrumentDatasetState)
+                .where(
+                    InstrumentDatasetState.instrument_id.in_(instrument_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == dataset_key,
+                )
+                .order_by(
+                    InstrumentDatasetState.instrument_id,
+                    InstrumentDatasetState.updated_at.desc(),
+                    InstrumentDatasetState.id.desc(),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    states_by_instrument: dict[int, list[InstrumentDatasetState]] = defaultdict(list)
+    for state in rows:
+        states_by_instrument[state.instrument_id].append(state)
+    return states_by_instrument
+
+
+def _radar_stale_instrument_ids(
+    instrument_ids: list[int],
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+    states_by_instrument: dict[int, list[InstrumentDatasetState]],
+    timeframe: Timeframe,
+    *,
+    now: datetime,
+) -> list[int]:
+    """Return instruments whose local radar bars are not freshness-safe."""
+
+    threshold = _RADAR_FRESHNESS.get(
+        timeframe,
+        max(300, int(TIMEFRAME_SECONDS.get(timeframe, 300) * 2)),
+    )
+    cutoff = now - timedelta(seconds=threshold)
+    stale: list[int] = []
+    for instrument_id in instrument_ids:
+        bars = bars_by_instrument.get(instrument_id) or []
+        if not bars:
+            continue
+        has_fresh_state = any(
+            state.status == DatasetStatus.FRESH
+            and state.stale_after is not None
+            and _as_utc(state.stale_after) > now
+            for state in states_by_instrument.get(instrument_id, [])
+        )
+        if has_fresh_state:
+            continue
+        latest = max(_as_utc(bar.ts) for bar in bars)
+        if latest < cutoff:
+            stale.append(instrument_id)
+    return stale
+
+
+def _radar_repair_start(timeframe: Timeframe, *, now: datetime) -> datetime:
+    """Bound a repair to the radar's exact indicator lookback window."""
+
+    seconds = TIMEFRAME_SECONDS.get(timeframe, 86_400)
+    return now - timedelta(seconds=seconds * RADAR_LOOKBACK_BARS)
+
+
+async def _queue_radar_repairs(
+    db: AsyncSession,
+    *,
+    instrument_ids: list[int],
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+    timeframe: Timeframe,
+    stale_instrument_ids: list[int],
+    now: datetime,
+) -> int:
+    """Queue bounded local-coverage repairs without provider I/O.
+
+    The deterministic key coalesces repeated scans while the durable refresh
+    worker performs capability/quota admission through ``fetch_ohlcv``. A
+    scan never calls a provider directly and a completed same-key repair is
+    not re-enqueued until a later key/version is introduced by the worker.
+    """
+
+    from app.services.market_refresh_queue import enqueue_refresh_job
+
+    stale_set = set(stale_instrument_ids)
+    missing_set = {
+        instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
+    }
+    repair_ids = sorted(missing_set | stale_set)
+    if not repair_ids:
+        return 0
+    repair_start = _radar_repair_start(timeframe, now=now)
+    queued = 0
+    for instrument_id in repair_ids:
+        reason = "missing" if instrument_id in missing_set else "stale"
+        await enqueue_refresh_job(
+            db,
+            request_key=f"radar:{timeframe.value}:{instrument_id}",
+            capability=ProviderCapability.PRICE_HISTORY.value,
+            instrument_id=instrument_id,
+            timeframe=timeframe.value,
+            start_at=repair_start,
+            priority=50,
+            metadata_payload={
+                "schedule": "radar_coverage_repair",
+                "coverage_reason": reason,
+                "requested_at": now.isoformat(),
+            },
+        )
+        queued += 1
+    return queued
 
 
 async def _load_bars_by_instrument(
@@ -2378,6 +2545,7 @@ async def run_radar_scan(
     universe_type: str = "all",
     universe_filter: dict | None = None,
     user_id: int | None = None,
+    queue_repairs: bool = False,
 ) -> RadarRun:
     run = RadarRun(
         timeframe=timeframe,
@@ -2417,13 +2585,41 @@ async def run_radar_scan(
         instruments = list((await db.execute(instrument_stmt)).scalars().all())
         instrument_ids = [instrument.id for instrument in instruments]
         bars_by_instrument = await _load_bars_by_instrument(db, instrument_ids, timeframe)
+        freshness_states = await _load_ohlcv_freshness_states(
+            db,
+            instrument_ids,
+            timeframe,
+        )
+        freshness_now = datetime.now(UTC)
+        stale_instrument_ids = _radar_stale_instrument_ids(
+            instrument_ids,
+            bars_by_instrument,
+            freshness_states,
+            timeframe,
+            now=freshness_now,
+        )
         coverage_status, coverage_summary = _radar_coverage_summary(
-            instrument_ids, bars_by_instrument, timeframe
+            instrument_ids,
+            bars_by_instrument,
+            timeframe,
+            stale_instrument_ids,
         )
         evaluated = int(coverage_summary["evaluated_count"])
+        if queue_repairs:
+            await _queue_radar_repairs(
+                db,
+                instrument_ids=instrument_ids,
+                bars_by_instrument=bars_by_instrument,
+                timeframe=timeframe,
+                stale_instrument_ids=stale_instrument_ids,
+                now=freshness_now,
+            )
         run.coverage_status = coverage_status
         run.coverage_total_count = len(instruments)
-        run.coverage_missing_count = len(instrument_ids) - evaluated
+        run.coverage_missing_count = sum(
+            1 for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
+        )
+        run.coverage_stale_count = len(stale_instrument_ids)
         run.coverage_summary = coverage_summary
         thread_rows = (
             (
@@ -2449,7 +2645,10 @@ async def run_radar_scan(
             threads_by_instrument[thread.instrument_id].append(thread)
 
         detections: list[RadarDetection] = []
+        stale_set = set(stale_instrument_ids)
         for instrument in instruments:
+            if instrument.id in stale_set:
+                continue
             bars = bars_by_instrument.get(instrument.id, [])
             if not bars:
                 continue
