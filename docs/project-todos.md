@@ -102,9 +102,10 @@
       request key. The lock is held through refresh persistence, so another
       worker rechecks committed coverage before provider execution; SQLite and
       unit doubles safely retain the process-local gate only.
-- [ ] Add explicit multi-host contention validation and a durable
-      refresh-result/lease protocol for deployments that cannot share the same
-      PostgreSQL transaction boundary; this checkpoint does not claim
+- [ ] Add explicit multi-host contention validation for deployments that cannot
+      share the same PostgreSQL transaction boundary; durable refresh-job
+      result leases now use persisted per-claim tokens and conditional
+      completion/retry updates, while this checkpoint still does not claim
       cross-database deduplication.
 - [x] Extend the same process/PostgreSQL gate to implicit latest-window and
       page-before refresh paths used by chart/instrument reads; focused
