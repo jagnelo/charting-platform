@@ -385,6 +385,13 @@ class YFinanceProvider:
                         else None
                     ),
                     is_adjusted=adjusted,
+                    adjustment_basis=("provider_adjusted" if adjusted else "raw"),
+                    adjustment_version=("yfinance-auto-adjust" if adjusted else "provider-native"),
+                    provenance={
+                        "provider": self.name,
+                        "provider_symbol": symbol,
+                        "interval": yf_interval,
+                    },
                 )
             )
         return bars

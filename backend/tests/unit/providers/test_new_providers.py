@@ -404,6 +404,9 @@ class TestAlpacaOHLCVParsing:
         assert float(bars[0].open) == 185.0
         assert float(bars[0].close) == 186.0
         assert float(bars[1].open) == 186.0
+        assert bars[0].adjustment_basis == "provider_adjusted"
+        assert bars[0].adjustment_version == "alpaca-all"
+        assert bars[0].provenance["provider"] == "alpaca"
 
     @pytest.mark.parametrize(
         "rows",
@@ -646,6 +649,9 @@ class TestBinanceOHLCVParsing:
         assert len(bars) == 1
         assert float(bars[0].open) == 42000.0
         assert float(bars[0].close) == 42500.0
+        assert bars[0].adjustment_basis == "raw"
+        assert bars[0].adjustment_version == "provider-native"
+        assert bars[0].provenance["provider"] == "binance"
 
     def test_transport_failure_is_typed(self):
         failure = httpx.ConnectError(
@@ -859,6 +865,8 @@ class TestCryptoOHLCVPagination:
 
         assert get.call_count == 2
         assert [bar.ts for bar in bars] == [start, second_ts]
+        assert all(bar.adjustment_basis == "raw" for bar in bars)
+        assert all(bar.provenance["provider"] == "coinbase" for bar in bars)
         assert estimate_coinbase_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_coinbase_latest_ohlcv_request_count(Timeframe.M1, 301) == 2
 
@@ -886,6 +894,8 @@ class TestCryptoOHLCVPagination:
 
         assert get.call_count == 2
         assert [bar.ts for bar in bars] == [start, second_ts]
+        assert all(bar.adjustment_basis == "raw" for bar in bars)
+        assert all(bar.provenance["provider"] == "kraken" for bar in bars)
         assert estimate_kraken_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 721) == 2
 

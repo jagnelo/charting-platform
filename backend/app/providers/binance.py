@@ -187,6 +187,20 @@ class BinanceProvider:
                         is_adjusted=False,
                         adjustment_basis="raw",
                         adjustment_version="provider-native",
+                        provenance={
+                            "provider": self.name,
+                            "endpoint": "/api/v3/klines",
+                            "provider_symbol": binance_sym,
+                            "interval": tf_str,
+                            "provider_payload": {
+                                "open_time": open_ms,
+                                "open": open_price,
+                                "high": high,
+                                "low": low,
+                                "close": close,
+                                "volume": volume,
+                            },
+                        },
                     )
                 )
 

@@ -204,6 +204,14 @@ class FREDProvider:
                         volume=None,
                         vwap=None,
                         is_adjusted=True,
+                        adjustment_basis="provider_adjusted",
+                        adjustment_version="fred-v1",
+                        provenance={
+                            "provider": self.name,
+                            "endpoint": "/series/observations",
+                            "series_id": series_id,
+                            "provider_payload": obs,
+                        },
                     )
                 )
             except (TypeError, ValueError) as exc:

@@ -364,6 +364,8 @@ async def _record_bar_observations(
             constraint="uq_market_bar_observation",
             set_={
                 "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
+                "market_series_id": pg_insert(MarketBarObservation).excluded.market_series_id,
+                "session": pg_insert(MarketBarObservation).excluded.session,
                 "observed_at": pg_insert(MarketBarObservation).excluded.observed_at,
                 "open": pg_insert(MarketBarObservation).excluded.open,
                 "high": pg_insert(MarketBarObservation).excluded.high,
@@ -371,14 +373,19 @@ async def _record_bar_observations(
                 "close": pg_insert(MarketBarObservation).excluded.close,
                 "volume": pg_insert(MarketBarObservation).excluded.volume,
                 "vwap": pg_insert(MarketBarObservation).excluded.vwap,
+                "adjustment_basis": pg_insert(MarketBarObservation).excluded.adjustment_basis,
+                "adjustment_version": pg_insert(MarketBarObservation).excluded.adjustment_version,
+                "source_payload": pg_insert(MarketBarObservation).excluded.source_payload,
             },
         ),
         [
             {
                 "instrument_id": bar.instrument_id,
                 "data_source_id": data_source_id,
+                "market_series_id": bar.market_series_id,
                 "provider_symbol": provider_symbol,
                 "timeframe": bar.timeframe,
+                "session": bar.session,
                 "ts": bar.ts,
                 "observed_at": observed_at,
                 "open": bar.open,
@@ -388,6 +395,9 @@ async def _record_bar_observations(
                 "volume": bar.volume,
                 "vwap": bar.vwap,
                 "is_adjusted": bar.is_adjusted,
+                "adjustment_basis": bar.adjustment_basis,
+                "adjustment_version": bar.adjustment_version,
+                "source_payload": bar.provenance,
             }
             for bar in bars
         ],
@@ -467,6 +477,11 @@ async def persist_price_history_bars(
                 "volume": insert_stmt.excluded.volume,
                 "vwap": insert_stmt.excluded.vwap,
                 "data_source_id": insert_stmt.excluded.data_source_id,
+                "market_series_id": insert_stmt.excluded.market_series_id,
+                "session": insert_stmt.excluded.session,
+                "adjustment_basis": insert_stmt.excluded.adjustment_basis,
+                "adjustment_version": insert_stmt.excluded.adjustment_version,
+                "provenance": insert_stmt.excluded.provenance,
             },
         )
     else:
@@ -1261,8 +1276,10 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
     return {
         "instrument_id": b.instrument_id,
         "data_source_id": b.data_source_id,
+        "market_series_id": b.market_series_id,
         "timeframe": b.timeframe,
         "ts": b.ts,
+        "session": b.session,
         "open": b.open,
         "high": b.high,
         "low": b.low,
@@ -1270,6 +1287,9 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
         "volume": b.volume,
         "vwap": b.vwap,
         "is_adjusted": b.is_adjusted,
+        "adjustment_basis": b.adjustment_basis,
+        "adjustment_version": b.adjustment_version,
+        "provenance": b.provenance,
     }
 
 

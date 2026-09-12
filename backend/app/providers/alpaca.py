@@ -215,6 +215,18 @@ class AlpacaProvider:
                             volume=b.get("v"),
                             vwap=b.get("vw"),
                             is_adjusted=adjusted,
+                            adjustment_basis=(
+                                "provider_adjusted" if adjusted else "raw"
+                            ),
+                            adjustment_version=("alpaca-all" if adjusted else "provider-native"),
+                            provenance={
+                                "provider": self.name,
+                                "endpoint": url,
+                                "provider_symbol": alpaca_sym,
+                                "feed": params.get("feed"),
+                                "adjustment": params["adjustment"],
+                                "provider_payload": b,
+                            },
                         )
                     )
                 except (KeyError, TypeError, ValueError) as exc:

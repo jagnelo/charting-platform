@@ -4,9 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.services import market_data
 from app.services.market_data import (
+    _bar_as_dict,
     _historical_repair_start,
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
@@ -51,6 +52,92 @@ def test_cached_ranges_tolerate_expected_provider_availability_failures():
         )
         is True
     )
+
+
+def _semantic_bar() -> OHLCVBar:
+    return OHLCVBar(
+        instrument_id=42,
+        data_source_id=7,
+        market_series_id=99,
+        timeframe=Timeframe.D1,
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        session="regular",
+        open=100,
+        high=102,
+        low=99,
+        close=101,
+        volume=1234,
+        vwap=100.5,
+        is_adjusted=True,
+        adjustment_basis="provider_adjusted",
+        adjustment_version="alpaca-all",
+        provenance={"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    )
+
+
+def test_bar_insert_mapping_preserves_series_adjustment_and_provenance():
+    mapped = _bar_as_dict(_semantic_bar())
+
+    assert mapped == {
+        "instrument_id": 42,
+        "data_source_id": 7,
+        "market_series_id": 99,
+        "timeframe": Timeframe.D1,
+        "ts": datetime(2026, 1, 2, tzinfo=UTC),
+        "session": "regular",
+        "open": 100,
+        "high": 102,
+        "low": 99,
+        "close": 101,
+        "volume": 1234,
+        "vwap": 100.5,
+        "is_adjusted": True,
+        "adjustment_basis": "provider_adjusted",
+        "adjustment_version": "alpaca-all",
+        "provenance": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    }
+
+
+@pytest.mark.asyncio
+async def test_observation_insert_mapping_preserves_series_adjustment_and_payload():
+    class _Db:
+        def __init__(self):
+            self.parameters = None
+
+        async def execute(self, _statement, parameters):
+            self.parameters = parameters
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert db.parameters == [
+        {
+            "instrument_id": 42,
+            "data_source_id": 7,
+            "market_series_id": 99,
+            "provider_symbol": "AAPL",
+            "timeframe": Timeframe.D1,
+            "session": "regular",
+            "ts": datetime(2026, 1, 2, tzinfo=UTC),
+            "observed_at": datetime(2026, 1, 3, tzinfo=UTC),
+            "open": 100,
+            "high": 102,
+            "low": 99,
+            "close": 101,
+            "volume": 1234,
+            "vwap": 100.5,
+            "is_adjusted": True,
+            "adjustment_basis": "provider_adjusted",
+            "adjustment_version": "alpaca-all",
+            "source_payload": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+        }
+    ]
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
 
 

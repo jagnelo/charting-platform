@@ -156,6 +156,9 @@ class MarketBarObservation(Base):
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False, index=True)
+    session: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="regular", server_default="regular"
+    )
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)

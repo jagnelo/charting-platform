@@ -233,6 +233,14 @@ class CoinbaseProvider:
                     close=_candle_float(row[4], self.name, "close"),
                     volume=_candle_float(row[5], self.name, "volume"),
                     is_adjusted=False,
+                    adjustment_basis="raw",
+                    adjustment_version="provider-native",
+                    provenance={
+                        "provider": self.name,
+                        "endpoint": f"/products/{product}/candles",
+                        "provider_symbol": product,
+                        "provider_payload": row,
+                    },
                 )
             cursor = limit_end
         return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
@@ -342,6 +350,7 @@ class KrakenProvider:
         interval = max(1, seconds // 60)
         if end <= start:
             return []
+        provider_pair = _kraken_pair(symbol)
         bars_by_timestamp: dict[datetime, OHLCVBar] = {}
         cursor = start
         seen_cursors: set[int] = set()
@@ -354,7 +363,7 @@ class KrakenProvider:
                 self.name,
                 f"{self.base_url}/OHLC",
                 params={
-                    "pair": _kraken_pair(symbol),
+                    "pair": provider_pair,
                     "interval": interval,
                     "since": cursor_seconds,
                 },
@@ -386,6 +395,14 @@ class KrakenProvider:
                     close=_candle_float(row[4], self.name, "close"),
                     volume=_candle_float(row[6], self.name, "volume"),
                     is_adjusted=False,
+                    adjustment_basis="raw",
+                    adjustment_version="provider-native",
+                    provenance={
+                        "provider": self.name,
+                        "endpoint": "/0/public/OHLC",
+                        "provider_symbol": provider_pair,
+                        "provider_payload": row,
+                    },
                 )
             provider_last = result.get("last")
             try:
