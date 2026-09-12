@@ -1471,7 +1471,9 @@ class Settings(BaseSettings):
     # Provider-native bounded probe evidence. A configured credential and a
     # reviewed plan still do not admit a provider whose probe has not passed.
     PROVIDER_LIVE_PROBE_STATUS_SEEDS: dict[str, str] = {
-        "alpaca": "not_run",
+        # Credentialed history/latest/assets/corporate-actions probes passed on
+        # 2026-09-12; the event-only page bound remains a separate routing gate.
+        "alpaca": "passed",
         "massive": "passed",
         "alpha_vantage": "passed",
         "openfigi": "passed",
@@ -1490,14 +1492,19 @@ class Settings(BaseSettings):
         "eodhd": "passed",
         "fmp": "passed",
         "tradier": "not_run",
-        "marketdata_app": "not_run",
+        # Credentialed daily/options probes passed on 2026-09-12; account-plan
+        # and response-priced option-chain controls remain separate gates.
+        "marketdata_app": "passed",
         "xstocks": "passed",
         "robinhood_tokens": "passed",
         "bybit_xstocks": "passed",
         "gate_tradfi": "passed",
         "kraken_xstocks": "passed",
         "ondo_global_markets": "not_run",
-        "dinari": "not_run",
+        # The replacement Sandbox credential pair passed the bounded compound
+        # market-data probe on 2026-09-12; partner quota/terms review still
+        # keeps this paid provider out of routing.
+        "dinari": "passed",
         "alpaca_itn": "not_run",
         "ibkr": "not_run",
         "yfinance": "not_required",

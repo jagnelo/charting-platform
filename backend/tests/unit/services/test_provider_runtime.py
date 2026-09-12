@@ -476,6 +476,14 @@ async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypa
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "configured-secret")
+    # The repository seed records positive bounded live evidence now. Keep
+    # this test focused on the resolver gate by explicitly starting from the
+    # pre-evidence state.
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
+        {**settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS, "alpaca": "not_run"},
+    )
     await seed_provider_runtime(async_db)
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
