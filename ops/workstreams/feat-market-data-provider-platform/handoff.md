@@ -1100,3 +1100,8 @@ Update this handoff at each coherent boundary.
   to both backend/worker Compose services (root and RPi), `.env.example`, the
   deployment runbook, and the manual GitHub live workflow. All paths default to
   `disabled`; no credential or policy value was added to Git.
+
+- Source checkpoint `76642baf` adds a regression proving that
+  `create_missing` leaves an existing issuer's legal name unchanged and only
+  reports it as already present. The focused SEC directory suite now passes
+  `10/10`.
