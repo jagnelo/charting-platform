@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
+
+- [x] Serialize workspace, tab/window, library-item, instrument-note,
+      market-group, and ETF-industry response timestamps as canonical UTC `Z`
+      values through the shared workstation schemas (`54f08a5c`).
+- [x] Focused workstation schema coverage passed `1/1`; full backend unit
+      coverage passed `1491/1491` at `68.56%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `54f08a5c`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
+      visual stage ran.
+- [ ] Restore Docker Desktop health, rerun the pending API regressions and
+      exact gate, then continue provider/history or compatible chart/list/gauge
+      work.
+
 ### 2026-09-12 — Watchlist-history responses use canonical wire timestamps
 
 - [x] Serialize source/member timing, coverage, refresh-summary, and refresh-run

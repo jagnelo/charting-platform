@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Workstation and taxonomy responses use canonical wire timestamps
+
+Product commit `54f08a5c` closes the persisted workstation response seam.
+Workspace, tab/window, library-item, instrument-note, market-group, and
+ETF-industry response timestamps now serialize through the shared UTC `Z`
+helper. This keeps saved workstation state, source timing, and classification
+provenance on one client wire timeline without changing persistence, ordering,
+membership, or readiness semantics.
+
+Focused workstation schema coverage passed `1/1`; the full backend unit suite
+passed `1491/1491` at `68.56%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `54f08a5c` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker `/v1.55/info` returned HTTP 500. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker Desktop health and rerun the pending alert,
+indicator-batch, instrument-coverage, OHLCV, watchlist-history, and workstation
+API regressions plus the exact gate, then continue the next bounded
+provider/history or compatible chart/list/gauge seam while preserving the six
+protected visual state-oracle diffs and the no-integration/no-promotion/
+no-deployment boundary.
+
 ## 2026-09-12 — Watchlist-history responses use canonical wire timestamps
 
 Product commit `799db14d` closes the R1 watchlist-history response seam.
