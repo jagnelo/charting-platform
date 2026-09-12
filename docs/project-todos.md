@@ -10,6 +10,13 @@
       instead of charging the compatibility one-unit amount. Focused accounting
       coverage passes 7/7 and the complete backend unit suite passes 1,768/1,768.
 
+### 2026-09-12 — Newly configured provider live revalidation
+
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,
+      and Dinari Sandbox settings in one bounded fresh-run matrix. All 7 selected
+      transport/normalization cases passed; the external ledger contains only
+      aggregate counts/bytes and allow-listed headers under a unique run ID.
+
 ### 2026-09-12 — Explicit provider quota-group accounting
 
 - [x] Separate the durable quota bucket key from the requested capability. A

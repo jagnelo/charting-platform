@@ -430,6 +430,12 @@ progress:
       settlement. Grouped/ungrouped and non-applicable-dimension regressions
       pass; the complete backend unit suite passes 1,768/1,768 at source
       checkpoint `5c06ab441c35a3e28b96988b372d7a1bd079abb0`.
+    - >-
+      The newly configured Alpaca paper, SEC EDGAR, MarketData.app, and Dinari
+      Sandbox settings were revalidated in a fresh bounded live run: all 7
+      selected transport/normalization cases passed. The external ledger
+      recorded only aggregate counts/bytes and allow-listed provider headers
+      under a unique run ID; no credentials or payloads entered Git.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
