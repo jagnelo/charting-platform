@@ -442,6 +442,7 @@ let sourcePublicationTargetId: string | null = null
 // mounted universe so a late response cannot repopulate a closed tool.
 let selectionPublicationGeneration = 0
 let explicitPublicationGeneration = 0
+let definitionGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -1576,7 +1577,9 @@ function definitionStableKey(name: string) {
 }
 
 async function saveBreadthDefinition() {
-  if (definitionSaving.value || colorMetric.value !== 'breadth' || !definitionName.value || !breadthCondition.value) return
+  if (!componentMounted || definitionSaving.value || colorMetric.value !== 'breadth' || !definitionName.value || !breadthCondition.value) return
+  const generation = ++definitionGeneration
+  const requestSourceId = sourceId.value
   definitionSaving.value = true
   definitionMessage.value = ''
   definitionError.value = ''
@@ -1619,12 +1622,16 @@ async function saveBreadthDefinition() {
         },
       },
     })
+    if (!componentMounted || generation !== definitionGeneration || sourceId.value !== requestSourceId) return
     await invalidateCodeAssets(queryClient)
+    if (!componentMounted || generation !== definitionGeneration || sourceId.value !== requestSourceId) return
     definitionMessage.value = 'Saved immutable Study Lab definition.'
   } catch (cause) {
-    definitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+    if (componentMounted && generation === definitionGeneration && sourceId.value === requestSourceId) {
+      definitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+    }
   } finally {
-    definitionSaving.value = false
+    if (generation === definitionGeneration) definitionSaving.value = false
   }
 }
 
@@ -1814,8 +1821,10 @@ watch(sourceId, () => {
   sourcePublicationTargetId = null
   selectionPublicationGeneration += 1
   explicitPublicationGeneration += 1
+  definitionGeneration += 1
   publishing.value = false
   explicitSaving.value = false
+  definitionSaving.value = false
   sourceCloneGeneration += 1
   if (!publicationSourceChange) {
     sourcePublicationGeneration += 1
@@ -1891,6 +1900,7 @@ onUnmounted(() => {
   sourcePublicationTargetId = null
   selectionPublicationGeneration += 1
   explicitPublicationGeneration += 1
+  definitionGeneration += 1
   pythonAssetsGeneration += 1
   snapshotGeneration += 1
   runGeneration += 1

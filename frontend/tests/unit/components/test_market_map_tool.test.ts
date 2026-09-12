@@ -1080,6 +1080,31 @@ describe('MarketMapTool', () => {
     expect(invalidateQueries).toHaveBeenCalled()
   })
 
+  it('does not publish a reusable breadth definition after the Market Map unmounts', async () => {
+    let resolveDefinition: ((value: unknown) => void) | undefined
+    const definitionResult = new Promise(resolve => { resolveDefinition = resolve })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map') return Promise.resolve(response)
+      if (path === '/code/assets') return definitionResult
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('[aria-label="Market Map breadth definition name"]').setValue('Detached breadth definition')
+    await wrapper.get('[aria-label="Save as Study Lab definition"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ name: 'Detached breadth definition' }))
+    wrapper.unmount()
+
+    resolveDefinition?.({ versions: [{ id: 92 }] })
+    await flushPromises()
+
+    expect(invalidateQueries).not.toHaveBeenCalled()
+  })
+
   it('supports the reusable nested breadth condition editor for heatmap colours', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
