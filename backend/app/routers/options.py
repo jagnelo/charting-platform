@@ -9,6 +9,12 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.user import User
+from app.schemas.options import (
+    OptionChainResponse,
+    OptionContractSummaryOut,
+    OptionExpirationResponse,
+    OptionQuotePointOut,
+)
 from app.services.options_data import (
     get_option_chain_rows,
     get_option_contract_summary,
@@ -28,7 +34,10 @@ async def _load_instrument(symbol: str, db: AsyncSession) -> Instrument | None:
     return result.scalar_one_or_none()
 
 
-@router.get("/instruments/{symbol:path}/options/expirations")
+@router.get(
+    "/instruments/{symbol:path}/options/expirations",
+    response_model=OptionExpirationResponse,
+)
 async def get_instrument_option_expirations(
     symbol: str,
     refresh: bool = Query(False),
@@ -42,7 +51,10 @@ async def get_instrument_option_expirations(
     return {"symbol": instrument.symbol, "expirations": expirations}
 
 
-@router.get("/instruments/{symbol:path}/options/chain")
+@router.get(
+    "/instruments/{symbol:path}/options/chain",
+    response_model=OptionChainResponse,
+)
 async def get_instrument_option_chain(
     symbol: str,
     expiration: str | None = Query(None),
@@ -96,7 +108,10 @@ async def get_instrument_option_chain(
     }
 
 
-@router.get("/options/contracts/{instrument_id:int}")
+@router.get(
+    "/options/contracts/{instrument_id:int}",
+    response_model=OptionContractSummaryOut,
+)
 async def get_option_contract(
     instrument_id: int,
     db: AsyncSession = Depends(get_db),
@@ -108,7 +123,10 @@ async def get_option_contract(
     return contract
 
 
-@router.get("/options/contracts/{instrument_id:int}/quote-history")
+@router.get(
+    "/options/contracts/{instrument_id:int}/quote-history",
+    response_model=list[OptionQuotePointOut],
+)
 async def get_option_contract_quote_history(
     instrument_id: int,
     start: str | None = Query(None),
