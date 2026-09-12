@@ -825,3 +825,14 @@ Update this handoff at each coherent boundary.
   `tokenized-identifiers-20260912`; no credentials or provider payloads entered
   Git. This is provider transport/parsing evidence, not entitlement or
   redistribution approval.
+
+- Universe discovery now uses normalized ticker, canonical exchange MIC, and
+  instrument type as its matching key. A sole venue-less legacy listing may be
+  enriched once; known cross-venue collisions, duplicate local keys, and
+  ambiguous unqualified candidates are fail-closed for promotion instead of
+  silently merged. The regression proves two `DUAL` rows on Nasdaq and NYSE
+  create two canonical instruments. Focused seed coverage passes `4/4`; the
+  complete backend unit suite passes `1,886/1,886` with the known 37 warnings.
+  Changed-file Ruff, format, compileall, and diff checks pass. Source commit
+  `5658ffa0` is pushed. Docker-backed migration/full-stack validation remains
+  unavailable; no frontend or ETF-provider adapter files changed.
