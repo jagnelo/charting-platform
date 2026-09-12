@@ -624,6 +624,16 @@ async def recompute_synthetic_ohlcv(
                 "volume": None,
                 "vwap": None,
                 "is_adjusted": True,
+                "session": "regular",
+                "adjustment_basis": "derived",
+                "adjustment_version": "expression-engine",
+                "provenance": {
+                    "provider": "synthetic_expression",
+                    "expression": instrument.expression,
+                    "constituent_instrument_ids": [
+                        c.constituent_instrument_id for c in constituents
+                    ],
+                },
             }
         )
 
@@ -637,6 +647,11 @@ async def recompute_synthetic_ohlcv(
                         "high": pg_insert(OHLCVBar).excluded.high,
                         "low": pg_insert(OHLCVBar).excluded.low,
                         "close": pg_insert(OHLCVBar).excluded.close,
+                        "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                        "session": pg_insert(OHLCVBar).excluded.session,
+                        "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                        "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                        "provenance": pg_insert(OHLCVBar).excluded.provenance,
                     },
                 ),
                 new_bars,
@@ -810,22 +825,7 @@ async def _fetch_ohlcv_impl(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
                         index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
                     ),
-                    [
-                        {
-                            "instrument_id": b.instrument_id,
-                            "data_source_id": b.data_source_id,
-                            "timeframe": b.timeframe,
-                            "ts": b.ts,
-                            "open": b.open,
-                            "high": b.high,
-                            "low": b.low,
-                            "close": b.close,
-                            "volume": b.volume,
-                            "vwap": b.vwap,
-                            "is_adjusted": b.is_adjusted,
-                        }
-                        for b in new_bars
-                    ],
+                    [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
             except Exception as e:
@@ -1087,6 +1087,12 @@ async def _fetch_ohlcv_latest_impl(
                                 "close": pg_insert(OHLCVBar).excluded.close,
                                 "volume": pg_insert(OHLCVBar).excluded.volume,
                                 "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                                "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                                "market_series_id": pg_insert(OHLCVBar).excluded.market_series_id,
+                                "session": pg_insert(OHLCVBar).excluded.session,
+                                "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                                "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                                "provenance": pg_insert(OHLCVBar).excluded.provenance,
                             },
                         ),
                         [_bar_as_dict(b) for b in repair_bars],
@@ -1120,6 +1126,12 @@ async def _fetch_ohlcv_latest_impl(
                             "close": pg_insert(OHLCVBar).excluded.close,
                             "volume": pg_insert(OHLCVBar).excluded.volume,
                             "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                            "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                            "market_series_id": pg_insert(OHLCVBar).excluded.market_series_id,
+                            "session": pg_insert(OHLCVBar).excluded.session,
+                            "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                            "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                            "provenance": pg_insert(OHLCVBar).excluded.provenance,
                         },
                     ),
                     [_bar_as_dict(b) for b in new_bars],
