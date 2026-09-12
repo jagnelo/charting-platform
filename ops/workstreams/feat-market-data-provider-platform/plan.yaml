@@ -550,6 +550,16 @@ progress:
       unit suite passes `1,794/1,794` with the known 37 warnings, and the
       bounded keyless Binance/Coinbase/Kraken live probes pass `3/3` under run
       `51b1b146-7d5b-47ac-86be-5b545bad3b6d`, with aggregate usage outside Git.
+    - >-
+      Canonical OHLCV and provider-observation persistence now retains
+      `market_series_id`, session, adjustment basis/version, and provider
+      provenance on insert and conflict-update paths instead of dropping the
+      semantics emitted by providers. Provider observations gain an additive
+      `session` column through migration `8e9f0a1b2c3d`; focused
+      migration/persistence/provider coverage passes `212/212`, and the
+      complete backend unit suite passes `1,797/1,797` with the known 37
+      warnings. Docker-backed migration/full-stack validation remains blocked
+      by unavailable Docker.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

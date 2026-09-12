@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonical bar persistence fidelity
+
+- [x] Preserve `market_series_id`, session, adjustment basis/version, and
+      provider provenance when persisting canonical OHLCV bars and provider
+      observations; upserts now update these fields instead of silently
+      dropping them.
+- [x] Add the provider-observation `session` column through additive migration
+      `8e9f0a1b2c3d`, with SQLite upgrade/default/downgrade coverage. Focused
+      persistence/provider tests pass 212/212 and the complete backend unit
+      suite passes 1,797/1,797 with the known 37 warnings. Docker-backed
+      migration/integration validation remains blocked by unavailable Docker.
+
 ### 2026-09-12 — Alpha Vantage earnings history capability
 
 - [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`

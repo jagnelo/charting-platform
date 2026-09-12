@@ -907,3 +907,12 @@ keyless Binance/Coinbase/Kraken history probes passed `3/3` under run
 `51b1b146-7d5b-47ac-86be-5b545bad3b6d`. Aggregate usage remains in the
 owner-managed ledger outside Git; this evidence does not promote any separate
 quota, terms, or deployment gate.
+
+Canonical OHLCV persistence now retains the market-series identity, trading
+session, adjustment basis/version, and provider provenance in both
+`ohlcv_bar` and `market_bar_observation`; provider observations gained an
+additive `session` column in migration `8e9f0a1b2c3d`. This is a local
+serialization/migration correctness change, not new provider transport
+evidence. Focused persistence/provider tests passed `212/212`, and the
+complete backend unit suite passed `1,797/1,797`; Docker-backed migration and
+full-stack validation remains unverified while Docker is unavailable.

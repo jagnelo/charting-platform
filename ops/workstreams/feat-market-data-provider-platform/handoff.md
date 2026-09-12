@@ -469,3 +469,11 @@ Update this handoff at each coherent boundary.
   socket probe was denied and the authorized check hung without a server
   version, so it was interrupted. No services or containers were started; the
   required Docker-backed acceptance gate remains unverified.
+- Canonical OHLCV persistence now retains `market_series_id`, session,
+  adjustment basis/version, and provider provenance in both the canonical bar
+  upsert and provider-observation write path. Provider observations gained an
+  additive `session` column in migration `8e9f0a1b2c3d`; SQLite migration
+  coverage and provider/service regressions pass `212/212`, while the complete
+  backend unit suite passes `1,797/1,797` with the known 37 warnings. This
+  improves AC-SERIES fidelity without adding live provider evidence; the
+  Docker-backed migration/full-stack gate remains unverified.
