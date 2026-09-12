@@ -316,6 +316,38 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     )
     assert series_column_lineage["lineage"]["output_adapter"] == "latest_series_to_scalar"
 
+    selected_aggregate_series_plot = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-aggregate-series-plot",
+            "name": "Selected aggregate study series plot",
+            "kind": "plot",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)\noutput.series('aggregate', {'timestamps': ['2024-01-01'], 'values': [0.5]})",
+                "output_contract": "series",
+                "output_name": "aggregate",
+                "lineage": {
+                    "source_run_id": 94,
+                    "source_code_version_id": 46,
+                    "target": "plot",
+                    "output_adapter": "study_series_to_series",
+                    "semantics": "study_cross_sectional_aggregate_series_as_chart_plot",
+                },
+            },
+        },
+    )
+    assert selected_aggregate_series_plot.status_code == 201, selected_aggregate_series_plot.text
+    aggregate_plot_version = selected_aggregate_series_plot.json()["versions"][0]
+    assert aggregate_plot_version["output_contract"] == "series"
+    assert aggregate_plot_version["output_name"] == "aggregate"
+    aggregate_plot_lineage = next(
+        item
+        for item in aggregate_plot_version["diagnostics"]
+        if item["code"] == "promotion_lineage"
+    )
+    assert aggregate_plot_lineage["lineage"]["output_adapter"] == "study_series_to_series"
+
     selected_series_condition = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

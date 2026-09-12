@@ -54,7 +54,20 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/routers/code.py",
+    "backend/research_runner/runner.py",
+    "backend/tests/integration/api/test_code.py",
+    "backend/tests/unit/services/test_research_runner.py",
+    "docs/project-todos.md",
+    "frontend/src/components/workstation/ResearchResultsTool.vue",
+    "frontend/src/components/workstation/StudyLabTool.vue",
+    "frontend/tests/unit/components/test_research_results_tool.test.ts",
+    "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "scripts/agent-session.py"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +127,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a0a83439eaad88557777c37663ccc3ab04833fb1",
+  "head": "64ca6f7e24c0608c5f03fb49f909f86a200c1406",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T03:19:18.670170+00:00",
-  "last_human_progress_update": "2026-09-12T03:18:55.798580+00:00",
+  "last_checkpoint": "2026-09-12T03:34:20.796737+00:00",
+  "last_human_progress_update": "2026-09-12T03:32:48.636285+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +147,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact gate at af142b1d is blocked only by the six established protected visual state-oracle diffs (98/104); no policy changes.",
-    "current_phase": "R4_scalar_condition_fanout",
-    "next_action": "Continue the next bounded provider/history or compatible chart/list/gauge seam; preserve the six protected visual state-oracle diffs.",
+    "current_blocker": "Exact gate pending at the aggregate Study-series product tip; the prior gate was blocked only by the six established protected visual state-oracle diffs (98/104), with no policy changes.",
+    "current_phase": "R4_aggregate_study_series",
+    "next_action": "Run the exact elevated branch-scoped Docker-backed gate at the committed aggregate Study-series tip, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T03:18:55.798207+00:00"
+    "updated_at": "2026-09-12T03:32:48.636160+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

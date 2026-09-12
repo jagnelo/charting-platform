@@ -190,6 +190,13 @@ def execute_job(
         # behaviour from an output name or user source text.
         if str(job.get("output_adapter") or "") == "breadth_aggregate_percentage":
             return _execute_single(source, job.get("dataset", {}), job)
+        if str(job.get("output_adapter") or "") == "study_series_to_series":
+            result = _execute_single(source, job.get("dataset", {}), job)
+            if result.get("status") != "completed":
+                return result
+            return _adapt_study_series_to_series(
+                result, str(job.get("output_name") or "") or None
+            )
         if str(job.get("output_contract") or "") == "study":
             return _execute_single(source, job.get("dataset", {}), job)
         if str(job.get("execution_mode") or "") == "breadth_history":
@@ -426,6 +433,80 @@ def _adapt_range_center_to_series(result: dict, output_name: str | None) -> dict
                 "value": {
                     "timestamps": [str(timestamp) for timestamp in timestamps],
                     "values": [float(value) for value in center],
+                },
+            }
+        },
+    }
+
+
+def _adapt_study_series_to_series(result: dict, output_name: str | None) -> dict:
+    """Project one named aggregate Study artifact into a chart series.
+
+    Structured Study sources execute once over their prepared universe.  A
+    chart plot still needs one named ``series`` output, so this adapter keeps
+    the full-universe execution boundary explicit instead of accidentally
+    replaying the source once per member and losing its aggregate semantics.
+    """
+
+    matches = [
+        (name, artifact)
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "series"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "study_series_adapter_output_missing",
+                "message": f"Expected exactly one series output{f' named {output_name!r}' if output_name else ''}.",
+            }],
+        }
+    name, artifact = matches[0]
+    raw = artifact.get("value")
+    if not isinstance(raw, dict):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "study_series_adapter_invalid_payload",
+                "message": "Study series output must contain an object payload.",
+            }],
+        }
+    timestamps = raw.get("timestamps")
+    values = raw.get("values")
+    if not isinstance(timestamps, list) or not isinstance(values, list) or len(timestamps) != len(values):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "study_series_adapter_unaligned",
+                "message": "Study series timestamps and values must be aligned lists.",
+            }],
+        }
+    if not all(
+        value is None
+        or (
+            isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+        )
+        for value in values
+    ):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "study_series_adapter_non_numeric",
+                "message": "Study series values must be finite numbers or null.",
+            }],
+        }
+    return {
+        **result,
+        "artifacts": {
+            name: {
+                "type": "series",
+                "value": {
+                    "timestamps": [str(timestamp) for timestamp in timestamps],
+                    "values": [float(value) if value is not None else None for value in values],
                 },
             }
         },

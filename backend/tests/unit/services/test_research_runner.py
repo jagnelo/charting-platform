@@ -1467,6 +1467,53 @@ def test_runner_selects_one_named_output_from_a_multi_output_typed_adapter():
     ]
 
 
+def test_runner_promotes_one_named_structured_study_series_over_the_prepared_universe():
+    result = execute_job(
+        {
+            "source": (
+                "output.scalar('member_count', len(market.universe()))\n"
+                "output.series('aggregate', {'timestamps': ['2024-01-01', '2024-01-02'], 'values': [0.5, None]})\n"
+                "output.table('evidence', market.universe())"
+            ),
+            "output_contract": "series",
+            "output_name": "aggregate",
+            "output_adapter": "study_series_to_series",
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [20, 21]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"] == {
+        "aggregate": {
+            "type": "series",
+            "value": {
+                "timestamps": ["2024-01-01", "2024-01-02"],
+                "values": [0.5, None],
+            },
+        }
+    }
+
+
+def test_runner_rejects_malformed_structured_study_series_adapter_payload():
+    result = execute_job(
+        {
+            "source": "output.series('aggregate', {'timestamps': ['2024-01-01'], 'values': ['bad']})",
+            "output_contract": "series",
+            "output_name": "aggregate",
+            "output_adapter": "study_series_to_series",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "study_series_adapter_non_numeric"
+
+
 def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
     calls = []
 

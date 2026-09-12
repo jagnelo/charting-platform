@@ -720,6 +720,53 @@ describe('StudyLabTool', () => {
     }))
   })
 
+  it('promotes a declared cross-sectional Study series only through the aggregate chart adapter', async () => {
+    const source = "output.scalar('current_percentage', 0.5)\noutput.series('percentage_history', {'timestamps': ['2026-01-01'], 'values': [0.5]})"
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 151, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string, body: any) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['research', 'output'], lookback_hint: null, output_contracts: ['scalar', 'series', 'table'] })
+      if (path === '/code/assets' && body?.kind === 'study') return Promise.resolve({ versions: [{ id: 151 }] })
+      if (path === '/code/assets' && body?.kind === 'plot') return Promise.resolve({ id: 152, name: 'Aggregate percentage plot', versions: [{ id: 152 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 153,
+        code_version_id: 151,
+        status: 'completed',
+        run_config: { symbols: ['SPY', 'XLK'], result_scope: 'cross_sectional' },
+        dataset_manifest: { datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'XLK' }] },
+        artifacts: [
+          { id: 1, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } },
+          { id: 2, name: 'percentage_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.5] } } },
+          { id: 3, name: 'members', artifact_type: 'table', payload: { value: [] } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Factory study"]').setValue('generic_breadth_cross_sectional_percentile')
+    await wrapper.find('[aria-label="Study universe"]').setValue('SPY, XLK')
+    await wrapper.findAll('button')[0].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #153'))
+
+    expect(wrapper.findAll('[aria-label="Promote study result"] button').map(button => button.text())).toEqual(['Save aggregate chart plot: percentage_history'])
+    await wrapper.get('[aria-label="Promote study result"] button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'percentage_history',
+        lineage: expect.objectContaining({
+          output_adapter: 'study_series_to_series',
+          semantics: 'study_cross_sectional_aggregate_series_as_chart_plot',
+        }),
+      }),
+    }))
+  })
+
   it('promotes a direct Study Lab series through one explicit threshold condition', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })

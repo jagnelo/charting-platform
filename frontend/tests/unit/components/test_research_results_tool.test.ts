@@ -461,6 +461,42 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
   })
 
+  it('keeps cross-sectional structured outputs aggregate-only while exposing an explicit chart adapter', async () => {
+    const source = "output.scalar('current_percentage', 0.5)\noutput.series('percentage_history', {'timestamps': ['2026-01-01'], 'values': [0.5]})"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 40, status: 'completed', code_version_id: 90, output_contract: 'study', run_config: { result_scope: 'cross_sectional' }, dataset_manifest: { source: 'canonical_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'XLK' }] }, artifacts: [
+        { id: 40, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } },
+        { id: 41, name: 'percentage_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.5] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 40', versions: [{ id: 90, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 91, name: 'Aggregate percentage plot' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save column: current_percentage"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="percentage_history thresholded condition"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Save chart plot: percentage_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('cross-sectional aggregate cannot be reinterpreted')
+    expect(wrapper.text()).toContain('aggregate chart plot only')
+
+    await wrapper.get('[aria-label="Save chart plot: percentage_history"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'percentage_history',
+        lineage: expect.objectContaining({
+          output_adapter: 'study_series_to_series',
+          semantics: 'study_cross_sectional_aggregate_series_as_chart_plot',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “percentage_history” as chart plot')
+  })
+
   it('promotes a structured scalar through an explicit thresholded Boolean condition', async () => {
     const source = "output.scalar('score', market.close()[-1])"
     const lineage = {

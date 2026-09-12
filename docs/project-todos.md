@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-12 — Aggregate Study series keep cross-sectional semantics
+
+- [x] Mark factory breadth/ranking studies as cross-sectional, persist that
+      scope in Study runs, and execute aggregate Study sources once over their
+      prepared universe instead of replaying them per member.
+- [x] Add the explicit `study_series_to_series` adapter: one named finite
+      series can become an aggregate chart plot while malformed, unaligned,
+      non-numeric, or ambiguous outputs fail closed. Preserve source/run/
+      output/membership lineage and require the declared `series` contract.
+- [x] Keep Research Results and Study Lab aggregate runs aggregate-only:
+      chart-plot promotion is available for series artifacts, while scalar,
+      Boolean, range, latest-value, and threshold coercions remain view/export
+      only. Focused checks passed runner `3/3`, code-asset integration `1/1`
+      (two existing NumPy warnings), Research Results `36/36`, Study Lab
+      `29/29`, frontend type-check, Ruff, formatting, and diff checks.
+- [ ] Rerun the exact elevated branch-scoped Docker-backed gate at this
+      product tip; preserve the six protected visual state-oracle diffs and
+      unchanged visual/provider/fallback/acceptance policy.
+
 ### 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
 
 - [x] Add a finite numeric scalar threshold adapter for direct and structured

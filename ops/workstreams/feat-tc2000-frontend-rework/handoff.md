@@ -2,6 +2,38 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
+
+The next bounded R4 slice makes cross-sectional Study Lab results explicit
+from execution through promotion. Factory breadth/ranking studies now mark
+their `result_scope`, the isolated runner executes aggregate Study sources
+once over the prepared universe, and the explicit `study_series_to_series`
+adapter promotes one named finite series without replaying it per member.
+Research Results and Study Lab expose aggregate chart-plot promotion only;
+scalar, Boolean, range, latest-value, and threshold coercions remain
+view/export-only for aggregate runs. The API accepts this adapter only with a
+named `series` output and preserves source/run/output/membership lineage.
+
+Focused checks passed: runner `3/3`, code-asset integration `1/1` with two
+existing NumPy warnings, Research Results `36/36`, Study Lab `29/29`, frontend
+type-check, Ruff, formatting, and diff checks. The exact branch-scoped gate is
+pending at this product slice. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+Checkpoint scope: `backend/app/routers/code.py`,
+`backend/research_runner/runner.py`, `backend/tests/integration/api/test_code.py`,
+`backend/tests/unit/services/test_research_runner.py`, `frontend/src/components/workstation/ResearchResultsTool.vue`,
+`frontend/src/components/workstation/StudyLabTool.vue`,
+`frontend/tests/unit/components/test_research_results_tool.test.ts`,
+`frontend/tests/unit/components/test_study_lab_tool.test.ts`, `docs/project-todos.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`scripts/agent-session.py`.
+
+Next: run the exact gate, then continue a bounded provider/history or
+compatible chart/list/gauge seam. Preserve the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
 
 Product tip `af142b1d` adds the explicit `scalar_target_to_boolean` adapter for

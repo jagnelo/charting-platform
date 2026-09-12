@@ -185,7 +185,7 @@ const relativeStrengthHistorySource = "closes = market.close()\nbenchmark = mark
 const currentHistorySource = "closes = market.close()\nreturns = [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes)) if closes[index - 1]]\nhistory = returns[:-1]\ncurrent = returns[-1] if returns else None\ncomparison = research.historical_comparison(history, current)\noutput.scalar('historical_sample_size', comparison['sample_size'])\noutput.scalar('current_return', comparison['current'] if comparison['current'] is not None else 0)\noutput.scalar('historical_mean_return', comparison['mean'] if comparison['mean'] is not None else 0)\noutput.scalar('historical_median_return', comparison['median'] if comparison['median'] is not None else 0)\noutput.scalar('historical_percentile_rank', comparison['percentile_rank'] if comparison['percentile_rank'] is not None else 0)\noutput.scalar('historical_z_score', comparison['z_score'] if comparison['z_score'] is not None else 0)\noutput.histogram('historical_return_distribution', history, 12, comparison['current'])\noutput.table('current_vs_history', [comparison])"
 const source = ref(positiveStreakSource)
 const lookbackParameterSchema = JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 2, maximum: 252 } } })
-const factoryStudyTemplates = [
+const factoryStudyTemplates: Array<{ key: string; name: string; source: string; parameterSchema?: string; requiresUniverse?: boolean; resultScope?: 'member' | 'cross_sectional' }> = [
   { key: 'positive_streak', name: 'Consecutive positive closes', source: positiveStreakSource },
   { key: 'negative_streak', name: 'Consecutive negative closes', source: negativeStreakSource },
   { key: 'moving_average_participation', name: 'Moving-average participation', source: movingAverageParticipationSource, parameterSchema: lookbackParameterSchema },
@@ -195,13 +195,13 @@ const factoryStudyTemplates = [
   { key: 'volatility_regime', name: 'Volatility regime', source: volatilityRegimeSource },
   { key: 'seasonality', name: 'Month/day seasonality', source: seasonalitySource },
   { key: 'relative_strength_regime', name: 'Relative-strength regime changes', source: relativeStrengthRegimeSource },
-  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true },
-  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true },
-  { key: 'breadth_thrust_90_90', name: '90/90 breadth thrust', source: breadthThrustSource, requiresUniverse: true },
-  { key: 'breadth_thrust_history_90_90', name: 'Historical 90/90 breadth thrust', source: breadthThrustHistorySource, requiresUniverse: true },
-  { key: 'generic_breadth_above_average', name: 'Generic breadth above moving average', source: genericBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { period: { type: 'integer', default: 200, minimum: 2, maximum: 252 }, average: { type: 'string', default: 'sma' } } }) },
-  { key: 'generic_breadth_near_high', name: 'Generic breadth within 1% of 52-week high', source: genericHighBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 252, minimum: 2, maximum: 504 }, threshold: { type: 'number', default: 0.01, minimum: 0.001, maximum: 0.5 } } }) },
-  { key: 'generic_breadth_cross_sectional_percentile', name: 'Cross-sectional percentile breadth', source: crossSectionalBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { field: { type: 'string', default: 'close' }, percentile: { type: 'number', default: 0.5, minimum: 0, maximum: 1 }, operator: { type: 'string', default: 'gte' } } }) },
+  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_thrust_90_90', name: '90/90 breadth thrust', source: breadthThrustSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_thrust_history_90_90', name: 'Historical 90/90 breadth thrust', source: breadthThrustHistorySource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'generic_breadth_above_average', name: 'Generic breadth above moving average', source: genericBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { period: { type: 'integer', default: 200, minimum: 2, maximum: 252 }, average: { type: 'string', default: 'sma' } } }) },
+  { key: 'generic_breadth_near_high', name: 'Generic breadth within 1% of 52-week high', source: genericHighBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 252, minimum: 2, maximum: 504 }, threshold: { type: 'number', default: 0.01, minimum: 0.001, maximum: 0.5 } } }) },
+  { key: 'generic_breadth_cross_sectional_percentile', name: 'Cross-sectional percentile breadth', source: crossSectionalBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { field: { type: 'string', default: 'close' }, percentile: { type: 'number', default: 0.5, minimum: 0, maximum: 1 }, operator: { type: 'string', default: 'gte' } } }) },
   { key: 'relative_strength_history', name: 'Relative-strength history', source: relativeStrengthHistorySource },
   { key: 'current_history_comparison', name: 'Current versus history', source: currentHistorySource },
 ]
@@ -500,7 +500,17 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
     if (runContract.value !== 'events' || (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length < 2) return []
   }
   const promotions: ArtifactPromotion[] = []
+  const aggregate = isCrossSectionalStudyRun(run.value)
   for (const artifact of run.value.artifacts ?? []) {
+    if (aggregate) {
+      // Cross-sectional outputs describe the prepared universe, not the
+      // active symbol. Only the explicit aggregate-series chart adapter is
+      // safe; scalar/Boolean coercions would invent member semantics.
+      if (artifact.artifact_type === 'series' && seriesData(artifact)) {
+        promotions.push({ artifact, target: 'plot', label: 'Save aggregate chart plot' })
+      }
+      continue
+    }
     if (artifact.artifact_type === 'series') {
       promotions.push({ artifact, target: 'plot', label: 'Save plot' })
       if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
@@ -684,6 +694,9 @@ function latestRangeCenterValue(artifact: Artifact): number | null {
   }
   return null
 }
+function isCrossSectionalStudyRun(studyRun: Run | null | undefined) {
+  return studyRun?.run_config?.result_scope === 'cross_sectional'
+}
 function barData(artifact: Artifact): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -780,11 +793,13 @@ async function saveAndRun() {
     if (endDate.value) datasetControls.end_date = endDate.value
     if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
     const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
+    const resultScope = selectedFactoryStudy.value?.resultScope
     const runConfig: Record<string, unknown> = universeSourceId.value
       ? { universe_source_id: universeSourceId.value, parameters, ...datasetControls }
       : symbols.length
         ? { symbols, parameters, ...datasetControls }
         : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
+    if (resultScope) runConfig.result_scope = resultScope
     const createdRun = await api.post<Run>('/research/runs', {
       code_version_id: asset.versions[0].id,
       run_config: runConfig,
@@ -888,6 +903,9 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       return
     }
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
+    const aggregateSeriesPlot = target === 'plot'
+      && selectedArtifact?.artifact_type === 'series'
+      && isCrossSectionalStudyRun(run.value)
     const latestSeriesColumn = target === 'column' && (
       selectedArtifact?.artifact_type === 'series'
         ? latestSeriesValue(selectedArtifact) != null
@@ -907,7 +925,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     const promotionOutputName = selectedOutputName ?? (latestSeriesColumn
       ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
       : undefined)
-    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : rangeCenterPlot ? 'series' : contract
+    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : rangeCenterPlot || aggregateSeriesPlot ? 'series' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
     // and lets its immutable promotion lineage survive independently of the
@@ -937,13 +955,15 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
             source_run_config: sourceRunConfig,
             source_output_name: promotionOutputName ?? null,
             target,
-            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterColumn ? 'range_center_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : undefined,
+            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterColumn ? 'range_center_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : aggregateSeriesPlot ? 'study_series_to_series' : undefined,
             semantics: target === 'column' && requiredContract === 'boolean'
               ? 'study_boolean_result_as_typed_watchlist_column'
               : latestSeriesColumn
                 ? 'study_series_latest_result_as_watchlist_column'
                 : rangeCenterColumn
                   ? 'study_range_center_result_as_latest_watchlist_column'
+                : aggregateSeriesPlot
+                  ? 'study_cross_sectional_aggregate_series_as_chart_plot'
                 : rangeCenterPlot
                   ? 'study_range_center_result_as_chart_plot'
                   : 'study_result_promotion',

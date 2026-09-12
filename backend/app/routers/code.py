@@ -105,6 +105,13 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
         and body.lineage.get("output_adapter") == "latest_series_to_scalar"
         and "series" in validation.output_contracts
     )
+    explicit_study_series_adapter = (
+        body.output_contract == "series"
+        and body.output_name is not None
+        and isinstance(body.lineage, dict)
+        and body.lineage.get("output_adapter") == "study_series_to_series"
+        and "series" in validation.output_contracts
+    )
     explicit_scalar_boolean_adapter = (
         body.output_contract == "boolean"
         and body.output_name is not None
@@ -187,6 +194,7 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
         and not explicit_range_center_adapter
         and not explicit_range_center_scalar_adapter
         and not explicit_latest_series_adapter
+        and not explicit_study_series_adapter
         and not explicit_scalar_boolean_adapter
         and not explicit_series_boolean_adapter
         and not explicit_range_center_boolean_adapter

@@ -57,8 +57,8 @@
               </div>
             </template>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
-            <button v-if="artifact.artifact_type === 'series' && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
-            <template v-if="artifact.artifact_type === 'series' && hasFiniteSeriesValue(artifact)">
+            <button v-if="artifact.artifact_type === 'series' && !isCrossSectionalStudyRun(selectedRun) && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
+            <template v-if="artifact.artifact_type === 'series' && !isCrossSectionalStudyRun(selectedRun) && hasFiniteSeriesValue(artifact)">
               <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} thresholded condition`">
                 <label>When <select v-model="seriesConditionOperator" :aria-label="`Series condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
                 <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Series condition threshold: ${artifact.name}`" /></label>
@@ -68,7 +68,7 @@
             </template>
             <button v-if="artifact.artifact_type === 'range'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save center chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save center chart plot: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'range' && rangeData(artifact)?.center?.some(value => Number.isFinite(value))" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest center column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest center column: ${artifact.name}` }}</button>
-            <template v-if="artifact.artifact_type === 'range' && hasFiniteRangeCenterValue(artifact)">
+            <template v-if="artifact.artifact_type === 'range' && !isCrossSectionalStudyRun(selectedRun) && hasFiniteRangeCenterValue(artifact)">
               <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} range center thresholded condition`">
                 <label>Center when <select v-model="seriesConditionOperator" :aria-label="`Range center condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
                 <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Range center condition threshold: ${artifact.name}`" /></label>
@@ -80,7 +80,7 @@
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
             </template>
           </div>
-          <small v-if="artifactCapabilityNote(artifact)" class="research-results-tool__artifact-capability" role="note">{{ artifactCapabilityNote(artifact) }}</small>
+          <small v-if="artifactCapabilityNote(artifact, selectedRun)" class="research-results-tool__artifact-capability" role="note">{{ artifactCapabilityNote(artifact, selectedRun) }}</small>
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
@@ -252,7 +252,14 @@ function statusGuidance(status: string) {
 function formatMessages(messages: unknown[]) { return messages.map(message => typeof message === 'string' ? message : JSON.stringify(message)).join('\n') }
 function formatObject(value: Record<string, unknown> | undefined) { return JSON.stringify(value ?? {}, null, 2) }
 function formatMetric(artifact: ResearchRunSummary['artifacts'][number]) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
-function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number]) {
+function isCrossSectionalStudyRun(run: ResearchRunSummary | null | undefined) {
+  return run?.run_config?.result_scope === 'cross_sectional'
+}
+function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number], run?: ResearchRunSummary | null) {
+  if (isCrossSectionalStudyRun(run)) {
+    if (artifact.artifact_type === 'series') return 'Compatible target: aggregate chart plot only; the series describes the prepared cross-sectional universe, not the active symbol.'
+    if (['scalar', 'boolean', 'range'].includes(artifact.artifact_type)) return 'View/export only: this cross-sectional aggregate cannot be reinterpreted as a per-symbol column or condition.'
+  }
   const capability = studyArtifactCapability(artifact.artifact_type)
   if (artifact.artifact_type === 'range' && rangeData(artifact)?.center == null) {
     return 'View/export only: this range has no aligned finite center series to promote; bounds remain source-only.'
@@ -483,10 +490,13 @@ function canPromoteStructuredEventArtifact(run: ResearchRunSummary | null, artif
     && artifact.artifact_type === 'events'
 }
 function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: ResearchRunSummary['artifacts'][number]) {
+  const aggregate = isCrossSectionalStudyRun(run)
   return Boolean(run)
     && run?.status === 'completed'
     && run.output_contract === 'study'
-    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
+    && (aggregate
+      ? artifact.artifact_type === 'series'
+      : artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
       || (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null))
 }
 type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
@@ -886,11 +896,14 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
     const latestSeriesColumn = artifact.artifact_type === 'series' && target === 'column'
     const rangeCenterColumn = artifact.artifact_type === 'range' && target === 'column' && rangeData(artifact)?.center?.some(value => Number.isFinite(value)) === true
+    const aggregateSeriesPlot = artifact.artifact_type === 'series'
+      && target === 'plot'
+      && isCrossSectionalStudyRun(run)
     const contract = artifact.artifact_type === 'scalar' ? 'scalar' : artifact.artifact_type === 'boolean' ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : 'series'
     const kind = target === 'column' ? 'column' : 'plot'
     const outputAdapter = artifact.artifact_type === 'range'
       ? rangeCenterColumn ? 'range_center_to_scalar' : 'range_center_to_series'
-      : latestSeriesColumn ? 'latest_series_to_scalar' : undefined
+      : latestSeriesColumn ? 'latest_series_to_scalar' : aggregateSeriesPlot ? 'study_series_to_series' : undefined
     const lineage = {
       type: 'study_run_promotion',
       source_run_id: run.id,
@@ -902,11 +915,13 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       target,
       output_adapter: outputAdapter,
       semantics: target === 'column'
-        ? artifact.artifact_type === 'boolean'
+          ? artifact.artifact_type === 'boolean'
           ? 'study_boolean_result_as_typed_watchlist_column'
           : latestSeriesColumn ? 'study_series_latest_result_as_watchlist_column'
             : rangeCenterColumn ? 'study_range_center_result_as_latest_watchlist_column'
               : 'study_scalar_result_as_watchlist_column'
+        : aggregateSeriesPlot
+          ? 'study_cross_sectional_aggregate_series_as_chart_plot'
         : artifact.artifact_type === 'range'
           ? 'study_range_center_result_as_chart_plot'
           : 'study_series_result_as_chart_plot',
