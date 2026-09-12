@@ -1088,6 +1088,16 @@ progress:
       suite passed 20/20, and the Docker-backed gate passed 2,397/2,397 at
       81.36% coverage. Source checkpoint: `e8eae7b8`; no frontend or
       ETF-provider files changed.
+    - >-
+      Extended the shared provider-neutral preflight into the current reusable
+      generic `/breadth` snapshot. The evaluator derives the declared
+      condition's minimum history from its condition tree, assesses the already
+      loaded local bars, withholds unresolved members, and returns serialized
+      per-instrument readiness without provider I/O. Focused preflight coverage
+      is `5/5`; focused workspace breadth integration is `2/2`; Ruff,
+      compilation, and diff checks are green. Benchmark-family breadth and
+      future non-Strategy signal engines remain explicitly open. Source
+      checkpoint: `b975c68a`; no frontend or ETF-provider files changed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1140,9 +1150,10 @@ progress:
     Refresh jobs now retain durable attempt timestamps and redacted result
     summaries, including observed versus empty outcomes and retry/defer evidence;
     this improves evaluator coordination but does not itself complete the open
-    future breadth/signal preflight migration; Strategy Lab rules and Radar
-    signal replay now use the shared preflight, while breadth and any future
-    non-Strategy signal engines remain open.
+    future breadth/signal preflight migration; Strategy Lab rules, Radar signal
+    replay, and the current generic `/breadth` snapshot now use the shared
+    preflight, while benchmark-family breadth and any future non-Strategy
+    signal engines remain open.
     The normalized market-event persistence/worker path, durable cross-provider
     candidate reconciliation, and audited pre-listing materialization/promotion
     workflow are implemented and remain disabled by default; the authenticated
@@ -1354,4 +1365,4 @@ progress:
       `81.33%` combined coverage and 89 warnings; its labeled test resources
       were cleaned. Source checkpoint `a8ee8573` contains no provider,
       frontend, or ETF-provider adapter changes.
-  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; resolve the pre-existing duplicate Alembic revision/multiple-head graph in coordinator scope before promoting the new provider migrations; extend the coordinator-backed preflight to breadth and future non-Strategy signal engines and connect evaluator readiness to persisted refresh-job outcomes; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, durable refresh-job attempt/outcome summaries, shared Strategy Lab/Radar evaluator preflight, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `e8eae7b8`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, account-usage, refresh-outcome, evaluator-preflight, bounded MarketData.app live probe, and changed-file gates are green, while provider/legal/deployment/shadow, breadth/future-evaluator coordination, and generic migration compatibility gates remain open.
+  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; resolve the pre-existing duplicate Alembic revision/multiple-head graph in coordinator scope before promoting the new provider migrations; extend the coordinator-backed preflight to benchmark-family breadth and future non-Strategy signal engines and connect evaluator readiness to persisted refresh-job outcomes; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, durable refresh-job attempt/outcome summaries, shared Strategy Lab/Radar/generic breadth evaluator preflight, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `b975c68a`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, account-usage, refresh-outcome, evaluator-preflight, bounded MarketData.app live probe, and changed-file gates are green, while provider/legal/deployment/shadow, benchmark-family/future-evaluator coordination, and generic migration compatibility gates remain open.
