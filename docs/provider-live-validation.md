@@ -1017,3 +1017,8 @@ unscoped action path remains split-only (there is no documented global dividend
 feed), rejects `upcoming`, and refuses an advertised continuation page; partner
 quota, US eligibility, fees, display/cache, redistribution, and commercial
 routing gates remain fail-closed.
+
+The shared tokenized event linker was then corrected to recognize Dinari's
+provider-native `stock_id` identity field. This is local persistence/linkage
+evidence only; it used the existing scheduler fixture and did not consume any
+additional provider quota or persist live payloads.

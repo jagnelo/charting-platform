@@ -907,3 +907,10 @@ Update this handoff at each coherent boundary.
   merged into the owner-managed ledger. Full backend unit coverage passes
   `1,907/1,907`; source commit `f296a507` is pushed. Dinari quota, terms, and
   routing admission remain fail-closed; no frontend or ETF-provider files changed.
+
+- The shared tokenized event linker now recognizes Dinari's provider-native
+  `stock_id`/`stockId` fields. A scheduler regression proves a global split row
+  links to the persisted Dinari token identity rather than remaining falsely
+  unlinked; full backend unit coverage passes `1,907/1,907`, source commit
+  `e332e727` is pushed, and no provider calls or frontend/ETF-provider files
+  changed. Dinari quota, terms, and routing admission remain fail-closed.

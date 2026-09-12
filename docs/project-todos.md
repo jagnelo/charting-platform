@@ -16257,3 +16257,14 @@ The current source also passes the focused authenticated top-down browser slice 
       owner-managed ledger outside Git.
 - [ ] Dinari partner quota, US eligibility, fee, display/cache, redistribution,
       and commercial routing gates remain unchanged and fail-closed.
+
+### 2026-09-12 — Dinari action identity linkage
+
+- [x] Recognize Dinari's provider-native `stock_id`/`stockId` fields in the
+      shared tokenized event linker, so global and symbol-scoped split/dividend
+      rows can attach to the persisted token instrument without ticker guesses.
+- [x] Add a scheduler regression proving a Dinari global split row links to the
+      matching tokenized asset; full backend unit coverage passes `1,907/1,907`
+      and changed-file lint/compile/diff checks pass.
+- [ ] Complete Dinari quota, commercial, US-eligibility, display/cache, and
+      redistribution review before any routing admission.

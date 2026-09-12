@@ -964,6 +964,14 @@ progress:
       unit suite passes 1,907/1,907 with Ruff, compilation, and diff checks clean.
       Source commit `f296a50790868b654dc456ce63908f041c804791` is pushed; no
       frontend or ETF-provider files changed.
+    - >-
+      The shared tokenized event linker now recognizes Dinari's provider-native
+      `stock_id`/`stockId` fields. A scheduler regression proves a global split
+      row links to the persisted token identity instead of remaining falsely
+      unlinked; the complete backend unit suite remains green at 1,907/1,907
+      with changed-file Ruff, compilation, and diff checks clean. Source commit
+      `e332e727a57facf1cf1120bc01eaceb2fb16b625` is pushed; no provider calls or
+      frontend/ETF-provider files changed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1027,5 +1035,7 @@ progress:
     documented symbol-scoped dividends/splits and bounded global splits while
     rejecting unsupported upcoming semantics. The changed compound Sandbox case
     passed 1/1 with 23 upstream requests and its aggregate receipts were merged
-    into the owner ledger.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, Dinari cursor transport, Dinari symbol filtering, and Dinari corporate-action capability are implemented at source commit `f296a50790868b654dc456ce63908f041c804791`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+    into the owner ledger. The shared event linker now recognizes Dinari's
+    `stock_id`/`stockId` identity fields and links global split rows by provider
+    asset ID; source commit `e332e727a57facf1cf1120bc01eaceb2fb16b625` is pushed.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, Dinari cursor transport, symbol filtering, corporate-action capability, and tokenized action identity linkage are implemented at source commit `e332e727a57facf1cf1120bc01eaceb2fb16b625`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
