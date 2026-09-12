@@ -661,7 +661,14 @@ class TokenBucket:
         self.last_refill = time.monotonic()
 
     def try_acquire(self, units: int = 1) -> bool:
-        units = max(int(units), 1)
+        # Request/weight units are part of the reviewed provider contract.
+        # Never coerce a malformed value (including zero, booleans, or a
+        # fractional quantity) into one token, because that would silently
+        # under-account the provider's actual charge.
+        if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer acquisition units"
+            )
         now = time.monotonic()
         elapsed = now - self.last_refill
         self.last_refill = now

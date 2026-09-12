@@ -1145,6 +1145,14 @@ def test_token_bucket_charges_weighted_units():
     assert not bucket.try_acquire(2)
 
 
+@pytest.mark.parametrize("units", [0, -1, True, 1.5, "1", None])
+def test_token_bucket_rejects_invalid_acquisition_units(units):
+    bucket = TokenBucket(rate_per_minute=60, burst_capacity=4)
+
+    with pytest.raises(ProviderQuotaUnknownError):
+        bucket.try_acquire(units)
+
+
 @pytest.mark.parametrize(
     ("rate_per_minute", "burst_capacity"),
     [(0, 1), (1, 0), (-1, 1), (1, -1), (True, 1), (1, True)],
