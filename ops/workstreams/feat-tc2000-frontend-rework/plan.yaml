@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped gate was rerun at product tip 36ed5513 after the
+  canonical research dataset timeline slice. Repository/workstream,
+  dependency, migration, frontend preparation, Ruff, formatting, and
+  TypeScript stages passed, then backend-coverage stopped after the fixed
+  180-second Docker readiness window because the Docker socket returned
+  permission denied at unix:///Users/jagnelo/.docker/run/docker.sock. No
+  backend integration, provider, browser, or visual stage ran; no product
+  assertion or visual-policy failure was observed. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Restore
+  Docker health outside the worktree, rerun pending API regressions and the
+  exact gate, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle
+  diffs and the no-integration/no-deployment boundary.
   Product tip 36ed5513 canonicalizes research dataset-manifest as_of values
   and all materialized instrument, benchmark, equal-reference, and batch
   timestamp arrays through the shared UTC Z wire serializer. Focused

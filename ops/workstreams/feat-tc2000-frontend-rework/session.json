@@ -57,7 +57,7 @@
   "dirty_paths": [],
   "docker": {
     "available": false,
-    "reason": "Docker returned HTTP 500 for /v1.55/info after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "reason": "Docker access was denied after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -82,7 +82,7 @@
   },
   "docker_ready": {
     "ready": false,
-    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because Docker returned HTTP 500 for /v1.55/info on unix:///Users/jagnelo/.docker/run/docker.sock; no desktop restart was attempted.",
+    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; no desktop restart was attempted.",
     "started_desktop": false,
     "wait_seconds": 180
   },
@@ -100,11 +100,11 @@
   "head": "229c961af91d5abe01d9ac0c47aa44e29fac8282",
   "implementation_sha": "36ed5513dd0d8ca186dcf74083beac5896491fec",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T09:21:30+00:00",
+  "last_checkpoint": "2026-09-12T09:25:59+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, and options API regressions plus the exact gate at product tip 36ed5513, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "3130684e59ddc6b98e09996d2478176fceedf49f8e2cb5bde0ee3ca0a8ef7ef7",
+  "plan_hash": "cf853cae440ca83942b85b3d73e8d87bc2c2ccbd668f7393455e79354c9b8a0a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact branch-scoped gate at product tip 6fb7ca7b stopped at backend-coverage after 180 seconds because Docker returned HTTP 500 for /v1.55/info on unix:///Users/jagnelo/.docker/run/docker.sock; repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript passed, but backend integration, provider, browser, and visual stages remain pending. The combo-source exclusion timestamp slice at product tip dc1dfbcb and the research dataset timeline slice at product tip 36ed5513 are unit-validated.",
+    "current_blocker": "The exact branch-scoped gate at product tip 36ed5513 stopped at backend-coverage after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript passed, but backend integration, provider, browser, and visual stages remain pending. The combo-source exclusion timestamp slice at product tip dc1dfbcb and the research dataset timeline slice at product tip 36ed5513 are unit-validated.",
     "current_phase": "R1_options_response_timestamp_wire_contract",
     "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, and options API regressions plus the exact gate at product tip 36ed5513, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T09:21:30.000000+00:00"
+    "updated_at": "2026-09-12T09:25:59.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

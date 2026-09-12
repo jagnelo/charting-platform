@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact research-timeline gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `36ed5513`; repository/workstream,
+      dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
+      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
+      window. No backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun the pending API regressions and exact gate, then continue
+      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize research dataset timelines
 
 - [x] Normalize research dataset-manifest `as_of` and materialized
