@@ -391,3 +391,9 @@ Update this handoff at each coherent boundary.
   retention, and support-TTL controls as the deployment manifests. Focused
   wiring/reference coverage passes 16/16; static checks and both Compose
   contract parses remain green.
+- `session.json` now marks the current Docker readiness as unavailable with a
+  bounded 90-second wait, matching the latest bootstrap failure and preventing
+  stale `ready: true` state from being mistaken for new database/Redis evidence.
+- This Docker-state correction is based on the synchronized operational
+  checkpoint `5d9db49c387f566b00b0296895b89fc30007599c`; the enclosing
+  checkpoint commit will be verified externally after push.
