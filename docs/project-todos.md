@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Instrument stats provenance timestamps use the canonical wire format
+
+- [x] Serialize internally computed 52-week stats `fetched_at` provenance as
+      canonical UTC `Z` (`7c4364a8`).
+- [x] Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
+      diff checks passed.
+- [x] Reran the exact branch-scoped gate at product tip `7c4364a8`; all
+      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
+      because the Docker socket was inaccessible (`permission denied` for
+      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker access, run the pending alert, indicator-batch, and
+      instrument-coverage API regressions plus the exact gate, then continue
+      provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Alert delivery preserves canonical indicator outputs
 
 - [x] Carry canonical output keys through indicator firing snapshots,

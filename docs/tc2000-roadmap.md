@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Instrument stats provenance timestamps use the canonical wire format
+
+Product commit `7c4364a8` closes the remaining 52-week instrument-stat
+provenance leak. Internally computed `week52_high` and `week52_low` metadata now
+write `fetched_at` through the canonical UTC `Z` serializer, matching the
+membership and data-coverage timestamp contract without changing statistic
+values or refresh behavior.
+
+Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `7c4364a8` passed
+git-diff, workstream validation, dependency/migration, frontend dependency
+preparation, and lint/type-check setup, then stopped at `backend-coverage`
+after the fixed 180-second Docker readiness window because the Docker socket
+was inaccessible (`permission denied` for
+`unix:///Users/jagnelo/.docker/run/docker.sock`). No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, and instrument-coverage API regressions plus the exact gate at
+this tip. Continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Alert delivery preserves canonical indicator outputs
 
 Product commit `7a517e3f` completes the alert-output contract across the
