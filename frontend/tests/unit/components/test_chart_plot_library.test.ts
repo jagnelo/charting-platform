@@ -386,6 +386,27 @@ describe('ChartPlotLibrary', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
   })
 
+  it('carries an explicitly selected multi-output into an indicator alert', async () => {
+    const chart = usePanelStore('multi-output-alert-promotion-test')
+    chart.instrument = { id: 42 } as any
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-alert-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="BB(20,2) output"]').setValue('bb_upper')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('alert')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('Upper band alert')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+    expect(apiMock.post).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({
+      instrument_id: 42,
+      indicator_a_type: 'bb',
+      indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+    }))
+    expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
+  })
+
   it('promotes a plot into a Market Gauge through the saved EasyScan condition', async () => {
     apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 88 }) : Promise.resolve({}))
     const chart = usePanelStore('gauge-promotion-test')

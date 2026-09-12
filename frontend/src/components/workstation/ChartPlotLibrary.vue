@@ -521,7 +521,7 @@ async function promoteSelected() {
     } else if (promotionTarget.value === 'alert') {
       const instrumentId = chartStore.instrument?.id
       if (!instrumentId) throw new Error('Select a canonical instrument before creating an indicator alert')
-      await api.post('/alerts/indicator', { instrument_id: instrumentId, timeframe: chartStore.timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
+      await api.post('/alerts/indicator', { instrument_id: instrumentId, timeframe: chartStore.timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params, output }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
       promotionStatus.value = `Copied ${label(item)} to condition and indicator alert`
     } else promotionStatus.value = `Copied ${label(item)} to reusable condition`
   } catch (cause: any) {

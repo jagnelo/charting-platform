@@ -219,8 +219,21 @@ async def check_all_alerts(ctx: dict) -> dict:
                 if not bars:
                     continue
 
+                output_a = ind_engine.resolve_indicator_output(
+                    alert.indicator_a_type, alert.indicator_a_params or {}
+                )
+                if output_a is None:
+                    logger.warning(
+                        "Indicator alert %s skipped: %s has no valid explicit output",
+                        alert.id,
+                        alert.indicator_a_type,
+                    )
+                    continue
                 current_val = ind_engine.get_last_value(
-                    alert.indicator_a_type, bars, alert.indicator_a_params or {}
+                    alert.indicator_a_type,
+                    bars,
+                    alert.indicator_a_params or {},
+                    output_a,
                 )
                 if current_val is None:
                     continue
@@ -228,14 +241,28 @@ async def check_all_alerts(ctx: dict) -> dict:
                 current_b = None
                 prev_b = None
                 if alert.indicator_b_type:
+                    output_b = ind_engine.resolve_indicator_output(
+                        alert.indicator_b_type, alert.indicator_b_params or {}
+                    )
+                    if output_b is None:
+                        logger.warning(
+                            "Indicator alert %s skipped: %s has no valid explicit output",
+                            alert.id,
+                            alert.indicator_b_type,
+                        )
+                        continue
                     current_b = ind_engine.get_last_value(
-                        alert.indicator_b_type, bars, alert.indicator_b_params or {}
+                        alert.indicator_b_type,
+                        bars,
+                        alert.indicator_b_params or {},
+                        output_b,
                     )
                     prev_b = (
                         ind_engine.get_last_value(
                             alert.indicator_b_type,
                             bars[:-1],
                             alert.indicator_b_params or {},
+                            output_b,
                         )
                         if len(bars) > 1
                         else None
@@ -243,7 +270,10 @@ async def check_all_alerts(ctx: dict) -> dict:
 
                 prev_val = (
                     ind_engine.get_last_value(
-                        alert.indicator_a_type, bars[:-1], alert.indicator_a_params or {}
+                        alert.indicator_a_type,
+                        bars[:-1],
+                        alert.indicator_a_params or {},
+                        output_a,
                     )
                     if len(bars) > 1
                     else None

@@ -21,6 +21,7 @@ from app.services.indicators import (
     get_latest_value,
     list_indicators,
     normalize_indicator_params,
+    resolve_indicator_output,
 )
 
 
@@ -287,6 +288,12 @@ class TestIndicatorComputation:
 
 
 class TestGetLatestValue:
+    def test_resolves_single_and_named_outputs_without_guessing(self):
+        assert resolve_indicator_output("rsi", {}) == "rsi"
+        assert resolve_indicator_output("bb", {}) is None
+        assert resolve_indicator_output("bb", {"output": "bb_upper"}) == "bb_upper"
+        assert resolve_indicator_output("bb", {"output": "bb_middle"}) is None
+
     def test_returns_latest_non_nan_value(self):
         series = make_series(rising_closes(60))
         latest = get_latest_value("sma", series, {"period": 20})

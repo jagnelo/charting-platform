@@ -1011,6 +1011,29 @@ def normalize_indicator_params(indicator_type: str, params: dict | None = None) 
     return normalized
 
 
+def resolve_indicator_output(indicator_type: str, params: dict | None = None) -> str | None:
+    """Resolve a declared output without guessing for multi-output indicators.
+
+    The chart, screener, and alert contracts all carry the selected output in
+    the indicator parameter object.  Single-output indicators remain
+    backwards-compatible when the field is absent; multi-output indicators
+    must name one explicitly.  ``None`` means the indicator is unknown, the
+    requested output is invalid, or the output is ambiguous.
+    """
+    definition = INDICATOR_REGISTRY.get(indicator_type)
+    if definition is None:
+        return None
+
+    requested = (params or {}).get("output")
+    if requested is not None and requested != "":
+        return (
+            requested
+            if isinstance(requested, str) and requested in definition.output_keys
+            else None
+        )
+    return definition.output_keys[0] if len(definition.output_keys) == 1 else None
+
+
 def _coerce_series(data: OHLCVSeries | list) -> OHLCVSeries:
     if isinstance(data, OHLCVSeries):
         return data

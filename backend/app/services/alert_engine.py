@@ -17,7 +17,11 @@ from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.indicators import (
+    OHLCVSeries,
+    get_latest_value,
+    resolve_indicator_output,
+)
 from app.services.market_data import fetch_ohlcv, get_current_price_async
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
@@ -308,14 +312,42 @@ async def run_alert_check():
                 if len(data.closes) < 2:
                     continue
 
-                val_a = get_latest_value(alert.indicator_a_type, data, alert.indicator_a_params)
+                output_a = resolve_indicator_output(
+                    alert.indicator_a_type, alert.indicator_a_params
+                )
+                if output_a is None:
+                    logger.warning(
+                        "Indicator alert %s skipped: %s has no valid explicit output",
+                        alert.id,
+                        alert.indicator_a_type,
+                    )
+                    continue
+                val_a = get_latest_value(
+                    alert.indicator_a_type,
+                    data,
+                    alert.indicator_a_params,
+                    output_a,
+                )
                 if val_a is None:
                     continue
 
                 val_b = None
                 if alert.indicator_b_type:
+                    output_b = resolve_indicator_output(
+                        alert.indicator_b_type, alert.indicator_b_params or {}
+                    )
+                    if output_b is None:
+                        logger.warning(
+                            "Indicator alert %s skipped: %s has no valid explicit output",
+                            alert.id,
+                            alert.indicator_b_type,
+                        )
+                        continue
                     val_b = get_latest_value(
-                        alert.indicator_b_type, data, alert.indicator_b_params or {}
+                        alert.indicator_b_type,
+                        data,
+                        alert.indicator_b_params or {},
+                        output_b,
                     )
 
                 threshold = (

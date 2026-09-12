@@ -169,6 +169,38 @@ async def create_indicator_alert(
 ):
     from app.services.indicators import INDICATOR_REGISTRY, normalize_indicator_params
 
+    def normalize_alert_params(indicator_type: str, params: dict | None) -> dict:
+        normalized = normalize_indicator_params(indicator_type, params)
+        output_keys = list(INDICATOR_REGISTRY[indicator_type].output_keys)
+        requested = normalized.get("output")
+        if requested is None or requested == "":
+            if len(output_keys) > 1:
+                raise HTTPException(
+                    422,
+                    {
+                        "code": "explicit_indicator_output_required",
+                        "message": (
+                            f"Indicator {indicator_type!r} returns multiple outputs; "
+                            f"choose one of: {', '.join(output_keys)}."
+                        ),
+                        "output_options": output_keys,
+                    },
+                )
+            normalized["output"] = output_keys[0]
+        elif not isinstance(requested, str) or requested not in output_keys:
+            raise HTTPException(
+                422,
+                {
+                    "code": "invalid_indicator_output",
+                    "message": (
+                        f"Indicator {indicator_type!r} output {requested!r} is unavailable; "
+                        f"choose one of: {', '.join(output_keys)}."
+                    ),
+                    "output_options": output_keys,
+                },
+            )
+        return normalized
+
     if body.indicator_a_type not in INDICATOR_REGISTRY:
         raise HTTPException(400, f"Unknown indicator: {body.indicator_a_type}")
     if body.indicator_b_type and body.indicator_b_type not in INDICATOR_REGISTRY:
@@ -177,11 +209,11 @@ async def create_indicator_alert(
         raise HTTPException(400, "Must provide either threshold_value or indicator_b_type")
 
     payload = body.model_dump()
-    payload["indicator_a_params"] = normalize_indicator_params(
+    payload["indicator_a_params"] = normalize_alert_params(
         body.indicator_a_type, body.indicator_a_params
     )
     if body.indicator_b_type:
-        payload["indicator_b_params"] = normalize_indicator_params(
+        payload["indicator_b_params"] = normalize_alert_params(
             body.indicator_b_type, body.indicator_b_params or {}
         )
 
