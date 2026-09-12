@@ -33,7 +33,7 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
         line for line in lines if line.startswith("IDENTIFIER_PROVIDER_PRIORITY=")
     )
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
-    assert seeds["option_chain"] == ["yfinance"]
+    assert seeds["option_chain"] == ["marketdata_app"]
     assert seeds["instrument_events"] == ["alpaca", "edgar", "finnhub", "alpha_vantage"]
     assert "finra_otc_directory" in seeds["universe_discovery"]
     assert "alpaca" not in seeds["instrument_search"]
@@ -160,9 +160,9 @@ class TestProviderRegistry:
         else:
             raise AssertionError("openfigi should not expose option-chain capability")
 
-    def test_default_options_provider_matches_yfinance(self):
+    def test_default_options_provider_is_api_first(self):
         provider = get_default_options_provider()
-        assert provider.name == "yfinance"
+        assert provider.name == "marketdata_app"
 
     def test_otc_directory_is_in_the_default_universe_chain_but_requires_source_config(self):
         assert "finra_otc_directory" in settings.PROVIDER_CHAIN_SEEDS["universe_discovery"]

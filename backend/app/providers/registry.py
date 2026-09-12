@@ -81,8 +81,10 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "kraken": KrakenProvider(),  # Keyless public crypto exchange data
     "edgar": EdgarProvider(),  # US company profile and earnings history
     "etf_holdings_internal": ETFHoldingsInternalProvider(),
-    # Fallback / supplementary
-    "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
+    # Explicit legacy / supplementary compatibility only.  This provider is
+    # intentionally absent from API-first capability defaults and must never
+    # be treated as a broad implicit fallback.
+    "yfinance": YFinanceProvider(),  # legacy options/futures/forward-earnings compatibility
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
     "massive": MassiveProvider(),  # Reference ticker universe corroboration
     "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence

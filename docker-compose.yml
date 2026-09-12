@@ -133,11 +133,11 @@ services:
       DEFAULT_METADATA_PROVIDER: ${DEFAULT_METADATA_PROVIDER:-edgar}
       DEFAULT_EVENT_PROVIDER: ${DEFAULT_EVENT_PROVIDER:-alpaca}
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
-      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
+      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-marketdata_app}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
       TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
-      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["yfinance"]}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
+      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["marketdata_app"]}
       ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
@@ -306,11 +306,11 @@ services:
       DEFAULT_METADATA_PROVIDER: ${DEFAULT_METADATA_PROVIDER:-edgar}
       DEFAULT_EVENT_PROVIDER: ${DEFAULT_EVENT_PROVIDER:-alpaca}
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
-      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
+      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-marketdata_app}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
       TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
-      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["yfinance"]}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
+      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["marketdata_app"]}
       ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}

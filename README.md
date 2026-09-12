@@ -158,11 +158,12 @@ DEFAULT_MARKET_DATA_PROVIDER=alpaca
 DEFAULT_METADATA_PROVIDER=edgar
 DEFAULT_EVENT_PROVIDER=alpaca
 DEFAULT_DISCOVERY_PROVIDER=alpaca
-# Legacy/options compatibility only; keep disabled unless explicitly reviewed.
-DEFAULT_OPTIONS_PROVIDER=yfinance
+# API-first options candidate; account/credit controls keep it fail-closed
+# until explicitly reviewed. Use yfinance only through an explicit legacy override.
+DEFAULT_OPTIONS_PROVIDER=marketdata_app
 ENABLE_LEGACY_YFINANCE_FALLBACK=false
 IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]
-OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=["yfinance"]
+OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=["marketdata_app"]
 # Tokenized providers remain visible in the seed order; each is still
 # fail-closed until its own quota, entitlement, and redistribution review passes.
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
@@ -178,7 +179,7 @@ MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
-PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45

@@ -1023,6 +1023,12 @@ PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"i
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 ```
 
+The default options candidate is `marketdata_app`, not yfinance. MarketData.app
+remains non-routable until its account plan/credit pair and response-priced
+option-chain bound are explicitly reviewed; this keeps the default API-first
+without turning a configured key or a native header into an unreviewed quota
+entitlement. yfinance can be added only through an explicit legacy override.
+
 Adding `yfinance` requires an explicit legacy/options deployment decision and must never
 silently broaden a new-workstation chain.
 
@@ -1055,7 +1061,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Macro indicators             | fred              | —               |
 | US company profile           | edgar             | —               |
 | Historical earnings dates    | edgar             | —               |
-| US options chains            | yfinance (explicit legacy), Tradier/MarketData.app when entitled | *(no default current-chain route)* |
+| US options chains            | MarketData.app when its reviewed plan/response bound is configured | Tradier when entitled; yfinance remains explicit legacy only |
 | Futures / commodities        | yfinance (explicit legacy) | IBKR generic read-only adapter (futures-specific methods not implemented) |
 | Forward earnings estimates   | Alpha Vantage `EARNINGS_CALENDAR` (bounded 3-month operation); Finnhub forward calendar; FMP `earnings-calendar` | Alpha's 3/6/12-month horizon semantics and one-request cost are explicit; Finnhub and FMP calendars are live-proven for configured keys; FMP routing remains byte-bound gated |
 | IPO calendar                 | Massive `reference/ipos`; Alpha Vantage `IPO_CALENDAR` | Massive returns cursor-paged IPO rows; each page is charged separately and date bounds are applied locally |

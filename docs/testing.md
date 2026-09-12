@@ -96,7 +96,8 @@ backend/tests/
 **Transaction rollback isolation** — instead of truncating tables between tests (slow), each test runs inside a SQLAlchemy SAVEPOINT that is rolled back on teardown. This is ~10x faster and leaves zero state for the next test.
 
 **Provider adapters are mocked** in integration tests — for example
-`@patch("app.providers.yfinance.yf.Ticker")` in the current default setup.
+`@patch("app.providers.yfinance.yf.Ticker")` only in tests that explicitly
+exercise the legacy compatibility provider; the default setup is API-first.
 We test our caching and routing logic, not third-party provider behavior.
 
 **OneSignal is always mocked** — `@patch("app.tasks.alert_tasks.send_alert_notification")`. We assert it was called with the right arguments.

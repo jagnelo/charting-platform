@@ -130,7 +130,10 @@ class Settings(BaseSettings):
     DEFAULT_METADATA_PROVIDER: str = "edgar"
     DEFAULT_EVENT_PROVIDER: str = "alpaca"
     DEFAULT_DISCOVERY_PROVIDER: str = "alpaca"
-    DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
+    # MarketData.app is the API-first options candidate. Its account-plan and
+    # response-priced-chain controls keep it fail-closed until reviewed;
+    # yfinance remains available only through explicit legacy configuration.
+    DEFAULT_OPTIONS_PROVIDER: str = "marketdata_app"
     # yfinance remains available for explicitly enabled legacy/options flows,
     # but must not be appended automatically to new workstation capability
     # chains. This keeps the default platform path free-source/API-first.
