@@ -423,6 +423,7 @@ let runGeneration = 0
 // slow status response from a previous source must never replace the current
 // source's coverage or resurrect its refresh run.
 let historyGeneration = 0
+let benchmarkCoverageGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -643,6 +644,7 @@ async function loadHistoryStatus(schedulePoll = false) {
 }
 
 async function loadBenchmarkCoverage() {
+  const generation = ++benchmarkCoverageGeneration
   const familyKey = benchmarkFamilyKey.value
   if (!familyKey) {
     benchmarkCoverage.value = null
@@ -655,15 +657,15 @@ async function loadBenchmarkCoverage() {
   benchmarkCoverageError.value = ''
   try {
     const result = await fetchBenchmarkFamilyCoverage(familyKey, historyAsOf.value)
-    if (sourceId.value !== requestSourceId) return
+    if (!componentMounted || generation !== benchmarkCoverageGeneration || sourceId.value !== requestSourceId) return
     benchmarkCoverage.value = result && typeof result === 'object' && Array.isArray(result.roles) ? result : null
   } catch (cause) {
-    if (sourceId.value === requestSourceId) {
+    if (componentMounted && generation === benchmarkCoverageGeneration && sourceId.value === requestSourceId) {
       benchmarkCoverage.value = null
       benchmarkCoverageError.value = cause instanceof Error ? cause.message : 'Unable to read benchmark family readiness'
     }
   } finally {
-    if (sourceId.value === requestSourceId) benchmarkCoverageLoading.value = false
+    if (generation === benchmarkCoverageGeneration) benchmarkCoverageLoading.value = false
   }
 }
 
@@ -1689,10 +1691,12 @@ watch(timeframe, () => {
   if (sourceId.value) void loadHistoryStatus()
 })
 watch([period, endDate], () => {
+  benchmarkCoverageGeneration += 1
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
   historyGeneration += 1
+  benchmarkCoverageGeneration += 1
   clearHistoryPoll()
   historyLoading.value = false
   historyStatus.value = null
@@ -1750,6 +1754,7 @@ onUnmounted(() => {
   componentMounted = false
   runGeneration += 1
   historyGeneration += 1
+  benchmarkCoverageGeneration += 1
   clearHistoryPoll()
   window.removeEventListener('resize', scheduleCanvasDraw)
   if (canvasDrawFrame != null) window.cancelAnimationFrame(canvasDrawFrame)

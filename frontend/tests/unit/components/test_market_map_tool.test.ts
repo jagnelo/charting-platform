@@ -448,6 +448,58 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('ignores stale benchmark coverage responses after the historical cutoff changes', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [{
+      ...previousSources[0],
+      source_id: 'benchmark-family:sp500:cap_weight',
+      source_kind: 'index_membership',
+      name: 'S&P 500 — Cap weight constituents',
+      provenance: { availability: 'available' },
+    }]
+    let resolveStale: ((value: unknown) => void) | undefined
+    const staleResponse = new Promise(resolve => { resolveStale = resolve })
+    const currentResponse = {
+      family_key: 'sp500',
+      name: 'Current S&P 500 coverage',
+      official_index_symbol: 'SPX',
+      official_index_name: 'S&P 500 Index',
+      as_of: '2026-08-07T23:59:59Z',
+      membership_version: 2,
+      universe_provenance: {},
+      coverage: 0.5,
+      roles: [],
+      exclusions: [],
+      freshness: 'coverage_limited',
+    }
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/analysis/benchmark-families/sp500/coverage') {
+        return params?.as_of ? Promise.resolve(currentResponse) : staleResponse
+      }
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
+    await flushPromises()
+    await wrapper.get('[aria-label="Market Map period"]').setValue('CUSTOM')
+    await wrapper.get('[aria-label="Market Map custom end date"]').setValue('2026-08-07')
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Benchmark family canonical readiness"]').text()).toContain('Current S&P 500 coverage')
+    resolveStale?.({
+      ...currentResponse,
+      name: 'Stale S&P 500 coverage',
+      as_of: null,
+      membership_version: 1,
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Benchmark family canonical readiness"]').text()).toContain('Current S&P 500 coverage')
+    expect(wrapper.get('[aria-label="Benchmark family canonical readiness"]').text()).not.toContain('Stale S&P 500 coverage')
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('keeps unmapped family legs unavailable but lets mapped pending sources remain followable', async () => {
     const previousSources = sourceState.sources
     const pendingSource = {
