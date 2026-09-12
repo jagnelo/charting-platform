@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Stable identifiers in legacy universe discovery
+
+- [x] Extend the legacy `seed_universe` promotion path to consume provider
+      FIGI, composite FIGI, ISIN, CUSIP, and SEDOL observations. Existing
+      stable owners are reused across ticker changes and venue listings;
+      unresolved stable keys never weaken to ticker-only matching, and
+      conflicting identifier owners remain fail-closed with the raw discovery
+      snapshot retained. Focused seed coverage passes 7/7 and the complete
+      backend unit suite passes 1,889/1,889 with the known 37 warnings. Changed
+      files pass Ruff, formatting, compileall, and diff checks; no provider
+      calls, frontend files, or ETF-provider adapter files were changed.
+
 ### 2026-09-12 — US-first universe scope honesty
 
 - [x] Correct the discovery-service documentation so the configured provider

@@ -916,8 +916,18 @@ progress:
       Changed-file Ruff, format, compileall, and diff checks pass. Source commit
       `5658ffa0` is pushed; Docker-backed migration/full-stack validation remains
       unavailable. No frontend or ETF-provider adapter files changed.
+    - >-
+      Legacy universe discovery now consumes provider-published FIGI, composite
+      FIGI, ISIN, CUSIP, and SEDOL identifiers before applying any ticker/venue
+      compatibility logic. A stable owner is reused across ticker changes and
+      additional venue listings; unresolved stable identifiers never weaken to
+      ticker-only matching, and conflicting stable owners remain fail-closed
+      while the raw discovery snapshot is retained. Focused seed coverage passes
+      7/7 and the complete backend unit suite passes 1,889/1,889 with the known
+      37 warnings. Changed-file Ruff, format, compileall, and diff checks pass;
+      no provider calls or frontend/ETF-provider files changed.
   total: 15
-  current_phase: venue_qualified_universe_identity
+  current_phase: stable_identifier_universe_reconciliation
   current_blocker: >-
     The latest local matrix collects 45 cases and remains 39/45: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
@@ -967,5 +977,8 @@ progress:
     still pending a reset/usable quota window, while Alpaca/MarketData.app/
     Dinari/EDGAR transport evidence is recorded above. Universe discovery now
     enforces venue/type-qualified identity matching and refuses local duplicate
-    keys rather than silently merging them; source commit `5658ffa0` is pushed.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Venue/type-qualified universe identity is implemented at source commit `5658ffa0`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+    keys rather than silently merging them; stable FIGI/composite FIGI/ISIN/CUSIP/
+    SEDOL observations are also reconciled before ticker compatibility, with
+    unresolved or conflicting stable owners retained as discovery evidence only;
+    source commit `58163e11` is pushed.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier universe reconciliation is implemented at source commit `58163e11`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.

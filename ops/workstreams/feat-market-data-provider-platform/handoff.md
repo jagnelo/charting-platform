@@ -843,3 +843,14 @@ Update this handoff at each coherent boundary.
   completeness remain provider-specific observations. Changed-file lint,
   formatting, and the four seed-universe regressions pass; source commit
   `b9bb9b92` is pushed.
+
+- Legacy universe discovery now consumes provider-published FIGI, composite
+  FIGI, ISIN, CUSIP, and SEDOL values before applying ticker/venue compatibility
+  logic. A unique stable owner is reused across ticker changes and additional
+  venue listings; a new stable key is never weakened to ticker-only matching,
+  and conflicting stable owners remain fail-closed while the raw discovery
+  snapshot is retained. Focused seed coverage passes `7/7`; the complete
+  backend unit suite passes `1,889/1,889` with the known 37 warnings. Changed
+  files pass Ruff, format, compileall, and diff checks. Source commit and
+  validation receipt will be recorded after this boundary is committed; no
+  provider calls, frontend files, or ETF-provider adapter files changed.
