@@ -16,6 +16,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +357,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
             "requested_date": requested_date.isoformat(),
             "snapshot_ids": snapshot_ids,
             "history_queue": history_queue,
-            "completed_at": datetime.now(UTC).isoformat(),
+            "completed_at": wire_datetime(datetime.now(UTC)) or "",
         }
 
 

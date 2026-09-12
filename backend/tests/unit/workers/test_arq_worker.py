@@ -217,6 +217,8 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
     assert result["requested_date"] == "2026-07-31"
     assert result["snapshot_ids"] == [12]
     assert result["history_queue"]["queued"] == 4
+    assert result["completed_at"].endswith("Z")
+    assert "+00:00" not in result["completed_at"]
     assert session.commits == 2
 
 
