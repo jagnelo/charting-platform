@@ -2,6 +2,17 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact dashboard analytics gate rechecked
+
+At documentation tip `2124d0730` (product tip `3a22c9ae9`), the exact gate
+passed repository/workstream, dependency/migration, frontend preparation,
+Ruff, formatting, and TypeScript, then stopped at `backend-coverage` after
+the fixed 180-second Docker readiness window because access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence dashboard analytics teardown
 
 Product commit `3a22c9ae9` fences Economic Calendar and Seasonality response
