@@ -264,6 +264,23 @@ def test_alpaca_credentialed_history():
     assert rows and rows[-1].close > 0
 
 
+def test_alpaca_credentialed_intraday_history():
+    """Exercise the free IEX feed's bounded five-minute candle path."""
+
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    end = datetime.now(UTC)
+    start = end - timedelta(days=5)
+    rows, measurement = _observed_read(
+        lambda: AlpacaProvider().fetch_ohlcv(
+            "AAPL", Timeframe.M5, start, end, adjusted=False
+        ),
+        "alpaca",
+    )
+    assert measurement.http_requests > 0
+    assert rows and rows[-1].close > 0
+    assert all(row.ts.tzinfo is not None for row in rows)
+
+
 def test_alpaca_credentialed_latest_price():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     price, _ = _observed_read(lambda: AlpacaProvider().get_current_price("AAPL"), "alpaca")
