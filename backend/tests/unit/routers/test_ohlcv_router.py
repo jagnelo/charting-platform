@@ -3,10 +3,37 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.schemas.ohlcv import OHLCVBarOut
 from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
+    def test_ohlcv_bar_schema_serializes_timestamps_as_canonical_utc_z(self):
+        bar = SimpleNamespace(
+            ts=datetime(2026, 9, 12, 14, 30, tzinfo=UTC),
+            open=100,
+            high=105,
+            low=95,
+            close=104,
+            volume=10,
+            vwap=None,
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe="D1",
+            derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+            derived_at=datetime(2026, 9, 12, 15, 30),
+            source_bar_count=5,
+            source_start=datetime(2026, 9, 8, 14, 30, tzinfo=UTC),
+            source_end=datetime(2026, 9, 12, 16, 30),
+        )
+
+        payload = OHLCVBarOut.model_validate(bar).model_dump(mode="json")
+
+        assert payload["ts"] == "2026-09-12T14:30:00Z"
+        assert payload["derived_at"] == "2026-09-12T15:30:00Z"
+        assert payload["source_start"] == "2026-09-08T14:30:00Z"
+        assert payload["source_end"] == "2026-09-12T16:30:00Z"
+
     def test_materialize_local_split_endpoint_returns_explicit_unavailable_receipt(
         self, client, auth_headers, instrument
     ):

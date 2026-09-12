@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
+from app.lib.time_utils import wire_datetime
 from app.models.ohlcv import Timeframe
 
 
@@ -22,6 +23,10 @@ class OHLCVBarOut(BaseModel):
     source_bar_count: int | None = None
     source_start: datetime | None = None
     source_end: datetime | None = None
+
+    @field_serializer("ts", "derived_at", "source_start", "source_end")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class OHLCVRequest(BaseModel):
