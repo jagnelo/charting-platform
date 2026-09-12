@@ -1047,3 +1047,12 @@ owner-managed ledger with `accepted=4`, `duplicates=0`, `rejected=0`; the
 earlier sandbox-DNS attempt recorded zero requests and was not merged. This is
 positive transport/schema evidence only: no provider quota, account-plan,
 commercial, redistribution, or response-dependent routing gate was promoted.
+
+The same operator environment also passed the bounded MarketData.app account
+introspection probe (`test_marketdata_app_credentialed_account_usage_snapshot`,
+`1/1`). It called the unversioned `/user/` endpoint and validated the native
+credit limit, remaining balance, per-request charge, reset timestamp, and
+options-data entitlement. The provider returned a 10,000-credit daily header;
+this is retained as observational evidence only. The reviewed
+`MARKETDATA_APP_REVIEWED_PLAN`/`MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`
+pair and response-priced option-chain bound remain required before routing.
