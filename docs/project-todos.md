@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Dinari Sandbox deployment-default correction
+
+- [x] Correct Docker Compose, RPi Compose, and the manual GitHub live workflow
+      to default Dinari to the documented Sandbox host used by the validated
+      credential pair; add a regression rejecting the retired `sbt` host.
+      Focused provider-wiring/tokenized coverage passes 63/63; the full backend
+      unit suite passes 1743/1743 with Ruff, compilation, and diff checks clean.
+
 ### 2026-09-12 — Bulk-fetch returned-error redaction regression
 
 - [x] Add a regression proving bulk historical fetch failures returned to the

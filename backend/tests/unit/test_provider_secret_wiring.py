@@ -173,6 +173,20 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
         assert f"{name}=" in example
 
 
+def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host():
+    sandbox_host = "https://api-enterprise.sandbox.dinari.com/api/v2"
+    retired_host = "https://api-enterprise.sbt.dinari.com/api/v2"
+
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        assert compose.count(sandbox_host) == 2, relative_path
+        assert retired_host not in compose, relative_path
+
+    workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
+    assert sandbox_host in workflow
+    assert retired_host not in workflow
+
+
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
