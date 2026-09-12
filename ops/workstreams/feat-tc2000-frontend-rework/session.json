@@ -100,7 +100,7 @@
   "head": "780ef1e3782f29ad54d23e93bf108cf6ae7aa9ae",
   "implementation_sha": "780ef1e3782f29ad54d23e93bf108cf6ae7aa9ae",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T11:04:08+00:00",
+  "last_checkpoint": "2026-09-12T11:08:25+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, options, options-exposure, provider observability, provider reconciliation, instrument-sync, profile-snapshot, ETF constituent provenance, Nautilus Study Lab, screener alert, background alert, benchmark Study Lab, paper-forward Study Lab, SEC fallback, history-worker, and Study Lab fallback API regressions plus the exact gate at product tip 780ef1e3, then continue the next bounded provider/history or compatible chart/list/gauge seam",
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact branch-scoped gate is pending at product tip 780ef1e3 after the no-date Study Lab timeline fallback slice. Focused Study Lab coverage passed 3/3, with Ruff, formatting, and diff checks clean. No visual or acceptance policy changed.",
+    "current_blocker": "The exact branch-scoped gate was rerun at product tip 780ef1e3 after the no-date Study Lab timeline fallback slice. Repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages passed, then backend-coverage stopped after 180 seconds because Docker access was denied. Backend integration, provider, browser, and visual stages remain pending. Focused Study Lab coverage passed 3/3, with Ruff, formatting, and diff checks clean. No visual or acceptance policy changed.",
     "current_phase": "R4_study_lab_fallback_timestamp_wire_contract",
     "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, options, options-exposure, provider observability, provider reconciliation, instrument-sync, profile-snapshot, ETF constituent provenance, Nautilus Study Lab, screener alert, background alert, benchmark Study Lab, paper-forward Study Lab, SEC fallback, history-worker, and Study Lab fallback API regressions plus the exact gate at product tip 780ef1e3, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T11:04:08.000000+00:00"
+    "updated_at": "2026-09-12T11:08:25.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

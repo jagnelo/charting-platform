@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact Study Lab fallback timing gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `780ef1e3`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
+      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
+      window. No backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
+      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize Study Lab fallback timestamps
 
 - [x] Route no-date Study Lab benchmark/strategy timeline fallbacks through the

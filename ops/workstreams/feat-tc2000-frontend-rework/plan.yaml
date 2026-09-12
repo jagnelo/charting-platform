@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped gate was rerun at product tip 780ef1e3 after the
+  no-date Study Lab timeline fallback slice. Repository/workstream validation,
+  dependency resolution, migration checks, frontend preparation, Ruff,
+  formatting, and TypeScript passed, then backend-coverage stopped after the
+  fixed 180-second Docker readiness window because the Docker socket returned
+  permission denied at unix:///Users/jagnelo/.docker/run/docker.sock. No
+  backend integration, provider, browser, or visual stage ran; no product
+  assertion or visual-policy failure was observed. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Restore
+  Docker health, rerun pending API regressions and the exact gate at product tip
+  780ef1e3, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam.
   Product commit 780ef1e3 canonicalizes no-date Study Lab benchmark/strategy
   timeline fallbacks through the shared UTC Z serializer. Focused Study Lab
   coverage passed 3/3; Ruff, formatting, and git diff --check passed. The
