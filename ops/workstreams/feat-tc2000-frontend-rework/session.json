@@ -100,7 +100,7 @@
   "head": "e01d7dd1b9e1ed3dc34683558c1a60bfd5cafc1e",
   "implementation_sha": "e01d7dd1b9e1ed3dc34683558c1a60bfd5cafc1e",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T10:13:30+00:00",
+  "last_checkpoint": "2026-09-12T10:17:51+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, options, options-exposure, provider observability, provider reconciliation, instrument-sync, profile-snapshot, and ETF constituent provenance API regressions plus the exact gate at product tip e01d7dd1, then continue the next bounded provider/history or compatible chart/list/gauge seam",
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product commit e01d7dd1 canonicalizes ETF constituent classification enrichment and lightweight instrument materialization provider timestamps through the shared UTC Z serializer; focused ETF holdings resolution coverage passed 29/29, Ruff, formatting, and diff checks passed. The exact branch-scoped gate is pending at this coherent product tip because Docker access remains permission denied; backend integration, provider, browser, and visual stages remain pending. No visual or acceptance policy changed.",
+    "current_blocker": "The exact branch-scoped gate at product tip e01d7dd1 passed repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages, then stopped at backend-coverage after 180 seconds because Docker access was denied. Backend integration, provider, browser, and visual stages remain pending. ETF constituent provenance coverage passed 29/29, with Ruff, formatting, and diff checks clean. No visual or acceptance policy changed.",
     "current_phase": "R4_etf_constituent_provenance_timestamp_wire_contract",
     "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, options, options-exposure, provider observability, provider reconciliation, instrument-sync, profile-snapshot, and ETF constituent provenance API regressions plus the exact gate at product tip e01d7dd1, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T10:13:30.000000+00:00"
+    "updated_at": "2026-09-12T10:17:51.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

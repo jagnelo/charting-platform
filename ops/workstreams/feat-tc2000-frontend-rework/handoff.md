@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact ETF provenance gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `e01d7dd1` after the ETF
+constituent provenance timestamp slice. Repository/workstream validation,
+dependency resolution, migration checks, frontend preparation, Ruff,
+formatting, and TypeScript passed. The `backend-coverage` stage then stopped
+after the fixed 180-second Docker readiness window because Docker returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+Restore Docker health, rerun pending API regressions and the exact gate at this
+tip, then advance the next bounded provider/history or compatible
+chart/list/gauge seam. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Canonicalize ETF constituent provenance timestamps
 
 Product commit `e01d7dd1` routes ETF constituent classification enrichment and
