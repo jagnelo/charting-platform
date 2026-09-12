@@ -293,6 +293,7 @@ progress:
     - provider-policy schema creation and downgrade paths no longer declare or restore the retired generic 60/minute, 15-burst, 2-concurrency, or 30-second defaults; quota dimensions are nullable until a reviewed provider contract is recorded, and the focused quota/secret suite passes 76/76 with Ruff and diff checks clean
     - MarketData.app option-chain routing diagnostics now require the same documented minimum bound as the adapter/runtime (at least two symbols); a bound of one is explicitly non-routable and the focused wiring suite passes 11/11
     - current group-breadth analysis now excludes members with explicitly stale persisted OHLCV state, reports missing/stale/evaluated counts, and leaves point-in-time `as_of` reads unchanged; analysis unit coverage passes 20/20 plus Ruff/compile/diff, while the new database-backed regression is blocked only by Docker's HTTP 500 readiness failure
+    - chart-facing technical, relative-strength, and group-snapshot endpoints now withhold explicitly stale current bars while preserving historical `as_of` behavior; the shared stale-breadth API regression covers these responses, with analysis unit coverage still 20/20 and Docker integration blocked before test startup
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

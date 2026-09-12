@@ -2485,6 +2485,34 @@ class TestWorkspaces:
         assert any(item["code"] == "stale_data" for item in payload["exclusions"])
         assert payload["member_metrics"][str(instrument.id)]["above_ma20"] is None
 
+        technical = client.get(
+            f"/api/v1/analysis/instruments/{instrument.symbol}/technical",
+            headers=auth_headers,
+        )
+        assert technical.status_code == 200
+        technical_payload = technical.json()
+        assert technical_payload["last"] is None
+        assert any(item["code"] == "stale_data" for item in technical_payload["warnings"])
+
+        ratio = client.get(
+            "/api/v1/analysis/relative-strength",
+            headers=auth_headers,
+            params={"symbol": instrument.symbol, "benchmark": instrument.symbol},
+        )
+        assert ratio.status_code == 200
+        assert ratio.json()["points"] == []
+        assert any(item["code"] == "stale_data" for item in ratio.json()["warnings"])
+
+        snapshot = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/snapshot",
+            headers=auth_headers,
+        )
+        assert snapshot.status_code == 200
+        snapshot_payload = snapshot.json()
+        assert snapshot_payload["coverage"] == 0
+        assert snapshot_payload["rows"][0]["last"]["value"] is None
+        assert snapshot_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

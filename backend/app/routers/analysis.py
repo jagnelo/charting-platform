@@ -1372,8 +1372,22 @@ async def instrument_technical_snapshot(
     )
     if as_of is not None:
         bars = [bar for bar in bars if bar.ts <= as_of]
-    latest = bars[-1] if bars else None
     warnings: list[AnalysisWarning] = []
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, [instrument.id], timeframe, adjusted)
+    )
+    if instrument.id in stale_ids:
+        bars = []
+        warnings.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; technical values were withheld.",
+                instrument_id=instrument.id,
+            )
+        )
+    latest = bars[-1] if bars else None
 
     def required(period: int, label: str) -> bool:
         if len(bars) >= period:
@@ -1388,11 +1402,14 @@ async def instrument_technical_snapshot(
         return False
 
     if latest is None:
-        warnings.append(
-            AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+        if instrument.id not in stale_ids:
+            warnings.append(
+                AnalysisWarning(
+                    code="no_bars",
+                    message="No local bars are available.",
+                    instrument_id=instrument.id,
+                )
             )
-        )
         freshness, freshness_detail = await _batch_freshness(
             db, [instrument.id], timeframe, adjusted
         )
@@ -1466,6 +1483,13 @@ async def relative_strength(
     primary, comparator = await _instrument(db, symbol), await _instrument(db, benchmark)
     grouped = await _bars_by_instrument(db, [primary.id, comparator.id], timeframe, adjusted)
     grouped = _truncate_bars_at(grouped, as_of)
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, [primary.id, comparator.id], timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        grouped[instrument_id] = []
     primary_by_time = {bar.ts: bar for bar in grouped.get(primary.id, [])}
     comparator_by_time = {bar.ts: bar for bar in grouped.get(comparator.id, [])}
     timestamps = sorted(primary_by_time.keys() & comparator_by_time.keys())
@@ -1479,6 +1503,15 @@ async def relative_strength(
     ]
     maximum = max(len(primary_by_time), len(comparator_by_time), 1)
     warnings: list[AnalysisWarning] = []
+    for instrument_id in (primary.id, comparator.id):
+        if instrument_id in stale_ids:
+            warnings.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; the ratio excludes this instrument.",
+                    instrument_id=instrument_id,
+                )
+            )
     if not points:
         warnings.append(
             AnalysisWarning(
@@ -5055,6 +5088,13 @@ async def group_snapshot(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, all_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     benchmark_bars = (
         {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
         if benchmark_instrument
@@ -5083,7 +5123,13 @@ async def group_snapshot(
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
