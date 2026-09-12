@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
 from math import isfinite
 from typing import Any
+from uuid import UUID
 
 import httpx
 
@@ -888,8 +889,8 @@ class DinariTokenProvider:
         # another.  A caller that asks for a later page without first reading
         # the preceding page fails closed instead of silently re-reading page 1
         # and under-accounting the request.
-        self._stock_cursors: dict[tuple[int, int], str] = {}
-        self._stock_exhausted_pages: set[tuple[int, int]] = set()
+        self._stock_cursors: dict[tuple[tuple[str, ...], int, int], str] = {}
+        self._stock_exhausted_pages: set[tuple[tuple[str, ...], int, int]] = set()
         self._stock_legacy_page_size: int | None = None
 
     def _base_url(self) -> str:
@@ -910,7 +911,13 @@ class DinariTokenProvider:
                 "dinari requires DINARI_API_KEY_ID and DINARI_API_SECRET_KEY"
             )
 
-    def _stocks(self, *, page: int = 0, page_size: int = 100) -> list[dict[str, Any]]:
+    def _stocks(
+        self,
+        *,
+        page: int = 0,
+        page_size: int = 100,
+        symbols: tuple[str, ...] | None = None,
+    ) -> list[dict[str, Any]]:
         # Dinari introduced cursor pagination for this endpoint and began
         # deprecating page/page_size after the transition window.  ``page`` is
         # retained in our provider interface, but is translated into a cursor
@@ -928,7 +935,20 @@ class DinariTokenProvider:
             )
         requested_page_size = min(page_size, 100)
         limit = max(20, requested_page_size)
-        cursor_key = (limit, page)
+        normalized_symbols: tuple[str, ...] = ()
+        if symbols is not None:
+            if not isinstance(symbols, tuple) or any(
+                not isinstance(symbol, str) or not symbol.strip() for symbol in symbols
+            ):
+                raise ProviderResponseError(
+                    self.name, "Dinari stock symbols must be non-empty text"
+                )
+            normalized_symbols = tuple(dict.fromkeys(symbol.strip() for symbol in symbols))
+            if len(normalized_symbols) > 100:
+                raise ProviderResponseError(
+                    self.name, "Dinari stock symbols cannot exceed 100 values"
+                )
+        cursor_key = (normalized_symbols, limit, page)
         if self._stock_legacy_page_size is not None:
             params: dict[str, Any] = {
                 "page": page + 1,
@@ -947,6 +967,8 @@ class DinariTokenProvider:
                 params = {"limit": limit, "order": "asc", "next": cursor}
             else:
                 params = {"limit": limit, "order": "asc"}
+        if normalized_symbols:
+            params["symbols"] = list(normalized_symbols)
         payload = _http_json(
             f"{self._base_url()}/market_data/stocks/",
             provider_name=self.name,
@@ -980,9 +1002,9 @@ class DinariTokenProvider:
                     raise ProviderResponseError(
                         self.name, "provider repeated the stock pagination cursor"
                     )
-                self._stock_cursors[(limit, page + 1)] = next_cursor
+                self._stock_cursors[(normalized_symbols, limit, page + 1)] = next_cursor
             else:
-                self._stock_exhausted_pages.add((limit, page + 1))
+                self._stock_exhausted_pages.add((normalized_symbols, limit, page + 1))
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
@@ -1047,7 +1069,21 @@ class DinariTokenProvider:
         needle = str(identifier or "").strip().lower()
         if not needle:
             return None
-        rows = self._stocks(page=0, page_size=100)
+        # Dinari documents ``symbols`` as an exact server-side filter. Use it
+        # for ticker-like identifiers so a symbol is not missed merely because
+        # it sorts after the first catalogue page. Provider Stock IDs are UUIDs
+        # and are not valid values for that filter, so retain the unfiltered
+        # first-page compatibility path for those callers.
+        try:
+            UUID(needle)
+        except (ValueError, AttributeError):
+            rows = self._stocks(
+                page=0,
+                page_size=100,
+                symbols=(str(identifier).strip().upper(),),
+            )
+        else:
+            rows = self._stocks(page=0, page_size=100)
         row = next(
             (
                 item

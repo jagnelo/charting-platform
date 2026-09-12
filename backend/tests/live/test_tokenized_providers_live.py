@@ -236,6 +236,12 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     assert rows
     _assert_asset(rows[0])
     identifier = rows[0].asset_id
+    resolved_by_symbol, symbol_measurement = _observed_read(
+        lambda: provider.get_tokenized_asset(rows[0].symbol), "dinari"
+    )
+    assert symbol_measurement.http_requests == 1
+    _assert_asset(resolved_by_symbol)
+    assert resolved_by_symbol.asset_id == identifier
     priced, price_measurement = _observed_read(
         lambda: provider.get_tokenized_price(identifier), "dinari"
     )

@@ -354,6 +354,21 @@ def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch
     assert get.call_args.kwargs["params"] == {"limit": 25, "order": "asc"}
 
 
+def test_dinari_symbol_lookup_uses_documented_server_side_filter(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    response = _response({"data": [_dinari_stock()], "pagination_metadata": {"next": None}})
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        record = DinariTokenProvider().get_tokenized_asset("aapl")
+    assert record is not None
+    assert record.asset_id == _dinari_stock()["id"]
+    assert get.call_args.kwargs["params"] == {
+        "limit": 100,
+        "order": "asc",
+        "symbols": ["AAPL"],
+    }
+
+
 def test_dinari_stock_cursor_is_required_and_reused_for_subsequent_pages(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
