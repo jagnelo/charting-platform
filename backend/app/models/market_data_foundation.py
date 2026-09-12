@@ -595,6 +595,57 @@ class MarketEventConsensus(Base, TimestampMixin):
     )
 
 
+class MarketEventPrelistingCandidate(Base, TimestampMixin):
+    """Auditable provisional instrument created from a future listing event."""
+
+    __tablename__ = "market_event_prelisting_candidate"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    candidate_key: Mapped[str] = mapped_column(String(180), nullable=False, unique=True, index=True)
+    consensus_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("market_event_consensus.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+    anchor_event_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("market_event.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    issuer_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    proposed_symbol: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    proposed_name: Mapped[str] = mapped_column(String(300), nullable=False)
+    exchange_mic: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    expected_listing_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending", index=True)
+    stable_identifiers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    provider_sources: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    promoted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    consensus: Mapped["MarketEventConsensus | None"] = relationship()
+    anchor_event: Mapped["MarketEvent | None"] = relationship(foreign_keys=[anchor_event_id])
+
+    __table_args__ = (
+        Index(
+            "ix_market_event_prelisting_status_expected",
+            "status",
+            "expected_listing_date",
+        ),
+    )
+
+
 class FundamentalFact(Base, TimestampMixin):
     """Point-in-time raw/curated fundamental observation."""
 

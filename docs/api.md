@@ -28,6 +28,14 @@ status), `event_type`, `instrument_id`, `issuer_id`, and `limit`. Conflicts
 include the compared field values and source event identifiers; source rows
 remain available through the normal event endpoints.
 
+### GET /market-data/prelisting-candidates (admin)
+
+List auditable future-listing candidates produced from IPO/IPO-pipeline events.
+Filter by `status`, `instrument_id`, and `limit`. Rows include proposed
+symbol/name, venue MIC, stable identifiers, provider sources, lifecycle status,
+promotion resolution, and provenance. Pending rows may point to an inactive
+provisional instrument; quarantined rows require operator review.
+
 ---
 
 ## Authentication

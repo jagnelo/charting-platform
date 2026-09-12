@@ -19,6 +19,7 @@ from app.models.market_data_foundation import (
     MarketDataAnomaly,
     MarketEvent,
     MarketEventConsensus,
+    MarketEventPrelistingCandidate,
     MarketRefreshJob,
     MarketSeries,
     MarketUniverseLifecycleObservation,
@@ -495,6 +496,57 @@ async def list_market_event_consensus(
             "first_observed_at": row.first_observed_at,
             "last_observed_at": row.last_observed_at,
             "resolved_at": row.resolved_at,
+            "resolution": row.resolution,
+            "provenance": row.provenance,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/prelisting-candidates")
+async def list_market_event_prelisting_candidates(
+    status: str | None = Query(default=None, min_length=1, max_length=24),
+    instrument_id: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose future-listing evidence and promotion decisions for review."""
+
+    filters = []
+    if status:
+        filters.append(MarketEventPrelistingCandidate.status == status.strip().lower())
+    if instrument_id is not None:
+        filters.append(MarketEventPrelistingCandidate.instrument_id == instrument_id)
+    query = (
+        select(MarketEventPrelistingCandidate)
+        .order_by(
+            MarketEventPrelistingCandidate.expected_listing_date,
+            MarketEventPrelistingCandidate.id,
+        )
+        .limit(limit)
+    )
+    if filters:
+        query = query.where(*filters)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "candidate_key": row.candidate_key,
+            "consensus_id": row.consensus_id,
+            "anchor_event_id": row.anchor_event_id,
+            "instrument_id": row.instrument_id,
+            "issuer_id": row.issuer_id,
+            "proposed_symbol": row.proposed_symbol,
+            "proposed_name": row.proposed_name,
+            "exchange_mic": row.exchange_mic,
+            "expected_listing_date": row.expected_listing_date,
+            "status": row.status,
+            "stable_identifiers": row.stable_identifiers,
+            "provider_sources": row.provider_sources,
+            "first_seen_at": row.first_seen_at,
+            "last_seen_at": row.last_seen_at,
+            "promoted_at": row.promoted_at,
             "resolution": row.resolution,
             "provenance": row.provenance,
         }

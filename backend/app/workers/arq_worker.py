@@ -497,6 +497,16 @@ async def scheduled_market_events_refresh(ctx: dict):
     return await refresh_market_events(ctx)
 
 
+async def scheduled_market_event_prelisting(ctx: dict):
+    """Materialize future-listing candidates only when explicitly enabled."""
+
+    if not settings.MARKET_EVENTS_PRELISTING_ENABLED:
+        return {"skipped": True, "reason": "pre-listing materialization disabled"}
+    from app.tasks.data_tasks import materialize_market_event_prelisting
+
+    return await materialize_market_event_prelisting(ctx)
+
+
 async def worker_startup(ctx: dict):
     """Queue the first hydration without blocking worker readiness.
 
@@ -550,6 +560,7 @@ class WorkerSettings:
         scheduled_tokenized_asset_refresh,
         scheduled_tokenized_event_refresh,
         scheduled_market_events_refresh,
+        scheduled_market_event_prelisting,
     ]
     cron_jobs = (
         [
@@ -568,6 +579,7 @@ class WorkerSettings:
             cron(scheduled_tokenized_asset_refresh, minute={0, 15, 30, 45}),
             cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
             cron(scheduled_market_events_refresh, hour=1, minute=30),
+            cron(scheduled_market_event_prelisting, hour=1, minute=45),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
@@ -581,6 +593,7 @@ class WorkerSettings:
             or settings.TOKENIZED_ASSET_REFRESH_ENABLED
             or settings.TOKENIZED_EVENT_REFRESH_ENABLED
             or settings.MARKET_EVENTS_REFRESH_ENABLED
+            or settings.MARKET_EVENTS_PRELISTING_ENABLED
         )
         else []
     )

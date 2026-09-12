@@ -377,6 +377,9 @@ and worker environments with:
 MARKET_EVENTS_REFRESH_ENABLED=true
 MARKET_EVENTS_REFRESH_LOOKAHEAD_DAYS=90
 MARKET_EVENTS_REFRESH_MAX_PROVIDERS=8
+MARKET_EVENTS_PRELISTING_ENABLED=true
+MARKET_EVENTS_PRELISTING_LOOKAHEAD_DAYS=90
+MARKET_EVENTS_PRELISTING_MAX_EVENTS=500
 ```
 
 The worker refreshes a bounded UTC `today`-through-lookahead window once per
@@ -398,10 +401,18 @@ become a durable `conflicted` group with per-source values, while a single
 source remains `single_source`. Provider rows and raw payloads are never
 overwritten. Operators can inspect these groups through the authenticated
 admin-only `GET /api/v1/market-data/event-consensus` endpoint, filtered by
-status, event type, instrument, or issuer. This is a reconciliation candidate
-layer, not a listing-date authority, and does not yet materialize pre-listing
-instruments or add a frontend calendar surface; those remain tracked separately
-in `project-todos.md`.
+status, event type, instrument, or issuer. Future IPO/IPO-pipeline observations
+can additionally be materialized by the opt-in
+`app.services.market_event_prelisting` workflow. It creates one auditable
+candidate per consensus group, and only an inactive `provisional` stock
+instrument when a validated symbol is present. Conflicted evidence, malformed
+symbols, missing stock taxonomy, and unresolved venue matches are quarantined
+or left unlinked; no ticker-only merge is performed. Promotion requires one
+unique active FIGI/ISIN/CUSIP match, or an exact provider-symbol plus exchange
+MIC match across provider sources. Operators can inspect candidates via the
+admin-only `GET /api/v1/market-data/prelisting-candidates` endpoint. This is
+still a backend candidate layer, not a frontend calendar authority; no frontend
+surface is added by this branch.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
@@ -920,6 +931,11 @@ MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
 TRADIER_API_KEY=
 FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forward estimates
+
+# Optional future-listing candidate materialization (backend/worker only)
+MARKET_EVENTS_PRELISTING_ENABLED=false
+MARKET_EVENTS_PRELISTING_LOOKAHEAD_DAYS=90
+MARKET_EVENTS_PRELISTING_MAX_EVENTS=500
 
 # Optional complete US universe/lifecycle reconciliation (worker only)
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false

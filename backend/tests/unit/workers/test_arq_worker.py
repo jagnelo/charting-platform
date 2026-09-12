@@ -200,6 +200,36 @@ async def test_tokenized_event_refresh_delegates_to_bounded_task(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_market_event_prelisting_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_PRELISTING_ENABLED", False)
+
+    result = await arq_worker.scheduled_market_event_prelisting({})
+
+    assert result == {"skipped": True, "reason": "pre-listing materialization disabled"}
+
+
+@pytest.mark.asyncio
+async def test_market_event_prelisting_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_PRELISTING_ENABLED", True)
+    calls = []
+
+    async def fake_materialize(ctx):
+        calls.append(ctx)
+        return {"materialized": {"created": 2}, "promoted": {"promoted": 1}}
+
+    monkeypatch.setattr(data_tasks, "materialize_market_event_prelisting", fake_materialize)
+
+    result = await arq_worker.scheduled_market_event_prelisting({"redis": "test"})
+
+    assert result == {"materialized": {"created": 2}, "promoted": {"promoted": 1}}
+    assert calls == [{"redis": "test"}]
+
+
+def test_market_event_prelisting_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_market_event_prelisting in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
 async def test_market_events_refresh_skips_when_disabled(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_EVENTS_REFRESH_ENABLED", False)
     result = await arq_worker.scheduled_market_events_refresh({"redis": "test"})

@@ -235,6 +235,32 @@ async def refresh_market_events(ctx: dict) -> dict:
         )
 
 
+async def materialize_market_event_prelisting(ctx: dict) -> dict:
+    """Materialize a bounded future-listing candidate set when enabled."""
+
+    from app.config import settings
+    from app.services.market_event_prelisting import (
+        materialize_prelisting_candidates,
+        promote_prelisting_candidates,
+    )
+
+    if not settings.MARKET_EVENTS_PRELISTING_ENABLED:
+        return {"skipped": True, "reason": "pre-listing materialization disabled"}
+    today = datetime.now(UTC).date()
+    lookahead_days = max(1, int(settings.MARKET_EVENTS_PRELISTING_LOOKAHEAD_DAYS))
+    max_events = max(1, int(settings.MARKET_EVENTS_PRELISTING_MAX_EVENTS))
+    async with AsyncSessionLocal() as db:
+        materialized = await materialize_prelisting_candidates(
+            db,
+            start=today,
+            end=today + timedelta(days=lookahead_days),
+            max_events=max_events,
+        )
+        promoted = await promote_prelisting_candidates(db, max_candidates=max_events)
+        await db.commit()
+        return {"materialized": materialized, "promoted": promoted}
+
+
 async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
     """Refresh a bounded tokenized quote batch through durable provider routing."""
 

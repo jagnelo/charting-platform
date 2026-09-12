@@ -1,6 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
-from app.models.market_data_foundation import MarketEventConsensus, MarketRefreshJob
+from app.models.market_data_foundation import (
+    MarketEventConsensus,
+    MarketEventPrelistingCandidate,
+    MarketRefreshJob,
+)
 
 
 def test_refresh_queue_status_requires_admin_and_hides_lease_token(
@@ -76,3 +80,38 @@ def test_event_consensus_status_requires_admin_and_exposes_conflicts(
     assert body[0]["status"] == "conflicted"
     assert body[0]["source_count"] == 2
     assert body[0]["conflict_fields"] == [{"field": "eps_estimate"}]
+
+
+def test_prelisting_candidates_require_admin_and_expose_provenance(
+    client, admin_headers, db, instrument
+):
+    candidate = MarketEventPrelistingCandidate(
+        candidate_key="event:admin-prelisting",
+        instrument_id=instrument.id,
+        proposed_symbol="NEWC",
+        proposed_name="New Co",
+        exchange_mic="XNAS",
+        expected_listing_date=datetime(2026, 10, 1).date(),
+        status="pending",
+        stable_identifiers={"figi": "BBG000000001"},
+        provider_sources=["edgar"],
+        first_seen_at=datetime(2026, 9, 12, tzinfo=UTC),
+        last_seen_at=datetime(2026, 9, 12, tzinfo=UTC),
+        provenance={"algorithm": "market_event_prelisting_v1"},
+    )
+    db.add(candidate)
+    db.flush()
+
+    assert client.get("/api/v1/market-data/prelisting-candidates").status_code == 401
+    response = client.get(
+        "/api/v1/market-data/prelisting-candidates",
+        params={"status": "PENDING", "instrument_id": instrument.id},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["proposed_symbol"] == "NEWC"
+    assert body[0]["stable_identifiers"] == {"figi": "BBG000000001"}
+    assert body[0]["provenance"]["algorithm"] == "market_event_prelisting_v1"

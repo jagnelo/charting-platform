@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Audited pre-listing candidate materialization
+
+- [x] Add an additive `market_event_prelisting_candidate` table and bounded
+      backend service for future IPO/IPO-pipeline observations. Reconciled
+      observations produce one candidate and, only for validated stock evidence,
+      one inactive `provisional` instrument with provider/stable-identifier
+      provenance; conflicted or malformed evidence is quarantined or skipped.
+- [x] Add conservative promotion: only one unique active FIGI/ISIN/CUSIP match,
+      or an exact provider-symbol plus exchange-MIC match across provider
+      sources, may link a candidate to a listed instrument. Ticker-only and
+      ambiguous matches remain pending; provider events are never overwritten.
+- [x] Wire the opt-in backend/worker schedule and admin-only
+      `/api/v1/market-data/prelisting-candidates` evidence endpoint. Focused
+      prelisting/migration/router/worker coverage passes 42/42; the complete
+      backend unit suite passes 1,868/1,868 with the known 37 warnings. Docker
+      PostgreSQL/full-stack validation remains unavailable.
+
 ### 2026-09-12 — Canonical bar persistence fidelity
 
 - [x] Preserve `market_series_id`, session, adjustment basis/version, and
@@ -11273,10 +11290,16 @@ What remains:
   provenance. A durable, conservative `market_event_consensus_v1` pass now
   groups only exact event-type/target/date candidates, preserves provider rows,
   and records corroboration or field-level conflicts for the admin-only
-  `/api/v1/market-data/event-consensus` read path. The remaining work is
-  pre-listing materialization, EDGAR/Alpha feed completion, and calendar-facing
-  product surfaces; do not overload the per-instrument event fetch path with
-  market-wide future events.
+  `/api/v1/market-data/event-consensus` read path. A separate backend-only,
+  opt-in pre-listing workflow now materializes one auditable candidate per
+  consensus group, creates only inactive provisional stock instruments from
+  validated symbols, quarantines conflicts/malformed evidence, and promotes
+  only on a unique stable-identifier or exact venue-qualified provider-symbol
+  match. Candidates and promotion evidence are available through the admin-only
+  `/api/v1/market-data/prelisting-candidates` path. The remaining work is
+  complete EDGAR/Alpha feed coverage, global venue reconciliation, and
+  calendar-facing product surfaces; do not overload the per-instrument event
+  fetch path with market-wide future events.
 
 - Provider implementations for the free sources that actually make sense are now
   partially in place:
