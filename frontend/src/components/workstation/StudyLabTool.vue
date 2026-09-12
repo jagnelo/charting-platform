@@ -92,6 +92,8 @@
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('gauge')">{{ promotionBusy ? 'Promoting…' : 'Use as Market Gauge' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
+        <button v-if="promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
+        <button v-if="promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote events to alert' }}</button>
         <button v-if="promotableKind === 'boolean' || promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
         <template v-for="item in artifactPromotions" :key="`promote-${item.artifact.id}-${item.target}`">
           <button type="button" :disabled="promotionBusy" @click="promote(item.target, item.artifact.name)">{{ promotionBusy ? 'Promoting…' : `${item.label}: ${item.artifact.name}` }}</button>
@@ -851,6 +853,22 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
+    if (contract === 'events' && (target === 'filter' || target === 'alert')) {
+      if (!run.value?.id) throw new Error('A completed event study run is required before creating a current-data filter.')
+      const eventArtifacts = (run.value.artifacts ?? []).filter(artifact => artifact.artifact_type === 'events')
+      if (eventArtifacts.length !== 1) throw new Error('Select a named event artifact before creating a current-data filter.')
+      const eventArtifact = eventArtifacts[0]
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+        artifact_name: eventArtifact.name,
+      })
+      if (target === 'alert') {
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        promotionStatus.value = `Promoted event artifact “${eventArtifact.name}” to an active alert.`
+      } else {
+        promotionStatus.value = `Saved event artifact “${eventArtifact.name}” as a reusable watchlist filter.`
+      }
+      return
+    }
     if (selectedArtifact?.artifact_type === 'events' && (target === 'filter' || target === 'alert')) {
       if (!selectedOutputName || run.value?.id == null) throw new Error('Select a named event artifact before creating a current-data filter.')
       const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {

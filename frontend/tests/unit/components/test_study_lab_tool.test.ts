@@ -1030,7 +1030,9 @@ describe('StudyLabTool', () => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 144 }] })
       if (path === '/research/runs') return Promise.resolve({ id: 145, code_version_id: 144, status: 'completed', artifacts: [{ id: 1, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'signal' }] } }] })
+      if (path === '/research/runs/145/promote-event-filter') return Promise.resolve({ id: 147, name: 'signals Filter' })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 146 })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 148 })
       return Promise.resolve({})
     })
     const wrapper = mountTool({ activeSymbol: 'SPY' })
@@ -1059,6 +1061,16 @@ describe('StudyLabTool', () => {
       }),
     }))
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/144', {})
+    const filterButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as watchlist filter')
+    expect(filterButton).toBeTruthy()
+    await filterButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/145/promote-event-filter', { artifact_name: 'signals' })
+    const alertButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote events to alert')
+    expect(alertButton).toBeTruthy()
+    await alertButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted event artifact “signals” to an active alert.'))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 147, trigger_type: 'both', repeat: true, notes: 'Created from event study run 145' })
   })
 
   it('reruns a completed study against its snapshot or latest canonical data', async () => {
