@@ -324,8 +324,9 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             history[symbol] = {"status": "ready", "bars": int(existing_bars)}
             continue
         try:
+            fetch_kwargs = {"redis": redis} if redis is not None else {}
             bars = await asyncio.wait_for(
-                fetch_ohlcv(db, instrument, Timeframe.D1, history_start),
+                fetch_ohlcv(db, instrument, Timeframe.D1, history_start, **fetch_kwargs),
                 timeout=settings.CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS,
             )
             history[symbol] = {"status": "loaded" if bars else "unavailable", "bars": len(bars)}

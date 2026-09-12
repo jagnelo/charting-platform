@@ -140,9 +140,10 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
 
     calls = []
+    redis = object()
 
-    async def fail_first_fetch(session, instrument, timeframe, start):
-        calls.append(instrument.symbol)
+    async def fail_first_fetch(session, instrument, timeframe, start, **kwargs):
+        calls.append((instrument.symbol, kwargs))
         if len(calls) == 1:
             raise RuntimeError("GET https://provider.test/data?api_key=bootstrap-secret")
         return []
@@ -154,18 +155,18 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
         lambda **kwargs: (_ for _ in ()).throw(RuntimeError("holdings unavailable")),
     )
 
-    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
+    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade, redis=redis))
     assert set(result["history"]) == {symbol for symbol, _, _ in CORE_WORKSTATION_INSTRUMENTS}
-    assert calls == [CORE_WORKSTATION_INSTRUMENTS[0][0]], result
+    assert calls == [(CORE_WORKSTATION_INSTRUMENTS[0][0], {"redis": redis})], result
     assert result["history"][CORE_WORKSTATION_INSTRUMENTS[1][0]]["status"] in {
         "ready",
         "loaded",
         "unavailable",
         "error",
     }
-    assert result["history"][calls[0]]["status"] == "error"
-    assert "bootstrap-secret" not in result["history"][calls[0]]["message"]
-    assert "<redacted>" in result["history"][calls[0]]["message"]
+    assert result["history"][calls[0][0]]["status"] == "error"
+    assert "bootstrap-secret" not in result["history"][calls[0][0]]["message"]
+    assert "<redacted>" in result["history"][calls[0][0]]["message"]
 
 
 def test_core_bootstrap_retries_when_history_exists_but_is_below_technical_readiness(
