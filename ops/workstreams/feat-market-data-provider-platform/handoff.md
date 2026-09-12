@@ -855,3 +855,12 @@ Update this handoff at each coherent boundary.
   `58163e11` and validation profile `stable-identifier-universe-reconciliation-20260912`
   are recorded in the workstream; no provider calls, frontend files, or
   ETF-provider adapter files changed.
+
+- Durable `reconcile_us_universe` now applies the same stable-identifier-first
+  policy. It reuses one FIGI/composite FIGI/ISIN/CUSIP/SEDOL owner across ticker
+  changes, refuses ticker fallback for unresolved stable keys, and quarantines
+  alias, cross-owner, type, and ticker/venue conflicts while retaining the
+  lifecycle observation. Focused reconciliation coverage passes `14/14`; the
+  complete backend unit suite passes `1,893/1,893` with the known 37 warnings.
+  Source commit `ffc96fe8` is pushed; the broader Docker-backed migration,
+  provider-governance, and deployment gates remain unchanged.

@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Stable identity in durable universe reconciliation
+
+- [x] Extend `reconcile_us_universe` to resolve provider FIGI, composite FIGI,
+      ISIN, CUSIP, and SEDOL evidence before ticker/venue matching. Stable
+      owners survive ticker changes; unresolved identifiers never fall back to
+      ticker-only matching; cross-owner, type, alias, and ticker/venue conflicts
+      are quarantined while lifecycle observations remain auditable. Focused
+      reconciliation coverage passes 14/14 and the complete backend unit suite
+      passes 1,893/1,893 with the known 37 warnings. No provider calls,
+      frontend files, or ETF-provider adapter files changed.
+
 ### 2026-09-12 — Stable identifiers in legacy universe discovery
 
 - [x] Extend the legacy `seed_universe` promotion path to consume provider
