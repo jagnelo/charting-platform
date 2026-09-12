@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Market Map history readiness races
+
+- [x] Fence Market Map history-status and refresh-run responses by source,
+      timeframe, generation, and mounted state so late callbacks cannot
+      overwrite current canonical readiness (`c7a3c080`).
+- [x] Market Map component coverage passed `37/37`; full frontend Vitest passed
+      `1011/1011`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact coarse-cache gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `ad86c37b`; repository,

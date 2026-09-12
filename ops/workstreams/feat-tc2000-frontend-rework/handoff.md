@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Market Map history readiness races
+
+Product commit `c7a3c080` fences Market Map history-status and refresh-run
+responses by source/timeframe generation and mounted state. A slow callback
+from a prior source or timeframe can no longer replace current canonical
+coverage or resurrect an old refresh run; invalidated loading state is cleared.
+Focused Market Map coverage passed `37/37`, full frontend Vitest passed
+`1011/1011`, type-check and diff checks passed. No provider, fallback, visual,
+or acceptance policy changed. The exact gate remains pending behind the Docker
+socket permission failure; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact coarse-cache gate rechecked
 
 The exact branch-scoped gate ran at product tip `ad86c37b`. Repository,

@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Market Map history readiness races
+
+Product commit `c7a3c080` closes a bounded R6/R2 stale-callback seam in the
+Market Map. History-status and refresh-run reads now carry a source/timeframe
+generation and ignore late responses from an older source, timeframe, or
+unmounted tool; invalidating a request also clears its loading state. This
+keeps canonical coverage and refresh progress aligned with the visible source
+while preserving the existing read-only history contract.
+
+The Market Map component suite passed `37/37`, the full frontend Vitest suite
+passed `1011/1011`, and frontend type-check plus `git diff --check` passed. No
+provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+policy changed. The exact branch gate remains pending behind the Docker socket
+permission failure; continue the next bounded provider/history or compatible
+R4/R2-R7 seam at this coherent tip.
+
 ## 2026-09-12 — Exact coarse-cache gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `ad86c37b` after the

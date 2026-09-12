@@ -13,6 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit c7a3c080 closes a bounded R6/R2 stale-callback seam in the
+  Market Map. History-status and refresh-run responses are fenced by the
+  visible source/timeframe generation and mounted state, so late callbacks
+  cannot overwrite current canonical readiness or resurrect an older refresh
+  run; invalidated loading state is cleared. Market Map component coverage
+  passed 37/37, full frontend Vitest passed 1011/1011, frontend type-check and
+  git diff --check passed. No provider, fallback, visual baseline, mask,
+  threshold, skip, or acceptance policy changed. The exact branch gate remains
+  pending behind the Docker socket permission failure; continue the next
+  bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.
   The exact branch-scoped gate was rerun at product tip ad86c37b after the
   bounded bulk-history cache-evidence fix. Git-diff, workstream validation,
   dependency/migration checks, frontend preparation, Ruff, formatting, and
