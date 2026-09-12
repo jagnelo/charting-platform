@@ -1936,6 +1936,18 @@ current_blocker: >-
   ETF-holdings API regressions plus the exact gate, then continue the next bounded provider/history
   or compatible chart/list/gauge seam while preserving the six protected visual state-oracle
   diffs and the no-integration/no-deployment boundary.
+  Product tip aeaa8228 canonicalizes computed stats, field provenance, and listing
+  effective/known/delisted timestamps through the shared UTC Z wire serializer while preserving
+  already formatted text provenance. Focused instrument-router/schema coverage passed 9/9; the
+  full backend unit suite passed 1495/1495 at 68.59% coverage; Ruff, formatting, and git diff
+  --check passed. The exact branch-scoped gate at this tip passed repository/workstream,
+  dependency/migration, frontend-preparation, and lint/type-check setup, then stopped at
+  backend-coverage after 180 seconds because Docker /v1.55/info returned HTTP 500. No backend
+  integration, provider, browser, or visual stage ran. No visual baseline, mask, threshold, skip,
+  provider, fallback, or acceptance policy changed. Restore Docker Desktop health, rerun pending
+  API regressions and the exact gate, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."

@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Instrument provenance responses use canonical wire timestamps
+
+Product commit `aeaa8228` closes the instrument read-boundary seam. Computed
+stats, field provenance, and listing effective/known/delisted timestamps now
+serialize through the shared UTC `Z` helper, while already formatted text
+provenance remains lossless. Top-down instrument identity and availability
+consumers therefore share one stable timeline without changing lookup,
+listing, or stats refresh behavior.
+
+Focused instrument-router/schema coverage passed `9/9`; the full backend unit
+suite passed `1495/1495` at `68.59%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `aeaa8228` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker `/v1.55/info` returned HTTP 500. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker Desktop health and rerun the pending API
+regressions and exact gate, then continue the next bounded provider/history or
+compatible chart/list/gauge seam while preserving the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Benchmark history and ETF holdings responses use canonical wire timestamps
 
 Product commits `63e5baea` and `7afa32d8` close the remaining ETF-backed R1

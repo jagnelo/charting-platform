@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Instrument provenance responses use canonical wire timestamps
+
+Product commit `aeaa8228` makes computed stats, field provenance, and listing
+effective/known/delisted timestamps emit canonical UTC `Z` values through the
+shared serializer; already formatted text provenance remains lossless. Top-
+down instrument lookup and availability behavior is unchanged.
+
+Focused instrument-router/schema coverage passed `9/9`; the full backend unit
+suite passed `1495/1495` at `68.59%` coverage; Ruff, formatting, and diff
+checks passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker `/v1.55/info`
+returned HTTP 500. No backend integration, provider, browser, or visual stage
+ran. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/instrument.py` and
+`backend/tests/unit/routers/test_instruments_router.py`. Restore Docker
+Desktop health, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Benchmark history and ETF holdings responses use canonical wire timestamps
 
 Product commits `63e5baea` and `7afa32d8` make benchmark-family history

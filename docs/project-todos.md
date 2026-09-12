@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Instrument provenance responses use canonical wire timestamps
+
+- [x] Serialize computed stats, field provenance, and listing
+      effective/known/delisted timestamps as canonical UTC `Z` values through
+      the instrument response schemas (`aeaa8228`).
+- [x] Focused instrument-router/schema coverage passed `9/9`; full backend
+      unit coverage passed `1495/1495` at `68.59%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `aeaa8228`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
+      visual stage ran.
+- [ ] Restore Docker Desktop health, rerun the pending API regressions and
+      exact gate, then continue provider/history or compatible chart/list/gauge
+      work.
+
 ### 2026-09-12 — Benchmark history and ETF holdings responses use canonical wire timestamps
 
 - [x] Serialize benchmark-family history summaries/runs and ETF adapter,
