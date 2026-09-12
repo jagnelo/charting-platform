@@ -1413,19 +1413,24 @@ async function rerun(snapshot: boolean) {
       scheduleRunPolling(rerunResult.id, generation)
     }
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to rerun study'
-  } finally { rerunBusy.value = false }
+    if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to rerun study'
+  } finally {
+    if (!disposed && generation === runGeneration) rerunBusy.value = false
+  }
 }
 async function cancel() {
   if (!run.value) return
+  const generation = runGeneration
   try {
     const canceled = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {})
+    if (disposed || generation !== runGeneration) return
     run.value = canceled
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     await runQuery.refetch()
+    if (disposed || generation !== runGeneration) return
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
   }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to cancel study run' }
+  catch (cause: any) { if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to cancel study run' }
 }
 onMounted(() => {
   document.addEventListener('visibilitychange', updateDocumentVisibility)
@@ -1456,6 +1461,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   disposed = true
+  runGeneration += 1
   stopRunPolling()
   if (run.value && canCancel.value) {
     // Teardown is best-effort. A queued run may become terminal between the

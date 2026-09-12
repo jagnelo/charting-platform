@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -13,6 +13,12 @@ vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { templat
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
 
 describe('StudyLabTool', () => {
   beforeEach(() => {
@@ -1101,5 +1107,32 @@ describe('StudyLabTool', () => {
     await rerunLatest!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #92'))
     expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {})
+  })
+
+  it('does not publish a late rerun response after the Study Lab tool unmounts', async () => {
+    const run = { id: 150, status: 'completed', code_version_id: 4, artifacts: [] }
+    const rerun = deferred<typeof run>()
+    apiGet.mockResolvedValue(undefined)
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve(run)
+      if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await flushPromises()
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #150'))
+    const rerunButton = wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')
+    expect(rerunButton).toBeDefined()
+    await rerunButton!.trigger('click')
+    wrapper.unmount()
+    rerun.resolve({ ...run, id: 151, status: 'queued' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { run: typeof run | null }).run).toEqual(run)
   })
 })
