@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Source availability requires canonical materialized members
+
+Product tip `73fa0b33` closes the shared source-catalog availability seam.
+ETF and benchmark-family descriptors now treat eagerly loaded snapshot rows as
+the source of truth for publishability: cash/non-equity-only, unresolved, and
+placeholder-only materializations remain `holdings_snapshot_unresolved` even
+when stale raw metadata reports a positive `resolved_count`. Metadata-only
+legacy snapshots continue to use that counter as compatibility evidence.
+The focused source regressions passed `2/2`, the complete watchlist integration
+file passed `53/53`, Ruff/format/diff checks passed, and backend units passed
+`1,475/1,475` at `68%` isolated coverage.
+
+The exact branch-scoped gate passed all non-visual stages and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remained `98/104` with exactly the six unchanged protected state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+Teardown removed all branch-scoped resources and four images. No visual,
+provider, fallback, or acceptance policy changed. Continue R1 canonical
+provider/history breadth, remaining population and W1/MN continuity, dense-data
+evidence, and R2-R7; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-11 — Historical backfill requires canonical snapshot rows
 
 Product tip `f3523bdd` closes the history-planner eligibility seam. The

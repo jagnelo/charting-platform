@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-11
 
+## 2026-09-12 — Source availability requires canonical materialized members
+
+At product tip `73fa0b33`, the shared ETF and benchmark-family source catalog
+now uses the canonical materialized-member predicate when snapshot rows are
+eagerly loaded. A positive raw `resolved_count` no longer makes a cash-only,
+non-equity-only, unresolved, or placeholder-only materialization appear
+available; those sources remain locked and explicitly
+`holdings_snapshot_unresolved`. Legacy metadata-only snapshots retain the raw
+counter compatibility path because row-level eligibility cannot be evaluated.
+
+The focused source regressions passed `2/2`; the complete watchlist integration
+file passed `53/53`; and Ruff, formatting, and diff checks passed. The full
+backend unit suite passed `1,475/1,475` at `68%` isolated coverage. The exact
+elevated branch-scoped gate passed all non-visual stages and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established protected diffs
+(`watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+1080p-100/125 and 1440p-100/125). Teardown removed all branch resources and
+four images. No visual, provider, fallback, or acceptance policy changed.
+Continue R1 provider/family history breadth, canonical population, W1/MN
+continuity, dense-data evidence, and R2-R7 without changing protected visual
+policy.
+
 ## 2026-09-11 — Historical backfill requires canonical snapshot rows
 
 At product tip `f3523bdd`, the benchmark-family member-history backfill planner

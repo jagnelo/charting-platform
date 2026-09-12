@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-12 — Source availability requires canonical materialized members
+
+- [x] Align ETF and benchmark-family source descriptors with the canonical
+      materialized-member contract: once snapshot rows are loaded, cash-only,
+      non-equity-only, unresolved, and placeholder-only rows remain
+      `holdings_snapshot_unresolved` even when the raw `resolved_count` is
+      positive; metadata-only legacy snapshots retain the counter compatibility
+      path (`73fa0b33`).
+- [x] Add the Docker-backed materialized cash/non-equity regression; the
+      focused source checks passed `2/2`, the complete watchlist integration
+      file passed `53/53`, and Ruff, formatting, and diff checks were clean.
+- [x] The full backend unit suite passed `1,475/1,475` at `68%` isolated
+      coverage. The exact gate passed all non-visual stages and functional
+      Playwright (`165` passed, `107` documented skips across `272`). Visual
+      parity remained `98/104` with the same six protected diffs; teardown
+      removed all resources and four images. No visual, provider, fallback, or
+      acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-11 — Historical backfill requires canonical snapshot rows
 
 - [x] Restrict benchmark-family member-history backfill candidates to
