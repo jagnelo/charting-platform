@@ -14,6 +14,19 @@
       continue remaining provider-backed population/history, R4 fan-out, and
       R2-R7 acceptance evidence. No visual/acceptance policy changed.
 
+### 2026-09-12 — Exact scheduled coarse-history gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `9f86dc7b`; git-diff,
+      workstream validation, dependency/migration, frontend preparation, Ruff,
+      formatting, and TypeScript passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
+      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
+      after the fixed 180-second readiness window. No backend integration,
+      provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
+      then continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 - [x] Normalize Study Lab portfolio execution events, excursion rows, and

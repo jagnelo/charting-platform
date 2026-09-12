@@ -18,6 +18,16 @@ make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
 provider/history or compatible chart/list/gauge seam. Do not integrate,
 promote, deploy, or mutate another worktree.
 
+## 2026-09-12 — Exact scheduled coarse-history gate rechecked
+
+The exact branch gate was rerun at product tip `9f86dc7b`. Git-diff,
+workstream, dependency/migration, frontend preparation, Ruff, formatting, and
+TypeScript passed; `backend-coverage` stopped after 180 seconds because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no visual,
+provider, fallback, or acceptance policy changed. Restore Docker health, rerun
+the pending regressions and exact gate, then continue the next bounded seam.
+
 ## 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 Product commit `07fcfae0` normalizes Study Lab portfolio execution events,

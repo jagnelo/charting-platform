@@ -28,6 +28,22 @@ was unavailable; no backend integration, provider, browser, or visual result
 is inferred from that stop. Restore Docker health, rerun the exact gate, then
 continue the next bounded provider/history or compatible chart/list/gauge seam.
 
+## 2026-09-12 — Exact scheduled coarse-history gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `9f86dc7b` after the
+nightly coarse-history slice. Git-diff, workstream validation, dependency
+resolution, migration checks, frontend preparation, Ruff, formatting, and
+TypeScript passed. The `backend-coverage` stage then stopped after the fixed
+180-second Docker readiness window because the Docker socket returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, rerun the pending API regressions and
+exact gate at this tip, then continue the next bounded provider/history or
+compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 Product commit `07fcfae0` closes the remaining explicit Study Lab execution

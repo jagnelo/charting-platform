@@ -100,7 +100,7 @@
   "head": "9f86dc7ba322ee575165d9778f1a7720ea7c9f77",
   "implementation_sha": "9f86dc7ba322ee575165d9778f1a7720ea7c9f77",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T11:43:07+00:00",
+  "last_checkpoint": "2026-09-12T11:47:37+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate at product tip 9f86dc7ba322ee575165d9778f1a7720ea7c9f77 once Docker is healthy, then continue the next bounded provider/history or compatible chart/list/gauge seam",
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product commit 9f86dc7b closes the scheduled coarse-history gap: when canonical D1 history exists, nightly refresh now materializes provider-neutral W1/MN views from persisted D1 evidence after the recent refresh pass, preserves provider-row precedence, commits derived state, and reports derived counts without provider fan-out or invented observations. Focused scheduled-history coverage passed 1/1; the full backend unit suite passed 1516/1516; Ruff, formatting, and git diff --check passed. The exact branch-scoped gate is pending at this coherent product tip; previous runs stopped at backend-coverage on Docker socket permission denied. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed.",
-    "current_phase": "R1_scheduled_coarse_history_materialization",
+    "current_blocker": "The exact branch-scoped gate was rerun at product tip 9f86dc7b after the scheduled coarse-history slice. Git-diff, workstream validation, dependency resolution, migration checks, frontend preparation, Ruff, formatting, and TypeScript passed, then backend-coverage stopped after the fixed 180-second Docker readiness window because the Docker socket returned permission denied at unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Restore Docker health, rerun pending API regressions and the exact gate at product tip 9f86dc7b, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "current_phase": "R1_scheduled_coarse_history_materialization_and_r7_exact_tip_gate",
     "next_action": "Rerun the exact branch-scoped gate at product tip 9f86dc7ba322ee575165d9778f1a7720ea7c9f77 once Docker is healthy, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T11:43:07.000000+00:00"
+    "updated_at": "2026-09-12T11:47:37.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
