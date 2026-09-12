@@ -46,6 +46,10 @@ remain eligible. The current raw-only admission list includes Alpha Vantage,
 IBKR, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
 MarketData.app, and the Binance/Coinbase/Kraken exchange feeds. The platform
 does not silently synthesize split/dividend adjustments from a raw response.
+The registry publishes `adjusted_price_history` separately from
+`price_history`; at this revision it is advertised only for Alpaca and the
+explicit legacy yfinance compatibility path, so consumers do not infer
+adjustment semantics from the presence of an OHLCV method.
 
 The backend provider-policy diagnostics also expose the required and currently
 missing environment-variable names for each provider. These are names only;
