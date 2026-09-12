@@ -193,6 +193,13 @@ const queryClient = useQueryClient()
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0
+function isCurrentMutation(generation: number) { return mounted && generation === mutationGeneration }
+function beginPromotion() {
+  const generation = mutationGeneration
+  promoting.value = true
+  promotionMessage.value = ''
+  return generation
+}
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
@@ -617,19 +624,19 @@ async function cancel(run: ResearchRunSummary) {
   }
 }
 async function promoteScan(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const promoted = await ensurePromotedScan(run)
+    const promoted = await ensurePromotedScan(run, generation)
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `EasyScan “${promoted.name}” (#${promoted.id}) created. It re-evaluates current data over the source member IDs; the historical run lineage remains attached.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to EasyScan'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to EasyScan'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 
-async function ensurePromotedScan(run: ResearchRunSummary) {
+async function ensurePromotedScan(run: ResearchRunSummary, generation = mutationGeneration) {
   const existing = promotedScans.value[run.id]
   if (existing) return existing
   const promoted = await api.post<{ id: number; name: string; conditions?: { code_version_id?: number } }>(`/analysis/breadth/python/runs/${run.id}/promote-scan`, {})
@@ -638,102 +645,105 @@ async function ensurePromotedScan(run: ResearchRunSummary) {
     name: promoted.name,
     codeVersionId: typeof promoted.conditions?.code_version_id === 'number' ? promoted.conditions.code_version_id : null,
   }
-  promotedScans.value = { ...promotedScans.value, [run.id]: result }
+  if (isCurrentMutation(generation)) promotedScans.value = { ...promotedScans.value, [run.id]: result }
   return result
 }
 
 async function promoteAlert(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const scan = await ensurePromotedScan(run)
+    const scan = await ensurePromotedScan(run, generation)
+    if (!isCurrentMutation(generation)) return
     await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from Python breadth run ${run.id}` })
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Alert created from EasyScan “${scan.name}”.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to an alert'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to an alert'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 
 async function promoteGauge(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const scan = await ensurePromotedScan(run)
+    const scan = await ensurePromotedScan(run, generation)
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Available as a Market Gauge from EasyScan “${scan.name}”.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Market Gauge'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Market Gauge'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 
 async function promoteSignal(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const scan = await ensurePromotedScan(run)
+    const scan = await ensurePromotedScan(run, generation)
+    if (!isCurrentMutation(generation)) return
     if (scan.codeVersionId == null) throw new Error('The promoted EasyScan did not return its immutable Boolean code version.')
     await api.post(`/strategy-lab/signals/from-code/${scan.codeVersionId}`, {})
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = 'Saved as a reusable Strategy Lab signal.'
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Strategy signal'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Strategy signal'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteEventSignal(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-signal`, {})
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Saved event artifact as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a Strategy signal'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a Strategy signal'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
-async function ensurePromotedEventFilter(run: ResearchRunSummary) {
+async function ensurePromotedEventFilter(run: ResearchRunSummary, generation = mutationGeneration) {
   const existing = promotedEventFilters.value[run.id]
   if (existing) return existing
   const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-filter`, {})
   const result = { id: promoted.id, name: promoted.name }
-  promotedEventFilters.value = { ...promotedEventFilters.value, [run.id]: result }
+  if (isCurrentMutation(generation)) promotedEventFilters.value = { ...promotedEventFilters.value, [run.id]: result }
   return result
 }
 async function promoteEventFilter(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const promoted = await ensurePromotedEventFilter(run)
+    const promoted = await ensurePromotedEventFilter(run, generation)
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Watchlist filter “${promoted.name}” (#${promoted.id}) created. It checks event presence at the current observation over the declared canonical members; source lineage is preserved.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a watchlist filter'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a watchlist filter'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteEventAlert(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
-    const promoted = await ensurePromotedEventFilter(run)
+    const promoted = await ensurePromotedEventFilter(run, generation)
+    if (!isCurrentMutation(generation)) return
     await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event research run ${run.id}` })
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Alert created from event filter “${promoted.name}”; current-observation event semantics and source lineage are preserved.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to an alert'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to an alert'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert' | 'signal') {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     if (target === 'signal') {
       const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+      if (!isCurrentMutation(generation)) return
       const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
       if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
       const sourceManifest = run.dataset_manifest ?? {}
@@ -764,23 +774,27 @@ async function promoteEventArtifact(run: ResearchRunSummary, artifactName: strin
           lineage,
         },
       })
+      if (!isCurrentMutation(generation)) return
       const codeVersionId = asset.versions?.[0]?.id ?? asset.id
       if (typeof codeVersionId !== 'number') throw new Error('The event signal asset did not return an immutable code version.')
       const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Saved event artifact “${artifactName}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
       return
     }
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-filter`, { artifact_name: artifactName })
+    if (!isCurrentMutation(generation)) return
     if (target === 'alert') {
       await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from structured event research run ${run.id}` })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Promoted event artifact “${artifactName}” to an active alert.`
     } else {
       promotionMessage.value = `Saved event artifact “${artifactName}” as a reusable watchlist filter.`
     }
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? `Unable to promote the structured event artifact to a ${target}`
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? `Unable to promote the structured event artifact to a ${target}`
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteStructuredStudySignal(
@@ -829,12 +843,12 @@ async function promoteStructuredStudySignal(
 }
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
       if (target === 'signal') {
         const promoted = await promoteStructuredStudySignal(run, artifact.name, { semantics: 'study_boolean_result_as_strategy_signal' })
+        if (!isCurrentMutation(generation)) return
         promotionMessage.value = `Saved Boolean artifact “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
         return
       }
@@ -844,6 +858,7 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
         const declaredInstrumentIds = declaredStudyInstrumentIds(run)
         if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted scan universe.')
         const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+        if (!isCurrentMutation(generation)) return
         const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
         if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
         const sourceManifest = run.dataset_manifest ?? {}
@@ -886,6 +901,7 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
           timeframe: structuredStudyTimeframe(run),
           provenance: lineage,
         })
+        if (!isCurrentMutation(generation)) return
         promotedScan = { id: screener.id, name: screener.name ?? `${artifact.name} scan`, codeVersionId }
         promotedStructuredBooleanScans.value = { ...promotedStructuredBooleanScans.value, [scanKey]: promotedScan }
       }
@@ -894,11 +910,13 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       else if (target === 'gauge') promotionMessage.value = `Boolean artifact “${artifact.name}” is available as a Market Gauge from the saved EasyScan.`
       else {
         await api.post('/alerts/screener', { screener_id: promotedScan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured Boolean research run ${run.id} (${artifact.name})` })
+        if (!isCurrentMutation(generation)) return
         promotionMessage.value = `Promoted Boolean artifact “${artifact.name}” to an active scan alert.`
       }
       return
     }
     const assets = await api.get<Array<{ name: string; versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    if (!isCurrentMutation(generation)) return
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
     const latestSeriesColumn = artifact.artifact_type === 'series' && target === 'column'
@@ -946,6 +964,7 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
         lineage,
       },
     })
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = target === 'column'
       ? artifact.artifact_type === 'boolean'
         ? `Saved Boolean artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
@@ -960,9 +979,9 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
           ? `Saved range center “${artifact.name}” as watchlist column “${promoted.name}”.`
         : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact`
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact`
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteStructuredSeriesCondition(
@@ -975,8 +994,7 @@ async function promoteStructuredSeriesCondition(
     promotionMessage.value = 'Enter a finite numeric threshold before promoting the series.'
     return
   }
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -984,6 +1002,7 @@ async function promoteStructuredSeriesCondition(
         seriesTarget: { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) },
         semantics: 'study_series_threshold_as_strategy_signal',
       })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Saved thresholded series “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
       return
     }
@@ -1030,6 +1049,7 @@ async function promoteStructuredSeriesCondition(
           lineage,
         },
       })
+      if (!isCurrentMutation(generation)) return
       const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
       if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
     }
@@ -1047,6 +1067,7 @@ async function promoteStructuredSeriesCondition(
         timeframe: structuredStudyTimeframe(run),
         provenance: lineage,
       })
+      if (!isCurrentMutation(generation)) return
       scan = { id: screener.id, name: screener.name ?? `${artifact.name} threshold condition`, codeVersionId }
       promotedStructuredSeriesScans.value = { ...promotedStructuredSeriesScans.value, [scanKey]: scan }
     }
@@ -1055,12 +1076,13 @@ async function promoteStructuredSeriesCondition(
     else if (target === 'gauge') promotionMessage.value = `Series artifact “${artifact.name}” is available as a thresholded Market Gauge.`
     else {
       await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured series study run ${run.id} (${artifact.name})` })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Promoted series artifact “${artifact.name}” to a thresholded scan alert.`
     }
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact to a thresholded condition`
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact to a thresholded condition`
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteStructuredScalarCondition(
@@ -1073,8 +1095,7 @@ async function promoteStructuredScalarCondition(
     promotionMessage.value = 'Enter a finite numeric threshold before promoting the scalar.'
     return
   }
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
     if (target === 'signal') {
@@ -1083,12 +1104,14 @@ async function promoteStructuredScalarCondition(
         seriesTarget,
         semantics: 'study_scalar_threshold_as_strategy_signal',
       })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Saved thresholded scalar “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
       return
     }
     const declaredInstrumentIds = declaredStudyInstrumentIds(run)
     if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted condition universe.')
     const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    if (!isCurrentMutation(generation)) return
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this scalar study is unavailable.')
     const sourceRunConfig = run.run_config ?? {}
@@ -1128,6 +1151,7 @@ async function promoteStructuredScalarCondition(
           lineage,
         },
       })
+      if (!isCurrentMutation(generation)) return
       const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
       if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
     }
@@ -1145,6 +1169,7 @@ async function promoteStructuredScalarCondition(
         timeframe: structuredStudyTimeframe(run),
         provenance: lineage,
       })
+      if (!isCurrentMutation(generation)) return
       scan = { id: screener.id, name: screener.name ?? `${artifact.name} scalar condition`, codeVersionId }
       promotedStructuredScalarScans.value = { ...promotedStructuredScalarScans.value, [scanKey]: scan }
     }
@@ -1153,12 +1178,13 @@ async function promoteStructuredScalarCondition(
     else if (target === 'gauge') promotionMessage.value = `Scalar artifact “${artifact.name}” is available as a thresholded Market Gauge.`
     else {
       await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured scalar research run ${run.id} (${artifact.name})` })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Promoted scalar artifact “${artifact.name}” to a thresholded scan alert.`
     }
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the scalar artifact to a thresholded condition'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the scalar artifact to a thresholded condition'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteStructuredRangeCenterCondition(
@@ -1171,8 +1197,7 @@ async function promoteStructuredRangeCenterCondition(
     promotionMessage.value = 'Enter a finite numeric threshold before promoting the range center.'
     return
   }
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1180,10 +1205,12 @@ async function promoteStructuredRangeCenterCondition(
         seriesTarget: { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) },
         semantics: 'study_range_center_threshold_as_strategy_signal',
       })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Saved thresholded range center “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
       return
     }
     const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    if (!isCurrentMutation(generation)) return
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this range study is unavailable.')
     const declaredInstrumentIds = declaredStudyInstrumentIds(run)
@@ -1226,6 +1253,7 @@ async function promoteStructuredRangeCenterCondition(
           lineage,
         },
       })
+      if (!isCurrentMutation(generation)) return
       const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
       if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
     }
@@ -1243,6 +1271,7 @@ async function promoteStructuredRangeCenterCondition(
         timeframe: structuredStudyTimeframe(run),
         provenance: lineage,
       })
+      if (!isCurrentMutation(generation)) return
       scan = { id: screener.id, name: screener.name ?? `${artifact.name} range center condition`, codeVersionId }
       promotedStructuredRangeCenterScans.value = { ...promotedStructuredRangeCenterScans.value, [scanKey]: scan }
     }
@@ -1251,60 +1280,61 @@ async function promoteStructuredRangeCenterCondition(
     else if (target === 'gauge') promotionMessage.value = `Range center “${artifact.name}” is available as a thresholded Market Gauge.`
     else {
       await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured range center study run ${run.id} (${artifact.name})` })
+      if (!isCurrentMutation(generation)) return
       promotionMessage.value = `Promoted range center “${artifact.name}” to a thresholded scan alert.`
     }
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the range center artifact to a thresholded condition'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the range center artifact to a thresholded condition'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteStudy(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-study`, {})
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Study Lab study “${promoted.name}” (#${promoted.id}) created. It preserves the breadth universe, target scope, condition, and historical dataset lineage.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Study Lab study'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Study Lab study'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promotePlot(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, {})
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Chart plot “${promoted.name}” (#${promoted.id}) created. It re-evaluates the member series on the selected symbol; the breadth run lineage remains attached.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a chart plot'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a chart plot'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteAggregatePlot(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, { aggregate: true })
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Aggregate chart plot “${promoted.name}” (#${promoted.id}) created. It re-evaluates the breadth percentage history; source tree, universe, and dataset lineage remain attached.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to an aggregate chart plot'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to an aggregate chart plot'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 async function promoteColumn(run: ResearchRunSummary) {
-  promoting.value = true
-  promotionMessage.value = ''
+  const generation = beginPromotion()
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-column`, {})
+    if (!isCurrentMutation(generation)) return
     promotionMessage.value = `Watchlist column “${promoted.name}” (#${promoted.id}) created. It re-evaluates the latest member-series value; the breadth run lineage remains attached.`
   } catch (cause: any) {
-    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a watchlist column'
+    if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a watchlist column'
   } finally {
-    promoting.value = false
+    if (isCurrentMutation(generation)) promoting.value = false
   }
 }
 

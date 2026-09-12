@@ -188,6 +188,25 @@ describe('ResearchResultsTool', () => {
     expect((wrapper.vm as unknown as { runs: typeof run[] }).runs).toEqual([run])
   })
 
+  it('does not publish a late breadth promotion after the tool unmounts', async () => {
+    const run = { id: 25, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 12, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }
+    const promotion = deferred<{ id: number; name: string }>()
+    apiGet.mockResolvedValue([run])
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth/python/runs/25/promote-scan' ? promotion.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')!.trigger('click')
+    wrapper.unmount()
+    promotion.resolve({ id: 56, name: 'Detached breadth scan' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { promotedScans: Record<number, unknown> }).promotedScans).toEqual({})
+    expect((wrapper.vm as unknown as { promotionMessage: string }).promotionMessage).toBe('')
+  })
+
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
     apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },
