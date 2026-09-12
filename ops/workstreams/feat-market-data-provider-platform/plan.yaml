@@ -667,6 +667,16 @@ progress:
       Git. This is transport evidence only: Alpaca event-page, MarketData.app
       plan/option-bound, Dinari quota/terms, and other provider-governance
       controls remain fail-closed.
+    - >-
+      Dinari's credentialed live coverage now exercises every documented
+      aggregate history window (DAY, WEEK, MONTH, and YEAR) in addition to its
+      metadata, fair price, bid/ask quote, news, dividend, and split surfaces.
+      The focused tokenized fixture/service suite passes `58/58`, the live
+      Dinari case passes `1/1` with 19 observed upstream requests and 860,410
+      response bytes, and the complete backend unit suite passes `1,809/1,809`.
+      Ruff, compileall, and diff checks pass. Source commit
+      `a4b2fd1f185f00fca29b6c1e6ece1f2af4bbfef7` is pushed; quota, terms, and
+      routing admission remain fail-closed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

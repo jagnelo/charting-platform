@@ -570,3 +570,12 @@ Update this handoff at each coherent boundary.
   This is bounded transport evidence, not entitlement promotion: the complete
   matrix, provider-specific quota/terms controls, deferred provider
   credentials, and Docker-backed PostgreSQL/Redis gate remain open.
+- Dinari's credentialed live case now exercises all four documented aggregate
+  history windows (DAY, WEEK, MONTH, YEAR) as well as metadata, fair price,
+  bid/ask quote, news, dividend, and split surfaces. The focused tokenized
+  fixture/service suite passed `58/58`; the live case passed `1/1` with 19
+  observed upstream requests and 860,410 response bytes; the complete backend
+  unit suite passed `1,809/1,809`; Ruff, compileall, and diff checks passed.
+  Source commit `a4b2fd1f185f00fca29b6c1e6ece1f2af4bbfef7` is pushed. This
+  strengthens transport evidence only; Dinari quota, terms, and routing
+  admission remain fail-closed.
