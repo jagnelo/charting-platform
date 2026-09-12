@@ -283,6 +283,7 @@ class OptionChainProvider(ProviderDescriptor, Protocol):
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]: ...
 
 

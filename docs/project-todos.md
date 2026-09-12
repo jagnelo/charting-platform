@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-12 — MarketData.app provider-native option credit accounting
+
+- [x] Preserve MarketData.app's `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`,
+      and per-response `Consumed` headers through transport telemetry and
+      diagnostics, filtering all other response headers.
+- [x] Settle actual credit consumption and cumulative remaining-credit usage
+      only when the returned limit matches the reviewed 100-credit contract;
+      never infer a response-priced option charge from a generic request unit.
+- [x] Add the explicit `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` control,
+      apply the documented `strikeLimit` filter, reject responses over the
+      reviewed bound, and keep the default zero bound fail-closed. Historical
+      single-contract quote history derives its reservation from the
+      documented end-of-day date range.
+- [x] Re-run the full backend/live acceptance gates for this revision: the
+      combined backend gate passed 2073/2073 at 80.66% coverage, and the
+      complete live matrix passed 35/39 with only the documented Alpha Vantage
+      capacity response and intentional deferred-provider credential
+      preflights remaining.
+- [ ] Obtain operator review of the bound, option entitlements, and
+      redistribution terms before enabling current-chain routing.
+
 ### 2026-09-10 — Ondo market-summary surface
 
 - [x] Add strict normalization for Ondo's documented per-asset market summary:
@@ -31,11 +52,15 @@
 - [x] Add fixture tests for provider-native identity, malformed containers,
       finite numeric/timestamp validation, market-scope preservation, and
       exact two-request metadata-plus-data usage accounting.
-- [ ] Run the credentialed Dinari and Ondo live cases with operator-owned
-      credentials and record provider-native quota/cache/redistribution terms.
-      Missing credentials remain explicit live preflight failures, not skips;
-      both providers remain non-routable while numeric account quotas and
-      commercial/US eligibility terms are unknown.
+- [x] Run the credentialed Dinari Sandbox case with operator-owned credentials;
+      metadata, quote/history, news, dividend, and split reads passed 1/1 on
+      2026-09-12. Provider-native quota/cache/redistribution terms remain
+      unreviewed, so the provider is not promoted by this live result.
+- [ ] Run the credentialed Ondo live case with operator-owned credentials and
+      record provider-native quota/cache/redistribution terms. Missing
+      credentials remain an explicit live preflight failure, not a skip; Ondo
+      remains non-routable while numeric account quotas and commercial/US
+      eligibility terms are unknown.
 - [ ] Add a separate canonical OHLC/event bridge only after its storage and
       capability contract is approved; current tokenized history/news methods
       are intentionally adapter-level and do not silently become generic US

@@ -1166,6 +1166,7 @@ class TradierProvider(_RESTProvider):
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]:
         """Fetch one current Tradier option chain with provider Greeks."""
 
@@ -1301,6 +1302,7 @@ class MarketDataAppProvider(_RESTProvider):
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]:
         """Normalize a bounded MarketData.app option chain.
 
@@ -1313,8 +1315,28 @@ class MarketDataAppProvider(_RESTProvider):
         params: dict[str, Any] = {}
         if expiration is not None:
             params["expiration"] = expiration.isoformat()
+        if max_symbols is not None:
+            if (
+                isinstance(max_symbols, bool)
+                or not isinstance(max_symbols, int)
+                or max_symbols < 2
+            ):
+                raise ProviderResponseError(
+                    self.name,
+                    "configured option-chain symbol bound must be an integer >= 2",
+                )
+            # Without a side filter, MarketData.app's documented
+            # ``strikeLimit`` returns up to that many strikes on each side.
+            # Halving the reviewed total-symbol bound keeps the request within
+            # the reservation while retaining both calls and puts.
+            params["strikeLimit"] = max_symbols // 2
         payload = self._get(f"options/chain/{symbol.upper()}/", params)
         rows = _parallel_option_rows(payload, self.name)
+        if max_symbols is not None and len(rows) > max_symbols:
+            raise ProviderResponseError(
+                self.name,
+                "provider returned more option symbols than the reviewed bound",
+            )
         contracts: list[OptionContractRecord] = []
         for row in rows:
             parsed_expiration = _option_expiry(row["expiration"])

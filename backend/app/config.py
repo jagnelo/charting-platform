@@ -1523,6 +1523,13 @@ class Settings(BaseSettings):
     EODHD_API_KEY: str = ""
     TRADIER_API_KEY: str = ""
     MARKETDATA_APP_API_KEY: str = ""
+    # MarketData.app current option-chain responses are billed per returned
+    # contract.  A chain call may therefore be admitted only when operations
+    # supplies a positive, conservative maximum contract count for the exact
+    # filters used by the caller.  Zero keeps option-chain routing
+    # fail-closed; ordinary stock candles and expiration lookups are not
+    # affected.
+    MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: int = 0
     XSTOCKS_API_KEY: str = ""
     DINARI_API_KEY_ID: str = ""
     DINARI_API_SECRET_KEY: str = ""

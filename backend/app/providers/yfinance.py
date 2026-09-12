@@ -604,6 +604,7 @@ class YFinanceProvider:
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]:
         expirations = self.list_option_expirations(symbol)
         if expiration is None:

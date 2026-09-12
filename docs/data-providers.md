@@ -85,7 +85,7 @@ re-reviewed when credentials or billing plans change.
 | EODHD | long-history daily EOD, fixture-covered fundamentals/profile adapter, US exchange list | `EODHD_API_KEY` | Free 20 API calls/day and 1,000 requests/minute; EOD free history is limited to one year; the supplied free key returned HTTP 403 for Fundamentals, while the official plan description limits free access to EOD history and exchange lists; data-heavy endpoints consume multiple calls (fundamentals/options 10, intraday/technical/news 5) | API key / minute requests + GMT calendar-day call budget | EOD daily/weekly/monthly history live-proven; Fundamentals is explicitly non-routable for the current free entitlement and its 403 is retained as typed evidence |
 | FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search, current option expirations/chains with provider Greeks | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | option endpoints normalize OCC symbols, contract fields, and nested Greeks; account live evidence required |
-| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year; expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; response-dependent chain/quote costs are not safely bounded yet | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; chain/quote routing remains fail-closed until a reviewed response-dependent reservation bound exists |
+| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year; expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; chain routing remains fail-closed at the default zero bound |
 | IBKR | read-only Client Portal Gateway security search, instrument profile, raw historical OHLCV, and latest-price snapshots; options/futures-specific methods remain unimplemented | `IBKR_READ_ONLY_URL`, `IBKR_READ_ONLY_SESSION_COOKIE`, optional `IBKR_CONID_MAP` | Global 10 requests/sec/session; historical endpoint 50 requests/minute, max 5 concurrent, and max 1,000 bars per response; endpoint-specific pacing and penalty-box behavior apply | authenticated gateway session / rolling endpoint windows; interactive gateway login is required and may need to be renewed daily | concrete adapter is fixture-covered; raw history/latest/profile remain non-routable until a gateway session and bounded live evidence are supplied |
 | xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published; official legal materials state xStocks are not available in the United States or to U.S. persons | public endpoint / unknown | public metadata and price-endpoint probe passed; an explicit null quote while the selected token's session was closed is retained as provider state; non-routable until quota, jurisdiction, and redistribution eligibility are verified |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
@@ -597,6 +597,36 @@ without weakening the reservation.
 
 ---
 
+### MarketData.app (`marketdata_app`)
+
+**Role**: Authenticated US stock/ETF candles and options data, including
+expiration discovery, current chains, and historical single-contract quotes.
+**Auth**: `MARKETDATA_APP_API_KEY` (Bearer token)
+
+The adapter follows the documented `/v1` endpoints and preserves OCC symbols,
+provider timestamps, quote fields, and historical null Greeks. The provider
+documents 100 daily credits on Free Forever accounts, reset at 09:30
+America/New_York, plus a 50-request concurrency ceiling. Free/trial accounts
+receive delayed data and only one year of historical data. See the provider's
+[rate-limit](https://www.marketdata.app/docs/api/rate-limiting/),
+[free-account](https://www.marketdata.app/docs/account/free-accounts/),
+[option-chain](https://www.marketdata.app/docs/api/options/chain/), and
+[option-quotes](https://www.marketdata.app/docs/api/options/quotes/)
+documentation.
+
+Option expiration lookups cost one credit. Current chains/quotes cost one
+credit per returned option symbol; historical chains/quotes cost one credit
+per 1,000 returned symbols/quotes. The runtime records the provider-native
+`X-Api-Ratelimit-*` headers, settles the actual per-response charge, and
+reconciles cumulative remaining-credit state only when the returned limit
+matches the reviewed 100-credit contract. Since a current chain is
+response-priced, routing requires a positive operator-reviewed
+`MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` value. The adapter applies the
+documented `strikeLimit` filter and rejects a response larger than that bound;
+zero remains fail-closed. Historical single-contract quote history derives a
+conservative date-range reservation (at most one end-of-day observation per
+calendar day) before execution.
+
 ### Yahoo Finance (`yfinance`) — Explicit legacy/options fallback
 
 **Role**: Opt-in compatibility provider for retained legacy/options or other explicitly configured capabilities. It is not part of any new-workstation default or acceptance path.
@@ -747,6 +777,9 @@ FINNHUB_API_KEY=
 MARKETSTACK_API_KEY=
 EODHD_API_KEY=
 MARKETDATA_APP_API_KEY=       # MarketData.app — US delayed stocks/options
+# Current option chains consume one credit per returned symbol. Set this only
+# after reviewing the exact request filters; zero keeps chain routing closed.
+MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
 TRADIER_API_KEY=
 FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forward estimates
 

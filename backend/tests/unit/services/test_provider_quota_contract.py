@@ -879,6 +879,59 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert seed.get("max_concurrency") is None
 
 
+def test_marketdata_app_option_chain_cost_requires_explicit_symbol_bound(monkeypatch):
+    monkeypatch.setattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
+    assert "fetch_option_chain" not in get_provider_usage_profile("marketdata_app")[
+        "operation_costs"
+    ]
+
+    monkeypatch.setattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 12)
+    profile = get_provider_usage_profile("marketdata_app")
+    assert profile["operation_costs"]["fetch_option_chain"] == 12
+
+
+def test_marketdata_app_headers_settle_actual_credit_charge_and_cumulative_total():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.OPTION_CHAIN,
+        quota_contract={
+            "reset": "09:30 America/New_York",
+            "dimensions": [
+                {
+                    "name": "credits_per_day",
+                    "limit": 100,
+                    "window_seconds": 86400,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "https://www.marketdata.app/docs/api/rate-limiting/",
+                }
+            ],
+        },
+    )
+    measurement = SimpleNamespace(
+        response_headers={
+            "x-api-ratelimit-limit": "100",
+            "x-api-ratelimit-remaining": "87",
+            "x-api-ratelimit-consumed": "4",
+        }
+    )
+    from app.services.provider_runtime import _consumed_dimension_costs
+
+    assert _consumed_dimension_costs(policy, measurement, {"credits_per_day": 12}) == {
+        "credits_per_day": 4
+    }
+    assert _observed_dimension_totals(policy, measurement) == {"credits_per_day": 13}
+
+    mismatched = SimpleNamespace(
+        response_headers={
+            "x-api-ratelimit-limit": "10",
+            "x-api-ratelimit-remaining": "8",
+            "x-api-ratelimit-consumed": "2",
+        }
+    )
+    assert _observed_dimension_totals(policy, mismatched) == {}
+
+
 @pytest.mark.asyncio
 async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
     async_db = AsyncSessionAdapter(db)

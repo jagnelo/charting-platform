@@ -353,6 +353,10 @@ def _consumed_dimension_costs(
 ) -> dict[str, int]:
     """Settle byte dimensions from observed transport, conservatively otherwise."""
     consumed: dict[str, int] = {}
+    headers = {
+        str(key).lower(): str(value)
+        for key, value in (getattr(measurement, "response_headers", {}) or {}).items()
+    }
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
         unit = str(dimension.get("unit") or "").lower()
@@ -363,6 +367,19 @@ def _consumed_dimension_costs(
             observed_requests = int(getattr(measurement, "http_requests", 0) or 0)
             observed_bytes = int(getattr(measurement, "response_bytes", 0) or 0)
             consumed[name] = max(0, observed_bytes) if observed_requests else reserved
+        elif (
+            unit in {"credit", "credits"}
+            and int(dimension.get("window_seconds", 0) or 0) == 86400
+            and "marketdata.app" in str(dimension.get("source") or "").lower()
+        ):
+            # MarketData.app reports the charge for this response explicitly.
+            # Use it when it is a non-negative integer; otherwise retain the
+            # pre-call reservation rather than guessing from response size.
+            try:
+                observed = int(headers["x-api-ratelimit-consumed"])
+            except (KeyError, TypeError, ValueError):
+                observed = None
+            consumed[name] = observed if observed is not None and observed >= 0 else reserved
         else:
             consumed[name] = reserved
     return consumed
@@ -431,6 +448,23 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
                 continue
             if 0 <= weight_used <= limit:
                 totals[name] = weight_used
+            continue
+        if (
+            unit in {"credit", "credits"}
+            and window_seconds == 86400
+            and "marketdata.app" in source
+        ):
+            try:
+                header_limit = int(headers["x-api-ratelimit-limit"])
+                remaining = int(headers["x-api-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            # Remaining credits may be negative after a provider permits a
+            # request with only one credit left but the response costs more.
+            # Preserve that overspend as cumulative usage; never let a stale
+            # or mismatched limit alter the local window.
+            if header_limit == limit and remaining <= header_limit:
+                totals[name] = max(0, header_limit - remaining)
             continue
         if (
             unit in {"request", "requests"}

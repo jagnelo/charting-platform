@@ -9,6 +9,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import provider_positive_integer, settings
 from app.lib.bs_greeks import estimate_greeks
 from app.models.instrument import Instrument, OptionDetail, OptionRight, OptionStyle
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -100,6 +101,18 @@ def _snapshot_hash(records: list[OptionContractRecord], expiration: date) -> str
         for record in sorted(records, key=lambda item: item.provider_symbol)
     ]
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def _marketdata_option_quote_credit_bound(start: datetime, end: datetime) -> int:
+    """Return the conservative credit reservation for one contract's EOD range.
+
+    MarketData.app charges one credit per 1,000 returned observations. The
+    provider's range is inclusive, so equal endpoints represent one possible
+    observation and a 1,001-calendar-day range must reserve two credits.
+    """
+
+    span_days = max(1, (end.date() - start.date()).days + 1)
+    return max(1, (span_days + 999) // 1000)
 
 
 async def _upsert_dataset_state(
@@ -365,16 +378,32 @@ async def sync_option_chain_snapshot(
         if dataset_state is not None:
             return latest_snapshot
 
+    marketdata_chain_bound = provider_positive_integer(
+        getattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
+    )
+    operation_cost_overrides = (
+        {"marketdata_app": marketdata_chain_bound}
+        if marketdata_chain_bound is not None
+        else None
+    )
+
+    def invoke_option_chain(provider, provider_symbol):
+        kwargs = {"expiration": expiration}
+        if provider.name == "marketdata_app" and marketdata_chain_bound is not None:
+            kwargs["max_symbols"] = marketdata_chain_bound
+        return provider.fetch_option_chain(provider_symbol, **kwargs)
+
     try:
         execution = await execute_provider_call(
             db,
             ProviderCapability.OPTION_CHAIN,
             f"fetch_option_chain:{expiration.isoformat()}",
             instrument_id=underlying.id,
+            operation_cost_overrides=operation_cost_overrides,
             usage_identity=lambda provider_name: provider_symbol_for_instrument(underlying, provider_name),
-            invoke=lambda provider, _provider_symbol: provider.fetch_option_chain(
+            invoke=lambda provider, _provider_symbol: invoke_option_chain(
+                provider,
                 provider_symbol_for_instrument(underlying, provider.name),
-                expiration=expiration,
             ),
             response_items=lambda result: len(result),
             treat_empty_as_failure=False,
@@ -658,12 +687,18 @@ async def sync_option_quote_history(
         if fresh_state is not None:
             return
 
+    # MarketData.app historical quotes are end-of-day observations for one
+    # contract and cost one credit per 1,000 returned quotes.  A date range
+    # therefore gives an exact conservative bound: at most one observation
+    # per calendar day, with weekends/holidays reducing the actual charge.
+    marketdata_quote_bound = _marketdata_option_quote_credit_bound(start, end)
     try:
         execution = await execute_provider_call(
             db,
             ProviderCapability.OPTION_QUOTE_HISTORY,
             "fetch_option_quote_history",
             instrument_id=option_instrument.id,
+            operation_cost_overrides={"marketdata_app": marketdata_quote_bound},
             usage_identity=lambda provider_name: provider_symbol_for_instrument(option_instrument, provider_name),
             invoke=lambda provider, _provider_symbol: provider.fetch_option_quote_history(
                 provider_symbol_for_instrument(option_instrument, provider.name),

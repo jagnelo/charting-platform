@@ -27,6 +27,13 @@ _OBSERVED_HEADERS = (
     "api-credits-request",
     "api-credits-used",
     "api-credits-left",
+    # MarketData.app exposes the current credit window and the charge for
+    # this response under provider-native names. Keep these separate from
+    # the similarly named generic X-RateLimit headers.
+    "x-api-ratelimit-limit",
+    "x-api-ratelimit-remaining",
+    "x-api-ratelimit-reset",
+    "x-api-ratelimit-consumed",
     # Tradier exposes a token-window snapshot with these headers.
     "x-ratelimit-allowed",
     "x-ratelimit-used",

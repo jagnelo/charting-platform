@@ -6,8 +6,22 @@ import pytest
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument, OptionDetail, OptionRight, OptionStyle
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
-from app.services.options_data import list_option_expirations
+from app.services.options_data import (
+    _marketdata_option_quote_credit_bound,
+    list_option_expirations,
+)
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_marketdata_option_quote_credit_bound_uses_inclusive_calendar_range():
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    assert _marketdata_option_quote_credit_bound(start, start) == 1
+    assert _marketdata_option_quote_credit_bound(
+        start, start + timedelta(days=999)
+    ) == 1
+    assert _marketdata_option_quote_credit_bound(
+        start, start + timedelta(days=1000)
+    ) == 2
 
 
 @pytest.mark.asyncio

@@ -808,6 +808,44 @@ def test_marketdata_app_mismatched_option_arrays_are_typed():
             provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
 
 
+def test_marketdata_app_applies_reviewed_option_chain_symbol_bound():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000", "AAPL240119P00100000"],
+        "underlying": ["AAPL", "AAPL"],
+        "expiration": [1705698000, 1705698000],
+        "side": ["call", "put"],
+        "strike": [100, 100],
+        "updated": [1704229200, 1704229200],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        contracts = provider.fetch_option_chain(
+            "AAPL", expiration=date(2024, 1, 19), max_symbols=4
+        )
+
+    assert len(contracts) == 2
+    assert get.call_args.kwargs["params"] == {
+        "expiration": "2024-01-19",
+        "strikeLimit": 2,
+    }
+
+
+def test_marketdata_app_rejects_option_chain_bound_below_two_symbols():
+    provider = MarketDataAppProvider()
+    with patch("app.providers.optional_market_data.settings") as configured:
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="symbol bound"):
+            provider.fetch_option_chain("AAPL", max_symbols=1)
+
+
 def test_marketdata_app_parses_historical_option_quote_arrays():
     provider = MarketDataAppProvider()
     updated = int(datetime(2024, 1, 2, 21, tzinfo=UTC).timestamp())

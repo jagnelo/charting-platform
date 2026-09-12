@@ -163,6 +163,10 @@ DEFAULT_OPTIONS_PROVIDER=yfinance
 ENABLE_LEGACY_YFINANCE_FALLBACK=false
 IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]
 OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
+# MarketData.app option chains are priced per returned current symbol. Leave
+# zero unless an operator has reviewed the request filters and selected a
+# conservative maximum symbol count.
+MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
 PROVIDER_CHAIN_SEEDS={}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}

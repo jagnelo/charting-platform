@@ -691,6 +691,21 @@ def get_provider_usage_profile(name: str) -> dict:
                     **dict(merged.get("operation_costs") or {}),
                     **reviewed_costs,
                 }
+    if name == "marketdata_app":
+        # Current option chains are billed per returned option symbol.  The
+        # adapter applies this same reviewed bound as ``strikeLimit`` and
+        # rejects a larger response, so the reservation cannot silently
+        # under-account a bulk chain.  Keep the default absent: stock candles
+        # remain usable while option-chain routing stays fail-closed until an
+        # operator chooses a budget appropriate for the deployment.
+        max_symbols = provider_positive_integer(
+            getattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
+        )
+        if max_symbols is not None and max_symbols >= 2:
+            merged["operation_costs"] = {
+                **dict(merged.get("operation_costs") or {}),
+                "fetch_option_chain": max_symbols,
+            }
     return merged
 
 
