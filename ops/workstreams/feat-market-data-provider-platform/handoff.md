@@ -804,3 +804,14 @@ Update this handoff at each coherent boundary.
   suite passes 1,880/1,880 with the known 37 warnings. No provider calls were
   made; source commit `8418c5ed` is pushed and Docker-backed validation remains
   unavailable.
+
+- Tokenized xStocks and Dinari records now retain provider-published underlying
+  FIGI, composite FIGI, ISIN, and CUSIP values. The tokenized-asset detail
+  model has additive nullable columns with a reversible migration; stable-ID
+  lookup checks canonical domain keys and active identifier rows in priority
+  order, refuses conflicting or unresolved evidence, and only uses a unique
+  ticker when no stable identifier exists. Focused migration/provider/service
+  coverage passes 66/66 and the complete backend unit suite passes 1,883/1,883
+  with the known 37 warnings. The admin integration contract is covered, but
+  Docker-backed execution remains unavailable. Source commit `893dd4df` is
+  pushed; no provider calls or credentials were used.
