@@ -1567,8 +1567,10 @@ class TestWatchlistsCrud:
             },
         )
         assert refreshed.status_code == 200, refreshed.text
-        assert refreshed.json()["cache_hit"] is False
-        assert refreshed.json()["cache_key"] != body["cache_key"]
+        # The newer event was fetched after the historical ``end`` cutoff, so
+        # it is future knowledge and must not invalidate the historical cache.
+        assert refreshed.json()["cache_hit"] is True
+        assert refreshed.json()["cache_key"] == body["cache_key"]
 
     def test_sources_unify_personal_and_locked_index_universes(
         self, client, auth_headers, db, watchlist, instrument
@@ -1819,6 +1821,7 @@ class TestWatchlistsCrud:
                 "analysis_ready_member_count": 0,
                 "analysis_ready_percent": 0.0,
                 "required_bar_count": 252,
+                "analysis_ready_status": "partial",
                 "bar_count": len(ohlcv_bars),
                 "provider_member_count": 1,
                 "derived_member_count": 0,

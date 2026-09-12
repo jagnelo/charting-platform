@@ -327,7 +327,10 @@ class TestDataPipeline:
 
         assert result["derived_bars"] == {"W1": 52, "MN": 24}
         assert mock_materialize.await_count == 1
-        mock_materialize.assert_awaited_once_with(db, instrument.id)
+        materialize_session, materialize_instrument_id = mock_materialize.await_args.args
+        assert isinstance(materialize_session, AsyncSessionAdapter)
+        assert materialize_session._session is db
+        assert materialize_instrument_id == instrument.id
 
 
 class TestBenchmarkFamilyHistoryBackfill:
