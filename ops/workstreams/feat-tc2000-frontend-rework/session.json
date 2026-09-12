@@ -54,9 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
@@ -99,13 +97,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "22a47645b22ce0be6489eb054b34ef7eef3ec5e3",
+  "head": "1353e7ae56cdae513e35968b69edcb70ce1fa8f1",
   "implementation_sha": "d3bf41e3b4824dd90bc2fbdd9d4ef9ed7df5811f",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T05:17:28+00:00",
-  "last_human_progress_update": "2026-09-12T05:17:01.033758+00:00",
+  "last_checkpoint": "2026-09-12T05:23:11+00:00",
+  "last_human_progress_update": "2026-09-12T05:23:11.270253+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Restore Docker Desktop health outside the worktree, run the pending alert and indicator-batch API regressions plus the exact gate at product tip d3bf41e3, then continue the next bounded provider/history or compatible chart/list/gauge seam",
+  "next_action": "Restore Docker Desktop health outside the worktree, run the pending alert and indicator-batch API regressions and exact gate at product tip d3bf41e3, then continue the next bounded provider/history or compatible chart/list/gauge seam",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
   "planning_required": false,
   "planning_state": "ready",
@@ -119,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact gate at product tip d3bf41e3 (documentation tip 22a47645) is pending after the alert output-contract slice. Focused indicator-engine coverage passed 30/30; Chart Plot Library passed 29/29; combined drag/drop/EasyScan/plot-library passed 49/49; Ruff, formatting, type-check, and diff checks passed. Alert and indicator-batch API regressions still require the Docker-backed fixture, and the exact gate must re-run at this tip. No product or visual failure observed.",
+    "current_blocker": "The exact branch-scoped gate at product tip d3bf41e3 (documentation tip 22a47645) passed repository/workstream/dependency/migration/frontend-preparation and lint setup, then stopped at backend-coverage after the 180-second Docker readiness window because Docker returned HTTP 500 for /v1.55/info on unix:///Users/jagnelo/.docker/run/docker.sock. Alert and indicator-batch API regressions and all later backend integration, provider, browser, and visual stages remain pending. No product or visual failure observed.",
     "current_phase": "R4_chart_plot_compatibility",
-    "next_action": "Run the pending alert and indicator-batch API regressions and exact branch-scoped gate at product tip d3bf41e3 after Docker Desktop health is restored; then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "next_action": "Restore Docker Desktop health outside the worktree, run the pending alert and indicator-batch API regressions and exact gate at product tip d3bf41e3, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T05:17:01.033678+00:00"
+    "updated_at": "2026-09-12T05:23:11.270187+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
