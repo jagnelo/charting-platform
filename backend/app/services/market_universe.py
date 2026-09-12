@@ -12,7 +12,7 @@ import logging
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -32,6 +32,7 @@ from app.models.market_data_foundation import (
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import get_discovery_provider
+from app.providers.base import IdentifierRecord
 from app.providers.errors import redact_provider_message
 from app.services.exchange_catalog import (
     coerce_listing_lifecycle_at,
@@ -39,8 +40,16 @@ from app.services.exchange_catalog import (
     normalize_exchange_mic,
     upsert_instrument_listing,
 )
-from app.services.instrument_mastering import ensure_internal_identifier, register_provider_symbol
-from app.services.market_data_identity import apply_domain_identity
+from app.services.instrument_mastering import (
+    ensure_internal_identifier,
+    register_identifier,
+    register_provider_symbol,
+)
+from app.services.market_data_identity import (
+    apply_domain_identity,
+    choose_domain_key,
+    normalize_identifier_value,
+)
 from app.services.market_data_monitoring import record_coverage_snapshot
 from app.services.provider_observations import store_universe_discovery_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
@@ -57,6 +66,16 @@ _TYPE_MAP: dict[str, tuple[str, str]] = {
     "FUTURE": ("Commodity", "Future"),
     "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
 }
+
+_SECURITY_IDENTIFIER_FIELDS: tuple[tuple[str, InstrumentIdentifierType], ...] = (
+    ("figi", InstrumentIdentifierType.FIGI),
+    ("composite_figi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("compositeFigi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("compositeFIGI", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("isin", InstrumentIdentifierType.ISIN),
+    ("cusip", InstrumentIdentifierType.CUSIP),
+    ("sedol", InstrumentIdentifierType.SEDOL),
+)
 
 
 def _utc(value: datetime | None = None) -> datetime:
@@ -76,6 +95,78 @@ def _normalize_cik(value: Any) -> str:
 def _row_type(row: dict[str, Any], fallback: str) -> str:
     value = str(row.get("quoteType") or row.get("instrument_type") or fallback).strip().upper()
     return "EQUITY" if value in {"CS", "COMMON_STOCK", "STOCK", "EQUITIES"} else value
+
+
+def _row_security_identifiers(
+    row: dict[str, Any],
+) -> tuple[dict[InstrumentIdentifierType, str], str | None]:
+    """Normalize security identifiers and report conflicting aliases."""
+
+    identifiers: dict[InstrumentIdentifierType, str] = {}
+    for field_name, identifier_type in _SECURITY_IDENTIFIER_FIELDS:
+        raw_value = row.get(field_name)
+        if raw_value in (None, ""):
+            continue
+        value = normalize_identifier_value(str(raw_value))
+        if not value:
+            continue
+        previous = identifiers.get(identifier_type)
+        if previous is not None and previous != value:
+            return {}, f"provider returned conflicting {identifier_type.value} values"
+        identifiers[identifier_type] = value
+    return identifiers, None
+
+
+async def _stable_identity_owner(
+    db: AsyncSession,
+    *,
+    identifiers: dict[InstrumentIdentifierType, str],
+    instrument_type_id: int,
+) -> tuple[Instrument | None, str | None]:
+    """Resolve one stable owner, rejecting cross-owner or type conflicts."""
+
+    if not identifiers:
+        return None, None
+    conditions = [
+        and_(
+            InstrumentIdentifier.identifier_type == identifier_type,
+            InstrumentIdentifier.identifier_value == identifier_value,
+        )
+        for identifier_type, identifier_value in identifiers.items()
+    ]
+    identifier_matches = (
+        (
+            await db.execute(
+                select(Instrument)
+                .join(InstrumentIdentifier, InstrumentIdentifier.instrument_id == Instrument.id)
+                .where(or_(*conditions))
+            )
+        )
+        .scalars()
+        .unique()
+        .all()
+    )
+    domain_key = choose_domain_key(identifiers)
+    domain_matches: list[Instrument] = []
+    if domain_key is not None:
+        domain_matches = (
+            (await db.execute(select(Instrument).where(Instrument.domain_key == domain_key)))
+            .scalars()
+            .all()
+        )
+    owners = {
+        candidate
+        for candidate in [*identifier_matches, *domain_matches]
+        if not candidate.is_synthetic
+    }
+    if len(owners) > 1:
+        return None, "provider stable identifiers resolve to multiple instruments"
+    if not owners:
+        return None, None
+    owner = next(iter(owners))
+    if owner.instrument_type_id != instrument_type_id:
+        return None, "provider stable identifier resolves to a different instrument type"
+    return owner, None
 
 
 def _listing_key(
@@ -395,18 +486,75 @@ async def _reconcile_rows(
             run.quarantined_count += 1
             continue
 
-        instrument = await _find_instrument(
+        instrument_type_id = await _instrument_type_id(db, normalized_type)
+        security_identifiers, identity_error = _row_security_identifiers(quote)
+        if identity_error is not None:
+            await _quarantine_candidate(
+                db,
+                data_source_id=run.data_source_id,
+                provider_name=provider_name,
+                symbol=symbol,
+                exchange_mic=exchange_mic,
+                payload=quote,
+                reason=identity_error,
+            )
+            run.quarantined_count += 1
+            continue
+        stable_owner, stable_error = await _stable_identity_owner(
             db,
-            symbol=symbol,
-            exchange_id=exchange.id if exchange else None,
-            sec_cik=quote.get("sec_cik") or quote.get("cik"),
+            identifiers=security_identifiers,
+            instrument_type_id=instrument_type_id,
         )
+        if stable_error is not None:
+            await _quarantine_candidate(
+                db,
+                data_source_id=run.data_source_id,
+                provider_name=provider_name,
+                symbol=symbol,
+                exchange_mic=exchange_mic,
+                payload=quote,
+                reason=stable_error,
+            )
+            run.quarantined_count += 1
+            continue
+
+        ticker_match = None
+        if stable_owner is not None:
+            ticker_match = await _find_instrument(
+                db,
+                symbol=symbol,
+                exchange_id=exchange.id if exchange else None,
+            )
+            if ticker_match is not None and ticker_match.id != stable_owner.id:
+                await _quarantine_candidate(
+                    db,
+                    data_source_id=run.data_source_id,
+                    provider_name=provider_name,
+                    symbol=symbol,
+                    exchange_mic=exchange_mic,
+                    payload=quote,
+                    reason="provider ticker/venue matches a different stable instrument",
+                )
+                run.quarantined_count += 1
+                continue
+            instrument = stable_owner
+        elif security_identifiers:
+            # A new stable key is stronger than a legacy ticker/venue match;
+            # create a provisional candidate rather than silently merging it.
+            instrument = None
+        else:
+            instrument = await _find_instrument(
+                db,
+                symbol=symbol,
+                exchange_id=exchange.id if exchange else None,
+                sec_cik=quote.get("sec_cik") or quote.get("cik"),
+            )
         created = instrument is None
         if instrument is None:
             instrument = Instrument(
                 symbol=symbol,
                 name=str(quote.get("longName") or quote.get("name") or symbol),
-                instrument_type_id=await _instrument_type_id(db, normalized_type),
+                instrument_type_id=instrument_type_id,
                 currency=str(quote.get("currency") or "USD")[:3],
                 is_active=True,
             )
@@ -436,17 +584,6 @@ async def _reconcile_rows(
             # link, but require a security-level identifier (FIGI, ISIN,
             # CUSIP, or SEDOL) before assigning a domain key. This prevents
             # two share classes from being collapsed under one CIK.
-            security_identifiers: dict[InstrumentIdentifierType, str] = {}
-            for key, identifier_type in (
-                ("figi", InstrumentIdentifierType.FIGI),
-                ("composite_figi", InstrumentIdentifierType.COMPOSITE_FIGI),
-                ("isin", InstrumentIdentifierType.ISIN),
-                ("cusip", InstrumentIdentifierType.CUSIP),
-                ("sedol", InstrumentIdentifierType.SEDOL),
-            ):
-                value = str(quote.get(key) or "").strip().upper()
-                if value:
-                    security_identifiers[identifier_type] = value
             primary_identifier_assigned = False
             for identifier_type, value in list(security_identifiers.items()):
                 existing_identifier = (
@@ -538,6 +675,28 @@ async def _reconcile_rows(
             known_at=observed_at,
             delisted_at=coerce_listing_lifecycle_at(quote.get("delisting_date")),
         )
+        for index, (identifier_type, identifier_value) in enumerate(security_identifiers.items()):
+            await register_identifier(
+                db,
+                instrument,
+                provider_name,
+                IdentifierRecord(
+                    identifier_type=identifier_type.value,
+                    identifier_value=identifier_value,
+                    is_primary=index == 0,
+                    source=provider_name,
+                ),
+            )
+        if security_identifiers and not instrument.domain_key:
+            await apply_domain_identity(
+                db,
+                instrument,
+                identifiers=security_identifiers,
+                provider_name=provider_name,
+                provider_symbol=symbol,
+                exchange_mic=exchange_mic,
+                candidate_payload=quote,
+            )
         await ensure_internal_identifier(db, instrument)
         await _upsert_observation(
             db,

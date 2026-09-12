@@ -7,6 +7,7 @@ import pytest
 
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
+from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     Issuer,
@@ -140,6 +141,206 @@ async def test_exchange_qualified_symbol_does_not_merge_across_venues(db, instru
 
 
 @pytest.mark.asyncio
+async def test_reconciliation_reuses_stable_owner_across_ticker_change(db, instrument):
+    from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+
+    source = DataSource(name="massive", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    instrument.domain_key = "figi:BBG000B9XRY4"
+    db.add(
+        InstrumentIdentifier(
+            instrument_id=instrument.id,
+            identifier_type=InstrumentIdentifierType.FIGI,
+            identifier_value="BBG000B9XRY4",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 9, 4, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": "NEW",
+                "name": "Renamed Security",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "figi": "bbg000b9xry4",
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    assert run.new_count == 0
+    assert run.updated_count == 1
+    assert db.query(Instrument).count() == 1
+    listing = db.query(InstrumentListing).one()
+    assert listing.instrument_id == instrument.id
+    assert listing.ticker == "NEW"
+    assert instrument.domain_key == "figi:BBG000B9XRY4"
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_does_not_merge_unresolved_stable_key_by_ticker(db, instrument):
+    from app.models.instrument import Instrument
+
+    source = DataSource(name="massive", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            ticker="AAPL",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 9, 4, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": "AAPL",
+                "name": "New Stable Security",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "figi": "BBG000B9XRY4",
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    assert run.new_count == 1
+    assert db.query(Instrument).count() == 2
+    assert (
+        db.query(Instrument).filter(Instrument.domain_key == "figi:BBG000B9XRY4").one().id
+        != instrument.id
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_quarantines_conflicting_stable_owners(db, instrument, instrument_b):
+    from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+
+    source = DataSource(name="massive", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    db.add_all(
+        [
+            InstrumentIdentifier(
+                instrument_id=instrument.id,
+                identifier_type=InstrumentIdentifierType.FIGI,
+                identifier_value="BBG000B9XRY4",
+            ),
+            InstrumentIdentifier(
+                instrument_id=instrument_b.id,
+                identifier_type=InstrumentIdentifierType.ISIN,
+                identifier_value="US0378331005",
+            ),
+        ]
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 9, 4, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": "AAPL",
+                "name": "Conflicting Security",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "figi": "BBG000B9XRY4",
+                "isin": "US0378331005",
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    assert run.quarantined_count == 1
+    assert run.observed_count == 0
+    assert db.query(InstrumentListing).count() == 0
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_quarantines_ticker_venue_collision_with_stable_owner(
+    db, instrument, instrument_b
+):
+    from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+
+    source = DataSource(name="massive", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    db.add(
+        InstrumentIdentifier(
+            instrument_id=instrument.id,
+            identifier_type=InstrumentIdentifierType.FIGI,
+            identifier_value="BBG000B9XRY4",
+        )
+    )
+    await upsert_instrument_listing(
+        AsyncSessionAdapter(db), instrument_b, "NEW", exchange_code="NASDAQ", is_primary=True
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 9, 4, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    await _reconcile_rows(
+        AsyncSessionAdapter(db),
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": "NEW",
+                "name": "Stable Owner",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "figi": "BBG000B9XRY4",
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+
+    assert run.quarantined_count == 1
+    assert run.observed_count == 0
+    assert db.query(InstrumentListing).count() == 1
+
+
+@pytest.mark.asyncio
 async def test_cik_only_discovery_links_issuer_but_quarantines_security_identity(db, instrument):
     source = DataSource(name="edgar", base_url="https://example.test")
     db.add(source)
@@ -239,7 +440,9 @@ async def test_universe_reconciliation_redacts_run_error(db, monkeypatch):
         raise RuntimeError("GET https://provider.test/data?api_key=universe-secret")
 
     monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
-    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: _DiscoveryProvider())
+    monkeypatch.setattr(
+        market_universe, "get_discovery_provider", lambda _name: _DiscoveryProvider()
+    )
     monkeypatch.setattr(market_universe, "execute_provider_call", failing_page)
 
     result = await reconcile_us_universe(
