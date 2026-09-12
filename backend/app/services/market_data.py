@@ -13,7 +13,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 from sqlalchemy import and_, func, or_, select
@@ -1028,48 +1028,13 @@ async def _fetch_provider(
         treat_empty_as_failure=True,
     )
     provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
-    bars = execution.result
-    for bar in bars:
-        bar.instrument_id = instrument.id
-        bar.data_source_id = execution.data_source.id
-    if bars:
-        first_bar = bars[0]
-        try:
-            basis_value = getattr(first_bar.adjustment_basis, "value", first_bar.adjustment_basis)
-            adjustment_basis = AdjustmentBasis(str(basis_value))
-        except ValueError:
-            adjustment_basis = (
-                AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
-            )
-        feed_scope = str((first_bar.provenance or {}).get("feed") or "provider_native")
-        series = await get_or_create_series(
-            db,
-            SeriesScope(
-                instrument_id=instrument.id,
-                data_source_id=execution.data_source.id,
-                feed_scope=feed_scope,
-                session_code=first_bar.session,
-                timeframe=timeframe.value,
-                adjustment_basis=adjustment_basis,
-                adjustment_version=first_bar.adjustment_version,
-            ),
-            canonical=True,
-            source_series_key=(
-                f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
-                f"{first_bar.session}:{adjustment_basis.value}:{first_bar.adjustment_version}"
-            ),
-            provenance={
-                "provider": execution.provider_name,
-                "provider_symbol": provider_symbol,
-                "feed_scope": feed_scope,
-                "session": first_bar.session,
-                "timeframe": timeframe.value,
-                "adjustment_basis": adjustment_basis.value,
-                "adjustment_version": first_bar.adjustment_version,
-            },
-        )
-        for bar in bars:
-            bar.market_series_id = series.id
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+    )
     await _record_bar_observations(
         db,
         bars,
@@ -1091,6 +1056,68 @@ async def _fetch_provider(
         timeframe.value,
         execution.provider_name,
     )
+    return bars
+
+
+async def _attach_provider_series(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    adjusted: bool,
+    execution: Any,
+    *,
+    bars: list[OHLCVBar] | None = None,
+) -> list[OHLCVBar]:
+    """Attach a deterministic canonical series to every provider bar result.
+
+    Historical and latest-window fetches share the same persistence path. The
+    helper keeps both paths from falling back to legacy ``NULL`` series IDs,
+    which would otherwise be hidden once a default mapping is created.
+    """
+
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+    bars = execution.result if bars is None else bars
+    for bar in bars:
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
+    if not bars:
+        return bars
+
+    first_bar = bars[0]
+    try:
+        basis_value = getattr(first_bar.adjustment_basis, "value", first_bar.adjustment_basis)
+        adjustment_basis = AdjustmentBasis(str(basis_value))
+    except ValueError:
+        adjustment_basis = AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+    feed_scope = str((first_bar.provenance or {}).get("feed") or "provider_native")
+    series = await get_or_create_series(
+        db,
+        SeriesScope(
+            instrument_id=instrument.id,
+            data_source_id=execution.data_source.id,
+            feed_scope=feed_scope,
+            session_code=first_bar.session,
+            timeframe=timeframe.value,
+            adjustment_basis=adjustment_basis,
+            adjustment_version=first_bar.adjustment_version,
+        ),
+        canonical=True,
+        source_series_key=(
+            f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
+            f"{first_bar.session}:{adjustment_basis.value}:{first_bar.adjustment_version}"
+        ),
+        provenance={
+            "provider": execution.provider_name,
+            "provider_symbol": provider_symbol,
+            "feed_scope": feed_scope,
+            "session": first_bar.session,
+            "timeframe": timeframe.value,
+            "adjustment_basis": adjustment_basis.value,
+            "adjustment_version": first_bar.adjustment_version,
+        },
+    )
+    for bar in bars:
+        bar.market_series_id = series.id
     return bars
 
 
@@ -1479,11 +1506,16 @@ async def _fetch_provider_latest(
         response_items=lambda result: len(result),
         treat_empty_as_failure=True,
     )
-    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
     bars = execution.result[-limit:] if len(execution.result) > limit else execution.result
-    for bar in bars:
-        bar.instrument_id = instrument.id
-        bar.data_source_id = execution.data_source.id
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+        bars=bars,
+    )
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
     await _record_bar_observations(
         db,
         bars,

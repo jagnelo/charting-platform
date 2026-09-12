@@ -195,6 +195,52 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     assert result[0].market_series_id == 123
 
 
+@pytest.mark.asyncio
+async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=456)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    result = await market_data._fetch_provider_latest(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        10,
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.timeframe == "D1"
+    assert captured["kwargs"]["canonical"] is True
+    assert result[0].market_series_id == 456
+
+
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):
     return SimpleNamespace(ts=ts, timeframe=timeframe)
 
