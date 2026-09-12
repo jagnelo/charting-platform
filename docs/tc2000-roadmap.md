@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence per-point breadth event knowledge
+
+Product commit `070f6ef8` closes the remaining historical event leak in
+breadth history. Event predicates now enforce each event's `fetched_at` against
+the individual breadth point timestamp, so an event fetched later in the
+requested range cannot affect earlier points even when the router loaded it
+for the final `as_of` cutoff.
+
+The focused breadth service suite passed `29/29`; the full backend unit suite
+passed `1523/1523` at `69.02%` coverage; Ruff, formatting, and `git diff
+--check` passed. No provider routing, fallback, visual baseline, mask,
+threshold, skip, or acceptance policy changed. The exact branch gate was
+rerun at this tip and remains pending only at Docker-backed `backend-coverage`
+because the Docker socket returned permission denied.
+
+## 2026-09-12 — Exact per-point breadth gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `070f6ef8`. Git-diff,
+workstream validation (30 records), dependency resolution, migration
+head/compatibility, frontend dependency preparation, Ruff, formatting, and
+TypeScript all passed. The `backend-coverage` stage then stopped after the
+fixed 180-second Docker readiness window because Docker returned permission
+denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence historical Market Map event knowledge
 
 Product commit `26161b90` closes a bounded R2/R6 historical-event provenance

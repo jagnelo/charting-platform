@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence per-point breadth event knowledge
+
+- [x] Enforce each breadth-history event predicate's `fetched_at` cutoff at
+      the individual point timestamp, preventing later-discovered events from
+      affecting earlier points (`070f6ef8`).
+- [x] Focused breadth service coverage passed `29/29`; the full backend unit
+      suite passed `1523/1523` at `69.02%`; Ruff, formatting, and
+      `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
+### 2026-09-12 — Exact per-point breadth gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `070f6ef8`;
+      repository/workstream, dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed. The gate stopped at
+      `backend-coverage` after 180 seconds because Docker returned permission
+      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
+      backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence historical Market Map event knowledge
 
 - [x] Enforce the Market Map event knowledge boundary: event rows and

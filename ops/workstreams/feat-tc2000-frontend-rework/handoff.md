@@ -2,6 +2,31 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence per-point breadth event knowledge
+
+Product commit `070f6ef8` fences each breadth-history event predicate by the
+event's `fetched_at` and the individual point timestamp. A later-discovered
+event can no longer influence an earlier point merely because it was loaded for
+the request's final cutoff. Focused breadth service coverage passed `29/29`,
+the full backend unit suite passed `1523/1523` at `69.02%` coverage, and Ruff,
+formatting, plus `git diff --check` passed. No provider, fallback, visual, or
+acceptance policy changed. The exact gate was rerun at this tip and remains
+pending at Docker-backed `backend-coverage` because the Docker socket returned
+permission denied; do not integrate, promote, deploy, or mutate another
+worktree.
+
+## 2026-09-12 — Exact per-point breadth gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `070f6ef8`. Git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no product
+or visual-policy failure was observed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence historical Market Map event knowledge
 
 Product commit `26161b90` fences Market Map event rows and source fetch-state
