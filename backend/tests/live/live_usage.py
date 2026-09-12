@@ -74,6 +74,10 @@ def ensure_ledger_writable() -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8"):
             pass
+        # Usage receipts can contain provider-native capacity observations.
+        # Keep the owner-managed file private even when it pre-existed with a
+        # permissive mode or was created under a different umask.
+        os.chmod(path, 0o600)
     except OSError as exc:
         raise RuntimeError(f"provider live usage ledger is not writable: {path}") from exc
     return path
@@ -179,8 +183,16 @@ def flush_observations(exit_status: int) -> Path | None:
             for row in rows:
                 handle.write(json.dumps(row, sort_keys=True) + "\n")
             handle.flush()
+            os.fsync(handle.fileno())
         finally:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        # The write itself succeeded; a mode change failure must not erase the
+        # durable usage receipt. The startup preflight still reports mode/path
+        # failures before provider calls in normal live-test operation.
+        pass
     _observations.clear()
     return path
 

@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-12 — Live-ledger crash durability and permissions
+
+- [x] Harden the owner-managed aggregate-only live-usage ledger to mode `0600`
+      during preflight and after writes, and `fsync` each receipt batch before
+      releasing its lock. Focused ledger coverage passes 12/12 and the complete
+      backend unit suite passes 1,775/1,775.
+
 ### 2026-09-12 — Shared local provider admission controls
 
 - [x] Key the process-local token bucket and semaphore by the same explicit

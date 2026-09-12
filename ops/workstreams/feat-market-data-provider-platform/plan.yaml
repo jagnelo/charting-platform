@@ -478,6 +478,12 @@ progress:
       HTTP requests, and 22,749,358 response bytes under run
       `d1125f7c-ad38-41bc-81bc-0b65f68c2ca9`; no credentials or payloads entered
       Git.
+    - >-
+      The external live-usage ledger now hardens its owner-only `0600` mode at
+      preflight/write time and fsyncs each aggregate receipt batch before
+      releasing its lock. Focused ledger coverage passes 12/12 and the complete
+      backend unit suite passes 1,775/1,775; no provider calls were made for
+      this durability change.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

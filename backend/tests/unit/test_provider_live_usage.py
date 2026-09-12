@@ -95,6 +95,18 @@ def test_live_usage_preflight_opens_configured_ledger(tmp_path, monkeypatch):
     assert live_usage.ensure_ledger_writable() == ledger
     assert ledger.exists()
     assert ledger.read_text() == ""
+    assert ledger.stat().st_mode & 0o077 == 0
+
+
+def test_live_usage_preflight_hardens_existing_ledger(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text("existing receipt\n")
+    ledger.chmod(0o644)
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    assert live_usage.ensure_ledger_writable() == ledger
+    assert ledger.stat().st_mode & 0o077 == 0
+    assert ledger.read_text() == "existing receipt\n"
 
 
 def test_live_usage_preflight_fails_before_provider_calls_when_ledger_unwritable(

@@ -44,6 +44,11 @@ permission failure at teardown from spending provider quota without a receipt.
 The same startup check requires a bounded, printable
 `PROVIDER_LIVE_USAGE_SCOPE`; direct pytest invocations cannot silently create
 new unattributed `unspecified` receipts.
+The ledger is opened and permission-hardened to owner-only mode (`0600`) during
+that preflight, and each flushed batch is `fsync`'d before the lock is released.
+This protects cross-session usage evidence against a permissive pre-existing
+file mode and ordinary process/host crashes; it remains observational evidence,
+not a provider-account reservation.
 Set the non-secret `PROVIDER_LIVE_USAGE_SCOPE` label separately for each local
 environment, GitHub environment, and deployment account. The scope is written
 into each receipt and is part of merger deduplication, so identical run IDs
