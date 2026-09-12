@@ -10592,10 +10592,13 @@ Status: `In progress — full completion contract still open`
 Historical note: the current provider adapter/quota ledger is maintained in the
 2026-09-05 entry above. This item remains open specifically for credentialed
 activation and richer options/forward-estimate surfaces, not because the basic
-MarketData.app or FMP REST adapters are absent.
+MarketData.app or FMP REST adapters are absent. MarketData.app's bounded
+credentialed candle path is now live-proven; its options/earnings entitlements
+remain separately unverified.
 
 Context:
-- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)
+- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR,
+  and MarketData.app for delayed candles)
   covering US equity OHLCV, crypto, corporate actions, rates, and historical earnings.
 - The following data types have no viable free alternative and are currently covered only by
   yfinance (unofficial, no SLA):
@@ -10610,7 +10613,8 @@ Low-budget candidates already anticipated in config.py:
   requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
 
 What remains:
-- Credentialed live validation and entitlement review for the optional adapters.
+- Credentialed live validation and entitlement review for the remaining optional adapters;
+  Alpaca and MarketData.app bounded reads, plus Dinari Sandbox tokenized reads, are now live-proven.
 - Add/validate a dedicated `OptionChainProvider` with real greeks and a forward-earnings
   `EventProvider` only when the selected plan/API contract supports those surfaces.
 - Validate/activate the FMP stable `earnings-calendar` event surface and add

@@ -232,7 +232,7 @@ logs, health state, capacity events, or live-probe failure output. The redactor
 removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
-Current local validation (2026-09-11) has passing EDGAR, Alpaca, MarketData.app,
+Current local validation (2026-09-12) has passing EDGAR, Alpaca, MarketData.app,
 and Dinari Sandbox probes. MarketData.app required its provider-mandated
 trailing slash. Dinari initially returned typed HTTP 401 because the
 operator-only endpoint was still the live host; after switching to the
@@ -247,6 +247,12 @@ capacity response for IPO-calendar and exact credential preflights for the
 intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
 response-byte telemetry was written outside Git; no credential or payload was
 persisted.
+
+The 2026-09-12 focused refresh passed 4/4 newly enabled-provider checks:
+EDGAR profile and complete directory pagination, Alpaca paper-account history,
+MarketData.app daily candles, and the Dinari Sandbox metadata, quote/history,
+news, dividend, and split case. The refresh used the operator-owned environment
+and retained only aggregate transport telemetry outside Git.
 
 A provider may
 have a green live probe and remain non-routable when any external constraint
