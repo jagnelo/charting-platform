@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.listing import InstrumentListing
@@ -455,6 +456,67 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
         == "Bitcoin"
     )
     assert len(snapshots) == 2
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_merge_same_ticker_across_venues(db, monkeypatch):
+    """A ticker collision across known venues creates two canonical securities."""
+
+    async_db = AsyncSessionAdapter(db)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 2,
+                "quotes": [
+                    {
+                        "symbol": "DUAL",
+                        "longName": "Dual Nasdaq",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                    },
+                    {
+                        "symbol": "DUAL",
+                        "longName": "Dual New York",
+                        "currency": "USD",
+                        "exchange": "NYSE",
+                    },
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    instruments = db.query(Instrument).filter(Instrument.symbol == "DUAL").all()
+    assert result["created"] == 2
+    assert len(instruments) == 2
+    assert {
+        db.query(Exchange).filter(Exchange.id == listing.exchange_id).one().mic
+        for instrument in instruments
+        for listing in instrument.listings
+    } == {"XNAS", "XNYS"}
 
 
 @pytest.mark.asyncio

@@ -22,10 +22,15 @@ from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
+from app.models.listing import InstrumentListing
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.providers.errors import redact_provider_message
-from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
+from app.services.exchange_catalog import (
+    coerce_listing_lifecycle_at,
+    normalize_exchange_mic,
+    upsert_instrument_listing,
+)
 from app.services.instrument_mastering import (
     ensure_external_identifier,
     ensure_internal_identifier,
@@ -151,6 +156,40 @@ def _listing_evidence(
     }
 
 
+def _seed_symbol_key(value: str | None) -> str:
+    """Normalize a discovery ticker for matching within one provider page.
+
+    This is deliberately only a comparison key.  The provider's original
+    symbol remains in the listing/provider-symbol rows and in provenance.
+    """
+
+    return str(value or "").strip().upper()
+
+
+def _add_unique_seed_candidate(
+    candidates: dict[tuple[str, str | None, int], Instrument],
+    ambiguous: set[tuple[str, str | None, int]],
+    key: tuple[str, str | None, int],
+    instrument: Instrument,
+) -> None:
+    """Index an existing listing only when the comparison key is unique.
+
+    A duplicate key is an identity ambiguity, not permission to pick the first
+    row returned by the database.  Ambiguous keys are kept out of promotion by
+    ``seed_universe`` and remain available in the discovery snapshot for a
+    separate reconciliation decision.
+    """
+
+    if key in ambiguous:
+        return
+    previous = candidates.get(key)
+    if previous is None:
+        candidates[key] = instrument
+    elif previous is not instrument:
+        candidates.pop(key, None)
+        ambiguous.add(key)
+
+
 async def _upsert_listing(
     db: AsyncSession,
     instrument: Instrument,
@@ -248,8 +287,10 @@ async def seed_universe(db: AsyncSession) -> dict:
       FUTURE                            → FutureDetail with best-effort fields
       all quote types                   → InstrumentListing + InstrumentStats when available
 
-    Existing symbols have their metadata updated; new symbols get a new
-    Instrument row.  Commits every page.
+    Existing venue/type-qualified listings have their metadata updated; new
+    venue/type combinations get a new Instrument row.  A venue-less legacy
+    listing is enriched only when it is the sole unqualified candidate.
+    Commits every page.
     """
     # Pre-resolve all InstrumentType IDs so we don't hit the DB per quote
     type_id_map: dict[str, int] = {}
@@ -260,13 +301,79 @@ async def seed_universe(db: AsyncSession) -> dict:
     # Determine which quote types use EquityDetail
     _EQUITY_DETAIL_TYPES = {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
 
-    # Pre-load symbol → Instrument for cheap existence checks (exclude synthetics)
-    existing: dict[str, Instrument] = {
-        row.symbol: row
-        for row in (await db.execute(select(Instrument).where(Instrument.is_synthetic.is_(False))))
+    # Pre-load venue/type-qualified candidates for cheap existence checks
+    # (exclude synthetics).  A symbol alone is not a security identity: the
+    # same ticker can be listed on multiple venues, and a provider can emit
+    # the same ticker for different quote types.  Only unique listing keys may
+    # be promoted; duplicate local keys remain ambiguous until reconciliation.
+    existing_instruments = (
+        (
+            await db.execute(
+                select(Instrument)
+                .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+                .where(Instrument.is_synthetic.is_(False))
+            )
+        )
         .scalars()
+        .unique()
         .all()
-    }
+    )
+    existing_by_key: dict[tuple[str, str | None, int], Instrument] = {}
+    ambiguous_keys: set[tuple[str, str | None, int]] = set()
+    unqualified_by_symbol_type: dict[tuple[str, int], Instrument] = {}
+    ambiguous_unqualified: set[tuple[str, int]] = set()
+    known_venue_symbol_types: set[tuple[str, int]] = set()
+
+    for existing_instrument in existing_instruments:
+        instrument_type_key = existing_instrument.instrument_type_id
+        listings = list(existing_instrument.listings or [])
+        if not listings:
+            unqualified_key = (_seed_symbol_key(existing_instrument.symbol), instrument_type_key)
+            if unqualified_key in ambiguous_unqualified:
+                continue
+            previous = unqualified_by_symbol_type.get(unqualified_key)
+            if previous is None:
+                unqualified_by_symbol_type[unqualified_key] = existing_instrument
+            elif previous is not existing_instrument:
+                unqualified_by_symbol_type.pop(unqualified_key, None)
+                ambiguous_unqualified.add(unqualified_key)
+            continue
+
+        has_known_venue = False
+        for listing in listings:
+            exchange_mic = normalize_exchange_mic(
+                listing.exchange.mic if listing.exchange is not None else None
+            )
+            listing_key = (
+                _seed_symbol_key(listing.ticker),
+                exchange_mic,
+                instrument_type_key,
+            )
+            if exchange_mic is not None:
+                has_known_venue = True
+                known_venue_symbol_types.add((listing_key[0], instrument_type_key))
+                _add_unique_seed_candidate(
+                    existing_by_key,
+                    ambiguous_keys,
+                    listing_key,
+                    existing_instrument,
+                )
+
+        # A legacy venue-less listing can be enriched once by a qualified
+        # discovery row, but only while no known venue exists for that
+        # instrument.  Two venue-less rows with the same symbol/type are also
+        # ambiguous and must not be merged implicitly.
+        if not has_known_venue:
+            for listing in listings:
+                unqualified_key = (_seed_symbol_key(listing.ticker), instrument_type_key)
+                if unqualified_key in ambiguous_unqualified:
+                    continue
+                previous = unqualified_by_symbol_type.get(unqualified_key)
+                if previous is None:
+                    unqualified_by_symbol_type[unqualified_key] = existing_instrument
+                elif previous is not existing_instrument:
+                    unqualified_by_symbol_type.pop(unqualified_key, None)
+                    ambiguous_unqualified.add(unqualified_key)
 
     created = 0
     updated = 0
@@ -347,7 +454,30 @@ async def seed_universe(db: AsyncSession) -> dict:
                     currency = q.get("currency")
                     exchange = q.get("exchange") or q.get("fullExchangeName")
 
-                    inst = existing.get(symbol)
+                    symbol_key = _seed_symbol_key(symbol)
+                    exchange_mic = normalize_exchange_mic(exchange)
+                    qualified_key = (symbol_key, exchange_mic, type_id)
+                    symbol_type_key = (symbol_key, type_id)
+
+                    # Prefer an exact venue/type match.  A venue-less legacy
+                    # listing may be enriched only when it is the sole
+                    # unqualified candidate and no known venue already claims
+                    # this symbol/type.  Never fall back from one known venue
+                    # to another, and never select an arbitrary duplicate.
+                    inst = existing_by_key.get(qualified_key)
+                    if qualified_key in ambiguous_keys:
+                        logger.warning(
+                            "seed_universe: local identity ambiguity for %s (%s/%s); "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            exchange or "unknown venue",
+                            quote_type,
+                        )
+                        continue
+                    if inst is None and symbol_type_key not in ambiguous_unqualified:
+                        if exchange_mic is None or symbol_type_key not in known_venue_symbol_types:
+                            inst = unqualified_by_symbol_type.get(symbol_type_key)
+
                     if inst is None:
                         inst = Instrument(
                             symbol=symbol,
@@ -358,7 +488,16 @@ async def seed_universe(db: AsyncSession) -> dict:
                         )
                         db.add(inst)
                         await db.flush()
-                        existing[symbol] = inst
+                        _add_unique_seed_candidate(
+                            existing_by_key,
+                            ambiguous_keys,
+                            qualified_key,
+                            inst,
+                        )
+                        if exchange_mic is None:
+                            unqualified_by_symbol_type[symbol_type_key] = inst
+                        else:
+                            known_venue_symbol_types.add(symbol_type_key)
                         created += 1
                     else:
                         if name:
@@ -403,6 +542,18 @@ async def seed_universe(db: AsyncSession) -> dict:
                         delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
                         source=page_provider_name,
                     )
+                    # Make the just-observed venue/type key available to later
+                    # rows in this run.  This is essential when a legacy
+                    # venue-less listing was enriched: a following row for a
+                    # different venue must create a distinct instrument.
+                    _add_unique_seed_candidate(
+                        existing_by_key,
+                        ambiguous_keys,
+                        qualified_key,
+                        inst,
+                    )
+                    if exchange_mic is not None:
+                        known_venue_symbol_types.add(symbol_type_key)
                     listing_evidence = _listing_evidence(
                         q,
                         provider_name=page_provider_name,
@@ -642,7 +793,9 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                     ProviderCapability.INSTRUMENT_METADATA,
                     "sync_instrument_profile",
                     instrument_id=inst.id,
-                    usage_identity=lambda provider_name: provider_symbol_for_instrument(inst, provider_name),
+                    usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                        inst, provider_name
+                    ),
                     invoke=lambda provider, _provider_symbol: provider.get_instrument_profile(
                         provider_symbol_for_instrument(inst, provider.name)
                     ),
