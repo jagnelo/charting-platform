@@ -4062,13 +4062,16 @@ async def benchmark_family_coverage(
                             ETFHoldingsSnapshot.known_at.desc().nullslast(),
                             ETFHoldingsSnapshot.id.desc(),
                         )
-                        .limit(limit)
+                        # Fetch one lookahead row so the response can distinguish
+                        # an exactly-full result from a truncated history window.
+                        .limit(limit + 1)
                     )
                 )
                 .scalars()
                 .all()
             )
-            continuity_snapshot_limit_reached = len(snapshot_rows) >= limit
+            continuity_snapshot_limit_reached = len(snapshot_rows) > limit
+            snapshot_rows = snapshot_rows[:limit]
             snapshots = [
                 BenchmarkFamilyCoverageSnapshotOut(
                     snapshot_id=row.id,

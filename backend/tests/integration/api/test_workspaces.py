@@ -755,6 +755,18 @@ class TestWorkspaces:
         assert roles["growth"]["status"] == "mapping_unavailable"
         assert payload["coverage"] == 0.25
 
+        exact_window = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+            params={"limit": 2},
+        )
+        assert exact_window.status_code == 200, exact_window.text
+        exact_window_cap = next(
+            role for role in exact_window.json()["roles"] if role["role"] == "cap_weight"
+        )
+        assert len(exact_window_cap["snapshots"]) == 2
+        assert exact_window_cap["continuity_snapshot_limit_reached"] is False
+
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp500/coverage",
             headers=auth_headers,
