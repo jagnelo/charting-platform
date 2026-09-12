@@ -26,6 +26,7 @@ from app.providers import get_provider, list_provider_capabilities, supported_pr
 from app.providers.base import MarketEventRecord
 from app.providers.errors import bounded_redact_provider_message
 from app.services.market_data_persistence import persist_market_event
+from app.services.market_event_reconciliation import reconcile_market_events
 from app.services.provider_runtime import execute_provider_call
 
 _SYMBOL_FIELDS = (
@@ -297,6 +298,7 @@ async def refresh_market_events(
         total_linked += provider_linked
         total_unlinked += provider_unlinked
 
+    reconciliation = await reconcile_market_events(db, start=start, end=end)
     await db.commit()
     return {
         "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
@@ -311,6 +313,7 @@ async def refresh_market_events(
         "linked": total_linked,
         "unlinked": total_unlinked,
         "failures": failures,
+        "reconciliation": reconciliation,
     }
 
 
@@ -451,6 +454,7 @@ async def refresh_edgar_ipo_pipeline(
         total_linked += linked
         total_unlinked += unlinked
 
+    reconciliation = await reconcile_market_events(db, start=start, end=end)
     await db.commit()
     return {
         "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
@@ -463,4 +467,5 @@ async def refresh_edgar_ipo_pipeline(
         "unlinked": total_unlinked,
         "failures": failures,
         "issuers": issuer_results,
+        "reconciliation": reconciliation,
     }

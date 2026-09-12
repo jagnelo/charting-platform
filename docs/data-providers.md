@@ -389,9 +389,19 @@ with inclusive `start`/`end` dates and optional `event_type`, `source`,
 `instrument_id`, `issuer_id`, and `limit` filters. Events with only a timestamp
 remain queryable when no effective date was published, and provider payloads
 and provisional status are returned for provenance-aware consumers.
-This does not add a frontend calendar surface; reconciliation, pre-listing
-materialization, and calendar UX remain tracked separately in
-`project-todos.md`.
+After persistence, the backend runs the bounded `market_event_consensus_v1`
+reconciliation pass. It groups only exact event-type plus canonical target
+(instrument, issuer, or explicit venue MIC) plus occurrence-date matches. Rows
+without a stable target/date remain ungrouped. A group with multiple sources is
+`corroborated` only when every compared semantic field agrees; differing values
+become a durable `conflicted` group with per-source values, while a single
+source remains `single_source`. Provider rows and raw payloads are never
+overwritten. Operators can inspect these groups through the authenticated
+admin-only `GET /api/v1/market-data/event-consensus` endpoint, filtered by
+status, event type, instrument, or issuer. This is a reconciliation candidate
+layer, not a listing-date authority, and does not yet materialize pre-listing
+instruments or add a frontend calendar surface; those remain tracked separately
+in `project-todos.md`.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|

@@ -18,6 +18,7 @@ from app.models.market_data_foundation import (
     MarketCoverageSnapshot,
     MarketDataAnomaly,
     MarketEvent,
+    MarketEventConsensus,
     MarketRefreshJob,
     MarketSeries,
     MarketUniverseLifecycleObservation,
@@ -433,6 +434,7 @@ async def list_market_events(
             "id": row.id,
             "event_type": row.event_type,
             "event_key": row.event_key,
+            "consensus_id": row.consensus_id,
             "instrument_id": row.instrument_id,
             "issuer_id": row.issuer_id,
             "event_time": row.event_time,
@@ -440,6 +442,61 @@ async def list_market_events(
             "source": row.source,
             "is_provisional": row.is_provisional,
             "payload": row.payload,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/event-consensus")
+async def list_market_event_consensus(
+    status: str | None = Query(default=None, min_length=1, max_length=24),
+    event_type: str | None = Query(default=None, min_length=1, max_length=80),
+    instrument_id: int | None = Query(default=None, ge=1),
+    issuer_id: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose conservative cross-provider event groups for operator review."""
+
+    filters = []
+    if status:
+        filters.append(MarketEventConsensus.status == status.strip().lower())
+    if event_type:
+        filters.append(MarketEventConsensus.event_type == event_type.strip().lower())
+    if instrument_id is not None:
+        filters.append(MarketEventConsensus.instrument_id == instrument_id)
+    if issuer_id is not None:
+        filters.append(MarketEventConsensus.issuer_id == issuer_id)
+    query = (
+        select(MarketEventConsensus)
+        .order_by(MarketEventConsensus.last_observed_at.desc(), MarketEventConsensus.id.desc())
+        .limit(limit)
+    )
+    if filters:
+        query = query.where(*filters)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "consensus_key": row.consensus_key,
+            "event_type": row.event_type,
+            "instrument_id": row.instrument_id,
+            "issuer_id": row.issuer_id,
+            "effective_date": row.effective_date,
+            "event_time": row.event_time,
+            "announced_at": row.announced_at,
+            "status": row.status,
+            "observation_count": row.observation_count,
+            "source_count": row.source_count,
+            "agreement_fields": row.agreement_fields,
+            "conflict_fields": row.conflict_fields,
+            "canonical_payload": row.canonical_payload,
+            "first_observed_at": row.first_observed_at,
+            "last_observed_at": row.last_observed_at,
+            "resolved_at": row.resolved_at,
+            "resolution": row.resolution,
+            "provenance": row.provenance,
         }
         for row in rows
     ]

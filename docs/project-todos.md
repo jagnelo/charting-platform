@@ -11270,7 +11270,10 @@ What remains:
   authenticated backend read path is now available at
   `/api/v1/calendar/market-events` with bounded inclusive date and identity
   filters; reads are database-only and return source/provisional payload
-  provenance. The remaining work is cross-provider reconciliation,
+  provenance. A durable, conservative `market_event_consensus_v1` pass now
+  groups only exact event-type/target/date candidates, preserves provider rows,
+  and records corroboration or field-level conflicts for the admin-only
+  `/api/v1/market-data/event-consensus` read path. The remaining work is
   pre-listing materialization, EDGAR/Alpha feed completion, and calendar-facing
   product surfaces; do not overload the per-instrument event fetch path with
   market-wide future events.

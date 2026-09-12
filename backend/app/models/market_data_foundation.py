@@ -510,6 +510,12 @@ class MarketEvent(Base, TimestampMixin):
     __tablename__ = "market_event"
 
     id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    consensus_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("market_event_consensus.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     instrument_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=True, index=True
     )
@@ -528,7 +534,65 @@ class MarketEvent(Base, TimestampMixin):
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     is_provisional: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    consensus: Mapped["MarketEventConsensus | None"] = relationship(
+        back_populates="observations",
+        foreign_keys=[consensus_id],
+    )
+
     __table_args__ = (UniqueConstraint("event_key", "source", name="uq_market_event_source_key"),)
+
+
+class MarketEventConsensus(Base, TimestampMixin):
+    """Conservative cross-provider event reconciliation result.
+
+    Provider observations remain the source of truth in ``market_event``.  A
+    consensus row is only a durable candidate grouping: unresolved observations
+    are left ungrouped, and groups with different semantic values are marked
+    ``conflicted`` rather than silently selecting one provider's value.
+    """
+
+    __tablename__ = "market_event_consensus"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    consensus_key: Mapped[str] = mapped_column(String(180), nullable=False, unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    issuer_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    effective_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    event_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="single_source", index=True)
+    observation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    source_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    agreement_fields: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    conflict_fields: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    canonical_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    first_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    observations: Mapped[list[MarketEvent]] = relationship(
+        back_populates="consensus",
+        foreign_keys="MarketEvent.consensus_id",
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_market_event_consensus_target_date",
+            "instrument_id",
+            "issuer_id",
+            "effective_date",
+        ),
+        Index("ix_market_event_consensus_status_observed", "status", "last_observed_at"),
+    )
 
 
 class FundamentalFact(Base, TimestampMixin):

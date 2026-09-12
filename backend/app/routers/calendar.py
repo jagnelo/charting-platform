@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
@@ -54,6 +55,8 @@ class MarketCalendarEvent(BaseModel):
     id: int
     event_type: str
     event_key: str
+    consensus_id: int | None = None
+    consensus_status: str | None = None
     event_time: datetime | None = None
     effective_date: date | None = None
     announced_at: datetime | None = None
@@ -201,6 +204,7 @@ async def get_market_events(
 
     query = (
         select(MarketEvent)
+        .options(selectinload(MarketEvent.consensus))
         .order_by(
             MarketEvent.effective_date.desc().nullslast(),
             MarketEvent.event_time.desc().nullslast(),
@@ -216,6 +220,8 @@ async def get_market_events(
             id=row.id,
             event_type=row.event_type,
             event_key=row.event_key,
+            consensus_id=row.consensus_id,
+            consensus_status=row.consensus.status if row.consensus is not None else None,
             event_time=row.event_time,
             effective_date=row.effective_date,
             announced_at=row.announced_at,
