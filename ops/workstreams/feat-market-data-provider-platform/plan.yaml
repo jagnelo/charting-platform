@@ -1069,6 +1069,16 @@ progress:
       provider/tokenized migration, but generic migration compatibility remains
       blocked by the repository's pre-existing duplicate revision and multiple
       Alembic heads; no unrelated heads were merged in this branch.
+    - >-
+      Refresh-job attempt outcomes are now durable rather than represented only
+      by the queue status. `MarketRefreshJob` retains started/finished timestamps
+      and a redacted result summary; workers record observed-bar counts and
+      explicit empty responses, while retry/defer paths retain bounded error and
+      provider-reset evidence. The admin refresh-queue diagnostic exposes these
+      fields without lease tokens. Focused queue/worker/migration coverage passed
+      49/49, the admin PostgreSQL integration passed 3/3, and the full
+      Docker-backed gate passed 2,393/2,393 at 81.35% coverage. Source
+      checkpoint: `a4af6f95d`; no frontend or ETF-provider files changed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1118,6 +1128,10 @@ progress:
     blocked from generic compatibility validation by the pre-existing duplicate
     Alembic revision and multiple heads; this branch does not reconcile unrelated
     migration history.
+    Refresh jobs now retain durable attempt timestamps and redacted result
+    summaries, including observed versus empty outcomes and retry/defer evidence;
+    this improves evaluator coordination but does not itself complete the open
+    future breadth/signal preflight migration.
     The normalized market-event persistence/worker path, durable cross-provider
     candidate reconciliation, and audited pre-listing materialization/promotion
     workflow are implemented and remain disabled by default; the authenticated
@@ -1329,4 +1343,4 @@ progress:
       `81.33%` combined coverage and 89 warnings; its labeled test resources
       were cleaned. Source checkpoint `a8ee8573` contains no provider,
       frontend, or ETF-provider adapter changes.
-  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; resolve the pre-existing duplicate Alembic revision/multiple-head graph in coordinator scope before promoting the new provider migration; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `3950f477c`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, account-usage, bounded MarketData.app live probe, and changed-file gates are green, while provider/legal/deployment/shadow and generic migration compatibility gates remain open.
+  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; resolve the pre-existing duplicate Alembic revision/multiple-head graph in coordinator scope before promoting the new provider migrations; extend the coordinator-backed preflight to future breadth/signal engines and connect evaluator readiness to persisted refresh-job outcomes; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, durable refresh-job attempt/outcome summaries, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota acquisition-unit validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, and green Docker-backed backend integration validation are implemented in source checkpoint `a4af6f95d`; the complete backend unit/integration gate, focused provider-registry/runtime, wiring, quota-safety, pagination, account-usage, refresh-outcome, bounded MarketData.app live probe, and changed-file gates are green, while provider/legal/deployment/shadow, future-evaluator coordination, and generic migration compatibility gates remain open.
