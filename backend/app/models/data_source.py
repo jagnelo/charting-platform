@@ -41,6 +41,9 @@ class DataSource(Base, TimestampMixin):
     provider_request_logs: Mapped[list["ProviderRequestLog"]] = relationship(
         back_populates="data_source"
     )
+    provider_account_usage_observations: Mapped[list["ProviderAccountUsageObservation"]] = relationship(
+        back_populates="data_source", cascade="all, delete-orphan"
+    )
     dataset_states: Mapped[list["InstrumentDatasetState"]] = relationship(
         back_populates="data_source"
     )

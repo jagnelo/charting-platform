@@ -34,6 +34,14 @@ class TestProvidersApi:
         assert policies.json()
         assert health.json()
 
+    def test_native_account_usage_is_admin_only_and_durable_endpoint_exists(
+        self, client, admin_headers, auth_headers
+    ):
+        assert client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
+        response = client.get("/api/v1/providers/usage/account", headers=admin_headers)
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
     def test_patch_invalid_capability_rejected(self, client, admin_headers):
         res = client.patch(
             "/api/v1/providers/policies/yfinance/not-a-capability",

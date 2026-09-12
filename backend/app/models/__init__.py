@@ -81,6 +81,7 @@ from app.models.provider_observation import (
     UniverseDiscoverySnapshot,
 )
 from app.models.provider_runtime import (
+    ProviderAccountUsageObservation,
     ProviderAvailabilityObservation,
     ProviderAvailabilityRun,
     ProviderCapability,
@@ -185,6 +186,7 @@ __all__ = [
     "ProviderHealthState",
     "ProviderAvailabilityRun",
     "ProviderAvailabilityObservation",
+    "ProviderAccountUsageObservation",
     "ProviderRequestLog",
     "ProviderCapacityEvent",
     "DatasetStatus",

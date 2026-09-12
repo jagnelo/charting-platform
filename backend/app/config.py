@@ -153,6 +153,7 @@ class Settings(BaseSettings):
         "ondo_global_markets",
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
+        "account_usage": ["marketdata_app"],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
@@ -1016,6 +1017,9 @@ class Settings(BaseSettings):
                 # so a fixed request cost would under-account the
                 # response-dependent charge.
                 "list_option_expirations": 1,
+                # Account introspection is a provider request and must be
+                # visible in the same durable credit ledger as data reads.
+                "fetch_account_usage": 1,
             },
         },
         "coinbase": {

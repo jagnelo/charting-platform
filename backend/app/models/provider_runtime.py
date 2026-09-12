@@ -23,6 +23,7 @@ from app.models.base import TimestampMixin
 
 
 class ProviderCapability(str, enum.Enum):
+    ACCOUNT_USAGE = "account_usage"
     INSTRUMENT_SEARCH = "instrument_search"
     INSTRUMENT_METADATA = "instrument_metadata"
     PRICE_HISTORY = "price_history"
@@ -282,6 +283,39 @@ class ProviderRequestLog(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_provider_request_log_capability_requested", "capability", "requested_at"),
         Index("ix_provider_request_log_source_requested", "data_source_id", "requested_at"),
+    )
+
+
+class ProviderAccountUsageObservation(Base, TimestampMixin):
+    """Provider-native account counters retained across process sessions.
+
+    These values are observations only. They never become a routing policy
+    automatically because providers may report rolling, calendar, plan, or
+    endpoint-specific windows with different semantics.
+    """
+
+    __tablename__ = "provider_account_usage_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    remaining: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    consumed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    options_data_permissions: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+    data_source: Mapped["DataSource"] = relationship(
+        back_populates="provider_account_usage_observations"
+    )
+
+    __table_args__ = (
+        Index("ix_provider_account_usage_source_observed", "data_source_id", "observed_at"),
     )
 
 

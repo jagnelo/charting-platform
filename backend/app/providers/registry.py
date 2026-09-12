@@ -272,6 +272,7 @@ for _provider_name in settings.PROVIDER_RATE_LIMIT_SEEDS:
 
 def _capability_names(provider: ProviderDescriptor) -> list[str]:
     capabilities: list[tuple[tuple[str, ...], str]] = [
+        (("fetch_account_usage",), "account_usage"),
         (("search_instruments",), "instrument_search"),
         (("get_instrument_profile",), "instrument_metadata"),
         (("fetch_ohlcv", "fetch_latest_ohlcv", "latest_window_start"), "price_history"),

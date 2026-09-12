@@ -85,6 +85,27 @@ capability; the runtime never infers account sharing from a generic scope label.
 Existing windows are backfilled by migration `7d8e9f0a1b2c`, and admin/usage
 diagnostics expose both the request capability and bucket group.
 
+### Provider-native account usage observations
+
+Local request logs and quota windows are durable across processes and sessions,
+but they cannot know a provider's account-side counters unless that provider
+publishes an introspection endpoint.  Such counters therefore have a separate
+`account_usage` capability and observation table.  The current concrete
+implementation is MarketData.app's authenticated `GET /user/` endpoint:
+
+```sh
+POST /api/v1/providers/usage/account/refresh   # admin-only, explicit poll
+GET  /api/v1/providers/usage/account            # admin-only, durable history
+```
+
+The refresh is admitted through the same credential, live-probe, provider
+quota, operation-cost, and circuit-breaker checks as any other request.  The
+returned limit/remaining/consumed/reset/options values are stored verbatim as
+observations; they never replace the reviewed local plan, infer a reset window,
+or widen routing. Providers without a documented native usage surface remain
+represented by durable request/byte/header telemetry and are not queried
+through a guessed endpoint.
+
 ## Provider capability and quota ledger
 
 The table below is the checked-in contract used by `ProviderPolicy` and the
@@ -119,7 +140,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | EODHD | long-history daily EOD, fixture-covered fundamentals/profile adapter, US exchange list | `EODHD_API_KEY` | Free 20 API calls/day and 1,000 requests/minute; EOD free history is limited to one year; the supplied free key returned HTTP 403 for Fundamentals, while the official plan description limits free access to EOD history and exchange lists; data-heavy endpoints consume multiple calls (fundamentals/options 10, intraday/technical/news 5) | API key / minute requests + GMT calendar-day call budget | EOD daily/weekly/monthly history live-proven; Fundamentals is explicitly non-routable for the current free entitlement and its 403 is retained as typed evidence |
 | FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search, current option expirations/chains with provider Greeks | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | option endpoints normalize OCC symbols, contract fields, and nested Greeks; account live evidence required |
-| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year; expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; the live option-chain probe is bounded to 20 contracts, while chain routing remains fail-closed at the default zero bound |
+| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year; expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; the live option-chain probe is bounded to 20 contracts, while chain routing remains fail-closed at the default zero bound; authenticated account counters are available through `GET /providers/usage/account` after an explicit admin refresh and are persisted across sessions without widening routing limits |
 | IBKR | read-only Client Portal Gateway security search, instrument profile, raw historical OHLCV, and latest-price snapshots; options/futures-specific methods remain unimplemented | `IBKR_READ_ONLY_URL`, `IBKR_READ_ONLY_SESSION_COOKIE`, optional `IBKR_CONID_MAP` | Global 10 requests/sec/session; historical endpoint 50 requests/minute, max 5 concurrent, and max 1,000 bars per response; endpoint-specific pacing and penalty-box behavior apply | authenticated gateway session / rolling endpoint windows; interactive gateway login is required and may need to be renewed daily | concrete adapter is fixture-covered; raw history/latest/profile remain non-routable until a gateway session and bounded live evidence are supplied; adjusted history is filtered before routing |
 | xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published; official legal materials state xStocks are not available in the United States or to U.S. persons | public endpoint / unknown | public metadata and price-endpoint probe passed; an explicit null quote while the selected token's session was closed is retained as provider state; non-routable until quota, jurisdiction, and redistribution eligibility are verified |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |

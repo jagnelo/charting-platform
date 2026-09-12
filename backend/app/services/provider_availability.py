@@ -51,6 +51,7 @@ Probe = Callable[[str, ProviderCapability, dict[str, Any]], Any | Awaitable[Any]
 
 def representative_request(capability: ProviderCapability) -> dict[str, Any]:
     values: dict[ProviderCapability, dict[str, Any]] = {
+        ProviderCapability.ACCOUNT_USAGE: {"symbol": "account"},
         ProviderCapability.INSTRUMENT_SEARCH: {"query": "SPY", "limit": 1},
         ProviderCapability.INSTRUMENT_METADATA: {"symbol": "SPY"},
         ProviderCapability.PRICE_HISTORY: {"symbol": "SPY", "timeframe": "D1", "limit": 5},
@@ -98,6 +99,7 @@ def representative_operation(capability: ProviderCapability) -> str | None:
     """
 
     return {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
         ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
         ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
         ProviderCapability.PRICE_HISTORY: "fetch_latest_ohlcv",
@@ -179,6 +181,7 @@ async def default_probe(
 ) -> Any:
     provider = get_provider(provider_name)
     method_name = {
+        ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
         ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
         ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
         ProviderCapability.LATEST_PRICE: "get_current_price",

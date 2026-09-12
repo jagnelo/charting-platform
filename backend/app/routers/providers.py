@@ -22,6 +22,10 @@ from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
 )
+from app.services.provider_account_usage import (
+    list_provider_account_usage,
+    refresh_provider_account_usage,
+)
 from app.services.provider_availability import (
     latest_availability,
     recent_availability_runs,
@@ -279,6 +283,29 @@ async def get_provider_usage(
     current_user: User = Depends(get_current_user),
 ):
     return await summarize_provider_usage(db)
+
+
+@router.get("/usage/account")
+async def get_provider_account_usage(
+    provider: str | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Return provider-native account counters retained across sessions."""
+
+    return await list_provider_account_usage(db, provider_name=provider, limit=limit)
+
+
+@router.post("/usage/account/refresh")
+async def refresh_provider_account_usage_endpoint(
+    provider: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Explicitly poll one reviewed provider account-usage endpoint."""
+
+    return await refresh_provider_account_usage(db, provider_name=provider)
 
 
 @router.get("/availability")

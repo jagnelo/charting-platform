@@ -17,9 +17,20 @@ class TestProvidersRouter:
         assert client.get("/api/v1/providers/observations/summary").status_code == 401
         assert client.get("/api/v1/providers/datasets/stale").status_code == 401
         assert client.get("/api/v1/providers/usage").status_code == 401
+        assert client.get("/api/v1/providers/usage/account").status_code == 401
+        assert client.post("/api/v1/providers/usage/account/refresh").status_code == 401
         assert client.get("/api/v1/providers/reconciliation/issues").status_code == 401
 
     def test_provider_governance_requires_admin(self, client, auth_headers):
+        assert (
+            client.get("/api/v1/providers/usage/account", headers=auth_headers).status_code == 403
+        )
+        assert (
+            client.post(
+                "/api/v1/providers/usage/account/refresh", headers=auth_headers
+            ).status_code
+            == 403
+        )
         assert (
             client.get(
                 "/api/v1/providers/reconciliation/issues",
