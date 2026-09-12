@@ -428,6 +428,10 @@ let historyGeneration = 0
 // generation so teardown cannot repopulate a detached surface.
 let historyActionGeneration = 0
 let sourceActionGeneration = 0
+// Source cloning performs a resolved-member read followed by sequential
+// watchlist writes. Keep the whole action scoped to the mounted source so a
+// late response or source switch cannot keep mutating a detached map.
+let sourceCloneGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -524,7 +528,9 @@ function sourceSnapshotDescription(source: WatchlistSource): string {
 
 async function cloneActiveSource() {
   const source = activeSource.value
-  if (!source || !map.value || sourceCloneBusy.value) return
+  if (!componentMounted || !source || !map.value || sourceCloneBusy.value) return
+  const generation = ++sourceCloneGeneration
+  const requestSourceId = source.source_id
   sourceCloneBusy.value = true
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
@@ -534,53 +540,69 @@ async function cloneActiveSource() {
   try {
     const asOf = source.composition_date ? `${source.composition_date}T23:59:59Z` : null
     const resolved = await watchlistStore.resolveWatchlistSource(source.source_id, asOf)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     const memberIds = [...new Set((resolved?.members ?? []).map(member => member.instrument_id).filter(id => Number.isInteger(id) && id > 0))]
     if (!memberIds.length) throw new Error('The selected source has no canonical members available to clone.')
     const descriptor = resolved?.source ?? source
     const created = await watchlistStore.createWatchlist(sourceSnapshotName(descriptor), sourceSnapshotDescription(descriptor))
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     if (!created) throw new Error('Unable to create the cloned watchlist.')
     const existingIds = new Set((created.items ?? []).map(item => item.instrument_id))
     const pendingIds = memberIds.filter(instrumentId => !existingIds.has(instrumentId))
-    const result = await addCloneMembers(created.id, pendingIds)
+    const result = await addCloneMembers(created.id, pendingIds, generation, requestSourceId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     sourceCloneRetryTargetId.value = result.failed.length ? created.id : null
     sourceCloneRetryIds.value = result.failed
     sourceCloneRetryTotal.value = memberIds.length
     sourceCloneMessage.value = `${result.added + existingIds.size}/${memberIds.length} members cloned as ${created.name} · ${descriptor.membership_version ?? 'current snapshot'}${result.failed.length ? ` · ${result.failed.length} pending (${result.failed.join(', ')})` : ''}`
   } catch (cause) {
-    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+    if (componentMounted && generation === sourceCloneGeneration && sourceId.value === requestSourceId) {
+      sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+    }
   } finally {
-    sourceCloneBusy.value = false
+    if (generation === sourceCloneGeneration) sourceCloneBusy.value = false
   }
 }
 
-async function addCloneMembers(targetId: number, memberIds: number[]) {
+async function addCloneMembers(targetId: number, memberIds: number[], generation: number, requestSourceId: string) {
   const failed: number[] = []
   let added = 0
-  for (const instrumentId of memberIds) {
+  for (const [index, instrumentId] of memberIds.entries()) {
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) {
+      return { added, failed: [...failed, ...memberIds.slice(index)], canceled: true }
+    }
     const result = await watchlistStore.addItem(targetId, instrumentId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) {
+      return { added, failed: [...failed, ...memberIds.slice(index + 1)], canceled: true }
+    }
     if (result) added += 1
     else failed.push(instrumentId)
   }
-  return { added, failed }
+  return { added, failed, canceled: false }
 }
 
 async function retrySourceClone() {
   const targetId = sourceCloneRetryTargetId.value
   const retryIds = [...sourceCloneRetryIds.value]
-  if (!targetId || !retryIds.length || sourceCloneBusy.value) return
+  if (!componentMounted || !targetId || !retryIds.length || sourceCloneBusy.value) return
+  const generation = ++sourceCloneGeneration
+  const requestSourceId = sourceId.value
   sourceCloneBusy.value = true
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
   try {
-    const result = await addCloneMembers(targetId, retryIds)
+    const result = await addCloneMembers(targetId, retryIds, generation, requestSourceId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     sourceCloneRetryIds.value = result.failed
     sourceCloneRetryTargetId.value = result.failed.length ? targetId : null
     const completed = sourceCloneRetryTotal.value - result.failed.length
     sourceCloneMessage.value = `${completed}/${sourceCloneRetryTotal.value} members cloned${result.failed.length ? ` · ${result.failed.length} still pending (${result.failed.join(', ')})` : ' · retry complete'}`
   } catch (cause) {
-    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to retry failed source clone members'
+    if (componentMounted && generation === sourceCloneGeneration && sourceId.value === requestSourceId) {
+      sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to retry failed source clone members'
+    }
   } finally {
-    sourceCloneBusy.value = false
+    if (generation === sourceCloneGeneration) sourceCloneBusy.value = false
   }
 }
 
@@ -1751,6 +1773,7 @@ watch([period, endDate], () => {
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
+  sourceCloneGeneration += 1
   historyActionGeneration += 1
   historyGeneration += 1
   benchmarkCoverageGeneration += 1
@@ -1810,6 +1833,7 @@ onMounted(async () => {
 onUnmounted(() => {
   componentMounted = false
   sourceActionGeneration += 1
+  sourceCloneGeneration += 1
   pythonAssetsGeneration += 1
   snapshotGeneration += 1
   runGeneration += 1

@@ -112,6 +112,34 @@ describe('MarketMapTool', () => {
     expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('2/2 members cloned')
   })
 
+  it('stops sequential source clone writes after the Market Map unmounts', async () => {
+    resolveWatchlistSource.mockResolvedValue({
+      source: { ...sourceState.sources[0], membership_version: 'sp500:teardown' },
+      members: [
+        { instrument_id: 1, position: 0, relationship_type: 'constituent' },
+        { instrument_id: 2, position: 1, relationship_type: 'constituent' },
+      ],
+      exclusions: [],
+    })
+    createWatchlist.mockResolvedValue({ id: 13, name: 'S&P 500 snapshot teardown', is_managed: false, is_locked: false, items: [] })
+    let resolveFirstAdd: ((value: unknown) => void) | undefined
+    const firstAdd = new Promise(resolve => { resolveFirstAdd = resolve })
+    addItem.mockReturnValue(firstAdd)
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('[aria-label="Clone S&P 500 snapshot"]').trigger('click')
+    await flushPromises()
+
+    expect(addItem).toHaveBeenCalledWith(13, 1)
+    wrapper.unmount()
+
+    resolveFirstAdd?.({ id: 131, instrument_id: 1 })
+    await flushPromises()
+
+    expect(addItem).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps failed clone members retryable without hiding the partial copy', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { ...sourceState.sources[0], membership_version: 'sp500:retry' },
