@@ -107,6 +107,27 @@ describe('MarketMapTool', () => {
     expect(loadWatchlistSources).toHaveBeenCalledTimes(sourceLoadsBeforeUnmount)
   })
 
+  it('does not continue selected-member watchlist publication after the Market Map unmounts', async () => {
+    let resolveCreate: ((value: unknown) => void) | undefined
+    const createResult = new Promise(resolve => { resolveCreate = resolve })
+    createWatchlist.mockReturnValue(createResult)
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+    await wrapper.get('[aria-label="Market Map new watchlist name"]').setValue('Detached selection')
+    await wrapper.get('.market-map-tool__selection-actions button').trigger('click')
+    await flushPromises()
+
+    expect(createWatchlist).toHaveBeenCalledWith('Detached selection')
+    wrapper.unmount()
+
+    resolveCreate?.({ id: 14, name: 'Detached selection', is_managed: false, is_locked: false, items: [] })
+    await flushPromises()
+
+    expect(addItem).not.toHaveBeenCalled()
+  })
+
   it('clones the complete canonical locked source with membership provenance', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { ...sourceState.sources[0], composition_date: '2026-08-07', membership_version: 'sp500:2026-08-07' },
@@ -1445,6 +1466,31 @@ describe('MarketMapTool', () => {
     expect(addItem).toHaveBeenCalledWith(12, 1)
     expect(addItem).toHaveBeenCalledWith(12, 2)
     expect(wrapper.find('[role="status"]').text()).toContain('2 canonical members saved as My explicit set')
+  })
+
+  it('does not continue explicit-symbol watchlist publication after the Market Map unmounts', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/instruments/resolve-canonical') return Promise.resolve({ resolved: [{ symbol: 'NVDA', instrument_id: 1 }, { symbol: 'MSFT', instrument_id: 2 }], missing: [] })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, source: { ...response.source, source_id: 'explicit:1,2', source_kind: 'explicit', provenance: { instrument_ids: [1, 2] } } })
+      return Promise.resolve(response)
+    })
+    let resolveCreate: ((value: unknown) => void) | undefined
+    const createResult = new Promise(resolve => { resolveCreate = resolve })
+    createWatchlist.mockReturnValue(createResult)
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { explicit_symbols: 'NVDA, MSFT' } } })
+    await flushPromises()
+    await wrapper.get('[aria-label="Explicit source watchlist name"]').setValue('Detached explicit')
+    await wrapper.findAll('button').find(button => button.text() === 'Save as watchlist')!.trigger('click')
+    await flushPromises()
+
+    expect(createWatchlist).toHaveBeenCalledWith('Detached explicit')
+    wrapper.unmount()
+
+    resolveCreate?.({ id: 15, name: 'Detached explicit', is_managed: false, is_locked: false, items: [] })
+    await flushPromises()
+
+    expect(addItem).not.toHaveBeenCalled()
   })
 
   it('authors an event predicate for Market Map breadth colouring', async () => {

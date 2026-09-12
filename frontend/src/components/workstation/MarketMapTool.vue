@@ -437,6 +437,11 @@ let sourceCloneGeneration = 0
 // publish a saved source into the wrong visible universe.
 let sourcePublicationGeneration = 0
 let sourcePublicationTargetId: string | null = null
+// Personal watchlist publication has the same detached-window risk as locked
+// source publication. Keep selection and explicit-symbol writes scoped to the
+// mounted universe so a late response cannot repopulate a closed tool.
+let selectionPublicationGeneration = 0
+let explicitPublicationGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -1400,7 +1405,10 @@ function endPan(event: PointerEvent) {
   panStart.value = null
 }
 async function publishSelection() {
-  if (!selectedIds.value.length || publishing.value) return
+  if (!componentMounted || !selectedIds.value.length || publishing.value) return
+  const generation = ++selectionPublicationGeneration
+  const requestSourceId = sourceId.value
+  const memberIds = [...selectedIds.value]
   publishing.value = true
   publicationMessage.value = ''
   publicationError.value = ''
@@ -1410,17 +1418,24 @@ async function publishSelection() {
       const name = newPublicationName.value.trim()
       if (!name) return
       const created = await watchlistStore.createWatchlist(name)
+      if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
       if (!created) throw new Error('Unable to create personal watchlist')
       targetId = created.id
       publicationTargetId.value = String(targetId)
     }
-    const results = await Promise.all(selectedIds.value.map(instrumentId => watchlistStore.addItem(targetId, instrumentId)))
-    const added = results.filter(Boolean).length
+    let added = 0
+    for (const instrumentId of memberIds) {
+      if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
+      if (await watchlistStore.addItem(targetId, instrumentId)) added += 1
+    }
+    if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
     publicationMessage.value = `${added} selected member${added === 1 ? '' : 's'} saved`
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
+    if (componentMounted && generation === selectionPublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
+    }
   } finally {
-    publishing.value = false
+    if (generation === selectionPublicationGeneration) publishing.value = false
   }
 }
 
@@ -1436,21 +1451,30 @@ function explicitSourceMemberIds(): number[] {
 async function saveExplicitSource() {
   const memberIds = explicitSourceMemberIds()
   const name = explicitWatchlistName.value.trim()
-  if (!memberIds.length || !name || explicitSaving.value) return
+  if (!componentMounted || !memberIds.length || !name || explicitSaving.value) return
+  const generation = ++explicitPublicationGeneration
+  const requestSourceId = sourceId.value
   explicitSaving.value = true
   publicationMessage.value = ''
   publicationError.value = ''
   try {
     const created = await watchlistStore.createWatchlist(name)
+    if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
     if (!created) throw new Error('Unable to create personal watchlist')
-    const results = await Promise.all(memberIds.map(instrumentId => watchlistStore.addItem(created.id, instrumentId)))
-    const added = results.filter(Boolean).length
+    let added = 0
+    for (const instrumentId of memberIds) {
+      if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
+      if (await watchlistStore.addItem(created.id, instrumentId)) added += 1
+    }
+    if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
     publicationMessage.value = `${added} canonical member${added === 1 ? '' : 's'} saved as ${created.name}`
     explicitWatchlistName.value = ''
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save explicit source'
+    if (componentMounted && generation === explicitPublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save explicit source'
+    }
   } finally {
-    explicitSaving.value = false
+    if (generation === explicitPublicationGeneration) explicitSaving.value = false
   }
 }
 
@@ -1788,6 +1812,10 @@ watch([period, endDate], () => {
 watch(sourceId, () => {
   const publicationSourceChange = sourcePublicationTargetId === sourceId.value
   sourcePublicationTargetId = null
+  selectionPublicationGeneration += 1
+  explicitPublicationGeneration += 1
+  publishing.value = false
+  explicitSaving.value = false
   sourceCloneGeneration += 1
   if (!publicationSourceChange) {
     sourcePublicationGeneration += 1
@@ -1861,6 +1889,8 @@ onUnmounted(() => {
   sourceCloneGeneration += 1
   sourcePublicationGeneration += 1
   sourcePublicationTargetId = null
+  selectionPublicationGeneration += 1
+  explicitPublicationGeneration += 1
   pythonAssetsGeneration += 1
   snapshotGeneration += 1
   runGeneration += 1
