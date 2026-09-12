@@ -40,6 +40,16 @@
       backend unit suite passes 1,802/1,802. PostgreSQL/full-stack execution
       remains Docker-gated.
 
+### 2026-09-12 — Latest-window series identity
+
+- [x] Route cold/latest provider fetches through the same deterministic
+      `MarketSeries` attachment used by historical repairs. Latest bars no
+      longer persist as legacy `NULL` series rows that would be excluded after
+      a default mapping is created. Focused market-data/default-mapping
+      coverage passes 21/21 and the complete backend unit suite passes
+      1,804/1,804 with the known 37 warnings; PostgreSQL/full-stack validation
+      remains Docker-gated.
+
 ### 2026-09-12 — Alpha Vantage earnings history capability
 
 - [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`

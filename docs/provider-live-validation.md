@@ -947,3 +947,9 @@ series without mixing alternate feeds or legacy rows. Migration
 backend unit suite passed `1,802/1,802`. This is persistence/query evidence,
 not additional provider transport evidence; PostgreSQL/full-stack validation
 remains Docker-gated.
+
+The follow-up persistence audit also routes cold/latest provider fetches through
+the same `MarketSeries` attachment as historical repairs. Focused
+market-data/default-mapping coverage passed `21/21`, and the complete backend
+unit suite passed `1,804/1,804`; this adds no provider transport evidence and
+does not change the external usage ledger.

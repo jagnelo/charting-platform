@@ -502,3 +502,9 @@ Update this handoff at each coherent boundary.
   `a0b1c2d3e4f5` plus service/read regressions pass `21/21`; the complete
   backend unit suite passes `1,802/1,802`; PostgreSQL/full-stack validation
   remains Docker-gated.
+- Cold/latest provider fetches now use the same deterministic `MarketSeries`
+  attachment as historical repairs, preventing newly persisted latest bars
+  from falling back to legacy `NULL` series rows after a default mapping is
+  created. Focused market-data/default-mapping coverage passes `21/21`; the
+  complete backend unit suite passes `1,804/1,804`; no provider calls were
+  needed and PostgreSQL/full-stack validation remains Docker-gated.

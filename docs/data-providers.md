@@ -419,6 +419,9 @@ symbol APIs:
   stable canonical series for legacy symbol/timeframe reads; alternate feeds
   remain addressable by explicit `market_series_id` and are never merged into
   the default result. Migration `a0b1c2d3e4f5` creates the mapping table.
+  Cold/latest provider fetches use the same attachment path, so newly persisted
+  latest bars cannot fall back to a legacy `NULL` series that would disappear
+  from subsequent compatibility reads.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so
