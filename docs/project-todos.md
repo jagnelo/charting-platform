@@ -16200,3 +16200,10 @@ The current source also passes the focused authenticated top-down browser slice 
       paths.
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.
+
+### 2026-09-12 — SEC EDGAR profile listing validation
+
+- [x] Reject scalar, malformed, and ticker/exchange-length-mismatched arrays in EDGAR submissions
+      profiles before creating provider-symbol/listing history.
+- [x] Add focused regression coverage and preserve the existing no-network live-provider boundary.
+- [ ] Complete/global SEC and OTC venue reconciliation remains a separate universe-coverage gate.

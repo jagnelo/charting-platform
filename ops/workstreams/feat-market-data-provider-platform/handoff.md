@@ -864,3 +864,11 @@ Update this handoff at each coherent boundary.
   complete backend unit suite passes `1,893/1,893` with the known 37 warnings.
   Source commits `ffc96fe8` and `495854e8` are pushed; the broader Docker-backed migration,
   provider-governance, and deployment gates remain unchanged.
+
+- SEC EDGAR profile ingestion now validates `tickers` and `exchanges` as
+  non-empty string arrays and rejects mismatched lengths instead of iterating
+  scalar strings or producing partial listing history. Focused SEC regression
+  coverage passes `5/5`; provider/tokenized suites pass `258/258`, and the
+  complete backend unit suite passes `1,896/1,896` with the known 37 warnings.
+  Ruff, compileall, and diff checks pass. Source commit `853d95f5` is pushed;
+  no provider calls, frontend files, or ETF-provider adapter files changed.
