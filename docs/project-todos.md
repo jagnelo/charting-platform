@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
+
+- [x] Centralize indicator series-label formatting and use it in compact
+      dashboard, AlertsView, and IndicatorPanel alert summaries so explicit
+      multi-output selections remain visible (`5ed246df`).
+- [x] Focused coverage passed `51/51`; full frontend Vitest passed `1007/1007`
+      across `114` files; type-check, production build, and diff checks passed
+      with only the existing chunk-size warning.
+- [x] Reran the exact branch-scoped gate at product tip `5ed246df`; all
+      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
+      because Docker `/v1.55/info` returned HTTP 500. No later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker Desktop health, run the pending alert and
+      indicator-batch API regressions and exact gate at `5ed246df`, then
+      continue provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Alert lists disclose canonical indicator outputs
 
 - [x] Update Alerts view and chart-side alert labels to omit transport-only

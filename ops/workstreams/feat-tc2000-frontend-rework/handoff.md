@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
+
+Product commit `5ed246df` centralizes indicator series-label formatting and
+uses it in the dashboard alert widget, AlertsView, and IndicatorPanel. Compact
+dashboard rows now preserve explicit multi-output choices such as
+`BB(20,2) [bb_upper]`, including both sides of indicator comparisons.
+
+Focused coverage passed `51/51`; full frontend Vitest passed `1007/1007` across
+`114` files; type-check, build, and diff checks passed with only the existing
+chunk-size warning. The exact gate at `5ed246df` passed all repository,
+workstream, dependency/migration, frontend-preparation, and lint/type-check
+setup stages, then stopped at `backend-coverage` after 180 seconds because
+Docker `/v1.55/info` returned HTTP 500. No backend integration, provider,
+browser, or visual stage ran; no product or visual-policy failure was observed.
+
+Checkpoint scope: `frontend/src/lib/indicators/catalog.ts`,
+`frontend/src/components/dashboard/DashboardAlertsWidget.vue`,
+`frontend/src/views/AlertsView.vue`, `frontend/src/components/chart/IndicatorPanel.vue`,
+and their focused tests. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Restore Docker health, run the pending
+alert and indicator-batch API regressions and exact gate at `5ed246df`, then
+advance the next bounded provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Alert lists disclose canonical indicator outputs
 
 Product commit `0554789e` updates the Alerts view and chart-side alert editor

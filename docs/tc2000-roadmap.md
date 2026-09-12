@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
+
+Product commit `5ed246df` closes the remaining alert-summary presentation gap.
+The shared indicator catalog now owns series-label formatting, and the
+dashboard alert widget uses it for both sides of indicator comparisons. A
+multi-output alert therefore retains its explicit canonical series (for
+example `BB(20,2) [bb_upper]`) in compact dashboard summaries instead of
+falling back to an ambiguous indicator type. AlertsView and IndicatorPanel
+reuse the same formatter, preventing those surfaces from drifting apart.
+
+Focused catalog and dashboard coverage passed `51/51`; the full frontend
+Vitest suite passed `1007/1007` across `114` files; type-check, production
+build, and `git diff --check` passed. The build emitted only the existing
+chunk-size warning. The exact branch-scoped gate at `5ed246df` passed
+git-diff, workstream validation, dependency/migration, frontend dependency
+preparation, and lint/type-check setup, then stopped at `backend-coverage`
+after the fixed 180-second Docker readiness window because `/v1.55/info`
+returned HTTP 500. No backend integration, provider, browser, or visual stage
+ran; no product assertion or visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. The pending alert and indicator-batch API fixtures remain
+Docker-dependent. Continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Alert lists disclose canonical indicator outputs
 
 Product commit `0554789e` closes the alert-display side of the output
