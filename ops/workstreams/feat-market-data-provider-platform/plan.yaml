@@ -436,6 +436,13 @@ progress:
       selected transport/normalization cases passed. The external ledger
       recorded only aggregate counts/bytes and allow-listed provider headers
       under a unique run ID; no credentials or payloads entered Git.
+    - >-
+      Direct live-test invocations without an explicit run ID now generate a
+      fresh UUID per process, preventing PID reuse or inherited shell values
+      from merging unrelated sessions in the external usage ledger. The
+      wrapper/CI-provided IDs remain authoritative; focused ledger coverage
+      passes 6/6 and the complete backend unit suite passes 1,769/1,769 at
+      source checkpoint `2ed3f9f30a2e9fce996d6efa03e5569f368705e2`.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

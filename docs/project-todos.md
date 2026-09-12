@@ -17,6 +17,13 @@
       transport/normalization cases passed; the external ledger contains only
       aggregate counts/bytes and allow-listed headers under a unique run ID.
 
+### 2026-09-12 — Cross-session live-ledger identity hardening
+
+- [x] Generate a fresh UUID for direct live-test invocations when no explicit
+      run ID is supplied. This prevents process-ID reuse or inherited shell
+      values from merging unrelated provider usage sessions; wrapper/CI IDs
+      remain authoritative when provided. Focused ledger coverage passes 6/6.
+
 ### 2026-09-12 — Explicit provider quota-group accounting
 
 - [x] Separate the durable quota bucket key from the requested capability. A
