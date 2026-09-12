@@ -1102,8 +1102,9 @@ progress:
     database-only calendar, admin-consensus, pre-listing evidence, and scan-state
     APIs are available. A complete SEC issuer-directory enumeration path is now
     implemented as a separate disabled-by-default scan; its activation,
-    submissions-request budget, and canonical issuer-materialization policy
-    remain review gates. Production NMS/OTC
+    submissions-request budget remain review gates; the canonical
+    issuer-materialization policy is now explicit and auditable as disabled or
+    create_missing, with the default still disabled. Production NMS/OTC
     reconciliation, and frontend calendar surfaces remain open. The new Alpha
     forward-calendar and EDGAR IPO-pipeline live reads are
     still pending a reset/usable quota window, while Alpaca/MarketData.app/
@@ -1153,4 +1154,12 @@ progress:
       backend unit suite `1,931/1,931` with the known 37 warnings; no provider
       calls or credentials were used. Docker-backed migration and full-stack
       validation remains the authoritative unverified gate.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, MarketData.app account-usage introspection, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, and paginated UUID miss safety are implemented in source checkpoint `fbf9bd02d`; the complete backend unit suite, bounded MarketData.app account probe, and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+    - >-
+      SEC directory issuer materialization now has an explicit audited policy:
+      `disabled` performs no issuer writes, while reviewed `create_missing`
+      creates only absent CIK/name Issuer rows with ticker/provenance evidence
+      and never creates instruments/listings or mutates existing legal names.
+      Invalid names/tickers and domain conflicts fail closed. Focused SEC
+      directory/service/worker coverage passes `50/50`; source checkpoint:
+      `1b9ec78a`.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, MarketData.app account-usage introspection, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, and paginated UUID miss safety are implemented in source checkpoint `1b9ec78a`; the complete backend unit suite, bounded MarketData.app account probe, and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
