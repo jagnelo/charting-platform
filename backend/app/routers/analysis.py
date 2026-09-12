@@ -2412,6 +2412,14 @@ async def etf_constituent_snapshot(
     # were available by the requested cutoff.  Without this truncation a
     # historical holdings set could still be ranked using future bars.
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    freshness_ids = list(dict.fromkeys([*instrument_ids, *comparison_ids]))
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     market_bars = (
         {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])}
@@ -2420,6 +2428,15 @@ async def etf_constituent_snapshot(
     )
     rows: list[ETFConstituentSnapshotRowOut] = []
     covered = 0
+    for instrument_id in comparison_ids:
+        if instrument_id in stale_ids:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
     for holding in sorted(holdings, key=lambda item: item.position):
         instrument = instruments.get(holding.constituent_instrument_id)
         if instrument is None:
@@ -2435,7 +2452,13 @@ async def etf_constituent_snapshot(
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
@@ -2514,36 +2537,58 @@ async def etf_constituent_snapshot(
                 ),
             )
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
-        benchmark_bar = benchmark_bars.get(latest.ts)
-        relative = (
-            _cell(float(latest.close / benchmark_bar.close), latest)
-            if benchmark_bar is not None and benchmark_bar.close != 0
-            else _cell(
+        if benchmark_instrument.id in stale_ids:
+            relative = _cell(
                 None,
                 latest,
                 AnalysisWarning(
-                    code="unaligned_benchmark",
-                    message="No aligned benchmark bar is available.",
-                    instrument_id=instrument.id,
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=benchmark_instrument.id,
                 ),
             )
-        )
-        market_relative = None
-        if market_instrument is not None:
-            market_bar = market_bars.get(latest.ts)
-            market_relative = (
-                _cell(float(latest.close / market_bar.close), latest)
-                if market_bar is not None and market_bar.close != 0
+        else:
+            benchmark_bar = benchmark_bars.get(latest.ts)
+            relative = (
+                _cell(float(latest.close / benchmark_bar.close), latest)
+                if benchmark_bar is not None and benchmark_bar.close != 0
                 else _cell(
                     None,
                     latest,
                     AnalysisWarning(
-                        code="unaligned_market_benchmark",
-                        message="No aligned market benchmark bar is available.",
+                        code="unaligned_benchmark",
+                        message="No aligned benchmark bar is available.",
                         instrument_id=instrument.id,
                     ),
                 )
             )
+        market_relative = None
+        if market_instrument is not None:
+            if market_instrument.id in stale_ids:
+                market_relative = _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; market-relative values were withheld.",
+                        instrument_id=market_instrument.id,
+                    ),
+                )
+            else:
+                market_bar = market_bars.get(latest.ts)
+                market_relative = (
+                    _cell(float(latest.close / market_bar.close), latest)
+                    if market_bar is not None and market_bar.close != 0
+                    else _cell(
+                        None,
+                        latest,
+                        AnalysisWarning(
+                            code="unaligned_market_benchmark",
+                            message="No aligned market benchmark bar is available.",
+                            instrument_id=instrument.id,
+                        ),
+                    )
+                )
         rows.append(
             ETFConstituentSnapshotRowOut(
                 instrument_id=instrument.id,
@@ -2564,7 +2609,7 @@ async def etf_constituent_snapshot(
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*instrument_ids, *comparison_ids], timeframe, adjusted
+        db, freshness_ids, timeframe, adjusted
     )
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",

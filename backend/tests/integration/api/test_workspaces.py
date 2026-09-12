@@ -3996,6 +3996,31 @@ class TestWorkspaces:
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
 
+        # Current analysis must withhold bars whose persisted freshness state
+        # has expired, while the point-in-time request above remains intact.
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/etf/XLK/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage"] == 0
+        assert stale_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
+
     def test_etf_constituent_snapshot_discloses_excluded_holdings_and_coverage(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

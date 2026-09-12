@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — ETF constituent analysis freshness boundary
+
+- [x] Extend the current ETF constituent snapshot consumer to honor persisted
+      OHLCV freshness. Expired holding, benchmark, and market-benchmark bars
+      are withheld with explicit `stale_data` warnings and deduplicated
+      freshness accounting; historical `as_of` snapshots retain their
+      point-in-time behavior.
+- [x] Add database-backed regression coverage for the current stale snapshot
+      boundary (focused route/unit checks are green; execution of the
+      integration case remains subject to the Docker readiness gate).
+- [ ] Reconcile the consumer contract with the parallel
+      `feat/etf-holdings-constituents` branch at staging. This branch does not
+      modify that branch's ETF provider adapters; integration must preserve
+      its adapter ownership and merge only compatible canonical identity and
+      freshness contracts.
+
 ### 2026-09-12 — Credentialed live confirmation for newly supplied providers
 
 - [x] Run bounded live integration cases with the owner-managed runtime
