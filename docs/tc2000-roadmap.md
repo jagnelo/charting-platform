@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Compact alert history discloses canonical condition context
+
+Product commit `fc0cef98` closes the remaining linked Instrument Alerts
+history presentation gap. Recent firing rows now retain and display the
+canonical condition snapshot, including selected outputs and both sides of an
+indicator comparison, while keeping the observed trigger value visible. The
+accessible row name carries the same expression and trigger context, with a
+safe alert-type fallback for older or incomplete snapshots.
+
+Focused linked-instrument coverage passed `13/13`; the full frontend Vitest
+suite passed `1010/1010` across `115` files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. The exact branch-scoped gate at `fc0cef98` passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`.
+Docker-backed API, provider, browser, and visual stages remain pending.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Rerun the exact gate at this tip when Docker is available,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam while preserving the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Alert WebSocket timestamps use the canonical wire format
 
 Product commit `13535088` closes the final timestamp edge in the alert

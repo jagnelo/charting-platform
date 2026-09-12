@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Compact alert history discloses canonical condition context
+
+- [x] Retain and render firing-event condition snapshots in the linked
+      Instrument Alerts history, including canonical output keys and both
+      sides of indicator comparisons (`fc0cef98`).
+- [x] Focused linked-instrument coverage passed `13/13`; full frontend Vitest
+      passed `1010/1010` across `115` files; type-check, production build, and
+      diff checks passed with only the existing chunk-size warning.
+- [x] Reran the exact branch-scoped gate at `fc0cef98`; repository/workstream,
+      dependency/migration, frontend-preparation, and lint/type-check setup
+      passed, then `backend-coverage` stopped after 180 seconds because Docker
+      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
+      No later API, provider, browser, or visual stage ran.
+- [ ] Restore Docker access and rerun the gate and pending API regressions.
+- [ ] Continue the next bounded provider/history or compatible
+      chart/list/gauge seam without changing visual acceptance policy.
+
 ### 2026-09-12 — Alert WebSocket timestamps use the canonical wire format
 
 - [x] Serialize price and indicator `alert_triggered.triggered_at` values as

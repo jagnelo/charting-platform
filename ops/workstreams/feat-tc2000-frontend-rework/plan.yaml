@@ -13,6 +13,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip fc0cef98 extends the linked Instrument Alerts history rows with
+  condition_snapshot summaries, canonical indicator outputs, comparison-side
+  context, observed trigger values, and accessible names. Focused linked-
+  instrument coverage passed 13/13; full frontend Vitest passed 1010/1010
+  across 115 files; frontend type-check, production build, and git diff --check
+  passed with only the existing chunk-size warning. The exact branch-scoped
+  gate at this tip passed repository/workstream, dependency/migration,
+  frontend-preparation, and lint/type-check setup, then stopped at
+  backend-coverage after 180 seconds because Docker returned permission denied
+  for unix:///Users/jagnelo/.docker/run/docker.sock. Backend integration,
+  provider, browser, and visual stages remain pending. No visual baseline,
+  mask, threshold, skip, provider, fallback, or acceptance policy changed.
+  Restore Docker access, rerun the exact gate and pending API regressions, then
+  continue the next bounded provider/history or compatible chart/list/gauge
+  seam while preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
   Product tip 13535088 canonicalizes live price and indicator alert
   triggered_at timestamps as UTC Z values for authenticated WebSocket events.
   Focused notification-engine and OneSignal coverage passed 2/2; Ruff,

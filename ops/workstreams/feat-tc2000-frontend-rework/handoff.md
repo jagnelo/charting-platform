@@ -2,6 +2,34 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Compact alert history discloses canonical condition context
+
+Product commit `fc0cef98` closes the linked Instrument Alerts history seam.
+Firing rows now retain `condition_snapshot` and show the canonical indicator
+expression, selected output keys, comparison side, and observed trigger value;
+the accessible name exposes the same context and falls back safely for older
+snapshots.
+
+Focused linked-instrument coverage passed `13/13`; full frontend Vitest passed
+`1010/1010` across `115` files; type-check and production build passed with
+only the existing chunk-size warning; and `git diff --check` passed.
+
+The exact branch-scoped gate at this product tip passed repository/workstream,
+dependency/migration, frontend preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+`permission denied` for `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran for this tip.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+Checkpoint scope:
+`frontend/src/components/workstation/InstrumentAlertsTool.vue` and
+`frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts`.
+Restore Docker access and rerun the exact gate and pending API regressions,
+then advance the next bounded
+provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Alert WebSocket timestamps use the canonical wire format
 
 Product commit `13535088` routes live price and indicator alert
