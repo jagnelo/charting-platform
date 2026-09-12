@@ -1981,22 +1981,41 @@ async def industry_proxy_snapshot(
     bars_by_id = await _bars_by_instrument(
         db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
     )
-    if as_of is not None:
-        bars_by_id = {
-            instrument_id: [bar for bar in bars if bar.ts <= as_of]
-            for instrument_id, bars in bars_by_id.items()
-        }
+    bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    freshness_ids = list(dict.fromkeys([*(item.id for item in ordered), sector.id, market.id]))
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
     rows: list[IndustryProxySnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
+    for instrument_id in (sector.id, market.id):
+        if instrument_id in stale_ids:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
     covered = 0
     for instrument in ordered:
         bars = bars_by_id.get(instrument.id, [])
         latest = bars[-1] if bars else None
         if latest is None:
             warning = AnalysisWarning(
-                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+                code=("stale_data" if instrument.id in stale_ids else "no_bars"),
+                message=(
+                    "Persisted OHLCV freshness has expired; chart values were withheld."
+                    if instrument.id in stale_ids
+                    else "No local bars are available."
+                ),
+                instrument_id=instrument.id,
             )
             exclusions.append(warning)
             rows.append(
@@ -2069,7 +2088,17 @@ async def industry_proxy_snapshot(
             )
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
 
-        def ratio(reference: dict) -> AnalysisCell:
+        def ratio(reference: dict, reference_id: int) -> AnalysisCell:
+            if reference_id in stale_ids:
+                return _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                        instrument_id=reference_id,
+                    ),
+                )
             reference_bar = reference.get(latest.ts)
             return (
                 _cell(float(latest.close / reference_bar.close), latest)
@@ -2093,12 +2122,12 @@ async def industry_proxy_snapshot(
                 last=_cell(float(latest.close), latest),
                 performance=performance,
                 technical=technical,
-                relative_to_benchmark=ratio(sector_bars),
-                relative_to_market=ratio(market_bars),
+                relative_to_benchmark=ratio(sector_bars, sector.id),
+                relative_to_market=ratio(market_bars, market.id),
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
+        db, freshness_ids, timeframe, adjusted
     )
     return IndustryProxySnapshotOut(
         group_key=f"industry-proxy:{sector.symbol}:{industry}",
@@ -2168,6 +2197,22 @@ async def industry_snapshot(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, list(all_instrument_ids), timeframe, adjusted), as_of
     )
+    freshness_ids = sorted(all_instrument_ids)
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, freshness_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+        if instrument_id in {etf.id, market.id}:
+            exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=instrument_id,
+                )
+            )
     benchmark_series = _normalised_bar_series(bars_by_id.get(etf.id, []))
     market_series = _normalised_bar_series(bars_by_id.get(market.id, []))
     covered = 0
@@ -2190,23 +2235,57 @@ async def industry_snapshot(
             for cell in [*performance.values(), *technical.values()]
             if cell.warning is not None
         ]
+        stale_members = sorted(set(ids) & stale_ids)
+        warnings.extend(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the member was excluded from the industry series.",
+                instrument_id=instrument_id,
+            )
+            for instrument_id in stale_members
+        )
         last_timestamp, last_value = series[-1] if series else (None, None)
+        last_warning = warnings[0] if not series and warnings else None
+        benchmark_relative = _ratio_cell(series, benchmark_series, None)
+        if etf.id in stale_ids:
+            benchmark_relative = AnalysisCell(
+                value=None,
+                observation_time=last_timestamp,
+                warning=AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                    instrument_id=etf.id,
+                ),
+            )
+        market_relative = _ratio_cell(series, market_series, None)
+        if market.id in stale_ids:
+            market_relative = AnalysisCell(
+                value=None,
+                observation_time=last_timestamp,
+                warning=AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; market-relative values were withheld.",
+                    instrument_id=market.id,
+                ),
+            )
         rows.append(
             IndustrySnapshotRow(
                 industry=industry.industry,
                 constituent_count=industry.constituent_count,
                 resolved_count=industry.resolved_count,
                 coverage=len([item for item in ids if bars_by_id.get(item)]) / max(len(ids), 1),
-                last=AnalysisCell(value=last_value, observation_time=last_timestamp),
+                last=AnalysisCell(
+                    value=last_value, observation_time=last_timestamp, warning=last_warning
+                ),
                 performance=performance,
-                relative_to_benchmark=_ratio_cell(series, benchmark_series, None),
-                relative_to_market=_ratio_cell(series, market_series, None),
+                relative_to_benchmark=benchmark_relative,
+                relative_to_market=market_relative,
                 technical=technical,
                 warnings=warnings,
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, list(all_instrument_ids), timeframe, adjusted
+        db, freshness_ids, timeframe, adjusted
     )
     return IndustrySnapshotOut(
         group_key=f"industry:{etf.symbol}",

@@ -4032,7 +4032,11 @@ class TestWorkspaces:
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
-        from app.models.provider_observation import InstrumentProfileSnapshot
+        from app.models.provider_observation import (
+            DatasetStatus,
+            InstrumentDatasetState,
+            InstrumentProfileSnapshot,
+        )
 
         db.add(
             EquityDetail(
@@ -4255,6 +4259,25 @@ class TestWorkspaces:
         }
         assert industries_payload["rows"][0]["relative_to_benchmark"]["value"] == 1
         assert industries_payload["rows"][0]["relative_to_market"]["value"] == 1
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=proxy.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_ranked = client.get(
+            "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol},
+        )
+        assert stale_ranked.status_code == 200
+        stale_ranked_payload = stale_ranked.json()
+        assert stale_ranked_payload["coverage"] == 0
+        assert stale_ranked_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
 
         future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
         for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):

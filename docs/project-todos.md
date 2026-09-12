@@ -78,6 +78,10 @@
       selected role or its benchmark has expired OHLCV freshness, expose
       per-ratio `stale_data` warnings, and include the underlying freshness
       summary; historical `as_of` ratios remain unchanged.
+- [x] Industry-proxy and classified-industry snapshots now withhold expired
+      current proxy/member bars, label partial synthetic series coverage, and
+      emit explicit stale benchmark-relative cells; historical `as_of` reads
+      continue to use their point-in-time bars.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 
