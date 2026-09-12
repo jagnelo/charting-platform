@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact benchmark-analytics gate rechecked
+
+At docs tip `b3a8394f` (product tip `45dff3ec`), git-diff, workstream
+validation (30 records), dependency resolution, migration head/compatibility,
+frontend preparation, Ruff, formatting, and TypeScript passed. The exact gate
+then stopped at `backend-coverage` after the fixed 180-second Docker readiness
+window because the Docker API returned permission denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence benchmark-family analytics teardown
 
 Product commit `45dff3ec` fences shared WorkstationToolContent

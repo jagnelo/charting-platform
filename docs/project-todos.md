@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact benchmark-analytics gate rechecked
+
+- [x] At docs tip `b3a8394f` / product tip `45dff3ec`, git-diff, workstream
+      validation (30 records), dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed.
+- [ ] Docker API permission denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence benchmark-family analytics teardown
 
 - [x] Fence benchmark-family readiness, analytics, overview, and benchmark-list
