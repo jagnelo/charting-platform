@@ -68,6 +68,37 @@ def test_runner_adapts_latest_numeric_series_value_to_scalar_column_contract():
     ]
 
 
+def test_runner_adapts_thresholded_numeric_scalar_to_boolean_condition_contract():
+    result = execute_job(
+        {
+            "source": "output.scalar('target', market.close()[-1])",
+            "output_contract": "boolean",
+            "output_name": "target",
+            "output_adapter": "scalar_target_to_boolean",
+            "series_target": {"operator": "gte", "threshold": 11},
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "closes": [10, 12],
+                    }
+                ]
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": True,
+            "metric": 12.0,
+        },
+    ]
+
+
 def test_runner_adapts_thresholded_numeric_series_to_boolean_scan_contract():
     result = execute_job(
         {

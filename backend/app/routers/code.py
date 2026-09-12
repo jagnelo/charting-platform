@@ -105,6 +105,14 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
         and body.lineage.get("output_adapter") == "latest_series_to_scalar"
         and "series" in validation.output_contracts
     )
+    explicit_scalar_boolean_adapter = (
+        body.output_contract == "boolean"
+        and body.output_name is not None
+        and isinstance(body.lineage, dict)
+        and body.lineage.get("output_adapter") == "scalar_target_to_boolean"
+        and "scalar" in validation.output_contracts
+        and isinstance(body.lineage.get("series_target"), dict)
+    )
     explicit_series_boolean_adapter = (
         body.output_contract == "boolean"
         and body.output_name is not None
@@ -155,6 +163,23 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
                     "message": "A thresholded range-center promotion requires a finite numeric threshold and a supported comparison operator.",
                 },
             )
+    if explicit_scalar_boolean_adapter:
+        target = body.lineage["series_target"]
+        operator = str(target.get("operator", "")).lower()
+        threshold = target.get("threshold")
+        if (
+            operator not in {"gt", "gte", "lt", "lte", "eq", "ne"}
+            or not isinstance(threshold, int | float)
+            or isinstance(threshold, bool)
+            or not math.isfinite(float(threshold))
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_scalar_target",
+                    "message": "A thresholded scalar promotion requires a finite numeric threshold and a supported comparison operator.",
+                },
+            )
     if (
         body.output_contract != "study"
         and body.output_name is not None
@@ -162,6 +187,7 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
         and not explicit_range_center_adapter
         and not explicit_range_center_scalar_adapter
         and not explicit_latest_series_adapter
+        and not explicit_scalar_boolean_adapter
         and not explicit_series_boolean_adapter
         and not explicit_range_center_boolean_adapter
     ):

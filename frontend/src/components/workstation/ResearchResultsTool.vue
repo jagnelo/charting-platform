@@ -48,6 +48,14 @@
           <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
+            <template v-if="artifact.artifact_type === 'scalar' && hasFiniteScalarValue(artifact)">
+              <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} scalar thresholded condition`">
+                <label>When <select v-model="seriesConditionOperator" :aria-label="`Scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+                <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Scalar condition threshold: ${artifact.name}`" /></label>
+                <button type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredScalarCondition(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save Boolean column: ${artifact.name}` }}</button>
+                <button v-for="target in structuredSeriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${structuredSeriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredScalarCondition(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredSeriesConditionLabel(target)}: ${artifact.name}` }}</button>
+              </div>
+            </template>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series' && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'series' && hasFiniteSeriesValue(artifact)">
@@ -170,6 +178,7 @@ const promotedScans = ref<Record<number, { id: number; name: string; codeVersion
 const promotedStructuredBooleanScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedStructuredSeriesScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedStructuredRangeCenterScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
+const promotedStructuredScalarScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
@@ -286,6 +295,10 @@ function hasFiniteRangeCenterValue(artifact: ResearchRunSummary['artifacts'][num
 }
 function hasFiniteSeriesValue(artifact: ResearchRunSummary['artifacts'][number]) {
   return Boolean(seriesData(artifact)?.values.some(value => typeof value === 'number' && Number.isFinite(value)))
+}
+function hasFiniteScalarValue(artifact: ResearchRunSummary['artifacts'][number]) {
+  const value = artifact.payload.value
+  return typeof value === 'number' && Number.isFinite(value)
 }
 function barData(artifact: ResearchRunSummary['artifacts'][number]): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
@@ -1024,6 +1037,104 @@ async function promoteStructuredSeriesCondition(
     }
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact to a thresholded condition`
+  } finally {
+    promoting.value = false
+  }
+}
+async function promoteStructuredScalarCondition(
+  run: ResearchRunSummary,
+  artifact: ResearchRunSummary['artifacts'][number],
+  target: 'column' | StructuredSeriesConditionTarget,
+) {
+  if (artifact.artifact_type !== 'scalar' || !hasFiniteScalarValue(artifact) || promoting.value) return
+  if (!Number.isFinite(seriesConditionThreshold.value)) {
+    promotionMessage.value = 'Enter a finite numeric threshold before promoting the scalar.'
+    return
+  }
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    if (target === 'signal') {
+      const promoted = await promoteStructuredStudySignal(run, artifact.name, {
+        outputAdapter: 'scalar_target_to_boolean',
+        seriesTarget,
+        semantics: 'study_scalar_threshold_as_strategy_signal',
+      })
+      promotionMessage.value = `Saved thresholded scalar “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
+      return
+    }
+    const declaredInstrumentIds = declaredStudyInstrumentIds(run)
+    if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted condition universe.')
+    const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+    if (!sourceVersion?.source) throw new Error('The immutable source code version for this scalar study is unavailable.')
+    const sourceRunConfig = run.run_config ?? {}
+    const sourceManifest = run.dataset_manifest ?? {}
+    const scanKey = `${run.id}:${artifact.id}:${artifact.name}:scalar_target_to_boolean:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
+    let scan = promotedStructuredScalarScans.value[scanKey]
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: run.id,
+      source_code_version_id: run.code_version_id,
+      source_reproducibility_hash: run.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: structuredStudySourceId(run),
+      source_membership_version: structuredStudyMembershipVersion(run),
+      target,
+      output_adapter: 'scalar_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_scalar_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = scan?.codeVersionId
+    if (!codeVersionId) {
+      const promoted = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${run.id}-${artifact.name}-scalar-${kind}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-scalar-${kind}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: sourceVersion.parameter_schema ?? {},
+          default_parameters: sourceVersion.default_parameters ?? {},
+          lineage,
+        },
+      })
+      const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
+    }
+    if (typeof codeVersionId !== 'number') throw new Error('Scalar condition promotion did not return an immutable code version.')
+    if (target === 'column') {
+      promotionMessage.value = `Saved scalar artifact “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    if (!scan) {
+      const screener = await api.post<{ id: number; name?: string }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${run.id}`,
+        description: `Current-data thresholded Boolean target promoted from structured Study run #${run.id}; source scalar, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: structuredStudyTimeframe(run),
+        provenance: lineage,
+      })
+      scan = { id: screener.id, name: screener.name ?? `${artifact.name} scalar condition`, codeVersionId }
+      promotedStructuredScalarScans.value = { ...promotedStructuredScalarScans.value, [scanKey]: scan }
+    }
+    if (target === 'filter') promotionMessage.value = `Saved scalar artifact “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionMessage.value = `Promoted scalar artifact “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionMessage.value = `Scalar artifact “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured scalar research run ${run.id} (${artifact.name})` })
+      promotionMessage.value = `Promoted scalar artifact “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the scalar artifact to a thresholded condition'
   } finally {
     promoting.value = false
   }

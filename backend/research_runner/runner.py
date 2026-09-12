@@ -307,6 +307,32 @@ def _series_artifact(
     return None, "Series output has no finite value at the observation timestamp."
 
 
+def _scalar_artifact(
+    result: dict, output_name: str | None
+) -> tuple[float | None, str | None]:
+    """Extract one finite numeric scalar output for an explicit condition adapter."""
+    matches = [
+        artifact
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "scalar"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return (
+            None,
+            f"Expected exactly one scalar output{f' named {output_name!r}' if output_name else ''}.",
+        )
+    value = matches[0].get("value")
+    if (
+        not isinstance(value, int | float)
+        or isinstance(value, bool)
+        or not math.isfinite(float(value))
+    ):
+        return None, "Scalar output must be a finite numeric value."
+    return float(value), None
+
+
 def _range_center_artifact(
     result: dict, output_name: str | None
 ) -> tuple[float | None, str | None]:
@@ -1248,6 +1274,8 @@ def _execute_batch(
                     else "range"
                     if output_adapter in {"range_center_to_scalar", "range_center_target_to_boolean"}
                     and output_contract in {"scalar", "boolean"}
+                    else "scalar"
+                    if output_adapter == "scalar_target_to_boolean" and output_contract == "boolean"
                     else output_contract
                 )
                 if output_adapter == "events_to_boolean" and output_contract == "boolean":
@@ -1294,6 +1322,12 @@ def _execute_batch(
                     error = extraction_error or target_error
                 elif output_adapter == "range_center_target_to_boolean":
                     extracted_metric, extraction_error = _range_center_artifact(result, output_name)
+                    value, target_error = _series_target_value(
+                        extracted_metric, hash_input.get("series_target")
+                    )
+                    error = extraction_error or target_error
+                elif output_adapter == "scalar_target_to_boolean":
+                    extracted_metric, extraction_error = _scalar_artifact(result, output_name)
                     value, target_error = _series_target_value(
                         extracted_metric, hash_input.get("series_target")
                     )

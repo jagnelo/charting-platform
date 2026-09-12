@@ -804,6 +804,48 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/154', {})
   })
 
+  it('promotes a direct Study Lab scalar through an explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 159 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 160,
+        code_version_id: 159,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } }],
+      })
+      if (path === '/screeners/from-python-condition/159') return Promise.resolve({ id: 161 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #160'))
+    expect(wrapper.find('[aria-label="Study scalar threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study scalar condition operator"]').setValue('gte')
+    await wrapper.find('[aria-label="Study scalar condition threshold"]').setValue('10')
+    await wrapper.findAll('[aria-label="Study scalar threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining({
+          source_run_id: 160,
+          source_instrument_ids: [7],
+          output_adapter: 'scalar_target_to_boolean',
+          series_target: { operator: 'gte', threshold: 10 },
+          semantics: 'study_scalar_threshold_as_boolean',
+        }),
+      }),
+    }))
+  })
+
   it('promotes a direct Study Lab range center through an explicit threshold condition', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] })

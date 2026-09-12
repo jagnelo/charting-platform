@@ -461,6 +461,59 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
   })
 
+  it('promotes a structured scalar through an explicit thresholded Boolean condition', async () => {
+    const source = "output.scalar('score', market.close()[-1])"
+    const lineage = {
+      source_run_id: 32,
+      source_code_version_id: 78,
+      source_output_name: 'score',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'scalar_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 11 },
+      semantics: 'study_scalar_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 32, status: 'completed', code_version_id: 78, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-32', diagnostics: [], artifacts: [
+        { id: 29, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 32', versions: [{ id: 78, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 102, name: 'score condition', versions: [{ id: 102 }] })
+      if (path === '/screeners/from-python-condition/102') return Promise.resolve({ id: 103, name: 'score threshold filter' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Scalar condition operator: score"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Scalar condition operator: score"]').setValue('gte')
+    await wrapper.get('[aria-label="Scalar condition threshold: score"]').setValue('11')
+    await wrapper.get('[aria-label="Save filter: score"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/102', expect.objectContaining({
+      name: 'score gte 11 Filter 32',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded watchlist filter.')
+  })
+
   it('promotes a structured range center through an explicit chart-series adapter', async () => {
     const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
     apiGet.mockImplementation((path: string) => {

@@ -353,6 +353,64 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
         "threshold": 1.5,
     }
 
+    selected_scalar_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-scalar-condition",
+            "name": "Selected study scalar condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.scalar('score', market.close()[-1])",
+                "output_contract": "boolean",
+                "output_name": "score",
+                "lineage": {
+                    "source_run_id": 96,
+                    "source_code_version_id": 48,
+                    "target": "filter",
+                    "output_adapter": "scalar_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 100},
+                    "semantics": "study_scalar_threshold_as_boolean",
+                },
+            },
+        },
+    )
+    assert selected_scalar_condition.status_code == 201, selected_scalar_condition.text
+    scalar_condition_version = selected_scalar_condition.json()["versions"][0]
+    assert scalar_condition_version["output_contract"] == "boolean"
+    assert scalar_condition_version["output_name"] == "score"
+    scalar_condition_lineage = next(
+        item
+        for item in scalar_condition_version["diagnostics"]
+        if item["code"] == "promotion_lineage"
+    )
+    assert scalar_condition_lineage["lineage"]["output_adapter"] == "scalar_target_to_boolean"
+    assert scalar_condition_lineage["lineage"]["series_target"] == {
+        "operator": "gte",
+        "threshold": 100,
+    }
+
+    invalid_scalar_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-invalid-scalar-condition",
+            "name": "Selected study invalid scalar condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.scalar('score', 1)",
+                "output_contract": "boolean",
+                "output_name": "score",
+                "lineage": {
+                    "output_adapter": "scalar_target_to_boolean",
+                    "series_target": {"operator": "between", "threshold": 1.5},
+                },
+            },
+        },
+    )
+    assert invalid_scalar_condition.status_code == 422
+    assert invalid_scalar_condition.json()["detail"]["code"] == "invalid_scalar_target"
+
     selected_range_condition = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
