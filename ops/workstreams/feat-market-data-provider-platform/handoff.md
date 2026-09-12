@@ -1116,3 +1116,7 @@ Update this handoff at each coherent boundary.
   GitHub workflow paths are asserted to pass it only to backend/worker trusted
   processes, with `disabled` as the default; the research runner receives no
   provider controls.
+
+- Source checkpoint `d555450b` extends the SEC directory regression to assert
+  that `create_missing` is issuer-only: no `Instrument` or `InstrumentListing`
+  rows are created. The focused service suite remains `10/10`.
