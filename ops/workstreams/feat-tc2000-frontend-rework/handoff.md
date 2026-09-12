@@ -15,6 +15,31 @@ acceptance policy changed. The exact gate remains pending behind the Docker
 socket permission failure; do not integrate, promote, deploy, or mutate
 another worktree.
 
+## 2026-09-12 — Fence adjustment-factor provenance by fetch time
+
+Product commit `87134261` bounds normalized adjustment observations and the
+legacy event fallback by both effective/event time and observation/fetch time
+at the persisted bar coverage end. A factor discovered later cannot be
+projected into an older adjusted series. Focused Market Data coverage passed
+`25/25`, the full backend unit suite passed `1522/1522` at `69.01%` coverage,
+and Ruff, formatting, plus `git diff --check` passed. No provider, fallback,
+visual, or acceptance policy changed. The exact gate was rerun at this tip and
+remains pending at Docker-backed `backend-coverage` because the Docker socket
+returned permission denied; do not integrate, promote, deploy, or mutate
+another worktree.
+
+## 2026-09-12 — Exact factor-provenance gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `87134261`. Git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no product
+or visual-policy failure was observed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence historical breadth event knowledge
 
 Product commit `218ad3b8` fences current and historical breadth event rows and

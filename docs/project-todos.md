@@ -14,6 +14,30 @@
       provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
       policy changed.
 
+### 2026-09-12 — Fence adjustment-factor provenance by fetch time
+
+- [x] Bound normalized adjustment observations and legacy event fallback by
+      both effective/event time and observation/fetch time at the persisted bar
+      coverage end (`87134261`).
+- [x] Focused Market Data coverage passed `25/25`; the full backend unit suite
+      passed `1522/1522` at `69.01%`; Ruff, formatting, and `git diff --check`
+      passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
+### 2026-09-12 — Exact factor-provenance gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `87134261`;
+      repository/workstream, dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed. The gate stopped at
+      `backend-coverage` after 180 seconds because Docker returned permission
+      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
+      backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence historical breadth event knowledge
 
 - [x] Enforce the breadth event knowledge boundary: current and historical

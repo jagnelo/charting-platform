@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped gate was rerun at product tip 87134261. Git-diff,
+  workstream validation (30 records), dependency/migration checks, frontend
+  preparation, Ruff, formatting, and TypeScript passed; backend-coverage
+  stopped after 180 seconds because Docker returned permission denied for
+  unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+  provider, browser, or visual stage ran; no product assertion or visual-policy
+  failure was observed.
+  Product commit 87134261 fences normalized adjustment observations and legacy
+  event fallback by both effective/event time and observation/fetch time at the
+  persisted bar coverage end. Focused Market Data coverage passed 25/25; the
+  full backend unit suite passed 1522/1522 at 69.01% coverage; Ruff,
+  formatting, and git diff --check passed. No provider, fallback, visual
+  baseline, mask, threshold, skip, or acceptance policy changed. Restore
+  Docker health and rerun the exact gate, then continue the next bounded
+  provider/history or compatible R4/R2-R7 seam at this coherent tip.
   Product commit 218ad3b8 fences current and historical breadth event rows and
   source fetch-state markers by the evaluation cutoff. Future-fetched events
   cannot leak into earlier breadth maps/history, provider rows are associated
@@ -2679,6 +2694,21 @@ progress:
   total: 10
   current_phase: R2_historical_event_knowledge_boundary_and_r7_exact_tip_gate
   current_blocker: >-
+    The exact branch-scoped gate was rerun at product tip 87134261. Git-diff,
+    workstream validation (30 records), dependency/migration checks, frontend
+    preparation, Ruff, formatting, and TypeScript passed; backend-coverage
+    stopped after 180 seconds because Docker returned permission denied for
+    unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+    provider, browser, or visual stage ran; no product assertion or visual-policy
+    failure was observed.
+    Product commit 87134261 fences normalized adjustment observations and
+    legacy event fallback by both effective/event time and observation/fetch
+    time at the persisted bar coverage end. Focused Market Data coverage passed
+    25/25; the full backend unit suite passed 1522/1522 at 69.01% coverage;
+    Ruff, formatting, and git diff --check passed. No provider, fallback,
+    visual baseline, mask, threshold, skip, or acceptance policy changed.
+    Restore Docker health and rerun the exact gate, then continue the next
+    bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.
     Product commit 218ad3b8 fences current and historical breadth event rows
     and source fetch-state markers by the evaluation cutoff. Future-fetched
     events cannot leak into earlier breadth maps/history, provider rows are
@@ -3558,7 +3588,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Rerun the exact branch-scoped gate when Docker is healthy at product tip 218ad3b82953e642a4854fc7eab82f2a66ed4166, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Rerun the exact branch-scoped gate when Docker is healthy at product tip 87134261cab6a7330b02e7f763f84b3331983c92, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

@@ -37,6 +37,34 @@ threshold, skip, or acceptance policy changed. The exact branch gate remains
 pending behind the Docker socket permission failure; continue the next bounded
 provider/history or compatible R4/R2-R7 seam.
 
+## 2026-09-12 — Fence adjustment-factor provenance by fetch time
+
+Product commit `87134261` closes a bounded R1/R2 point-in-time provenance
+gap in adjusted OHLCV dataset state. Normalized adjustment observations and
+the legacy event fallback now require both an effective/event date and an
+observation/fetch time no later than the persisted bar coverage end. A factor
+discovered after that range can no longer be attributed backwards to an older
+adjusted series.
+
+The focused Market Data service suite passed `25/25`; the full backend unit
+suite passed `1522/1522` at `69.01%` coverage; Ruff, formatting, and `git diff
+--check` passed. No price transformation, provider routing, fallback, visual
+baseline, mask, threshold, skip, or acceptance policy changed. The exact
+branch gate was rerun at this tip and remains pending only at Docker-backed
+`backend-coverage` because the Docker socket returned permission denied.
+
+## 2026-09-12 — Exact factor-provenance gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `87134261`. Git-diff,
+workstream validation (30 records), dependency resolution, migration
+head/compatibility, frontend dependency preparation, Ruff, formatting, and
+TypeScript all passed. The `backend-coverage` stage then stopped after the
+fixed 180-second Docker readiness window because Docker returned permission
+denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Exact historical-event gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `26161b90`. Repository,
