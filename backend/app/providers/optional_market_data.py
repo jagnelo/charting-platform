@@ -36,6 +36,7 @@ from app.providers.base import (
     MarketEventRecord,
     OptionContractRecord,
     OptionQuotePointRecord,
+    ProviderAccountUsage,
     ProviderSearchResult,
 )
 from app.providers.errors import (
@@ -95,8 +96,89 @@ def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:
             raw = float(value)
         except (TypeError, ValueError, OverflowError):
             continue
-        return datetime.fromtimestamp(raw, tz=UTC) if raw > 1_000_000_000 else now + timedelta(seconds=max(0, raw))
+        return (
+            datetime.fromtimestamp(raw, tz=UTC)
+            if raw > 1_000_000_000
+            else now + timedelta(seconds=max(0, raw))
+        )
     return None
+
+
+def _account_integer(
+    payload: dict[str, Any],
+    headers: dict[str, str],
+    *,
+    body_keys: tuple[str, ...],
+    header_keys: tuple[str, ...],
+    field: str,
+) -> int | None:
+    """Read one provider-declared account counter without coercive defaults."""
+
+    normalized_headers = {str(key).lower(): value for key, value in headers.items()}
+    raw: Any = None
+    source_present = False
+    for key in body_keys:
+        if key in payload:
+            raw = payload[key]
+            source_present = True
+            break
+    if not source_present:
+        for key in header_keys:
+            if key.lower() in normalized_headers:
+                raw = normalized_headers[key.lower()]
+                source_present = True
+                break
+    if not source_present or raw in (None, ""):
+        return None
+    if isinstance(raw, bool):
+        raise ProviderResponseError(
+            "marketdata_app", f"provider returned an invalid account {field}"
+        )
+    try:
+        value = int(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ProviderResponseError(
+            "marketdata_app", f"provider returned an invalid account {field}"
+        ) from exc
+    if value < 0 and field in {"limit", "consumed"}:
+        raise ProviderResponseError(
+            "marketdata_app", f"provider returned an invalid account {field}"
+        )
+    return value
+
+
+def _account_reset_at(payload: dict[str, Any], headers: dict[str, str]) -> datetime | None:
+    """Parse only the documented account reset representations."""
+
+    for key in ("resetAt", "reset_at", "x-api-ratelimit-reset"):
+        if key not in payload:
+            continue
+        raw = payload[key]
+        if raw in (None, ""):
+            return None
+        if isinstance(raw, bool):
+            raise ProviderResponseError(
+                "marketdata_app", "provider returned an invalid account reset time"
+            )
+        if isinstance(raw, int | float):
+            try:
+                return datetime.fromtimestamp(float(raw), tz=UTC)
+            except (TypeError, ValueError, OverflowError, OSError) as exc:
+                raise ProviderResponseError(
+                    "marketdata_app", "provider returned an invalid account reset time"
+                ) from exc
+        if isinstance(raw, str):
+            try:
+                parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ProviderResponseError(
+                    "marketdata_app", "provider returned an invalid account reset time"
+                ) from exc
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+        raise ProviderResponseError(
+            "marketdata_app", "provider returned an invalid account reset time"
+        )
+    return _retry_at_from_headers({str(key).lower(): str(value) for key, value in headers.items()})
 
 
 def _raise_http_error(provider_name: str, exc: httpx.HTTPStatusError) -> None:
@@ -206,9 +288,7 @@ def _decimal(value: Any) -> Decimal | None:
         return None
 
 
-def _required_text(
-    row: dict[str, Any], provider_name: str, label: str, *keys: str
-) -> str:
+def _required_text(row: dict[str, Any], provider_name: str, label: str, *keys: str) -> str:
     """Read a required provider identity field without silent row loss."""
 
     for key in keys:
@@ -223,9 +303,7 @@ def _required_text(
     )
 
 
-def _checked_decimal(
-    value: Any, provider_name: str, field: str
-) -> Decimal | None:
+def _checked_decimal(value: Any, provider_name: str, field: str) -> Decimal | None:
     """Parse optional numeric provider fields while rejecting malformed values."""
 
     parsed = _decimal(value)
@@ -328,10 +406,7 @@ def _option_contract_from_row(
         or fallback_expiration
     )
     right = _option_right(
-        row.get("option_type")
-        or row.get("optionType")
-        or row.get("type")
-        or row.get("side")
+        row.get("option_type") or row.get("optionType") or row.get("type") or row.get("side")
     )
     if not provider_symbol or expiration is None or right is None:
         raise ProviderResponseError(
@@ -448,7 +523,9 @@ def _parallel_option_rows(payload: Any, provider_name: str) -> list[dict[str, An
     """
 
     if not isinstance(payload, dict):
-        raise ProviderResponseError(provider_name, "provider returned an invalid option-chain object")
+        raise ProviderResponseError(
+            provider_name, "provider returned an invalid option-chain object"
+        )
     status = str(payload.get("s") or "").strip().lower()
     if status == "no_data":
         return []
@@ -514,7 +591,9 @@ def _parallel_option_rows(payload: Any, provider_name: str) -> list[dict[str, An
                 provider_name, "provider returned an option without symbol or underlying"
             )
         if _option_expiry(row["expiration"]) is None:
-            raise ProviderResponseError(provider_name, "provider returned an invalid option expiration")
+            raise ProviderResponseError(
+                provider_name, "provider returned an invalid option expiration"
+            )
         if _option_right(row["side"]) is None:
             raise ProviderResponseError(provider_name, "provider returned an invalid option side")
         strike = _checked_decimal(row["strike"], provider_name, "option strike")
@@ -535,7 +614,9 @@ def _parallel_option_quote_rows(payload: Any, provider_name: str) -> list[dict[s
     """
 
     if not isinstance(payload, dict):
-        raise ProviderResponseError(provider_name, "provider returned an invalid option-quote object")
+        raise ProviderResponseError(
+            provider_name, "provider returned an invalid option-quote object"
+        )
     status = str(payload.get("s") or "").strip().lower()
     if status == "no_data":
         return []
@@ -575,7 +656,9 @@ def _parallel_option_quote_rows(payload: Any, provider_name: str) -> list[dict[s
         arrays[field] = value
     expected_length = len(arrays["optionSymbol"])
     if len(arrays["updated"]) != expected_length:
-        raise ProviderResponseError(provider_name, "provider returned mismatched option-quote arrays")
+        raise ProviderResponseError(
+            provider_name, "provider returned mismatched option-quote arrays"
+        )
     for field in optional_fields:
         value = payload.get(field)
         if value is None:
@@ -590,9 +673,10 @@ def _parallel_option_quote_rows(payload: Any, provider_name: str) -> list[dict[s
     rows: list[dict[str, Any]] = []
     for index in range(expected_length):
         row = {field: values[index] for field, values in arrays.items()}
-        if not str(row["optionSymbol"] or "").strip() or _timestamp(
-            row["updated"], timezone_name="America/New_York"
-        ) is None:
+        if (
+            not str(row["optionSymbol"] or "").strip()
+            or _timestamp(row["updated"], timezone_name="America/New_York") is None
+        ):
             raise ProviderResponseError(
                 provider_name, "provider returned an option quote without symbol or timestamp"
             )
@@ -654,6 +738,26 @@ class _RESTProvider:
         *,
         base_url: str | None = None,
     ) -> Any:
+        payload, _ = self._get_with_headers(path, params, base_url=base_url)
+        return payload
+
+    def _get_with_headers(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        base_url: str | None = None,
+        not_found_is_empty: bool = False,
+    ) -> tuple[Any, dict[str, str]]:
+        """Return one documented JSON response plus safe capacity headers.
+
+        Most adapters only need the decoded payload, so ``_get`` preserves
+        that compact contract.  Provider account endpoints are different:
+        their quota snapshot is carried in response headers as well as the
+        body.  Keeping this helper here makes that metadata available without
+        exposing authentication headers or changing every adapter method.
+        """
+
         if self.key_setting and not self._key():
             raise ProviderNotConfiguredError(
                 f"{self.name} requires {self.key_setting}; configure it before routing"
@@ -666,6 +770,9 @@ class _RESTProvider:
                 timeout=30,
             )
             observe_response(response)
+            headers = provider_response_headers(response)
+            if not_found_is_empty and response.status_code == 404:
+                return None, headers
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             _raise_http_error(self.name, exc)
@@ -676,13 +783,9 @@ class _RESTProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "provider returned invalid JSON") from exc
         if not isinstance(payload, dict | list):
-            raise ProviderResponseError(
-                self.name, "provider returned an invalid JSON shape"
-            )
-        raise_for_provider_error_envelope(
-            self.name, payload, response.status_code, headers=provider_response_headers(response)
-        )
-        return payload
+            raise ProviderResponseError(self.name, "provider returned an invalid JSON shape")
+        raise_for_provider_error_envelope(self.name, payload, response.status_code, headers=headers)
+        return payload, headers
 
     @staticmethod
     def _strict_rows(payload: Any, provider_name: str, *keys: str) -> list[dict[str, Any]]:
@@ -703,7 +806,9 @@ class _RESTProvider:
                     provider_name, f"provider omitted the expected row container: {expected}"
                 )
         else:
-            raise ProviderResponseError(provider_name, "provider returned an invalid row-list shape")
+            raise ProviderResponseError(
+                provider_name, "provider returned an invalid row-list shape"
+            )
         if not isinstance(value, list):
             expected = ", ".join(keys) or "the documented row list"
             raise ProviderResponseError(
@@ -933,7 +1038,8 @@ class TwelveDataProvider(_RESTProvider):
         while cursor < bounded_end:
             chunk_end = min(
                 bounded_end,
-                cursor + timedelta(seconds=_TF_SECONDS[timeframe] * _TWELVE_DATA_POINTS_PER_REQUEST),
+                cursor
+                + timedelta(seconds=_TF_SECONDS[timeframe] * _TWELVE_DATA_POINTS_PER_REQUEST),
             )
             request_params = {
                 "symbol": symbol.upper(),
@@ -948,7 +1054,9 @@ class TwelveDataProvider(_RESTProvider):
             # timezone. Request UTC so the canonical parser has an explicit
             # boundary; daily/weekly/monthly timestamps are always exchange
             # local per the provider contract and are handled from metadata.
-            request_timezone = None if timeframe in {Timeframe.D1, Timeframe.W1, Timeframe.MN} else "UTC"
+            request_timezone = (
+                None if timeframe in {Timeframe.D1, Timeframe.W1, Timeframe.MN} else "UTC"
+            )
             if request_timezone:
                 request_params["timezone"] = request_timezone
             payload = self._get("time_series", request_params)
@@ -1052,7 +1160,9 @@ class TradierProvider(_RESTProvider):
         wrapped = payload.get(container)
         if isinstance(wrapped, list):
             if any(not isinstance(row, dict) for row in wrapped):
-                raise ProviderResponseError("tradier", f"provider returned an invalid {container} row")
+                raise ProviderResponseError(
+                    "tradier", f"provider returned an invalid {container} row"
+                )
             return wrapped
         if not isinstance(wrapped, dict):
             if wrapped in (None, ""):
@@ -1107,7 +1217,9 @@ class TradierProvider(_RESTProvider):
                 "end": _bounded_datetime(end).date().isoformat(),
             },
         )
-        rows = self._nested_rows(payload, "history", {"daily": "day", "weekly": "week", "monthly": "month"}[interval])
+        rows = self._nested_rows(
+            payload, "history", {"daily": "day", "weekly": "week", "monthly": "month"}[interval]
+        )
         if not rows:
             # Keep compatibility with a flat fixture/provider response while
             # still preferring the documented nested shape above.
@@ -1163,7 +1275,9 @@ class TradierProvider(_RESTProvider):
             },
         )
         if not isinstance(payload, dict):
-            raise ProviderResponseError("tradier", "provider returned an invalid expirations object")
+            raise ProviderResponseError(
+                "tradier", "provider returned an invalid expirations object"
+            )
         marker = object()
         wrapped = payload.get("expirations", marker)
         if wrapped is marker:
@@ -1186,7 +1300,9 @@ class TradierProvider(_RESTProvider):
         for value in values:
             parsed = _option_expiry(value)
             if parsed is None:
-                raise ProviderResponseError("tradier", "provider returned an invalid expiration date")
+                raise ProviderResponseError(
+                    "tradier", "provider returned an invalid expiration date"
+                )
             parsed_values.add(parsed)
         return sorted(parsed_values)
 
@@ -1223,7 +1339,15 @@ class TradierProvider(_RESTProvider):
             )
             for row in rows
         ]
-        return sorted(contracts, key=lambda contract: (contract.expiry_date, contract.strike, contract.right, contract.provider_symbol))
+        return sorted(
+            contracts,
+            key=lambda contract: (
+                contract.expiry_date,
+                contract.strike,
+                contract.right,
+                contract.provider_symbol,
+            ),
+        )
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(days=max(30, limit * 2))
@@ -1242,6 +1366,86 @@ class MarketDataAppProvider(_RESTProvider):
     def _auth_headers(self) -> dict[str, str]:
         key = self._key()
         return {"Authorization": f"Bearer {key}"} if key else {}
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None:
+        """Read the authenticated account credit window and options entitlement.
+
+        MarketData.app documents ``GET /user/`` as the account introspection
+        endpoint.  It reports credit counters and the reset timestamp in
+        ``x-api-ratelimit-*`` response headers, while the response body carries
+        the options-data permission.  The currently observed endpoint also
+        exposes request-limit and options fields in the body; both documented
+        representations are accepted without inventing a plan or window.
+
+        A 404 is the provider's documented "no account information" response
+        and therefore returns ``None``.  This observation never enables
+        routing; reviewed plan/limit settings remain the admission contract.
+        """
+
+        payload, headers = self._get_with_headers(
+            "user/",
+            base_url="https://api.marketdata.app",
+            not_found_is_empty=True,
+        )
+        if payload is None:
+            return None
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid account-usage object"
+            )
+
+        limit = _account_integer(
+            payload,
+            headers,
+            body_keys=(
+                "x-ratelimit-requests-limit",
+                "requestsLimit",
+                "creditLimit",
+            ),
+            header_keys=("x-api-ratelimit-limit",),
+            field="limit",
+        )
+        remaining = _account_integer(
+            payload,
+            headers,
+            body_keys=(
+                "x-ratelimit-requests-remaining",
+                "requestsRemaining",
+                "creditsRemaining",
+            ),
+            header_keys=("x-api-ratelimit-remaining",),
+            field="remaining",
+        )
+        consumed = _account_integer(
+            payload,
+            headers,
+            body_keys=("creditsConsumed", "requestsConsumed"),
+            header_keys=("x-api-ratelimit-consumed",),
+            field="consumed",
+        )
+        options = payload.get("x-options-data-permissions")
+        if options is None:
+            options = payload.get("optionsDataPermissions")
+        if options is not None and not isinstance(options, str):
+            raise ProviderResponseError(
+                self.name,
+                "provider returned invalid options-data permissions",
+            )
+        if limit is None and remaining is None and consumed is None and options is None:
+            raise ProviderResponseError(
+                self.name,
+                "provider omitted documented account-usage fields",
+            )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=datetime.now(UTC),
+            unit="credits",
+            limit=limit,
+            remaining=remaining,
+            consumed=consumed,
+            reset_at=_account_reset_at(payload, headers),
+            options_data_permissions=options,
+        )
 
     def fetch_ohlcv(
         self,
@@ -1346,11 +1550,7 @@ class MarketDataAppProvider(_RESTProvider):
         if expiration is not None:
             params["expiration"] = expiration.isoformat()
         if max_symbols is not None:
-            if (
-                isinstance(max_symbols, bool)
-                or not isinstance(max_symbols, int)
-                or max_symbols < 2
-            ):
+            if isinstance(max_symbols, bool) or not isinstance(max_symbols, int) or max_symbols < 2:
                 raise ProviderResponseError(
                     self.name,
                     "configured option-chain symbol bound must be an integer >= 2",
@@ -1376,7 +1576,9 @@ class MarketDataAppProvider(_RESTProvider):
                 # ``_parallel_option_rows`` already validates these values;
                 # keep this guard local so a future helper change cannot
                 # construct a partially identified contract.
-                raise ProviderResponseError(self.name, "provider returned an invalid option contract")
+                raise ProviderResponseError(
+                    self.name, "provider returned an invalid option contract"
+                )
 
             def checked(field: str) -> Decimal | None:
                 return _checked_decimal(row.get(field), self.name, f"option {field}")
@@ -1447,9 +1649,7 @@ class MarketDataAppProvider(_RESTProvider):
         rows = _parallel_option_quote_rows(payload, self.name)
         points: list[OptionQuotePointRecord] = []
         for row in rows:
-            observed_at = _timestamp(
-                row["updated"], timezone_name="America/New_York"
-            )
+            observed_at = _timestamp(row["updated"], timezone_name="America/New_York")
             if observed_at is None:
                 raise ProviderResponseError(
                     self.name, "provider returned an option quote without a valid timestamp"
@@ -1583,9 +1783,7 @@ class FinnhubProvider(_RESTProvider):
         return results[:limit]
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
-        rows = self._strict_rows(
-            self._get("stock/earnings", {"symbol": symbol.upper()}), self.name
-        )
+        rows = self._strict_rows(self._get("stock/earnings", {"symbol": symbol.upper()}), self.name)
         fetched_at = datetime.now(UTC)
         events: list[InstrumentEventRecord] = []
         for row in rows:
@@ -1669,9 +1867,7 @@ class FinnhubProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(
-            self._get("stock/symbol", {"exchange": "US"}), self.name
-        )
+        rows = self._strict_rows(self._get("stock/symbol", {"exchange": "US"}), self.name)
         filtered: list[dict[str, Any]] = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "symbol")
@@ -1791,7 +1987,9 @@ class MarketstackProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        exchange = str(getattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "") or "").strip().upper()
+        exchange = (
+            str(getattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "") or "").strip().upper()
+        )
         if not exchange:
             raise ProviderNotConfiguredError(
                 "marketstack universe discovery requires MARKETSTACK_DISCOVERY_EXCHANGE"
@@ -1899,9 +2097,7 @@ class EODHDProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(
-            self._get("exchange-symbol-list/US", {"fmt": "json"}), self.name
-        )
+        rows = self._strict_rows(self._get("exchange-symbol-list/US", {"fmt": "json"}), self.name)
         filtered = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "Code", "code").upper()
@@ -1969,9 +2165,7 @@ class FMPProvider(_RESTProvider):
         )
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        rows = self._strict_rows(
-            self._get("profile", {"symbol": symbol.upper()}), self.name
-        )
+        rows = self._strict_rows(self._get("profile", {"symbol": symbol.upper()}), self.name)
         row = rows[0] if rows else None
         if not row:
             return None
@@ -2019,9 +2213,7 @@ class FMPProvider(_RESTProvider):
         events: list[MarketEventRecord] = []
         for row in rows:
             event_time = _timestamp(
-                row.get("date")
-                or row.get("earningsDate")
-                or row.get("announcementDate")
+                row.get("date") or row.get("earningsDate") or row.get("announcementDate")
             )
             if event_time is None:
                 raise ProviderResponseError(

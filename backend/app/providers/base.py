@@ -159,6 +159,28 @@ class OptionQuotePointRecord:
 
 
 @dataclass(slots=True)
+class ProviderAccountUsage:
+    """Provider-native account quota and entitlement observation.
+
+    This is deliberately an observation rather than a routing policy.  The
+    provider may expose a calendar-day, rolling, or plan-specific window, so
+    callers must retain the reported values and never convert them into a
+    generic request limit.  ``unit`` identifies what the provider reports
+    (for example ``credits``), while the window semantics remain provider
+    supplied and may be unknown.
+    """
+
+    provider: str
+    observed_at: datetime
+    unit: str
+    limit: int | None = None
+    remaining: int | None = None
+    consumed: int | None = None
+    reset_at: datetime | None = None
+    options_data_permissions: str | None = None
+
+
+@dataclass(slots=True)
 class TokenizedAssetRecord:
     """Provider observation for a tokenized security or tokenized ETF.
 
@@ -200,6 +222,13 @@ class ProviderDescriptor(Protocol):
     name: str
     base_url: str | None
     description: str | None
+
+
+@runtime_checkable
+class ProviderAccountUsageProvider(ProviderDescriptor, Protocol):
+    """Provider-specific account usage/entitlement introspection."""
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None: ...
 
 
 @runtime_checkable

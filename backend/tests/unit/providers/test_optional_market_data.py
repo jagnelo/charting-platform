@@ -395,7 +395,11 @@ def test_optional_identity_rows_are_not_silently_dropped(provider, payload, oper
     ("provider", "payload", "operation"),
     [
         (FinnhubProvider(), [{"period": "not-a-date"}], "instrument"),
-        (FinnhubProvider(), {"earningsCalendar": [{"date": "not-a-date", "symbol": "AAPL"}]}, "market"),
+        (
+            FinnhubProvider(),
+            {"earningsCalendar": [{"date": "not-a-date", "symbol": "AAPL"}]},
+            "market",
+        ),
         (FinnhubProvider(), {"earningsCalendar": [{"date": "2024-01-02"}]}, "market"),
         (FMPProvider(), [{"date": "not-a-date", "symbol": "AAPL"}], "market"),
         (FMPProvider(), [{"date": "2024-01-02"}], "market"),
@@ -533,9 +537,7 @@ def test_eodhd_fundamentals_uses_documented_v11_endpoint():
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.exchange == "NASDAQ"
-    assert get.call_args.args[0] == (
-        "https://eodhd.com/api/v1.1/fundamentals/AAPL.US"
-    )
+    assert get.call_args.args[0] == ("https://eodhd.com/api/v1.1/fundamentals/AAPL.US")
 
 
 def test_marketstack_follows_response_pagination_and_reserves_each_page():
@@ -758,6 +760,77 @@ def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
     assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
 
 
+def test_marketdata_app_fetches_account_usage_from_unversioned_user_endpoint():
+    provider = MarketDataAppProvider()
+    response = _response(
+        {
+            "x-ratelimit-requests-limit": 10000,
+            "x-ratelimit-requests-remaining": 9876,
+            "x-options-data-permissions": "OPRA data delayed 15 minutes",
+        }
+    )
+    response.status_code = 200
+    response.headers = {
+        "X-Api-Ratelimit-Limit": "10000",
+        "X-Api-Ratelimit-Remaining": "9876",
+        "X-Api-Ratelimit-Consumed": "0",
+        "X-Api-Ratelimit-Reset": "1789306200",
+        "Authorization": "Bearer must-not-be-retained",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "marketdata_app"
+    assert usage.unit == "credits"
+    assert usage.limit == 10000
+    assert usage.remaining == 9876
+    assert usage.consumed == 0
+    assert usage.reset_at == datetime.fromtimestamp(1789306200, tz=UTC)
+    assert usage.options_data_permissions == "OPRA data delayed 15 minutes"
+    assert get.call_args.args[0] == "https://api.marketdata.app/user/"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+
+
+def test_marketdata_app_account_usage_honors_documented_not_found_response():
+    provider = MarketDataAppProvider()
+    response = MagicMock(status_code=404, headers={})
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        assert provider.fetch_account_usage() is None
+    response.raise_for_status.assert_not_called()
+
+
+def test_marketdata_app_account_usage_rejects_missing_documented_fields():
+    provider = MarketDataAppProvider()
+    response = _response({})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="account-usage fields"):
+            provider.fetch_account_usage()
+
+
 def test_marketdata_app_parses_documented_option_expirations():
     provider = MarketDataAppProvider()
     payload = {
@@ -868,9 +941,7 @@ def test_marketdata_app_applies_reviewed_option_chain_symbol_bound():
         ) as get,
     ):
         configured.MARKETDATA_APP_API_KEY = "demo"
-        contracts = provider.fetch_option_chain(
-            "AAPL", expiration=date(2024, 1, 19), max_symbols=4
-        )
+        contracts = provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19), max_symbols=4)
 
     assert len(contracts) == 2
     assert get.call_args.kwargs["params"] == {
@@ -1102,9 +1173,7 @@ def test_optional_documented_row_endpoints_reject_malformed_containers():
                         adjusted=False,
                     )
                 elif operation == "calendar":
-                    provider.fetch_market_events(
-                        start=date(2024, 1, 1), end=date(2024, 1, 3)
-                    )
+                    provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
                 else:
                     with patch(
                         "app.providers.optional_market_data.settings.MARKETSTACK_DISCOVERY_EXCHANGE",

@@ -610,6 +610,25 @@ def test_marketdata_app_credentialed_option_surface():
     assert isinstance(quote_points, list)
 
 
+def test_marketdata_app_credentialed_account_usage_snapshot():
+    """Exercise the documented account quota and options-entitlement endpoint."""
+
+    _require("MARKETDATA_APP_API_KEY")
+    usage, measurement = _observed_read(
+        lambda: MarketDataAppProvider().fetch_account_usage(),
+        "marketdata_app",
+    )
+    assert usage is not None
+    assert usage.provider == "marketdata_app"
+    assert usage.unit == "credits"
+    assert usage.limit is not None and usage.limit > 0
+    assert usage.remaining is not None
+    assert usage.consumed is not None and usage.consumed >= 0
+    assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
+    assert isinstance(usage.options_data_permissions, str)
+    assert measurement.http_requests == 1
+
+
 def test_marketdata_app_credentialed_intraday_history():
     """Exercise the documented five-minute delayed stock-candle surface."""
 

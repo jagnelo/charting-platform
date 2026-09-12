@@ -813,6 +813,16 @@ zero remains fail-closed. Historical single-contract quote history derives a
 conservative date-range reservation (at most one end-of-day observation per
 calendar day) before execution.
 
+The adapter also exposes the documented authenticated `GET /user/` account
+introspection endpoint through `fetch_account_usage()`. It preserves the
+provider-reported credit limit, remaining credits, request charge, reset time,
+and options-data entitlement without deriving a plan or changing routing. The
+endpoint is unversioned (`https://api.marketdata.app/user/`) even though data
+resources use `/v1`; the provider documents a 404 response as “no account
+information”, which is represented as no snapshot. See the official
+[Python client account/rate-limit documentation](https://www.marketdata.app/docs/sdk/py/client/)
+and [Go user endpoint documentation](https://www.marketdata.app/docs/sdk/go/utilities/user/).
+
 ### Yahoo Finance (`yfinance`) — Explicit legacy/options fallback
 
 **Role**: Opt-in compatibility provider for retained legacy/options or other explicitly configured capabilities. It is not part of any new-workstation default or acceptance path.
