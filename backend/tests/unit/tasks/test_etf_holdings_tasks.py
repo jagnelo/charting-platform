@@ -182,6 +182,12 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
             "limited": True,
             "available_snapshot_count": 3,
             "selected_snapshot_count": 2,
+            "continuity_by_symbol": {
+                "SPY": {
+                    "status": "gapped",
+                    "gap_count": 1,
+                }
+            },
             "snapshots": [
                 {"snapshot_id": 10, "composition_date": date(2026, 7, 31)},
                 {"snapshot_id": 11, "composition_date": date(2026, 6, 30)},
@@ -217,6 +223,12 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
 
     assert result["selected_snapshot_count"] == 2
     assert result["available_snapshot_count"] == 3
+    assert result["continuity_by_symbol"] == {
+        "SPY": {
+            "status": "gapped",
+            "gap_count": 1,
+        }
+    }
     assert result["queued"] == 4
     assert result["already_queued"] == 2
     assert result["unresolved_count"] == 6
