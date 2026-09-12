@@ -386,6 +386,33 @@ describe('MarketMapTool', () => {
     })
   })
 
+  it('does not publish a late history refresh after the Market Map unmounts', async () => {
+    let resolveRefresh: ((value: unknown) => void) | undefined
+    const refreshResult = new Promise(resolve => { resolveRefresh = resolve })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map') return Promise.resolve(response)
+      if (path === '/watchlists/sources/history-refresh') return refreshResult
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/sources/history-refresh', {
+      source_ids: ['market-group:sp500'],
+      timeframes: ['D1'],
+      max_instruments: 5000,
+    })
+    wrapper.unmount()
+
+    resolveRefresh?.({ run_id: 42, source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, queued: 2, already_queued: 0, queue_unavailable: false })
+    await flushPromises()
+
+    expect(apiGet.mock.calls.some(([path]) => String(path).includes('/history-refresh-runs/42'))).toBe(false)
+  })
+
   it('ignores stale history readiness responses after the source changes', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [

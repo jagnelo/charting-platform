@@ -423,6 +423,10 @@ let runGeneration = 0
 // slow status response from a previous source must never replace the current
 // source's coverage or resurrect its refresh run.
 let historyGeneration = 0
+// Explicit history refresh/cancel actions can outlive a docked or popped-out
+// Market Map. Keep their post-response messages scoped to the mounted action
+// generation so teardown cannot repopulate a detached surface.
+let historyActionGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -878,22 +882,29 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
 }
 
 async function refreshHistory() {
-  if (!sourceId.value || historyRefreshing.value) return
+  if (!componentMounted || !sourceId.value || historyRefreshing.value) return
+  const generation = ++historyActionGeneration
+  const requestSourceId = sourceId.value
   historyRefreshing.value = true
   historyRefreshMessage.value = ''
   historyRefreshError.value = ''
   try {
     const result = await refreshWatchlistSourceHistory(sourceId.value, [timeframe.value], 5000, historyAsOf.value)
-    historyRun.value = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId) return
+    const refreshedRun = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId) return
+    historyRun.value = refreshedRun
     const jobs = result.queued + result.already_queued
     historyRefreshMessage.value = result.queue_unavailable
       ? 'History queue unavailable; cached bars were not changed.'
       : `${jobs} history job${jobs === 1 ? '' : 's'} queued`
     await loadHistoryStatus(true)
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
+    if (componentMounted && generation === historyActionGeneration) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
+    }
   } finally {
-    historyRefreshing.value = false
+    if (generation === historyActionGeneration) historyRefreshing.value = false
   }
 }
 
@@ -933,18 +944,25 @@ async function bootstrapEtfSource() {
 }
 
 async function cancelHistoryRefresh() {
-  if (!historyRun.value || !isHistoryRunActive.value || historyRunLoading.value) return
+  if (!componentMounted || !historyRun.value || !isHistoryRunActive.value || historyRunLoading.value) return
+  const generation = ++historyActionGeneration
+  const requestSourceId = sourceId.value
+  const runId = historyRun.value.id
   historyRunLoading.value = true
   historyRefreshError.value = ''
   try {
-    historyRun.value = await cancelWatchlistHistoryRefreshRun(historyRun.value.id)
+    const canceledRun = await cancelWatchlistHistoryRefreshRun(runId)
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId || historyRun.value?.id !== runId) return
+    historyRun.value = canceledRun
     historyRefreshMessage.value = 'History refresh canceled; cached bars were retained.'
     clearHistoryPoll()
     await loadHistoryStatus()
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to cancel history refresh'
+    if (componentMounted && generation === historyActionGeneration && sourceId.value === requestSourceId && historyRun.value?.id === runId) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to cancel history refresh'
+    }
   } finally {
-    historyRunLoading.value = false
+    if (generation === historyActionGeneration) historyRunLoading.value = false
   }
 }
 
@@ -1712,6 +1730,7 @@ function persist() {
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, timeframe, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(timeframe, () => {
+  historyActionGeneration += 1
   historyGeneration += 1
   clearHistoryPoll()
   historyLoading.value = false
@@ -1726,6 +1745,7 @@ watch([period, endDate], () => {
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
+  historyActionGeneration += 1
   historyGeneration += 1
   benchmarkCoverageGeneration += 1
   clearHistoryPoll()
@@ -1787,6 +1807,7 @@ onUnmounted(() => {
   snapshotGeneration += 1
   runGeneration += 1
   historyGeneration += 1
+  historyActionGeneration += 1
   benchmarkCoverageGeneration += 1
   clearHistoryPoll()
   window.removeEventListener('resize', scheduleCanvasDraw)
