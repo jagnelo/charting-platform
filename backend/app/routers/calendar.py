@@ -8,17 +8,18 @@ requested by an operator/user action.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy import select
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent
+from app.models.market_data_foundation import MarketEvent
 from app.models.user import User
 from app.services.instrument_events import ensure_instrument_events_loaded, query_instrument_events
 
@@ -45,6 +46,24 @@ class CalendarEvent(BaseModel):
     time_hint: str
     source: str
     is_estimate: bool = False
+
+
+class MarketCalendarEvent(BaseModel):
+    """A persisted market-wide event from one or more provider sources."""
+
+    id: int
+    event_type: str
+    event_key: str
+    event_time: datetime | None = None
+    effective_date: date | None = None
+    announced_at: datetime | None = None
+    source: str
+    source_version: str | None = None
+    instrument_id: int | None = None
+    issuer_id: int | None = None
+    title: str | None = None
+    is_provisional: bool = False
+    payload: dict = Field(default_factory=dict)
 
 
 def _as_utc(value: datetime | None) -> datetime | None:
@@ -123,3 +142,90 @@ async def get_instrument_calendar(
         end=_as_utc(end),
     )
     return [_event_out(event, instrument.symbol) for event in events]
+
+
+@router.get("/market-events", response_model=list[MarketCalendarEvent])
+async def get_market_events(
+    start: date | None = Query(None, description="Inclusive event date lower bound"),
+    end: date | None = Query(None, description="Inclusive event date upper bound"),
+    event_type: str | None = Query(None, min_length=1, max_length=80),
+    source: str | None = Query(None, min_length=1, max_length=80),
+    instrument_id: int | None = Query(None, ge=1),
+    issuer_id: int | None = Query(None, ge=1),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    """Return persisted market-wide events without performing provider I/O.
+
+    Events are written by the opt-in market-event refresh worker.  This read
+    path intentionally never refreshes an upstream provider, and applies date
+    bounds to ``effective_date`` while retaining events that only carry an
+    ``event_time`` timestamp.
+    """
+
+    if start is not None and end is not None and end < start:
+        raise HTTPException(422, "end must be on or after start")
+
+    filters = []
+    if start is not None:
+        start_at = datetime.combine(start, time.min, tzinfo=UTC)
+        filters.append(
+            or_(
+                MarketEvent.effective_date >= start,
+                and_(
+                    MarketEvent.effective_date.is_(None),
+                    MarketEvent.event_time >= start_at,
+                ),
+            )
+        )
+    if end is not None:
+        end_at = datetime.combine(end + timedelta(days=1), time.min, tzinfo=UTC)
+        filters.append(
+            or_(
+                MarketEvent.effective_date <= end,
+                and_(
+                    MarketEvent.effective_date.is_(None),
+                    MarketEvent.event_time < end_at,
+                ),
+            )
+        )
+    if event_type:
+        filters.append(MarketEvent.event_type == event_type.strip().lower())
+    if source:
+        filters.append(MarketEvent.source == source.strip().lower())
+    if instrument_id is not None:
+        filters.append(MarketEvent.instrument_id == instrument_id)
+    if issuer_id is not None:
+        filters.append(MarketEvent.issuer_id == issuer_id)
+
+    query = (
+        select(MarketEvent)
+        .order_by(
+            MarketEvent.effective_date.desc().nullslast(),
+            MarketEvent.event_time.desc().nullslast(),
+            MarketEvent.id.desc(),
+        )
+        .limit(limit)
+    )
+    if filters:
+        query = query.where(*filters)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        MarketCalendarEvent(
+            id=row.id,
+            event_type=row.event_type,
+            event_key=row.event_key,
+            event_time=row.event_time,
+            effective_date=row.effective_date,
+            announced_at=row.announced_at,
+            source=row.source,
+            source_version=row.source_version,
+            instrument_id=row.instrument_id,
+            issuer_id=row.issuer_id,
+            title=(row.payload or {}).get("name") or (row.payload or {}).get("title"),
+            is_provisional=row.is_provisional,
+            payload=row.payload or {},
+        )
+        for row in rows
+    ]

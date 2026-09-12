@@ -383,7 +383,13 @@ The worker refreshes a bounded UTC `today`-through-lookahead window once per
 day. Provider-specific operation costs, entitlement gates, and quota
 dimensions remain authoritative, so enabling the schedule cannot make an
 unknown or non-routable provider callable. This backend persistence path does
-not add a frontend calendar surface; reconciliation, pre-listing
+not require a provider call on reads: authenticated clients can query the
+bounded persisted market-event calendar at `GET /api/v1/calendar/market-events`
+with inclusive `start`/`end` dates and optional `event_type`, `source`,
+`instrument_id`, `issuer_id`, and `limit` filters. Events with only a timestamp
+remain queryable when no effective date was published, and provider payloads
+and provisional status are returned for provenance-aware consumers.
+This does not add a frontend calendar surface; reconciliation, pre-listing
 materialization, and calendar UX remain tracked separately in
 `project-todos.md`.
 
