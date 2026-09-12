@@ -82,6 +82,7 @@ class TestProvidersRouter:
         )
         assert updated.status_code == 200
         assert updated.json()["status"] == "resolved"
+        assert updated.json()["resolved_at"].endswith("Z")
         assert updated.json()["resolved_by"]["username"]
 
         resolved = client.get(

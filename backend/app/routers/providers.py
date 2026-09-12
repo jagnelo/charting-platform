@@ -380,7 +380,7 @@ async def update_reconciliation_issue(
         "ok": True,
         "id": issue.id,
         "status": issue.status,
-        "resolved_at": issue.resolved_at,
+        "resolved_at": wire_datetime(issue.resolved_at),
         "resolution": issue.resolution,
         "resolved_by": {
             "id": current_user.id,
