@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.lib.time_utils import wire_datetime
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
 from app.models.instrument_identity import (
@@ -54,8 +55,8 @@ def _provenance_entry(
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "source": source,
-        "fetched_at": fetched_at.isoformat(),
-        "observed_at": (observed_at or fetched_at).isoformat(),
+        "fetched_at": wire_datetime(fetched_at) or "",
+        "observed_at": wire_datetime(observed_at or fetched_at) or "",
     }
     if provider_symbol:
         entry["provider_symbol"] = provider_symbol
@@ -147,9 +148,9 @@ def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]
                 "currency": listing.currency,
                 "provider_instrument_type": listing.provider_instrument_type,
                 "is_primary": listing.is_primary,
-                "effective_at": listing.effective_at.isoformat() if listing.effective_at else None,
-                "known_at": listing.known_at.isoformat() if listing.known_at else None,
-                "delisted_at": listing.delisted_at.isoformat() if listing.delisted_at else None,
+                "effective_at": wire_datetime(listing.effective_at),
+                "known_at": wire_datetime(listing.known_at),
+                "delisted_at": wire_datetime(listing.delisted_at),
                 "extra_data": listing.extra_data,
             }
             for listing in profile.listings

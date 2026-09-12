@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 
 import pytest
@@ -17,10 +18,58 @@ from app.models.provider_observation import (
     UniverseDiscoverySnapshot,
 )
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
-from app.providers.base import IdentifierRecord, InstrumentProfile, ProviderSearchResult
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentProfile,
+    ListingRecord,
+    ProviderSearchResult,
+)
 from app.services import instrument_mastering, instrument_sync, market_data
 from app.services.provider_runtime import ProviderExecutionResult, ResolvedProvider
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_profile_snapshot_payload_normalizes_listing_timestamps_to_utc_z():
+    profile = InstrumentProfile(
+        provider="metadata-provider",
+        symbol="TEST",
+        canonical_symbol="TEST",
+        name="Test Instrument",
+        listings=[
+            ListingRecord(
+                provider_symbol="TEST.N",
+                effective_at=datetime.fromisoformat("2024-01-02T05:00:00+02:00"),
+                known_at=datetime(2024, 1, 2, 6, 0),
+                delisted_at=datetime.fromisoformat("2024-01-03T01:00:00+02:00"),
+            )
+        ],
+    )
+
+    payload = instrument_mastering.build_profile_snapshot_payload(profile)
+    assert payload["listings"] == [
+        {
+            "provider_symbol": "TEST.N",
+            "exchange_code": None,
+            "currency": None,
+            "provider_instrument_type": None,
+            "is_primary": False,
+            "effective_at": "2024-01-02T03:00:00Z",
+            "known_at": "2024-01-02T06:00:00Z",
+            "delisted_at": "2024-01-02T23:00:00Z",
+            "extra_data": None,
+        }
+    ]
+
+
+def test_field_provenance_entry_normalizes_offset_and_naive_timestamps():
+    entry = instrument_mastering._provenance_entry(
+        source="metadata-provider",
+        fetched_at=datetime.fromisoformat("2024-01-02T05:00:00+02:00"),
+        observed_at=datetime(2024, 1, 2, 6, 0),
+    )
+
+    assert entry["fetched_at"] == "2024-01-02T03:00:00Z"
+    assert entry["observed_at"] == "2024-01-02T06:00:00Z"
 
 
 @pytest.mark.asyncio
