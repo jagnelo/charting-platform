@@ -129,8 +129,12 @@
 - [x] Benchmark-family role ranking and cross-family cap ranking now withhold
       expired current role bars, retain stale warnings, and include deduplicated
       freshness summaries; historical ranking remains unchanged.
-- [ ] Extend the same coordinator-backed preflight to remaining chart routes,
-      future breadth/signal engines, and refresh-job status persistence.
+- [x] Extend the same coordinator-backed preflight across the current chart and
+      analysis routes, including Market Map and benchmark-family rankings;
+      current consumers now withhold explicitly stale data while historical
+      `as_of` paths remain point-in-time.
+- [ ] Extend that contract to future breadth/signal engines and refresh-job
+      status persistence.
 
 ### 2026-09-12 — Persist radar coverage outcomes
 
@@ -151,9 +155,9 @@
       persisted OHLCV state, report missing/stale/evaluated counts, and retain
       historical `as_of` semantics. Chart routes and other future evaluators
       still require their own coordinator-backed preflight.
-- [ ] Extend the same coordinator-backed preflight to remaining chart routes
-      and future breadth/signal engines; this radar checkpoint does not change
-      those consumers.
+- [ ] Extend the same coordinator-backed preflight to future breadth/signal
+      engines and refresh-job status persistence; current chart consumers are
+      covered by the stale-data boundaries recorded above.
 
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 
