@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact dashboard instrument-search gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `87e19058f` / product tip
+      `d924576f4`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
+      then rerun the exact branch-scoped gate at the next coherent tip.
+
 ### 2026-09-12 — Fence dashboard instrument-search hydration teardown
 
 - [x] Fence debounced provider search and canonical-symbol resolution by
@@ -9,8 +20,9 @@
       `1065/1065` across 121 files; type-check, production build, and
       `git diff --check` passed with only the existing chunk-size warning. No
       visual/acceptance policy changed.
-- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
-      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+- [x] Reran the exact branch-scoped gate at docs tip `87e19058f` / product tip
+      `d924576f4`; all pre-Docker stages passed before the Docker API boundary
+      recorded above.
 
 ### 2026-09-12 — Exact dashboard Heat Map gate rechecked
 
