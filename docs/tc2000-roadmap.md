@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
+
+Product commit `72bdeea2` carries the chart indicator output contract through
+drag/drop handoffs. Single-output indicators now serialize their canonical
+backend output key; multi-output indicators require a valid explicit output
+before they can become a watchlist numeric column or EasyScan technical
+condition. Ambiguous drops fail visibly in the destination, and direct chart
+rendering/chart-to-chart copying remains available. Direct chart-library
+watchlist copying now includes timeframe/output in its stable column key, so
+distinct output selections cannot collide.
+
+Focused drag/drop and EasyScan coverage passed `20/20`; Chart Plot Library
+coverage passed `27/27`; the full frontend Vitest suite passed `1001/1001`
+across `113` files; frontend type-check, repository Ruff/format checks, and
+`git diff --check` passed. No backend contract, visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. The exact
+branch-scoped gate has not yet been rerun at this product tip; its latest
+record remains the Docker readiness HTTP 500 stop at `backend-coverage`.
+
+The next action is to restore Docker Desktop health and rerun the exact gate,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam. Preserve the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
 
 Product commit `4db5cc1d` closes a bounded R4 compatibility hole in the chart

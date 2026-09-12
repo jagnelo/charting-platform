@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
+
+- [x] Carry canonical single-output keys through chart drag payloads and
+      direct chart-library watchlist copies; include timeframe/output in stable
+      indicator-column keys so distinct selections do not collide
+      (`72bdeea2`).
+- [x] Refuse ambiguous multi-output chart drops into numeric watchlist columns
+      and EasyScan technical conditions with visible destination status while
+      preserving chart rendering and chart-to-chart copying.
+- [x] Focused drag/drop + EasyScan coverage passed `20/20`, Chart Plot Library
+      coverage `27/27`, and full frontend Vitest `1001/1001` across `113` files;
+      type-check, Ruff/format, and diff checks passed. No backend, visual,
+      provider, fallback, or acceptance policy changed.
+- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate at
+      product tip `72bdeea2`, then continue provider/history or another
+      compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
 
 - [x] Make single-output chart indicator promotions declare the canonical

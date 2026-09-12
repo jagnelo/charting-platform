@@ -2,6 +2,32 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
+
+Product commit `72bdeea2` carries the canonical chart-indicator output through
+drag/drop handoffs. Single-output drags serialize their backend output key;
+multi-output drags require a valid explicit output before a watchlist numeric
+column or EasyScan technical condition can be created. Destination surfaces
+show an actionable refusal, while chart rendering and chart-to-chart copying
+remain supported. Direct chart-library watchlist copies now include timeframe
+and output in their stable column key.
+
+Focused drag/drop + EasyScan coverage passed `20/20`; Chart Plot Library
+coverage passed `27/27`; full frontend Vitest passed `1001/1001` across `113`
+files; frontend type-check, Ruff/format, and diff checks passed. No backend
+contract, visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. The exact gate has not been rerun at this product
+tip; latest gate evidence remains the Docker `/v1.55/info` HTTP 500 stop at
+`backend-coverage`.
+
+Checkpoint scope: `frontend/src/lib/workstation/plotDrag.ts`,
+`frontend/src/types/index.ts`,
+`frontend/src/components/workstation/ChartPlotLibrary.vue`,
+`frontend/src/components/workstation/WorkstationToolContent.vue`,
+`frontend/src/components/workstation/EasyScanTool.vue`, focused drag/drop and
+EasyScan tests, and these roadmap/TODO records. Restore Docker health and rerun
+the exact gate before advancing the next bounded seam.
+
 ## 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
 
 Product commit `4db5cc1d` closes a bounded R4 compatibility hole in the chart
