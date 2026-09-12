@@ -8,12 +8,72 @@ from app.services.market_map import (
     _as_utc,
     _cache_key,
     _condition_tree_matches_declared,
+    _events_by_instrument,
     _period_bounds,
     _profile_area_provenance,
     _profile_field_conflict,
     _return,
     _snapshot_classification,
 )
+
+
+class _ScalarResult:
+    def __init__(self, values):
+        self._values = values
+
+    def scalars(self):
+        return self
+
+    def all(self):
+        return list(self._values)
+
+
+class _EventSession:
+    def __init__(self, events, fetch_states):
+        self._results = [_ScalarResult(events), _ScalarResult(fetch_states)]
+
+    async def execute(self, _statement):
+        return self._results.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_market_map_event_loading_respects_historical_knowledge_cutoff():
+    cutoff = datetime(2024, 1, 6, tzinfo=UTC)
+    event = SimpleNamespace(
+        instrument_id=1,
+        source="provider-a",
+        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+    )
+    future_state = SimpleNamespace(
+        instrument_id=1,
+        source="provider-a",
+        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+    )
+
+    events, watermark = await _events_by_instrument(
+        _EventSession([event], [future_state]), [1], cutoff
+    )
+
+    assert events == {1: None}
+    assert watermark is None
+
+
+@pytest.mark.asyncio
+async def test_market_map_event_loading_handles_missing_fetch_state_without_crashing():
+    event = SimpleNamespace(
+        instrument_id=1,
+        source="provider-a",
+        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+    )
+
+    events, watermark = await _events_by_instrument(
+        _EventSession([event], []), [1], datetime(2024, 1, 6, tzinfo=UTC)
+    )
+
+    assert events == {1: None}
+    assert watermark is None
 
 
 def _snapshot(

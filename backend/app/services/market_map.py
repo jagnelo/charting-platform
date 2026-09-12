@@ -342,6 +342,12 @@ async def _events_by_instrument(
                 .where(
                     InstrumentEvent.instrument_id.in_(instrument_ids),
                     InstrumentEvent.event_time <= period_end,
+                    # ``fetched_at`` is the knowledge boundary for a
+                    # reproducible historical map. An event whose disclosed
+                    # event date is old but was only fetched after the map's
+                    # cutoff is future information and must not be projected
+                    # backwards into the result.
+                    InstrumentEvent.fetched_at <= period_end,
                 )
                 .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
             )
@@ -360,20 +366,34 @@ async def _events_by_instrument(
         .scalars()
         .all()
     )
-    loaded_ids = {int(state.instrument_id) for state in fetch_states}
+    # Fetch state is source-scoped. Keep the source association so a future
+    # state for one provider cannot make an older event from that provider look
+    # historically loaded merely because another provider was fetched earlier.
+    loaded_sources_by_instrument: dict[int, set[str]] = defaultdict(set)
+    eligible_fetch_timestamps: list[datetime] = []
+    for state in fetch_states:
+        fetched_at = getattr(state, "fetched_at", None)
+        if not isinstance(fetched_at, datetime) or _as_utc(fetched_at) > _as_utc(period_end):
+            continue
+        loaded_sources_by_instrument[int(state.instrument_id)].add(str(state.source))
+        eligible_fetch_timestamps.append(fetched_at)
     events: dict[int, list[InstrumentEvent] | None] = {
-        instrument_id: [] if instrument_id in loaded_ids else None
+        instrument_id: ([] if loaded_sources_by_instrument.get(instrument_id) else None)
         for instrument_id in instrument_ids
     }
     for event in rows:
-        events.setdefault(event.instrument_id, []).append(event)
+        loaded_sources = loaded_sources_by_instrument.get(int(event.instrument_id), set())
+        if str(event.source) in loaded_sources:
+            events.setdefault(event.instrument_id, []).append(event)
+    included_event_timestamps = [
+        getattr(event, "fetched_at", None)
+        for event in rows
+        if str(event.source) in loaded_sources_by_instrument.get(int(event.instrument_id), set())
+    ]
     timestamps = [
         timestamp
-        for timestamp in [
-            *(getattr(event, "fetched_at", None) for event in rows),
-            *(getattr(state, "fetched_at", None) for state in fetch_states),
-        ]
-        if isinstance(timestamp, datetime)
+        for timestamp in [*included_event_timestamps, *eligible_fetch_timestamps]
+        if isinstance(timestamp, datetime) and _as_utc(timestamp) <= _as_utc(period_end)
     ]
     return events, max(timestamps, default=None)
 
