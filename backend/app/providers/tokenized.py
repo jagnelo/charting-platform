@@ -1077,6 +1077,7 @@ class DinariTokenProvider:
         # it sorts after the first catalogue page. Provider Stock IDs are UUIDs
         # and are not valid values for that filter, so retain the unfiltered
         # first-page compatibility path for those callers.
+        is_uuid = False
         try:
             UUID(needle)
         except (ValueError, AttributeError):
@@ -1086,6 +1087,7 @@ class DinariTokenProvider:
                 symbols=(str(identifier).strip().upper(),),
             )
         else:
+            is_uuid = True
             rows = self._stocks(page=0, page_size=100)
         row = next(
             (
@@ -1096,6 +1098,13 @@ class DinariTokenProvider:
             ),
             None,
         )
+        if row is None and is_uuid:
+            continuation = self._stock_cursors.get(((), 100, 1))
+            if continuation:
+                raise ProviderResponseError(
+                    self.name,
+                    "Dinari UUID lookup requires explicit catalogue continuation",
+                )
         return self._record(row) if row is not None else None
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:

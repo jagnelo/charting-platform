@@ -370,6 +370,20 @@ def test_dinari_symbol_lookup_uses_documented_server_side_filter(monkeypatch):
     }
 
 
+def test_dinari_uuid_lookup_fails_closed_when_catalogue_has_more_pages():
+    provider = DinariTokenProvider()
+    response = _response(
+        {
+            "data": [_dinari_stock()],
+            "pagination_metadata": {"next": "catalogue-cursor"},
+        }
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        with pytest.raises(ProviderResponseError, match="UUID lookup requires explicit"):
+            provider.get_tokenized_asset("00000000-0000-0000-0000-000000000000")
+    get.assert_called_once()
+
+
 def test_dinari_corporate_actions_combine_symbol_scoped_dividends_and_splits(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
@@ -581,14 +595,14 @@ def test_dinari_split_cursor_continuation_is_explicitly_reused():
     with patch(
         "app.providers.tokenized.httpx.get",
         side_effect=[
-            _response([stock]),
+            _response({"data": [stock], "pagination_metadata": {"next": None}}),
             _response(
                 {
                     "data": [{"ex_date": "2026-01-02"}],
                     "pagination_metadata": {"next": "split-cursor"},
                 }
             ),
-            _response([stock]),
+            _response({"data": [stock], "pagination_metadata": {"next": None}}),
             _response({"data": [{"ex_date": "2025-01-02"}], "pagination_metadata": {"next": None}}),
         ],
     ) as get:

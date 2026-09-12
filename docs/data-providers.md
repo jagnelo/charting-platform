@@ -316,7 +316,10 @@ explicit cursor page. Dinari split callers may request a later page only after
 the preceding page on the same provider instance; the adapter reuses the
 opaque `next` cursor, rejects missing/repeated cursors, and returns an empty
 page only after an observed terminal cursor. It never follows cursors in an
-unbounded loop.
+unbounded loop. UUID metadata lookups refuse a paginated first-page miss
+instead of returning a false not-found result; callers must first advance the
+documented catalogue cursor explicitly (for example through
+`discover_tokenized_assets(page=...)`).
 Robinhood additionally reserves four
 requests: one asset lookup plus the bounded three-attempt quote retry worst
 case. This prevents a successful quote response or bounded retry from being
