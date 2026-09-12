@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Operation-aware availability credential checks
+
+- [x] Align scheduled provider-availability preflights with the central
+      operation-aware registry contract. Multi-field providers such as Dinari
+      (key ID + secret), IBKR (gateway URL + session cookie), and SEC EDGAR
+      (validated User-Agent) are no longer reduced to a legacy single
+      `*_API_KEY` heuristic; Marketstack history/latest checks no longer
+      require its discovery MIC, while discovery still does. Focused
+      availability coverage passes 8/8 and the complete backend unit suite
+      passes 1,759/1,759 with the existing warnings.
+
 ### 2026-09-12 — Operation-scoped Marketstack discovery configuration
 
 - [x] Keep Marketstack's explicit exchange/MIC requirement limited to

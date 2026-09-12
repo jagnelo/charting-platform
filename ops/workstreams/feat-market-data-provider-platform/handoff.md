@@ -416,3 +416,11 @@ Update this handoff at each coherent boundary.
   `UV_CACHE_DIR`, and both root and RPi Compose contract manifests parse
   successfully under the same override. This confirms the earlier failure was
   local uv-cache permission state, not a repository or provider contract error.
+- Provider availability preflights now delegate to the operation-aware registry
+  configuration contract, so Dinari's key-ID/secret, IBKR's gateway URL/session
+  cookie, SEC EDGAR's validated User-Agent, and Marketstack's history-versus-
+  discovery configuration are checked accurately. Focused availability tests
+  pass `8/8`; the complete backend unit suite passes `1,759/1,759` with 37
+  known warnings. The implementation is pushed at
+  `2f8660155c8a86badeb30efef554689ea6c71cc3`; the accompanying TODO/plan/
+  validation checkpoint remains separate.

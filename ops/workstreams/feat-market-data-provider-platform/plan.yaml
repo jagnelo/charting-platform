@@ -396,6 +396,14 @@ progress:
       reconciliation still require the explicit `MARKETSTACK_DISCOVERY_EXCHANGE`
       MIC. Registry/runtime coverage passes 48/48 and the complete backend unit
       suite passes 1,757/1,757; no live provider calls were rerun.
+    - >-
+      Provider availability preflights now use the same operation-aware
+      registry configuration contract as runtime routing. Dinari's key-ID plus
+      secret, IBKR's gateway URL plus session cookie, SEC EDGAR's validated
+      User-Agent, and Marketstack's history-versus-discovery requirements are
+      checked without a legacy single-API-key heuristic. Focused availability
+      coverage passes 8/8 and the complete backend unit suite passes 1,759/1,759;
+      no provider calls were started by this change.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
