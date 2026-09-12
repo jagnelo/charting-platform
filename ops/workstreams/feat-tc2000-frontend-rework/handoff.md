@@ -2,6 +2,17 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dated benchmark coverage races
+
+Product commit `6096ba0e` extends Market Map request fencing to benchmark-family
+coverage reads. A late response from an older historical cutoff or an
+unmounted tool can no longer replace current canonical readiness, report a
+stale error, or leave loading state behind. Focused Market Map coverage passed
+`38/38`, full frontend Vitest passed `1012/1012`, type-check and diff checks
+passed. No provider, fallback, visual, or acceptance policy changed. The exact
+gate remains pending behind the Docker socket permission failure; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Market Map history readiness races
 
 Product commit `c7a3c080` fences Market Map history-status and refresh-run

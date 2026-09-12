@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dated benchmark coverage races
+
+- [x] Fence Market Map benchmark-family coverage reads by request generation,
+      source, and mounted state so a late response from an older historical
+      cutoff cannot replace current canonical readiness (`6096ba0e`).
+- [x] Market Map component coverage passed `38/38`; full frontend Vitest passed
+      `1012/1012`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Market Map history readiness races
 
 - [x] Fence Market Map history-status and refresh-run responses by source,

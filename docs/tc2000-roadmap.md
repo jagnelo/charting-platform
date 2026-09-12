@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dated benchmark coverage races
+
+Product commit `6096ba0e` extends the Market Map stale-callback protection to
+dated benchmark-family coverage. Each coverage read now has a generation fence
+in addition to the source check, so changing the historical cutoff cannot let
+an older response replace the current canonical readiness matrix; unmounted
+tools cannot publish late errors or loading state.
+
+The Market Map component suite passed `38/38`; the full frontend Vitest suite
+passed `1012/1012`; frontend type-check and `git diff --check` passed. No
+provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+policy changed. The exact branch gate remains pending behind the Docker socket
+permission failure; continue the next bounded provider/history or compatible
+R4/R2-R7 seam at this coherent tip.
+
 ## 2026-09-12 — Fence Market Map history readiness races
 
 Product commit `c7a3c080` closes a bounded R6/R2 stale-callback seam in the
