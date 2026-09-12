@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Market Map history actions
+
+Product commit `54a306bb` fences explicit Market Map history refresh and
+cancel actions by mounted, source-scoped action generation. Late responses
+cannot repopulate a detached map with queued-run state, messages, errors, or
+loading cleanup. Focused Market Map coverage passed `44/44`; full frontend
+Vitest passed `1034/1034` across 115 files; type-check, production build,
+and `git diff --check` passed with only the existing chunk-size warning. No
+provider, fallback, visual, or acceptance policy changed. Continue in this
+worktree only.
+
+## 2026-09-12 — Exact Market Map history-action gate rechecked
+
+At product tip `54a306bb823596574d8e7bf1a40133380e01a6ea`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Do not integrate, promote, deploy,
+or mutate another worktree.
+
 ## 2026-09-12 — Cancel aborted workstation opens
 
 Product commit `67720cbb` releases WorkstationView tool-open readiness waits

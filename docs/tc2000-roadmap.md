@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Market Map history actions
+
+Product commit `54a306bb` closes a bounded R6 lifecycle gap in Market Map.
+Explicit history refresh and cancel actions now require a mounted,
+source-scoped action generation before publishing queued-run state, status
+messages, errors, or loading cleanup. A late response after closing the tool
+cannot repopulate the detached surface. Focused Market Map coverage passed
+`44/44`; full frontend Vitest passed `1034/1034` across 115 files;
+frontend type-check and production build passed with only the existing
+chunk-size warning; and `git diff --check` passed. No provider, fallback,
+visual baseline, mask, threshold, skip, or acceptance policy changed.
+Continue the next bounded provider/history or compatible R4/R2-R7 seam while
+preserving the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact Market Map history-action gate rechecked
+
+At product tip `54a306bb823596574d8e7bf1a40133380e01a6ea`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then
+exited 2 after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Cancel aborted workstation opens
 
 Product commit `67720cbb` closes a bounded R6 shell-resilience gap in

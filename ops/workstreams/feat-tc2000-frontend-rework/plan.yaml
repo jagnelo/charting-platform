@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 54a306bb fences explicit Market Map history refresh and cancel
+  actions by mounted, source-scoped action generation; focused Market Map
+  coverage passed 44/44 and full frontend Vitest passed 1034/1034 across 115
+  files, with type-check, production build, and git diff --check passing. The
+  exact gate was rerun at this tip: repository/workstream validation (30
+  records), dependency/migration, frontend preparation, Ruff, formatting, and
+  TypeScript passed; backend-coverage exited 2 after 180 seconds because
+  Docker permission was denied for unix:///Users/jagnelo/.docker/run/docker.sock.
+  No backend integration, provider, browser, or visual stage ran. No visual
+  baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+  changed. Continue the next bounded provider/history or compatible R4/R2-R7
+  seam while preserving the six visual state-oracle assertions.
   Product commit 67720cbb releases WorkstationView tool-open readiness waits
   on teardown and prevents an aborted action from mutating detached DOM or
   workspace state. Existing WorkstationView focused coverage passed 29/29;
@@ -2856,8 +2868,20 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R6_aborted_workstation_open_and_r7_exact_tip_gate
+  current_phase: R6_market_map_history_actions_and_r7_exact_tip_gate
   current_blocker: >-
+    Product commit 54a306bb fences explicit Market Map history refresh and
+    cancel actions by mounted, source-scoped action generation; focused Market
+    Map coverage passed 44/44 and full frontend Vitest passed 1034/1034 across
+    115 files, with type-check, production build, and git diff --check passing.
+    The exact gate was rerun at this tip: repository/workstream validation (30
+    records), dependency/migration, frontend preparation, Ruff, formatting,
+    and TypeScript passed; backend-coverage exited 2 after 180 seconds because
+    Docker permission was denied for unix:///Users/jagnelo/.docker/run/docker.sock.
+    No backend integration, provider, browser, or visual stage ran. No visual
+    baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+    changed. Continue the next bounded provider/history or compatible R4/R2-R7
+    seam while preserving the six visual state-oracle assertions.
     Product commit 67720cbb releases WorkstationView tool-open readiness waits
     on teardown and prevents an aborted action from mutating detached DOM or
     workspace state. Existing WorkstationView focused coverage passed 29/29;

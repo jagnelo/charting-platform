@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Market Map history actions
+
+- [x] Fence explicit Market Map history refresh/cancel actions by mounted,
+      source-scoped action generation so late responses cannot repopulate a
+      closed surface or publish stale status (`54a306bb`).
+- [x] Focused Market Map coverage passed `44/44`; full frontend Vitest passed
+      `1034/1034` across 115 files; frontend type-check, production build,
+      and `git diff --check` passed with only the existing chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Market Map history-action gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `54a306bb823596574d8e7bf1a40133380e01a6ea`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Cancel aborted workstation opens
 
 - [x] Release WorkstationView tool-open readiness waits on teardown and exit
