@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact dashboard Watchlist gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `14d0a2b09` / product tip
+      `f12e6f910`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam,
+      then rerun the exact branch-scoped gate at the next coherent tip.
+
 ### 2026-09-12 — Fence dashboard Watchlist action teardown
 
 - [x] Fence dashboard Watchlist create, copy, delete, and add-by-symbol
@@ -10,8 +21,9 @@
       passed `1067/1067` across 122 files; type-check, production build, and
       `git diff --check` passed with only the existing chunk-size warning. No
       visual/acceptance policy changed.
-- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
-      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+- [x] Reran the exact branch-scoped gate at docs tip `14d0a2b09` / product tip
+      `f12e6f910`; all pre-Docker stages passed before the Docker API boundary
+      recorded above.
 
 ### 2026-09-12 — Exact dashboard instrument-search gate rechecked
 
