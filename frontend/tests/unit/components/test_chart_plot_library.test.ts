@@ -42,6 +42,18 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(2)
   })
 
+  it('lets users select an explicit output for multi-output indicators', async () => {
+    const chart = usePanelStore('plot-library-output-selection-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-output-selection-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    const output = wrapper.get('[aria-label="BB(20,2) output"]')
+    expect((output.element as HTMLSelectElement).value).toBe('')
+    await output.setValue('bb_upper')
+    expect(chart.indicators[0].output).toBe('bb_upper')
+    expect((wrapper.get('[aria-label="BB(20,2) output"]').element as HTMLSelectElement).value).toBe('bb_upper')
+  })
+
   it('opens from the keyboard, focuses the first plot control, and restores focus on Escape', async () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-keyboard-test' } }, attachTo: document.body })
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
