@@ -432,6 +432,11 @@ let sourceActionGeneration = 0
 // watchlist writes. Keep the whole action scoped to the mounted source so a
 // late response or source switch cannot keep mutating a detached map.
 let sourceCloneGeneration = 0
+// Locked-source publication spans an API write, source-catalog reload, and map
+// rerun. Fence the sequence so a detached or relinked Market Map cannot
+// publish a saved source into the wrong visible universe.
+let sourcePublicationGeneration = 0
+let sourcePublicationTargetId: string | null = null
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -1452,7 +1457,9 @@ async function saveExplicitSource() {
 async function saveLockedSource(memberIds: number[], name: string) {
   const normalizedIds = [...new Set(memberIds.filter(id => Number.isInteger(id) && id > 0))]
   const normalizedName = name.trim()
-  if (!normalizedIds.length || !normalizedName || lockedSourceSaving.value) return
+  if (!componentMounted || !normalizedIds.length || !normalizedName || lockedSourceSaving.value) return
+  const generation = ++sourcePublicationGeneration
+  const requestSourceId = sourceId.value
   lockedSourceSaving.value = true
   publicationMessage.value = ''
   publicationError.value = ''
@@ -1460,11 +1467,14 @@ async function saveLockedSource(memberIds: number[], name: string) {
     const saved = await api.post<WatchlistSource>('/watchlists/sources/explicit', {
       name: normalizedName,
       instrument_ids: normalizedIds,
-      parent_source_id: sourceId.value || null,
+      parent_source_id: requestSourceId || null,
       parent_membership_version: map.value?.membership_version ?? map.value?.source.membership_version ?? activeSource.value?.membership_version ?? null,
     })
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     await watchlistStore.loadWatchlistSources()
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     skipNextSourceRun.value = true
+    sourcePublicationTargetId = saved.source_id
     sourceId.value = saved.source_id
     explicitSymbols.value = ''
     selectedIds.value = []
@@ -1472,10 +1482,13 @@ async function saveLockedSource(memberIds: number[], name: string) {
     explicitWatchlistName.value = ''
     publicationMessage.value = normalizedIds.length + ' canonical member' + (normalizedIds.length === 1 ? '' : 's') + ' saved as locked source ' + saved.name
     await run()
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== saved.source_id) return
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save locked explicit source'
+    if (componentMounted && generation === sourcePublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save locked explicit source'
+    }
   } finally {
-    lockedSourceSaving.value = false
+    if (generation === sourcePublicationGeneration) lockedSourceSaving.value = false
   }
 }
 
@@ -1773,7 +1786,13 @@ watch([period, endDate], () => {
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
+  const publicationSourceChange = sourcePublicationTargetId === sourceId.value
+  sourcePublicationTargetId = null
   sourceCloneGeneration += 1
+  if (!publicationSourceChange) {
+    sourcePublicationGeneration += 1
+    lockedSourceSaving.value = false
+  }
   sourceCloneBusy.value = false
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
@@ -1840,6 +1859,8 @@ onUnmounted(() => {
   componentMounted = false
   sourceActionGeneration += 1
   sourceCloneGeneration += 1
+  sourcePublicationGeneration += 1
+  sourcePublicationTargetId = null
   pythonAssetsGeneration += 1
   snapshotGeneration += 1
   runGeneration += 1

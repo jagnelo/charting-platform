@@ -85,6 +85,28 @@ describe('MarketMapTool', () => {
     expect(wrapper.text()).toContain('saved as locked source Saved technology leaders')
   })
 
+  it('does not continue locked-source publication after the Market Map unmounts', async () => {
+    let resolveSave: ((value: unknown) => void) | undefined
+    const saveResult = new Promise(resolve => { resolveSave = resolve })
+    apiPost.mockImplementation((path: string) => path === '/watchlists/sources/explicit' ? saveResult : Promise.resolve(response))
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+    await wrapper.get('[aria-label="Market Map locked source name"]').setValue('Detached source')
+    await wrapper.get('[aria-label="Save selected members as locked source"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/sources/explicit', expect.objectContaining({ name: 'Detached source' }))
+    const sourceLoadsBeforeUnmount = loadWatchlistSources.mock.calls.length
+    wrapper.unmount()
+
+    resolveSave?.({ ...sourceState.sources[0], source_id: 'explicit-list:detached', name: 'Detached source', source_kind: 'explicit' })
+    await flushPromises()
+
+    expect(loadWatchlistSources).toHaveBeenCalledTimes(sourceLoadsBeforeUnmount)
+  })
+
   it('clones the complete canonical locked source with membership provenance', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { ...sourceState.sources[0], composition_date: '2026-08-07', membership_version: 'sp500:2026-08-07' },
