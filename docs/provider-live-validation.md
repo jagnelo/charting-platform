@@ -270,6 +270,13 @@ response-dependent credit charging for chain/quote reads, so the implementation
 deliberately leaves those operations outside routing until a reviewed maximum
 reservation bound is supplied; a green transport probe is not quota admission.
 
+After adding the explicit paper/live Alpaca trading-host setting and replacing
+the deprecated corporate-actions route, the focused credentialed suite passed
+3/3: Alpaca paper assets plus v1 corporate actions, SEC EDGAR filing events
+plus Company Facts, and the Dinari Sandbox metadata/quote/history/news/
+dividend/split case. The run used only the operator-owned key store and wrote
+aggregate request/byte telemetry outside Git.
+
 The subsequent complete matrix rerun at 2026-09-12 collected 39 cases and passed
 35 with positive transport observations. The four honest outcomes were
 Alpha Vantage's documented 25-requests/day capacity response for IPO-calendar
@@ -278,6 +285,13 @@ Ondo. The xStocks quote endpoint returned an explicit null quote while the
 selected token reported `currentPeriod=closed`; the live test records that
 provider state and does not fabricate a price. The wrapper made no acceptance
 claim because the deferred credential and provider-governance gates remain open.
+
+The superseding complete matrix after the Alpaca endpoint correction collected
+41 cases and passed 37/41. The four honest outcomes were the configured Alpha
+Vantage key's documented 25-requests/day capacity response and exact missing
+credential preflights for intentionally deferred Tradier, IBKR, and Ondo. The
+new Alpaca assets/corporate-actions and SEC/Dinari surface cases passed; no
+credentials or response payloads were persisted.
 
 A provider may
 have a green live probe and remain non-routable when any external constraint

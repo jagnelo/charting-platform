@@ -322,13 +322,15 @@ progress:
     - root and RPi Compose manifests parse successfully after the Dinari Sandbox wiring correction (RPi validated with non-secret deployment placeholders); no service was started or restarted
     - current official Tiingo pricing confirms the free Starter contract as 500 unique symbols/month, 50 requests/hour, 1,000 requests/day, and 1 GB/month bandwidth; the observed 2.00 GB dashboard value is not promoted into routing, and operation-specific byte bounds remain required
     - provider usage diagnostics now derive active quota-window expiry from each policy's explicit calendar reset (including Eastern-time month/day and 09:30 ET boundaries), instead of treating every long window as a fixed 31-day duration; fixed and rolling windows retain their duration semantics across short months and daylight-saving transitions. Focused usage coverage passes 7/7 and the full backend unit suite passes 1745/1745 with Ruff, compilation, and diff checks clean
+    - Alpaca asset discovery now selects an explicit documented paper/live trading host (paper is the safe default) rather than sending paper credentials to the live host; corporate actions now use the current v1 market-data endpoint, honor payable dates, and follow page tokens instead of the deprecated v2 announcements route. Focused Alpaca/SEC/Dinari live verification passed 3/3 after adding assets/corporate-actions, EDGAR filings/Company Facts, and Dinari dividend/split assertions; the Alpaca provider unit suite passed 184/184 and the full backend unit suite passed 1748/1748 with static checks clean.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
-    The complete matrix now collects 39 cases and remains 35/39: newly supplied
+    The complete matrix now collects 41 cases and remains 37/41: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
     Sandbox probes, including the MarketData.app expirations/option-chain
-    surface and Alpaca latest price. Dinari required the
+    surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.
+    Dinari required the
     operator-only base URL to be corrected from the live sbt host to the
     documented Sandbox host; the replacement pair then passed its bounded
     credentialed case. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain

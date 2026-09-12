@@ -39,7 +39,12 @@ from app.providers.telemetry import observe_response
 logger = logging.getLogger(__name__)
 
 _DATA_BASE = "https://data.alpaca.markets/v2"
-_BROKER_BASE = "https://api.alpaca.markets/v2"
+_DATA_V1_BASE = "https://data.alpaca.markets/v1"
+_DEFAULT_TRADING_BASE = "https://paper-api.alpaca.markets/v2"
+_ALLOWED_TRADING_BASES = {
+    "https://paper-api.alpaca.markets/v2",
+    "https://api.alpaca.markets/v2",
+}
 _PAGE_SIZE = 250
 
 _TF_MAP: dict[Timeframe, str] = {
@@ -296,125 +301,142 @@ class AlpacaProvider:
         now = datetime.now(UTC)
         since = (now - timedelta(days=365 * 10)).strftime("%Y-%m-%d")
         until = (now + timedelta(days=90)).strftime("%Y-%m-%d")
-        try:
-            r = httpx.get(
-                f"{_DATA_BASE}/corporate_actions/announcements",
-                params={
-                    "ca_types": "forward_split,reverse_split,cash_dividend",
-                    "symbol": symbol,
-                    "since": since,
-                    "until": until,
-                },
-                headers=self._headers(),
-                timeout=30,
-            )
-            observe_response(r)
-            r.raise_for_status()
-            raw = r.json()
-            if not isinstance(raw, dict):
-                raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
-        except httpx.HTTPStatusError:
-            raise
-        except httpx.RequestError as exc:
-            raise ProviderResponseError(self.name, str(exc)) from exc
-        except (TypeError, ValueError) as exc:
-            raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
-
-        ca = raw.get("corporate_actions") or raw
-        if not isinstance(ca, dict):
-            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
         events: list[InstrumentEventRecord] = []
         fetched = now
 
-        for s in _corporate_action_rows(ca, "forward_splits"):
-            dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
-            if dt is None:
-                raise ProviderResponseError(
-                    self.name, "Alpaca returned a forward split without a valid date"
+        # The v1 endpoint is the current API. The former v2 announcements
+        # endpoint is deprecated, limited to a 90-day interval, and is not
+        # served from the market-data host used by this adapter. Follow the
+        # documented page token so long history cannot be silently truncated.
+        page_token: str | None = None
+        while True:
+            params: dict[str, Any] = {
+                "symbols": symbol,
+                "types": "forward_split,reverse_split,cash_dividend",
+                "start": since,
+                "end": until,
+            }
+            if page_token:
+                params["page_token"] = page_token
+            try:
+                r = httpx.get(
+                    f"{_DATA_V1_BASE}/corporate-actions",
+                    params=params,
+                    headers=self._headers(),
+                    timeout=30,
                 )
-            split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
-            if s.get("new_rate") is not None or s.get("old_rate") is not None:
-                if split_ratio is None or split_ratio <= 0:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned an invalid forward split ratio"
-                    )
-            events.append(
-                InstrumentEventRecord(
-                    event_type=InstrumentEventType.SPLIT,
-                    event_time=dt,
-                    time_hint=EventTimeHint.UNKNOWN,
-                    title=f"Forward Split {symbol}",
-                    source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
-                    fetched_at=fetched,
-                    split_ratio=split_ratio,
-                    raw_payload=str(s),
-                )
-            )
+                observe_response(r)
+                r.raise_for_status()
+                payload = r.json()
+                if not isinstance(payload, dict):
+                    raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
+            except httpx.HTTPStatusError:
+                raise
+            except httpx.RequestError as exc:
+                raise ProviderResponseError(self.name, str(exc)) from exc
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
 
-        for s in _corporate_action_rows(ca, "reverse_splits"):
-            dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
-            if dt is None:
-                raise ProviderResponseError(
-                    self.name, "Alpaca returned a reverse split without a valid date"
-                )
-            split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
-            if s.get("new_rate") is not None or s.get("old_rate") is not None:
-                if split_ratio is None or split_ratio <= 0:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned an invalid reverse split ratio"
-                    )
-            events.append(
-                InstrumentEventRecord(
-                    event_type=InstrumentEventType.SPLIT,
-                    event_time=dt,
-                    time_hint=EventTimeHint.UNKNOWN,
-                    title=f"Reverse Split {symbol}",
-                    source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
-                    fetched_at=fetched,
-                    split_ratio=split_ratio,
-                    raw_payload=str(s),
-                )
-            )
+            ca = payload.get("corporate_actions") or {}
+            if not isinstance(ca, dict):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
 
-        for d in _corporate_action_rows(ca, "cash_dividends"):
-            ex_dt = _parse_date(d.get("ex_date") or "")
-            pay_dt = _parse_date(d.get("pay_date") or "")
-            amount = _safe_decimal(d.get("rate"))
-            if d.get("rate") is not None and amount is None:
-                raise ProviderResponseError(
-                    self.name, "Alpaca returned an invalid cash-dividend rate"
-                )
-            if ex_dt is None and pay_dt is None:
-                raise ProviderResponseError(
-                    self.name, "Alpaca returned a cash dividend without a valid date"
-                )
-            raw = str(d)
-            if ex_dt:
+            for s in _corporate_action_rows(ca, "forward_splits"):
+                dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
+                if dt is None:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned a forward split without a valid date"
+                    )
+                split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
+                if s.get("new_rate") is not None or s.get("old_rate") is not None:
+                    if split_ratio is None or split_ratio <= 0:
+                        raise ProviderResponseError(
+                            self.name, "Alpaca returned an invalid forward split ratio"
+                        )
                 events.append(
                     InstrumentEventRecord(
-                        event_type=InstrumentEventType.EX_DIVIDEND,
-                        event_time=ex_dt,
+                        event_type=InstrumentEventType.SPLIT,
+                        event_time=dt,
                         time_hint=EventTimeHint.UNKNOWN,
-                        title=f"Ex-Dividend {symbol}",
-                        source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
+                        title=f"Forward Split {symbol}",
+                        source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
                         fetched_at=fetched,
-                        dividend_amount=amount,
-                        raw_payload=raw,
+                        split_ratio=split_ratio,
+                        raw_payload=str(s),
                     )
                 )
-            if pay_dt:
+
+            for s in _corporate_action_rows(ca, "reverse_splits"):
+                dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
+                if dt is None:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned a reverse split without a valid date"
+                    )
+                split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
+                if s.get("new_rate") is not None or s.get("old_rate") is not None:
+                    if split_ratio is None or split_ratio <= 0:
+                        raise ProviderResponseError(
+                            self.name, "Alpaca returned an invalid reverse split ratio"
+                        )
                 events.append(
                     InstrumentEventRecord(
-                        event_type=InstrumentEventType.DIVIDEND,
-                        event_time=pay_dt,
+                        event_type=InstrumentEventType.SPLIT,
+                        event_time=dt,
                         time_hint=EventTimeHint.UNKNOWN,
-                        title=f"Dividend {symbol}",
-                        source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
+                        title=f"Reverse Split {symbol}",
+                        source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
                         fetched_at=fetched,
-                        dividend_amount=amount,
-                        raw_payload=raw,
+                        split_ratio=split_ratio,
+                        raw_payload=str(s),
                     )
                 )
+
+            for d in _corporate_action_rows(ca, "cash_dividends"):
+                ex_dt = _parse_date(d.get("ex_date") or "")
+                pay_dt = _parse_date(d.get("payable_date") or d.get("pay_date") or "")
+                amount = _safe_decimal(d.get("rate"))
+                if d.get("rate") is not None and amount is None:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned an invalid cash-dividend rate"
+                    )
+                if ex_dt is None and pay_dt is None:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned a cash dividend without a valid date"
+                    )
+                raw = str(d)
+                if ex_dt:
+                    events.append(
+                        InstrumentEventRecord(
+                            event_type=InstrumentEventType.EX_DIVIDEND,
+                            event_time=ex_dt,
+                            time_hint=EventTimeHint.UNKNOWN,
+                            title=f"Ex-Dividend {symbol}",
+                            source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
+                            fetched_at=fetched,
+                            dividend_amount=amount,
+                            raw_payload=raw,
+                        )
+                    )
+                if pay_dt:
+                    events.append(
+                        InstrumentEventRecord(
+                            event_type=InstrumentEventType.DIVIDEND,
+                            event_time=pay_dt,
+                            time_hint=EventTimeHint.UNKNOWN,
+                            title=f"Dividend {symbol}",
+                            source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
+                            fetched_at=fetched,
+                            dividend_amount=amount,
+                            raw_payload=raw,
+                        )
+                    )
+
+            next_token = payload.get("next_page_token")
+            if next_token is None or next_token == "":
+                break
+            if not isinstance(next_token, str) or next_token == page_token:
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+            page_token = next_token
 
         return events
 
@@ -435,6 +457,28 @@ class AlpacaProvider:
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "CRYPTOCURRENCY"]
+
+
+def _trading_base_url() -> str:
+    """Return the explicitly selected Alpaca paper/live assets host.
+
+    The credentials supplied for this workstream are paper-account keys.  The
+    paper and live trading hosts are separate even though both use the same
+    authenticated assets route; silently sending paper keys to the live host
+    produces a misleading 401 and leaves universe discovery unverified.
+    Restricting the setting to Alpaca's documented hosts also prevents a
+    malformed deployment value from redirecting credentials elsewhere.
+    """
+
+    configured = getattr(settings, "ALPACA_TRADING_BASE_URL", _DEFAULT_TRADING_BASE)
+    if not isinstance(configured, str) or not configured.strip():
+        configured = _DEFAULT_TRADING_BASE
+    normalized = configured.strip().rstrip("/")
+    if normalized not in _ALLOWED_TRADING_BASES:
+        raise ProviderNotConfiguredError(
+            "alpaca requires ALPACA_TRADING_BASE_URL to be the documented paper or live host"
+        )
+    return normalized
 
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
@@ -534,7 +578,7 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         return _asset_cache[asset_class]
     try:
         r = httpx.get(
-            f"{_BROKER_BASE}/assets",
+            f"{_trading_base_url()}/assets",
             params={"status": "active", "asset_class": asset_class},
             headers=headers,
             timeout=30,

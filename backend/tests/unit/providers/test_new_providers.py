@@ -17,6 +17,7 @@ from app.providers.alpaca import (
     AlpacaProvider,
     _is_crypto,
     _to_alpaca_crypto,
+    _trading_base_url,
     estimate_latest_ohlcv_request_count,
     estimate_ohlcv_request_count,
 )
@@ -231,6 +232,35 @@ class TestAlpacaCredentialWarning:
             with pytest.raises(ProviderNotConfiguredError):
                 provider.discover_universe_page("EQUITY", 0)
 
+    def test_assets_use_paper_trading_host_for_paper_credentials(self):
+        response = MagicMock()
+        response.json.return_value = [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc.",
+                "exchange": "NASDAQ",
+                "tradable": True,
+            }
+        ]
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca._asset_cache", {}),
+            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            page = AlpacaProvider().discover_universe_page("EQUITY", 0)
+        assert page["quotes"][0]["symbol"] == "AAPL"
+        assert get.call_args.args[0] == "https://paper-api.alpaca.markets/v2/assets"
+
+    def test_invalid_assets_host_fails_closed(self):
+        with patch("app.providers.alpaca.settings") as configured:
+            configured.ALPACA_TRADING_BASE_URL = "https://attacker.invalid/v2"
+            with pytest.raises(ProviderNotConfiguredError):
+                _trading_base_url()
+
     def test_http_status_failures_are_not_converted_to_empty_history(self):
         provider = AlpacaProvider()
         response = httpx.Response(
@@ -431,6 +461,62 @@ class TestAlpacaOHLCVParsing:
             configured.ALPACA_SECRET_KEY = "secret"
             with pytest.raises(ProviderResponseError, match=match):
                 AlpacaProvider().fetch_instrument_events("AAPL")
+
+    def test_corporate_actions_use_current_v1_endpoint_and_follow_page_tokens(self):
+        responses = []
+        for payload in (
+            {
+                "corporate_actions": {
+                    "cash_dividends": [
+                        {
+                            "id": "div-1",
+                            "ex_date": "2025-01-02",
+                            "payable_date": "2025-01-10",
+                            "rate": 0.25,
+                        }
+                    ]
+                },
+                "next_page_token": "next-page",
+            },
+            {
+                "corporate_actions": {
+                    "forward_splits": [
+                        {
+                            "id": "split-1",
+                            "ex_date": "2025-02-03",
+                            "new_rate": 2,
+                            "old_rate": 1,
+                        }
+                    ]
+                },
+                "next_page_token": None,
+            },
+        ):
+            response = MagicMock()
+            response.json.return_value = payload
+            response.raise_for_status.return_value = None
+            responses.append(response)
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", side_effect=responses) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            events = AlpacaProvider().fetch_instrument_events("AAPL")
+
+        assert [event.event_type.value for event in events] == [
+            "ex_dividend",
+            "dividend",
+            "split",
+        ]
+        assert events[1].event_time.date() == date(2025, 1, 10)
+        assert get.call_count == 2
+        assert get.call_args_list[0].args[0] == "https://data.alpaca.markets/v1/corporate-actions"
+        assert get.call_args_list[0].kwargs["params"]["symbols"] == "AAPL"
+        assert get.call_args_list[0].kwargs["params"]["types"] == (
+            "forward_split,reverse_split,cash_dividend"
+        )
+        assert get.call_args_list[1].kwargs["params"]["page_token"] == "next-page"
 
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────

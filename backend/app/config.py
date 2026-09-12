@@ -1562,6 +1562,10 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
+    # Paper accounts use the paper trading host for the authenticated assets
+    # directory. Production credentials must opt into the live host explicitly;
+    # market-data history/latest endpoints continue to use data.alpaca.markets.
+    ALPACA_TRADING_BASE_URL: str = "https://paper-api.alpaca.markets/v2"
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""

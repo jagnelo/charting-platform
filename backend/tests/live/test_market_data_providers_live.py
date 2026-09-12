@@ -122,6 +122,24 @@ def test_sec_edgar_keyless_profile():
     assert measurement.http_requests >= 2
 
 
+def test_sec_edgar_credentialed_filings_and_company_facts():
+    """Exercise filing-derived earnings events and XBRL Company Facts."""
+
+    _require("EDGAR_USER_AGENT")
+    provider = EdgarProvider()
+    events, _ = _observed_read(
+        lambda: provider.fetch_instrument_events("AAPL"), "edgar"
+    )
+    assert events
+    assert all(event.event_type.value == "earnings" for event in events)
+    assert all(event.event_time.tzinfo is not None for event in events)
+    facts, _ = _observed_read(
+        lambda: provider.fetch_fundamental_facts("320193"), "edgar"
+    )
+    assert facts
+    assert any(fact.namespace and fact.key and fact.unit for fact in facts)
+
+
 def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
     """Fetch the official SEC directory once and prove local page completion."""
 
@@ -240,6 +258,26 @@ def test_alpaca_credentialed_latest_price():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     price, _ = _observed_read(lambda: AlpacaProvider().get_current_price("AAPL"), "alpaca")
     assert price is not None and price > 0
+
+
+def test_alpaca_credentialed_assets_and_corporate_actions():
+    """Exercise the non-price Alpaca surfaces used by universe/event refreshes."""
+
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    provider = AlpacaProvider()
+    page, _ = _observed_read(
+        lambda: provider.discover_universe_page("EQUITY", 0), "alpaca"
+    )
+    assert page["quotes"]
+    assert page["total"] >= len(page["quotes"])
+    assert all(row["quoteType"] == "EQUITY" for row in page["quotes"])
+    events, _ = _observed_read(
+        lambda: provider.fetch_instrument_events("AAPL"), "alpaca"
+    )
+    # A symbol can legitimately have no actions in the bounded lookback. The
+    # transport and normalized event container must still be valid.
+    assert isinstance(events, list)
+    assert all(event.event_type.value in {"split", "dividend", "ex_dividend"} for event in events)
 
 
 def test_massive_credentialed_reference():
