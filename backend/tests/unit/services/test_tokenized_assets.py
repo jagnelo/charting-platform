@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.market_data_foundation import MarketEvent
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
@@ -22,6 +23,8 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 @pytest.mark.asyncio
 async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, instrument):
+    instrument.isin = "US0378331005"
+    db.flush()
     record = TokenizedAssetRecord(
         provider="xstocks",
         asset_id="x:AAPL",
@@ -47,6 +50,7 @@ async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, 
         select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
     ).scalar_one()
     assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_isin"
     assert detail.multiplier == Decimal("0.98")
     assert detail.deployments[0]["address"] == "So111"
 
@@ -81,6 +85,87 @@ async def test_upsert_does_not_guess_ambiguous_underlying(db, instrument_type, i
         select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
     ).scalar_one()
     assert detail.underlying_instrument_id is None
+    assert detail.provenance["underlying_link_status"] == "unresolved_or_ambiguous"
+
+
+@pytest.mark.asyncio
+async def test_upsert_prefers_underlying_isin_over_duplicate_ticker(db, instrument_type, instrument):
+    instrument.isin = "US0378331005"
+    duplicate = Instrument(
+        symbol="AAPL",
+        name="Apple duplicate listing",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(duplicate)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_isin="US0378331005",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_isin"
+
+
+@pytest.mark.asyncio
+async def test_upsert_resolves_underlying_isin_from_canonical_identifier(db, instrument, instrument_type):
+    identifier = InstrumentIdentifier(
+        instrument_id=instrument.id,
+        identifier_type=InstrumentIdentifierType.ISIN,
+        identifier_value="US0378331005",
+        is_active=True,
+    )
+    db.add(identifier)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-identifier",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_isin="US0378331005",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_isin"
+
+
+@pytest.mark.asyncio
+async def test_upsert_does_not_fallback_to_ticker_when_underlying_isin_unresolved(db, instrument):
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-unresolved",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_isin="US0000000000",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id is None
+    assert detail.provenance["underlying_link_status"] == "unresolved_or_ambiguous_isin"
 
 
 @pytest.mark.asyncio

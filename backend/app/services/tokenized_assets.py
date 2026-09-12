@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
@@ -187,10 +188,49 @@ def _tokenized_event_payload(
 
 
 async def _underlying_instrument(
-    db: AsyncSession, symbol: str | None
-) -> Instrument | None:
+    db: AsyncSession,
+    *,
+    symbol: str | None,
+    isin: str | None,
+) -> tuple[Instrument | None, str]:
+    """Resolve a token's economic underlying with stable-ID-first semantics.
+
+    A provider-supplied ISIN is security-level evidence. If it is present but
+    cannot be resolved uniquely, do not weaken it to a ticker-only match: that
+    could attach a token to the wrong share class or venue. Ticker matching is
+    retained only for records that carry no stable underlying identifier and is
+    still accepted only when exactly one active instrument has that symbol.
+    """
+
+    normalized_isin = str(isin or "").strip().upper()
+    if normalized_isin:
+        direct = (
+            await db.execute(
+                select(Instrument).where(
+                    Instrument.isin == normalized_isin,
+                    Instrument.is_active.is_(True),
+                )
+            )
+        ).scalars().all()
+        by_identifier = (
+            await db.execute(
+                select(Instrument)
+                .join(InstrumentIdentifier, InstrumentIdentifier.instrument_id == Instrument.id)
+                .where(
+                    InstrumentIdentifier.identifier_type == InstrumentIdentifierType.ISIN,
+                    InstrumentIdentifier.identifier_value == normalized_isin,
+                    InstrumentIdentifier.is_active.is_(True),
+                    Instrument.is_active.is_(True),
+                )
+            )
+        ).scalars().all()
+        candidates = {candidate.id: candidate for candidate in (*direct, *by_identifier)}
+        if len(candidates) == 1:
+            return next(iter(candidates.values())), "linked_by_isin"
+        return None, "unresolved_or_ambiguous_isin"
+
     if not symbol:
-        return None
+        return None, "unresolved_or_ambiguous"
     rows = (
         await db.execute(
             select(Instrument)
@@ -201,7 +241,7 @@ async def _underlying_instrument(
     # A ticker alone is not enough to link an underlying when multiple active
     # listings share it.  The token remains valid but its relationship stays
     # unresolved until authoritative identity evidence is available.
-    return rows[0] if len(rows) == 1 else None
+    return (rows[0], "linked_by_symbol") if len(rows) == 1 else (None, "unresolved_or_ambiguous")
 
 
 async def upsert_tokenized_asset(
@@ -237,7 +277,11 @@ async def upsert_tokenized_asset(
         instrument.isin = record.isin or instrument.isin
         instrument.is_active = record.status not in {"inactive", "delisted", "halted"}
 
-    underlying = await _underlying_instrument(db, record.underlying_symbol)
+    underlying, underlying_link_status = await _underlying_instrument(
+        db,
+        symbol=record.underlying_symbol,
+        isin=record.underlying_isin,
+    )
     detail = (
         await db.execute(
             select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == instrument.id)
@@ -269,7 +313,7 @@ async def upsert_tokenized_asset(
         "provider": record.provider,
         "provider_asset_id": record.asset_id,
         "observed_at": (record.observed_at or datetime.now(UTC)).isoformat(),
-        "underlying_link_status": "linked" if underlying else "unresolved_or_ambiguous",
+        "underlying_link_status": underlying_link_status,
     }
     detail.description = record.raw_payload.get("description") if record.raw_payload else None
 

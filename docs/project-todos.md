@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Stable-ID-first tokenized underlying linkage
+
+- [x] Make tokenized-security persistence resolve an economic underlying by a
+      supplied ISIN first, checking both the canonical `Instrument.isin` field
+      and active `InstrumentIdentifier` rows. If that evidence is missing,
+      ambiguous, or unresolved, the service no longer weakens to a ticker-only
+      match; ticker fallback remains limited to one active listing.
+- [x] Persist explicit `underlying_link_status` provenance values and add
+      regressions for duplicate-ticker disambiguation, identifier-only
+      resolution, and unresolved-ISIN no-fallback behavior. Focused tokenized
+      service coverage passes 10/10 and the complete backend unit suite passes
+      1,879/1,879 with the known 37 warnings. No frontend or ETF-provider
+      adapter files changed.
+
 ### 2026-09-12 — Durable bounded EDGAR issuer-universe scan
 
 - [x] Add an additive `market_event_scan_state` table and admin-only
