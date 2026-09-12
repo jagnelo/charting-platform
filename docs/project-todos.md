@@ -58,10 +58,12 @@
       screener preflight/unit coverage passes `34/34`, the database-backed
       screener integration suite passes `26/26`, and the stream remains
       provider-free for cold members.
-- [ ] Extend the same coordinator-backed preflight to radar, chart routes,
-      future breadth/signal engines, and refresh-job status persistence; this
-      checkpoint closes only the screener consumer's grouped local snapshot
-      stage.
+- [x] Extend the freshness/coordinator boundary to radar, chart technical,
+      relative-strength, group snapshot, and group breadth reads. These local
+      evaluators now exclude explicitly stale current snapshots while retaining
+      historical `as_of` behavior.
+- [ ] Extend the same coordinator-backed preflight to remaining chart routes,
+      future breadth/signal engines, and refresh-job status persistence.
 
 ### 2026-09-12 — Persist radar coverage outcomes
 
@@ -82,9 +84,9 @@
       persisted OHLCV state, report missing/stale/evaluated counts, and retain
       historical `as_of` semantics. Chart routes and other future evaluators
       still require their own coordinator-backed preflight.
-- [ ] Extend the same coordinator-backed preflight to chart routes and future
-      breadth/signal engines; this radar checkpoint does not change those
-      consumers.
+- [ ] Extend the same coordinator-backed preflight to remaining chart routes
+      and future breadth/signal engines; this radar checkpoint does not change
+      those consumers.
 
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 
