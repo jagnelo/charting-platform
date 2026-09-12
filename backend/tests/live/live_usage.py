@@ -50,7 +50,7 @@ _CAPACITY_HEADERS = {
     "x-ratelimit-reset",
     "x-ratelimit-used",
 }
-_observations: list[tuple[str, int, int, dict[str, str]]] = []
+_observations: list[tuple[str, int, int, dict[str, str], bool]] = []
 _PROCESS_RUN_ID = str(uuid4())
 
 
@@ -121,8 +121,14 @@ def record_observation(
     http_requests: int,
     response_bytes: int,
     response_headers: Mapping[str, object] | None = None,
+    success: bool = True,
 ) -> None:
-    """Accumulate one measured live operation without retaining payload data."""
+    """Accumulate one measured live operation without retaining payload data.
+
+    ``success`` is operation/provider scoped. It must not be inferred from
+    pytest's process-wide exit status because one expected credential or quota
+    failure must not mark unrelated successful provider rows as failed.
+    """
 
     _observations.append(
         (
@@ -130,6 +136,7 @@ def record_observation(
             max(0, int(http_requests)),
             max(0, int(response_bytes)),
             _safe_headers(response_headers),
+            bool(success),
         )
     )
 
@@ -146,13 +153,15 @@ def flush_observations(exit_status: int) -> Path | None:
             "http_requests": 0,
             "response_bytes": 0,
             "operations": 0,
+            "failed_operations": 0,
             "response_headers": {},
         }
     )
-    for provider, requests, response_bytes, response_headers in _observations:
+    for provider, requests, response_bytes, response_headers, success in _observations:
         grouped[provider]["http_requests"] += requests
         grouped[provider]["response_bytes"] += response_bytes
         grouped[provider]["operations"] += 1
+        grouped[provider]["failed_operations"] += int(not success)
         grouped[provider]["response_headers"].update(response_headers)
 
     # The wrapper supplies an explicit run ID for CI/local manifest runs. A
@@ -172,7 +181,11 @@ def flush_observations(exit_status: int) -> Path | None:
             "operations": values["operations"],
             "http_requests": values["http_requests"],
             "response_bytes": values["response_bytes"],
-            "exit_status": int(exit_status),
+            # This is the provider-row status, not pytest's process-wide
+            # result. Keep the latter separately for matrix diagnostics.
+            "exit_status": int(values["failed_operations"] > 0),
+            "failed_operations": values["failed_operations"],
+            "process_exit_status": max(0, int(exit_status)),
             "response_headers": dict(values["response_headers"]),
         }
         for provider, values in sorted(grouped.items())

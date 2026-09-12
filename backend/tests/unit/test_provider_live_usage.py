@@ -45,8 +45,10 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         {
             "at": rows[0]["at"],
             "exit_status": 0,
+            "failed_operations": 0,
             "http_requests": 1,
             "operations": 1,
+            "process_exit_status": 0,
             "provider": "coinbase",
             "response_bytes": 25,
             "run_id": "run-test",
@@ -56,8 +58,10 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         {
             "at": rows[1]["at"],
             "exit_status": 0,
+            "failed_operations": 0,
             "http_requests": 3,
             "operations": 2,
+            "process_exit_status": 0,
             "provider": "fred",
             "response_bytes": 150,
             "run_id": "run-test",
@@ -70,6 +74,26 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         },
     ]
     assert live_usage.flush_observations(0) is None
+
+
+def test_live_usage_tracks_provider_status_separately_from_process_exit(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "mixed-run")
+    live_usage._reset_for_test()
+    live_usage.record_observation("alpaca", http_requests=1, response_bytes=10, success=True)
+    live_usage.record_observation(
+        "alpha_vantage", http_requests=1, response_bytes=20, success=False
+    )
+
+    assert live_usage.flush_observations(1) == ledger
+    rows = {row["provider"]: row for row in map(json.loads, ledger.read_text().splitlines())}
+    assert rows["alpaca"]["exit_status"] == 0
+    assert rows["alpaca"]["failed_operations"] == 0
+    assert rows["alpaca"]["process_exit_status"] == 1
+    assert rows["alpha_vantage"]["exit_status"] == 1
+    assert rows["alpha_vantage"]["failed_operations"] == 1
+    assert rows["alpha_vantage"]["process_exit_status"] == 1
 
 
 def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, monkeypatch):

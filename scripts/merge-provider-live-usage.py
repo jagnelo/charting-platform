@@ -112,6 +112,16 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
     }
     if any(item is None for item in values.values()):
         return None
+    failed_operations = _nonnegative_int(value.get("failed_operations", 0))
+    process_exit_status = _nonnegative_int(
+        value.get("process_exit_status", values["exit_status"])
+    )
+    if (
+        failed_operations is None
+        or process_exit_status is None
+        or failed_operations > values["operations"]
+    ):
+        return None
     response_headers = _capacity_headers(value.get("response_headers"))
     if response_headers is None:
         return None
@@ -120,6 +130,8 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
         "usage_scope": usage_scope,
         "provider": provider,
         **{field: int(item) for field, item in values.items()},
+        "failed_operations": failed_operations,
+        "process_exit_status": process_exit_status,
         "response_headers": response_headers,
     }
     run_id = str(value.get("run_id") or "").strip()

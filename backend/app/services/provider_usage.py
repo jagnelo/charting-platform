@@ -134,6 +134,8 @@ def _empty_live_usage() -> dict[str, Any]:
         "status": "no_observations",
         "runs": 0,
         "failed_runs": 0,
+        "process_failed_runs": 0,
+        "failed_operations": 0,
         "operations": 0,
         "http_requests": 0,
         "response_bytes": 0,
@@ -141,14 +143,20 @@ def _empty_live_usage() -> dict[str, Any]:
         "operations_24h": 0,
         "http_requests_24h": 0,
         "response_bytes_24h": 0,
+        "failed_operations_24h": 0,
+        "process_failed_runs_24h": 0,
         "runs_7d": 0,
         "operations_7d": 0,
         "http_requests_7d": 0,
         "response_bytes_7d": 0,
+        "failed_operations_7d": 0,
+        "process_failed_runs_7d": 0,
         "runs_30d": 0,
         "operations_30d": 0,
         "http_requests_30d": 0,
         "response_bytes_30d": 0,
+        "failed_operations_30d": 0,
+        "process_failed_runs_30d": 0,
         "last_observation_at": None,
         "usage_scopes": [],
         "last_response_headers": {},
@@ -254,6 +262,10 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                     requests = _nonnegative_int(row.get("http_requests"))
                     response_bytes = _nonnegative_int(row.get("response_bytes"))
                     exit_status = _nonnegative_int(row.get("exit_status"))
+                    failed_operations = _nonnegative_int(row.get("failed_operations", 0))
+                    process_exit_status = _nonnegative_int(
+                        row.get("process_exit_status", exit_status)
+                    )
                     response_headers = row.get("response_headers")
                     if response_headers is None:
                         response_headers = {}
@@ -278,6 +290,9 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                         or requests is None
                         or response_bytes is None
                         or exit_status is None
+                        or failed_operations is None
+                        or process_exit_status is None
+                        or failed_operations > operations
                     ):
                         raise ValueError("invalid live usage row")
                 except (AttributeError, TypeError, ValueError, json.JSONDecodeError):
@@ -292,6 +307,8 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 summary["status"] = "available"
                 summary["runs"] += 1
                 summary["failed_runs"] += int(exit_status not in (None, 0))
+                summary["process_failed_runs"] += int(process_exit_status not in (None, 0))
+                summary["failed_operations"] += failed_operations
                 summary["operations"] += operations
                 summary["http_requests"] += requests
                 summary["response_bytes"] += response_bytes
@@ -305,16 +322,22 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                     summary["last_observation_at"] = observed_at
                 if observed_at >= last_24h:
                     summary["runs_24h"] += 1
+                    summary["process_failed_runs_24h"] += int(process_exit_status not in (None, 0))
+                    summary["failed_operations_24h"] += failed_operations
                     summary["operations_24h"] += operations
                     summary["http_requests_24h"] += requests
                     summary["response_bytes_24h"] += response_bytes
                 if observed_at >= last_7d:
                     summary["runs_7d"] += 1
+                    summary["process_failed_runs_7d"] += int(process_exit_status not in (None, 0))
+                    summary["failed_operations_7d"] += failed_operations
                     summary["operations_7d"] += operations
                     summary["http_requests_7d"] += requests
                     summary["response_bytes_7d"] += response_bytes
                 if observed_at >= last_30d:
                     summary["runs_30d"] += 1
+                    summary["process_failed_runs_30d"] += int(process_exit_status not in (None, 0))
+                    summary["failed_operations_30d"] += failed_operations
                     summary["operations_30d"] += operations
                     summary["http_requests_30d"] += requests
                     summary["response_bytes_30d"] += response_bytes

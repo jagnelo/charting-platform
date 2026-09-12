@@ -60,6 +60,12 @@ observed by the transport (remaining credits, reset times, `Retry-After`, FINRA
 record bounds, or Binance/Bybit weight state); auth and payload headers are
 rejected. This snapshot is observational evidence, never a substitute for
 provider-account reconciliation or runtime quota reservations.
+Each provider row distinguishes `exit_status` (whether an operation for that
+provider failed), `failed_operations`, and `process_exit_status` (the overall
+pytest/matrix result). This prevents an unrelated expected credential or quota
+failure from falsely marking every successful provider row as failed. Older
+receipts without the new fields remain readable with zero failed operations and
+the legacy `exit_status` used as the process status.
 When an operator mounts that redacted ledger into a backend deployment and sets
 the same `PROVIDER_LIVE_USAGE_LEDGER` path, the authenticated
 `/api/v1/providers/usage` response exposes a separate `live_test_usage` object
