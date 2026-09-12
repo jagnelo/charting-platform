@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Pagination cursor safety
+
+- [x] Reject repeated Alpaca history page tokens and malformed/repeated
+      discovery `next_url` metadata instead of looping or reprocessing the same
+      provider page. Focused pagination/provider coverage passes `60/60`, and
+      the complete backend unit suite passes `1,987/1,987` with 37 warnings;
+      Ruff, compileall, and diff checks pass. Source checkpoint `fe21e6be`; no
+      provider calls, credentials, frontend files, or ETF-provider adapter
+      files changed.
+
 ### 2026-09-12 — Typed provider reset-header recovery
 
 - [x] Recover provider-declared retry timestamps in the runtime when a typed

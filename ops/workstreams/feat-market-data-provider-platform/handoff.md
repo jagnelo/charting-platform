@@ -1197,3 +1197,11 @@ Update this handoff at each coherent boundary.
   cases and the complete backend unit suite passes `1,985/1,985` with 37
   warnings. Ruff, compileall, and diff checks pass; no provider calls or
   credentials were used, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `fe21e6be` closes two pagination-loop safety edges. Alpaca
+  history rejects repeated provider page tokens, while universe reconciliation
+  rejects malformed or repeated `next_url` cursor metadata before it can loop
+  or reprocess the same page. Focused pagination/provider coverage passes
+  `60/60`, and the complete backend unit suite passes `1,987/1,987` with 37
+  warnings; Ruff, compileall, and diff checks pass. No provider calls or
+  credentials were used, and no frontend or ETF-provider files changed.
