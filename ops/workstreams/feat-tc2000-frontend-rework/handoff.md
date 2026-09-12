@@ -11,6 +11,17 @@ Vitest passed `1051/1051`; type-check/build/diff checks passed with only the
 existing chunk-size warning. Radar/API, chart handoff, visual, and acceptance
 contracts are unchanged. Continue in this worktree only.
 
+## 2026-09-12 — Exact Radar gate rechecked
+
+At documentation tip `5fc73856` (product tip `579eaa91`), the exact gate passed
+repository/workstream, dependency/migration, frontend preparation, Ruff,
+formatting, and TypeScript, then stopped at `backend-coverage` after the fixed
+180-second Docker readiness window because access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence ChartView selection hydration
 
 Product commit `75bc03a3` fences ChartView symbol/timeframe hydration,

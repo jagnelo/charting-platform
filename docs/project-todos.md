@@ -9,6 +9,12 @@
       `1051/1051`; type-check, production build, and `git diff --check` passed
       with only the existing chunk-size warning. No visual/acceptance policy
       changed.
+- [x] Reran the exact branch-scoped gate at docs tip `5fc73856` / product tip
+      `579eaa91`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
 - [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
 
 ### 2026-09-12 — Fence ChartView selection hydration

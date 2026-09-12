@@ -20,6 +20,20 @@ provider, fallback, or acceptance policy changed. Continue the next bounded
 provider/history or compatible R4/R2-R7 seam while preserving the six
 protected visual state-oracle assertions.
 
+## 2026-09-12 — Exact Radar gate rechecked
+
+At documentation tip `5fc73856` (product tip `579eaa91`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue the next bounded
+provider/history or compatible R4/R2-R7 seam and rerun the exact gate at the
+next coherent tip.
+
 ## 2026-09-12 — Fence ChartView selection hydration
 
 Product commit `75bc03a3` closes a bounded R2/R6 top-down chart race. Single
