@@ -307,6 +307,7 @@ progress:
     - current benchmark-family role rankings now withhold expired role OHLCV, emit explicit `stale_data` warnings, and retain historical `as_of` semantics; focused analysis coverage is green and the existing database-backed stale-ranking regression remains Docker-readiness blocked.
     - Dinari Sandbox configuration is aligned across the adapter fallback, Settings, and root/backend environment examples with the documented `https://api-enterprise.sandbox.dinari.com/api/v2` host; a blank-setting regression prevents fallback to the retired host, while production deployments still require an explicit environment URL. Dinari tokenized-provider unit coverage passes 49/49 with Ruff, compilation, and diff checks clean.
     - Dinari and Ondo authenticated tokenized adapters now fail closed before issuing HTTP when exact credential settings are absent; tokenized-provider coverage passes 51/51 and the full backend unit suite passes 1731/1731 with no credential or payload persistence.
+    - refresh jobs now persist an opaque per-claim lease token; conditional completion/retry updates require matching id/status/token/expiry and raise an explicit lease-loss error for stale workers. The worker records lease loss without retrying or overwriting another worker's state. Focused queue/worker coverage passes 32/32; the full backend unit suite passes 1733/1733 with Ruff, compilation, and diff checks clean. Migration `6c7d8e9f0a1b_add_refresh_job_lease_tokens.py`.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import MarketRefreshJob
+
+
+class RefreshLeaseLostError(RuntimeError):
+    """Raised when a worker tries to mutate a job it no longer owns."""
 
 
 async def _acquire_enqueue_lock(db: AsyncSession, request_key: str) -> None:
@@ -105,17 +110,50 @@ async def claim_refresh_jobs(
     for job in jobs:
         job.status = "leased"
         job.leased_until = current + timedelta(seconds=lease_seconds)
+        job.lease_token = uuid4().hex
         job.attempts += 1
     if jobs:
         await db.flush()
     return list(jobs)
 
 
-async def complete_refresh_job(db: AsyncSession, job: MarketRefreshJob) -> None:
+async def complete_refresh_job(
+    db: AsyncSession,
+    job: MarketRefreshJob,
+    *,
+    now: datetime | None = None,
+    lease_token: str | None = None,
+) -> None:
+    """Complete a job only while the caller's durable lease is still valid."""
+
+    token = lease_token or job.lease_token
+    current = now or datetime.now(UTC)
+    if not token:
+        raise RefreshLeaseLostError(f"refresh job {job.id} has no lease token")
+    result = await db.execute(
+        update(MarketRefreshJob)
+        .where(
+            MarketRefreshJob.id == job.id,
+            MarketRefreshJob.status == "leased",
+            MarketRefreshJob.lease_token == token,
+            or_(
+                MarketRefreshJob.leased_until.is_(None),
+                MarketRefreshJob.leased_until >= current,
+            ),
+        )
+        .values(
+            status="completed",
+            leased_until=None,
+            lease_token=None,
+            last_error=None,
+        )
+    )
+    if getattr(result, "rowcount", None) != 1:
+        raise RefreshLeaseLostError(f"refresh job {job.id} lease is no longer valid")
     job.status = "completed"
     job.leased_until = None
+    job.lease_token = None
     job.last_error = None
-    await db.flush()
 
 
 async def retry_refresh_job(
@@ -126,18 +164,46 @@ async def retry_refresh_job(
     now: datetime | None = None,
     max_backoff_seconds: int = 3600,
     retry_at: datetime | None = None,
+    lease_token: str | None = None,
 ) -> None:
     current = now or datetime.now(UTC)
     backoff = min(max_backoff_seconds, 2 ** min(job.attempts, 10))
     is_quota_defer = retry_at is not None
-    job.status = "deferred" if is_quota_defer else "retry"
-    job.leased_until = None
-    job.last_error = error[:2000]
     backoff_at = current + timedelta(seconds=backoff)
-    job.next_attempt_at = max(backoff_at, retry_at) if retry_at is not None else backoff_at
-    job.metadata_payload = {
+    next_attempt_at = max(backoff_at, retry_at) if retry_at is not None else backoff_at
+    metadata_payload = {
         **(job.metadata_payload or {}),
         "defer_reason": "provider_reset" if is_quota_defer else None,
         "provider_retry_at": retry_at.isoformat() if retry_at else None,
     }
-    await db.flush()
+    token = lease_token or job.lease_token
+    if not token:
+        raise RefreshLeaseLostError(f"refresh job {job.id} has no lease token")
+    result = await db.execute(
+        update(MarketRefreshJob)
+        .where(
+            MarketRefreshJob.id == job.id,
+            MarketRefreshJob.status == "leased",
+            MarketRefreshJob.lease_token == token,
+            or_(
+                MarketRefreshJob.leased_until.is_(None),
+                MarketRefreshJob.leased_until >= current,
+            ),
+        )
+        .values(
+            status="deferred" if is_quota_defer else "retry",
+            leased_until=None,
+            lease_token=None,
+            last_error=error[:2000],
+            next_attempt_at=next_attempt_at,
+            metadata_payload=metadata_payload,
+        )
+    )
+    if getattr(result, "rowcount", None) != 1:
+        raise RefreshLeaseLostError(f"refresh job {job.id} lease is no longer valid")
+    job.status = "deferred" if is_quota_defer else "retry"
+    job.leased_until = None
+    job.lease_token = None
+    job.last_error = error[:2000]
+    job.next_attempt_at = next_attempt_at
+    job.metadata_payload = metadata_payload

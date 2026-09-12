@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
 import pytest
 
 from app.config import settings
@@ -29,6 +32,23 @@ class _RefreshRunSession:
 
     def begin_nested(self):
         return _AsyncNested()
+
+    async def commit(self):
+        self.commits += 1
+
+
+class _RefreshQueueSession:
+    def __init__(self):
+        self.commits = 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return None
+
+    async def get(self, _model, _instrument_id):
+        return SimpleNamespace(id=_instrument_id, symbol="AAPL")
 
     async def commit(self):
         self.commits += 1
@@ -75,6 +95,34 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
 
     assert result == {"claimed": 4, "completed": 3, "retried": 1}
     assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
+    from app.services.market_refresh_queue import RefreshLeaseLostError
+
+    session = _RefreshQueueSession()
+    job = SimpleNamespace(
+        id=7,
+        instrument_id=42,
+        timeframe="D1",
+        start_at=None,
+        end_at=None,
+    )
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "fetch_ohlcv", AsyncMock(return_value=[]))
+    complete = AsyncMock(side_effect=RefreshLeaseLostError("reclaimed"))
+    retry = AsyncMock()
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete)
+    monkeypatch.setattr(data_tasks, "retry_refresh_job", retry)
+
+    result = await data_tasks.process_refresh_jobs({})
+
+    assert result == {"claimed": 1, "completed": 0, "retried": 0, "lease_lost": 1}
+    complete.assert_awaited_once_with(session, job)
+    retry.assert_not_awaited()
+    assert session.commits == 1
 
 
 @pytest.mark.asyncio

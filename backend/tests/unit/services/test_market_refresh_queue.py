@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.services.market_refresh_queue import (
+    RefreshLeaseLostError,
     _acquire_enqueue_lock,
     claim_refresh_jobs,
     complete_refresh_job,
@@ -42,8 +43,10 @@ async def test_refresh_jobs_coalesce_and_claim_in_priority_order(db, instrument)
     jobs = await claim_refresh_jobs(async_db, now=now)
     assert [job.request_key for job in jobs] == ["d1:1"]
     assert jobs[0].status == "leased"
-    await complete_refresh_job(async_db, jobs[0])
+    assert jobs[0].lease_token and len(jobs[0].lease_token) == 32
+    await complete_refresh_job(async_db, jobs[0], now=now)
     assert jobs[0].status == "completed"
+    assert jobs[0].lease_token is None
 
 
 @pytest.mark.asyncio
@@ -84,6 +87,30 @@ async def test_provider_reset_defers_job_until_retry_at(db):
     assert job.status == "deferred"
     assert job.next_attempt_at == retry_at
     assert job.metadata_payload["defer_reason"] == "provider_reset"
+    assert job.lease_token is None
+
+
+@pytest.mark.asyncio
+async def test_expired_or_wrong_refresh_lease_cannot_mutate_job(db):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    _ = await enqueue_refresh_job(
+        async_db,
+        request_key="d1:lease-safety",
+        capability="price_history",
+        now=now,
+    )
+    claimed = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    original_token = claimed.lease_token
+    assert original_token
+
+    with pytest.raises(RefreshLeaseLostError):
+        await complete_refresh_job(async_db, claimed, now=now, lease_token="wrong-token")
+
+    claimed.leased_until = now - timedelta(seconds=1)
+    await async_db.flush()
+    with pytest.raises(RefreshLeaseLostError):
+        await retry_refresh_job(async_db, claimed, "expired", now=now)
 
 
 @pytest.mark.asyncio

@@ -13,6 +13,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
+    RefreshLeaseLostError,
     claim_refresh_jobs,
     complete_refresh_job,
     enqueue_refresh_job,
@@ -127,6 +128,7 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
         jobs = await claim_refresh_jobs(db, limit=max(1, min(limit, 500)))
         completed = 0
         retried = 0
+        lease_lost = 0
         for job in jobs:
             try:
                 if job.instrument_id is None or not job.timeframe:
@@ -139,16 +141,32 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                 await fetch_ohlcv(db, instrument, timeframe, start, end=job.end_at)
                 await complete_refresh_job(db, job)
                 completed += 1
+            except RefreshLeaseLostError as exc:
+                # Another worker owns this job now (or its lease expired).
+                # Never retry or overwrite that worker's state from this
+                # stale execution; the durable queue will expose/reclaim it.
+                logger.info("Refresh job %s lease no longer owned: %s", job.id, exc)
+                lease_lost += 1
             except Exception as exc:
-                await retry_refresh_job(
-                    db,
-                    job,
-                    str(exc),
-                    retry_at=getattr(exc, "retry_at", None),
-                )
-                retried += 1
+                try:
+                    await retry_refresh_job(
+                        db,
+                        job,
+                        str(exc),
+                        retry_at=getattr(exc, "retry_at", None),
+                    )
+                except RefreshLeaseLostError as lease_exc:
+                    logger.info("Refresh job %s lease lost during retry: %s", job.id, lease_exc)
+                    lease_lost += 1
+                else:
+                    retried += 1
         await db.commit()
-        return {"claimed": len(jobs), "completed": completed, "retried": retried}
+        return {
+            "claimed": len(jobs),
+            "completed": completed,
+            "retried": retried,
+            "lease_lost": lease_lost,
+        }
 
 
 async def run_market_data_shadow_report(ctx: dict) -> dict:

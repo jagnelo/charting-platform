@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Durable refresh-job lease ownership
+
+- [x] Add a persisted, per-claim opaque lease token to `MarketRefreshJob` and
+      require conditional id/status/token/expiry matching for completion and
+      retry updates. A stale worker now receives an explicit lease-loss result
+      and cannot overwrite a later worker's outcome.
+- [x] Add the additive migration and unit coverage for token issuance,
+      clearing, wrong-token rejection, expiry rejection, and worker behavior
+      that avoids retrying after lease loss. Focused queue/worker coverage
+      passes 32/32; the full backend unit suite passes 1733/1733 with Ruff,
+      compilation, and diff checks clean.
+
 ### 2026-09-12 — Dinari Sandbox default host alignment
 
 - [x] Align the checked-in configuration examples and Dinari adapter fallback with the
