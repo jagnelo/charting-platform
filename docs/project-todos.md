@@ -16443,3 +16443,13 @@ The current source also passes the focused authenticated top-down browser slice 
       passes `2,007/2,007` with 37 warnings; Ruff, compileall, and diff checks
       pass. Source checkpoint `ba3a721d`; no provider calls, credentials,
       frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Explicit durable reservation windows
+
+- [x] Remove the `reserve_provider_quota` helper's implicit 60-second default;
+      every reservation now supplies its provider-reviewed `window_seconds`
+      explicitly, and omitted windows fail at the call boundary. Focused
+      routing/quota coverage passes `112/112`; the complete backend unit suite
+      passes `2,008/2,008` with 37 warnings, with Ruff, compileall, and diff
+      checks clean. Source checkpoint `ac2ce574`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
