@@ -378,7 +378,19 @@ def _consumed_dimension_costs(
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
         unit = str(dimension.get("unit") or "").lower()
-        reserved = max(1, int(reserved_units.get(name, 1)))
+        raw_reserved = reserved_units.get(name, 1)
+        try:
+            raw_reserved_int = int(raw_reserved)
+        except (TypeError, ValueError):
+            raw_reserved_int = 0
+        # An explicit zero means this dimension is not applicable to the
+        # operation (for example an async-download budget on a synchronous
+        # call). Preserve that decision during settlement instead of charging
+        # the compatibility default of one unit.
+        if raw_reserved_int <= 0:
+            consumed[name] = 0
+            continue
+        reserved = raw_reserved_int
         if unit in {"byte", "bytes"}:
             # If an adapter did not emit telemetry, retain the full
             # reservation rather than under-reporting a bandwidth budget.
@@ -769,8 +781,41 @@ def _apply_policy_defaults(
         policy.effective_score = _DEFAULT_EFFECTIVE_SCORE
 
 
-def _bucket_key(provider_name: str, capability: ProviderCapability) -> tuple[str, str]:
-    return (provider_name, capability.value)
+def _local_control_group(policy: ProviderPolicy) -> str:
+    """Return the reviewed scope used by process-local admission controls.
+
+    Durable reservations are authoritative, but the in-process token bucket and
+    semaphore are still useful as an early back-pressure layer. They must use
+    the same explicitly reviewed grouping as the durable contract; otherwise a
+    provider-wide allowance would be multiplied once per capability inside one
+    worker process. Only request/credit/weight dimensions participate in the
+    token bucket. A contract without such a dimension retains the capability
+    compatibility key and therefore cannot accidentally share an unrelated
+    local limiter.
+    """
+
+    capability = str(getattr(policy.capability, "value", policy.capability))
+    groups: set[str] = set()
+    for dimension in quota_dimensions(policy):
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit not in _DIMENSION_RATE_UNITS:
+            continue
+        # ``tokens_per_minute`` is the legacy process-local bucket. Prefer a
+        # provider dimension that represents that same short rate window and
+        # avoid using a monthly/rolling identity or bandwidth pool as a token
+        # bucket key.
+        try:
+            window_seconds = int(dimension.get("window_seconds") or 0)
+        except (TypeError, ValueError):
+            continue
+        if window_seconds <= 60:
+            configured = str(dimension.get("quota_group") or "").strip()
+            groups.add(configured or capability)
+    return "|".join(sorted(groups)) or capability
+
+
+def _bucket_key(provider_name: str, policy: ProviderPolicy) -> tuple[str, str]:
+    return (provider_name, _local_control_group(policy))
 
 
 def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
@@ -778,7 +823,7 @@ def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
         raise ProviderQuotaUnknownError(
             f"{provider_name}/{policy.capability.value} has no verified minute bucket"
         )
-    key = _bucket_key(provider_name, policy.capability)
+    key = _bucket_key(provider_name, policy)
     config = (policy.tokens_per_minute, policy.burst_capacity)
     cached = _token_buckets.get(key)
     if cached is None or cached[0] != config:
@@ -796,7 +841,7 @@ def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaph
     configured_concurrency = (
         policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
     )
-    key = _bucket_key(provider_name, policy.capability)
+    key = (provider_name, _local_control_group(policy))
     cached = _semaphores.get(key)
     if cached is None or cached[0] != configured_concurrency:
         sem = asyncio.Semaphore(configured_concurrency)

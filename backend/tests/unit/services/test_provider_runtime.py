@@ -1022,6 +1022,88 @@ def test_bucket_rebuilds_when_policy_limits_change():
     assert second.rate_per_second == pytest.approx(2.0)
 
 
+def test_local_admission_controls_share_explicit_quota_group_across_capabilities():
+    contract = {
+        "reset": "rolling",
+        "dimensions": [
+            {
+                "name": "requests_per_minute",
+                "limit": 120,
+                "window_seconds": 60,
+                "unit": "requests",
+                "scope": "api_key",
+                "quota_group": "account",
+                "source": "unit-test contract",
+            }
+        ],
+    }
+    first_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        tokens_per_minute=120,
+        burst_capacity=4,
+        max_concurrency=2,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract=contract,
+    )
+    second_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        tokens_per_minute=120,
+        burst_capacity=4,
+        max_concurrency=2,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract=contract,
+    )
+
+    assert _get_bucket(first_policy, "shared-provider") is _get_bucket(
+        second_policy, "shared-provider"
+    )
+    assert _get_semaphore(first_policy, "shared-provider") is _get_semaphore(
+        second_policy, "shared-provider"
+    )
+
+
+def test_local_admission_controls_keep_ungrouped_capabilities_isolated():
+    contract = {
+        "reset": "rolling",
+        "dimensions": [
+            {
+                "name": "requests_per_minute",
+                "limit": 120,
+                "window_seconds": 60,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "unit-test contract",
+            }
+        ],
+    }
+    first_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        tokens_per_minute=120,
+        burst_capacity=4,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract=contract,
+    )
+    second_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        tokens_per_minute=120,
+        burst_capacity=4,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract=contract,
+    )
+
+    assert _get_bucket(first_policy, "isolated-provider") is not _get_bucket(
+        second_policy, "isolated-provider"
+    )
+
+
 def test_token_bucket_charges_weighted_units():
     bucket = TokenBucket(rate_per_minute=60, burst_capacity=4)
 

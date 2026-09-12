@@ -1113,6 +1113,42 @@ def test_marketdata_app_headers_settle_actual_credit_charge_and_cumulative_total
     assert _observed_dimension_totals(policy, mismatched) == {}
 
 
+def test_non_applicable_dimension_is_not_charged_during_runtime_settlement():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.SHORT_INTEREST,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test contract",
+                },
+                {
+                    "name": "async_download_bytes",
+                    "limit": 1000,
+                    "window_seconds": 60,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "unit-test contract",
+                },
+            ],
+        },
+    )
+    from app.services.provider_runtime import _consumed_dimension_costs
+
+    measurement = SimpleNamespace(http_requests=1, response_bytes=123)
+    assert _consumed_dimension_costs(
+        policy,
+        measurement,
+        {"requests_per_minute": 1, "async_download_bytes": 0},
+    ) == {"requests_per_minute": 1, "async_download_bytes": 0}
+
+
 @pytest.mark.asyncio
 async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
     async_db = AsyncSessionAdapter(db)
