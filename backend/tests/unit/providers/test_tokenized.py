@@ -6,7 +6,11 @@ import httpx
 import pytest
 
 from app.config import settings
-from app.providers.errors import ProviderRateLimitError, ProviderResponseError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.providers.registry import list_provider_capabilities
 from app.providers.tokenized import (
     BybitXStocksProvider,
@@ -18,6 +22,15 @@ from app.providers.tokenized import (
     XStocksProvider,
 )
 from app.services.tokenized_assets import tokenized_domain_key
+
+
+@pytest.fixture(autouse=True)
+def _authenticated_tokenized_provider_settings(monkeypatch):
+    """Keep network-shape fixtures independent of the operator's environment."""
+
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "unit-dinari-key-id")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "unit-dinari-secret")
+    monkeypatch.setattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "unit-ondo-key")
 
 
 def test_tokenized_domain_key_is_provider_scoped_and_stable():
@@ -329,6 +342,30 @@ def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch
 def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_BASE_URL", "")
     assert DinariTokenProvider()._base_url() == "https://api-enterprise.sandbox.dinari.com/api/v2"
+
+
+@pytest.mark.parametrize(
+    ("provider", "settings_to_clear", "message"),
+    [
+        (
+            DinariTokenProvider,
+            ("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY"),
+            "DINARI_API_KEY_ID and DINARI_API_SECRET_KEY",
+        ),
+        (
+            OndoGlobalMarketsProvider,
+            ("ONDO_GLOBAL_MARKETS_API_KEY",),
+            "ONDO_GLOBAL_MARKETS_API_KEY",
+        ),
+    ],
+)
+def test_authenticated_tokenized_adapters_fail_closed_before_http(monkeypatch, provider, settings_to_clear, message):
+    for setting_name in settings_to_clear:
+        monkeypatch.setattr(settings, setting_name, "")
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match=message):
+            provider().discover_tokenized_assets(page=0, page_size=1)
+    get.assert_not_called()
 
 
 def test_dinari_current_price_quote_and_history_validate_provider_identity():

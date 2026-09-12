@@ -9,6 +9,9 @@
       setting cannot fall back to the retired `api-enterprise.sbt.dinari.com` host.
 - [x] Dinari tokenized-provider unit coverage passes `49/49`; Ruff, compilation, and diff checks
       pass. No credentials or provider payloads were persisted.
+- [x] Dinari and Ondo authenticated adapters now reject missing credentials before any HTTP
+      request, matching the existing fail-closed provider contract. Tokenized-provider coverage
+      passes `51/51`; the full backend unit suite passes `1731/1731`.
 
 ### 2026-09-12 — ETF constituent analysis freshness boundary
 

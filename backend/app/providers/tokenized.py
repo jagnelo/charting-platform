@@ -22,6 +22,7 @@ import httpx
 from app.config import settings
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import (
+    ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
     raise_for_provider_error_envelope,
@@ -851,10 +852,19 @@ class DinariTokenProvider:
         secret = str(getattr(settings, "DINARI_API_SECRET_KEY", "") or "").strip()
         return {"X-API-Key-Id": key_id, "X-API-Secret-Key": secret}
 
+    def _require_configured(self) -> None:
+        if not str(getattr(settings, "DINARI_API_KEY_ID", "") or "").strip() or not str(
+            getattr(settings, "DINARI_API_SECRET_KEY", "") or ""
+        ).strip():
+            raise ProviderNotConfiguredError(
+                "dinari requires DINARI_API_KEY_ID and DINARI_API_SECRET_KEY"
+            )
+
     def _stocks(self, *, page: int = 0, page_size: int = 100) -> list[dict[str, Any]]:
         # The published v2 API retains page/page_size compatibility while
         # cursor pagination is being introduced.  Do not silently use an
         # opaque cursor that this protocol cannot persist between calls.
+        self._require_configured()
         payload = _http_json(
             f"{self._base_url()}/market_data/stocks/",
             provider_name=self.name,
@@ -1100,6 +1110,12 @@ class OndoGlobalMarketsProvider:
         key = str(getattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "") or "").strip()
         return {"x-api-key": key}
 
+    def _require_configured(self) -> None:
+        if not str(getattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "") or "").strip():
+            raise ProviderNotConfiguredError(
+                "ondo_global_markets requires ONDO_GLOBAL_MARKETS_API_KEY"
+            )
+
     @staticmethod
     def _location(addresses: list[Any]) -> tuple[str | None, int | None, str | None]:
         for item in addresses:
@@ -1119,6 +1135,7 @@ class OndoGlobalMarketsProvider:
         return None, None, None
 
     def _metadata(self) -> list[dict[str, Any]]:
+        self._require_configured()
         payload = _http_json(
             f"{self.base_url}/v1/assets/all/metadata",
             provider_name=self.name,
