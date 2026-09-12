@@ -62,6 +62,15 @@ refreshes a bounded UTC forward window and records per-provider failures
 without discarding successful observations. The default is disabled and no
 provider calls occur until explicitly enabled.
 
+Future-listing materialization is a separate backend/worker opt-in. Set
+`MARKET_EVENTS_PRELISTING_ENABLED=true` with bounded
+`MARKET_EVENTS_PRELISTING_LOOKAHEAD_DAYS` and
+`MARKET_EVENTS_PRELISTING_MAX_EVENTS` only after the event evidence and
+promotion policy have been reviewed. It creates inactive provisional stock
+instruments and quarantines conflicts; it does not alter frontend services or
+silently merge ticker-only identities. Keep it disabled until the deployment
+has reviewed the provider/legal and universe-reconciliation gates.
+
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
 contracts, and reconciliation completeness have been reviewed, set
