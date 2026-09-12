@@ -918,11 +918,11 @@ import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
-import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
-import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
+import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
 // Keep the latest name-editor owner module-wide so a stale root cannot replay
@@ -3323,7 +3323,13 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
   const nextWarnings: Record<string, Record<string, string | null>> = {}
   await Promise.all(columns.map(async column => {
     try {
-      const params = { ...column.params, ...(column.output ? { output: column.output } : {}) }
+      const output = indicatorOutputFromConfig({ type: column.indicator as IndicatorType, output: column.output })
+      if (!output) {
+        next[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, null]))
+        nextWarnings[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, 'explicit_output_required']))
+        return
+      }
+      const params = { ...column.params, output }
       const requestSymbols = [...symbols].sort()
       const response = await queryClient.fetchQuery({
         queryKey: ['workstation', 'indicator-batch', requestSymbols, column.indicator, params, column.timeframe, true],
