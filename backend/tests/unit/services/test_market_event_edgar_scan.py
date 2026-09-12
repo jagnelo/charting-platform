@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import select
 
+from app.models.instrument import Instrument
 from app.models.market_data_foundation import Issuer, MarketEventScanState
 from app.services import market_event_edgar_scan
 from tests.unit.conftest import AsyncSessionAdapter
@@ -247,6 +248,7 @@ async def test_edgar_directory_scan_create_missing_materializes_only_issuers(db,
     assert issuer.legal_name == "Example Holdings, Inc."
     assert issuer.provenance["materialization_policy"] == "create_missing"
     assert db.execute(select(Issuer)).scalars().all()
+    assert db.execute(select(Instrument)).scalars().all() == []
 
 
 @pytest.mark.asyncio
