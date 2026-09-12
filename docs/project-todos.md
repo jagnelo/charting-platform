@@ -10,6 +10,12 @@
       returned series. Indicator-engine coverage passed `30/30`, Chart Plot
       Library coverage `29/29`, combined drag/drop/EasyScan/plot-library
       coverage `49/49`, and type-check/Ruff/format/diff checks passed.
+- [x] Ran the exact branch-scoped gate at product tip `d3bf41e3` (docs tip
+      `22a47645`). Repository/workstream/dependency/migration/frontend
+      preparation and lint setup passed; `backend-coverage` stopped after the
+      180-second Docker readiness window because Docker `/v1.55/info` returned
+      HTTP 500. No later stage ran and no product or visual failure was
+      observed.
 - [ ] Restore Docker Desktop health, run the pending alert and indicator-batch
       API regressions plus the exact branch-scoped gate, then continue
       provider/history or another compatible chart/list/gauge seam.

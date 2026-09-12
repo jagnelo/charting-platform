@@ -18,10 +18,15 @@ alerts remain compatible.
 Focused indicator-engine coverage passed `30/30`; focused Chart Plot Library
 coverage passed `29/29`; the combined drag/drop, EasyScan, and plot-library
 checks passed `49/49`; frontend type-check, Ruff, formatting, and
-`git diff --check` passed. API regressions for missing, valid, and invalid
-Bollinger Band alert outputs are recorded but require the Docker-backed
-integration fixture. No visual baseline, mask, threshold, skip, provider,
-fallback, or acceptance policy changed.
+`git diff --check` passed. The exact branch-scoped gate at product tip
+`d3bf41e3` passed repository/workstream/dependency/migration/frontend-
+preparation and lint setup, then stopped at `backend-coverage` after the
+180-second Docker readiness window because Docker returned HTTP 500 for
+`/v1.55/info` on `unix:///Users/jagnelo/.docker/run/docker.sock`. Therefore
+the alert/indicator-batch API fixtures and all later browser/visual stages
+remain pending. No product assertion or visual-policy failure was observed;
+no visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
 
 The next action is to restore Docker Desktop health, run the pending alert and
 indicator-batch API regressions plus the exact branch-scoped gate at this tip,

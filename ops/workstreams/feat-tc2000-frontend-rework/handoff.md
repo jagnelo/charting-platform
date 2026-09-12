@@ -12,11 +12,15 @@ invalid legacy alerts without implicit first-series evaluation.
 
 Focused indicator-engine coverage passed `30/30`; Chart Plot Library passed
 `29/29`; combined drag/drop/EasyScan/plot-library coverage passed `49/49`;
-frontend type-check, Ruff, formatting, and diff checks passed. The alert API
-regressions are present but pending the Docker-backed integration fixture. No
-visual baseline, mask, threshold, skip, provider, fallback, or acceptance
-policy changed. The exact integration gate must be rerun at this tip after
-Docker health is restored before advancing the next bounded seam.
+frontend type-check, Ruff, formatting, and diff checks passed. The exact
+branch-scoped gate at product tip `d3bf41e3` passed repository/workstream,
+dependency, migration, frontend-preparation, and lint setup, then stopped at
+`backend-coverage` after 180 seconds because Docker `/v1.55/info` returned
+HTTP 500. The alert and indicator-batch API regressions and all later stages
+remain pending the Docker-backed fixture; no product or visual failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Rerun the exact gate at this tip after Docker
+health is restored before advancing the next bounded seam.
 
 Checkpoint scope: `backend/app/services/indicators.py`,
 `backend/app/routers/alerts.py`, `backend/app/services/alert_engine.py`,
