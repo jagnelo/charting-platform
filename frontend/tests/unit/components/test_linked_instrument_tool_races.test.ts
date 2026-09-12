@@ -45,6 +45,21 @@ describe('linked instrument tool stale-response guards', () => {
     expect((wrapper.get('textarea').element as HTMLTextAreaElement).value).toBe('XLK note')
   })
 
+  it('does not publish a late note load after the tool unmounts', async () => {
+    const note = deferred<{ content: string; updated_at: string } | null>()
+    apiGet.mockReturnValue(note.promise)
+    const wrapper = mountNote({ props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1'))
+    wrapper.unmount()
+
+    note.resolve({ content: 'late note', updated_at: '2026-08-03T00:00:00Z' })
+    await note.promise
+    await Promise.resolve()
+
+    expect((wrapper.vm as unknown as { content: string }).content).toBe('')
+    expect((wrapper.vm as unknown as { loadedId: number | null }).loadedId).toBe(null)
+  })
+
   it('does not let an older alerts load overwrite the newly selected instrument', async () => {
     const first = deferred<unknown[]>()
     apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {

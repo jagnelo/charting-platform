@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 
@@ -19,6 +19,7 @@ const statusRole = computed(() => /unable|error|failed|unavailable/i.test(status
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let loadedId: number | null = null
 let loadGeneration = 0
+let mounted = false
 
 async function load() {
   const generation = ++loadGeneration
@@ -39,14 +40,14 @@ async function load() {
       queryFn: () => api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${instrumentId}`),
       staleTime: 30_000,
     })
-    if (generation !== loadGeneration || props.instrumentId !== instrumentId) return
+    if (!mounted || generation !== loadGeneration || props.instrumentId !== instrumentId) return
     content.value = note?.content ?? ''
     loadedId = instrumentId
     status.value = note ? `Saved ${new Date(note.updated_at).toLocaleString()}` : 'No note'
   } catch (cause: any) {
-    if (generation === loadGeneration) status.value = cause?.message ?? 'Unable to load note'
+    if (mounted && generation === loadGeneration) status.value = cause?.message ?? 'Unable to load note'
   } finally {
-    if (generation === loadGeneration) loading.value = false
+    if (mounted && generation === loadGeneration) loading.value = false
   }
 }
 
@@ -60,14 +61,20 @@ watch(content, () => {
   saveTimer = setTimeout(async () => {
     try {
       const note = await api.put<{ updated_at: string }>(`/notes/instruments/${instrumentId}`, { content: draft })
+      if (!mounted) return
       queryClient.setQueryData(['workstation', 'instrument-note', instrumentId], { content: draft, updated_at: note.updated_at })
       if (props.instrumentId === instrumentId && loadedId === instrumentId) status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
     } catch (cause: any) {
-      if (props.instrumentId === instrumentId) status.value = cause?.message ?? 'Unable to save note'
+      if (mounted && props.instrumentId === instrumentId) status.value = cause?.message ?? 'Unable to save note'
     }
   }, 550)
 })
-onBeforeUnmount(() => { if (saveTimer) clearTimeout(saveTimer) })
+onMounted(() => { mounted = true })
+onBeforeUnmount(() => {
+  mounted = false
+  loadGeneration += 1
+  if (saveTimer) clearTimeout(saveTimer)
+})
 </script>
 
 <style scoped>
