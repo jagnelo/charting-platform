@@ -324,6 +324,102 @@ async def test_bounded_coarse_fetch_preserves_future_derived_rows(db, instrument
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_raw_bars_materialize_provider_factors_after_event_first_refresh(
+    db, instrument, monkeypatch
+):
+    from app.models.adjustment_factor import AdjustmentFactorObservation
+    from app.models.data_source import DataSource
+    from app.models.ohlcv import OHLCVBar
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    source = DataSource(name="event-first-provider-factor")
+    db.add(source)
+    db.flush()
+    db.add(
+        AdjustmentFactorObservation(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            provider_symbol="AAPL",
+            factor_type="dividend",
+            effective_at=datetime(2024, 1, 3, tzinfo=UTC),
+            factor=Decimal("0.9"),
+            factor_kind="provider_supplied",
+            source_event_key="dividend:event-first",
+            observed_at=datetime(2024, 1, 4, tzinfo=UTC),
+            factor_version="afv1-event-first",
+        )
+    )
+    db.flush()
+
+    provider_bars = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 1, 2, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("110"),
+            low=Decimal("90"),
+            close=Decimal("100"),
+            volume=Decimal("200"),
+            is_adjusted=False,
+        ),
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 1, 4, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("110"),
+            low=Decimal("90"),
+            close=Decimal("100"),
+            volume=Decimal("200"),
+            is_adjusted=False,
+        ),
+    ]
+
+    async def fake_execute(*_args, **_kwargs):
+        return SimpleNamespace(
+            result=provider_bars,
+            data_source=source,
+            provider_name="event-first-provider-factor",
+        )
+
+    async def no_record(*_args, **_kwargs):
+        return None
+
+    async def no_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(bulk_fetch, "_record_bar_observations", no_record)
+    monkeypatch.setattr(bulk_fetch, "_touch_ohlcv_dataset_state", no_touch)
+    monkeypatch.setattr(bulk_fetch, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await bulk_fetch._do_fetch_and_store(
+        db=AsyncSessionAdapter(db),
+        instrument=instrument,
+        ticker_sym=instrument.symbol,
+        timeframe=Timeframe.D1,
+        adjusted=False,
+        end=datetime(2024, 1, 5, tzinfo=UTC),
+    )
+
+    assert result == 2
+    derived = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .filter(OHLCVBar.ts == datetime(2024, 1, 2, tzinfo=UTC))
+        .one()
+    )
+    assert derived.close == Decimal("90.00000000")
+    assert derived.derivation_method == "provider_adjustment_factor"
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_treats_empty_provider_result_as_chain_failure(monkeypatch):
     calls = []
 

@@ -35,6 +35,7 @@ from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import InstrumentProfile
 from app.services.adjustment_factors import (
     build_adjustment_factor_snapshot,
+    materialize_local_provider_adjusted_view,
     summarize_persisted_adjustment_factor_provenance,
 )
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
@@ -79,6 +80,51 @@ def _e2e_fixture_bar_condition():
 
 def _seeded_market_data() -> bool:
     return bool(settings.E2E_SEED_MARKET_DATA)
+
+
+async def _materialize_provider_adjusted_view_after_raw_fetch(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    *,
+    adjusted: bool,
+) -> None:
+    """Complete an event-first refresh after raw provider bars are committed.
+
+    Instrument events and price history are independent provider workflows, so
+    either may arrive first. Event refreshes materialize timeframes already in
+    the cache; this post-commit hook closes the inverse ordering when raw bars
+    arrive after an explicit provider factor. Unsupported, incomplete, mixed,
+    or ambiguous evidence remains fail-closed and must not make raw ingestion
+    fail.
+    """
+
+    if adjusted:
+        return
+    try:
+        result = await materialize_local_provider_adjusted_view(
+            db,
+            instrument_id=instrument.id,
+            timeframe=timeframe,
+        )
+        if result.status not in {"applied", "not_observed"}:
+            logger.info(
+                "Provider-factor materialization after raw fetch for %s %s remained %s: %s",
+                instrument.symbol,
+                timeframe.value,
+                result.status,
+                result.reason,
+            )
+        if result.status == "applied":
+            await db.commit()
+    except Exception as exc:  # noqa: BLE001 - derived view is optional to raw ingestion.
+        await db.rollback()
+        logger.warning(
+            "Provider-factor materialization after raw fetch failed for %s %s: %s",
+            instrument.symbol,
+            timeframe.value,
+            exc,
+        )
 
 
 def _coverage_calendar(instrument: Instrument) -> str | None:
@@ -859,6 +905,9 @@ async def fetch_ohlcv(
                     [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
+                await _materialize_provider_adjusted_view_after_raw_fetch(
+                    db, instrument, timeframe, adjusted=adjusted
+                )
             except Exception as e:
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
@@ -1066,6 +1115,9 @@ async def fetch_ohlcv_latest(
                     [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
+                await _materialize_provider_adjusted_view_after_raw_fetch(
+                    db, instrument, timeframe, adjusted=adjusted
+                )
                 rows = list((await db.execute(stmt)).scalars().all())
                 rows.sort(key=lambda b: b.ts)
             except Exception as e:
@@ -1107,6 +1159,9 @@ async def fetch_ohlcv_latest(
                         [_bar_as_dict(b) for b in repair_bars],
                     )
                     await db.commit()
+                    await _materialize_provider_adjusted_view_after_raw_fetch(
+                        db, instrument, timeframe, adjusted=adjusted
+                    )
                     rows = list((await db.execute(stmt)).scalars().all())
                     rows.sort(key=lambda b: b.ts)
                 except Exception as e:
@@ -1130,6 +1185,9 @@ async def fetch_ohlcv_latest(
                     [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
+                await _materialize_provider_adjusted_view_after_raw_fetch(
+                    db, instrument, timeframe, adjusted=adjusted
+                )
                 rows = list((await db.execute(stmt)).scalars().all())
                 rows.sort(key=lambda b: b.ts)
             except Exception as e:
@@ -1252,6 +1310,9 @@ async def fetch_ohlcv_page_before(
                     [_bar_as_dict(b) for b in fetched],
                 )
                 await db.commit()
+                await _materialize_provider_adjusted_view_after_raw_fetch(
+                    db, instrument, timeframe, adjusted=adjusted
+                )
             except Exception as e:
                 await db.rollback()
                 logger.error(f"fetch_ohlcv_page_before: failed to save bars: {e}")

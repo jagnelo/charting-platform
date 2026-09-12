@@ -31,7 +31,11 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.services.derived_timeframes import materialize_derived_timeframes
-from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
+from app.services.market_data import (
+    _materialize_provider_adjusted_view_after_raw_fetch,
+    _record_bar_observations,
+    _touch_ohlcv_dataset_state,
+)
 from app.services.provider_runtime import execute_provider_call
 
 logger = logging.getLogger(__name__)
@@ -300,6 +304,9 @@ async def _do_fetch_and_store(
             bars=[],
         )
         await db.commit()
+        await _materialize_provider_adjusted_view_after_raw_fetch(
+            db, instrument, timeframe, adjusted=adjusted
+        )
         return 0
 
     # A later provider response must be allowed to replace a previously
@@ -355,6 +362,9 @@ async def _do_fetch_and_store(
     if new_bars:
         db.add_all(new_bars)
     await db.commit()
+    await _materialize_provider_adjusted_view_after_raw_fetch(
+        db, instrument, timeframe, adjusted=adjusted
+    )
 
     return len(new_bars)
 
