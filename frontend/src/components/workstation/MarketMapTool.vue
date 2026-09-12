@@ -1774,6 +1774,12 @@ watch([period, endDate], () => {
 })
 watch(sourceId, () => {
   sourceCloneGeneration += 1
+  sourceCloneBusy.value = false
+  sourceCloneMessage.value = ''
+  sourceCloneError.value = ''
+  sourceCloneRetryIds.value = []
+  sourceCloneRetryTargetId.value = null
+  sourceCloneRetryTotal.value = 0
   historyActionGeneration += 1
   historyGeneration += 1
   benchmarkCoverageGeneration += 1

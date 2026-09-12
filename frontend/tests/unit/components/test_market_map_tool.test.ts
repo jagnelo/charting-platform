@@ -140,6 +140,32 @@ describe('MarketMapTool', () => {
     expect(addItem).toHaveBeenCalledTimes(1)
   })
 
+  it('invalidates a pending source clone when the active universe changes', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      ...previousSources,
+      { ...previousSources[0], source_id: 'watchlist:7', source_kind: 'personal' as const, name: 'Personal candidates', locked: false },
+    ]
+    let resolveMembers: ((value: unknown) => void) | undefined
+    const membersResult = new Promise(resolve => { resolveMembers = resolve })
+    resolveWatchlistSource.mockReturnValue(membersResult)
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('[aria-label="Clone S&P 500 snapshot"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Market Map universe"]').setValue('watchlist:7')
+    await flushPromises()
+    resolveMembers?.({ source: sourceState.sources[0], members: [{ instrument_id: 1 }], exclusions: [] })
+    await flushPromises()
+
+    expect(createWatchlist).not.toHaveBeenCalled()
+    expect(wrapper.get('[aria-label="Clone Personal candidates snapshot"]').attributes('disabled')).toBeUndefined()
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('keeps failed clone members retryable without hiding the partial copy', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { ...sourceState.sources[0], membership_version: 'sp500:retry' },
