@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize history worker completion time
+
+- [x] Route scheduled benchmark-family history worker `completed_at` through
+      the shared UTC-`Z` formatter (`7d40c1d4`) without changing queue,
+      progress, retry/error, or requested-date semantics.
+- [x] Focused history-worker lifecycle coverage passed `3/3`; Ruff, formatting,
+      and diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact SEC filing timing gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `5c8f3009`; repository/workstream,

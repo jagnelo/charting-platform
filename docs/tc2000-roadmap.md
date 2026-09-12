@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize history worker completion time
+
+Product commit `7d40c1d4` closes the scheduled benchmark-family history job
+observability seam. The worker’s returned `completed_at` now uses the shared
+UTC-`Z` formatter, preserving queue results, durable progress, retry/error
+evidence, and requested-date semantics.
+
+Focused history-worker lifecycle coverage passed `3/3`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact SEC filing timing gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `5c8f3009` after the SEC

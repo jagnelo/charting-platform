@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize history worker completion time
+
+Product commit `7d40c1d4` routes scheduled benchmark-family history worker
+`completed_at` through the shared UTC-`Z` serializer. Queue results, durable
+progress, retry/error evidence, and requested-date semantics are unchanged.
+
+Focused history-worker lifecycle coverage passed `3/3`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact SEC filing timing gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `5c8f3009` after the SEC
