@@ -162,7 +162,26 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
 # supported by this adapter.  Keeping this admission rule in the registry
 # lets routing reject an adjusted-history request before quota reservation or
 # transport, rather than discovering the mismatch inside the provider call.
-_RAW_HISTORY_ONLY_PROVIDERS = frozenset({"alpha_vantage", "ibkr"})
+_RAW_HISTORY_ONLY_PROVIDERS = frozenset(
+    {
+        # Free/raw-only or not-yet-adjustment-aware equity adapters.
+        "alpha_vantage",
+        "ibkr",
+        "tiingo",
+        "twelve_data",
+        "finnhub",
+        "marketstack",
+        "eodhd",
+        "fmp",
+        "tradier",
+        "marketdata_app",
+        # Exchange candle feeds have no split/dividend adjustment surface and
+        # are represented as raw observations by their adapters.
+        "binance",
+        "coinbase",
+        "kraken",
+    }
+)
 
 
 def provider_supports_adjustment(provider_name: str, adjusted: bool | None) -> bool:

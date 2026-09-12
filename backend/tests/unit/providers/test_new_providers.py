@@ -69,6 +69,9 @@ class TestRegistryCapabilities:
     def test_provider_adjustment_contract_is_explicit(self):
         assert provider_supports_adjustment("alpha_vantage", True) is False
         assert provider_supports_adjustment("ibkr", True) is False
+        assert provider_supports_adjustment("tiingo", True) is False
+        assert provider_supports_adjustment("twelve_data", True) is False
+        assert provider_supports_adjustment("binance", True) is False
         assert provider_supports_adjustment("alpaca", True) is True
         assert provider_supports_adjustment("alpha_vantage", False) is True
         assert provider_supports_adjustment("alpha_vantage", None) is True

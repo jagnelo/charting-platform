@@ -41,9 +41,11 @@ History adjustment is an explicit routing requirement. The market-data service
 passes the requested `adjusted` value into provider resolution before quota
 reservation and transport. Alpha Vantage's free daily endpoint and IBKR's
 historical endpoint are raw-only in the supported contracts, so adjusted
-requests are filtered before either provider can be selected; raw requests
-remain eligible. The platform does not silently synthesize split/dividend
-adjustments from a raw response.
+requests are filtered before a raw-only provider can be selected; raw requests
+remain eligible. The current raw-only admission list includes Alpha Vantage,
+IBKR, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
+MarketData.app, and the Binance/Coinbase/Kraken exchange feeds. The platform
+does not silently synthesize split/dividend adjustments from a raw response.
 
 The backend provider-policy diagnostics also expose the required and currently
 missing environment-variable names for each provider. These are names only;

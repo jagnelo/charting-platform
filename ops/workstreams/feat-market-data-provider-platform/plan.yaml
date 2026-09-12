@@ -525,7 +525,8 @@ progress:
     - >-
       Adjustment-aware provider admission is now explicit: market-data and
       workload routing carry the requested `adjusted` value into resolver
-      selection, and raw-only Alpha Vantage/IBKR history providers are removed
+      selection, and every currently raw-only history adapter (Alpha Vantage,
+      IBKR, optional REST adapters, and keyless exchange feeds) is removed
       before quota reservation or transport for adjusted requests. Raw requests
       remain eligible, including bulk-history jobs. Registry, resolver, and
       bulk-fetch regressions plus the complete backend unit suite pass
