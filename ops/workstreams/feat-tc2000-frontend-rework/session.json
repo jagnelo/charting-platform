@@ -58,25 +58,8 @@
     "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -116,14 +99,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d7545b6a8c9185f50e635e7e90d53c8163d3c1c8",
+  "head": "b7b6d490235aa3b6f0eda1c8fa37d96fd0a09d66",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T22:21:34.869437+00:00",
-  "last_human_progress_update": "2026-09-12T22:21:23.740797+00:00",
+  "last_human_progress_update": "2026-09-12T22:57:05.998654+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "7a9aacf69fc43d25ec76bccaa34d6040972396ffbb25ec125cc03be876cfdbf7",
+  "plan_hash": "7542850c7d1bfa879daa3f5849eab47a4f0cfb83800361700d1d175e069b74f6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -137,10 +120,10 @@
       "AC9"
     ],
     "current_blocker": "None; the exact gate is green except for the six unchanged protected visual diffs, while full provider population and bar-floor readiness remain open.",
-    "current_phase": "r7_exact_provider_factor_event_gate",
+    "current_phase": "r7_exact_provider_factor_event_first_gate",
     "next_action": "Continue the next bounded canonical provider/history seam, then rerun the exact gate at the next coherent clean tip.",
     "total": 10,
-    "updated_at": "2026-09-12T22:21:23.740724+00:00"
+    "updated_at": "2026-09-12T22:57:05.998384+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
