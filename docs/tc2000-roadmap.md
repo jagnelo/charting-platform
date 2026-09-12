@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence historical Market Map event knowledge
+
+Product commit `26161b90` closes a bounded R2/R6 historical-event provenance
+gap. Market Map event rows and source fetch-state markers now honor the map
+evaluation cutoff, and event rows are associated with their own source state.
+Future-fetched corporate events can no longer leak into an earlier map or make
+an unavailable event dataset appear event-free; orphan event rows are handled
+as unavailable instead of crashing the read path.
+
+Focused Market Map service coverage passed `12/12`; the full backend unit suite
+passed `1520/1520` at `68.99%` coverage; Ruff, formatting, and `git diff
+--check` passed. No provider routing, fallback, visual baseline, mask,
+threshold, skip, or acceptance policy changed. The exact branch gate remains
+pending behind the Docker socket permission failure; continue the next bounded
+provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Fence stale Market Map snapshot mutations
 
 Product commit `0e04d489` closes a bounded R6 snapshot-mutation race. Save and

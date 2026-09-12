@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence historical Market Map event knowledge
+
+Product commit `26161b90` fences Market Map event rows and source fetch-state
+markers by the historical evaluation cutoff. A future-fetched corporate event
+can no longer leak into an earlier map or turn unavailable event data into a
+false negative; source-less event rows are handled as unavailable rather than
+crashing the read path. Focused Market Map service coverage passed `12/12`,
+the full backend unit suite passed `1520/1520` at `68.99%` coverage, and Ruff,
+formatting, and `git diff --check` passed. No provider, fallback, visual, or
+acceptance policy changed. The exact gate remains pending behind the Docker
+socket permission failure; do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-12 — Fence stale Market Map snapshot mutations
 
 Product commit `0e04d489` fences Market Map snapshot save/delete responses by

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence historical Market Map event knowledge
+
+- [x] Enforce the Market Map event knowledge boundary: event rows and
+      source-scoped fetch-state markers now require `fetched_at` at or before
+      the evaluation cutoff, and orphan event rows remain explicitly
+      unavailable instead of crashing or becoming a false event-negative
+      (`26161b90`).
+- [x] Focused Market Map service coverage passed `12/12`; the full backend
+      unit suite passed `1520/1520` at `68.99%`; Ruff, formatting, and
+      `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence stale Market Map snapshot mutations
 
 - [x] Fence Market Map snapshot save/delete responses by shared generation,

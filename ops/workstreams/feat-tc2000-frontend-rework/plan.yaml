@@ -2666,8 +2666,18 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R6_market_map_snapshot_mutations_and_r7_exact_tip_gate
+  current_phase: R2_historical_event_knowledge_boundary_and_r7_exact_tip_gate
   current_blocker: >-
+    Product commit 26161b90 fences Market Map event rows and source-scoped
+    fetch state by the historical evaluation cutoff, preventing future-fetched
+    events from leaking into earlier maps and treating orphan event rows as
+    unavailable instead of crashing. Focused Market Map service coverage
+    passed 12/12; the full backend unit suite passed 1520/1520 at 68.99%
+    coverage; Ruff, formatting, and git diff --check passed. No provider,
+    fallback, visual baseline, mask, threshold, skip, or acceptance policy
+    changed. The exact branch gate remains pending behind the Docker socket
+    permission failure; continue the next bounded provider/history or compatible
+    R4/R2-R7 seam at this coherent tip.
     Product commit 0e04d489 fences Market Map snapshot save/delete responses by
     shared generation, mounted state, current map cache, and selected snapshot.
     A save begun for an older map can no longer select or label that snapshot
@@ -3516,7 +3526,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Rerun the exact branch-scoped gate when Docker is healthy at product tip 0e04d48954f724dee943b13c022fad90fe5d7a14, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Rerun the exact branch-scoped gate when Docker is healthy at product tip 26161b902768e2f7a2b206d215de649a02533b0d, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
