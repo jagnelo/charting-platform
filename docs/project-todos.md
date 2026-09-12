@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Market Map source cloning
+
+- [x] Fence Market Map source clone and retry flows by a source-scoped
+      generation so unmounts or source changes stop sequential member writes
+      and stale status/error/loading mutations (`8d78eb61`).
+- [x] Focused Market Map coverage passed `46/46`; full frontend Vitest passed
+      `1036/1036` across 115 files; frontend type-check, production build,
+      and `git diff --check` passed with only the existing chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact source-clone gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `8d78eb6177ed4f08359965251668574f186555a9`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence shared workstation content loaders
 
 - [x] Fence WorkstationToolContent instrument, comparison, condition,

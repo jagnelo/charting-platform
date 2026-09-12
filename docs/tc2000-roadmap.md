@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Market Map source cloning
+
+Product commit `8d78eb61` closes a bounded R6 lifecycle gap in Market Map's
+explicit source cloning. Clone and retry flows now share a source-scoped
+generation, stop sequential member writes when the tool unmounts or the
+source changes, and fence all post-response status/error/loading mutations.
+Focused Market Map coverage passed `46/46`; full frontend Vitest passed
+`1036/1036` across 115 files; frontend type-check and production build passed
+with only the existing chunk-size warning; and `git diff --check` passed. No
+provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+policy changed. Continue the next bounded provider/history or compatible
+R4/R2-R7 seam while preserving the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact source-clone gate rechecked
+
+At product tip `8d78eb6177ed4f08359965251668574f186555a9`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence shared workstation content loaders
 
 Product commit `8eb187fa` closes a bounded R6 lifecycle gap in the shared

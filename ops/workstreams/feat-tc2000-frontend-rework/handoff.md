@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Market Map source cloning
+
+Product commit `8d78eb61` fences Market Map source clone and retry flows by a
+source-scoped generation. Unmounts and source changes now stop sequential
+member writes, and late responses cannot publish stale clone status, errors,
+or loading cleanup. Focused Market Map coverage passed `46/46`; full frontend
+Vitest passed `1036/1036`; type-check, production build, and `git diff --check`
+passed with only the existing chunk-size warning. No provider, fallback,
+visual, or acceptance policy changed. Continue in this worktree only.
+
+## 2026-09-12 — Exact source-clone gate rechecked
+
+At product tip `8d78eb6177ed4f08359965251668574f186555a9`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence shared workstation content loaders
 
 Product commit `8eb187fa` fences shared WorkstationToolContent instrument,
