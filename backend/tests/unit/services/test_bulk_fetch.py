@@ -324,6 +324,107 @@ async def test_bounded_coarse_fetch_preserves_future_derived_rows(db, instrument
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_promotes_matching_derived_daily_bar_to_provider_lineage(
+    db, instrument, monkeypatch
+):
+    """A late provider-adjusted bar must reclaim a local adjusted cache key."""
+    from app.models.data_source import DataSource
+    from app.models.ohlcv import OHLCVBar
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    source = DataSource(name="bulk-provider-lineage-source")
+    db.add(source)
+    db.flush()
+    ts = datetime(2024, 1, 2, tzinfo=UTC)
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=ts,
+            open=Decimal("90"),
+            high=Decimal("95"),
+            low=Decimal("89"),
+            close=Decimal("92"),
+            volume=Decimal("100"),
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe=Timeframe.D1.value,
+            derivation_method="provider_adjustment_factor",
+            derived_at=datetime(2024, 1, 3, tzinfo=UTC),
+            source_bar_count=1,
+            source_start=ts,
+            source_end=ts,
+        )
+    )
+    db.flush()
+
+    provider_bar = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=ts,
+        open=Decimal("100"),
+        high=Decimal("110"),
+        low=Decimal("99"),
+        close=Decimal("105"),
+        volume=Decimal("200"),
+        is_adjusted=True,
+    )
+
+    async def fake_execute(*_args, **_kwargs):
+        return SimpleNamespace(
+            result=[provider_bar],
+            data_source=source,
+            provider_name="bulk-provider-lineage-source",
+        )
+
+    async def no_record(*_args, **_kwargs):
+        return None
+
+    async def no_touch(*_args, **_kwargs):
+        return None
+
+    async def no_materialize(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(bulk_fetch, "_record_bar_observations", no_record)
+    monkeypatch.setattr(bulk_fetch, "_touch_ohlcv_dataset_state", no_touch)
+    monkeypatch.setattr(
+        bulk_fetch,
+        "_materialize_provider_adjusted_view_after_raw_fetch",
+        no_materialize,
+    )
+    monkeypatch.setattr(bulk_fetch, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await bulk_fetch._do_fetch_and_store(
+        db=AsyncSessionAdapter(db),
+        instrument=instrument,
+        ticker_sym=instrument.symbol,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        end=datetime(2024, 1, 3, tzinfo=UTC),
+    )
+
+    assert result == 0
+    row = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.ts == ts,
+            OHLCVBar.is_adjusted.is_(True),
+        )
+        .one()
+    )
+    assert row.close == Decimal("105")
+    assert row.data_source_id == source.id
+    assert row.is_derived is False
+    assert row.source_timeframe is None
+    assert row.derivation_method is None
+    assert row.derived_at is None
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_raw_bars_materialize_provider_factors_after_event_first_refresh(
     db, instrument, monkeypatch
 ):

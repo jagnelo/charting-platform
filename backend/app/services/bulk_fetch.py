@@ -32,7 +32,9 @@ from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import (
+    _bar_as_dict,
     _materialize_provider_adjusted_view_after_raw_fetch,
+    _provider_bar_upsert_statement,
     _record_bar_observations,
     _touch_ohlcv_dataset_state,
 )
@@ -329,20 +331,11 @@ async def _do_fetch_and_store(
 
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
 
-    new_bars: list[OHLCVBar] = []
     for bar in bars:
         ts_utc = _to_utc(bar.ts)
-        if ts_utc in existing_ts:
-            continue
         bar.instrument_id = instrument.id
         bar.data_source_id = execution.data_source.id
         bar.ts = ts_utc
-        new_bars.append(bar)
-
-    for bar in bars:
-        bar.instrument_id = instrument.id
-        bar.data_source_id = execution.data_source.id
-        bar.ts = _to_utc(bar.ts)
 
     await _record_bar_observations(
         db,
@@ -359,14 +352,20 @@ async def _do_fetch_and_store(
         bars=bars,
     )
 
-    if new_bars:
-        db.add_all(new_bars)
+    # Use the canonical provider upsert for every returned bar, including
+    # timestamps already present as local derived rows.  The upsert promotes a
+    # matching key back to provider lineage and clears stale derivation fields;
+    # counting remains based on the pre-fetch key set for stable job summaries.
+    await db.execute(
+        _provider_bar_upsert_statement(),
+        [_bar_as_dict(bar) for bar in bars],
+    )
     await db.commit()
     await _materialize_provider_adjusted_view_after_raw_fetch(
         db, instrument, timeframe, adjusted=adjusted
     )
 
-    return len(new_bars)
+    return sum(1 for bar in bars if _to_utc(bar.ts) not in existing_ts)
 
 
 def _normalize_fetch_end(value: datetime | None) -> datetime:
