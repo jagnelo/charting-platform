@@ -12,6 +12,7 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.provider_runtime import ProviderCapability
+from app.providers.errors import redact_provider_message
 
 SUPPORT_STATUS_SUPPORTED = "supported"
 SUPPORT_STATUS_UNSUPPORTED = "unsupported"
@@ -143,7 +144,7 @@ async def record_provider_support(
     row.last_checked_at = now
     row.status_expires_at = now + _ttl_for(status)
     row.last_error_type = error_type
-    row.last_error_message = error_message[:500] if error_message else None
+    row.last_error_message = redact_provider_message(error_message)[:500] if error_message else None
     if status == SUPPORT_STATUS_SUPPORTED:
         row.last_success_at = now
         row.last_error_type = None

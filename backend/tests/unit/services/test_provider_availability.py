@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
 from app.services.provider_availability import (
+    availability_error_message,
     classify_exception,
     classify_response,
     notification_due,
@@ -26,6 +27,16 @@ def test_classification_is_deterministic_for_empty_and_transport_failures():
     assert classify_exception(TimeoutError()) == "timeout"
     assert classify_exception(ConnectionError("DNS lookup failed")) == "dns_transport"
     assert classify_exception(KeyError("new_field")) == "schema_content_incompatibility"
+
+
+def test_availability_error_message_redacts_credentials_and_is_bounded():
+    message = availability_error_message(
+        RuntimeError("GET https://provider.test/data?api_key=availability-secret " + "x" * 2000)
+    )
+
+    assert "availability-secret" not in message
+    assert "<redacted>" in message
+    assert len(message) <= 1000
 
 
 def test_classification_covers_http_auth_quota_schema_and_parser_boundaries():

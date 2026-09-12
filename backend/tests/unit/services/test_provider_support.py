@@ -31,6 +31,7 @@ from app.services.provider_support import (
     SUPPORT_STATUS_UNKNOWN,
     SUPPORT_STATUS_UNSUPPORTED,
     get_provider_support_map,
+    record_provider_support,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -128,6 +129,27 @@ async def test_support_status_expires_back_to_unknown(db, instrument):
     )
 
     assert support_map[source.id].status == SUPPORT_STATUS_UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_provider_support_error_is_redacted_before_persistence(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="support-redaction", is_active=True)
+    db.add(source)
+    db.flush()
+
+    row = await record_provider_support(
+        async_db,
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        status=SUPPORT_STATUS_UNSUPPORTED,
+        error_type="ProviderResponseError",
+        error_message="GET https://provider.test/data?api_key=support-secret",
+    )
+
+    assert "support-secret" not in row.last_error_message
+    assert "<redacted>" in row.last_error_message
 
 
 @pytest.mark.asyncio

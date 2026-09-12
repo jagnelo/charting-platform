@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Provider diagnostic error redaction
+
+- [x] Enforce credential redaction at provider-availability and provider-support
+      persistence boundaries, so unexpected transport exceptions cannot leak
+      secrets through health, availability, or capability diagnostics. Focused
+      provider/queue/admin coverage passes 19/19; the full backend unit suite
+      passes 1737/1737 with Ruff, compilation, and diff checks clean.
+
 ### 2026-09-12 — Durable refresh-job lease ownership
 
 - [x] Add a persisted, per-claim opaque lease token to `MarketRefreshJob` and
