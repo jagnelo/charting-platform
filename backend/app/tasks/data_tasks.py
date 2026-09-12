@@ -261,6 +261,33 @@ async def materialize_market_event_prelisting(ctx: dict) -> dict:
         return {"materialized": materialized, "promoted": promoted}
 
 
+async def refresh_edgar_ipo_pipeline_for_issuer_universe(ctx: dict) -> dict:
+    """Scan a durable bounded batch of known SEC issuers for filing candidates."""
+
+    from app.config import settings
+    from app.services.market_event_edgar_scan import (
+        refresh_edgar_ipo_pipeline_for_issuer_universe as _refresh_edgar_ipo_pipeline_for_issuer_universe,
+    )
+
+    if not settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED:
+        return {"skipped": True, "reason": "EDGAR issuer-universe scan disabled"}
+    today = datetime.now(UTC).date()
+    lookback_days = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS))
+    max_issuers = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS))
+    max_events = max(
+        1,
+        int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER),
+    )
+    async with AsyncSessionLocal() as db:
+        return await _refresh_edgar_ipo_pipeline_for_issuer_universe(
+            db,
+            start=today - timedelta(days=lookback_days),
+            end=today,
+            max_issuers=max_issuers,
+            max_events_per_issuer=max_events,
+        )
+
+
 async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
     """Refresh a bounded tokenized quote batch through durable provider routing."""
 

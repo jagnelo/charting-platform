@@ -646,6 +646,37 @@ class MarketEventPrelistingCandidate(Base, TimestampMixin):
     )
 
 
+class MarketEventScanState(Base, TimestampMixin):
+    """Durable cursor for bounded provider-wide market-event scans."""
+
+    __tablename__ = "market_event_scan_state"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    scan_key: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    operation: Mapped[str] = mapped_column(String(100), nullable=False)
+    cursor_issuer_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("issuer.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    cycle_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_scanned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cycle_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    scanned_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_batch_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="idle", index=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index("ix_market_event_scan_provider_operation", "provider", "operation"),
+    )
+
+
 class FundamentalFact(Base, TimestampMixin):
     """Point-in-time raw/curated fundamental observation."""
 

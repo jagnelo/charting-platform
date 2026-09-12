@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Durable bounded EDGAR issuer-universe scan
+
+- [x] Add an additive `market_event_scan_state` table and admin-only
+      `/api/v1/market-data/event-scan-state` read for durable EDGAR scan
+      cursors, cycle/batch counts, failures, and bounded provenance.
+- [x] Add a separately disabled worker/task that walks known canonical issuer
+      CIKs in bounded batches and composes the existing per-CIK EDGAR
+      IPO-pipeline service atomically with cursor updates. `partial` and
+      `complete` cycles are explicit; a complete cycle is not a claim of global
+      SEC universe coverage because issuers absent from the canonical table
+      remain outside scope.
+- [x] Add migration, service, router, and worker tests. Focused scan coverage
+      passes 56/56 and the complete backend unit suite passes 1,876/1,876 with
+      the known 37 warnings; Ruff, compileall, diff checks, and both Compose
+      YAML parses pass. Docker-backed migration/full-stack validation remains
+      unavailable.
+
 ### 2026-09-12 — Audited pre-listing candidate materialization
 
 - [x] Add an additive `market_event_prelisting_candidate` table and bounded

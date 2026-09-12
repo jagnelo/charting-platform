@@ -1,8 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
 from app.models.market_data_foundation import (
+    Issuer,
     MarketEventConsensus,
     MarketEventPrelistingCandidate,
+    MarketEventScanState,
     MarketRefreshJob,
 )
 
@@ -115,3 +117,48 @@ def test_prelisting_candidates_require_admin_and_expose_provenance(
     assert body[0]["proposed_symbol"] == "NEWC"
     assert body[0]["stable_identifiers"] == {"figi": "BBG000000001"}
     assert body[0]["provenance"]["algorithm"] == "market_event_prelisting_v1"
+
+
+def test_event_scan_state_requires_admin_and_exposes_cursor_progress(
+    client, admin_headers, db
+):
+    db.add(
+        Issuer(
+            id=42,
+            domain_key="cik:0000000042",
+            legal_name="Cursor Issuer",
+            cik="0000000042",
+            country_code="US",
+        )
+    )
+    db.flush()
+    state = MarketEventScanState(
+        scan_key="edgar:ipo_pipeline:issuer_universe",
+        provider="edgar",
+        operation="fetch_ipo_pipeline_events",
+        cursor_issuer_id=42,
+        cycle_count=3,
+        scanned_count=120,
+        last_batch_count=40,
+        last_event_count=5,
+        last_failure_count=1,
+        status="partial",
+        last_error="one or more issuer pipeline reads failed",
+        provenance={"bounded": True},
+    )
+    db.add(state)
+    db.flush()
+
+    assert client.get("/api/v1/market-data/event-scan-state").status_code == 401
+    response = client.get(
+        "/api/v1/market-data/event-scan-state",
+        params={"scan_key": state.scan_key},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["cursor_issuer_id"] == 42
+    assert body[0]["status"] == "partial"
+    assert body[0]["provenance"] == {"bounded": True}

@@ -414,6 +414,12 @@ admin-only `GET /api/v1/market-data/prelisting-candidates` endpoint. This is
 still a backend candidate layer, not a frontend calendar authority; no frontend
 surface is added by this branch.
 
+EDGAR's filing-driven IPO pipeline can be scanned across the known issuer table
+through a separately disabled `MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED`
+worker. Its durable cursor advances through issuer CIKs in bounded batches and
+records `partial` versus `complete` cycles in `market_event_scan_state`; this is
+an auditable best-effort enrichment layer, not proof of global SEC coverage.
+
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
 | alpaca     | Primary     | API key + secret        | Free     |
@@ -936,6 +942,10 @@ FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forwar
 MARKET_EVENTS_PRELISTING_ENABLED=false
 MARKET_EVENTS_PRELISTING_LOOKAHEAD_DAYS=90
 MARKET_EVENTS_PRELISTING_MAX_EVENTS=500
+MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED=false
+MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS=365
+MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS=50
+MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER=100
 
 # Optional complete US universe/lifecycle reconciliation (worker only)
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false

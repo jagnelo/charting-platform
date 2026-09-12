@@ -225,6 +225,36 @@ async def test_market_event_prelisting_delegates_to_bounded_task(monkeypatch):
     assert calls == [{"redis": "test"}]
 
 
+@pytest.mark.asyncio
+async def test_edgar_issuer_universe_scan_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+
+    result = await arq_worker.scheduled_edgar_ipo_universe_scan({})
+
+    assert result == {"skipped": True, "reason": "EDGAR issuer-universe scan disabled"}
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_universe_scan_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", True)
+    calls = []
+
+    async def fake_scan(ctx):
+        calls.append(ctx)
+        return {"status": "partial", "issuers_considered": 50}
+
+    monkeypatch.setattr(data_tasks, "refresh_edgar_ipo_pipeline_for_issuer_universe", fake_scan)
+
+    result = await arq_worker.scheduled_edgar_ipo_universe_scan({"redis": "test"})
+
+    assert result == {"status": "partial", "issuers_considered": 50}
+    assert calls == [{"redis": "test"}]
+
+
+def test_edgar_issuer_universe_scan_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_edgar_ipo_universe_scan in arq_worker.WorkerSettings.functions
+
+
 def test_market_event_prelisting_is_registered_in_worker_functions():
     assert arq_worker.scheduled_market_event_prelisting in arq_worker.WorkerSettings.functions
 

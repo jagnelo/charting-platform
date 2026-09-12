@@ -20,6 +20,7 @@ from app.models.market_data_foundation import (
     MarketEvent,
     MarketEventConsensus,
     MarketEventPrelistingCandidate,
+    MarketEventScanState,
     MarketRefreshJob,
     MarketSeries,
     MarketUniverseLifecycleObservation,
@@ -548,6 +549,45 @@ async def list_market_event_prelisting_candidates(
             "last_seen_at": row.last_seen_at,
             "promoted_at": row.promoted_at,
             "resolution": row.resolution,
+            "provenance": row.provenance,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/event-scan-state")
+async def list_market_event_scan_state(
+    scan_key: str | None = Query(default=None, min_length=1, max_length=100),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose durable cursors and bounded completion state for event scans."""
+
+    query = (
+        select(MarketEventScanState)
+        .order_by(MarketEventScanState.last_scanned_at.desc().nullslast(), MarketEventScanState.id)
+        .limit(limit)
+    )
+    if scan_key:
+        query = query.where(MarketEventScanState.scan_key == scan_key.strip())
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "scan_key": row.scan_key,
+            "provider": row.provider,
+            "operation": row.operation,
+            "cursor_issuer_id": row.cursor_issuer_id,
+            "cycle_started_at": row.cycle_started_at,
+            "last_scanned_at": row.last_scanned_at,
+            "cycle_count": row.cycle_count,
+            "scanned_count": row.scanned_count,
+            "last_batch_count": row.last_batch_count,
+            "last_event_count": row.last_event_count,
+            "last_failure_count": row.last_failure_count,
+            "status": row.status,
+            "last_error": row.last_error,
             "provenance": row.provenance,
         }
         for row in rows

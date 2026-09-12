@@ -36,6 +36,13 @@ symbol/name, venue MIC, stable identifiers, provider sources, lifecycle status,
 promotion resolution, and provenance. Pending rows may point to an inactive
 provisional instrument; quarantined rows require operator review.
 
+### GET /market-data/event-scan-state (admin)
+
+List durable cursors for bounded provider-wide event scans. The EDGAR
+`ipo_pipeline` scan exposes its provider/operation, last issuer cursor, cycle
+status, batch counts, failures, and bounded provenance so operators can tell a
+partial issuer cycle from a complete pass.
+
 ---
 
 ## Authentication

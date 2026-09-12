@@ -71,6 +71,16 @@ instruments and quarantines conflicts; it does not alter frontend services or
 silently merge ticker-only identities. Keep it disabled until the deployment
 has reviewed the provider/legal and universe-reconciliation gates.
 
+EDGAR filing-driven IPO-pipeline scanning is separately opt-in because EDGAR
+does not publish a global IPO-calendar endpoint. Set
+`MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED=true` with bounded
+`MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS`,
+`MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS`, and
+`MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER`. The worker walks
+CIKs already present in the canonical issuer table, persists its cursor in
+`market_event_scan_state`, and reports partial cycles; it never claims that a
+bounded batch is a complete SEC universe.
+
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
 contracts, and reconciliation completeness have been reviewed, set

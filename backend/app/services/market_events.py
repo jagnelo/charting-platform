@@ -325,6 +325,7 @@ async def refresh_edgar_ipo_pipeline(
     end: date | None = None,
     max_ciks: int = 50,
     max_events_per_issuer: int = 100,
+    commit: bool = True,
 ) -> dict[str, Any]:
     """Persist bounded EDGAR filing candidates for an explicit CIK batch.
 
@@ -455,7 +456,8 @@ async def refresh_edgar_ipo_pipeline(
         total_unlinked += unlinked
 
     reconciliation = await reconcile_market_events(db, start=start, end=end)
-    await db.commit()
+    if commit:
+        await db.commit()
     return {
         "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
         "provider": provider_name,
