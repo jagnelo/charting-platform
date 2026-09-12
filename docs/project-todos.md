@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact gate after named event-filter artifact guard
+
+- [x] Rerun the exact elevated branch-scoped Docker-backed gate at product tip
+      `df4c127f` after adding the direct multi-output event filter/alert
+      artifact-name guard. Backend units passed `1,476/1,476`; backend
+      integration passed `396/396`; frontend dependency/lint/format/type-check/
+      Vitest/build/contracts/probes, compose/provider contracts,
+      research-runner probes, and functional Playwright passed (`165` passed,
+      `107` documented skips across `272` tests).
+- [x] Visual parity completed `104` cases with `98` passes and the same six
+      protected state-oracle diffs: `watchlist-column-editor-open` at
+      visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125
+      and visual-1440p-100/125. The gate exited `1` only at `e2e-visual`, and
+      branch-scoped teardown removed all containers, volumes, network,
+      testcontainer sessions, and four images. No visual, provider, fallback,
+      or acceptance policy changed; live 100k-point proof remains unclaimed.
+- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
+      seam, then R1 canonical population/history breadth, W1/MN continuity,
+      dense-data evidence, and R2-R7 without changing protected visual policy.
+
 ### 2026-09-12 — Server-side event filter promotion requires named output
 
 - [x] Close the remaining direct multi-output event adapter ambiguity. The
@@ -12,6 +32,8 @@
       formatting, and diff checks passed. The last exact gate at the preceding
       product tip remains the recorded baseline (`98/104` visual with the same
       six protected state-oracle diffs); rerun the exhaustive gate at this tip.
+- [x] The exact gate was rerun at the follow-up tip `df4c127f`; see the
+      recorded gate section above for the unchanged six-diff visual blocker.
 - [ ] Continue the next bounded provider/history or compatible chart/list/gauge
       seam, then R1 canonical population/history breadth, W1/MN continuity,
       dense-data evidence, and R2-R7 without changing protected visual policy.

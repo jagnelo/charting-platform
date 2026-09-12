@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact gate after named event-filter artifact guard
+
+The exact elevated branch-scoped Docker-backed gate ran at product tip
+`df4c127f` after direct multi-output event filter/alert promotion adopted
+explicit artifact selection. Backend units passed `1,476/1,476`, backend
+integration `396/396`, all frontend static/test/build/contracts/probes,
+compose/provider contracts, research-runner probes, and functional Playwright
+`165` passed with `107` documented skips across `272` tests. Visual parity
+completed `98/104`; the six failures were exactly the established protected
+`watchlist-column-editor-open` (1080p-100/125) and `workspace-floating`
+(1080p-100/125, 1440p-100/125) state-oracle diffs. The gate exited at
+`e2e-visual` only; teardown removed all branch-scoped resources and four
+images. No visual, provider, fallback, or acceptance policy changed; live
+100k-point proof remains unclaimed.
+
+Next: continue the next bounded provider/history or compatible chart/list/gauge
+seam, then R1 canonical population/history breadth, W1/MN continuity,
+dense-data evidence, and R2-R7. Preserve the no-integration/no-promotion/
+no-deployment boundary.
+
 ## 2026-09-12 — Server-side event filter promotion requires named output
 
 Follow-up commit `df4c127f` closes the remaining direct multi-output event
@@ -9,13 +29,13 @@ adapter ambiguity. The filter/alert promotion endpoint now rejects an unnamed
 direct `events` run with multiple named artifacts and preserves the selected
 artifact plus declared canonical member scope when named. Strategy Lab
 integration passed `27/27` with 54 warnings; Ruff, formatting, and diff checks
-passed. The exact gate is pending at this follow-up tip; the prior gate's six
-protected visual state-oracle diffs and no-policy-change boundary remain the
-recorded baseline.
+passed. The exact gate result at this follow-up tip is recorded above; the six
+protected visual state-oracle diffs and no-policy-change boundary remain
+unchanged.
 
-Next: rerun the exact gate at `df4c127f`, then continue a bounded
-provider/history or compatible chart/list/gauge seam and the remaining R1-R7
-work. Do not integrate, promote, deploy, or mutate another worktree.
+Next: continue a bounded provider/history or compatible chart/list/gauge seam
+and the remaining R1-R7 work. Do not integrate, promote, deploy, or mutate
+another worktree.
 
 ## 2026-09-12 — Named event-artifact promotion preserves output selection
 
