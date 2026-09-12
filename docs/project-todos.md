@@ -35,6 +35,9 @@
       refresh-result/lease protocol for deployments that cannot share the same
       PostgreSQL transaction boundary; this checkpoint does not claim
       cross-database deduplication.
+- [x] Extend the same process/PostgreSQL gate to implicit latest-window and
+      page-before refresh paths used by chart/instrument reads; focused
+      coalescing coverage now includes both implicit paths.
 
 ### 2026-09-12 — Grouped screener coverage preflight
 

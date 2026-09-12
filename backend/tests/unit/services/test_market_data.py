@@ -179,6 +179,44 @@ async def test_identical_provider_refreshes_are_coalesced_per_process(monkeypatc
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["latest", "page_before"])
+async def test_implicit_ohlcv_refresh_paths_are_coalesced_per_process(monkeypatch, operation):
+    active = 0
+    provider_calls = 0
+    cache_ready = False
+
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        assert active == 1
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
+
+    instrument = SimpleNamespace(id=43, is_synthetic=False)
+    before = datetime(2026, 2, 1, tzinfo=UTC)
+    if operation == "latest":
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_latest_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
+        ]
+    else:
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_page_before_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
+        ]
+
+    assert await asyncio.gather(*calls) == [["fresh"], ["cached"]]
+    assert provider_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_postgres_refresh_lock_uses_transaction_scoped_advisory_lock():
     executed = []
 

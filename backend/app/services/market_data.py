@@ -655,8 +655,14 @@ async def fetch_ohlcv(
     only and synthetic reads remain lock-free.
     """
 
-    if not allow_provider_fetch or instrument.is_synthetic:
-        return await _fetch_ohlcv_impl(
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        start,
+        end,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        operation=lambda: _fetch_ohlcv_impl(
             db,
             instrument,
             timeframe,
@@ -664,22 +670,38 @@ async def fetch_ohlcv(
             end,
             adjusted,
             allow_provider_fetch=allow_provider_fetch,
-        )
+        ),
+    )
+
+
+async def _with_ohlcv_refresh_gate(
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None,
+    adjusted: bool,
+    *,
+    allow_provider_fetch: bool,
+    operation,
+):
+    """Coalesce one provider-capable OHLCV operation in this process.
+
+    The operation is supplied as a coroutine factory so cache-only and
+    synthetic reads avoid creating or retaining an unnecessary lock. Callers
+    use stable sentinels for implicit latest/page ranges, keeping those paths
+    coordinated without pretending that their provider request shape is the
+    same as an explicit historical range.
+    """
+
+    if not allow_provider_fetch or instrument.is_synthetic:
+        return await operation()
 
     lock_key = _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted)
     lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
     _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
     try:
         async with lock:
-            return await _fetch_ohlcv_impl(
-                db,
-                instrument,
-                timeframe,
-                start,
-                end,
-                adjusted,
-                allow_provider_fetch=allow_provider_fetch,
-            )
+            return await operation()
     finally:
         remaining = _OHLCV_REFRESH_LOCK_USERS[lock_key] - 1
         if remaining:
@@ -942,13 +964,42 @@ async def fetch_ohlcv_latest(
     *,
     allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
-    """Return the most recent `limit` bars from the DB, refreshing from the configured provider if stale.
+    """Return the most recent ``limit`` bars with refresh coalescing."""
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        _EPOCH,
+        None,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        operation=lambda: _fetch_ohlcv_latest_impl(
+            db,
+            instrument,
+            timeframe,
+            limit,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        ),
+    )
 
-    For synthetic instruments the full computed series is returned (limit applied).
-    """
+
+async def _fetch_ohlcv_latest_impl(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    limit: int,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+) -> list[OHLCVBar]:
+    """Implementation for :func:`fetch_ohlcv_latest` after gate admission."""
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         return bars[-limit:] if len(bars) > limit else bars
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, _EPOCH, None, adjusted),
+    )
     predicates = [
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == timeframe,
@@ -1073,12 +1124,37 @@ async def fetch_ohlcv_page_before(
     *,
     allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
-    """
-    Return up to `limit` bars strictly before `before`.
+    """Return up to ``limit`` bars strictly before ``before`` with coalescing."""
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        _EPOCH,
+        before,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        operation=lambda: _fetch_ohlcv_page_before_impl(
+            db,
+            instrument,
+            timeframe,
+            before,
+            limit,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        ),
+    )
 
-    For synthetic instruments the full computed series is filtered instead of
-    hitting the external provider.
-    """
+
+async def _fetch_ohlcv_page_before_impl(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    before: datetime,
+    limit: int,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+) -> list[OHLCVBar]:
+    """Implementation for :func:`fetch_ohlcv_page_before` after gate admission."""
     if instrument.is_synthetic:
         from app.models.synthetic_constituent import SyntheticConstituent
 
@@ -1109,6 +1185,11 @@ async def fetch_ohlcv_page_before(
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         filtered = [b for b in bars if b.ts < before]
         return filtered[-limit:] if len(filtered) > limit else filtered
+
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, _EPOCH, before, adjusted),
+    )
 
     """
     DB-first: queries the local cache. If the DB has fewer rows than requested,
