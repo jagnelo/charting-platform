@@ -3,12 +3,21 @@
 ### 2026-09-12 — Shared local provider admission controls
 
 - [x] Key the process-local token bucket and semaphore by the same explicit
-      provider quota group used by durable reservations, so account/key/IP/session
-      allowances are not multiplied once per capability inside a worker. Keep
-      ungrouped contracts isolated by capability.
+      provider quota group used by durable reservations, including reviewed
+      concurrent-request dimensions, so account/key/IP/session allowances are
+      not multiplied once per capability inside a worker. Keep ungrouped
+      contracts isolated by capability.
 - [x] Preserve explicitly non-applicable zero-cost dimensions during settlement
       instead of charging the compatibility one-unit amount. Focused accounting
       coverage passes 7/7 and the complete backend unit suite passes 1,768/1,768.
+
+### 2026-09-12 — Shared concurrency quota-group admission
+
+- [x] Include reviewed concurrent-request dimensions when deriving process-local
+      semaphore keys, keeping shared account/key/IP/session concurrency budgets
+      aligned with durable reservations; request/credit/weight token buckets
+      retain their short-window grouping. Focused accounting coverage passes 7/7
+      and the complete backend unit suite passes 1,769/1,769.
 
 ### 2026-09-12 — Newly configured provider live revalidation
 

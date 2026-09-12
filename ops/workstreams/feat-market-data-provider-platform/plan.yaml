@@ -443,6 +443,14 @@ progress:
       wrapper/CI-provided IDs remain authoritative; focused ledger coverage
       passes 6/6 and the complete backend unit suite passes 1,769/1,769 at
       source checkpoint `2ed3f9f30a2e9fce996d6efa03e5569f368705e2`.
+    - >-
+      Process-local semaphores now include explicit concurrent-request quota
+      groups in their keys, while token buckets retain request/credit/weight
+      grouping. Shared account/key/IP/session concurrency limits therefore
+      cannot multiply once per capability inside a worker. Focused accounting
+      coverage passes 7/7 and the complete backend unit suite passes 1,769/1,769
+      with Ruff, compilation, and diff checks clean at source checkpoint
+      `3f611eaa8160ad4f1efdb2acf665f07bee45ec5f`.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
