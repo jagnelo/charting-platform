@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Analysis responses use canonical wire timestamps
+
+- [x] Serialize direct analysis-model `datetime` fields through the shared
+      response base as canonical UTC `Z` values across relative
+      strength/rotation, breadth/history, family analytics, rankings,
+      indicator batches, technical snapshots, and Market Gauge (`c072c91f`).
+- [x] Focused response-schema coverage passed `4/4`; full backend unit
+      coverage passed `1500/1500` at `68.74%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `c072c91f`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      access was denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
+      browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
 
 - [x] Serialize economic-calendar event timing and legacy indicator-alert

@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Analysis responses use canonical wire timestamps
+
+Product commit `c072c91f` closes the shared analysis response boundary. A
+common `AnalysisContractModel` now serializes direct `datetime` fields as
+canonical UTC `Z` values across relative strength/rotation, breadth and
+history, benchmark-family coverage/ratios/technicals/rankings, indicator
+batches, technical snapshots, and Market Gauge responses. Date-only fields,
+endpoint contracts, persistence, provider semantics, and analysis meaning are
+unchanged.
+
+Focused response-schema coverage passed `4/4`; the full backend unit suite
+passed `1500/1500` at `68.74%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `c072c91f` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending API regressions and
+exact gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
 
 Product commit `9462d4f6` closes the remaining calendar and legacy indicator
