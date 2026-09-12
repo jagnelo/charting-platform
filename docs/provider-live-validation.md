@@ -958,3 +958,8 @@ Bulk historical refreshes and the risk-free-rate history path now apply the
 same series attachment before persistence. Focused bulk/risk-free/market-data
 coverage passed `27/27`, and the complete backend unit suite passed
 `1,805/1,805`; no provider calls were needed for this correction.
+
+Synthetic OHLCV recomputation readback now applies the compatibility selector
+as well, so derived chart results cannot leak alternate or legacy rows. The
+complete backend unit suite remained green at `1,805/1,805`; this was a local
+query-boundary correction with no provider calls.

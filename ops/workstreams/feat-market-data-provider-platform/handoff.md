@@ -513,3 +513,8 @@ Update this handoff at each coherent boundary.
   coverage passes `27/27`; the complete backend unit suite passes `1,805/1,805`;
   no provider calls were needed and PostgreSQL/full-stack validation remains
   Docker-gated.
+- Synthetic OHLCV recomputation readback now applies the compatibility selector
+  too, preventing alternate or legacy rows from leaking into derived chart
+  results. The complete backend unit suite remains green at `1,805/1,805`;
+  no provider calls were needed and PostgreSQL/full-stack validation remains
+  Docker-gated.

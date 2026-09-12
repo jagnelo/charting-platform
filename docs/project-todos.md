@@ -55,6 +55,10 @@
       focused bulk/risk-free/market-data coverage passes 27/27 and the
       complete backend unit suite passes 1,805/1,805. PostgreSQL/full-stack
       validation remains Docker-gated.
+- [x] Constrain synthetic OHLCV readback to the same compatibility selector,
+      preventing stale alternate/legacy rows from leaking into a recomputed
+      synthetic result. The complete backend unit suite remains green at
+      1,805/1,805; PostgreSQL/full-stack validation remains Docker-gated.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 

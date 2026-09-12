@@ -424,6 +424,8 @@ symbol APIs:
   from subsequent compatibility reads.
   Bulk historical refreshes and the risk-free-rate history path use this same
   series attachment before persistence.
+  Synthetic recomputation readback applies the selector as well, preserving
+  the same no-mixing rule for derived chart series.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so
