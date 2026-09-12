@@ -672,3 +672,7 @@ Update this handoff at each coherent boundary.
   points participate in the cross-host gate. The bootstrap/worker/market-data/
   bulk regression set passes `57/57`; Ruff, compilation, and diff checks pass.
   Source commit `cfb5e8c6` is pushed; no provider calls were made.
+- The complete backend unit suite was re-run after both Redis-forwarding fixes:
+  `1,828/1,828` passed with the repository's known 37 warnings. No provider
+  calls or services were started; source commit `cfb5e8c6` remains clean under
+  the focused static checks.

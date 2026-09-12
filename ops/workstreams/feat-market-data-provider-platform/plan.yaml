@@ -767,6 +767,11 @@ progress:
       bulk regression set passes `57/57`, with Ruff, compilation, and diff
       checks clean. Source commit `cfb5e8c6` is pushed; no provider calls were
       made.
+    - >-
+      Re-ran the complete backend unit suite after the refresh-coordination
+      fixes: `1,828/1,828` passed with the repository's known 37 warnings.
+      No provider calls or services were started, and the source commit
+      `cfb5e8c6` remains clean under the focused static checks.
   total: 15
   current_phase: cross_host_refresh_coordination
   current_blocker: >-
