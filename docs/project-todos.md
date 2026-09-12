@@ -404,11 +404,15 @@
       request key. The lock is held through refresh persistence, so another
       worker rechecks committed coverage before provider execution; SQLite and
       unit doubles safely retain the process-local gate only.
-- [ ] Add explicit multi-host contention validation for deployments that cannot
-      share the same PostgreSQL transaction boundary; durable refresh-job
-      result leases now use persisted per-claim tokens and conditional
-      completion/retry updates, while this checkpoint still does not claim
-      cross-database deduplication.
+- [x] Add explicit multi-host contention validation for deployments that cannot
+      share the same PostgreSQL transaction boundary. An opt-in Redis
+      coordinator now wraps canonical and bulk OHLCV refreshes with bounded
+      tokenized locks; acquisition failure is fail-closed, and independent
+      Redis clients have an integration contention/release regression. Durable
+      refresh-job result leases continue to use persisted per-claim tokens and
+      conditional completion/retry updates. The Redis gate remains disabled by
+      default until each deployment explicitly shares its Redis URL and sets a
+      TTL above the slowest permitted refresh.
 - [x] Extend the same process/PostgreSQL gate to implicit latest-window and
       page-before refresh paths used by chart/instrument reads; focused
       coalescing coverage now includes both implicit paths.

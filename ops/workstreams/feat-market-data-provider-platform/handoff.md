@@ -643,3 +643,14 @@ Update this handoff at each coherent boundary.
   Quota coverage passed `72/72`, the complete backend unit suite passed
   `1,814/1,814`, and Ruff, compileall, and diff checks passed. Source commit
   `e746b266` is pushed; no provider calls were needed.
+- Cross-host OHLCV refresh coalescing now has an explicit opt-in Redis
+  coordinator for deployments whose workers do not share one PostgreSQL
+  transaction boundary. Canonical and bulk refresh paths use ownership-safe
+  tokenized locks with bounded wait/TTL settings; timeout or transport failure
+  is fail-closed and the lock remains disabled by default. Focused
+  Redis/coalescing coverage passes `16/16`; an independent-client Redis
+  contention/release regression is queued for the Docker-backed integration
+  gate, which cannot run while the local Docker API is unavailable. No provider
+  calls were made for this change. The complete backend unit suite passes
+  `1,827/1,827`, Ruff/compile/diff and both Compose parses are clean, and source
+  commit `417ce8fd` is pushed.
