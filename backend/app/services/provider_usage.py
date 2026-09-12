@@ -286,6 +286,8 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                         safe_headers[name] = value
                     if (
                         not provider
+                        or len(provider) > 128
+                        or not provider.isprintable()
                         or operations is None
                         or requests is None
                         or response_bytes is None

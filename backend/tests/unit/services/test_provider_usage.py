@@ -65,6 +65,31 @@ def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
     assert result["reason"] == "ledger_missing"
 
 
+def test_read_live_usage_ledger_rejects_invalid_provider_names(tmp_path, monkeypatch):
+    now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text(
+        json.dumps(
+            {
+                "at": now.isoformat(),
+                "provider": "x" * 129,
+                "operations": 1,
+                "http_requests": 1,
+                "response_bytes": 1,
+                "exit_status": 0,
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    result = read_live_usage_ledger(now=now)
+
+    assert result["status"] == "empty"
+    assert result["rows"] == 0
+    assert result["invalid_rows"] == 1
+
+
 def test_window_end_for_reset_handles_calendar_boundaries_and_dst():
     assert _window_end_for_reset(
         datetime(2026, 9, 1, 4, tzinfo=UTC),
