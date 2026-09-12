@@ -397,3 +397,7 @@ Update this handoff at each coherent boundary.
 - This Docker-state correction is based on the synchronized operational
   checkpoint `5d9db49c387f566b00b0296895b89fc30007599c`; the enclosing
   checkpoint commit will be verified externally after push.
+- The branch validator succeeds when invoked with an isolated writable
+  `UV_CACHE_DIR`, and both root and RPi Compose contract manifests parse
+  successfully under the same override. This confirms the earlier failure was
+  local uv-cache permission state, not a repository or provider contract error.
