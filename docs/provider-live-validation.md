@@ -963,3 +963,9 @@ Synthetic OHLCV recomputation readback now applies the compatibility selector
 as well, so derived chart results cannot leak alternate or legacy rows. The
 complete backend unit suite remained green at `1,805/1,805`; this was a local
 query-boundary correction with no provider calls.
+
+The compatibility selector now requires matching canonical bars before it
+suppresses legacy rows. A pre-created or emptied canonical series therefore
+cannot hide readable legacy history. Focused selector coverage passed `22/22`,
+and the complete backend unit suite passed `1,806/1,806`; no provider calls
+were made.

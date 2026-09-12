@@ -59,6 +59,11 @@
       preventing stale alternate/legacy rows from leaking into a recomputed
       synthetic result. The complete backend unit suite remains green at
       1,805/1,805; PostgreSQL/full-stack validation remains Docker-gated.
+- [x] Make the selector require matching bars before suppressing legacy rows.
+      A pre-created or emptied canonical series no longer hides usable legacy
+      history; the focused selector coverage passes 22/22 and the complete
+      backend unit suite passes 1,806/1,806. PostgreSQL/full-stack validation
+      remains Docker-gated.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 

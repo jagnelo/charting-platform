@@ -426,6 +426,8 @@ symbol APIs:
   series attachment before persistence.
   Synthetic recomputation readback applies the selector as well, preserving
   the same no-mixing rule for derived chart series.
+  If a canonical mapping exists without matching bars, the selector retains
+  readable legacy history until canonical observations are actually present.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so

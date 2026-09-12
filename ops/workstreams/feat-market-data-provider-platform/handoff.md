@@ -518,3 +518,8 @@ Update this handoff at each coherent boundary.
   results. The complete backend unit suite remains green at `1,805/1,805`;
   no provider calls were needed and PostgreSQL/full-stack validation remains
   Docker-gated.
+- The selector now requires matching canonical bars before suppressing legacy
+  rows. A pre-created or emptied canonical series cannot hide readable legacy
+  history. Focused selector coverage passes `22/22`; the complete backend unit
+  suite passes `1,806/1,806`; no provider calls were needed and
+  PostgreSQL/full-stack validation remains Docker-gated.
