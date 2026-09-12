@@ -246,7 +246,7 @@ def _bar(instrument_id: int, ts: datetime, close: float) -> OHLCVBar:
 
 
 def test_trade_distributions_include_bar_based_mae_and_mfe():
-    trade = _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-03T00:00:00+00:00", 200.0)
+    trade = _trade("AAPL", "2026-01-01T02:00:00+02:00", "2026-01-03T02:00:00+02:00", 200.0)
     bars = {
         1: [
             OHLCVBar(
@@ -287,6 +287,8 @@ def test_trade_distributions_include_bar_based_mae_and_mfe():
     distributions = _trade_distributions([trade], bars_by_instrument=bars)
     excursion = distributions["mae_mfe"]
     assert excursion["sample_size"] == 1
+    assert excursion["rows"][0]["entry_at"] == "2026-01-01T00:00:00Z"
+    assert excursion["rows"][0]["exit_at"] == "2026-01-03T00:00:00Z"
     assert excursion["rows"][0]["mae_pct"] == -2.0
     assert excursion["rows"][0]["mfe_pct"] == 6.0
     assert excursion["mae_histogram"]
@@ -493,13 +495,13 @@ def test_build_dense_portfolio_history_tracks_full_bar_timeline():
 def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     result = _apply_portfolio_constraints(
         [
-            _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-05T00:00:00+00:00", 200.0),
+            _trade("AAPL", "2026-01-01T02:00:00+02:00", "2026-01-05T02:00:00+02:00", 200.0),
         ],
         open_positions=[
             _open_position(
                 "MSFT",
-                "2026-01-06T00:00:00+00:00",
-                "2026-01-08T00:00:00+00:00",
+                "2026-01-06T02:00:00+02:00",
+                "2026-01-08T02:00:00+02:00",
                 125.0,
                 quantity=5.0,
                 instrument_id=2,
@@ -524,6 +526,12 @@ def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     ]
     assert result["execution_log"][-1]["symbol"] == "MSFT"
     assert result["execution_log"][-1]["pnl"] == 125.0
+    assert [event["ts"] for event in result["execution_log"]] == [
+        "2026-01-01T00:00:00Z",
+        "2026-01-05T00:00:00Z",
+        "2026-01-06T00:00:00Z",
+        "2026-01-08T00:00:00Z",
+    ]
 
 
 def test_symbol_performance_snapshot_splits_realized_and_unrealized_pnl():

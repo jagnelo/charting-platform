@@ -1828,8 +1828,8 @@ def _trade_excursion_rows(
         row: dict[str, float | int | str | None] = {
             "instrument_id": trade.instrument_id,
             "instrument_symbol": trade.instrument_symbol,
-            "entry_at": trade.entry_at,
-            "exit_at": trade.exit_at,
+            "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+            "exit_at": _canonical_timeline_timestamp(trade.exit_at),
             "side": trade.side,
             "mae_pct": None,
             "mfe_pct": None,
@@ -2369,7 +2369,7 @@ def _apply_portfolio_constraints(
         exit_price = float(trade.exit_price)
         execution_events.append(
             {
-                "ts": trade.entry_at,
+                "ts": _canonical_timeline_timestamp(trade.entry_at),
                 "event_type": "entry",
                 "position_id": position_id,
                 "symbol": trade.instrument_symbol,
@@ -2385,7 +2385,7 @@ def _apply_portfolio_constraints(
         )
         execution_events.append(
             {
-                "ts": trade.exit_at,
+                "ts": _canonical_timeline_timestamp(trade.exit_at),
                 "event_type": "exit",
                 "position_id": position_id,
                 "symbol": trade.instrument_symbol,
@@ -2415,7 +2415,7 @@ def _apply_portfolio_constraints(
         current_price = float(position.current_price)
         execution_events.append(
             {
-                "ts": position.entry_at,
+                "ts": _canonical_timeline_timestamp(position.entry_at),
                 "event_type": "entry",
                 "position_id": position_id,
                 "symbol": position.instrument_symbol,
@@ -2431,7 +2431,7 @@ def _apply_portfolio_constraints(
         )
         execution_events.append(
             {
-                "ts": position.current_at,
+                "ts": _canonical_timeline_timestamp(position.current_at),
                 "event_type": "open_at_end",
                 "position_id": position_id,
                 "symbol": position.instrument_symbol,
@@ -2449,7 +2449,7 @@ def _apply_portfolio_constraints(
     for row in rejected:
         execution_events.append(
             {
-                "ts": row["entry_at"],
+                "ts": _canonical_timeline_timestamp(row["entry_at"]),
                 "event_type": "rejected",
                 "position_id": f"{row['instrument_symbol']}-{row['entry_at']}",
                 "symbol": row["instrument_symbol"],
@@ -2969,8 +2969,8 @@ async def _run_rules_backtest(
                 "instrument_id": position.instrument_id,
                 "instrument_symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
-                "current_at": position.current_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "entry_price": position.entry_price,
                 "current_price": position.current_price,
                 "stop_price": position.stop_price,
@@ -2995,8 +2995,8 @@ async def _run_rules_backtest(
                 "instrument_id": trade.instrument_id,
                 "instrument_symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "stop_price": trade.stop_price,
@@ -3599,8 +3599,8 @@ async def _run_radar_signal_research(
                 "instrument_id": position.instrument_id,
                 "instrument_symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
-                "current_at": position.current_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "entry_price": position.entry_price,
                 "current_price": position.current_price,
                 "stop_price": position.stop_price,
@@ -3624,8 +3624,8 @@ async def _run_radar_signal_research(
                 "instrument_id": trade.instrument_id,
                 "instrument_symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "stop_price": trade.stop_price,
