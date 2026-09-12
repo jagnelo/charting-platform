@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact named-event target gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `033b0397` after the
+named multi-output event regression correction. Git-diff, workstream
+validation, dependency/migration checks, frontend preparation, Ruff,
+formatting, and TypeScript passed. The `backend-coverage` stage then stopped
+after the fixed 180-second Docker readiness window because the Docker socket
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Preserve named multi-output event targets
 
 Product commit `033b0397` closes a regression in the single-event target

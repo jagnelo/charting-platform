@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact named-event target gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `033b0397` after the
+named multi-output event regression correction. Git-diff, workstream,
+dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
+passed; `backend-coverage` stopped after the fixed 180-second Docker readiness
+window because Docker returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy failure
+was observed. Restore Docker health and rerun the pending regressions and exact
+gate; no visual/provider/acceptance policy changed.
+
 ## 2026-09-12 — Preserve named multi-output event targets
 
 Product commit `033b0397` corrects the Study Lab event target branch so an
