@@ -244,11 +244,18 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(quoted, require_quote=True)
-    history, history_measurement = _observed_read(
-        lambda: provider.fetch_tokenized_historical_prices(identifier, timespan="DAY"), "dinari"
-    )
-    assert history_measurement.http_requests >= 2
-    assert isinstance(history, list)
+    # Dinari documents four distinct aggregate windows. Exercise each one so
+    # a transport/schema change cannot leave the adapter green while silently
+    # supporting only the default DAY surface.
+    for timespan in ("DAY", "WEEK", "MONTH", "YEAR"):
+        history, history_measurement = _observed_read(
+            lambda timespan=timespan: provider.fetch_tokenized_historical_prices(
+                identifier, timespan=timespan
+            ),
+            "dinari",
+        )
+        assert history_measurement.http_requests >= 2
+        assert isinstance(history, list)
     news, news_measurement = _observed_read(
         lambda: provider.fetch_tokenized_news(identifier, limit=1), "dinari"
     )
