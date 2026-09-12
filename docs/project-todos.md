@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Shared local provider admission controls
+
+- [x] Key the process-local token bucket and semaphore by the same explicit
+      provider quota group used by durable reservations, so account/key/IP/session
+      allowances are not multiplied once per capability inside a worker. Keep
+      ungrouped contracts isolated by capability.
+- [x] Preserve explicitly non-applicable zero-cost dimensions during settlement
+      instead of charging the compatibility one-unit amount. Focused accounting
+      coverage passes 7/7 and the complete backend unit suite passes 1,768/1,768.
+
 ### 2026-09-12 — Explicit provider quota-group accounting
 
 - [x] Separate the durable quota bucket key from the requested capability. A
