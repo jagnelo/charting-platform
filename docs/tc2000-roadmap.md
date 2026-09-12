@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize options-exposure computation time
+
+Product commit `c4e933a0` closes the options analytics response-timeline gap:
+the GEX/DEX exposure endpoint now emits `computed_at` through the shared UTC-
+`Z` serializer. Exposure calculations, expiration selection, ladder values,
+and provider semantics are unchanged.
+
+Ruff, formatting, diff checks, module compilation, and the offset-normalization
+serializer smoke passed. The focused options-exposure integration suite could
+not initialize its Postgres fixture because Docker access was denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`; this is an environment
+blocker, not a product assertion failure. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Rerun the focused
+integration suite and exact gate once Docker is healthy, then continue the
+next bounded provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Exact provider-observability gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `51e04a00` after the

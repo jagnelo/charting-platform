@@ -2,6 +2,22 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize options-exposure computation time
+
+Product commit `c4e933a0` routes options-exposure `computed_at` through the
+shared UTC-`Z` serializer. GEX/DEX calculations, expiration selection, ladder
+values, and provider semantics are unchanged.
+
+Ruff, formatting, diff checks, module compilation, and serializer smoke passed.
+The focused options-exposure integration suite could not initialize its
+Postgres fixture because Docker access was denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`; no product assertion ran.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Rerun the focused integration suite and exact gate when Docker
+is healthy, then advance the next bounded provider/history or compatible
+chart/list/gauge seam. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact provider-observability gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `51e04a00` after the

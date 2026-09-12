@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize options-exposure computation time
+
+- [x] Route options-exposure `computed_at` through the shared UTC-`Z`
+      serializer (`c4e933a0`) without changing GEX/DEX analytics semantics.
+- [x] Ruff, formatting, diff checks, module compilation, and serializer smoke
+      passed.
+- [ ] Rerun the focused options-exposure integration suite and exact gate when
+      Docker is healthy; it currently cannot initialize its Postgres fixture due
+      to Docker socket permission denial. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact provider-observability gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `51e04a00` after the

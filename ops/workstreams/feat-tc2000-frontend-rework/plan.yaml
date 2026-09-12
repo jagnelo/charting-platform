@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit c4e933a0 canonicalizes options-exposure computed_at through
+  the shared UTC Z wire serializer without changing GEX/DEX semantics. Ruff,
+  formatting, diff checks, module compilation, and the offset-normalization
+  serializer smoke passed. The focused options-exposure integration suite
+  could not initialize its Postgres fixture because Docker access was denied at
+  unix:///Users/jagnelo/.docker/run/docker.sock; no product assertion ran. The
+  exact branch-scoped gate remains pending at this coherent product tip. No
+  visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+  policy changed. Restore Docker health, rerun the focused integration suite,
+  pending API regressions, and exact gate at product tip c4e933a0, then continue
+  the next bounded provider/history or compatible chart/list/gauge seam while
+  preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
   Product commit 51e04a00 canonicalizes provider usage windows, lifecycle
   timestamps, hourly/daily bucket starts, and provider-observation retention
   summaries through the shared UTC Z wire serializer. Focused provider
