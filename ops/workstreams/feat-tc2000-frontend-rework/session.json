@@ -55,11 +55,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "docs/project-todos.md"
   ],
   "docker": {
     "available": false,
@@ -103,7 +99,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "02716f1b21ffc3e054a8df5409a3f47f63df001d",
+  "head": "e035d0f4c4e587348267422484ffff2110e2f53d",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",

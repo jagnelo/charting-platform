@@ -1,5 +1,31 @@
 # Project TODO Memory
 
+### 2026-09-12 — Restore live Market Map after snapshot selection
+
+- [x] Refresh the current Market Map source after leaving a loaded saved
+      snapshot through the `Live / cached result` selector or deleting the
+      selected snapshot, so a saved map cannot be presented as live
+      (`02716f1b`).
+- [x] Focused Market Map component coverage passed `43/43`; full frontend
+      Vitest passed `1017/1017` across 115 files; frontend type-check,
+      production build, and `git diff --check` passed with only the existing
+      chunk-size warning.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
+### 2026-09-12 — Exact live-snapshot transition gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `02716f1b`;
+      repository/workstream, dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed. The gate stopped at
+      `backend-coverage` after 180 seconds because Docker returned permission
+      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
+      backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence per-point breadth event knowledge
 
 - [x] Enforce each breadth-history event predicate's `fetched_at` cutoff at
