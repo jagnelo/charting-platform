@@ -836,3 +836,10 @@ Update this handoff at each coherent boundary.
   Changed-file Ruff, format, compileall, and diff checks pass. Source commit
   `5658ffa0` is pushed. Docker-backed migration/full-stack validation remains
   unavailable; no frontend or ETF-provider adapter files changed.
+
+- Corrected the discovery-service scope statement to describe the configured
+  chain as US-venue focused, with explicitly configured crypto exceptions,
+  rather than implying global-market completeness. Coverage and entitlement
+  completeness remain provider-specific observations. Changed-file lint,
+  formatting, and the four seed-universe regressions pass; source commit
+  `b9bb9b92` is pushed.
