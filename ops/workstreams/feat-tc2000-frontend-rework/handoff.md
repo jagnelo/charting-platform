@@ -2,6 +2,20 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Preserve snapshot provenance in scheduled history backfill
+
+Product commit `a0f62def3` extends the local benchmark-family snapshot-history
+backfill plan with disclosure timing, provider/source identifiers, quality and
+completeness, row counts, parser version, and snapshot hash. The scheduled
+backfill task now returns a `snapshot_results` list, preserving each selected
+snapshot's lineage beside its queued/already-queued/error/unresolved outcome;
+aggregate counters and queue idempotence are unchanged. Focused history/task
+coverage passed `33/33`; the full backend unit suite passed `1528/1528` with
+`69.03%` total coverage and the existing `34` dependency warnings. No
+migration is required. The exact gate remains Docker-dependent at the current
+API-level failure recorded below; no provider, fallback, visual, or acceptance
+policy changed.
+
 ## 2026-09-12 — Exact gate rechecked at unified-readiness tip
 
 At documentation tip `43d24923d` (product tip `d1d9577c9`), the exact
