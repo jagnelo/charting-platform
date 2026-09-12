@@ -404,6 +404,12 @@ progress:
       checked without a legacy single-API-key heuristic. Focused availability
       coverage passes 8/8 and the complete backend unit suite passes 1,759/1,759;
       no provider calls were started by this change.
+    - >-
+      Central provider configuration checks now reject whitespace-only values,
+      including multi-field Dinari/FINRA credentials and Massive's current or
+      legacy key alternatives. Registry/availability coverage passes 31/31 and
+      the complete backend unit suite passes 1,760/1,760; no provider calls were
+      started by this change.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

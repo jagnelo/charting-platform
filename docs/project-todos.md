@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Strict provider credential presence checks
+
+- [x] Reject whitespace-only values in the centralized provider configuration
+      predicate, including multi-field Dinari/FINRA credentials and Massive's
+      current-or-legacy key alternatives. This keeps runtime and availability
+      admission consistent with the redacted diagnostics contract. Focused
+      registry/availability coverage passes 31/31 and the complete backend unit
+      suite passes 1,760/1,760 with the existing warnings.
+
 ### 2026-09-12 — Operation-aware availability credential checks
 
 - [x] Align scheduled provider-availability preflights with the central

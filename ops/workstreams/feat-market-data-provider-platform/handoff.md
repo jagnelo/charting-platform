@@ -424,3 +424,9 @@ Update this handoff at each coherent boundary.
   known warnings. The implementation is pushed at
   `2f8660155c8a86badeb30efef554689ea6c71cc3`; the accompanying TODO/plan/
   validation checkpoint remains separate.
+- The central provider configuration predicate now rejects whitespace-only
+  credentials and blank legacy/current key alternatives. Focused registry and
+  availability coverage passes `31/31`; the complete backend unit suite passes
+  `1,760/1,760` with 37 known warnings. The implementation is pushed at
+  `6c8f46f09b642f7c8a781e966df1fe815d897db7`; the durable checkpoint remains
+  separate.
