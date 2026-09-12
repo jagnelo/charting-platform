@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Cancel aborted workstation opens
+
+Product commit `67720cbb` releases WorkstationView tool-open readiness waits
+on teardown and prevents an aborted action from mutating detached DOM or
+workspace state. Existing focused WorkstationView coverage passed `29/29`;
+full frontend Vitest passed `1033/1033` across 115 files; type-check,
+production build, and `git diff --check` passed with only the existing
+chunk-size warning. No provider, fallback, visual, or acceptance policy
+changed. Continue implementation in this worktree only.
+
+## 2026-09-12 — Exact aborted-open gate rechecked
+
+At product tip `67720cbb4198274975ffd8755ef61b41e80dce78`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Coverage Summary lifecycle
 
 Product commit `05f5a4e9` fences canonical Coverage Summary and OHLCV-range
