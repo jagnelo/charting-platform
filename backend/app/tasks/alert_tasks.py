@@ -90,6 +90,8 @@ async def _get_recent_bars(db, instrument_id, timeframe, limit=300):
 async def _preflight_latest_prices(
     db,
     alerts_by_instrument: dict[int, list[PriceAlert]],
+    *,
+    redis=None,
 ) -> dict[int, float | None]:
     """Poll each high-alert instrument once before the evaluation phase."""
 
@@ -101,7 +103,10 @@ async def _preflight_latest_prices(
             continue
         await db.refresh(instrument, ["listings", "provider_symbols"])
         try:
-            prices[instrument_id] = await get_current_price_async(db, instrument)
+            price_kwargs = {"redis": redis} if redis is not None else {}
+            prices[instrument_id] = await get_current_price_async(
+                db, instrument, **price_kwargs
+            )
         except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
             logger.debug(
                 "Latest price unavailable for %s: %s",
@@ -220,7 +225,7 @@ async def check_all_alerts(ctx: dict) -> dict:
             # High-alert latest-price polling is grouped as a preflight.  The
             # alert evaluation loop below only consumes this snapshot, so
             # multiple alerts cannot independently spend provider quota.
-            prices = await _preflight_latest_prices(db, by_instrument)
+            prices = await _preflight_latest_prices(db, by_instrument, redis=ctx.get("redis"))
             for iid, alerts in by_instrument.items():
                 price = prices.get(iid)
                 if price is None:

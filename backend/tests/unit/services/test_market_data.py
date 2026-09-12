@@ -568,3 +568,136 @@ async def test_redis_refresh_lock_is_not_used_until_explicitly_enabled(monkeypat
         redis=_Redis(),
         operation=operation,
     ) == ["local"]
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypatch):
+    instrument = SimpleNamespace(
+        id=47,
+        symbol="AAPL",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+    execute_calls = 0
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal execute_calls
+        execute_calls += 1
+        await asyncio.sleep(0)
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=123.45,
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 123.45
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    results = await asyncio.gather(
+        market_data.get_current_price_async(object(), instrument),
+        market_data.get_current_price_async(object(), instrument),
+    )
+
+    assert results == [123.45, 123.45]
+    assert execute_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_uses_opt_in_redis_gate(monkeypatch):
+    calls: list[tuple] = []
+    instrument = SimpleNamespace(
+        id=48,
+        symbol="MSFT",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        calls.append(("provider",))
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=234.56,
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 234.56
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    result = await market_data.get_current_price_async(
+        object(), instrument, redis=_Redis()
+    )
+
+    assert result == 234.56
+    assert [call[0] for call in calls] == ["lock", "acquire", "provider", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(monkeypatch):
+    instrument = SimpleNamespace(
+        id=49,
+        symbol="NVDA",
+        listings=[],
+        provider_symbols=[],
+    )
+    provider_called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
+        return None
+
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal provider_called
+        provider_called = True
+        raise AssertionError("provider must not run when latest-price lock times out")
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data.get_current_price_async(object(), instrument, redis=_Redis())
+    assert provider_called is False

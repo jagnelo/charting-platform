@@ -103,6 +103,28 @@ async def test_worker_alert_preflight_polls_each_instrument_once(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_worker_alert_preflight_forwards_redis_to_latest_price_gate(monkeypatch):
+    instrument = SimpleNamespace(id=18, symbol="AMD")
+    db = _FakeDb(instrument)
+    redis = object()
+    calls = []
+
+    async def fake_price(_db, current_instrument, **kwargs):
+        calls.append((current_instrument.id, kwargs))
+        return 150.0
+
+    monkeypatch.setattr(alert_tasks, "get_current_price_async", fake_price)
+    prices = await alert_tasks._preflight_latest_prices(
+        db,
+        {18: [SimpleNamespace(instrument_id=18)]},
+        redis=redis,
+    )
+
+    assert prices == {18: 150.0}
+    assert calls == [(18, {"redis": redis})]
+
+
+@pytest.mark.asyncio
 async def test_worker_indicator_preflight_coalesces_local_bar_reads(monkeypatch):
     calls = []
     bars = [SimpleNamespace(ts="2026-09-12T00:00:00Z")]

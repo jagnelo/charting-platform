@@ -101,6 +101,8 @@ _OHLCV_CONFLICT_COLUMNS = [
 # same provider quota before the first transaction commits its bars.
 _OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
 _OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
+_LATEST_PRICE_REFRESH_LOCKS: dict[int, asyncio.Lock] = {}
+_LATEST_PRICE_REFRESH_LOCK_USERS: dict[int, int] = {}
 
 
 def _ohlcv_refresh_lock_key(
@@ -868,6 +870,51 @@ async def _with_ohlcv_refresh_gate(
             _OHLCV_REFRESH_LOCKS.pop(lock_key, None)
 
 
+async def _with_latest_price_refresh_gate(
+    instrument: Instrument,
+    *,
+    redis: Any = None,
+    operation: Callable[[], Awaitable[_T]],
+) -> _T:
+    """Coalesce latest-price refreshes across local workers and opt-in Redis.
+
+    The latest-price cache is checked again inside the gate by the operation
+    factory. This ensures a waiter returns the first worker's persisted
+    observation instead of issuing a second provider request. The Redis leg
+    is opt-in and fail-closed under the same bounded deployment settings as
+    canonical OHLCV refresh coordination.
+    """
+
+    lock_key = int(instrument.id)
+    lock = _LATEST_PRICE_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
+    _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] = (
+        _LATEST_PRICE_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
+    )
+    try:
+        async with lock:
+            distributed_redis = None
+            if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+                distributed_redis = redis or shared_redis_lock_client()
+            if distributed_redis is None:
+                return await operation()
+            async with redis_distributed_lock(
+                distributed_redis,
+                namespace="latest-price-refresh",
+                identity=repr(lock_key),
+                ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+                blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+                retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+            ):
+                return await operation()
+    finally:
+        remaining = _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] - 1
+        if remaining:
+            _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] = remaining
+        else:
+            _LATEST_PRICE_REFRESH_LOCK_USERS.pop(lock_key, None)
+            _LATEST_PRICE_REFRESH_LOCKS.pop(lock_key, None)
+
+
 async def _fetch_ohlcv_impl(
     db: AsyncSession,
     instrument: Instrument,
@@ -1592,36 +1639,49 @@ async def _fetch_provider_latest(
 async def get_current_price_async(
     db: AsyncSession,
     instrument: Instrument,
+    *,
+    redis: Any = None,
 ) -> float | None:
     cached = await _fresh_latest_price_from_cache(db, instrument)
     if cached is not None:
         return cached
-    execution = await execute_provider_call(
-        db,
-        ProviderCapability.LATEST_PRICE,
-        "get_current_price",
-        instrument_id=instrument.id,
-        operation_cost_overrides={
-            "ibkr": estimate_ibkr_current_price_request_count(
-                provider_symbol_for_instrument(instrument, "ibkr")
-            )
-        },
-        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
-        invoke=lambda provider, _provider_symbol: provider.get_current_price(
-            provider_symbol_for_instrument(instrument, provider.name)
-        ),
-        response_items=lambda result: 1 if result is not None else 0,
-        treat_empty_as_failure=True,
-    )
-    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
-    await store_latest_price_snapshot(
-        db,
-        instrument_id=instrument.id,
-        data_source_id=execution.data_source.id,
-        provider_symbol=provider_symbol,
-        price=execution.result,
-    )
-    return execution.result
+
+    async def _refresh() -> float | None:
+        # A waiter may have entered after the first worker persisted its
+        # observation, so always re-check the cache while holding the gate.
+        cached_inside_gate = await _fresh_latest_price_from_cache(db, instrument)
+        if cached_inside_gate is not None:
+            return cached_inside_gate
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            instrument_id=instrument.id,
+            operation_cost_overrides={
+                "ibkr": estimate_ibkr_current_price_request_count(
+                    provider_symbol_for_instrument(instrument, "ibkr")
+                )
+            },
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                instrument, provider_name
+            ),
+            invoke=lambda provider, _provider_symbol: provider.get_current_price(
+                provider_symbol_for_instrument(instrument, provider.name)
+            ),
+            response_items=lambda result: 1 if result is not None else 0,
+            treat_empty_as_failure=True,
+        )
+        provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+        await store_latest_price_snapshot(
+            db,
+            instrument_id=instrument.id,
+            data_source_id=execution.data_source.id,
+            provider_symbol=provider_symbol,
+            price=execution.result,
+        )
+        return execution.result
+
+    return await _with_latest_price_refresh_gate(instrument, redis=redis, operation=_refresh)
 
 
 def get_current_price(provider_symbol: str) -> float | None:
