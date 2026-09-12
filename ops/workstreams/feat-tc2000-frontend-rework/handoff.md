@@ -7944,3 +7944,21 @@ placeholder disposition, cadence/effective-time and adjustment-factor/version
 provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
 open. Next action: continue the next bounded evidence-backed R1 or compatible
 Study target slice while preserving the six visual state-oracle assertions.
+## 2026-09-12 — Exact options-tip gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `6fb7ca7b` after the
+typed options response-contract slice. Repository/workstream validation,
+dependency resolution, migration checks, frontend preparation, Ruff,
+formatting, and TypeScript all passed. The `backend-coverage` stage then
+stopped after the fixed 180-second Docker readiness window because Docker
+returned HTTP 500 for `/v1.55/info` on
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health outside the worktree, rerun the pending
+API regressions and exact gate at this tip, then continue the next bounded
+provider/history or compatible chart/list/gauge seam while preserving the six
+protected visual state-oracle diffs and the no-integration/no-deployment
+boundary.

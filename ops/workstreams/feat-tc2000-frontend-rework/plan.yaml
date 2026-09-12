@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 6fb7ca7b adds typed options expiration, chain, contract-summary,
+  snapshot, and quote-history response contracts; focused options-schema
+  coverage passed 2/2 and the full backend unit suite passed 1504/1504 at
+  68.81% coverage. The exact branch-scoped gate at this tip passed
+  repository/workstream, dependency/migration, frontend-preparation, Ruff,
+  formatting, and TypeScript stages, then stopped at backend-coverage after
+  the fixed 180-second Docker readiness window because Docker returned HTTP
+  500 for /v1.55/info on unix:///Users/jagnelo/.docker/run/docker.sock. No
+  backend integration, provider, browser, or visual stage ran; no product
+  assertion or visual-policy failure was observed. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Restore
+  Docker health outside the worktree, rerun pending API regressions and the
+  exact gate, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle
+  diffs and the no-integration/no-deployment boundary.
   Product tip 799db14d canonicalizes watchlist source/member timing, coverage,
   refresh-summary, and refresh-run timestamps through the shared UTC Z wire
   serializer. Focused watchlist-history schema/service coverage passed 11/11;

@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact options-tip gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `6fb7ca7b`; repository/workstream,
+      dependency, migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned HTTP 500 for
+      `/v1.55/info` after the fixed 180-second readiness window. No backend integration, provider,
+      browser, or visual stage ran; no product assertion or visual-policy failure was observed.
+- [ ] Restore Docker health, rerun the pending API regressions and exact gate, then continue
+      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Options reads use typed canonical response contracts
 
 - [x] Add typed expiration, chain, contract-summary, snapshot, and
