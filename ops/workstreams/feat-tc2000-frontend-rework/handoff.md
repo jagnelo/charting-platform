@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact coarse-cache gate rechecked
+
+The exact branch-scoped gate ran at product tip `ad86c37b`. Repository,
+workstream, dependency/migration, frontend preparation, Ruff, formatting, and
+TypeScript stages passed; `backend-coverage` stopped after 180 seconds because
+Docker returned permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no product
+or visual-policy failure was observed. Restore Docker health and rerun the exact
+gate; no provider/fallback/visual/acceptance policy changed.
+
 ## 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
 
 Product commit `ad86c37b` fixes the bounded bulk-fetch optimization that used

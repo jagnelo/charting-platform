@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact coarse-cache gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `ad86c37b`; repository,
+      workstream, dependency/migration, frontend preparation, Ruff, format,
+      and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
+      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
+      after the fixed 180-second readiness window. No backend integration,
+      provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun the exact gate, then continue provider/history,
+      R4 fan-out, and R2-R7 evidence. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
 
 - [x] Correct the intraday-skip decision so a zero newly inserted coarse-row

@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The exact branch-scoped gate was rerun at product tip ad86c37b after the
+  bounded bulk-history cache-evidence fix. Git-diff, workstream validation,
+  dependency/migration checks, frontend preparation, Ruff, formatting, and
+  TypeScript passed, then backend-coverage stopped after the fixed 180-second
+  Docker readiness window because the Docker socket returned permission denied
+  at unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+  provider, browser, or visual stage ran; no product assertion or visual-policy
+  failure was observed. No visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. Restore Docker health, rerun the
+  exact gate, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam. No integration, promotion, deployment, or
+  other-worktree mutation.
   Product commit ad86c37b closes a bounded R1 bulk-history correctness gap:
   bulk-fetch now probes persisted adjusted D1/W1/MN rows through the requested
   end before applying its intraday-skip optimization, so duplicate-only coarse
