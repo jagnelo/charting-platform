@@ -862,5 +862,5 @@ Update this handoff at each coherent boundary.
   alias, cross-owner, type, and ticker/venue conflicts while retaining the
   lifecycle observation. Focused reconciliation coverage passes `14/14`; the
   complete backend unit suite passes `1,893/1,893` with the known 37 warnings.
-  Source commit `ffc96fe8` is pushed; the broader Docker-backed migration,
+  Source commits `ffc96fe8` and `495854e8` are pushed; the broader Docker-backed migration,
   provider-governance, and deployment gates remain unchanged.
