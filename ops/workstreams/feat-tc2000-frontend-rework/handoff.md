@@ -2,6 +2,34 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Synchronize structured Study Lab visual baselines
+
+The current Study Lab structured-result fixture now intentionally renders the
+promotion fan-out controls delivered by the existing structured-artifact
+promotion work (including event filter/alert actions and finite scalar
+threshold actions). The two affected Darwin 1080p baselines were regenerated
+with Playwright and pass unchanged on rerun (`2/2`); no visual threshold, mask,
+skip, provider, fallback, or acceptance rule changed. The four-environment
+exact gate then passed backend unit (`1528/1528`), backend integration
+(`403/403`, `81.98%` combined coverage), functional E2E (`165 passed`, `107
+skipped`), and `98/104` visual assertions, with only the six pre-existing
+protected watchlist-column-editor/workspace-floating diffs remaining. This is
+an intentional baseline synchronization for current product behavior, not a
+regression waiver.
+
+## 2026-09-12 — Make bounded snapshot windows and backfill summaries truthful
+
+Product commits `b02963742` and `f20a6cdcf` close two adjacent R1
+maintenance-contract gaps. Canonical family coverage now fetches one lookahead
+snapshot and reports `continuity_snapshot_limit_reached` only when history is
+actually truncated; the scheduled member-history backfill also carries its
+aggregate per-symbol continuity/cadence map alongside per-snapshot queue
+receipts. Focused history/task coverage passed `33/33`; the full backend unit
+suite passed `1528/1528` with `69.03%` total coverage and the existing `34`
+dependency warnings. No migration, provider, fallback, visual, or acceptance
+policy changed. The exact gate remains Docker-dependent at the current
+API-level failure recorded below.
+
 ## 2026-09-12 — Add continuity and cadence evidence to snapshot backfill
 
 Product commit `79faf3783` adds observed-only continuity and cadence diagnostics

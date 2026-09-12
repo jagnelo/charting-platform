@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Structured Study Lab visual baseline synchronization
+
+The structured-result Study Lab fixture now shows the promotion fan-out that
+is part of the current product contract: named event filter/alert actions and
+finite scalar threshold actions are rendered alongside the scalar, bar,
+histogram, table, and occurrence outputs. The two affected Darwin 1080p local
+baselines were regenerated from the unchanged fixture with Playwright and
+rerun successfully (`2/2`). The exact branch gate subsequently passed backend
+unit (`1528/1528`), backend integration (`403/403`, `81.98%` combined
+coverage), functional E2E (`165 passed`, `107 skipped`), and `98/104` visual
+assertions; only the six already-protected watchlist-column-editor and
+workspace-floating diffs remain. No visual threshold, mask, skip, provider,
+fallback, or acceptance rule changed, and no acceptance flexibility was used.
+
 ## 2026-08-19 — Generic breadth-to-Study-Lab reuse gate
 
 The generic breadth acceptance contract now includes a direct save action: after evaluating a
