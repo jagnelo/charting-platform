@@ -73,6 +73,27 @@ describe('DashboardInstrumentSearch', () => {
     expect(wrapper.emitted('select')).toBeUndefined()
   })
 
+  it('does not publish a late search response after the widget unmounts', async () => {
+    let resolveResults!: (results: any[]) => void
+    const resultsLoaded = new Promise<any[]>(resolve => { resolveResults = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(resultsLoaded)
+    const wrapper = mount(DashboardInstrumentSearch, {
+      props: { modelValue: '' },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('NVDA')
+    vi.advanceTimersByTime(230)
+    await Promise.resolve()
+    const vm = wrapper.vm as unknown as { results: any[]; loading: boolean }
+    wrapper.unmount()
+    resolveResults([{ symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' }])
+    await flushPromises()
+
+    expect(vm.results).toEqual([])
+    expect(vm.loading).toBe(true)
+  })
+
   it('does not resolve incomplete expressions or emit draft updates while typing', async () => {
     const wrapper = mount(DashboardInstrumentSearch, {
       props: { modelValue: '' },

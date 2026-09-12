@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import {
   ensureKnownInstrumentSymbol,
@@ -93,6 +93,8 @@ const rootRef = ref<HTMLDivElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let searchSeq = 0
+let resolveSeq = 0
+let mounted = false
 
 const dropdownPos = ref({ top: 0, left: 0, width: 0 })
 const dropdownStyle = computed(() => ({
@@ -146,20 +148,21 @@ async function onInput() {
   }
   const seq = ++searchSeq
   timer = setTimeout(async () => {
+    if (!mounted || seq !== searchSeq) return
     loading.value = true
     try {
       const loaded = await api.get<SearchResult[]>('/instruments/search', { q: trimmedQuery.value })
-      if (seq === searchSeq) {
+      if (mounted && seq === searchSeq) {
         results.value = loaded
         highlightIdx.value = 0
       }
     } catch (e: any) {
-      if (seq === searchSeq) {
+      if (mounted && seq === searchSeq) {
         error.value = e?.message ?? 'Search unavailable'
         results.value = []
       }
     } finally {
-      if (seq === searchSeq) loading.value = false
+      if (mounted && seq === searchSeq) loading.value = false
     }
   }, 220)
 }
@@ -169,26 +172,35 @@ async function selectResult(result: SearchResult) {
 }
 
 async function selectSymbol(symbol: string) {
+  const seq = ++resolveSeq
   loading.value = true
   try {
-    commit(await ensureKnownInstrumentSymbol(symbol))
+    const resolved = await ensureKnownInstrumentSymbol(symbol)
+    if (mounted && seq === resolveSeq) commit(resolved)
   } catch (e) {
-    error.value = formatInstrumentLookupError(symbol, e)
-    dismissed.value = false
+    if (mounted && seq === resolveSeq) {
+      error.value = formatInstrumentLookupError(symbol, e)
+      dismissed.value = false
+    }
   } finally {
-    loading.value = false
+    if (mounted && seq === resolveSeq) loading.value = false
   }
 }
 
 async function selectExpression() {
+  const seq = ++resolveSeq
   loading.value = true
+  const expression = trimmedQuery.value
   try {
-    commit(await ensureKnownInstrumentSymbol(trimmedQuery.value))
+    const resolved = await ensureKnownInstrumentSymbol(expression)
+    if (mounted && seq === resolveSeq) commit(resolved)
   } catch (e) {
-    error.value = formatInstrumentLookupError(trimmedQuery.value, e)
-    dismissed.value = false
+    if (mounted && seq === resolveSeq) {
+      error.value = formatInstrumentLookupError(expression, e)
+      dismissed.value = false
+    }
   } finally {
-    loading.value = false
+    if (mounted && seq === resolveSeq) loading.value = false
   }
 }
 
@@ -225,7 +237,17 @@ function handleClickOutside(event: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(event.target as Node)) dismiss()
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  mounted = true
+  document.addEventListener('mousedown', handleClickOutside)
+})
+onBeforeUnmount(() => {
+  mounted = false
+  searchSeq += 1
+  resolveSeq += 1
+  if (timer) clearTimeout(timer)
+  timer = null
+})
 onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 </script>
 
