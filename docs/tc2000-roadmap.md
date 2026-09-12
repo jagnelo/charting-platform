@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact dashboard chart gate rechecked
+
+At documentation tip `296d846e` (product tip `963892284`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. Continue the next bounded
+provider/history or compatible R4/R2-R7 seam and rerun the exact gate at the
+next coherent tip.
+
 ## 2026-09-12 — Fence dashboard chart hydration teardown
 
 Product commit `963892284` closes a bounded R2/R6 lifecycle gap in the
