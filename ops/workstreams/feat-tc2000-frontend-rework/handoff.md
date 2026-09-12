@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact gate at point-in-time history tip
+
+At product tip `fdb274af4` and documentation tip `a6cba5845`, the exact
+branch-scoped gate passed dependency, migration, lint/format, TypeScript,
+backend unit (`1528/1528`), backend integration (`404/404`, `81.98%` combined
+coverage), frontend build/contracts/provider probes, research-runner probes,
+functional E2E (`165 passed`, `107 skipped`), and `98/104` visual assertions.
+The six visual diffs are the unchanged protected watchlist-column-editor states
+at 1080p 100/125 and workspace-floating states at 1080p 100/125 and 1440p
+100/125. Stack and testcontainer resources were cleaned. No visual threshold,
+mask, skip, provider, fallback, migration, or acceptance rule changed.
+
 ## 2026-09-12 — Preserve point-in-time membership in derived equal-weight history
 
 The derived-equal-weight benchmark endpoint now evaluates canonical constituent

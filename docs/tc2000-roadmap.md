@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact gate at point-in-time history tip
+
+At product tip `fdb274af4` and documentation tip `a6cba5845`, the exact
+branch-scoped gate passed backend unit (`1528/1528`), backend integration
+(`404/404`, `81.98%` combined coverage), frontend build/contracts/provider and
+research-runner probes, functional E2E (`165 passed`, `107 skipped`), and
+`98/104` visual assertions. The six diffs remain the protected
+watchlist-column-editor states at 1080p 100/125 and workspace-floating states
+at 1080p 100/125 and 1440p 100/125; no visual threshold, mask, skip, provider,
+fallback, migration, or acceptance rule changed. Stack and testcontainer
+resources were cleaned. Continue the next bounded R1 provider/history or
+compatible R4/R2–R7 seam; AC2–AC7 and AC10 remain open.
+
 ## 2026-09-12 — Preserve point-in-time membership in derived equal-weight history
 
 The derived-equal-weight benchmark contract now applies canonical constituent

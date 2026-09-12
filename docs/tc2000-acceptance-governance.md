@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Exact full-stack gate rechecked at point-in-time history tip
+
+The exact branch-scoped gate passed backend unit (`1528/1528`), backend
+integration (`404/404`, `81.98%` combined coverage), functional E2E (`165
+passed`, `107 skipped`), and all build, contract, provider, sandbox, and
+migration checks. Visual acceptance remains `98/104` with only the six already
+protected watchlist-column-editor and workspace-floating diffs. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed; stack and testcontainer resources were cleaned. This receipt keeps the
+existing protected-diff policy explicit and does not waive the remaining
+provider/history or exact V25 work.
+
 ## 2026-09-12 — Point-in-time membership is now explicit in derived history
 
 The derived equal-weight history acceptance contract now requires membership
