@@ -580,4 +580,40 @@ describe('ChartPlotLibrary', () => {
     expect(workspace.activeTab?.windows[1].configuration.indicator_columns).toBeUndefined()
     expect(wrapper.get('[role="status"]').text()).toContain('explicit output')
   })
+
+  it('does not publish a late Python asset load after the library unmounts', async () => {
+    let resolveAssets!: (value: any[]) => void
+    apiMock.get.mockImplementation((path: string) => path === '/code/assets'
+      ? new Promise(resolve => { resolveAssets = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'python-plot-lifecycle-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await Promise.resolve()
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+
+    wrapper.unmount()
+    resolveAssets([{ kind: 'plot', name: 'Late plot', versions: [{ id: 91, version_number: 1 }] }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).pythonAssets).toEqual([])
+  })
+
+  it('does not publish a late EasyScan plot load after the library unmounts', async () => {
+    let resolveScreeners!: (value: any[]) => void
+    apiMock.get.mockImplementation((path: string) => path === '/screeners'
+      ? new Promise(resolve => { resolveScreeners = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'scan-plot-lifecycle-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load EasyScan plots')!.trigger('click')
+    await Promise.resolve()
+    expect(apiMock.get).toHaveBeenCalledWith('/screeners')
+
+    wrapper.unmount()
+    resolveScreeners([{ id: 17, name: 'Late scan' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).scanAssets).toEqual([])
+  })
 })

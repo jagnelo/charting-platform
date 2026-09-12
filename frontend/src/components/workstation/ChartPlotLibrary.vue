@@ -60,7 +60,7 @@
   </section>
 </template>
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -160,13 +160,18 @@ const scanAssets = ref<ScanAsset[]>([])
 const selectedScanAsset = ref('')
 const scanLoading = ref(false)
 const scanStatus = ref('')
+let mounted = false
+let pythonLoadGeneration = 0
+let scanLoadGeneration = 0
 const draggingIndex = ref<number | null>(null)
 const draggingPreview = ref<IndicatorConfig | null>(null)
 function label(indicator: IndicatorConfig) { return indicatorDisplayName(indicator) }
 async function loadPythonAssets() {
+  const generation = ++pythonLoadGeneration
   pythonLoading.value = true; pythonStatus.value = ''
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (!mounted || generation !== pythonLoadGeneration) return
     pythonAssets.value = assets.filter(asset => asset.kind === 'plot' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => {
       if (!version.id || (version.output_contract !== 'series' && asset.kind !== 'plot')) return []
       const diagnostics = Array.isArray(version.diagnostics) ? version.diagnostics : []
@@ -180,8 +185,12 @@ async function loadPythonAssets() {
       return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, ...(sourceId ? { universeSourceId: sourceId } : {}), ...(symbols?.length ? { symbols } : {}) }]
     }))
     pythonStatus.value = pythonAssets.value.length ? `${pythonAssets.value.length} plot asset${pythonAssets.value.length === 1 ? '' : 's'} available` : 'No Python plot assets available'
-  } catch (cause: any) { pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets' }
-  finally { pythonLoading.value = false }
+  } catch (cause: any) {
+    if (mounted && generation === pythonLoadGeneration) pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets'
+  }
+  finally {
+    if (mounted && generation === pythonLoadGeneration) pythonLoading.value = false
+  }
 }
 function addPythonPlot() {
   const versionId = Number(selectedPythonVersion.value)
@@ -194,6 +203,7 @@ function addPythonPlot() {
   pythonStatus.value = `Added ${asset.name}`
 }
 async function loadScanPlots() {
+  const generation = ++scanLoadGeneration
   scanLoading.value = true
   scanStatus.value = ''
   try {
@@ -206,12 +216,13 @@ async function loadScanPlots() {
       }))
       return entries.filter((entry): entry is ScanAsset => entry != null)
     }))
+    if (!mounted || generation !== scanLoadGeneration) return
     scanAssets.value = assets.flat().filter((entry): entry is ScanAsset => entry != null)
     scanStatus.value = scanAssets.value.length ? `${scanAssets.value.length} historical scan plot${scanAssets.value.length === 1 ? '' : 's'} available` : 'No retained scan history available'
   } catch (cause: any) {
-    scanStatus.value = cause?.message ?? 'Unable to load EasyScan plots'
+    if (mounted && generation === scanLoadGeneration) scanStatus.value = cause?.message ?? 'Unable to load EasyScan plots'
   } finally {
-    scanLoading.value = false
+    if (mounted && generation === scanLoadGeneration) scanLoading.value = false
   }
 }
 function addScanPlot() {
@@ -528,7 +539,11 @@ async function promoteSelected() {
     promotionStatus.value = cause?.message ?? 'Unable to promote plot'
   } finally { promotionBusy.value = false }
 }
+onMounted(() => { mounted = true })
 onBeforeUnmount(() => {
+  mounted = false
+  pythonLoadGeneration += 1
+  scanLoadGeneration += 1
   window.removeEventListener('resize', positionMenu)
   window.removeEventListener('scroll', positionMenu, true)
 })
