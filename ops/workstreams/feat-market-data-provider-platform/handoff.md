@@ -343,3 +343,8 @@ Update this handoff at each coherent boundary.
   the complete backend unit suite passes `1,752/1,752` with the known 37
   warnings, and static checks are clean. This only aligns configuration
   propagation; it does not widen feed or corporate-action entitlements.
+- The required full-profile implementation-session bootstrap was retried after
+  this commit but remains blocked because `docker info` hangs after the client
+  section on the local Docker Desktop API. The branch is clean and pushed;
+  `session.json` records the blocked preflight explicitly rather than bypassing
+  the Docker gate or claiming new PostgreSQL/Redis evidence.

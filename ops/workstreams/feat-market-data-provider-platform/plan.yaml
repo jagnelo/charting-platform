@@ -343,6 +343,12 @@ progress:
       wiring coverage passes 13/13, the complete backend unit suite passes
       1,752/1,752, and static checks remain clean; no provider entitlement was
       widened and no credentials or payloads were persisted.
+    - The required full-profile implementation-session bootstrap was retried
+      after the CI wiring commit but remains blocked because `docker info`
+      hangs after the client section on the local Docker Desktop API. The
+      branch remains clean and pushed; session metadata records the exact
+      blocked preflight rather than bypassing the Docker gate or claiming a
+      new PostgreSQL/Redis validation result.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
