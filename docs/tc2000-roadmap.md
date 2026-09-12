@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard screener hydration teardown
+
+Product commit `e7136f18` closes a bounded R2/R6 lifecycle gap in the
+dashboard screener widget. Screener-list, latest-result, and nested instrument
+metadata responses now stop when the widget is unmounted or a newer screener
+run supersedes them; loading, error, selection, and instrument-map state are
+also generation-guarded. Screener API payloads, canonical instrument
+resolution, provider routing, result shapes, and visual contracts are
+unchanged. Focused screener lifecycle coverage passed `2/2`; full frontend
+Vitest passed `1060/1060` across 119 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Record the exact gate at the next documentation tip
+then continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard chart gate rechecked
 
 At documentation tip `296d846e` (product tip `963892284`), the exact

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard screener hydration teardown
+
+- [x] Fence dashboard screener-list, latest-result, and nested instrument
+      metadata hydration by mounted lifecycle and request generations
+      (`e7136f18`); result shapes, canonical resolution, provider routing, and
+      visual/acceptance contracts are unchanged.
+- [x] Focused screener lifecycle coverage passed `2/2`; full frontend Vitest
+      passed `1060/1060` across 119 files; type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning. No
+      visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
+      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence dashboard chart hydration teardown
 
 - [x] Fence dashboard advanced-chart symbol resolution, chart loading,

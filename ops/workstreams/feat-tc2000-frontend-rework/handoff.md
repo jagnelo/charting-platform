@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard screener hydration teardown
+
+Product commit `e7136f18` fences dashboard screener-list, latest-result, and
+nested instrument metadata responses by mounted lifecycle and request
+generations. Focused coverage passed `2/2`; full frontend Vitest passed
+`1060/1060` across 119 files; type-check/build/diff checks passed with only the
+existing chunk-size warning. Screener/API, canonical-resolution, provider,
+visual, and acceptance contracts are unchanged. Record the exact gate at the
+next coherent documentation tip and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard chart gate rechecked
 
 At documentation tip `296d846e` (product tip `963892284`), the exact gate passed
