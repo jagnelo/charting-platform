@@ -1180,4 +1180,11 @@ progress:
       The complete backend unit suite passes `1,936/1,936` with 37 warnings;
       focused provider-registry/runtime coverage passes `30/30`, and source
       checkpoint `cb7dce9f` contains no frontend or ETF-provider changes.
+    - >-
+      The manual GitHub provider-live workflow now propagates all SEC directory
+      scan controls as non-secret environment variables: enablement, issuer and
+      event bounds, submissions-request bound, and issuer-materialization mode.
+      Defaults remain disabled/zero and the wiring regression passes `17/17`;
+      workflow YAML parsing, Ruff, compileall, and diff checks pass. Source
+      checkpoint `c7bcc82b` contains no frontend or ETF-provider changes.
   next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, MarketData.app account-usage introspection, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, and API-first options-default consistency are implemented in source checkpoint `cb7dce9f`; the complete backend unit suite, focused provider-registry/runtime suite, bounded MarketData.app account probe, and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.

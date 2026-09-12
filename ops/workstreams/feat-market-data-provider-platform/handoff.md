@@ -1131,3 +1131,11 @@ Update this handoff at each coherent boundary.
   registry/runtime coverage passes `30/30`; Ruff, compileall, Compose parsing,
   and diff checks pass. No provider calls or credentials were used for this
   configuration correction, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `c7bcc82b` closes the SEC directory configuration
+  propagation gap in the manual GitHub live-validation workflow. Enablement,
+  issuer/event bounds, submissions-request bound, and issuer-materialization
+  mode now arrive as non-secret environment variables with disabled/zero
+  defaults. The wiring regression passes `17/17`; workflow YAML parsing, Ruff,
+  compileall, and diff checks pass. No provider calls or credentials were used,
+  and no frontend or ETF-provider files changed.
