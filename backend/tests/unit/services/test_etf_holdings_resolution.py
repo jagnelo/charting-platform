@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
@@ -463,11 +463,52 @@ async def test_sector_only_metadata_never_promotes_to_industry_during_enrichment
 
 
 @pytest.mark.asyncio
+async def test_constituent_enrichment_serializes_observed_at_as_utc_z(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    instrument_type_id = await ensure_instrument_type(async_db, "Equity", "Stock")
+    instrument = Instrument(
+        instrument_type_id=instrument_type_id,
+        symbol="AZN",
+        name="AstraZeneca PLC",
+        currency="USD",
+        is_active=True,
+    )
+    db.add(instrument)
+    db.flush()
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings._now",
+        lambda: datetime.fromisoformat("2026-09-12T14:30:00+02:00"),
+    )
+
+    await _enrich_existing_constituent_classification(
+        async_db,
+        instrument,
+        reported_name="AstraZeneca PLC",
+        source_provider="sec",
+    )
+    detail = db.execute(
+        select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+    ).scalar_one()
+
+    assert detail.field_provenance["industry"]["observed_at"] == "2026-09-12T12:30:00Z"
+    assert "+00:00" not in detail.field_provenance["industry"]["observed_at"]
+
+
+@pytest.mark.asyncio
 async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingestion(
     db, monkeypatch
 ):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    monkeypatch.setattr(
+        "app.services.etf_holdings._now",
+        lambda: datetime.fromisoformat("2026-09-12T14:30:00+02:00"),
+    )
 
     def unexpected_provider_call():
         raise AssertionError("bounded holdings ingestion must not fan out to metadata providers")
@@ -497,6 +538,7 @@ async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingest
     assert instrument.symbol == "BOUNDFAST"
     assert confidence == Decimal("0.5000")
     assert note is None
+    assert instrument.field_provenance["name"]["fetched_at"] == "2026-09-12T12:30:00Z"
 
 
 @pytest.mark.asyncio

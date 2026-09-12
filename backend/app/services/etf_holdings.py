@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
@@ -776,7 +777,7 @@ async def _enrich_existing_constituent_classification(
     if detail is None:
         detail = EquityDetail(instrument_id=instrument.id)
         db.add(detail)
-    observed_at = _now().isoformat()
+    observed_at = wire_datetime(_now()) or ""
     classification_system = profile.extra.get("classification_system") or "provider_native"
     detail.industry = industry
     field_provenance = {
@@ -1124,7 +1125,7 @@ async def _resolve_or_create_constituent(
             field_provenance={
                 "name": {
                     "source": source_provider,
-                    "fetched_at": _now().isoformat(),
+                    "fetched_at": wire_datetime(_now()) or "",
                     "note": "Lightweight instrument materialized from ETF holdings.",
                 }
             },
