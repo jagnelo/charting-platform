@@ -67,6 +67,10 @@
       summary as their members. Expired benchmark bars produce an explicit
       `stale_data` exclusion and stale relative cells rather than an ambiguous
       unaligned-benchmark result; the historical `as_of` path remains unchanged.
+- [x] The reusable current `/breadth` evaluator now excludes stale members,
+      withholds stale direct benchmarks, and records stale derived-reference
+      members. Its historical endpoint continues to use observed point-in-time
+      bars without projecting current freshness backward.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 

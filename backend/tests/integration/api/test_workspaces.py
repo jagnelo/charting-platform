@@ -2526,6 +2526,27 @@ class TestWorkspaces:
         assert rotation_payload["rows"][0]["coverage"] == 0
         assert rotation_payload["rows"][0]["warnings"][0]["code"] == "stale_data"
 
+        generic = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "version": 1,
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 20, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert generic.status_code == 200
+        generic_payload = generic.json()
+        assert generic_payload["eligible_count"] == 0
+        assert generic_payload["coverage"] == 0
+        assert generic_payload["members"][0]["warning"]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in generic_payload["exclusions"])
+
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

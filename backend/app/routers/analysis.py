@@ -5617,6 +5617,7 @@ async def group_breadth_history(
 
 _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "no_bars": "No local bars are available for this member.",
+    "stale_data": "Persisted OHLCV freshness has expired; this member was excluded.",
     "invalid_close": "The member has a non-finite close observation.",
     "invalid_average": "The requested average could not be calculated.",
     "invalid_reference": "The requested reference value is invalid or zero.",
@@ -5776,6 +5777,7 @@ async def _resolve_generic_breadth_reference(
     timeframe: Timeframe,
     db: AsyncSession,
     user_id: int | None = None,
+    current_only: bool = False,
 ) -> tuple[list[object] | None, list[int], list[AnalysisWarning], dict[str, object]]:
     """Resolve a group/peer aggregate target without provider fan-out.
 
@@ -5815,6 +5817,20 @@ async def _resolve_generic_breadth_reference(
         await _bars_by_instrument(db, reference_ids, timeframe, definition.adjusted),
         definition.as_of,
     )
+    reference_stale_ids = (
+        set()
+        if not current_only or definition.as_of is not None
+        else await _stale_instrument_ids(db, reference_ids, timeframe, definition.adjusted)
+    )
+    for instrument_id in reference_stale_ids:
+        reference_bars_by_id[instrument_id] = []
+        reference_warnings.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the reference member was excluded.",
+                instrument_id=instrument_id,
+            )
+        )
     reference_series, series_summary = build_equal_reference_series(reference_bars_by_id)
     reference_membership_version = _generic_membership_version(reference_membership_payload)
     provenance: dict[str, object] = {
@@ -5823,6 +5839,7 @@ async def _resolve_generic_breadth_reference(
         "universe": reference_universe_provenance,
         "membership_version": reference_membership_version,
         "member_count": len(reference_members),
+        "stale_member_count": len(reference_stale_ids),
         **series_summary,
     }
     return reference_series, reference_ids, reference_warnings, provenance
@@ -8073,6 +8090,13 @@ async def evaluate_generic_breadth(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
     )
+    stale_ids = (
+        set()
+        if definition.as_of is not None
+        else await _stale_instrument_ids(db, member_ids, timeframe, definition.adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
@@ -8089,7 +8113,12 @@ async def evaluate_generic_breadth(
                 reference_warnings,
                 reference_provenance,
             ) = await _resolve_generic_breadth_reference(
-                definition, condition_definition.model_dump(), timeframe, db, current_user.id
+                definition,
+                condition_definition.model_dump(),
+                timeframe,
+                db,
+                current_user.id,
+                current_only=True,
             )
         else:
             if not definition.benchmark:
@@ -8099,6 +8128,20 @@ async def evaluate_generic_breadth(
                 await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
                 definition.as_of,
             ).get(benchmark.id, [])
+            benchmark_stale = (
+                definition.as_of is None
+                and benchmark.id
+                in await _stale_instrument_ids(db, [benchmark.id], timeframe, definition.adjusted)
+            )
+            if benchmark_stale:
+                benchmark_bars = []
+                reference_warnings.append(
+                    AnalysisWarning(
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; the benchmark was withheld.",
+                        instrument_id=benchmark.id,
+                    )
+                )
     elif definition.reference_universe is not None:
         raise HTTPException(
             422,
@@ -8132,7 +8175,9 @@ async def evaluate_generic_breadth(
     member_outputs: list[BreadthMemberResultOut] = []
     for result in results:
         warning = (
-            _generic_breadth_warning(result.exclusion_code, result.instrument_id)
+            _generic_breadth_warning("stale_data", result.instrument_id)
+            if result.instrument_id in stale_ids
+            else _generic_breadth_warning(result.exclusion_code, result.instrument_id)
             if result.exclusion_code
             else None
         )
@@ -8166,8 +8211,12 @@ async def evaluate_generic_breadth(
     definition_payload["condition_asset"] = condition_metadata
     if definition.benchmark:
         definition_payload["benchmark"] = definition.benchmark.upper()
+    freshness_ids = [*member_ids, *reference_member_ids]
+    if definition.benchmark:
+        benchmark = await _instrument(db, definition.benchmark)
+        freshness_ids.append(benchmark.id)
     freshness, freshness_detail = await _batch_freshness(
-        db, [*member_ids, *reference_member_ids], timeframe, definition.adjusted
+        db, list(dict.fromkeys(freshness_ids)), timeframe, definition.adjusted
     )
     latest_as_of = max(
         (result.observation_time for result in results if result.observation_time), default=None
