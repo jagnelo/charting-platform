@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Expose per-timeframe family history readiness
+
+Product commit `23c371458` adds an explicit local analysis-floor state to each
+benchmark-family role timeframe: `ready`, `partial`, `pending`, or
+`unavailable`. The state is derived from the existing canonical member,
+covered-member, and analysis-ready counts; it does not change provider,
+fallback, entitlement, or visual policy. Market Map and the canonical family
+evidence text now surface the state alongside the existing counts and lineage.
+Focused readiness coverage passed `14/14`; the full backend unit suite passed
+`1528/1528` with `69.02%` total coverage and the existing 34 dependency
+warnings. Frontend Vitest passed `1067/1067` across 122 files; type-check,
+production build, Ruff, and diff checks passed, with only the existing
+large-chunk build warning. The two database-backed integration assertions
+were attempted but testcontainers could not access
+`unix:///Users/jagnelo/.docker/run/docker.sock` (`PermissionError`), so the
+exact integration gate remains the next Docker-dependent check.
+
 ## 2026-09-12 — Exact dashboard Watchlist gate rechecked
 
 At documentation tip `14d0a2b09` (product tip `f12e6f910`), the exact gate
