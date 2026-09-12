@@ -502,6 +502,52 @@ describe('StudyLabTool', () => {
     expect(wrapper.get('[aria-label="events occurrences"] [role="listitem"]').attributes('aria-label')).toBe('SPY 2026-01-02 streak')
   })
 
+  it('offers threshold fan-out for a finite named scalar in a structured Study run', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: 1, output_contracts: ['scalar', 'table'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 201 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 202,
+        code_version_id: 201,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [
+          { id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+          { id: 2, name: 'records', artifact_type: 'table', payload: { value: [{ score: 12 }] } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])\noutput.table('records', [])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #202'))
+
+    const threshold = wrapper.get('[aria-label="score threshold condition"]')
+    expect(threshold.exists()).toBe(true)
+    await threshold.get('[aria-label="Structured scalar condition operator: score"]').setValue('gt')
+    await threshold.get('[aria-label="Structured scalar condition threshold: score"]').setValue('10')
+    await threshold.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining({
+          source_run_id: 202,
+          source_output_name: 'score',
+          output_adapter: 'scalar_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 10 },
+          semantics: 'study_scalar_threshold_as_boolean',
+        }),
+      }),
+    }))
+  })
+
   it('renders schema-defined parameter controls and sends typed values to the immutable run', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })

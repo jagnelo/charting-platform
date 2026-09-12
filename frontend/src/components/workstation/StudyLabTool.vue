@@ -103,10 +103,11 @@
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
-      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="`study-artifact-${artifact.id}-summary`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></article></div>
+      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="`study-artifact-${artifact.id}-summary`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="seriesConditionOperator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="`study-artifact-${artifact.id}-summary`">
         <span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
+        <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="seriesConditionOperator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
@@ -697,6 +698,18 @@ function latestRangeCenterValue(artifact: Artifact): number | null {
 function isCrossSectionalStudyRun(studyRun: Run | null | undefined) {
   return studyRun?.run_config?.result_scope === 'cross_sectional'
 }
+function structuredThresholdType(artifact: Artifact): 'scalar' | 'series' | 'range' | null {
+  if (!run.value || run.value.status !== 'completed' || (runContract.value && runContract.value !== 'study') || isCrossSectionalStudyRun(run.value)) return null
+  // A named artifact in a structured Study run is safe to threshold only when
+  // its latest observation is finite. Aggregate results intentionally remain
+  // chart-only so they cannot be replayed as per-symbol conditions.
+  if (artifact.artifact_type === 'scalar') {
+    return typeof artifact.payload.value === 'number' && Number.isFinite(artifact.payload.value) ? 'scalar' : null
+  }
+  if (artifact.artifact_type === 'series') return latestSeriesValue(artifact) == null ? null : 'series'
+  if (artifact.artifact_type === 'range') return latestRangeCenterValue(artifact) == null ? null : 'range'
+  return null
+}
 function barData(artifact: Artifact): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -1043,10 +1056,10 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     promotionStatus.value = cause?.message ?? 'Unable to promote study result'
   } finally { promotionBusy.value = false }
 }
-async function promoteSeriesCondition(target: SeriesConditionTarget) {
+async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArtifact?: Artifact) {
   const studyRun = run.value
-  const artifact = studyRun?.artifacts?.find(item => item.artifact_type === 'series')
-  if (!studyRun || studyRun.status !== 'completed' || runContract.value !== 'series' || !artifact || latestSeriesValue(artifact) == null || promotionBusy.value) return
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'series')
+  if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'series') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'series') || !artifact || latestSeriesValue(artifact) == null || promotionBusy.value) return
   if (!Number.isFinite(seriesConditionThreshold.value)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the series.'
     return
@@ -1148,10 +1161,11 @@ async function promoteSeriesCondition(target: SeriesConditionTarget) {
   } finally { promotionBusy.value = false }
 }
 type ScalarConditionTarget = 'column' | SeriesConditionTarget
-async function promoteScalarCondition(target: ScalarConditionTarget) {
+async function promoteScalarCondition(target: ScalarConditionTarget, selectedArtifact?: Artifact) {
   const studyRun = run.value
-  const artifact = studyRun?.artifacts?.find(item => item.artifact_type === 'scalar')
-  if (!studyRun || studyRun.status !== 'completed' || runContract.value !== 'scalar' || !artifact || scalarObservation.value == null || promotionBusy.value) return
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'scalar')
+  const scalarValue = artifact?.artifact_type === 'scalar' && typeof artifact.payload.value === 'number' && Number.isFinite(artifact.payload.value) ? artifact.payload.value : null
+  if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'scalar') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'scalar') || !artifact || scalarValue == null || promotionBusy.value) return
   if (!Number.isFinite(seriesConditionThreshold.value)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the scalar.'
     return
@@ -1252,10 +1266,10 @@ async function promoteScalarCondition(target: ScalarConditionTarget) {
     promotionStatus.value = cause?.message ?? 'Unable to promote the Study scalar to a thresholded condition'
   } finally { promotionBusy.value = false }
 }
-async function promoteRangeCenterCondition(target: SeriesConditionTarget) {
+async function promoteRangeCenterCondition(target: SeriesConditionTarget, selectedArtifact?: Artifact) {
   const studyRun = run.value
-  const artifact = studyRun?.artifacts?.find(item => item.artifact_type === 'range')
-  if (!studyRun || studyRun.status !== 'completed' || !artifact || latestRangeCenterValue(artifact) == null || promotionBusy.value) return
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'range')
+  if (!studyRun || studyRun.status !== 'completed' || (selectedArtifact != null && selectedArtifact.artifact_type !== 'range') || !artifact || latestRangeCenterValue(artifact) == null || promotionBusy.value) return
   if (!Number.isFinite(seriesConditionThreshold.value)) {
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the range center.'
     return
@@ -1356,6 +1370,12 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget) {
     promotionStatus.value = cause?.message ?? 'Unable to promote the Study range center to a thresholded condition'
   } finally { promotionBusy.value = false }
 }
+function promoteStructuredThreshold(artifact: Artifact, target: ScalarConditionTarget) {
+  const kind = structuredThresholdType(artifact)
+  if (kind === 'scalar') return void promoteScalarCondition(target, artifact)
+  if (kind === 'series') return void promoteSeriesCondition(target, artifact)
+  if (kind === 'range') return void promoteRangeCenterCondition(target, artifact)
+}
 async function rerun(snapshot: boolean) {
   if (!run.value || rerunBusy.value) return
   const generation = ++runGeneration
@@ -1442,7 +1462,7 @@ onBeforeUnmount(() => {
 .study-lab-tool__source-lineage { margin:0; padding:3px 4px; border:1px solid #49667a; background:#17232b; color:#b9d9eb; font-size:9px; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
-.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__series-condition { display:flex; flex-wrap:wrap; align-items:center; gap:4px; width:100%; padding:3px 0; }.study-lab-tool__series-condition label { display:inline-flex; align-items:center; gap:3px; }.study-lab-tool__series-condition input { width:88px; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
+.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__series-condition { display:flex; flex-wrap:wrap; align-items:center; gap:4px; width:100%; padding:3px 0; }.study-lab-tool__series-condition label { display:inline-flex; align-items:center; gap:3px; }.study-lab-tool__series-condition input { width:88px; }.study-lab-tool__artifact-threshold { display:flex; flex-wrap:wrap; align-items:center; gap:3px; width:100%; margin-top:3px; padding-top:3px; border-top:1px solid #29343c; }.study-lab-tool__artifact-threshold label { display:inline-flex; align-items:center; gap:3px; color:#91a8b8; }.study-lab-tool__artifact-threshold input { width:70px; }.study-lab-tool__artifact-threshold button { padding:1px 3px; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }
