@@ -560,3 +560,13 @@ Update this handoff at each coherent boundary.
   suite passed `1,809/1,809` with the known 37 warnings; Ruff, compileall, and
   diff checks passed. Source commit `bdba91af78d27d55cbb5eac2b365bb39c0bfc606` is pushed. This
   was transport-neutral, so no new live calls were made.
+- A fresh bounded credentialed refresh on 2026-09-12 passed `5/5` for the newly
+  supplied provider domains: SEC EDGAR filing/Company Facts and complete
+  directory reads, Alpaca paper history, MarketData.app option/quote history,
+  and Dinari Sandbox metadata/price/quote/history/news/dividend/split. The
+  owner-only external ledger recorded four provider rows, 21 upstream
+  requests, and 5,834,028 response bytes under run
+  `credentialed-refresh-20260912b`; no credentials or payloads entered Git.
+  This is bounded transport evidence, not entitlement promotion: the complete
+  matrix, provider-specific quota/terms controls, deferred provider
+  credentials, and Docker-backed PostgreSQL/Redis gate remain open.

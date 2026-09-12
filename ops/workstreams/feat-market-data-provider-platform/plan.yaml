@@ -655,6 +655,18 @@ progress:
       compileall, and diff checks are clean. Source commit
       `bdba91af78d27d55cbb5eac2b365bb39c0bfc606` is pushed; no live provider calls were needed for
       this transport-neutral safety fix.
+    - >-
+      A fresh bounded credentialed refresh on 2026-09-12 exercised the newly
+      supplied provider domains directly: SEC EDGAR filings/Company Facts and
+      complete ticker/exchange pagination, Alpaca paper daily history,
+      MarketData.app expirations/current chain/historical option quote, and
+      Dinari Sandbox metadata/price/quote/history/news/dividend/split. All five
+      selected live cases passed. The owner-only external ledger recorded four
+      provider rows, 21 upstream requests, and 5,834,028 response bytes under
+      run `credentialed-refresh-20260912b`; no credentials or payloads entered
+      Git. This is transport evidence only: Alpaca event-page, MarketData.app
+      plan/option-bound, Dinari quota/terms, and other provider-governance
+      controls remain fail-closed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
