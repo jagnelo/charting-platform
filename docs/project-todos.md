@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Instrument Note lifecycle
+
+- [x] Fence note hydration and debounced saves by mounted state and load
+      generation so late responses cannot repopulate an unmounted or relinked
+      tool (`b3b1aaec`).
+- [x] Focused linked-instrument coverage passed `16/16`; full frontend
+      Vitest passed `1028/1028` across 115 files; frontend type-check,
+      production build, and `git diff --check` passed with only the existing
+      chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Instrument Note lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `b3b1aaec6bcf079a393b1c7bf37407c77e54bffc`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Instrument Alerts lifecycle
 
 - [x] Fence alert-bundle hydration and create/update mutations by mounted

@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Instrument Note lifecycle
+
+Product commit `b3b1aaec` fences Instrument Note hydration and debounced
+saves by mounted state and load generation. Late responses cannot repopulate
+an unmounted or relinked tool or write stale cache state after teardown.
+Focused linked-instrument coverage passed `16/16`; full frontend Vitest
+passed `1028/1028` across 115 files; type-check, production build, and
+`git diff --check` passed with only the existing chunk-size warning. No
+provider, fallback, visual, or acceptance policy changed. Continue
+implementation in this worktree only.
+
+## 2026-09-12 — Exact Instrument Note lifecycle gate rechecked
+
+At product tip `b3b1aaec6bcf079a393b1c7bf37407c77e54bffc`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Instrument Alerts lifecycle
 
 Product commit `4ab7ceb1` fences Instrument Alerts alert-bundle hydration and
