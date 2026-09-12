@@ -2,6 +2,32 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Benchmark history and ETF holdings responses use canonical wire timestamps
+
+Product commits `63e5baea` and `7afa32d8` make benchmark-family history
+summaries/runs and ETF adapter, snapshot, dated-history,
+constituent-timeline, weight-evolution, filing, and backfill-job responses
+emit canonical UTC `Z` timestamps through the shared serializer. Provider
+evidence, history scope, and backfill state are unchanged.
+
+Focused benchmark-history coverage passed `26/26`; ETF holdings schema
+coverage passed `1/1`; the full backend unit suite passed `1494/1494` at
+`68.59%` coverage; Ruff, formatting, and diff checks passed. The exact gate at
+the latest product tip `7afa32d8` passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker `/v1.55/info`
+returned HTTP 500. No backend integration, provider, browser, or visual stage
+ran. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/etf_holdings_history.py`,
+`backend/app/schemas/etf_holdings.py`,
+`backend/tests/unit/services/test_benchmark_family_history.py`, and
+`backend/tests/unit/services/test_etf_holdings_schemas.py`. Restore Docker
+Desktop health, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Coverage and freshness responses use canonical wire timestamps
 
 Product commit `a1b97145` makes instrument coverage, dataset state, local
