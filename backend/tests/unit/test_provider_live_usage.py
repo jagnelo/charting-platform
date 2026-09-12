@@ -228,6 +228,8 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
     assert all("payload" not in row for row in rows)
     assert {row["provider"] for row in rows} == {"fred", "coinbase"}
     fred_row = next(row for row in rows if row["provider"] == "fred")
+    assert fred_row["failed_operations"] == 0
+    assert fred_row["process_exit_status"] == 0
     assert fred_row["response_headers"] == {
         "x-api-ratelimit-consumed": "4",
         "x-api-ratelimit-limit": "100",
@@ -304,6 +306,34 @@ def test_merge_provider_live_usage_rejects_non_capacity_headers(tmp_path: Path):
                 "response_bytes": 10,
                 "exit_status": 0,
                 "response_headers": {"authorization": "secret"},
+            }
+        )
+        + "\n"
+    )
+
+    result = _MERGER.merge_receipts([source], destination)
+
+    assert result["accepted"] == 0
+    assert result["rejected"] == 1
+    assert not destination.read_text()
+
+
+def test_merge_provider_live_usage_rejects_failed_operations_above_operation_count(
+    tmp_path: Path,
+):
+    source = tmp_path / "receipt.jsonl"
+    destination = tmp_path / "provider-live-usage.jsonl"
+    source.write_text(
+        json.dumps(
+            {
+                "at": "2026-09-10T05:00:00+00:00",
+                "provider": "fred",
+                "operations": 1,
+                "failed_operations": 2,
+                "http_requests": 1,
+                "response_bytes": 10,
+                "exit_status": 1,
+                "process_exit_status": 1,
             }
         )
         + "\n"

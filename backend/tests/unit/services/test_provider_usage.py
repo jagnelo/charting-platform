@@ -48,6 +48,8 @@ def test_read_live_usage_ledger_aggregates_redacted_rows(tmp_path, monkeypatch):
     assert result["providers"]["fred"]["operations_30d"] == 3
     assert result["providers"]["fred"]["failed_runs"] == 1
     assert result["providers"]["fred"]["failed_operations"] == 1
+    assert result["providers"]["fred"]["process_failed_runs"] == 1
+    assert result["providers"]["fred"]["failed_operations_24h"] == 0
     assert result["providers"]["coinbase"]["last_response_headers"] == {
         "x-api-ratelimit-remaining": "87",
         "x-rate-limit-remaining": "9",
