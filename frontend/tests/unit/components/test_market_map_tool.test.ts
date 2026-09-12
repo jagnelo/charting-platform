@@ -271,6 +271,40 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('does not continue an ETF bootstrap after the Market Map unmounts', async () => {
+    const previousSources = sourceState.sources
+    const pendingEtf = {
+      ...previousSources[0],
+      source_id: 'etf-holdings:QQQ',
+      source_kind: 'etf_holdings' as const,
+      name: 'QQQ holdings',
+      member_count: 0,
+      provenance: { availability: 'profile_not_loaded' },
+    }
+    sourceState.sources = [...previousSources, pendingEtf]
+    let resolveBootstrap: ((value: unknown) => void) | undefined
+    const bootstrapResult = new Promise(resolve => { resolveBootstrap = resolve })
+    apiPost.mockImplementation((path: string) => path === '/etf-holdings/QQQ/bootstrap'
+      ? bootstrapResult
+      : Promise.resolve(response))
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('[aria-label="ETF universe symbol"]').setValue('qqq')
+    await wrapper.get('[aria-label="Load ETF constituent universe"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/bootstrap', {})
+    const sourceLoadsBeforeUnmount = loadWatchlistSources.mock.calls.length
+    wrapper.unmount()
+
+    resolveBootstrap?.({ profile: { symbol: 'QQQ' }, latest_snapshot: null, refresh_succeeded: false, message: 'No local holdings snapshot yet.' })
+    await flushPromises()
+
+    expect(loadWatchlistSources).toHaveBeenCalledTimes(sourceLoadsBeforeUnmount)
+    sourceState.sources = previousSources
+  })
+
   it('rejects malformed ETF symbols before any bootstrap request', async () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()

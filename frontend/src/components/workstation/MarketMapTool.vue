@@ -427,6 +427,7 @@ let historyGeneration = 0
 // Market Map. Keep their post-response messages scoped to the mounted action
 // generation so teardown cannot repopulate a detached surface.
 let historyActionGeneration = 0
+let sourceActionGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
 let snapshotGeneration = 0
@@ -910,12 +911,13 @@ async function refreshHistory() {
 
 async function bootstrapEtfSource() {
   const symbol = etfBootstrapSymbol.value.trim().toUpperCase()
-  if (etfBootstrapBusy.value || !symbol) return
+  if (!componentMounted || etfBootstrapBusy.value || !symbol) return
   if (!/^[A-Z][A-Z0-9./-]{0,19}$/.test(symbol)) {
     etfBootstrapError.value = 'Enter one canonical ETF symbol.'
     etfBootstrapMessage.value = ''
     return
   }
+  const generation = ++sourceActionGeneration
   etfBootstrapBusy.value = true
   etfBootstrapMessage.value = ''
   etfBootstrapError.value = ''
@@ -924,10 +926,12 @@ async function bootstrapEtfSource() {
       `/etf-holdings/${encodeURIComponent(symbol)}/bootstrap`,
       {},
     )
+    if (!componentMounted || generation !== sourceActionGeneration) return
     // This is an explicit, user-triggered bootstrap. It does not turn ordinary
     // source reads into provider fan-out; the canonical source catalog remains
     // the only map input after this action completes.
     await watchlistStore.loadWatchlistSources()
+    if (!componentMounted || generation !== sourceActionGeneration) return
     const source = watchlistStore.watchlistSources.find(item => item.source_id === `etf-holdings:${symbol}`)
     if (!source) throw new Error(`${symbol} was registered but is not available as a canonical ETF source.`)
     sourceId.value = source.source_id
@@ -937,9 +941,11 @@ async function bootstrapEtfSource() {
       : `${symbol} source registered; membership is pending hydration.`
     if (result.message && !result.latest_snapshot) etfBootstrapMessage.value += ` ${result.message}`
   } catch (cause) {
-    etfBootstrapError.value = cause instanceof Error ? cause.message : 'Unable to load ETF constituent universe'
+    if (componentMounted && generation === sourceActionGeneration) {
+      etfBootstrapError.value = cause instanceof Error ? cause.message : 'Unable to load ETF constituent universe'
+    }
   } finally {
-    etfBootstrapBusy.value = false
+    if (generation === sourceActionGeneration) etfBootstrapBusy.value = false
   }
 }
 
@@ -1803,6 +1809,7 @@ onMounted(async () => {
 })
 onUnmounted(() => {
   componentMounted = false
+  sourceActionGeneration += 1
   pythonAssetsGeneration += 1
   snapshotGeneration += 1
   runGeneration += 1
