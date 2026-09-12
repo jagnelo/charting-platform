@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Quota settlement coercion hardening
+
+- [x] Reject malformed reserved/consumed/observed quota units and missing
+      transport reservation dimensions instead of converting them to zero or
+      one; explicit zero remains valid for non-applicable dimensions.
+- [x] Extend the same fail-closed behavior to legacy workload-lease settlement:
+      malformed lease/consumed units, non-boolean success flags, and invalid or
+      duplicate durable quota-window IDs now fail before any settlement lookup
+      or mutation. Focused quota/settlement coverage passes `112/112`; the
+      complete backend unit suite passes `1,984/1,984` with the known 37
+      warnings. Source checkpoints `b9435a63` and `265ec186`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
 ### 2026-09-12 — Stable identity in durable universe reconciliation
 
 - [x] Extend `reconcile_us_universe` to resolve provider FIGI, composite FIGI,
