@@ -1050,3 +1050,19 @@ Update this handoff at each coherent boundary.
   telemetry outside Git. No full live matrix rerun was made, so the shared
   provider quotas were not needlessly consumed. Docker-backed migration and
   full-stack validation remains blocked by the local Docker API.
+
+- Source checkpoint `f37ce79e9` adds provider-specific Alpaca market-data
+  counter reconciliation. `X-RateLimit-Limit` and `X-RateLimit-Remaining` are
+  converted into durable request-window usage only when the response confirms
+  the exact reviewed market-data contract; mismatched, malformed, or Broker
+  API correspondent headers remain observational. This closes a cross-session
+  accounting gap without introducing a generic limit or changing routing.
+
+- Validation for the Alpaca accounting checkpoint: the provider quota/runtime
+  suite passed `81/81` and provider fixture coverage plus usage summaries passed
+  `81/81`; Ruff, diff, and compilation checks passed. No additional live calls
+  were required because the existing credentialed Alpaca receipts already
+  contain the native `200`/`199`/reset header snapshot and the new reconciliation
+  path is covered against that documented response shape. The Docker-backed
+  migration/full-stack gate and the broader provider/legal/deployment gates
+  remain open.
