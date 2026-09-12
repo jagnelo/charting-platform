@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+import pytest
+
 from tests.live import live_usage
 
 _MERGER_SPEC = importlib.util.spec_from_file_location(
@@ -82,6 +84,27 @@ def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, m
     generated = UUID(row["run_id"])
     assert str(generated) == row["run_id"]
     assert not row["run_id"].startswith("pid-")
+
+
+def test_live_usage_preflight_opens_configured_ledger(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    assert live_usage.ensure_ledger_writable() == ledger
+    assert ledger.exists()
+    assert ledger.read_text() == ""
+
+
+def test_live_usage_preflight_fails_before_provider_calls_when_ledger_unwritable(
+    tmp_path, monkeypatch
+):
+    parent_file = tmp_path / "not-a-directory"
+    parent_file.write_text("blocker")
+    ledger = parent_file / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    with pytest.raises(RuntimeError, match="ledger is not writable"):
+        live_usage.ensure_ledger_writable()
 
 
 def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path: Path):

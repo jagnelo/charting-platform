@@ -54,6 +54,31 @@ _observations: list[tuple[str, int, int, dict[str, str]]] = []
 _PROCESS_RUN_ID = str(uuid4())
 
 
+def ledger_path() -> Path:
+    """Return the owner-managed live-usage ledger path."""
+
+    return Path(os.getenv("PROVIDER_LIVE_USAGE_LEDGER", str(DEFAULT_LEDGER))).expanduser()
+
+
+def ensure_ledger_writable() -> Path:
+    """Verify the live ledger can be opened before any provider calls run.
+
+    Direct live tests consume external quota outside the application runtime.
+    A teardown-only write check can otherwise allow calls to happen and then
+    lose their usage receipt to a permissions error.  This preflight performs
+    only a zero-byte append/open and never writes credentials or payloads.
+    """
+
+    path = ledger_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8"):
+            pass
+    except OSError as exc:
+        raise RuntimeError(f"provider live usage ledger is not writable: {path}") from exc
+    return path
+
+
 def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
     """Keep only bounded provider-capacity headers, never auth/payload data."""
 
@@ -98,7 +123,7 @@ def flush_observations(exit_status: int) -> Path | None:
 
     if not _observations:
         return None
-    path = Path(os.getenv("PROVIDER_LIVE_USAGE_LEDGER", str(DEFAULT_LEDGER))).expanduser()
+    path = ledger_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     grouped: dict[str, dict[str, object]] = defaultdict(
         lambda: {

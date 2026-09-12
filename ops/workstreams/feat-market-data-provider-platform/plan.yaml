@@ -457,6 +457,12 @@ progress:
       explicit local pagination budget. Focused corporate-action coverage
       passes 6/6, the bounded credentialed live assets/actions case passes 1/1,
       and the complete backend unit suite passes 1,769/1,769.
+    - >-
+      Live pytest sessions now preflight the configured external usage ledger
+      for writability before invoking any provider, exiting with code 2 on a
+      permission/path failure instead of spending quota without a receipt.
+      Focused ledger coverage passes 8/8 and the complete backend unit suite
+      passes 1,771/1,771.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

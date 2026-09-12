@@ -25,6 +25,13 @@
       and retain the explicit local page-budget guard. Focused coverage passes
       6/6, and the bounded credentialed assets/actions live case passes 1/1.
 
+### 2026-09-12 — Live-ledger writability preflight
+
+- [x] Verify the configured aggregate-only usage ledger before any
+      quota-consuming live provider call. An unwritable path now exits the live
+      session with code 2 before tests run; focused ledger coverage passes 8/8
+      and the complete backend unit suite passes 1,771/1,771.
+
 ### 2026-09-12 — Newly configured provider live revalidation
 
 - [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,

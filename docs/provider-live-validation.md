@@ -37,6 +37,10 @@ request, and response-byte totals to the external
 application database's durable runtime quota windows; it makes direct live-test
 consumption visible across local sessions without storing credentials or
 payloads.
+When `RUN_LIVE_PROVIDER_TESTS=1`, the live pytest session first opens the
+configured ledger for a zero-byte append and exits with code `2` before any
+provider test runs if that path is not writable. This prevents a filesystem
+permission failure at teardown from spending provider quota without a receipt.
 Set the non-secret `PROVIDER_LIVE_USAGE_SCOPE` label separately for each local
 environment, GitHub environment, and deployment account. The scope is written
 into each receipt and is part of merger deduplication, so identical run IDs
