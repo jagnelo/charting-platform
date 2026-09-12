@@ -1591,6 +1591,27 @@ class TestWorkspaces:
         assert roles["value"]["available"] is False
         assert payload["benchmark"] == "SPY"
 
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instruments["RSP"].id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ranking",
+            headers=auth_headers,
+            params={"rank_period": "1M"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_roles = {role["role"]: role for role in stale_response.json()["roles"]}
+        assert stale_roles["equal_weight"]["available"] is False
+        assert stale_roles["equal_weight"]["warnings"][0]["code"] == "stale_data"
+
     def test_cross_family_ranking_keeps_unavailable_cap_legs_explicit(
         self, client, auth_headers, db, instrument_type
     ):

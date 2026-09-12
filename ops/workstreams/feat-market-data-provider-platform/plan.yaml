@@ -301,6 +301,7 @@ progress:
     - industry-proxy and classified-industry snapshots now withhold expired current proxy/member bars, label partial synthetic-series coverage, and emit explicit stale benchmark-relative cells; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
     - benchmark-family breadth now excludes stale current role members, withholds stale cap benchmarks from relative participation, and includes the role/member freshness summary; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
     - derived benchmark-family equal-weight series now exclude stale current members while preserving historical `as_of` calculations, with explicit stale exclusions alongside partial-coverage diagnostics; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
+    - benchmark-family role ranking and cross-family cap ranking now withhold expired current role bars, retain stale warnings, and include deduplicated freshness summaries; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

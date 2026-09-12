@@ -4947,6 +4947,29 @@ async def cross_family_ranking(
         ),
         as_of,
     )
+    ranking_ids = list(
+        dict.fromkeys(
+            [
+                *[instrument.id for instrument in cap_instruments.values()],
+                *([benchmark_instrument.id] if benchmark_instrument else []),
+            ]
+        )
+    )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, ranking_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
+    if benchmark_instrument and benchmark_instrument.id in stale_ids:
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; benchmark-relative ranking values were withheld.",
+                instrument_id=benchmark_instrument.id,
+            )
+        )
     benchmark_cells = (
         _aggregate_series_cells(
             [(bar.ts, float(bar.close)) for bar in bars_by_id.get(benchmark_instrument.id, [])],
@@ -4989,6 +5012,15 @@ async def cross_family_ranking(
             [(bar.ts, float(bar.close)) for bar in bars_by_id.get(instrument.id, [])],
             instrument.id,
         )
+        row_warnings = [cell.warning for cell in cells.values() if cell.warning is not None]
+        if instrument.id in stale_ids:
+            row_warnings = [
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; ranking values were withheld.",
+                    instrument_id=instrument.id,
+                )
+            ]
         rows.append(
             CrossFamilyRankingRowOut(
                 family_key=group.stable_key,
@@ -5010,7 +5042,7 @@ async def cross_family_ranking(
                     )
                     for period, cell in cells.items()
                 },
-                warnings=[cell.warning for cell in cells.values() if cell.warning is not None],
+                warnings=row_warnings,
             )
         )
     ranked = sorted(
@@ -5022,10 +5054,7 @@ async def cross_family_ranking(
         row.rank = rank
     freshness, freshness_detail = await _batch_freshness(
         db,
-        [
-            *[instrument.id for instrument in cap_instruments.values()],
-            *([benchmark_instrument.id] if benchmark_instrument else []),
-        ],
+        ranking_ids,
         timeframe,
         adjusted,
     )
