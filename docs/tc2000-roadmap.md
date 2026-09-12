@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Strategy and Study Lab responses use canonical wire timestamps
+
+Product commit `aeddaa1e` closes the strategy response boundary. Saved
+versions, runs, batches, definition summaries, and strategy coverage
+instruments/universes/benchmarks now serialize lifecycle and requested-range
+timestamps through the shared UTC `Z` helper. Study Lab lineage and coverage
+diagnostics therefore retain one stable client timeline without changing run,
+coverage, or immutable-definition semantics.
+
+Focused strategy-schema coverage passed `1/1`; the full backend unit suite
+passed `1496/1496` at `68.61%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `aeddaa1e` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker `/v1.55/info` returned HTTP 500. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker Desktop health and rerun the pending API
+regressions and exact gate, then continue the next bounded provider/history or
+compatible chart/list/gauge seam while preserving the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Instrument provenance responses use canonical wire timestamps
 
 Product commit `aeaa8228` closes the instrument read-boundary seam. Computed

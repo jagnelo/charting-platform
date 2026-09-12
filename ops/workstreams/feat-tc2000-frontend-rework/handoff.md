@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Strategy and Study Lab responses use canonical wire timestamps
+
+Product commit `aeddaa1e` makes saved versions, runs, batches, definition
+summaries, and strategy coverage instruments/universes/benchmarks emit
+canonical UTC `Z` timestamps through the shared serializer. Study Lab lineage
+and coverage diagnostics share one client timeline; run, coverage, and
+immutable-definition semantics are unchanged.
+
+Focused strategy-schema coverage passed `1/1`; the full backend unit suite
+passed `1496/1496` at `68.61%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker `/v1.55/info`
+returned HTTP 500. No backend integration, provider, browser, or visual stage
+ran. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/strategy.py` and
+`backend/tests/unit/services/test_strategy_schemas.py`. Restore Docker
+Desktop health, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Instrument provenance responses use canonical wire timestamps
 
 Product commit `aeaa8228` makes computed stats, field provenance, and listing

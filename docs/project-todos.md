@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Strategy and Study Lab responses use canonical wire timestamps
+
+- [x] Serialize saved versions, runs, batches, definition summaries, and
+      strategy coverage ranges as canonical UTC `Z` values through the strategy
+      response schemas (`aeddaa1e`).
+- [x] Focused strategy-schema coverage passed `1/1`; full backend unit
+      coverage passed `1496/1496` at `68.61%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `aeddaa1e`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      `/v1.55/info` returned HTTP 500. No later API, provider, browser, or
+      visual stage ran.
+- [ ] Restore Docker Desktop health, rerun the pending API regressions and
+      exact gate, then continue provider/history or compatible chart/list/gauge
+      work.
+
 ### 2026-09-12 — Instrument provenance responses use canonical wire timestamps
 
 - [x] Serialize computed stats, field provenance, and listing
