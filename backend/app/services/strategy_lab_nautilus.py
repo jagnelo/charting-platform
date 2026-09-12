@@ -23,6 +23,7 @@ from nautilus_trader.model.objects import Money
 from nautilus_trader.test_kit.providers import TestInstrumentProvider
 from nautilus_trader.trading.strategy import Strategy
 
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.indicators import (
@@ -36,7 +37,7 @@ from app.services.indicators import (
 def _nanos_to_iso(value: int | None) -> str | None:
     if value is None:
         return None
-    return datetime.fromtimestamp(value / 1_000_000_000, tz=UTC).isoformat()
+    return wire_datetime(datetime.fromtimestamp(value / 1_000_000_000, tz=UTC))
 
 
 def _money_like_to_float(value: Any) -> float:
