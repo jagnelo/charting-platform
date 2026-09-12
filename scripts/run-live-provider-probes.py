@@ -266,7 +266,19 @@ def changed_provider_code() -> bool:
     if os.getenv("FORCE_LIVE_PROVIDER_PROBES") == "1":
         return True
     status = subprocess.run(["git", "status", "--short"], cwd=ROOT, text=True, capture_output=True)
-    if any(path.startswith(("backend/app/providers/", "backend/app/services/provider", "backend/app/models/provider", "backend/tests/live/", "backend/alembic/versions/", "scripts/run-live-provider-probes.py")) for path in (line[3:] for line in status.stdout.splitlines() if len(line) > 3)):
+    provider_paths = (
+        "backend/app/config.py",
+        "backend/app/providers/",
+        "backend/app/services/provider",
+        "backend/app/models/provider",
+        "backend/tests/live/",
+        "backend/alembic/versions/",
+        "scripts/run-live-provider-probes.py",
+    )
+    if any(
+        path.startswith(provider_paths)
+        for path in (line[3:] for line in status.stdout.splitlines() if len(line) > 3)
+    ):
         return True
     base = os.getenv("INTEGRATION_BASE_SHA")
     if not base:
@@ -283,6 +295,7 @@ def changed_provider_code() -> bool:
         capture_output=True,
     )
     relevant = (
+        "backend/app/config.py",
         "backend/app/providers/",
         "backend/app/services/provider",
         "backend/app/models/provider",

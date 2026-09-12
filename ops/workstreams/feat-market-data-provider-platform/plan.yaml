@@ -332,6 +332,7 @@ progress:
     - Repository live-probe seeds now record `passed` for Alpaca, MarketData.app, and Dinari after their bounded credentialed probes passed on 2026-09-12. This records transport evidence only; Alpaca's event-page bound, MarketData.app's reviewed plan/option bound, and Dinari's partner quota/terms gates remain independently fail-closed.
     - The refreshed complete live matrix at 2026-09-12T07:21:11Z again collected all 41 cases and passed 37/41 in 79.69s. The four honest failures were Alpha Vantage's documented 25-requests/day capacity response plus exact missing credential preflights for intentionally deferred Tradier, IBKR, and Ondo. The redacted 26-provider aggregate receipt was accepted into the owner-managed cross-session ledger; no credentials or payloads entered Git.
     - The complete backend unit suite after the evidence-state reconciliation passed 1,751/1,751 in 62.51s with the repository's known 37 deprecation warnings; no provider calls or services were started.
+    - The live-runner applicability detector now treats `backend/app/config.py` quota/entitlement changes as provider changes, preventing a configuration-only integration edit from silently bypassing the opt-in matrix; the secret-wiring regression passes 13/13 with Ruff, compilation, and diff checks clean.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

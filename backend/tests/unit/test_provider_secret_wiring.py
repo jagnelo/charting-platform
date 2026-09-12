@@ -306,3 +306,15 @@ def test_fmp_byte_bound_preflight_covers_market_events_operation():
 def test_live_runner_byte_bound_operation_sets_match_runtime_policy():
     for provider, operations in _LIVE_SCRIPT.BYTE_BOUND_OPERATIONS.items():
         assert tuple(operations) == provider_required_operation_byte_bounds(provider)
+
+
+def test_live_runner_treats_provider_configuration_changes_as_provider_changes(monkeypatch):
+    monkeypatch.delenv("FORCE_LIVE_PROVIDER_PROBES", raising=False)
+
+    class _Status:
+        returncode = 0
+        stdout = " M backend/app/config.py\n"
+
+    monkeypatch.setattr(_LIVE_SCRIPT.subprocess, "run", lambda *args, **kwargs: _Status())
+
+    assert _LIVE_SCRIPT.changed_provider_code() is True
