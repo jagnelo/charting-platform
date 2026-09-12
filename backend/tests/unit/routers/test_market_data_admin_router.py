@@ -18,7 +18,7 @@ def test_refresh_queue_status_requires_admin_and_hides_lease_token(
         next_attempt_at=datetime.now(UTC),
         leased_until=datetime.now(UTC) - timedelta(seconds=1),
         lease_token="unit-secret-lease-token",
-        last_error="provider temporarily unavailable",
+        last_error="GET https://provider.test/data?api_key=read-secret",
         metadata_payload={"source": "unit"},
     )
     db.add(job)
@@ -36,6 +36,7 @@ def test_refresh_queue_status_requires_admin_and_hides_lease_token(
     assert row["id"] == job.id
     assert row["lease_expired"] is True
     assert row["attempts"] == 2
-    assert row["last_error"] == "provider temporarily unavailable"
+    assert "read-secret" not in row["last_error"]
+    assert "<redacted>" in row["last_error"]
     assert row["metadata"] == {"source": "unit"}
     assert "lease_token" not in row
