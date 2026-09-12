@@ -813,5 +813,7 @@ Update this handoff at each coherent boundary.
   ticker when no stable identifier exists. Focused migration/provider/service
   coverage passes 66/66 and the complete backend unit suite passes 1,883/1,883
   with the known 37 warnings. The admin integration contract is covered, but
-  Docker-backed execution remains unavailable. Source commit `893dd4df` is
-  pushed; no provider calls or credentials were used.
+  Docker-backed execution remains unavailable. Source commit `d235fda8` is
+  pushed; no provider calls or credentials were used. Stable identifier values
+  are canonicalized with the shared identity normalizer before lookup and
+  persistence, while the raw provider payload remains available for audit.

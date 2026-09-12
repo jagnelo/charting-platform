@@ -897,7 +897,9 @@ progress:
       service coverage passes 66/66 and the complete backend unit suite passes
       1,883/1,883 with the known 37 warnings. The integration admin contract
       is covered but Docker-backed execution remains unavailable; no provider
-      calls were made.
+      calls were made. Stable identifier values are canonicalized with the
+      shared identity normalizer before lookup and persistence, while provider
+      raw payloads remain available for audit.
   total: 15
   current_phase: tokenized_underlying_stable_identifiers
   current_blocker: >-
@@ -948,4 +950,4 @@ progress:
     forward-calendar and EDGAR IPO-pipeline live reads are
     still pending a reset/usable quota window, while Alpaca/MarketData.app/
     Dinari/EDGAR transport evidence is recorded above.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Tokenized stable-identifier retention is implemented at source commit 893dd4df and covered by the focused/full unit checks above.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Tokenized stable-identifier retention and canonicalization are implemented at source commit d235fda8 and covered by the focused/full unit checks above.
