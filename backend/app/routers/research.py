@@ -1083,6 +1083,7 @@ async def promote_event_artifact_to_screener(
                 "status": run.status,
             },
         )
+    source_version = run.code_version
     event_artifacts = [item for item in run.artifacts if item.artifact_type == "events"]
     event_artifact = next(
         (
@@ -1104,6 +1105,19 @@ async def promote_event_artifact_to_screener(
                 ),
             },
         )
+    if (
+        source_version is not None
+        and source_version.output_contract == "events"
+        and body.artifact_name is None
+        and len(event_artifacts) > 1
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_artifact_name_required",
+                "message": "A run with multiple events artifacts must select the artifact to adapt.",
+            },
+        )
     event_value = (
         event_artifact.payload.get("value") if isinstance(event_artifact.payload, dict) else None
     )
@@ -1115,7 +1129,6 @@ async def promote_event_artifact_to_screener(
                 "message": "The events artifact does not contain a persisted event list.",
             },
         )
-    source_version = run.code_version
     source_asset = source_version.asset if source_version is not None else None
     if (
         source_version is None

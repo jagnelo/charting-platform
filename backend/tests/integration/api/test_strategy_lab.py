@@ -150,7 +150,11 @@ class TestStrategyLabAPI:
             code_version_id=version.id,
             status="completed",
             run_config={"symbols": ["SPY"], "timeframe": "D1"},
-            dataset_manifest={"source": "canonical_database", "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [{"instrument_id": 7, "symbol": "SPY"}],
+            },
             reproducibility_hash="multi-event-signal-hash",
         )
         run.artifacts.extend(
@@ -185,6 +189,17 @@ class TestStrategyLabAPI:
             == "research_signal_promotion_artifact_name_required"
         )
 
+        missing_filter_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={},
+        )
+        assert missing_filter_name.status_code == 422
+        assert (
+            missing_filter_name.json()["detail"]["code"]
+            == "research_filter_promotion_artifact_name_required"
+        )
+
         selected = client.post(
             f"/api/v1/research/runs/{run.id}/promote-event-signal",
             headers=auth_headers,
@@ -195,6 +210,14 @@ class TestStrategyLabAPI:
         assert payload["name"] == "Breakdowns signal"
         assert payload["metadata"]["source_artifact_name"] == "breakdowns"
         assert payload["versions"][0]["definition_snapshot"]["source_artifact_name"] == "breakdowns"
+
+        selected_filter = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"artifact_name": "breakdowns", "name": "Breakdowns filter"},
+        )
+        assert selected_filter.status_code == 201, selected_filter.text
+        assert selected_filter.json()["name"] == "Breakdowns filter"
 
     def test_chart_indicator_code_version_keeps_chart_promotion_origin(self, client, auth_headers):
         asset_res = client.post(
