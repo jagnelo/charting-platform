@@ -3,7 +3,30 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-12
+Last reconciled: 2026-09-13
+
+## 2026-09-13 — Bulk provider lineage promotion
+
+Product commit `a4ce2447c3` aligns scheduled/bulk OHLCV maintenance with the
+canonical provider upsert used by interactive market-data reads. Every
+provider-returned bar is now upserted, so a late provider-native D1 observation
+reclaims a matching locally-derived adjusted key and clears its derivation
+metadata; the reported count remains the number of previously absent keys.
+Focused bulk/market-data coverage passed `39/39`, the full backend unit suite
+passed `1532/1532` with 69.01% total coverage, and Ruff, formatting, and diff
+checks passed. No provider routing, fallback, migration, visual, or acceptance
+policy changed. R1 population, W1/MN floors and continuity, and AC2–AC7/AC10
+remain open; rerun the exact gate at this documentation tip.
+
+## 2026-09-13 — Reviewed family issuer/SEC history routes
+
+The opt-in live provider route probe exercised `19` selected iShares, SPDR,
+Invesco, and SEC-backed family-history cases; all `19` tests passed. Pytest
+exited non-zero only because this narrow selection covered 15.13% of the
+module, below the repository's 55% coverage threshold. The probe therefore
+confirms route behavior only; it does not prove persisted snapshots, complete
+family population, D1/W1/MN floors, or rebalance continuity. No code, provider
+fallback, visual, or acceptance policy changed.
 
 ## 2026-09-12 — Complete event-first provider-factor refresh ordering
 

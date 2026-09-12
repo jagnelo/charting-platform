@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Bulk provider lineage promotion
+
+Product commit `a4ce2447c3` makes bulk OHLCV maintenance use the canonical
+provider upsert for every returned bar. A late provider-native observation can
+therefore promote a matching local adjusted row from derived to provider
+lineage while clearing derivation metadata; new-row counts remain stable.
+Focused bulk/market-data coverage passed `39/39`; full backend units passed
+`1532/1532` at 69.01% total coverage; Ruff, format, and diff checks passed.
+No provider, fallback, migration, visual, threshold, skip, or acceptance rule
+changed. This closes one R1 lineage seam only and does not waive family
+population, D1/W1/MN floors, continuity, or the remaining V25 gates.
+
+## 2026-09-13 — Reviewed family issuer/SEC history routes
+
+Nineteen selected opt-in iShares, SPDR, Invesco, and SEC-backed family-history
+route tests passed. The narrow pytest invocation exited only on its 15.13%
+subset coverage being below the repository 55% threshold; this is route-level
+evidence, not a full provider or acceptance gate. No code, provider/fallback,
+visual, threshold, skip, or acceptance policy changed.
+
 ## 2026-09-12 — Event-first provider-factor refresh closure
 
 Product commit `d0bdba6d1` runs the existing provider-factor materializer after

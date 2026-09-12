@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Bulk provider lineage promotion
+
+- [x] Align scheduled/bulk OHLCV maintenance with the canonical provider
+      upsert so late provider-native bars reclaim matching locally-derived
+      adjusted keys and clear stale derivation metadata; new-row counts remain
+      based on the pre-fetch cache.
+- [x] Focused bulk/market-data coverage passed `39/39`; the full backend unit
+      suite passed `1532/1532` at 69.01% total coverage; Ruff, formatting, and
+      `git diff --check` passed.
+- [ ] Rerun the exact branch-scoped gate at this documentation tip and
+      continue R1 family population, W1/MN floors/continuity, and AC2–AC7/AC10.
+
+### 2026-09-13 — Reviewed family issuer/SEC history routes
+
+- [x] Exercise `19` selected opt-in iShares, SPDR, Invesco, and SEC-backed
+      family-history route cases; all `19` passed.
+- [x] Record the narrow-run limitation: pytest exited only because subset
+      coverage was 15.13%, below the repository 55% threshold; this is route
+      evidence, not persisted family/floor/continuity readiness.
+- [ ] Complete canonical family/provider population and point-in-time history;
+      no provider, fallback, visual, or acceptance policy changed.
+
 ### 2026-09-12 — Exact dashboard Watchlist gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `14d0a2b09` / product tip

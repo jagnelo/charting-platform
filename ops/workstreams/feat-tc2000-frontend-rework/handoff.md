@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Bulk provider lineage promotion
+
+Product commit `a4ce2447c3` aligns bulk OHLCV maintenance with the canonical
+provider upsert. Every provider-returned bar is upserted, allowing a late
+provider-native D1 bar to reclaim a matching local adjusted row and clearing
+all derived lineage fields; the returned count still reports only previously
+absent keys. Focused bulk/market-data coverage passed `39/39`; full backend
+units passed `1532/1532` with 69.01% total coverage; Ruff, format, and diff
+checks passed. No provider routing, fallback, migration, visual, or acceptance
+policy changed. R1 family population, W1/MN floors and continuity, and AC2–
+AC7/AC10 remain open. The exact gate is next at this coherent documentation
+tip.
+
+## 2026-09-13 — Reviewed family issuer/SEC history routes
+
+The opt-in live route probe passed all `19` selected iShares, SPDR, Invesco,
+and SEC-backed family-history cases. The narrow pytest process exited only on
+the subset coverage threshold (`15.13% < 55%`), so this confirms route behavior
+but not persisted snapshots, complete population, analysis floors, or
+continuity. No code, provider/fallback, visual, or acceptance policy changed.
+
 ## 2026-09-12 — Complete event-first provider-factor refresh ordering
 
 Product commit `d0bdba6d1` closes the inverse provider-refresh ordering gap.
