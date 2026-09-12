@@ -450,5 +450,7 @@ Update this handoff at each coherent boundary.
   through provider resolution. Alpha Vantage and IBKR are explicitly raw-only
   under their supported contracts, so adjusted history requests are filtered
   before quota reservation or transport while raw requests remain eligible.
-  Registry/resolver regressions, Ruff, compilation, and the complete backend
-  unit suite pass `1,783/1,783`; no provider calls were made for this change.
+  Bulk-history jobs now pass the same requirement through the resolver as well.
+  Registry/resolver/bulk regressions, Ruff, compilation, and the complete
+  backend unit suite pass `1,783/1,783`; no provider calls were made for this
+  change.

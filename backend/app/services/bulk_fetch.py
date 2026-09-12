@@ -254,6 +254,7 @@ async def _do_fetch_and_store(
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
