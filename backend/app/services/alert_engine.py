@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
+from app.lib.time_utils import wire_datetime
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
@@ -174,7 +175,7 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
             "condition": condition_val,
             "threshold": threshold,
             "current_price": current_price,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
     logger.info(f"Price alert {alert_id} fired: {symbol} @ {current_price}")
@@ -260,7 +261,7 @@ async def _fire_indicator_alert(
             "condition": condition,
             "value_a": val_a,
             "value_b": val_b,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
     logger.info(f"Indicator alert {alert_id} fired: {symbol} {indicator_type}={val_a:.4f}")

@@ -70,4 +70,5 @@ async def test_fire_indicator_alert_persists_and_broadcasts_output_keys(monkeypa
     assert payload["output_a"] == "bb_upper"
     assert payload["indicator_b"] == "sma"
     assert payload["output_b"] == "sma"
+    assert payload["triggered_at"].endswith("Z")
     assert db.committed is True
