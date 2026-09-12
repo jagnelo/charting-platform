@@ -97,6 +97,8 @@ const plotDropActive = ref(false)
 const plotDropStatus = ref('')
 const advancedToggle = ref<HTMLButtonElement | null>(null)
 const advancedRoot = ref<HTMLElement | null>(null)
+let mounted = false
+let loadGeneration = 0
 const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
@@ -112,6 +114,7 @@ const coverageText = computed(() => {
 })
 
 async function load() {
+  const generation = ++loadGeneration
   try {
     const [saved, assets] = await Promise.all([
       queryClient.fetchQuery<ConditionAsset[]>({
@@ -121,10 +124,13 @@ async function load() {
       }),
       fetchCodeAssets(queryClient),
     ])
+    if (!mounted || generation !== loadGeneration) return
     conditions.value = saved
     pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.filter(version => version.id != null && version.output_contract === 'boolean').slice(-1).map(version => ({ versionId: version.id as number, name: `${asset.name} v${version.version_number}` })))
   }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load conditions' }
+  catch (cause: any) {
+    if (mounted && generation === loadGeneration) error.value = cause?.message ?? 'Unable to load conditions'
+  }
 }
 function stableKey(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72) || 'condition'
@@ -302,10 +308,15 @@ watch(selectedResultId, id => {
   const selected = resultHistory.value.find(item => String(item.id) === id)
   if (selected) result.value = selected
 })
-onMounted(() => { void load() })
+onMounted(() => {
+  mounted = true
+  void load()
+})
 onBeforeUnmount(() => {
   const runId = pythonResearchRunId.value
   const state = String(result.value?.result_data?._status ?? '')
+  mounted = false
+  loadGeneration += 1
   if (runId && !['completed', 'failed', 'canceled'].includes(state)) void api.post(`/research/runs/${runId}/cancel`, {})
 })
 </script>

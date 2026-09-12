@@ -323,4 +323,20 @@ describe('EasyScanTool', () => {
     await history.setValue('100')
     expect(wrapper.text()).toContain('1 matches')
   })
+
+  it('does not publish late library hydration after the tool unmounts', async () => {
+    let resolveConditions!: (value: any[]) => void
+    apiGet.mockImplementation((path: string) => path === '/workspaces/library/conditions'
+      ? new Promise(resolve => { resolveConditions = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(EasyScanTool)
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/conditions')
+
+    wrapper.unmount()
+    resolveConditions([{ stable_key: 'late', name: 'Late condition', version: 1 }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).conditions).toEqual([])
+  })
 })
