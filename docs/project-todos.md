@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Dinari Sandbox default host alignment
+
+- [x] Align the checked-in configuration examples and Dinari adapter fallback with the
+      documented `https://api-enterprise.sandbox.dinari.com/api/v2` Sandbox host used by the
+      newly supplied credential pair. Production deployments must still override the base URL
+      explicitly; the key itself never selects an environment. Add a regression proving a blank
+      setting cannot fall back to the retired `api-enterprise.sbt.dinari.com` host.
+- [x] Dinari tokenized-provider unit coverage passes `49/49`; Ruff, compilation, and diff checks
+      pass. No credentials or provider payloads were persisted.
+
 ### 2026-09-12 — ETF constituent analysis freshness boundary
 
 - [x] Extend the current ETF constituent snapshot consumer to honor persisted

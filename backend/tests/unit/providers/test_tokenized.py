@@ -326,6 +326,11 @@ def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch
     assert get.call_args.kwargs["params"] == {"page": 1, "page_size": 25}
 
 
+def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_BASE_URL", "")
+    assert DinariTokenProvider()._base_url() == "https://api-enterprise.sandbox.dinari.com/api/v2"
+
+
 def test_dinari_current_price_quote_and_history_validate_provider_identity():
     stock = _dinari_stock()
     responses = [

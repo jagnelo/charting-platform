@@ -839,7 +839,7 @@ class DinariTokenProvider:
     """
 
     name = "dinari"
-    base_url = "https://api-enterprise.sbt.dinari.com/api/v2"
+    base_url = "https://api-enterprise.sandbox.dinari.com/api/v2"
     description = "Dinari dShare tokenized-stock metadata, prices, quotes, and history"
 
     def _base_url(self) -> str:

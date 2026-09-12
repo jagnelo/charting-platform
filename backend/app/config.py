@@ -1543,7 +1543,10 @@ class Settings(BaseSettings):
     XSTOCKS_API_KEY: str = ""
     DINARI_API_KEY_ID: str = ""
     DINARI_API_SECRET_KEY: str = ""
-    DINARI_API_BASE_URL: str = "https://api-enterprise.sbt.dinari.com/api/v2"
+    # Dinari Sandbox is the safe default for the operator-provided Sandbox
+    # credentials. Production keys must override this explicitly per
+    # deployment; never infer an environment from the secret itself.
+    DINARI_API_BASE_URL: str = "https://api-enterprise.sandbox.dinari.com/api/v2"
     ONDO_GLOBAL_MARKETS_API_KEY: str = ""
     IBKR_READ_ONLY_URL: str = ""
     IBKR_READ_ONLY_SESSION_COOKIE: str = ""
