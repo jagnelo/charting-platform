@@ -60,7 +60,7 @@
       provider-free for cold members.
 - [x] Extend the freshness/coordinator boundary to radar, chart technical,
       relative-strength, group snapshot, group breadth, and group relative-
-      rotation reads. These local
+      rotation plus benchmark-family relative-rotation reads. These local
       evaluators now exclude explicitly stale current snapshots while retaining
       historical `as_of` behavior.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,

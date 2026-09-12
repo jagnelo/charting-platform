@@ -1621,6 +1621,13 @@ async def benchmark_family_relative_rotation(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     benchmark_bars = bars_by_id.get(cap_instrument.id, [])
     benchmark_by_timestamp = {bar.ts: bar for bar in benchmark_bars}
     roles: list[BenchmarkFamilyRotationRoleOut] = []
@@ -1652,6 +1659,29 @@ async def benchmark_family_relative_rotation(
             )
             continue
         bars = bars_by_id.get(instrument.id, [])
+        stale_target = (
+            cap_instrument.id if cap_instrument.id in stale_ids else instrument.id
+        )
+        if instrument.id in stale_ids or cap_instrument.id in stale_ids:
+            roles.append(
+                BenchmarkFamilyRotationRoleOut(
+                    role=role,
+                    instrument_id=instrument.id,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    coverage=0,
+                    warnings=[
+                        AnalysisWarning(
+                            code="stale_data",
+                            message="Persisted OHLCV freshness has expired; rotation was withheld.",
+                            instrument_id=stale_target,
+                        )
+                    ],
+                )
+            )
+            continue
         aligned = [
             (bar.ts, float(bar.close / benchmark_by_timestamp[bar.ts].close))
             for bar in bars
