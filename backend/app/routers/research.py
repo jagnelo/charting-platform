@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
@@ -45,6 +46,12 @@ BATCH_HISTORY_LIMIT = 500
 MAX_HISTORY_LIMIT = 5_000
 BATCH_QUERY_SIZE = 500
 RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
+
+
+def _wire_timestamps(values: list[datetime]) -> list[str]:
+    """Serialize a returned dataset timeline on the canonical UTC wire format."""
+
+    return [wire_datetime(value) or "" for value in values]
 
 
 class ResearchEventSignalPromotionRequest(BaseModel):
@@ -195,7 +202,7 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
     if options["end"]:
         fields["end_date"] = options["end"].date().isoformat()
     if options.get("as_of"):
-        fields["as_of"] = options["as_of"].isoformat()
+        fields["as_of"] = wire_datetime(options["as_of"])
     return fields
 
 
@@ -287,7 +294,7 @@ async def _materialize_instrument_dataset(
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
         "metadata": _instrument_metadata(instrument),
-        "timestamps": [bar.ts.isoformat() for bar in bars],
+        "timestamps": _wire_timestamps([bar.ts for bar in bars]),
         **_bar_series(bars),
     }
 
@@ -328,7 +335,7 @@ async def _materialize_benchmark_dataset(
         "timeframe": options["timeframe"].value,
         "adjustment": options["adjustment"],
         "session": options["session"],
-        "timestamps": [bar.ts.isoformat() for bar in bars],
+        "timestamps": _wire_timestamps([bar.ts for bar in bars]),
         **_bar_series(bars),
     }
 
@@ -434,7 +441,7 @@ async def _materialize_reference_dataset(
             "target": "derived_equal_weight_return_index",
             "summary": summary,
         }
-    timestamps = [point.ts.isoformat() for point in series]
+    timestamps = _wire_timestamps([point.ts for point in series])
     closes = [float(point.close) for point in series]
     return {
         "status": "ready",
@@ -664,7 +671,7 @@ async def _materialize_declared_dataset(
                     "timeframe": options["timeframe"].value,
                     "adjustment": options["adjustment"],
                     "session": options["session"],
-                    "timestamps": [bar.ts.isoformat() for bar in bars],
+                    "timestamps": _wire_timestamps([bar.ts for bar in bars]),
                     **_bar_series(bars),
                     **(
                         {"benchmark_dataset": comparison_dataset}
