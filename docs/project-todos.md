@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard instrument-search hydration teardown
+
+- [x] Fence debounced provider search and canonical-symbol resolution by
+      mounted lifecycle and selection generations (`d924576f4`); search,
+      expression, provider, and visual/acceptance contracts are unchanged.
+- [x] Focused search coverage passed `5/5`; full frontend Vitest passed
+      `1065/1065` across 121 files; type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning. No
+      visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
+      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact dashboard Heat Map gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `d1deae3e1` / product tip

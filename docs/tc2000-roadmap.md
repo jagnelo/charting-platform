@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard instrument-search hydration teardown
+
+Product commit `d924576f4` closes a bounded R2/R6 lifecycle gap in dashboard
+Instrument Search. Debounced provider-search responses and asynchronous
+canonical-symbol resolution now stop when the widget is unmounted or a newer
+selection supersedes them; loading, error, dropdown, and emitted selection
+state cannot be published by detached work. Search payloads, expression
+resolution, canonical instrument semantics, provider routing, and visual
+contracts are unchanged. Focused search coverage passed `5/5`; full frontend
+Vitest passed `1065/1065` across 121 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Record the exact gate at the next documentation tip
+then continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard Heat Map gate rechecked
 
 At documentation tip `d1deae3e1` (product tip `33b73482d`), the exact

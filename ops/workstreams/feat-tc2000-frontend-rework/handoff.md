@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard instrument-search hydration teardown
+
+Product commit `d924576f4` fences dashboard Instrument Search debounced
+provider responses and canonical-symbol resolution by mounted lifecycle and
+selection generations. Focused coverage passed `5/5`; full frontend Vitest
+passed `1065/1065` across 121 files; type-check/build/diff checks passed with
+only the existing chunk-size warning. Search/expression, provider, visual, and
+acceptance contracts are unchanged. Record the exact gate at the next
+coherent documentation tip and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard Heat Map gate rechecked
 
 At documentation tip `d1deae3e1` (product tip `33b73482d`), the exact gate
