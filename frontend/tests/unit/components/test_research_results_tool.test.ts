@@ -139,6 +139,33 @@ describe('ResearchResultsTool', () => {
     expect(queryClient.getQueryData(['workstation', 'research-runs'])).toEqual([canceled])
   })
 
+  it('preserves a newer run selection when a slower rerun response resolves', async () => {
+    const first = { id: 21, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const second = { id: 22, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const queued = { ...first, id: 23, status: 'queued' }
+    let resolveRerun!: (value: typeof queued) => void
+    let runReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path !== '/research/runs') return Promise.resolve([])
+      runReads += 1
+      return Promise.resolve(runReads === 1 ? [first, second] : [queued, second])
+    })
+    apiPost.mockImplementation((path: string) => path === '/research/runs/21/rerun?snapshot=true'
+      ? new Promise(resolve => { resolveRerun = resolve })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run')[1].trigger('click')
+    expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
+
+    resolveRerun(queued)
+    await flushPromises()
+    expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Research run 23 details"]').exists()).toBe(false)
+  })
+
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
     apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },

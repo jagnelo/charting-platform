@@ -576,6 +576,7 @@ async function retryDetail() {
   finally { detailRetrying.value = false }
 }
 async function rerun(run: ResearchRunSummary, snapshot: boolean) {
+  const selectedRunIdAtStart = selectedRun.value?.id
   rerunning.value = true
   error.value = ''
   try {
@@ -583,7 +584,7 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
     const nextRuns = [queued, ...runs.value.filter(item => item.id !== queued.id)]
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, nextRuns)
     runs.value = nextRuns
-    selectedRun.value = queued
+    if (selectedRun.value?.id === selectedRunIdAtStart) selectedRun.value = queued
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => [queued, ...(current ?? []).filter(item => item.id !== queued.id)])
   } catch (cause: any) {
