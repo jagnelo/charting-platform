@@ -34,7 +34,7 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     )
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["yfinance"]
-    assert seeds["instrument_events"] == ["alpaca", "edgar", "finnhub"]
+    assert seeds["instrument_events"] == ["alpaca", "edgar", "finnhub", "alpha_vantage"]
     assert "finra_otc_directory" in seeds["universe_discovery"]
     assert "alpaca" not in seeds["instrument_search"]
     assert all(

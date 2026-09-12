@@ -1,4 +1,4 @@
-"""Alpha Vantage free-quota daily-history and symbol-search adapter."""
+"""Alpha Vantage free-quota history, earnings, and symbol-search adapter."""
 
 from __future__ import annotations
 
@@ -7,14 +7,16 @@ import io
 import logging
 import re
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from math import isfinite
 from typing import Any
 
 import httpx
 
 from app.config import settings
+from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.base import MarketEventRecord, ProviderSearchResult
+from app.providers.base import InstrumentEventRecord, MarketEventRecord, ProviderSearchResult
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
@@ -32,7 +34,7 @@ _DAILY_CAPACITY_RE = re.compile(r"\b(?:requests?|calls?)\s+per\s+day\b", re.IGNO
 class AlphaVantageProvider:
     name = "alpha_vantage"
     base_url = "https://www.alphavantage.co"
-    description = "Alpha Vantage free-quota daily history and symbol search"
+    description = "Alpha Vantage free-quota daily history, earnings, and symbol search"
 
     def _key(self) -> str:
         return settings.ALPHA_VANTAGE_API_KEY
@@ -227,6 +229,70 @@ class AlphaVantageProvider:
         bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
         return float(bars[-1].close) if bars else None
 
+    def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
+        """Normalize Alpha Vantage's documented annual/quarterly ``EARNINGS`` data.
+
+        Alpha Vantage supplies a fiscal period and, for quarterly rows, a
+        reported date. The latter is the best available event date; when it
+        is absent we retain the fiscal period end rather than inventing an
+        announcement timestamp. Dates have no intraday timing in this
+        endpoint, so every event is explicitly marked ``UNKNOWN``.
+        """
+
+        normalized_symbol = symbol.strip().upper()
+        payload = self._get("EARNINGS", symbol=normalized_symbol)
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid earnings object")
+
+        rows: list[tuple[str, dict[str, Any]]] = []
+        for section, kind in (("annualEarnings", "annual"), ("quarterlyEarnings", "quarterly")):
+            raw_rows = payload.get(section)
+            if not isinstance(raw_rows, list) or any(not isinstance(row, dict) for row in raw_rows):
+                raise ProviderResponseError(
+                    self.name, f"Alpha Vantage returned malformed {section} rows"
+                )
+            rows.extend((kind, row) for row in raw_rows)
+
+        fetched_at = datetime.now(UTC)
+        events: list[InstrumentEventRecord] = []
+        for kind, row in rows:
+            fiscal_date = _required_earnings_date(row.get("fiscalDateEnding"), "fiscalDateEnding")
+            reported_date = _optional_earnings_date(row.get("reportedDate"), "reportedDate")
+            event_time = reported_date or fiscal_date
+            eps_actual = _checked_earnings_decimal(row.get("reportedEPS"), "reportedEPS")
+            eps_estimate = _checked_earnings_decimal(row.get("estimatedEPS"), "estimatedEPS")
+            eps_surprise = _checked_earnings_decimal(row.get("surprise"), "surprise")
+            eps_surprise_pct = _checked_earnings_decimal(
+                row.get("surprisePercentage"), "surprisePercentage"
+            )
+            event_type = (
+                InstrumentEventType.EARNINGS
+                if eps_actual is not None
+                else InstrumentEventType.EARNINGS_ESTIMATE
+            )
+            source_event_key = (
+                f"alpha_vantage:earnings:{kind}:{normalized_symbol}:"
+                f"{fiscal_date.date().isoformat()}:{reported_date.date().isoformat() if reported_date else 'unknown'}"
+            )
+            events.append(
+                InstrumentEventRecord(
+                    event_type=event_type,
+                    event_time=event_time,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"Alpha Vantage {kind} earnings {normalized_symbol}",
+                    source_event_key=source_event_key,
+                    fetched_at=fetched_at,
+                    value=eps_estimate,
+                    actual=eps_actual,
+                    eps_estimate=eps_estimate,
+                    eps_actual=eps_actual,
+                    eps_surprise=eps_surprise,
+                    eps_surprise_pct=eps_surprise_pct,
+                    raw_payload=str(row),
+                )
+            )
+        return sorted(events, key=lambda event: (event.event_time, event.source_event_key))
+
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
             return {"total": 0, "quotes": []}
@@ -319,6 +385,38 @@ def _csv_information_message(text: str) -> bool:
         return False
     message = lines[1].replace(",", "").strip().lower()
     return message.startswith(("informa", "note", "errormessage"))
+
+
+def _required_earnings_date(value: Any, field: str) -> datetime:
+    parsed = _optional_earnings_date(value, field)
+    if parsed is None:
+        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}")
+    return parsed
+
+
+def _optional_earnings_date(value: Any, field: str) -> datetime | None:
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str):
+        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}")
+    try:
+        return datetime.strptime(value.strip(), "%Y-%m-%d").replace(tzinfo=UTC)
+    except ValueError as exc:
+        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}") from exc
+
+
+def _checked_earnings_decimal(value: Any, field: str) -> Decimal | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip().lower() in {"", "none", "null", "n/a", "na", "-"}:
+        return None
+    try:
+        parsed = Decimal(str(value).strip())
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}") from exc
+    if not parsed.is_finite():
+        raise ProviderResponseError("alpha_vantage", f"Alpha Vantage returned an invalid {field}")
+    return parsed
 
 
 def _retry_at_for_capacity_message(

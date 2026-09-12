@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Alpha Vantage earnings history capability
+
+- [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`
+      endpoint, preserving annual/quarterly fiscal dates, reported EPS,
+      estimates, surprises, and explicit unknown intraday timing.
+- [x] Register the capability, charge its one-query operation explicitly, and
+      add it as the final default instrument-events fallback after the richer
+      Alpaca/EDGAR/Finnhub routes so the 25-requests/day key is not spent first.
+- [x] Re-run the credentialed live earnings probe after the prior capacity
+      response; the bounded AAPL case passed `1/1` under the operator-managed
+      environment and produced normalized provider rows.
+
 ### 2026-09-12 — Finnhub earnings capability registration
 
 - [x] Register Finnhub's already-implemented per-symbol earnings history and

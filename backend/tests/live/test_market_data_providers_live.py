@@ -337,6 +337,19 @@ def test_alpha_vantage_credentialed_ipo_calendar():
     assert all(event.effective_date is not None for event in events)
 
 
+def test_alpha_vantage_credentialed_earnings_history():
+    """Exercise annual/quarterly EPS normalization when the daily quota permits it."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    events, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_instrument_events("AAPL"), "alpha_vantage"
+    )
+    assert events
+    assert all(event.event_type.value in {"earnings", "earnings_estimate"} for event in events)
+    assert all(event.event_time.tzinfo is not None for event in events)
+    assert all(event.source_event_key.startswith("alpha_vantage:earnings:") for event in events)
+
+
 def test_coingecko_credentialed_search():
     _require("COINGECKO_API_KEY")
     rows, _ = _observed_read(

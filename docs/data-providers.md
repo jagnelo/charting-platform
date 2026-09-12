@@ -31,10 +31,11 @@ supplies, its priority level per capability, and where to configure its credenti
 
 Operation-cost maps are provider-specific and reviewed against the adapter's
 actual transport shape. Alpha Vantage's search, daily history, latest-price,
-listing, and IPO-calendar operations each reserve one provider query; a future
-pagination or compound lookup must change that map before the operation can be
-treated as quota-safe. No operation silently inherits a universal request cost
-when a provider contract declares operation-level accounting.
+listing, IPO-calendar, and annual/quarterly earnings operations each reserve
+one provider query; a future pagination or compound lookup must change that
+map before the operation can be treated as quota-safe. No operation silently
+inherits a universal request cost when a provider contract declares
+operation-level accounting.
 
 The backend provider-policy diagnostics also expose the required and currently
 missing environment-variable names for each provider. These are names only;
@@ -77,7 +78,7 @@ re-reviewed when credentials or billing plans change.
 |---|---|---|---|---|---|
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested) | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
 | Massive | US ticker search and reference universe | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | 5 requests/min, Basic Stocks | API key / minute | credentialed reference search live-proven |
-| Alpha Vantage | Daily OHLCV, symbol search, listings, IPO calendar events | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` is premium | API key / provider-defined day | compact daily history live-proven; IPO calendar path fixture-covered and awaits a fresh provider window for live evidence |
+| Alpha Vantage | Daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` is premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact daily history and the bounded AAPL earnings normalization are live-proven; IPO-calendar remains subject to its documented capacity response |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
 | Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations admitted only when the calculated weight fits |

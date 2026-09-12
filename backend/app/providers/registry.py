@@ -266,7 +266,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
     if "instrument_events" in capabilities:
         if provider_name in {"alpaca", "yfinance"}:
             capabilities.append("corporate_actions")
-        if provider_name in {"edgar", "finnhub", "yfinance"}:
+        if provider_name in {"alpha_vantage", "edgar", "finnhub", "yfinance"}:
             capabilities.append("earnings")
     return capabilities
 

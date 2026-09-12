@@ -121,7 +121,11 @@ class Settings(BaseSettings):
         "instrument_metadata": ["edgar"],
         "price_history": ["alpaca", "alpha_vantage"],
         "latest_price": ["alpaca", "alpha_vantage"],
-        "instrument_events": ["alpaca", "edgar", "finnhub"],
+        # Alpha Vantage's EARNINGS endpoint is a final corroborating fallback;
+        # its free key is deliberately last because the allowance is only
+        # 25 requests/day and the earlier providers cover richer US event
+        # semantics when their reviewed entitlements are available.
+        "instrument_events": ["alpaca", "edgar", "finnhub", "alpha_vantage"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
         # Nasdaq covers the documented NMS files, while the explicitly
         # configured FINRA directory is the fail-closed OTC counterpart. The
@@ -906,6 +910,7 @@ class Settings(BaseSettings):
                 "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
                 "fetch_market_events": 1,
+                "fetch_instrument_events": 1,
             },
         },
         # IBKR's account-context snapshot is two HTTP requests (accounts

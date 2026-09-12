@@ -497,6 +497,16 @@ progress:
       backend environment examples, README, and provider documentation agree
       on the same chain; no provider calls were made for this configuration
       change.
+    - >-
+      Alpha Vantage's documented `EARNINGS` endpoint now normalizes annual and
+      quarterly fiscal dates, reported/estimated EPS, and surprise metrics with
+      strict schema/date/decimal validation and explicit unknown intraday
+      timing. The provider is advertised under `earnings`, charged one query
+      in its reviewed usage profile, and placed last in the default event
+      fallback so its 25-requests/day key is not spent before richer routes.
+      Fixture, registry, quota, and focused provider coverage pass; the bounded
+      credentialed AAPL live earnings case also passed 1/1 under run
+      `alpha-earnings-20260912` after the observed capacity response.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -511,7 +521,8 @@ progress:
     intentionally unconfigured. MarketData.app routing is also intentionally
     closed until the account plan/limit pair is explicitly reviewed; its live
     key currently reports a 10,000-credit daily header. Alpha Vantage remains at its documented
-    25-requests/day capacity for daily history and IPO-calendar reads. FRED,
+    25-requests/day capacity for daily history and IPO-calendar reads; the
+    earnings-history probe now passes independently. FRED,
     FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
     Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
     deployment-owned SEC contact distribution, and the separately approved

@@ -871,3 +871,11 @@ The live pytest session now checks both ledger writability and the non-secret
 or missing/invalid scope exits with code `2` before collection/provider calls,
 so direct invocations cannot spend quota without a durable, attributable
 receipt.
+
+After the prior Alpha Vantage capacity response, the newly added bounded
+credentialed earnings case was rerun at 2026-09-12T09:58Z under run
+`alpha-earnings-20260912` and passed `1/1`. The `EARNINGS` response produced
+annual/quarterly rows that passed strict fiscal/reported-date and EPS/surprise
+normalization; the aggregate usage receipt remains outside Git. This is
+endpoint-specific evidence and does not change the existing 25-requests/day
+quota or the still-open full-matrix/terms gates.

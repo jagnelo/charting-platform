@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import Timeframe
 from app.providers.alpaca import (
     AlpacaProvider,
@@ -154,7 +155,9 @@ class TestRegistryCapabilities:
             "latest_price",
             "universe_discovery",
             "market_events",
+            "earnings",
         } <= caps
+        assert get_event_provider("alpha_vantage").name == "alpha_vantage"
 
 
 # ── Alpaca symbol helpers ─────────────────────────────────────────────────────
@@ -1384,6 +1387,99 @@ class TestAlphaVantageProvider:
         assert events[0].effective_date == date(2024, 1, 2)
         assert events[0].is_provisional is True
         assert get.call_args.kwargs["params"]["function"] == "IPO_CALENDAR"
+
+    def test_earnings_history_normalizes_annual_and_quarterly_rows(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "symbol": "AAPL",
+            "annualEarnings": [
+                {"fiscalDateEnding": "2023-09-30", "reportedEPS": "6.13"},
+            ],
+            "quarterlyEarnings": [
+                {
+                    "fiscalDateEnding": "2024-03-30",
+                    "reportedDate": "2024-05-02",
+                    "reportedEPS": "1.53",
+                    "estimatedEPS": "1.50",
+                    "surprise": "0.03",
+                    "surprisePercentage": "2.0",
+                },
+                {
+                    "fiscalDateEnding": "2024-06-29",
+                    "reportedDate": "",
+                    "reportedEPS": "None",
+                    "estimatedEPS": "1.35",
+                },
+            ],
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            events = AlphaVantageProvider().fetch_instrument_events("aapl")
+
+        assert [event.event_type for event in events] == [
+            InstrumentEventType.EARNINGS,
+            InstrumentEventType.EARNINGS,
+            InstrumentEventType.EARNINGS_ESTIMATE,
+        ]
+        assert [event.event_time.date() for event in events] == [
+            date(2023, 9, 30),
+            date(2024, 5, 2),
+            date(2024, 6, 29),
+        ]
+        assert str(events[1].eps_actual) == "1.53"
+        assert str(events[1].eps_estimate) == "1.50"
+        assert str(events[1].eps_surprise_pct) == "2.0"
+        assert events[2].time_hint is EventTimeHint.UNKNOWN
+        assert events[0].source_event_key.startswith("alpha_vantage:earnings:annual:AAPL:")
+        assert get.call_args.kwargs["params"] == {
+            "function": "EARNINGS",
+            "apikey": "key",
+            "symbol": "AAPL",
+        }
+
+    @pytest.mark.parametrize(
+        "payload,match",
+        [
+            ({"annualEarnings": [], "quarterlyEarnings": "not-an-array"}, "quarterlyEarnings"),
+            (
+                {"annualEarnings": [{"reportedEPS": "1.2"}], "quarterlyEarnings": []},
+                "fiscalDateEnding",
+            ),
+            (
+                {
+                    "annualEarnings": [],
+                    "quarterlyEarnings": [
+                        {"fiscalDateEnding": "2024-03-30", "reportedDate": "not-a-date"}
+                    ],
+                },
+                "reportedDate",
+            ),
+            (
+                {
+                    "annualEarnings": [],
+                    "quarterlyEarnings": [
+                        {"fiscalDateEnding": "2024-03-30", "reportedEPS": "NaN"}
+                    ],
+                },
+                "reportedEPS",
+            ),
+        ],
+    )
+    def test_earnings_history_rejects_malformed_rows(self, payload, match):
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match=match):
+                AlphaVantageProvider().fetch_instrument_events("AAPL")
 
     def test_http_success_error_message_is_typed(self):
         response = MagicMock()
