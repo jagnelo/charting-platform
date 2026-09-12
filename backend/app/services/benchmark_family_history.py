@@ -195,6 +195,18 @@ async def plan_benchmark_family_snapshot_history_refresh(
                 ETFHoldingsSnapshot.composition_date,
                 ETFHoldingsSnapshot.resolved_count,
                 Instrument.symbol,
+                ETFHoldingsSnapshot.as_of_date,
+                ETFHoldingsSnapshot.known_at,
+                ETFHoldingsSnapshot.published_at,
+                ETFHoldingsSnapshot.provenance,
+                ETFHoldingsSnapshot.source_provider,
+                ETFHoldingsSnapshot.source_identifier,
+                ETFHoldingsSnapshot.source_quality,
+                ETFHoldingsSnapshot.completeness_status,
+                ETFHoldingsSnapshot.row_count,
+                ETFHoldingsSnapshot.unresolved_count,
+                ETFHoldingsSnapshot.parser_version,
+                ETFHoldingsSnapshot.snapshot_hash,
             )
             .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
             .join(Instrument, Instrument.id == ETFProfile.instrument_id)
@@ -213,23 +225,42 @@ async def plan_benchmark_family_snapshot_history_refresh(
     ).all()
     snapshots: list[dict[str, Any]] = []
     seen_ids: set[int] = set()
-    for snapshot_id, composition_date, resolved_count, symbol in rows:
+    for row in rows:
+        snapshot_id, composition_date, resolved_count, symbol = row[:4]
         canonical_id = int(snapshot_id)
         if canonical_id in seen_ids:
             continue
         seen_ids.add(canonical_id)
-        snapshots.append(
-            {
-                "snapshot_id": canonical_id,
-                "symbol": str(symbol).strip().upper(),
-                "composition_date": composition_date,
-                "resolved_count": int(resolved_count or 0),
-                "legs": [
-                    {"family_key": family_key, "role": role}
-                    for family_key, role in symbol_roles.get(str(symbol).strip().upper(), [])
-                ],
-            }
+        normalized_symbol = str(symbol).strip().upper()
+        snapshot = {
+            "snapshot_id": canonical_id,
+            "symbol": normalized_symbol,
+            "composition_date": composition_date,
+            "resolved_count": int(resolved_count or 0),
+            "legs": [
+                {"family_key": family_key, "role": role}
+                for family_key, role in symbol_roles.get(normalized_symbol, [])
+            ],
+        }
+        # Keep maintenance plans auditable without making older lightweight
+        # query doubles (or legacy callers) provide the optional columns.
+        provenance_fields = (
+            "as_of_date",
+            "known_at",
+            "published_at",
+            "provenance",
+            "source_provider",
+            "source_identifier",
+            "source_quality",
+            "completeness_status",
+            "row_count",
+            "unresolved_count",
+            "parser_version",
+            "snapshot_hash",
         )
+        for index, field in enumerate(provenance_fields, start=4):
+            snapshot[field] = row[index] if len(row) > index else None
+        snapshots.append(snapshot)
     limited = len(snapshots) > max_snapshots
     selected = snapshots[:max_snapshots]
     return {

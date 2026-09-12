@@ -754,7 +754,24 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
     class Result:
         def all(self):
             return [
-                (101, date(2026, 7, 31), 500, "SPY"),
+                (
+                    101,
+                    date(2026, 7, 31),
+                    500,
+                    "SPY",
+                    date(2026, 7, 31),
+                    datetime(2026, 8, 1, tzinfo=UTC),
+                    datetime(2026, 8, 2, 12, tzinfo=UTC),
+                    "issuer_native",
+                    "sec",
+                    "issuer-2026-07-31",
+                    "issuer_disclosed",
+                    "complete",
+                    500,
+                    0,
+                    "sec-v2",
+                    "snapshot-101",
+                ),
                 (102, date(2026, 6, 30), 400, "SPYV"),
                 (103, date(2026, 5, 31), 300, "SPYG"),
             ]
@@ -775,3 +792,8 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
     assert plan["limited"] is True
     assert [item["snapshot_id"] for item in plan["snapshots"]] == [101, 102]
     assert plan["snapshots"][0]["legs"] == [{"family_key": "sp500", "role": "cap_weight"}]
+    assert plan["snapshots"][0]["as_of_date"] == date(2026, 7, 31)
+    assert plan["snapshots"][0]["known_at"] == datetime(2026, 8, 1, tzinfo=UTC)
+    assert plan["snapshots"][0]["source_provider"] == "sec"
+    assert plan["snapshots"][0]["source_identifier"] == "issuer-2026-07-31"
+    assert plan["snapshots"][0]["snapshot_hash"] == "snapshot-101"

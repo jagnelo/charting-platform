@@ -220,6 +220,8 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
     assert result["queued"] == 4
     assert result["already_queued"] == 2
     assert result["unresolved_count"] == 6
+    assert [item["snapshot_id"] for item in result["snapshot_results"]] == [10, 11]
+    assert [item["queued"] for item in result["snapshot_results"]] == [2, 2]
     assert queued == [
         (10, "2026-07-31T23:59:59.999999+00:00"),
         (11, "2026-06-30T23:59:59.999999+00:00"),

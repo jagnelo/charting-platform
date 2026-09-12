@@ -168,6 +168,7 @@ async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
         queued = already_queued = 0
         unresolved = queue_error_count = 0
         queue_errors: list[dict] = []
+        snapshot_results: list[dict] = []
         for item in plan["snapshots"]:
             summary = await queue_snapshot_member_history(
                 db,
@@ -181,6 +182,7 @@ async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
             unresolved += int(summary.get("unresolved_count", 0))
             queue_error_count += int(summary.get("queue_error_count", 0))
             queue_errors.extend(summary.get("queue_errors", []))
+            snapshot_results.append({**item, **summary})
         return {
             **{key: plan[key] for key in ("family_keys", "roles", "max_snapshots", "limited")},
             "available_snapshot_count": plan.get("available_snapshot_count", 0),
@@ -191,4 +193,5 @@ async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
             "queue_errors": queue_errors,
             "queue_error_count": queue_error_count,
             "queue_unavailable": redis is None,
+            "snapshot_results": snapshot_results,
         }
