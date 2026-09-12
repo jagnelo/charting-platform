@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence ETF Holdings profile-selection races
+
+- [x] Scope canonical ETF Holdings profile/bootstrap, snapshot, holdings,
+      comparison, evolution, transition, and overlap chains by a profile
+      selection generation so older selections cannot overwrite newer state
+      (`a9602ebe`); the mounted teardown fence remains active.
+- [x] Focused ETF Holdings coverage passed `7/7`; full frontend Vitest passed
+      `1044/1044`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No API, provider, point-in-
+      time, fallback, visual, or acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence ETF Holdings teardown
 
 - [x] Fence canonical ETF Holdings profile search/bootstrap, profile selection,

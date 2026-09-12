@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence ETF Holdings profile-selection races
+
+Product commit `a9602ebe` closes the companion R6/R2 selection-race gap in the
+canonical ETF Holdings view. A profile-selection generation now scopes the
+entire profile/bootstrap, snapshot, holdings, diff, weight-evolution,
+transition, and overlap chain, so a newer profile invalidates older responses
+before they can change the active workspace. The mounted lifecycle fence from
+`d5e4b070` remains in force. API payloads, provider routing, point-in-time
+semantics, fallback behavior, visual baselines, masks, thresholds, skips, and
+acceptance policy are unchanged. Focused ETF Holdings coverage passed `7/7`;
+full frontend Vitest passed `1044/1044` across 115 files; frontend type-check
+and production build passed with only the existing chunk-size warning; and
+`git diff --check` passed. A race regression proves an older profile cannot
+proceed to holdings after a newer selection starts. Continue the next bounded
+provider/history or compatible R4/R2-R7 seam while preserving the six
+protected visual state-oracle assertions.
+
 ## 2026-09-12 — Fence ETF Holdings teardown
 
 Product commit `d5e4b070` closes a bounded R6 lifecycle gap in the canonical

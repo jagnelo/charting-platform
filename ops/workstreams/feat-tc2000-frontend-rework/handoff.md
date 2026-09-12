@@ -2,6 +2,17 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence ETF Holdings profile-selection races
+
+Product commit `a9602ebe` scopes the canonical ETF Holdings profile/bootstrap,
+snapshot, holdings, diff, evolution, transition, and overlap chains by profile
+selection generation. Older profile responses cannot overwrite a newer active
+workspace; the mounted teardown fence from `d5e4b070` remains active. Focused
+coverage passed `7/7`; full frontend Vitest passed `1044/1044`; type-check,
+build, and diff checks passed with only the existing chunk-size warning. API,
+provider, point-in-time, fallback, visual, and acceptance contracts are
+unchanged. Continue in this worktree only.
+
 ## 2026-09-12 — Fence ETF Holdings teardown
 
 Product commit `d5e4b070` fences the canonical ETF Holdings view by a mounted
