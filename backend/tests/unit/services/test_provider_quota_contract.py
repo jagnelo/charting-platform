@@ -881,6 +881,39 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert {item["quota_group"] for item in contract["dimensions"]} == {"account"}
 
 
+def test_account_and_ip_scoped_provider_contracts_declare_cross_capability_groups():
+    grouped_providers = {
+        "alpaca",
+        "massive",
+        "alpha_vantage",
+        "openfigi",
+        "edgar",
+        "finra",
+        "finra_otc_directory",
+        "coingecko",
+        "binance",
+        "coinbase",
+        "robinhood_tokens",
+        "bybit_xstocks",
+        "gate_tradfi",
+        "tiingo",
+        "twelve_data",
+        "finnhub",
+        "eodhd",
+        "fmp",
+        "marketdata_app",
+        "tradier",
+        "marketstack",
+        "ibkr",
+    }
+    for provider_name in grouped_providers:
+        dimensions = settings.PROVIDER_RATE_LIMIT_SEEDS[provider_name]["quota_contract"][
+            "dimensions"
+        ]
+        assert dimensions, provider_name
+        assert all(str(item.get("quota_group") or "").strip() for item in dimensions), provider_name
+
+
 @pytest.mark.asyncio
 async def test_explicit_quota_group_shares_one_budget_across_capabilities(db):
     """Provider account budgets must not be multiplied by capability."""
@@ -1252,9 +1285,10 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
             "name": "stock_public_requests_per_second",
             "limit": 5,
             "window_seconds": 1,
-            "unit": "requests",
-            "scope": "ip",
-            "source": "https://www.gate.com/docs/developers/apiv4/en/",
+                "unit": "requests",
+                "scope": "ip",
+                "quota_group": "ip",
+                "source": "https://www.gate.com/docs/developers/apiv4/en/",
         }
     ]
 

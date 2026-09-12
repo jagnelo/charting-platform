@@ -160,6 +160,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "account",
+                        "quota_group": "account",
                         "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
                     }
                 ],
@@ -178,6 +179,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://massive.com/stocks",
                     }
                 ],
@@ -196,6 +198,7 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://www.alphavantage.co/support/",
                     }
                 ],
@@ -216,6 +219,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "ip_or_api_key",
+                        "quota_group": "ip_or_api_key",
                         "source": "https://www.openfigi.com/api/documentation",
                     }
                 ],
@@ -234,6 +238,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits",
                     }
                 ],
@@ -279,6 +284,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://developer.finra.org/docs",
                         "reset": "rolling",
                     },
@@ -288,6 +294,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_account_and_dataset",
+                        "quota_group": "api_account_and_dataset",
                         "source": "https://developer.finra.org/node/1146",
                         "reset": "rolling",
                     },
@@ -297,6 +304,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
+                        "quota_group": "public_credential",
                         "source": "https://developer.finra.org/support",
                         "reset": "calendar_month",
                     }
@@ -318,6 +326,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://developer.finra.org/node/1146",
                         "reset": "rolling",
                     }
@@ -344,6 +353,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "demo_api_key",
+                        "quota_group": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
                         "reset": "rolling",
                     },
@@ -353,6 +363,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "requests",
                         "scope": "demo_api_key",
+                        "quota_group": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
                         # CoinGecko publishes a monthly cap but does not
                         # define the reset boundary in the pricing contract.
@@ -376,6 +387,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "weight",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://developers.binance.com/en/docs/products/spot/rest-api",
                     }
                 ],
@@ -395,6 +407,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits",
                     }
                 ],
@@ -444,6 +457,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://docs.robinhood.com/chain/stock-token-apis/",
                     }
                 ],
@@ -461,6 +475,7 @@ class Settings(BaseSettings):
                         "window_seconds": 5,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://bybit-exchange.github.io/docs/v5/rate-limit",
                     }
                 ],
@@ -480,6 +495,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://www.gate.com/docs/developers/apiv4/en/",
                     }
                 ],
@@ -532,6 +548,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "symbols",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                         "reset": "calendar_month_est",
                     },
@@ -541,6 +558,7 @@ class Settings(BaseSettings):
                         "window_seconds": 3600,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                     },
                     {
@@ -549,6 +567,7 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                         "reset": "calendar_day_est",
                     },
@@ -561,6 +580,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                         "reset": "calendar_month_est",
                     }
@@ -578,6 +598,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "credits",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://twelvedata.com/pricing",
                         "reset": "fixed_minute",
                     },
@@ -587,6 +608,7 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "credits",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://twelvedata.com/pricing",
                         "reset": "calendar_day_utc",
                     },
@@ -607,6 +629,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
                     },
                     {
@@ -615,6 +638,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://finnhub.io/docs/api",
                     },
                 ],
@@ -633,6 +657,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://eodhd.com/financial-apis/api-limits",
                         "reset": "rolling",
                     },
@@ -642,6 +667,7 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "calls",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://eodhd.com/financial-apis/api-limits",
                         "reset": "calendar_day_gmt",
                     },
@@ -662,6 +688,7 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
                     }
                 ],
@@ -672,6 +699,7 @@ class Settings(BaseSettings):
                         "limit": 536870912,
                         "unit": "bytes",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
                         "window_seconds": 2_592_000,
                         "reset": "rolling_30_days",
@@ -722,6 +750,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "production_token",
+                        "quota_group": "production_token",
                         "source": "https://docs.tradier.com/docs/rate-limiting",
                     },
                 ],
@@ -740,6 +769,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "requests",
                         "scope": "api_key",
+                        "quota_group": "api_key",
                         "source": "https://marketstack.com/pricing",
                     }
                 ],
@@ -757,6 +787,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "authenticated_session",
+                        "quota_group": "authenticated_session",
                         "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
                     },
                     {
@@ -765,6 +796,7 @@ class Settings(BaseSettings):
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "authenticated_session",
+                        "quota_group": "authenticated_session",
                         "source": "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data",
                     },
                     {
@@ -773,6 +805,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "concurrent_requests",
                         "scope": "authenticated_session",
+                        "quota_group": "authenticated_session",
                         "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
                     },
                 ],
@@ -1840,6 +1873,7 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                 if isinstance(dimension, dict) and dimension.get("name") == "requests_per_minute":
                     dimension["limit"] = reviewed_limit
                     dimension["scope"] = scope
+                    dimension["quota_group"] = scope
             contract["source"] = (
                 f"{contract.get('source', 'FRED v1 errors')} plus operator-reviewed "
                 "deployment admission controls"

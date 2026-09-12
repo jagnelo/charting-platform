@@ -7,10 +7,12 @@
       account/key-wide allowance is shared by multiple capabilities; omitted
       groups retain the capability-scoped compatibility key, and blank groups
       fail closed.
-- [x] Apply this to MarketData.app's documented account/key-wide daily credits
-      and concurrent-request dimensions, expose the group in admin/usage
-      diagnostics, backfill existing rows through an additive migration, and
-      prove grouped and ungrouped behavior with unit coverage.
+- [x] Apply this to every currently reviewed account/key/IP/session-scoped
+      contract (including MarketData.app credits/concurrency and Tiingo/FMP
+      byte pools), while retaining endpoint/pair-scoped exceptions. Expose the
+      group in admin/usage diagnostics, backfill existing rows through an
+      additive migration, and prove grouped and ungrouped behavior with unit
+      coverage.
 
 ### 2026-09-12 — Strict provider credential presence checks
 
