@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Materialize scheduled coarse history from canonical D1
+
+Product commit `9f86dc7b` closes the scheduled R1 history gap where nightly
+refresh skipped missing W1/MN rows indefinitely. When canonical D1 history is
+present, the nightly task now rebuilds provider-neutral W1/MN views from the
+persisted D1 evidence after its recent refresh pass, preserves provider-row
+precedence through the existing materializer, commits the derived state, and
+reports W1/MN derived counts. No provider request, fallback policy, observed
+session, or adjustment lineage is invented or changed.
+
+Focused scheduled-history coverage passed `1/1`; the full backend unit suite
+passed `1516/1516`; Ruff, formatting, and `git diff --check` passed. The exact
+branch gate is pending at this coherent product tip. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+## 2026-09-12 — Next exact gate pending
+
+The exact branch-scoped gate must be rerun at product tip `9f86dc7b`. The
+previous gate stopped before backend integration because Docker's local socket
+was unavailable; no backend integration, provider, browser, or visual result
+is inferred from that stop. Restore Docker health, rerun the exact gate, then
+continue the next bounded provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 Product commit `07fcfae0` closes the remaining explicit Study Lab execution

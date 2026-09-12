@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 9f86dc7b closes the scheduled coarse-history gap: when
+  canonical D1 history exists, nightly refresh now materializes provider-neutral
+  W1/MN views from persisted D1 evidence after the recent refresh pass,
+  preserves provider-row precedence, commits derived state, and reports derived
+  counts without provider fan-out or invented observations. Focused coverage
+  passed 1/1; the full backend unit suite passed 1516/1516; Ruff, formatting,
+  and git diff --check passed. The exact branch-scoped gate is pending at this
+  coherent product tip. No visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. Rerun the exact gate at product tip
+  9f86dc7b when Docker is healthy, then continue the next bounded
+  provider/history or compatible chart/list/gauge seam. No integration,
+  promotion, deployment, or other-worktree mutation.
   The exact branch-scoped gate was rerun at product tip 07fcfae0 after the
   Study Lab execution timestamp slice. Git-diff, workstream validation,
   dependency resolution, migration checks, frontend preparation, Ruff,

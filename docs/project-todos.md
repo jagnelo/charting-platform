@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Scheduled coarse-history readiness
+
+- [x] Close the nightly refresh gap where missing W1/MN provider rows were
+      skipped indefinitely even when canonical D1 history existed. Commit
+      `9f86dc7b` now materializes provider-neutral W1/MN views from persisted D1
+      evidence after the recent refresh pass, preserves provider precedence,
+      commits derived state, and reports derived counts without provider fan-out
+      or invented observations.
+- [x] Focused scheduled-history coverage passed `1/1`; full backend unit
+      coverage passed `1516/1516`; Ruff, formatting, and diff checks passed.
+- [ ] Rerun the exact branch gate at `9f86dc7b` once Docker is healthy, then
+      continue remaining provider-backed population/history, R4 fan-out, and
+      R2-R7 acceptance evidence. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 - [x] Normalize Study Lab portfolio execution events, excursion rows, and

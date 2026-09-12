@@ -2,6 +2,22 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Scheduled coarse-history readiness
+
+Product commit `9f86dc7b` makes the nightly history task materialize missing
+W1/MN views from persisted canonical D1 evidence after its recent refresh pass.
+Provider rows still win for overlapping periods; no provider fan-out or
+invented observations were added. Focused scheduled-history coverage passed
+`1/1`, the full backend unit suite passed `1516/1516`, and Ruff, formatting,
+and diff checks passed. The exact gate is pending at this coherent tip; no
+visual/provider/acceptance policy changed.
+
+Rerun `PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+`9f86dc7b` when Docker is healthy, then continue the next bounded
+provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Canonicalize Study Lab execution timestamps
 
 Product commit `07fcfae0` normalizes Study Lab portfolio execution events,
