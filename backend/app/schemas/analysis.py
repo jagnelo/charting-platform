@@ -4,16 +4,28 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
-class AnalysisWarning(BaseModel):
+class AnalysisContractModel(BaseModel):
+    """Base for analysis contracts with one canonical timestamp wire format."""
+
+    @field_serializer("*", check_fields=False)
+    def serialize_timestamps(self, value: object) -> object:
+        if isinstance(value, datetime):
+            return wire_datetime(value)
+        return value
+
+
+class AnalysisWarning(AnalysisContractModel):
     code: str
     message: str
     instrument_id: int | None = None
 
 
-class AnalysisResponseMetadata(BaseModel):
+class AnalysisResponseMetadata(AnalysisContractModel):
     """Common local-data lineage for every analysis response."""
 
     calculation_version: str = "analysis-v1"
@@ -23,7 +35,7 @@ class AnalysisResponseMetadata(BaseModel):
     freshness_detail: dict[str, int] = Field(default_factory=dict)
 
 
-class AnalysisPoint(BaseModel):
+class AnalysisPoint(AnalysisContractModel):
     timestamp: datetime
     value: float
 
@@ -41,13 +53,13 @@ class RelativeStrengthOut(AnalysisResponseMetadata):
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class RelativeRotationTailPoint(BaseModel):
+class RelativeRotationTailPoint(AnalysisContractModel):
     timestamp: datetime
     trend: float
     momentum: float
 
 
-class RelativeRotationRow(BaseModel):
+class RelativeRotationRow(AnalysisContractModel):
     instrument_id: int
     symbol: str
     name: str
@@ -80,7 +92,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     rows: list[RelativeRotationRow]
 
 
-class BenchmarkFamilyRotationRoleOut(BaseModel):
+class BenchmarkFamilyRotationRoleOut(AnalysisContractModel):
     """Transparent relative-rotation state for one family cap/style leg."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -122,7 +134,7 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyConcentrationMemberOut(BaseModel):
+class BenchmarkFamilyConcentrationMemberOut(AnalysisContractModel):
     """One resolved family-leg member in a concentration/dispersion summary."""
 
     instrument_id: int
@@ -134,7 +146,7 @@ class BenchmarkFamilyConcentrationMemberOut(BaseModel):
     covered: bool
 
 
-class BenchmarkFamilyConcentrationRoleOut(BaseModel):
+class BenchmarkFamilyConcentrationRoleOut(AnalysisContractModel):
     """Concentration and cross-sectional dispersion for one family role."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -182,7 +194,7 @@ class BenchmarkFamilyConcentrationOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyConcentrationHistoryPointOut(BaseModel):
+class BenchmarkFamilyConcentrationHistoryPointOut(AnalysisContractModel):
     """One point-in-time concentration observation for a family leg."""
 
     timestamp: datetime
@@ -212,7 +224,7 @@ class BenchmarkFamilyConcentrationHistoryPointOut(BaseModel):
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyConcentrationHistoryRoleOut(BaseModel):
+class BenchmarkFamilyConcentrationHistoryRoleOut(AnalysisContractModel):
     """Historical concentration observations for one independent family role."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -240,13 +252,13 @@ class BenchmarkFamilyConcentrationHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class AnalysisCell(BaseModel):
+class AnalysisCell(AnalysisContractModel):
     value: float | None = None
     observation_time: datetime | None = None
     warning: AnalysisWarning | None = None
 
 
-class GroupSnapshotRow(BaseModel):
+class GroupSnapshotRow(AnalysisContractModel):
     instrument_id: int
     symbol: str
     name: str
@@ -270,7 +282,7 @@ class GroupSnapshotOut(AnalysisResponseMetadata):
     rows: list[GroupSnapshotRow]
 
 
-class BenchmarkFamilyMappingOut(BaseModel):
+class BenchmarkFamilyMappingOut(AnalysisContractModel):
     """One independently tracked cap/equal/value/growth relationship."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -292,7 +304,7 @@ class BenchmarkFamilyMappingOut(BaseModel):
     holdings_total_weight: Decimal | None = None
 
 
-class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
+class BenchmarkFamilyCoverageSnapshotOut(AnalysisContractModel):
     """One dated holdings disclosure available for a family leg."""
 
     snapshot_id: int
@@ -313,7 +325,7 @@ class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
     unresolved_count: int
 
 
-class BenchmarkFamilyCoverageGapOut(BaseModel):
+class BenchmarkFamilyCoverageGapOut(AnalysisContractModel):
     """An observed composition-date interval wider than the continuity policy."""
 
     from_date: date
@@ -321,7 +333,7 @@ class BenchmarkFamilyCoverageGapOut(BaseModel):
     interval_days: int = Field(ge=1)
 
 
-class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
+class BenchmarkFamilyMemberBarHistoryTimeframeOut(AnalysisContractModel):
     """Canonical member-bar coverage for one family role and timeframe."""
 
     timeframe: str
@@ -347,7 +359,7 @@ class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
     newest: datetime | None = None
 
 
-class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
+class BenchmarkFamilyMemberBarHistoryOut(AnalysisContractModel):
     """Provider-free local bar readiness for a selected holdings snapshot."""
 
     status: str = "unavailable"
@@ -362,7 +374,7 @@ class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = Field(default_factory=list)
 
 
-class BenchmarkFamilyCoverageRoleOut(BaseModel):
+class BenchmarkFamilyCoverageRoleOut(AnalysisContractModel):
     """Historical holdings coverage for one independently mapped family role."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -520,7 +532,7 @@ class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyTechnicalRoleOut(BaseModel):
+class BenchmarkFamilyTechnicalRoleOut(AnalysisContractModel):
     """Technical snapshot for one independently mapped family leg."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -554,7 +566,7 @@ class BenchmarkFamilyTechnicalsOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyBreadthMetricOut(BaseModel):
+class BenchmarkFamilyBreadthMetricOut(AnalysisContractModel):
     """One transparent current participation metric for a family role."""
 
     percentage: float | None = Field(default=None, ge=0, le=1)
@@ -565,7 +577,7 @@ class BenchmarkFamilyBreadthMetricOut(BaseModel):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyBreadthRoleOut(BaseModel):
+class BenchmarkFamilyBreadthRoleOut(AnalysisContractModel):
     """Role-local current participation and relative-strength metrics."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -641,7 +653,7 @@ class IndustryProxySnapshotOut(GroupSnapshotOut):
     proxy_evidence: list[dict[str, object]] = Field(default_factory=list)
 
 
-class IndustrySnapshotRow(BaseModel):
+class IndustrySnapshotRow(AnalysisContractModel):
     """Equal-weight constituent aggregate for one classified ETF industry."""
 
     industry: str
@@ -696,7 +708,7 @@ class BreadthOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BreadthHistoryPoint(BaseModel):
+class BreadthHistoryPoint(AnalysisContractModel):
     timestamp: datetime
     above_ma: dict[str, float | None]
     coverage: dict[str, float]
@@ -712,7 +724,7 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyBreadthHistoryRoleOut(BaseModel):
+class BenchmarkFamilyBreadthHistoryRoleOut(AnalysisContractModel):
     """Historical moving-average participation for one family role."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -744,7 +756,7 @@ class BenchmarkFamilyBreadthHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BenchmarkFamilyRankingRoleOut(BaseModel):
+class BenchmarkFamilyRankingRoleOut(AnalysisContractModel):
     """Transparent performance/rank cells for one benchmark-family role."""
 
     role: Literal["cap_weight", "equal_weight", "value", "growth"]
@@ -772,7 +784,7 @@ class BenchmarkFamilyRankingOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class CrossFamilyRankingRowOut(BaseModel):
+class CrossFamilyRankingRowOut(AnalysisContractModel):
     """One cap-weighted family row in a cross-family comparison."""
 
     family_key: str
@@ -799,7 +811,7 @@ class CrossFamilyRankingOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class CrossFamilyRankingHistoryPoint(BaseModel):
+class CrossFamilyRankingHistoryPoint(AnalysisContractModel):
     """One timestamp in a historical cross-family leadership series."""
 
     timestamp: datetime
@@ -808,7 +820,7 @@ class CrossFamilyRankingHistoryPoint(BaseModel):
     relative_performance: dict[str, float | None] = Field(default_factory=dict)
 
 
-class CrossFamilyRankingHistoryRowOut(BaseModel):
+class CrossFamilyRankingHistoryRowOut(AnalysisContractModel):
     """Historical cap-proxy ranking for one benchmark family."""
 
     family_key: str
@@ -835,7 +847,7 @@ class CrossFamilyRankingHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BreadthUniverseRequest(BaseModel):
+class BreadthUniverseRequest(AnalysisContractModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 
     kind: Literal["group", "benchmark_family", "etf_holdings", "watchlist", "symbols"]
@@ -848,7 +860,7 @@ class BreadthUniverseRequest(BaseModel):
     point_in_time: bool = True
 
 
-class BreadthConditionRequest(BaseModel):
+class BreadthConditionRequest(AnalysisContractModel):
     """A member-level condition or an explicit cross-sectional target."""
 
     kind: Literal[
@@ -874,7 +886,7 @@ class BreadthConditionRequest(BaseModel):
     params: dict[str, object] = Field(default_factory=dict)
 
 
-class BreadthDefinitionRequest(BaseModel):
+class BreadthDefinitionRequest(AnalysisContractModel):
     version: int = Field(default=1, ge=1, le=1)
     universe: BreadthUniverseRequest
     condition: BreadthConditionRequest | None = None
@@ -886,7 +898,7 @@ class BreadthDefinitionRequest(BaseModel):
     reference_universe: BreadthUniverseRequest | None = None
 
 
-class BreadthConditionDiagnosticOut(BaseModel):
+class BreadthConditionDiagnosticOut(AnalysisContractModel):
     """Structured trace entry for one breadth AST clause."""
 
     path: str
@@ -897,7 +909,7 @@ class BreadthConditionDiagnosticOut(BaseModel):
     code: str | None = None
 
 
-class BreadthMemberResultOut(BaseModel):
+class BreadthMemberResultOut(AnalysisContractModel):
     instrument_id: int
     symbol: str
     name: str
@@ -935,7 +947,7 @@ class BreadthHistoryRequest(BreadthDefinitionRequest):
     limit: int = Field(default=500, ge=1, le=5_000)
 
 
-class BreadthDefinitionHistoryPointOut(BaseModel):
+class BreadthDefinitionHistoryPointOut(AnalysisContractModel):
     timestamp: datetime
     requested_count: int = Field(ge=0)
     eligible_count: int = Field(ge=0)
@@ -947,7 +959,7 @@ class BreadthDefinitionHistoryPointOut(BaseModel):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BreadthDefinitionHistoryOccurrenceOut(BaseModel):
+class BreadthDefinitionHistoryOccurrenceOut(AnalysisContractModel):
     """A member state transition in a historical breadth definition."""
 
     occurrence_id: str
@@ -981,7 +993,7 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class BreadthPythonRunRequest(BaseModel):
+class BreadthPythonRunRequest(AnalysisContractModel):
     """Queue one user-authored Boolean or numeric-series breadth target."""
 
     code_version_id: int = Field(ge=1)
@@ -1003,7 +1015,7 @@ class BreadthPythonRunRequest(BaseModel):
     history_limit: int = Field(default=500, ge=1, le=5_000)
 
 
-class BreadthPythonRunOut(BaseModel):
+class BreadthPythonRunOut(AnalysisContractModel):
     run_id: int
     code_version_id: int
     status: str
@@ -1019,7 +1031,7 @@ class BreadthPythonRunOut(BaseModel):
     diagnostics: list[dict[str, object]] = Field(default_factory=list)
 
 
-class BreadthPythonResultPointOut(BaseModel):
+class BreadthPythonResultPointOut(AnalysisContractModel):
     timestamp: datetime | None = None
     requested_count: int = Field(ge=0)
     eligible_count: int = Field(ge=0)
@@ -1053,7 +1065,7 @@ class BreadthPythonResultOut(AnalysisResponseMetadata):
     diagnostics: list[dict[str, object]] = Field(default_factory=list)
 
 
-class BreadthPythonPromotionRequest(BaseModel):
+class BreadthPythonPromotionRequest(AnalysisContractModel):
     """Create a reusable EasyScan from a completed historical Python breadth run."""
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
@@ -1062,7 +1074,7 @@ class BreadthPythonPromotionRequest(BaseModel):
     is_active: bool = True
 
 
-class BreadthPythonPlotPromotionRequest(BaseModel):
+class BreadthPythonPlotPromotionRequest(AnalysisContractModel):
     """Create a reusable plot asset from a completed breadth series or aggregate history."""
 
     name: str | None = Field(default=None, min_length=1, max_length=160)
@@ -1070,21 +1082,21 @@ class BreadthPythonPlotPromotionRequest(BaseModel):
     aggregate: bool = False
 
 
-class BreadthPythonColumnPromotionRequest(BaseModel):
+class BreadthPythonColumnPromotionRequest(AnalysisContractModel):
     """Create a reusable scalar column adapter from a completed member-level series run."""
 
     name: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2_000)
 
 
-class BreadthPythonStudyPromotionRequest(BaseModel):
+class BreadthPythonStudyPromotionRequest(AnalysisContractModel):
     """Create a reusable Study Lab asset from a completed breadth run."""
 
     name: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2_000)
 
 
-class IndicatorBatchRequest(BaseModel):
+class IndicatorBatchRequest(AnalysisContractModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)
     params: dict[str, object] = Field(default_factory=dict)
@@ -1092,7 +1104,7 @@ class IndicatorBatchRequest(BaseModel):
     adjusted: bool = True
 
 
-class IndicatorBatchValue(BaseModel):
+class IndicatorBatchValue(AnalysisContractModel):
     value: float | None = None
     observation_time: datetime | None = None
     warning: AnalysisWarning | None = None
