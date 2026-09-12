@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
+
+Product commit `385faf40` closes the legacy-configuration side of the R4
+output contract. During watchlist hydration, an indicator column with a
+missing or invalid output now renders explicit `explicit_output_required`
+warnings and never asks the backend to choose a first series. Single-output
+legacy columns are normalized to their canonical output key. This keeps
+already-saved workspaces safe while the Chart Plot Library selector handles
+new multi-output selections.
+
+Focused chart/output coverage and the full frontend suite remained green at
+`1002/1002` across `113` files; frontend type-check, repository Ruff/format
+checks, and `git diff --check` passed. No backend contract, visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed. The
+latest exact gate at product tip `1152b4e3` remains blocked at
+`backend-coverage` by Docker Desktop `/v1.55/info` HTTP 500 after its
+180-second readiness window.
+
+The next action is to restore Docker Desktop health and rerun the exact gate at
+the new product tip, then continue the next bounded provider/history or
+compatible chart/list/gauge seam. Preserve the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
 
 Product commit `1152b4e3` completes the user-facing side of the chart output

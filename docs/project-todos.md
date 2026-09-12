@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
+
+- [x] Reject missing/invalid outputs during persisted watchlist indicator
+      hydration with explicit `explicit_output_required` cells; normalize
+      single-output legacy columns to canonical keys (`385faf40`).
+- [x] Preserve the selector/drag/drop contract and all existing chart/list
+      behavior. Full frontend Vitest remained `1002/1002` across `113` files;
+      type-check, Ruff/format, and diff checks passed. No backend, visual,
+      provider, fallback, or acceptance policy changed.
+- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate at the
+      new product tip, then continue provider/history or another compatible
+      chart/list/gauge seam.
+
 ### 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
 
 - [x] Add a bounded output selector to multi-output chart indicator rows using

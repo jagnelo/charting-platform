@@ -2,6 +2,24 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
+
+Product commit `385faf40` makes persisted watchlist indicator columns obey the
+same explicit output contract as new chart promotions. Missing or invalid
+outputs are rendered with `explicit_output_required` warnings and are not sent
+to the backend for implicit first-series selection; single-output legacy
+columns use their canonical key automatically.
+
+Full frontend Vitest remained `1002/1002` across `113` files; frontend
+type-check, Ruff/format, and diff checks passed. No backend contract, visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. The latest exact gate at product tip `1152b4e3` remains blocked at
+`backend-coverage` by Docker `/v1.55/info` HTTP 500 after 180 seconds.
+
+Checkpoint scope: `frontend/src/components/workstation/WorkstationToolContent.vue`
+and these roadmap/TODO records. Rerun the exact gate at the new product tip
+after Docker health is restored before advancing the next bounded seam.
+
 ## 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
 
 Product commit `1152b4e3` adds a bounded output selector to multi-output chart
