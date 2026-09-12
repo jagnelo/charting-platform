@@ -158,11 +158,37 @@ def _series_to_cacheable(result: dict[str, np.ndarray]) -> dict[str, list]:
 def _pick_indicator_output(
     result: dict[str, np.ndarray],
     preferred: str | None,
-) -> tuple[str, np.ndarray]:
-    if preferred and preferred in result:
-        return preferred, result[preferred]
-    key = next(iter(result.keys()))
-    return key, result[key]
+) -> tuple[str | None, np.ndarray | None]:
+    """Select one declared indicator output without guessing for multi-output data."""
+
+    if preferred:
+        return (preferred, result[preferred]) if preferred in result else (None, None)
+    if len(result) == 1:
+        key = next(iter(result))
+        return key, result[key]
+    return None, None
+
+
+def _indicator_output_warning(
+    indicator_type: str,
+    preferred: str,
+    result: dict[str, np.ndarray],
+) -> dict[str, str]:
+    options = ", ".join(result.keys()) or "none"
+    if preferred:
+        return {
+            "code": "invalid_indicator_output",
+            "message": (
+                f"Indicator {indicator_type!r} output {preferred!r} is unavailable; "
+                f"choose one of: {options}."
+            ),
+        }
+    return {
+        "code": "explicit_indicator_output_required",
+        "message": (
+            f"Indicator {indicator_type!r} returns multiple outputs; " f"choose one of: {options}."
+        ),
+    }
 
 
 async def _compute_indicator_cached(
@@ -389,6 +415,8 @@ async def _evaluate_condition(
             db, instrument.id, timeframe, ind_type, ind_params, data
         )
         key, series = _pick_indicator_output(result, output)
+        if key is None or series is None:
+            return False, {"_warning": _indicator_output_warning(ind_type, output, result)}
         val = None
         for v in reversed(series):
             if not np.isnan(v):
@@ -413,6 +441,18 @@ async def _evaluate_condition(
         )
         key_a, arr_a = _pick_indicator_output(res_a, str(a.get("output") or ""))
         key_b, arr_b = _pick_indicator_output(res_b, str(b.get("output") or ""))
+        if key_a is None or arr_a is None:
+            return False, {
+                "_warning": _indicator_output_warning(
+                    str(a["type"]), str(a.get("output") or ""), res_a
+                )
+            }
+        if key_b is None or arr_b is None:
+            return False, {
+                "_warning": _indicator_output_warning(
+                    str(b["type"]), str(b.get("output") or ""), res_b
+                )
+            }
 
         n = min(len(arr_a), len(arr_b))
         if n < 2:
@@ -457,6 +497,8 @@ async def _evaluate_condition(
             db, instrument.id, timeframe, ind_type, ind_params, data
         )
         key, indicator_series = _pick_indicator_output(result, output)
+        if key is None or indicator_series is None:
+            return False, {"_warning": _indicator_output_warning(ind_type, output, result)}
         n = min(len(price_series), len(indicator_series))
         if n < 2:
             return False, computed
@@ -867,6 +909,14 @@ async def run_screener(
                 if matched:
                     matched_ids.append(inst_id)
                     result_data[str(inst_id)] = {k: v for k, v in computed.items() if v is not None}
+                elif isinstance(computed.get("_warning"), dict):
+                    warning = computed["_warning"]
+                    excluded[str(inst_id)] = {
+                        "code": str(warning.get("code") or "condition_unavailable"),
+                        "message": str(
+                            warning.get("message") or "Condition output is unavailable."
+                        ),
+                    }
             except Exception as e:
                 logger.warning(f"Screener error on instrument {inst_id}: {e}")
                 excluded[str(inst_id)] = {"code": "evaluation_error", "message": str(e)}
