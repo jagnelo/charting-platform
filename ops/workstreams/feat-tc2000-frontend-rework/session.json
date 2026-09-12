@@ -100,11 +100,11 @@
   "head": "26161b902768e2f7a2b206d215de649a02533b0d",
   "implementation_sha": "26161b902768e2f7a2b206d215de649a02533b0d",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T13:04:48+00:00",
+  "last_checkpoint": "2026-09-12T13:10:02+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 26161b902768e2f7a2b206d215de649a02533b0d, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "36f1409dbe1a8a971b9d1d9b6ae52cc415c56912549098dbb2ec1ed3618750a5",
+  "plan_hash": "6090587e5b4c96d12ddb290f8822682bd0916bf5b083348990387f0d25c5e646",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product commit 26161b90 fences Market Map event rows and source-scoped fetch state by the historical evaluation cutoff. Future-fetched events cannot leak into earlier maps, and orphan event rows remain unavailable instead of crashing. Focused Market Map service coverage passed 12/12; full backend unit coverage passed 1520/1520 at 68.99%; Ruff, formatting, and git diff --check passed. No provider, fallback, visual baseline, mask, threshold, skip, or acceptance policy changed. The exact branch gate remains pending behind the Docker socket permission failure; continue the next bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.",
+    "current_blocker": "The exact branch-scoped gate was rerun at product tip 26161b90. Repository, workstream, dependency/migration, frontend preparation, Ruff, formatting, and TypeScript passed; backend-coverage stopped after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. Product commit 26161b90 fences Market Map event rows and source-scoped fetch state by the historical evaluation cutoff. Future-fetched events cannot leak into earlier maps, and orphan event rows remain unavailable instead of crashing. Focused Market Map service coverage passed 12/12; full backend unit coverage passed 1520/1520 at 68.99%; Ruff, formatting, and git diff --check passed. No provider, fallback, visual baseline, mask, threshold, skip, or acceptance policy changed. Restore Docker health and rerun the exact gate, then continue the next bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.",
     "current_phase": "R2_historical_event_knowledge_boundary_and_r7_exact_tip_gate",
     "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 26161b902768e2f7a2b206d215de649a02533b0d, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 11,
-    "updated_at": "2026-09-12T13:04:48.000000+00:00"
+    "updated_at": "2026-09-12T13:10:02.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

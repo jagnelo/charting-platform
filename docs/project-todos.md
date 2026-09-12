@@ -14,6 +14,18 @@
       provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
       policy changed.
 
+### 2026-09-12 — Exact historical-event gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `26161b90`;
+      repository/workstream, dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed. The gate stopped at
+      `backend-coverage` after 180 seconds because Docker returned permission
+      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
+      backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence stale Market Map snapshot mutations
 
 - [x] Fence Market Map snapshot save/delete responses by shared generation,

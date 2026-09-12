@@ -2668,6 +2668,15 @@ progress:
   total: 10
   current_phase: R2_historical_event_knowledge_boundary_and_r7_exact_tip_gate
   current_blocker: >-
+    The exact branch-scoped gate was rerun at product tip 26161b90. Repository,
+    workstream, dependency/migration, frontend preparation, Ruff, formatting,
+    and TypeScript passed; backend-coverage stopped after 180 seconds because
+    Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock.
+    No backend integration, provider, browser, or visual stage ran; no product
+    assertion or visual-policy failure was observed. Restore Docker health and
+    rerun the exact gate, then continue the next bounded provider/history or
+    compatible R4/R2-R7 seam. No visual baseline, mask, threshold, skip,
+    provider, fallback, or acceptance policy changed.
     Product commit 26161b90 fences Market Map event rows and source-scoped
     fetch state by the historical evaluation cutoff, preventing future-fetched
     events from leaking into earlier maps and treating orphan event rows as

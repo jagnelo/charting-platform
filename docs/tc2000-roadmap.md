@@ -21,6 +21,18 @@ threshold, skip, or acceptance policy changed. The exact branch gate remains
 pending behind the Docker socket permission failure; continue the next bounded
 provider/history or compatible R4/R2-R7 seam.
 
+## 2026-09-12 — Exact historical-event gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `26161b90`. Repository,
+workstream validation (30 records), dependency/migration checks, frontend
+preparation, Ruff, formatting, and TypeScript passed. The `backend-coverage`
+stage then stopped after the fixed 180-second Docker readiness window because
+the Docker socket returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence stale Market Map snapshot mutations
 
 Product commit `0e04d489` closes a bounded R6 snapshot-mutation race. Save and
