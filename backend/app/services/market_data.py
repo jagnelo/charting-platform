@@ -8,12 +8,13 @@ of the system (chart, alert, indicator, screener) reads them transparently.
 """
 
 import asyncio
+import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -82,6 +83,45 @@ _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 # same provider quota before the first transaction commits its bars.
 _OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
 _OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
+
+
+def _ohlcv_refresh_lock_key(
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None,
+    adjusted: bool,
+) -> tuple[int, str, datetime, datetime | None, bool]:
+    return (
+        instrument.id,
+        timeframe.value,
+        _as_utc(start),
+        _as_utc(end) if end is not None else None,
+        adjusted,
+    )
+
+
+async def _acquire_database_refresh_lock(
+    db: AsyncSession,
+    lock_key: tuple[int, str, datetime, datetime | None, bool],
+) -> None:
+    """Serialize an exact refresh key across PostgreSQL workers/hosts.
+
+    PostgreSQL transaction-scoped advisory locks are deliberately optional:
+    SQLite/unit doubles have no equivalent and continue using only the local
+    asyncio gate. The lock is held until the refresh transaction commits or
+    rolls back, so a waiter can safely re-read the newly persisted coverage.
+    """
+
+    bind = getattr(db, "bind", None)
+    if bind is None:
+        bind = getattr(getattr(db, "sync_session", None), "bind", None)
+    if getattr(getattr(bind, "dialect", None), "name", None) != "postgresql":
+        return
+
+    digest = hashlib.sha256(repr(lock_key).encode("utf-8")).digest()
+    advisory_key = int.from_bytes(digest[:8], byteorder="big", signed=True)
+    await db.execute(select(func.pg_advisory_xact_lock(advisory_key)))
 
 
 def _e2e_fixture_bar_condition():
@@ -626,13 +666,7 @@ async def fetch_ohlcv(
             allow_provider_fetch=allow_provider_fetch,
         )
 
-    lock_key = (
-        instrument.id,
-        timeframe.value,
-        _as_utc(start),
-        _as_utc(end) if end is not None else None,
-        adjusted,
-    )
+    lock_key = _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted)
     lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
     _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
     try:
@@ -671,6 +705,11 @@ async def _fetch_ohlcv_impl(
         if end is None:
             end = datetime.now(UTC)
         return [b for b in bars if b.ts >= start and b.ts <= end]
+
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted),
+    )
 
     if end is None:
         end = datetime.now(UTC)

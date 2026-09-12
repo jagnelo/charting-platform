@@ -176,3 +176,31 @@ async def test_identical_provider_refreshes_are_coalesced_per_process(monkeypatc
     assert results == [["fresh"], ["cached"]]
     assert provider_calls == 1
     assert max_active == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_refresh_lock_uses_transaction_scoped_advisory_lock():
+    executed = []
+
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="postgresql"))
+
+        async def execute(self, statement):
+            executed.append(statement)
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)
+
+    assert len(executed) == 1
+
+
+@pytest.mark.asyncio
+async def test_non_postgres_refresh_lock_is_a_noop():
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="sqlite"))
+
+        async def execute(self, _statement):
+            raise AssertionError("SQLite must not receive PostgreSQL advisory SQL")
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)

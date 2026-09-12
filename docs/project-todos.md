@@ -12,9 +12,15 @@
 - [x] Add concurrent regression coverage and rerun OHLCV router/background
       tests. Focused market-data coverage passes `10/10`, router/background
       coverage passes `13/13`, and no generic quota fallback is introduced.
-- [ ] Extend the same coalescing contract across process boundaries with a
-      durable distributed lease/refresh-result protocol; this checkpoint does
-      not claim cross-host deduplication.
+- [x] Extend the same coalescing contract across PostgreSQL-backed process
+      boundaries with a transaction-scoped advisory lock derived from the exact
+      request key. The lock is held through refresh persistence, so another
+      worker rechecks committed coverage before provider execution; SQLite and
+      unit doubles safely retain the process-local gate only.
+- [ ] Add explicit multi-host contention validation and a durable
+      refresh-result/lease protocol for deployments that cannot share the same
+      PostgreSQL transaction boundary; this checkpoint does not claim
+      cross-database deduplication.
 
 ### 2026-09-12 — Grouped screener coverage preflight
 
