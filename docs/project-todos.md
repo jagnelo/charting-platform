@@ -11,6 +11,18 @@
       provider/history or compatible chart/list/gauge work. No visual/acceptance
       policy changed.
 
+### 2026-09-12 — Exact Study Lab execution gate rechecked
+- [x] Reran the exact branch-scoped gate at product tip `07fcfae0`; git-diff,
+      workstream, dependency/migration, frontend preparation, Ruff, formatting,
+      and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
+      permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`
+      after the fixed 180-second readiness window. No backend integration,
+      provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
+      then continue provider/history or compatible chart/list/gauge work. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize Study Lab timeline points
 
 - [x] Normalize dense Study Lab bar timestamps and trade/open-position event

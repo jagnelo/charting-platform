@@ -17,6 +17,22 @@ Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
 product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
 acceptance policy changed.
 
+## 2026-09-12 — Exact Study Lab execution gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `07fcfae0` after the
+execution timestamp slice. Git-diff, workstream validation, dependency
+resolution, migration checks, frontend preparation, Ruff, formatting, and
+TypeScript passed. The `backend-coverage` stage then stopped after the fixed
+180-second Docker readiness window because the Docker socket returned permission
+denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, rerun pending API regressions and the
+exact gate at this tip, then continue the next bounded provider/history or
+compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Canonicalize Study Lab timeline points
 
 Product commit `40b8db13` closes the dense Study Lab timeline serialization
