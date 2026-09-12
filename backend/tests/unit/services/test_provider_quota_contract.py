@@ -648,6 +648,24 @@ def test_existing_typed_capacity_error_is_preserved_for_durable_event_recording(
     assert preserved.scope == "api_key"
 
 
+def test_provider_rate_limit_error_derives_reset_for_typed_adapter_error():
+    typed = ProviderRateLimitError(
+        "example",
+        "provider quota exceeded",
+        status_code=429,
+        headers={"Retry-After": "7"},
+    )
+
+    before = datetime.now(UTC) + timedelta(seconds=6)
+    preserved = provider_rate_limit_error("example", typed, scope="api_key")
+    after = datetime.now(UTC) + timedelta(seconds=8)
+
+    assert preserved is typed
+    assert preserved.scope == "api_key"
+    assert preserved.retry_at is not None
+    assert before <= preserved.retry_at <= after
+
+
 def test_non_capacity_http_error_is_not_misclassified():
     response = httpx.Response(500, request=httpx.Request("GET", "https://provider.example/data"))
     exc = httpx.HTTPStatusError("500 Server Error", request=response.request, response=response)

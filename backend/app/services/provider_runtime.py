@@ -1086,6 +1086,13 @@ def provider_rate_limit_error(
     if isinstance(exc, ProviderRateLimitError):
         if exc.scope is None:
             exc.scope = scope
+        if exc.retry_at is None:
+            # Some adapters construct the typed error before deriving the
+            # reset timestamp. The headers have already been filtered by the
+            # error type, so recover a provider-declared reset here rather
+            # than silently dropping it. Missing or malformed values remain
+            # unknown; this never invents a cooldown.
+            exc.retry_at = _retry_at_from_headers(exc.headers)
         return exc
     response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
     status_code = getattr(response, "status_code", None)
