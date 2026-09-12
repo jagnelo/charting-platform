@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence stale Market Map snapshots
+
+Product commit `fc012ad0` closes a bounded R6 snapshot-selection race in the
+Market Map. Snapshot loads now carry a selection generation and verify the
+current selection plus mounted state before applying the saved map, metadata,
+errors, or loading cleanup; an older response cannot replace a newer snapshot.
+
+The focused Market Map component suite passed `41/41`; the full frontend
+Vitest suite passed `1015/1015`; frontend type-check and `git diff --check`
+passed. Existing expected watchlist-store failure-path stderr remains confined
+to its tests. No provider, fallback, visual baseline, mask, threshold, skip,
+or acceptance policy changed. The exact branch gate remains pending behind the
+Docker socket permission failure; continue the next bounded provider/history
+or compatible R4/R2-R7 seam at this coherent tip.
+
 ## 2026-09-12 — Fence Market Map Python asset lifecycle
 
 Product commit `a306e2f2` closes a bounded R6 lifecycle seam in the Market Map:

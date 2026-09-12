@@ -2,6 +2,17 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence stale Market Map snapshots
+
+Product commit `fc012ad0` fences Market Map snapshot loads by selection
+generation, current selection, and mounted state. A slower response from an
+older saved snapshot can no longer replace a newer selection or leave stale
+metadata, errors, or loading state behind. Focused Market Map coverage passed
+`41/41`, full frontend Vitest passed `1015/1015`, and frontend type-check plus
+diff checks passed. No provider, fallback, visual, or acceptance policy
+changed. The exact gate remains pending behind the Docker socket permission
+failure; do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence stale Market Map Python runs
 
 Product commit `95ed93ce` fences queued Python breadth/area run responses and

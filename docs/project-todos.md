@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence stale Market Map snapshots
+
+- [x] Fence Market Map snapshot loads by selection generation, current
+      selection, and mounted state so late responses cannot replace a newer
+      saved map or stale loading/error state (`fc012ad0`).
+- [x] Market Map component coverage passed `41/41`; full frontend Vitest passed
+      `1015/1015`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Market Map Python asset lifecycle
 
 - [x] Fence Market Map Python asset discovery by component generation and
