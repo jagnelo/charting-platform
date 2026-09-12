@@ -1121,20 +1121,28 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
+  if (!componentMounted) return
   // The dock can already expose a fully usable active tab while the initial
   // workspace promise is still settling (notably after Golden Layout restores
   // a persisted snapshot). Do not strand an Add-tool click behind that promise
   // when the concrete tab needed for the mutation is already present. Only
   // wait for readiness when there is no active tab to mutate at all.
   if (!workspaceReady.value && !workspaceStore.activeTab) {
-    if (workspaceLoadPromise) await workspaceLoadPromise
+    if (workspaceLoadPromise) {
+      await workspaceLoadPromise
+      if (!componentMounted) return
+    }
     // The click can arrive in the same turn as component mount, before the
     // onMounted callback has assigned its load promise. Wait on the explicit
     // readiness signal instead of silently dropping the user's command after
     // an arbitrary polling budget while the canonical workspace is still
     // hydrating.
-    if (!workspaceReady.value && !workspaceStore.activeTab) await workspaceReadyPromise
+    if (!workspaceReady.value && !workspaceStore.activeTab) {
+      await workspaceReadyPromise
+      if (!componentMounted) return
+    }
   }
+  if (!componentMounted) return
   if (!workspaceStore.activeTab) {
     workspaceStore.error = 'The workstation layout is not available yet; please retry the tool action.'
     return
@@ -1143,6 +1151,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   toolLibraryOpen.value = false
   if (!opened) return
   await nextTick()
+  if (!componentMounted) return
   // Golden Layout can finish creating the tab after its virtual component has
   // mounted. Clicking the concrete tab element is the same interaction as a
   // user selecting it and guarantees the newly opened tool is foregrounded.
@@ -1152,6 +1161,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // interaction until the DOM confirms the requested tab is active; this is
   // bounded and exits immediately once the user-visible state is correct.
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (!componentMounted) return
     const toolRoot = [...document.querySelectorAll<HTMLElement>('[data-tool-key]')]
       .find(candidate => candidate.dataset.toolKey === opened.instance_key)
     // Do not fall back to a same-titled tab while the new virtual component is
@@ -1159,6 +1169,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
     // treating that tab as success would leave the newly opened component hidden.
     if (!toolRoot) {
       await new Promise(resolve => setTimeout(resolve, 25))
+      if (!componentMounted) return
       continue
     }
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
@@ -1178,6 +1189,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       if (dropdownList && getComputedStyle(dropdownList).display === 'none') {
         stack?.querySelector<HTMLElement>('.lm_tabdropdown')?.click()
         await new Promise(resolve => setTimeout(resolve, 25))
+        if (!componentMounted) return
         continue
       }
       const overflowTabs = dropdownList
@@ -2066,6 +2078,8 @@ onBeforeUnmount(() => {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   searchRequest += 1
+  resolveWorkspaceReady?.()
+  resolveWorkspaceReady = null
   endTabDrag()
   window.removeEventListener('wheel', handleWheel, { capture: true })
   ctrlWheelHeld.value = false
