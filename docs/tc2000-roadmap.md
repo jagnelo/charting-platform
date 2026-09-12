@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
+
+Product commit `1152b4e3` completes the user-facing side of the chart output
+contract. Multi-output indicator rows now expose a bounded output selector
+using the canonical backend keys (for example `bb_upper`, `macd`, or
+`stoch_k`); the selected output persists in the chart indicator configuration
+and flows through chart drags, watchlist columns, EasyScan conditions, and all
+compatible promotion targets. Leaving the selector unset continues to fail
+closed. Chart rendering and chart-to-chart copying remain supported.
+
+Focused Chart Plot Library coverage passed `28/28`; the full frontend Vitest
+suite passed `1002/1002` across `113` files; frontend type-check, repository
+Ruff/format checks, and `git diff --check` passed. No backend contract, visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. The exact gate must be rerun at this product tip; its latest result
+is the current Docker `/v1.55/info` HTTP 500 stop at `backend-coverage`.
+
+The next action is to restore Docker Desktop health and rerun the exact gate,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam. Preserve the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
 
 Product commit `72bdeea2` carries the chart indicator output contract through

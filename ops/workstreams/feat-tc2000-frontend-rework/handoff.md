@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
+
+Product commit `1152b4e3` adds a bounded output selector to multi-output chart
+indicator rows. The selector uses canonical backend keys and persists the
+chosen output in the indicator configuration, enabling validated chart drags,
+watchlist columns, EasyScan conditions, and compatible promotion targets.
+Unset selections still fail closed; chart rendering and chart-to-chart copying
+remain supported.
+
+Focused Chart Plot Library coverage passed `28/28`; full frontend Vitest passed
+`1002/1002` across `113` files; frontend type-check, Ruff/format, and diff
+checks passed. No backend contract, visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed. The exact gate has not yet
+been rerun at this product tip; latest gate evidence is the Docker
+`/v1.55/info` HTTP 500 stop at `backend-coverage`.
+
+Checkpoint scope: `frontend/src/components/workstation/ChartPlotLibrary.vue`,
+`frontend/tests/unit/components/test_chart_plot_library.test.ts`, and these
+roadmap/TODO records. Rerun the exact gate after Docker health is restored
+before advancing the next bounded seam.
+
 ## 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
 
 Product commit `72bdeea2` carries the canonical chart-indicator output through

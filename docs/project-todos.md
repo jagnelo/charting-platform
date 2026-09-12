@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
+
+- [x] Add a bounded output selector to multi-output chart indicator rows using
+      canonical backend keys; persist the chosen key so drag/drop, watchlist,
+      EasyScan, and compatible promotion paths have an explicit series
+      contract (`1152b4e3`).
+- [x] Keep the unset state fail-closed and preserve chart rendering/chart-copy
+      behavior. Focused Chart Plot Library coverage passed `28/28`; full
+      frontend Vitest passed `1002/1002` across `113` files; type-check,
+      Ruff/format, and diff checks passed. No backend, visual, provider,
+      fallback, or acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at product tip `1152b4e3` after
+      Docker Desktop is healthy, then continue provider/history or another
+      compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Chart plot output contracts survive drag/drop handoffs
 
 - [x] Carry canonical single-output keys through chart drag payloads and
