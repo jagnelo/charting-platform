@@ -47,6 +47,13 @@
           </select>
           <input v-else v-model="indicatorParams[param.key]" :disabled="!instrumentId || busy" :type="param.input === 'datetime' ? 'date' : 'number'" :step="param.input === 'datetime' ? undefined : 'any'" :aria-label="`Alert ${param.label}`" />
         </label>
+        <label v-if="indicatorOutputOptions.length" class="alerts-tool__parameter">
+          <span>Output</span>
+          <select v-model="indicatorOutput" :disabled="!instrumentId || busy" aria-label="Alert indicator output">
+            <option value="">Select output…</option>
+            <option v-for="option in indicatorOutputOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
       </template>
       <template v-if="alertKind === 'indicator' && indicatorTarget === 'indicator'">
         <label v-for="param in selectedIndicatorB?.params ?? []" :key="`b-${param.key}`" class="alerts-tool__parameter">
@@ -55,6 +62,13 @@
             <option v-for="option in param.options ?? []" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
           <input v-else v-model="indicatorBParams[param.key]" :disabled="!instrumentId || busy" :type="param.input === 'datetime' ? 'date' : 'number'" :step="param.input === 'datetime' ? undefined : 'any'" :aria-label="`Alert comparison ${param.label}`" />
+        </label>
+        <label v-if="indicatorBOutputOptions.length" class="alerts-tool__parameter">
+          <span>B Output</span>
+          <select v-model="indicatorBOutput" :disabled="!instrumentId || busy" aria-label="Alert comparison indicator output">
+            <option value="">Select output…</option>
+            <option v-for="option in indicatorBOutputOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
         </label>
       </template>
       <input v-if="alertKind === 'price' || indicatorTarget === 'threshold'" v-model="threshold" :disabled="!instrumentId || busy" inputmode="decimal" :placeholder="alertKind === 'indicator' ? 'Value' : 'Price'" :aria-label="alertKind === 'indicator' ? 'Indicator threshold' : 'Alert price'" />
@@ -108,6 +122,8 @@ import { computed, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { INDICATOR_CATALOG } from '@/lib/indicators/catalog'
+import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
+import type { IndicatorType } from '@/types'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
 type PriceAlert = { id: number; condition: string; threshold_price: number | string; status: string; repeat: boolean }
@@ -135,8 +151,12 @@ const indicatorTarget = ref<'threshold' | 'indicator'>('threshold')
 const indicatorOptions = INDICATOR_CATALOG
 const indicatorParams = ref<Record<string, string | number>>({})
 const indicatorBParams = ref<Record<string, string | number>>({})
+const indicatorOutput = ref('')
+const indicatorBOutput = ref('')
 const selectedIndicator = computed(() => indicatorOptions.find(item => item.type === indicatorType.value) ?? indicatorOptions[0])
 const selectedIndicatorB = computed(() => indicatorOptions.find(item => item.type === indicatorBType.value) ?? indicatorOptions[0])
+const indicatorOutputOptions = computed(() => getTechnicalIndicatorOutputOptions(indicatorType.value as IndicatorType))
+const indicatorBOutputOptions = computed(() => getTechnicalIndicatorOutputOptions(indicatorBType.value as IndicatorType))
 const conditionOptions = computed(() => alertKind.value === 'indicator'
   ? [
       { value: 'crosses_above', label: 'Crosses above' },
@@ -163,7 +183,13 @@ const busy = ref(false)
 const error = ref('')
 let viewGeneration = 0
 const validThreshold = computed(() => Number.isFinite(Number(threshold.value)) && Number(threshold.value) > 0)
-const validTarget = computed(() => alertKind.value === 'indicator' && indicatorTarget.value === 'indicator' ? Boolean(indicatorBType.value) : validThreshold.value)
+const validIndicatorOutputs = computed(() =>
+  (!indicatorOutputOptions.value.length || Boolean(indicatorOutput.value))
+  && (indicatorTarget.value !== 'indicator' || !indicatorBOutputOptions.value.length || Boolean(indicatorBOutput.value)),
+)
+const validTarget = computed(() => alertKind.value === 'indicator'
+  ? validIndicatorOutputs.value && (indicatorTarget.value === 'indicator' ? Boolean(indicatorBType.value) : validThreshold.value)
+  : validThreshold.value)
 
 function resetIndicatorParams() {
   const defaults = selectedIndicator.value?.defaultConfig.params ?? {}
@@ -235,10 +261,10 @@ async function create() {
         instrument_id: props.instrumentId,
         timeframe: alertTimeframe.value,
         indicator_a_type: indicatorType.value,
-        indicator_a_params: normalizeParams(indicatorParams.value),
+        indicator_a_params: { ...normalizeParams(indicatorParams.value), ...(indicatorOutput.value ? { output: indicatorOutput.value } : {}) },
         condition: condition.value,
         ...(indicatorTarget.value === 'indicator'
-          ? { indicator_b_type: indicatorBType.value, indicator_b_params: normalizeParams(indicatorBParams.value) }
+          ? { indicator_b_type: indicatorBType.value, indicator_b_params: { ...normalizeParams(indicatorBParams.value), ...(indicatorBOutput.value ? { output: indicatorBOutput.value } : {}) } }
           : { threshold_value: Number(threshold.value) }),
         repeat: repeat.value,
       })
@@ -298,9 +324,13 @@ watch(() => props.instrumentId, () => { void load() }, { immediate: true })
 watch(() => props.timeframe, value => {
   if (timeframeOptions.some(option => option.value === value)) alertTimeframe.value = value
 })
-watch(indicatorType, resetIndicatorParams, { immediate: true })
+watch(indicatorType, () => {
+  resetIndicatorParams()
+  indicatorOutput.value = ''
+}, { immediate: true })
 watch(indicatorBType, () => {
   indicatorBParams.value = indicatorParamsFor(indicatorBType.value)
+  indicatorBOutput.value = ''
 }, { immediate: true })
 watch(alertKind, value => {
   if (value === 'indicator' && condition.value === 'touches') condition.value = 'crosses_above'

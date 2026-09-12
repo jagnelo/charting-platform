@@ -45,6 +45,13 @@
                  class="form-input" />
         </div>
       </template>
+      <div class="param-row" v-if="lhsOutputOptions.length">
+        <label>Output</label>
+        <select v-model="lhs.output" class="form-select">
+          <option value="">Select output…</option>
+          <option v-for="option in lhsOutputOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </div>
       <!-- Timeframe shown for any indicator source (active or new) -->
       <div class="param-row" v-if="lhs.isCustomIndicator || lhs.sourceType.startsWith('active_')">
         <label>Timeframe</label>
@@ -133,6 +140,13 @@
                  class="form-input" />
         </div>
       </template>
+      <div class="param-row" v-if="rhsOutputOptions.length">
+        <label>Output</label>
+        <select v-model="rhs.output" class="form-select">
+          <option value="">Select output…</option>
+          <option v-for="option in rhsOutputOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </div>
       <!-- Timeframe shown for any indicator source (active or new) -->
       <div class="param-row" v-if="rhs.isCustomIndicator || rhs.sourceType.startsWith('active_')">
         <label>Timeframe</label>
@@ -171,7 +185,8 @@ import {
   indicatorDisplayName,
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
-import type { Timeframe, IndicatorConfig, PriceAlert, IndicatorAlert } from '@/types'
+import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
+import type { Timeframe, IndicatorConfig, IndicatorType, PriceAlert, IndicatorAlert } from '@/types'
 
 const props = defineProps<{
   instrumentId: number
@@ -208,7 +223,7 @@ const activeIndicators = computed(() =>
     .filter(i => i.type !== 'volume')
     .map(i => {
       const label = indicatorDisplayName(i)
-      return { key: `active_${i.type}_${JSON.stringify(i.params)}`, label, config: i }
+      return { key: `active_${i.type}_${JSON.stringify(i.params)}_${i.output ?? ''}`, label, config: i }
     })
 )
 
@@ -217,6 +232,7 @@ interface Source {
   sourceType: string   // 'value' | 'close'|'open'|'high'|'low' | 'active_*' | 'new_*'
   fixedValue: number
   params: Record<string, unknown>
+  output?: string
   timeframe: Timeframe
   isCustomIndicator: boolean
 }
@@ -232,7 +248,8 @@ rhs.sourceType = 'value'
 
 // Pre-seed from indicator sidebar button
 if (props.seedIndicator) {
-  lhs.sourceType = `active_${props.seedIndicator.type}_${JSON.stringify(props.seedIndicator.params)}`
+  lhs.sourceType = `active_${props.seedIndicator.type}_${JSON.stringify(props.seedIndicator.params)}_${props.seedIndicator.output ?? ''}`
+  lhs.output = props.seedIndicator.output
   rhs.sourceType = 'close'
 }
 
@@ -244,11 +261,32 @@ function updateIsCustom(s: Source) {
   if (s.isCustomIndicator) {
     const type = s.sourceType.replace('new_', '')
     s.params = normalizeIndicatorParams(type, { ...(DEFAULT_PARAMS[type] ?? {}) })
+    s.output = undefined
+  } else if (s.sourceType.startsWith('active_')) {
+    const found = activeIndicators.value.find(i => i.key === s.sourceType)
+    s.output = found?.config.output
+  } else {
+    s.output = undefined
   }
 }
 
 const lhsParamDefs = computed(() => INDICATOR_BY_TYPE[lhs.sourceType.replace('new_', '') as keyof typeof INDICATOR_BY_TYPE]?.params ?? [])
 const rhsParamDefs = computed(() => INDICATOR_BY_TYPE[rhs.sourceType.replace('new_', '') as keyof typeof INDICATOR_BY_TYPE]?.params ?? [])
+function sourceIndicatorType(source: Source): string | undefined {
+  if (source.sourceType.startsWith('active_')) {
+    return activeIndicators.value.find(item => item.key === source.sourceType)?.config.type
+  }
+  if (source.sourceType.startsWith('new_')) return source.sourceType.replace('new_', '')
+  return undefined
+}
+const lhsOutputOptions = computed(() => {
+  const type = sourceIndicatorType(lhs)
+  return type ? getTechnicalIndicatorOutputOptions(type as IndicatorType) : []
+})
+const rhsOutputOptions = computed(() => {
+  const type = sourceIndicatorType(rhs)
+  return type ? getTechnicalIndicatorOutputOptions(type as IndicatorType) : []
+})
 
 // ── Conditions ────────────────────────────────────────────────────────────────
 const conditions = [
@@ -292,6 +330,7 @@ if (props.editPriceAlert) {
   } else {
     lhs.sourceType = `new_${a.indicator_a_type}`
     lhs.params = normalizeIndicatorParams(a.indicator_a_type, a.indicator_a_params as Record<string, unknown>)
+    lhs.output = typeof lhs.params.output === 'string' ? lhs.params.output : undefined
     lhs.isCustomIndicator = true
   }
   lhs.timeframe = a.timeframe as Timeframe
@@ -303,6 +342,7 @@ if (props.editPriceAlert) {
     } else {
       rhs.sourceType = `new_${a.indicator_b_type}`
       rhs.params = normalizeIndicatorParams(a.indicator_b_type, a.indicator_b_params as Record<string, unknown>)
+      rhs.output = typeof rhs.params.output === 'string' ? rhs.params.output : undefined
       rhs.isCustomIndicator = true
     }
   } else {
@@ -372,6 +412,7 @@ function resolveSource(s: Source): {
   isIndicator: boolean
   indicatorType?: string
   indicatorParams?: Record<string, unknown>
+  indicatorOutput?: string
   indicatorTf?: Timeframe
 } {
   if (s.sourceType === 'value') {
@@ -385,12 +426,14 @@ function resolveSource(s: Source): {
     if (found) {
       return { isPriceField: false, isFixedValue: false, isIndicator: true,
         indicatorType: found.config.type, indicatorParams: normalizeIndicatorParams(found.config.type, found.config.params),
+        indicatorOutput: found.config.output,
         indicatorTf: s.timeframe }
     }
   }
   if (s.sourceType.startsWith('new_')) {
     return { isPriceField: false, isFixedValue: false, isIndicator: true,
       indicatorType: s.sourceType.replace('new_',''), indicatorParams: normalizeIndicatorParams(s.sourceType.replace('new_',''), s.params),
+      indicatorOutput: s.output,
       indicatorTf: s.timeframe }
   }
   return { isPriceField: false, isFixedValue: false, isIndicator: false }
@@ -401,6 +444,8 @@ const isValid = computed(() => {
   if (condition.value === 'volume_spike') return volumeSpikeMultiplier.value > 0 && volumeSpikePeriod.value > 1
   if (rhs.sourceType === 'value' && !rhs.fixedValue) return false
   if (condition.value === 'within_percent' && withinPct.value <= 0) return false
+  if (lhsOutputOptions.value.length && !lhs.output) return false
+  if (rhsOutputOptions.value.length && !rhs.output) return false
   return true
 })
 
@@ -464,7 +509,9 @@ async function submit() {
     // Indicator alert
     // LHS must be an indicator or price field (price field = use type 'close' etc.)
     const indAType = l.isIndicator ? l.indicatorType! : (l.priceField ?? 'close')
-    const indAParams = l.isIndicator ? (l.indicatorParams ?? {}) : {}
+    const indAParams = l.isIndicator
+      ? { ...(l.indicatorParams ?? {}), ...(l.indicatorOutput ? { output: l.indicatorOutput } : {}) }
+      : {}
     const tf = l.indicatorTf ?? r.indicatorTf ?? defaultTf
 
     const body: any = {
@@ -482,7 +529,7 @@ async function submit() {
       body.within_percent  = withinPct.value
     } else if (r.isIndicator) {
       body.indicator_b_type   = r.indicatorType
-      body.indicator_b_params = r.indicatorParams ?? {}
+      body.indicator_b_params = { ...(r.indicatorParams ?? {}), ...(r.indicatorOutput ? { output: r.indicatorOutput } : {}) }
     } else if (r.isPriceField) {
       body.indicator_b_type   = r.priceField  // backend handles close/open/high/low as valid types
       body.indicator_b_params = {}

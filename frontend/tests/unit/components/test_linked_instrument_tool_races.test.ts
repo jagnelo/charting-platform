@@ -126,6 +126,24 @@ describe('linked instrument tool stale-response guards', () => {
     expect(apiPost).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({ condition: 'lte', threshold_value: 30 }))
   })
 
+  it('requires and submits an explicit output for multi-output indicator alerts', async () => {
+    apiGet.mockResolvedValue([])
+    apiPost.mockResolvedValue({ id: 44, instrument_id: 7, indicator_a_type: 'bb', condition: 'crosses_above', threshold_value: 100, status: 'active', repeat: false })
+    const wrapper = mountAlerts({ props: { instrumentId: 7, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Alert type"]')).toBeTruthy())
+    await wrapper.get('[aria-label="Alert type"]').setValue('indicator')
+    await wrapper.get('[aria-label="Alert indicator"]').setValue('bb')
+    await wrapper.get('[aria-label="Indicator threshold"]').setValue('100')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[aria-label="Alert indicator output"]').setValue('bb_upper')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('form[aria-label="Create instrument alert"]').trigger('submit')
+    expect(apiPost).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({
+      indicator_a_type: 'bb',
+      indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+    }))
+  })
+
   it('creates an indicator-versus-indicator alert without a fixed threshold', async () => {
     apiGet.mockResolvedValue([])
     apiPost.mockResolvedValue({ id: 43, instrument_id: 7, indicator_a_type: 'ema', indicator_b_type: 'sma', condition: 'crosses_above', status: 'active', repeat: false })
