@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact Settings-readiness gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `4f927af3` / product tip
+      `6df66ac3`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+
+### 2026-09-12 — Fence Strategy Lab bootstrap teardown
+
+- [x] Fence Strategy Lab universe-option hydration, post-bootstrap selection
+      hydration, reload, and coverage-preview responses by mounted lifecycle
+      and request generations (`ce2ca1a6`); existing strategy, Study, lineage,
+      provider, fallback, and promotion contracts are unchanged.
+- [x] Focused Strategy Lab coverage passed `29/29`; full frontend Vitest passed
+      `1047/1047`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence Settings provider-readiness teardown
 
 - [x] Fence OneSignal initialization, backend health checks, provider policy

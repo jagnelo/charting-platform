@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact Settings-readiness gate rechecked
+
+At documentation tip `4f927af3` (product tip `6df66ac3`), the exact gate
+passed repository/workstream, dependency/migration, frontend preparation,
+Ruff, formatting, and TypeScript, then stopped at `backend-coverage` after
+the fixed 180-second Docker readiness window because access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure
+was observed. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. Continue in this worktree only.
+
+## 2026-09-12 — Fence Strategy Lab bootstrap teardown
+
+Product commit `ce2ca1a6` fences Strategy Lab universe-option hydration,
+post-bootstrap selection hydration, reload, and coverage-preview responses by
+mounted lifecycle and request generations. Focused coverage passed `29/29`;
+full frontend Vitest passed `1047/1047`; type-check/build/diff checks passed
+with only the existing chunk-size warning. Strategy/Study, provider,
+fallback, visual, and acceptance contracts are unchanged. Continue in this
+worktree only.
+
 ## 2026-09-12 — Fence Settings provider-readiness teardown
 
 Product commit `6df66ac3` fences SettingsView OneSignal, connection,

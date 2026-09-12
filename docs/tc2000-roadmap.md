@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact Settings-readiness gate rechecked
+
+At documentation tip `4f927af3` (product tip `6df66ac3`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+## 2026-09-12 — Fence Strategy Lab bootstrap teardown
+
+Product commit `ce2ca1a6` closes a bounded R4/R6 lifecycle gap in the central
+Strategy Lab consumer. Universe option hydration for watchlists, screeners,
+baskets, and ETF holdings, post-bootstrap selection hydration, reload, and
+coverage-preview responses now stop before publishing detached or superseded
+local state. Strategy/Study payloads, lineage, provider routing, fallback,
+and promotion contracts are unchanged. Focused Strategy Lab coverage passed
+`29/29`; full frontend Vitest passed `1047/1047` across 115 files;
+frontend type-check and production build passed with only the existing
+chunk-size warning; and `git diff --check` passed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Continue
+the next bounded provider/history or compatible R4/R2-R7 seam while preserving
+the six protected visual state-oracle assertions.
+
 ## 2026-09-12 — Exact reusable-basket gate rechecked
 
 At documentation tip `8632f1aa` (product tip `f43ed459`), the exact
