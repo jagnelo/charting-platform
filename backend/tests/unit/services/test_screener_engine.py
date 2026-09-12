@@ -11,14 +11,45 @@ are in tests/integration/api/test_screener.py.
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 from app.services.screener_engine import (
     _compare,
+    _dispatch_screener_alert_event,
     _flush_indicator_cache,
 )
+
+
+@pytest.mark.asyncio
+async def test_screener_alert_event_serializes_triggered_at_as_utc_z(monkeypatch):
+    delivered: list[tuple[int, dict]] = []
+
+    async def broadcast_to_user(user_id: int, payload: dict) -> None:
+        delivered.append((user_id, payload))
+
+    monkeypatch.setattr(
+        "app.websocket.manager.ws_manager.broadcast_to_user",
+        broadcast_to_user,
+    )
+
+    _dispatch_screener_alert_event(
+        SimpleNamespace(
+            id=7,
+            user_id=11,
+            trigger_type="entered",
+            triggered_at=datetime.fromisoformat("2026-09-12T14:30:00+02:00"),
+        ),
+        SimpleNamespace(id=13, name="Momentum"),
+        {101},
+        {202},
+    )
+    await asyncio.sleep(0)
+
+    assert delivered[0][0] == 11
+    assert delivered[0][1]["triggered_at"] == "2026-09-12T12:30:00Z"
 
 
 class TestIndicatorCacheFlush:

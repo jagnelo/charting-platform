@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.lib.time_utils import wire_datetime
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.basket import Basket, BasketMember
 from app.models.indicator_cache import IndicatorCache
@@ -1078,7 +1079,7 @@ def _dispatch_screener_alert_event(
             "trigger_type": alert.trigger_type,
             "entered_ids": list(entered),
             "left_ids": list(left),
-            "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None,
+            "triggered_at": wire_datetime(alert.triggered_at),
         }
         # Targeted delivery prevents one user's scan membership from leaking to another.
         loop = asyncio.get_event_loop()
