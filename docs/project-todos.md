@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
+
+- [x] Rerun the exact branch-scoped Docker-backed integration gate at product
+      tip `4579d1e0` after applying the shared ETF fixture-visibility boundary
+      to Strategy Lab static and dynamic universes.
+- [x] The gate passed all non-visual stages: backend units `1,476/1,476`,
+      backend integration `395/395`, frontend dependency/lint/format/type
+      check/Vitest/build/contracts/probes, compose/provider contracts,
+      research-runner probes, and functional Playwright `165` passed with
+      `107` documented skips across `272` tests. Frontend Vitest completed
+      `113` files and `991` tests with `82.7%` statements.
+- [x] Visual parity completed `104` cases with `98` passes and exactly the
+      established protected state-oracle diffs: `watchlist-column-editor-open`
+      at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125
+      and visual-1440p-100/125. The gate exited `1` only at `e2e-visual`;
+      teardown removed all branch-scoped containers, volumes, network,
+      testcontainer sessions, and four images. No visual, provider, fallback,
+      or acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
+      seam, then R1 canonical population/history breadth, W1/MN continuity,
+      dense-data evidence, and R2-R7 without changing protected visual policy.
+
 ### 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
 
 - [x] Apply the shared controlled-fixture visibility contract to Strategy Lab's

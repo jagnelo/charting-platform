@@ -2,6 +2,24 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
+
+The exact elevated branch-scoped Docker-backed gate ran at product tip
+`4579d1e0`. Non-visual stages all passed: backend units `1,476/1,476`, backend
+integration `395/395`, frontend dependency/lint/format/type-check/Vitest/build/
+contracts/probes, compose/provider contracts, research-runner probes, and
+functional Playwright `165` passed with `107` documented skips across `272`.
+Vitest completed `113` files and `991` tests at `82.7%` statements.
+
+Visual parity completed `98/104`, with exactly the established protected
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exited `1` only at `e2e-visual`. Teardown removed all branch-scoped containers,
+volumes, network, testcontainer sessions, and four images. No visual, provider,
+fallback, or acceptance policy changed. Continue the next bounded
+provider/history or compatible chart/list/gauge seam and preserve the
+no-integration/no-deployment boundary.
+
 ## 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
 
 Product tip `4579d1e0` applies the shared exact-pair controlled-fixture

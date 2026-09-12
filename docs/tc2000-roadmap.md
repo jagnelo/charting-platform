@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
+
+The exact elevated branch-scoped Docker-backed integration gate ran at product
+tip `4579d1e0` after Strategy Lab static and dynamic ETF universes adopted the
+shared exact controlled-fixture visibility boundary. All non-visual stages
+passed: backend units `1,476/1,476`, backend integration `395/395`, frontend
+dependency/lint/format/type-check/Vitest/build/contracts/probes,
+compose/provider contracts, research-runner probes, and functional Playwright
+`165` passed with `107` documented skips across `272`. Frontend Vitest completed
+`113` files and `991` tests at `82.7%` statements.
+
+Visual parity completed `98/104`; the six failures were exactly the established
+protected state-oracle set: `watchlist-column-editor-open` at visual-1080p-100
+and visual-1080p-125, plus `workspace-floating` at visual-1080p-100,
+visual-1080p-125, visual-1440p-100, and visual-1440p-125. The gate exited `1`
+only at `e2e-visual`; branch-scoped teardown removed all containers, volumes,
+network, testcontainer sessions, and four images. No visual, provider, fallback,
+or acceptance policy changed. Continue the next bounded provider/history or
+compatible chart/list/gauge seam, then R1 canonical population/history breadth,
+W1/MN continuity, dense-data evidence, and R2-R7 without changing protected
+visual policy.
+
 ## 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
 
 At product tip `4579d1e0`, Strategy Lab's static and dynamic ETF holdings
