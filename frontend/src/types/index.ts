@@ -742,6 +742,8 @@ export interface IndicatorAlert {
 export interface IndicatorConfig {
   type: IndicatorType
   params: Record<string, unknown>
+  /** Explicit output for multi-output indicators when a downstream surface needs one series. */
+  output?: string
   style: { color: string; lineWidth: number }
   pane?: 'main' | 'separate'
   /** Hidden plots remain configured and template-serializable but are not rendered. */

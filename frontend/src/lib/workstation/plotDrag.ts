@@ -1,11 +1,18 @@
 import { INDICATOR_BY_TYPE, indicatorDisplayName } from '@/lib/indicators/catalog'
-import type { TechnicalConditionDraft, TechnicalIndicatorParams } from '@/lib/technicalConditions'
+import { getTechnicalIndicatorOutputOptions, type TechnicalConditionDraft, type TechnicalIndicatorParams } from '@/lib/technicalConditions'
 import type { IndicatorConfig, IndicatorType, Timeframe } from '@/types'
 
 export const CHART_PLOT_DRAG_MIME = 'application/x-charting-platform-plot'
 const PLOT_DRAG_VERSION = 1
 const MAX_PLOT_DRAG_BYTES = 16_384
 const TIMEFRAMES: Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
+const SINGLE_OUTPUT_BY_TYPE: Partial<Record<IndicatorType, string>> = {
+  sma: 'sma', ema: 'ema', wma: 'wma', hma: 'hma', dema: 'dema', tema: 'tema',
+  vwap: 'vwap', avwap: 'avwap', psar: 'psar', rsi: 'rsi', cci: 'cci',
+  williams_r: 'williams_r', mfi: 'mfi', roc: 'roc', momentum: 'momentum',
+  stddev: 'stddev', cmf: 'cmf', obv: 'obv', atr: 'atr', trix: 'trix',
+  ppo: 'ppo', volume: 'volume', volume_ratio: 'volume_ratio',
+}
 // Some browser drag implementations expose custom MIME types during
 // dragover but return an empty value during drop. Keep the current serialized
 // payload in the page while the drag is active as a same-document fallback.
@@ -65,18 +72,36 @@ function isTimeframe(value: unknown): value is Timeframe {
 }
 
 export function createChartPlotDragPayload(indicator: IndicatorConfig, timeframe: Timeframe, sourceWindowKey: string): ChartPlotDragPayload {
+  const output = indicatorOutputFromConfig(indicator)
   const payload: ChartPlotDragPayload = {
     version: PLOT_DRAG_VERSION,
     kind: 'chart-plot',
     indicator: {
       type: indicator.type,
       params: JSON.parse(JSON.stringify(indicator.params ?? {})) as Record<string, unknown>,
+      ...(output ? { output } : {}),
       timeframe,
       label: indicatorDisplayName(indicator),
       sourceWindowKey: sourceWindowKey.slice(0, 128),
     },
   }
   return payload
+}
+
+/**
+ * Returns the canonical backend output key for a chart indicator. Multi-output
+ * indicators deliberately return null until the chart has an explicit output
+ * selection; callers must fail closed rather than letting the backend pick the
+ * first series implicitly.
+ */
+export function indicatorOutputFromConfig(indicator: Pick<IndicatorConfig, 'type' | 'output'>): string | null {
+  const options = getTechnicalIndicatorOutputOptions(indicator.type)
+  if (options.length) {
+    return typeof indicator.output === 'string' && options.some(option => option.value === indicator.output)
+      ? indicator.output
+      : null
+  }
+  return SINGLE_OUTPUT_BY_TYPE[indicator.type] ?? null
 }
 
 export function writeChartPlotDrag(dataTransfer: DataTransfer, payload: ChartPlotDragPayload) {
@@ -237,25 +262,29 @@ export function pythonColumnFromPlot(payload: ChartPythonPlotDragPayload) {
 
 export function indicatorColumnFromPlot(payload: ChartPlotDragPayload) {
   const { indicator } = payload
-  const key = `indicator:${indicator.type}:${JSON.stringify(indicator.params)}:${indicator.timeframe}`
+  const output = indicatorOutputFromConfig(indicator)
+  if (!output) return null
+  const key = `indicator:${indicator.type}:${JSON.stringify(indicator.params)}:${indicator.timeframe}:${output}`
   return {
     key,
     name: indicator.label,
     indicator: indicator.type,
     params: { ...indicator.params },
     timeframe: indicator.timeframe,
-    ...(indicator.output ? { output: indicator.output } : { output: 'value' }),
+    output,
   }
 }
 
 export function technicalConditionFromPlot(payload: ChartPlotDragPayload) {
   const { indicator } = payload
+  const output = indicatorOutputFromConfig(indicator)
+  if (!output) return null
   const params = Object.fromEntries(Object.entries(indicator.params).filter(([, value]) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) as TechnicalIndicatorParams
   return {
     type: 'indicator_threshold' as const,
     indicator: indicator.type,
     params,
-    ...(indicator.output ? { output: indicator.output } : {}),
+    output,
     op: 'gt' as const,
     value: 0,
   } satisfies TechnicalConditionDraft

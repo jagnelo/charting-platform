@@ -67,7 +67,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '@/lib/indicators/catalog'
 import { api } from '@/lib/api'
 import type { IndicatorConfig, IndicatorType } from '@/types'
-import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
+import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, indicatorOutputFromConfig, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 type PythonPlot = {
@@ -337,13 +337,13 @@ function copy(index: number, target: string) {
     if (window.instance_key === props.sourceWindowKey) continue
     if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
     if (window.tool_type === 'watchlist') {
-      const output = chartIndicatorOutput(item)
+      const output = indicatorOutputFromConfig(item)
       if (!output) {
         skippedMultiOutputWatchlist = true
         continue
       }
       const columns = Array.isArray(window.configuration.indicator_columns) ? window.configuration.indicator_columns : []
-      const key = `indicator:${item.type}:${JSON.stringify(item.params)}`
+      const key = `indicator:${item.type}:${JSON.stringify(item.params)}:${chartStore.timeframe}:${output}`
       if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output }]
     } else {
       const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []
@@ -399,7 +399,7 @@ function selectPromotion(index: number) {
   promotionStatus.value = ''
 }
 function promotionCondition(item: IndicatorConfig) {
-  const output = chartIndicatorOutput(item)
+  const output = indicatorOutputFromConfig(item)
   if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
   return { operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: item.type, params: { ...item.params }, output, op: promotionOperator.value, value: promotionThreshold.value }] }
 }
@@ -409,18 +409,6 @@ function promotionKey(name: string) {
 function uniqueAssetKey(value: string, kind = 'plot') {
   const base = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 56) || 'chart-plot'
   return `${base}-${kind}-${Date.now().toString(36)}`.slice(0, 80)
-}
-const MULTI_OUTPUT_INDICATORS = new Set(['bb', 'keltner', 'donchian', 'ichimoku', 'pivot_points', 'macd', 'stoch', 'adx', 'aroon'])
-function chartIndicatorOutput(item: IndicatorConfig) {
-  if (MULTI_OUTPUT_INDICATORS.has(item.type)) return null
-  const outputByType: Record<string, string> = {
-    sma: 'sma', ema: 'ema', wma: 'wma', hma: 'hma', dema: 'dema', tema: 'tema',
-    vwap: 'vwap', avwap: 'avwap', psar: 'psar', rsi: 'rsi', cci: 'cci',
-    williams_r: 'williams_r', mfi: 'mfi', roc: 'roc', momentum: 'momentum',
-    stddev: 'stddev', cmf: 'cmf', obv: 'obv', atr: 'atr', trix: 'trix',
-    ppo: 'ppo', volume: 'volume', volume_ratio: 'volume_ratio',
-  }
-  return outputByType[item.type] ?? null
 }
 function chartSignalSource(item: IndicatorConfig, output: string) {
   const params = JSON.stringify(item.params ?? {})
@@ -434,7 +422,7 @@ async function promoteSelected() {
   if (!item || !promotionName.value || !Number.isFinite(promotionThreshold.value) || promotionBusy.value) return
   promotionBusy.value = true; promotionStatus.value = ''
   try {
-    const output = chartIndicatorOutput(item)
+    const output = indicatorOutputFromConfig(item)
     if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
     if (promotionTarget.value === 'signal') {
       const instrumentId = chartStore.instrument?.id

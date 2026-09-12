@@ -201,6 +201,26 @@ describe('EasyScanTool', () => {
     expect(wrapper.findAll('.tech-cond-card')).toHaveLength(2)
   })
 
+  it('refuses an ambiguous multi-output chart plot drop', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      types: ['application/x-charting-platform-plot'],
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    writeChartPlotDrag(dataTransfer, createChartPlotDragPayload({ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#fff', lineWidth: 1 }, pane: 'main' }, 'D1', 'chart-source'))
+
+    await wrapper.get('.easy-scan').trigger('drop', { dataTransfer })
+    await flushPromises()
+
+    expect(wrapper.get('[role="status"]').text()).toContain('multi-output')
+    expect(wrapper.find('.easy-scan__advanced').exists()).toBe(false)
+  })
+
   it('exposes the editable condition tree as a bounded drag source', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool, { props: { sourceWindowKey: 'scan-source' } })

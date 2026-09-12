@@ -154,8 +154,13 @@ function dropPlot(event: DragEvent) {
   plotDropActive.value = false
   const payload = readChartPlotDrag(event.dataTransfer)
   if (!payload) return
+  const condition = technicalConditionFromPlot(payload)
+  if (!condition) {
+    plotDropStatus.value = 'This multi-output indicator cannot be added until an explicit output is selected.'
+    return
+  }
   advancedMode.value = true
-  advancedGroup.value = { ...advancedGroup.value, conditions: [...advancedGroup.value.conditions, technicalConditionFromPlot(payload)] }
+  advancedGroup.value = { ...advancedGroup.value, conditions: [...advancedGroup.value.conditions, condition] }
   if (!conditionName.value) conditionName.value = `${payload.indicator.label} condition`
   plotDropStatus.value = `Added ${payload.indicator.label} to technical conditions`
   error.value = ''

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CHART_PLOT_DRAG_MIME, clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, createTechnicalConditionDragPayload, pythonColumnFromPlot, readAnalysisDrag, readChartPlotDrag, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag, writeTechnicalConditionDrag } from '@/lib/workstation/plotDrag'
+import { CHART_PLOT_DRAG_MIME, clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, createTechnicalConditionDragPayload, indicatorColumnFromPlot, pythonColumnFromPlot, readAnalysisDrag, readChartPlotDrag, scheduleAnalysisDragCleanup, technicalConditionFromPlot, writeChartPlotDrag, writePythonPlotDrag, writeTechnicalConditionDrag } from '@/lib/workstation/plotDrag'
 
 function transfer() {
   const values = new Map<string, string>()
@@ -17,7 +17,20 @@ describe('plot drag payloads', () => {
     const payload = createChartPlotDragPayload({ type: 'rsi', params: { period: 14 }, style: { color: '#fff', lineWidth: 1 }, pane: 'separate' }, 'D1', 'chart-source')
     expect(writeChartPlotDrag(dataTransfer, payload)).toBe(true)
     expect(readChartPlotDrag(dataTransfer)).toMatchObject({ kind: 'chart-plot', version: 1, indicator: { type: 'rsi', params: { period: 14 }, timeframe: 'D1', sourceWindowKey: 'chart-source' } })
+    expect(payload.indicator.output).toBe('rsi')
     expect(dataTransfer.effectAllowed).toBe('copy')
+  })
+
+  it('refuses ambiguous multi-output indicators until an explicit output is selected', () => {
+    const ambiguous = createChartPlotDragPayload({ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#fff', lineWidth: 1 }, pane: 'main' }, 'D1', 'chart-source')
+    expect(ambiguous.indicator.output).toBeUndefined()
+    expect(indicatorColumnFromPlot(ambiguous)).toBeNull()
+    expect(technicalConditionFromPlot(ambiguous)).toBeNull()
+
+    const selected = createChartPlotDragPayload({ type: 'bb', params: { period: 20, std_dev: 2 }, output: 'bb_upper', style: { color: '#fff', lineWidth: 1 }, pane: 'main' }, 'D1', 'chart-source')
+    expect(selected.indicator.output).toBe('bb_upper')
+    expect(indicatorColumnFromPlot(selected)).toMatchObject({ indicator: 'bb', output: 'bb_upper' })
+    expect(technicalConditionFromPlot(selected)).toMatchObject({ indicator: 'bb', output: 'bb_upper' })
   })
 
   it('rejects malformed, unknown-version, and oversized drops', () => {

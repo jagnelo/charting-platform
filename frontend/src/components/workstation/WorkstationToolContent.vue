@@ -3223,6 +3223,10 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   }
   if (payload.kind !== 'chart-plot') return
   const column = indicatorColumnFromPlot(payload)
+  if (!column) {
+    conditionDropError.value = 'This multi-output indicator cannot be copied to a watchlist column until an explicit output is selected.'
+    return
+  }
   const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
   const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)
   const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
