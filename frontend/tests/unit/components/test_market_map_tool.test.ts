@@ -386,6 +386,68 @@ describe('MarketMapTool', () => {
     })
   })
 
+  it('ignores stale history readiness responses after the source changes', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      { ...previousSources[0], source_id: 'market-group:sp500', name: 'S&P 500', source_kind: 'index_membership' },
+      { ...previousSources[0], source_id: 'watchlist:7', name: 'Personal candidates', source_kind: 'personal', locked: false },
+    ]
+    let resolveStale: ((value: unknown) => void) | undefined
+    const staleResponse = new Promise(resolve => { resolveStale = resolve })
+    const currentStatus = {
+      source_id: 'watchlist:7',
+      source_kind: 'personal',
+      name: 'Personal candidates',
+      locked: false,
+      membership_version: 'watchlist:7:v2',
+      max_instruments: 5000,
+      available_instrument_count: 1,
+      selected_instrument_count: 1,
+      limited: false,
+      excluded_count: 0,
+      overall_status: 'ready',
+      analysis_ready: true,
+      analysis_ready_status: 'ready',
+      timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, required_bar_count: 252, bar_count: 252, in_progress_count: 0, complete_count: 1, failed_count: 0, pending_count: 0 }],
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path.includes('/history-status/') && (path.includes('market-group%3Asp500') || path.includes('market-group:sp500'))) return staleResponse
+      if (path.includes('/history-status/') && (path.includes('watchlist%3A7') || path.includes('watchlist:7'))) return Promise.resolve(currentStatus)
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+    await wrapper.get('[aria-label="Market Map universe"]').setValue('watchlist:7')
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Market Map history readiness"]').text()).toContain('analysis ready')
+
+    resolveStale?.({
+      source_id: 'market-group:sp500',
+      source_kind: 'index_membership',
+      name: 'S&P 500',
+      locked: true,
+      membership_version: 'sp500:v1',
+      max_instruments: 5000,
+      available_instrument_count: 1,
+      selected_instrument_count: 1,
+      limited: false,
+      excluded_count: 0,
+      overall_status: 'partial',
+      analysis_ready: false,
+      analysis_ready_status: 'partial',
+      timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 0, coverage_percent: 0, analysis_ready_member_count: 0, analysis_ready_percent: 0, required_bar_count: 252, bar_count: 0, in_progress_count: 0, complete_count: 0, failed_count: 0, pending_count: 1 }],
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Market Map history readiness"]').text()).toContain('analysis ready')
+    expect(wrapper.get('[aria-label="Market Map history readiness"]').text()).not.toContain('analysis partial')
+    expect(wrapper.get('[aria-label="Market Map history readiness"]').text()).not.toContain('S&P 500')
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('keeps unmapped family legs unavailable but lets mapped pending sources remain followable', async () => {
     const previousSources = sourceState.sources
     const pendingSource = {

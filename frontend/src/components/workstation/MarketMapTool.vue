@@ -419,6 +419,10 @@ let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Market Map tools.  Fence each request so a slower response from the prior
 // universe cannot clear or replace the currently selected map.
 let runGeneration = 0
+// History readiness has the same source/timeframe race as the map itself. A
+// slow status response from a previous source must never replace the current
+// source's coverage or resurrect its refresh run.
+let historyGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -594,34 +598,47 @@ const historyRunProgress = computed(() => {
   return `${historyRun.value.queued_count + historyRun.value.already_queued_count} queued`
 })
 
-async function loadHistoryRun(schedulePoll = false) {
-  if (!historyRun.value) return
+async function loadHistoryRun(schedulePoll = false, generation = historyGeneration) {
+  const runId = historyRun.value?.id
+  if (runId == null) return
   try {
-    historyRun.value = await fetchWatchlistHistoryRefreshRun(historyRun.value.id)
+    const nextRun = await fetchWatchlistHistoryRefreshRun(runId)
+    if (!componentMounted || generation !== historyGeneration || historyRun.value?.id !== runId) return
+    historyRun.value = nextRun
     if (schedulePoll) scheduleHistoryPoll()
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to read history refresh progress'
+    if (componentMounted && generation === historyGeneration && historyRun.value?.id === runId) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to read history refresh progress'
+    }
   }
 }
 
 async function loadHistoryStatus(schedulePoll = false) {
   if (!sourceId.value) {
+    historyGeneration += 1
     clearHistoryPoll()
+    historyLoading.value = false
     historyStatus.value = null
     return
   }
+  const generation = ++historyGeneration
+  const requestSourceId = sourceId.value
   historyLoading.value = true
   historyError.value = ''
   try {
-    const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, [timeframe.value], 5000, historyAsOf.value)
+    const result = await fetchWatchlistSourceHistoryStatus(requestSourceId, [timeframe.value], 5000, historyAsOf.value)
+    if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     historyStatus.value = result && !Array.isArray(result) ? result : null
-    await loadHistoryRun()
+    await loadHistoryRun(false, generation)
+    if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     if (schedulePoll) scheduleHistoryPoll()
   } catch (cause) {
-    historyStatus.value = null
-    historyError.value = cause instanceof Error ? cause.message : 'Unable to read local history readiness'
+    if (componentMounted && generation === historyGeneration && sourceId.value === requestSourceId) {
+      historyStatus.value = null
+      historyError.value = cause instanceof Error ? cause.message : 'Unable to read local history readiness'
+    }
   } finally {
-    historyLoading.value = false
+    if (generation === historyGeneration) historyLoading.value = false
   }
 }
 
@@ -1662,7 +1679,9 @@ function persist() {
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, timeframe, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(timeframe, () => {
+  historyGeneration += 1
   clearHistoryPoll()
+  historyLoading.value = false
   historyStatus.value = null
   historyRun.value = null
   historyRefreshMessage.value = ''
@@ -1673,7 +1692,9 @@ watch([period, endDate], () => {
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
+  historyGeneration += 1
   clearHistoryPoll()
+  historyLoading.value = false
   historyStatus.value = null
   historyRun.value = null
   historyRefreshMessage.value = ''
@@ -1728,6 +1749,7 @@ onMounted(async () => {
 onUnmounted(() => {
   componentMounted = false
   runGeneration += 1
+  historyGeneration += 1
   clearHistoryPoll()
   window.removeEventListener('resize', scheduleCanvasDraw)
   if (canvasDrawFrame != null) window.cancelAnimationFrame(canvasDrawFrame)
