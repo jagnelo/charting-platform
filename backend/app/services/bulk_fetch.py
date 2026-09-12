@@ -102,14 +102,26 @@ async def bulk_fetch_instrument(
 
     # Track whether any coarser daily+ TF returned data.  If none did, there is
     # no point querying intraday TFs when the caller also requested a coarse
-    # resolution.  An intraday-only request is explicit and must still reach
-    # the provider; otherwise a caller asking for H1 (or finer) would be
-    # silently reported as skipped without any provider work.  Keep the count
-    # of coarse requests remaining so a caller's custom ordering cannot cause
-    # an intraday item to be skipped before its coarse prerequisite is tried.
-    any_daily_or_coarser_returned_data = False
+    # resolution.  A zero *new-row* result is not the same as no data: a
+    # provider may have returned only bars already present in the canonical
+    # cache.  Seed the flag from persisted rows so a repeat refresh cannot
+    # silently skip the requested intraday work.  An intraday-only request is
+    # explicit and must still reach the provider; otherwise a caller asking for
+    # H1 (or finer) would be silently reported as skipped without any provider
+    # work.  Keep the count of coarse requests remaining so a caller's custom
+    # ordering cannot cause an intraday item to be skipped before its coarse
+    # prerequisite is tried.
+    coarse_history_available = False
     remaining_daily_or_coarser_requests = sum(not _is_intraday(tf) for tf in timeframes)
     has_daily_or_coarser_request = remaining_daily_or_coarser_requests > 0
+
+    if has_daily_or_coarser_request:
+        coarse_history_available = await _has_persisted_coarse_history(
+            db,
+            instrument.id,
+            adjusted=adjusted,
+            end=fetch_end,
+        )
 
     for tf in timeframes:
         if await _is_cancel_requested(redis, cancel_key):
@@ -125,7 +137,7 @@ async def bulk_fetch_instrument(
         if (
             is_intraday
             and has_daily_or_coarser_request
-            and not any_daily_or_coarser_returned_data
+            and not coarse_history_available
             and remaining_daily_or_coarser_requests == 0
         ):
             summary[tf.value] = "skipped"
@@ -148,7 +160,7 @@ async def bulk_fetch_instrument(
 
         if isinstance(result, int):
             if result > 0 and not is_intraday:
-                any_daily_or_coarser_returned_data = True
+                coarse_history_available = True
             logger.info(f"Bulk fetch {ticker_sym} {tf.value}: {result} bars")
         else:
             logger.info(f"Bulk fetch {ticker_sym} {tf.value}: {result}")
@@ -373,6 +385,42 @@ async def _existing_timestamps(
     )
     rows = (await db.execute(stmt)).scalars().all()
     return {_to_utc(ts) for ts in rows}
+
+
+async def _has_persisted_coarse_history(
+    db: AsyncSession,
+    instrument_id: int,
+    *,
+    adjusted: bool,
+    end: datetime,
+) -> bool:
+    """Return whether relevant daily-or-coarser canonical history exists.
+
+    Bulk-fetch summaries report newly inserted rows, but the intraday
+    optimization needs to know whether the source/cache already has coarse
+    evidence. Restricting the probe to the requested end keeps bounded
+    historical refreshes from being satisfied by a future row.
+    """
+
+    if not hasattr(db, "execute"):
+        return False
+
+    statement = (
+        select(OHLCVBar.id)
+        .where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe.in_([Timeframe.MN, Timeframe.W1, Timeframe.D1]),
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.ts <= end,
+        )
+        .limit(1)
+    )
+    result = await db.execute(statement)
+    if result is None:
+        # Lightweight unit-test session doubles may not implement query
+        # results. Preserve the existing fail-closed optimization there.
+        return False
+    return result.scalars().first() is not None
 
 
 def _to_utc(ts: Any) -> datetime:

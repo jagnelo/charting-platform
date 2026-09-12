@@ -125,6 +125,73 @@ async def test_bulk_fetch_custom_order_attempts_intraday_before_coarse_request(m
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_does_not_skip_intraday_when_coarse_cache_has_only_duplicates(monkeypatch):
+    calls = []
+
+    class ScalarResult:
+        def first(self):
+            return 101
+
+    class Result:
+        def scalars(self):
+            return ScalarResult()
+
+    class Session:
+        async def execute(self, _statement):
+            return Result()
+
+        async def commit(self):
+            return None
+
+    async def fetch_one(*, timeframe, **_kwargs):
+        calls.append(timeframe)
+        return 0
+
+    async def materialize(*_args, **_kwargs):
+        return {"W1": 0, "MN": 0}
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    monkeypatch.setattr(bulk_fetch, "materialize_derived_timeframes", materialize)
+    monkeypatch.setattr(bulk_fetch.asyncio, "sleep", no_sleep)
+
+    result = await bulk_fetch.bulk_fetch_instrument(
+        Session(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.D1, Timeframe.H1],
+    )
+
+    assert result == {"D1": 0, "H1": 0, "derived": {"W1": 0, "MN": 0}}
+    assert calls == [Timeframe.D1, Timeframe.H1]
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_still_skips_intraday_without_coarse_cache(monkeypatch):
+    calls = []
+
+    async def fetch_one(*, timeframe, **_kwargs):
+        calls.append(timeframe)
+        return 0
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    monkeypatch.setattr(bulk_fetch.asyncio, "sleep", no_sleep)
+
+    result = await bulk_fetch.bulk_fetch_instrument(
+        object(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.D1, Timeframe.H1],
+    )
+
+    assert result == {"D1": 0, "H1": "skipped"}
+    assert calls == [Timeframe.D1]
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_passes_historical_end_to_derived_materializer(monkeypatch):
     materializer_ends = []
 
