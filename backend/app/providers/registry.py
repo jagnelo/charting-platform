@@ -686,8 +686,11 @@ def provider_is_configured(name: str, operation: str | None = None) -> bool:
             return is_valid_edgar_user_agent(user_agent)
         return True
     if name == "massive":
-        return bool(settings.MASSIVE_API_KEY or settings.MARKETDATA_API_KEY)
-    return all(bool(getattr(settings, key, "")) for key in required)
+        return any(
+            bool(str(getattr(settings, key, "") or "").strip())
+            for key in ("MASSIVE_API_KEY", "MARKETDATA_API_KEY")
+        )
+    return all(bool(str(getattr(settings, key, "") or "").strip()) for key in required)
 
 
 def get_provider_usage_profile(name: str) -> dict:

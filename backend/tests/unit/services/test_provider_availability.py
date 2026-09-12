@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
+from app.providers.registry import provider_is_configured
 from app.services.provider_availability import (
     availability_error_message,
     classify_exception,
@@ -43,6 +44,16 @@ def test_availability_configuration_uses_operation_aware_registry(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "dinari-id")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "dinari-secret")
     assert provider_configured(dinari, entitlement, operation="discover_tokenized_assets")
+
+
+def test_provider_configuration_rejects_whitespace_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "   ")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "dinari-secret")
+    assert not provider_is_configured("dinari")
+
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "   ")
+    monkeypatch.setattr(settings, "MARKETDATA_API_KEY", "\t")
+    assert not provider_is_configured("massive")
 
 
 def test_classification_is_deterministic_for_empty_and_transport_failures():
