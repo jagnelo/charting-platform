@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-12 — Alert delivery preserves canonical indicator outputs
+
+- [x] Carry canonical output keys through indicator firing snapshots,
+      per-user WebSocket events, OneSignal payloads, alert-history summaries,
+      and in-app toasts (`7a517e3f`).
+- [x] Backend alert-condition plus notification/engine coverage passed `24/24`;
+      full frontend Vitest passed `1009/1009` across `115` files; type-check,
+      build, Ruff/format, and diff checks passed with only the existing
+      chunk-size warning.
+- [x] Reran the exact branch-scoped gate at product tip `7a517e3f`; all
+      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
+      because the Docker socket was inaccessible (`permission denied` for
+      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker access, run the pending alert, indicator-batch, and
+      instrument-coverage API regressions plus the exact gate, then continue
+      provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Instrument coverage timestamps use the canonical wire format
 
 - [x] Serialize instrument membership `last_run_at` and coverage `oldest` /

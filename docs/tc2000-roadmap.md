@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Alert delivery preserves canonical indicator outputs
+
+Product commit `7a517e3f` completes the alert-output contract across the
+delivery path. Indicator firing snapshots, authenticated WebSocket events,
+OneSignal payloads, and in-app alert toasts now retain the selected canonical
+output on both comparison sides. Alert history consequently remains
+unambiguous after an alert fires, including multi-output expressions such as
+`BB [bb_upper] crosses above SMA [sma]`.
+
+Backend alert-condition plus notification/engine coverage passed `24/24`; the
+full frontend Vitest suite passed `1009/1009` across `115` files; frontend
+type-check, production build, Ruff, formatting, and `git diff --check` passed.
+The build emitted only the existing chunk-size warning. The exact
+branch-scoped gate at `7a517e3f` passed git-diff, workstream validation,
+dependency/migration, frontend dependency preparation, and lint/type-check
+setup, then stopped at `backend-coverage` after the fixed 180-second Docker
+readiness window because the Docker socket was inaccessible (`permission
+denied` for `unix:///Users/jagnelo/.docker/run/docker.sock`). No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, and instrument-coverage API regressions plus the exact gate at
+this tip. Continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Instrument coverage timestamps use the canonical wire format
 
 Product commit `41586210` closes a narrow R1/R7 contract seam at the

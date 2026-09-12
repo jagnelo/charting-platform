@@ -13,6 +13,25 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 7a517e3f preserves canonical indicator outputs through firing
+  snapshots, authenticated WebSocket events, OneSignal payloads, alert-history
+  summaries, and in-app toasts. Backend alert-condition plus
+  notification/engine coverage passed 24/24; full frontend Vitest passed
+  1009/1009 across 115 files; type-check, production build, Ruff, formatting,
+  and diff checks passed with only the existing chunk-size warning. The exact
+  branch-scoped gate passed git-diff, workstream validation,
+  dependency/migration, frontend preparation, and lint/type-check setup, then
+  stopped at backend-coverage after the fixed 180-second Docker readiness
+  window because the Docker socket returned permission denied at
+  unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+  provider, browser, or visual stage ran; no product assertion or visual-policy
+  failure was observed. The pending alert, indicator-batch, and
+  instrument-coverage API fixtures remain Docker-dependent. No visual baseline,
+  mask, threshold, skip, provider, fallback, or acceptance policy changed.
+  Restore Docker access, rerun those API regressions and the exact gate at this
+  tip, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle
+  diffs and the no-integration/no-deployment boundary.
   Product tip 41586210 canonicalizes instrument membership last_run_at and
   data-coverage oldest/newest timestamps through the shared UTC Z wire
   serializer. Focused instrument-router coverage passed 8/8; Ruff, formatting,
