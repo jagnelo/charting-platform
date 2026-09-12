@@ -16453,3 +16453,12 @@ The current source also passes the focused authenticated top-down browser slice 
       passes `2,008/2,008` with 37 warnings, with Ruff, compileall, and diff
       checks clean. Source checkpoint `ac2ce574`; no provider calls,
       credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Docker-backed backend gate restoration
+
+- [x] Align the H4 radar and historical market-map integration fixtures with
+      the implemented timeframe/freshness semantics. The complete scoped
+      Docker-backed backend gate passes `2,386/2,386` with `81.33%` combined
+      coverage and 89 warnings; labeled test resources were cleaned. Source
+      checkpoint `a8ee8573`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.

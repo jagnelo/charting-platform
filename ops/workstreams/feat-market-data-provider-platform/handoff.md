@@ -1223,6 +1223,14 @@ Update this handoff at each coherent boundary.
   Ruff, compileall, and diff checks pass. No provider calls or credentials were
   used, and no frontend or ETF-provider files changed.
 
+- Source checkpoint `a8ee8573` restores the Docker-backed backend gate. Two
+  branch-owned integration fixtures were aligned with the implemented
+  timeframe/freshness semantics (H4 seed spacing and historical watchlist
+  membership), after which the complete scoped unit+integration gate passed
+  `2,386/2,386` at `81.33%` combined coverage with 89 warnings. The labeled
+  test resources were cleaned; no provider calls or credentials were used, and
+  no provider adapter, frontend, or ETF-provider files changed.
+
 - Source checkpoint `f6482ed2` closes a third pagination-loop edge in Alpaca
   corporate-action history. The adapter now rejects repeated pagination-token
   cycles instead of relying only on an immediate self-repeat or an optional
