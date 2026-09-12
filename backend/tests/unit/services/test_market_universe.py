@@ -508,7 +508,6 @@ async def test_universe_reconciliation_rejects_repeated_pagination_next_url(db, 
         return SimpleNamespace(
             result={
                 "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
-                "next_offset": 1,
                 "next_url": "https://provider.example/page?cursor=stuck",
             },
             data_source=source,
@@ -525,6 +524,48 @@ async def test_universe_reconciliation_rejects_repeated_pagination_next_url(db, 
     assert result["status"] == "failed"
     run = db.query(MarketUniverseReconciliationRun).one()
     assert "repeated a pagination next_url" in (run.error or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "next_offset",
+    [True, "1", 0, -1],
+)
+async def test_universe_reconciliation_rejects_invalid_next_offset(db, monkeypatch, next_offset):
+    from app.services import market_universe
+
+    source = DataSource(name="fixture-invalid-next-offset", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="fixture-invalid-next-offset", data_source=source)
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def malformed_cursor(*_args, **_kwargs):
+        return SimpleNamespace(
+            result={
+                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "next_offset": next_offset,
+                "complete": True,
+            },
+            data_source=source,
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", malformed_cursor)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-invalid-next-offset"
+    )
+
+    assert result["status"] == "failed"
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert "invalid next_offset" in (run.error or "") or "non-progressing next_offset" in (
+        run.error or ""
+    )
 
 
 @pytest.mark.asyncio

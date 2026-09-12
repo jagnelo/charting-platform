@@ -902,6 +902,16 @@ async def reconcile_us_universe(
                             )
                     next_offset = page.get("next_offset")
                     raw_next_url = page.get("next_url")
+                    if next_offset is not None and (
+                        isinstance(next_offset, bool)
+                        or not isinstance(next_offset, int)
+                        or next_offset < 0
+                    ):
+                        raise ValueError("discovery provider returned an invalid next_offset")
+                    if next_offset is not None and next_offset <= offset:
+                        raise ValueError(
+                            "discovery provider returned a non-progressing next_offset"
+                        )
                     if raw_next_url is not None and not isinstance(raw_next_url, str):
                         raise ValueError("discovery provider returned an invalid next_url")
                     if isinstance(raw_next_url, str) and raw_next_url:
