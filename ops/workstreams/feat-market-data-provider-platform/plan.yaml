@@ -320,6 +320,7 @@ progress:
     - Dinari Sandbox's documented host is now the default in Docker Compose, RPi Compose, and the manual GitHub live workflow; a wiring regression rejects the retired `api-enterprise.sbt.dinari.com` fallback. Focused provider-wiring/tokenized coverage passes 63/63, the full backend unit suite passes 1743/1743, and Ruff, compilation, and diff checks are clean
     - core workstation bootstrap history, ETF bootstrap, and family-history queue error results now use bounded credential redaction; the bootstrap regression exercises credential-bearing provider failure text. Focused bootstrap/error coverage passes 14/14, the full backend unit suite passes 1743/1743, and Ruff and diff checks are clean
     - root and RPi Compose manifests parse successfully after the Dinari Sandbox wiring correction (RPi validated with non-secret deployment placeholders); no service was started or restarted
+    - current official Tiingo pricing confirms the free Starter contract as 500 unique symbols/month, 50 requests/hour, 1,000 requests/day, and 1 GB/month bandwidth; the observed 2.00 GB dashboard value is not promoted into routing, and operation-specific byte bounds remain required
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

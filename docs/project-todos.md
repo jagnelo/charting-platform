@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-12 — Tiingo bandwidth contract confirmation
+
+- [x] Recheck the current official Tiingo pricing page: the free Starter
+      contract is 500 unique symbols/month, 50 requests/hour, 1,000/day, and
+      1 GB/month bandwidth. The observed “2.00 GB” dashboard value is not
+      promoted into routing; operation byte bounds remain explicitly required.
+
 ### 2026-09-12 — Compose provider-wiring validation
 
 - [x] Validate both root and RPi Compose manifests after the Dinari Sandbox
