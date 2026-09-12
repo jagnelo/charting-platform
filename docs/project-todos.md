@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Research Results promotion teardown
+
+- [x] Fence persisted Research Results breadth, event, structured
+      scalar/series/range, chart, column, gauge, alert, scan, Study Lab, and
+      Strategy signal promotion responses by mounted mutation generations so
+      teardown or superseded responses cannot publish stale messages/loading
+      cleanup or cached scan/filter records (`22a2548c`).
+- [x] Focused Research Results coverage passed `39/39`; full frontend Vitest
+      passed `1042/1042` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning. No API, lineage, provider, fallback, visual baseline, mask,
+      threshold, skip, or acceptance policy changed.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact benchmark-analytics gate rechecked
 
 - [x] At docs tip `b3a8394f` / product tip `45dff3ec`, git-diff, workstream

@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Research Results promotion teardown
+
+Product commit `22a2548c` fences persisted Research Results promotion flows by
+mounted mutation generations. Breadth, event, structured scalar/series/range,
+chart, column, gauge, alert, scan, Study Lab, and Strategy signal late
+responses cannot publish stale UI state or cached scan/filter records after
+teardown or supersession. Focused Research Results coverage passed `39/39`;
+full frontend Vitest passed `1042/1042`; type-check, production build, and
+`git diff --check` passed with only the existing chunk-size warning. No API,
+lineage, provider, fallback, visual, or acceptance policy changed. Continue in
+this worktree only.
+
 ## 2026-09-12 — Exact benchmark-analytics gate rechecked
 
 At docs tip `b3a8394f` (product tip `45dff3ec`), git-diff, workstream

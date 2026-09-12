@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Research Results promotion teardown
+
+Product commit `22a2548c` closes a bounded R6 lifecycle gap in the persisted
+Research Results surface. Breadth, event, structured scalar/series/range,
+chart, column, gauge, alert, scan, Study Lab, and Strategy signal promotion
+flows now fence late responses by the mounted mutation generation. Detached or
+superseded responses cannot publish stale promotion messages, loading cleanup,
+or cached scan/filter records. API, output-shape, lineage, provider, fallback,
+visual baseline, mask, threshold, skip, and acceptance contracts are
+unchanged. The focused Research Results suite passed `39/39`; full frontend
+Vitest passed `1042/1042` across 115 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. A teardown regression proves a late breadth promotion does not publish
+after unmount. Continue provider/history, R4 fan-out, and R2-R7 evidence while
+preserving the six protected visual state-oracle assertions.
+
 ## 2026-09-12 — Exact benchmark-analytics gate rechecked
 
 At documentation tip `b3a8394f` (product tip `45dff3ec`), the exact
