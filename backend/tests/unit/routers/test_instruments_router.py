@@ -17,6 +17,7 @@ from app.routers.instruments import (
     _needs_52w_stats_refresh,
     _wire_datetime,
 )
+from app.schemas.instrument import FieldProvenanceOut, InstrumentListingOut, InstrumentStatsOut
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -36,6 +37,32 @@ def test_instrument_read_contract_timestamps_share_canonical_wire_format():
     naive = datetime(2026, 1, 2, 3, 4, 5)
     assert _wire_datetime(aware) == "2026-01-02T03:04:05Z"
     assert _wire_datetime(naive) == "2026-01-02T03:04:05Z"
+
+
+def test_instrument_response_schemas_serialize_timestamps_as_canonical_utc_z():
+    naive = datetime(2026, 9, 12, 14, 30)
+    aware = datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
+
+    stats = InstrumentStatsOut(computed_at=naive)
+    provenance = FieldProvenanceOut(
+        source="provider",
+        fetched_at=naive,
+        observed_at=aware,
+    )
+    listing = InstrumentListingOut(
+        ticker="SPY",
+        is_primary=True,
+        is_active=True,
+        effective_at=naive,
+        known_at=aware,
+        delisted_at=None,
+    )
+
+    assert stats.model_dump(mode="json")["computed_at"] == "2026-09-12T14:30:00Z"
+    assert provenance.model_dump(mode="json")["fetched_at"] == "2026-09-12T14:30:00Z"
+    assert provenance.model_dump(mode="json")["observed_at"] == "2026-09-12T16:30:00Z"
+    assert listing.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00Z"
+    assert listing.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
 
 
 class TestInstrumentAutoCreate:

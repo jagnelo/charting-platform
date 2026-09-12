@@ -1,7 +1,13 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+from app.lib.time_utils import wire_datetime
+
+
+def _wire_datetime_or_text(value: datetime | str | None) -> str | None:
+    return wire_datetime(value) if isinstance(value, datetime) else value
 
 
 class ExchangeOut(BaseModel):
@@ -42,6 +48,10 @@ class InstrumentStatsOut(BaseModel):
     computed_at: datetime | None = None
     field_provenance: dict | None = None
 
+    @field_serializer("computed_at")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class FieldProvenanceOut(BaseModel):
     source: str
@@ -51,6 +61,10 @@ class FieldProvenanceOut(BaseModel):
     selection_reason: str | None = None
     quality_score: float | None = None
     note: str | None = None
+
+    @field_serializer("fetched_at", "observed_at")
+    def serialize_timestamps(self, value: datetime | str | None) -> str | None:
+        return _wire_datetime_or_text(value)
 
 
 class InstrumentIdentifierOut(BaseModel):
@@ -72,6 +86,10 @@ class InstrumentListingOut(BaseModel):
     known_at: datetime | None = None
     delisted_at: datetime | None = None
     exchange: ExchangeOut | None = None
+
+    @field_serializer("effective_at", "known_at", "delisted_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class OptionDetailOut(BaseModel):
