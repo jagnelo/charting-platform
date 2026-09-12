@@ -116,4 +116,18 @@ describe('CodeLibraryTool', () => {
     expect(wrapper.text()).toContain('Asset declares series')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
   })
+
+  it('does not publish a late refresh after the tool unmounts', async () => {
+    let resolveAssets!: (value: typeof asset[]) => void
+    apiGet.mockReturnValue(new Promise(resolve => { resolveAssets = resolve }))
+    const wrapper = mount(CodeLibraryTool)
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+
+    wrapper.unmount()
+    resolveAssets([asset])
+    await flushPromises()
+
+    expect((wrapper.vm as any).assets).toEqual([])
+  })
 })

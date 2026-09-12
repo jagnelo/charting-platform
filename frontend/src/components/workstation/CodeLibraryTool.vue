@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -114,17 +114,27 @@ const newValidation = ref<ValidationResult | null>(null)
 const validatingNew = ref(false)
 const versionValidations = ref<Record<number, ValidationResult>>({})
 const validatingAsset = ref<number | null>(null)
+let mounted = false
+let refreshGeneration = 0
 const filteredAssets = computed(() => {
   const needle = filter.value.toLowerCase()
   return assets.value.filter(asset => !needle || `${asset.name} ${asset.kind} ${asset.stable_key}`.toLowerCase().includes(needle))
 })
 
 async function refresh() {
+  const generation = ++refreshGeneration
   loading.value = true
   error.value = ''
-  try { assets.value = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 }) }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load Python assets' }
-  finally { loading.value = false }
+  try {
+    const nextAssets = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 })
+    if (mounted && generation === refreshGeneration) assets.value = nextAssets
+  }
+  catch (cause: any) {
+    if (mounted && generation === refreshGeneration) error.value = cause?.message ?? 'Unable to load Python assets'
+  }
+  finally {
+    if (mounted && generation === refreshGeneration) loading.value = false
+  }
 }
 function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' ? newConditionContract.value : newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
 function reconcileOutputContract(validation: ValidationResult, declaredContract: string, outputName?: string | null): ValidationResult {
@@ -271,7 +281,14 @@ async function importAsset(event: Event) {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import Python asset' }
   finally { input.value = '' }
 }
-onMounted(() => { void refresh() })
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshGeneration += 1
+})
 </script>
 
 <style scoped>
