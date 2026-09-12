@@ -485,6 +485,9 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('MSFT')
     })
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
+    })
 
     expect(api.get).toHaveBeenNthCalledWith(1, '/etf-holdings', { q: undefined })
     expect(api.get).toHaveBeenNthCalledWith(2, '/etf-holdings/SPY/dates')
@@ -939,5 +942,50 @@ describe('ETFHoldingsView', () => {
 
     expect(api.get).toHaveBeenCalledTimes(1)
     expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/SPY/dates')
+  })
+
+  it('does not let an older profile selection load into the newer selection', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile, overlapProfile])
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(holdingsPage())
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('MSFT')
+    })
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
+    })
+
+    let resolveOlderDates: ((snapshotDates: typeof dates) => void) | undefined
+    vi.mocked(api.get)
+      .mockReturnValueOnce(new Promise(resolve => {
+        resolveOlderDates = resolve
+      }) as never)
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(holdingsPage())
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const qqqCard = wrapper.findAll('button.profile-card').find(button => button.text().includes('QQQ'))
+    const spyCard = wrapper.findAll('button.profile-card').find(button => button.text().includes('SPY'))
+    expect(qqqCard).toBeTruthy()
+    expect(spyCard).toBeTruthy()
+    const olderSelection = qqqCard!.trigger('click')
+    await nextTick()
+    await spyCard!.trigger('click')
+    resolveOlderDates?.(dates)
+    await olderSelection
+    await flushPromises()
+
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/QQQ/holdings', expect.anything())
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
+    })
   })
 })

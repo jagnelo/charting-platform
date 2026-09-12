@@ -635,9 +635,14 @@ let diffLoadSeq = 0
 let evolutionLoadSeq = 0
 let transitionLoadSeq = 0
 let lifecycleGeneration = 0
+let profileSelectionGeneration = 0
 
 function isCurrentLifecycle(generation: number) {
   return generation === lifecycleGeneration
+}
+
+function isCurrentSelection(generation: number) {
+  return generation === profileSelectionGeneration
 }
 
 const compareOptions = computed(() =>
@@ -715,6 +720,7 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
   const generation = lifecycleGeneration
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return
+  const selection = ++profileSelectionGeneration
   profileSearch.value = normalized
   loadError.value = ''
 
@@ -725,17 +731,17 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
         name: result?.name || undefined,
       },
     )
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
 
     await loadProfiles('', false)
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     const matchedProfile = profiles.value.find(
       profile => profile.id === bootstrap.profile.id || profile.symbol.toUpperCase() === normalized,
     ) ?? bootstrap.profile
 
     if (bootstrap.latest_snapshot || matchedProfile.latest_snapshot_id != null) {
-      await selectProfile(matchedProfile, generation)
-      if (!isCurrentLifecycle(generation)) return
+      await selectProfile(matchedProfile, generation, selection)
+      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
       if (bootstrap.message && !bootstrap.refresh_succeeded) {
         loadError.value = bootstrap.message
       }
@@ -749,14 +755,18 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
     loadError.value = bootstrap.message
       || `No ETF holdings snapshot is stored yet for ${normalized}.`
   } catch (error) {
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     resetWorkspaceSelection()
     loadError.value = error instanceof Error ? error.message : `Could not prepare ETF holdings for ${normalized}.`
   }
 }
 
-async function selectProfile(profile: ETFProfile, generation = lifecycleGeneration) {
-  if (!isCurrentLifecycle(generation)) return
+async function selectProfile(
+  profile: ETFProfile,
+  generation = lifecycleGeneration,
+  selection = ++profileSelectionGeneration,
+) {
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   if (profile.latest_snapshot_id == null) {
     try {
       const bootstrap = await api.post<ETFProfileBootstrapResponse>(
@@ -765,7 +775,7 @@ async function selectProfile(profile: ETFProfile, generation = lifecycleGenerati
           name: profile.name || undefined,
         },
       )
-      if (!isCurrentLifecycle(generation)) return
+      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
       const bootstrappedProfile = bootstrap.profile
       const index = profiles.value.findIndex(item => item.id === bootstrappedProfile.id)
       if (index >= 0) {
@@ -787,7 +797,7 @@ async function selectProfile(profile: ETFProfile, generation = lifecycleGenerati
         return
       }
     } catch (error) {
-      if (!isCurrentLifecycle(generation)) return
+      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
       loadError.value = error instanceof Error
         ? error.message
         : `Could not prepare ETF holdings for ${profile.symbol}.`
@@ -805,39 +815,44 @@ async function selectProfile(profile: ETFProfile, generation = lifecycleGenerati
   overlapIssuer.value = profile.issuer || ''
   overlapFundFamily.value = profile.fund_family || ''
   overlapQuery.value = ''
-  await loadSnapshotOptions(generation)
-  if (!isCurrentLifecycle(generation)) return
-  await loadHoldings(generation)
-  if (!isCurrentLifecycle(generation)) return
-  await loadDiff(generation)
-  if (!isCurrentLifecycle(generation)) return
-  await loadWeightEvolution(generation)
-  if (!isCurrentLifecycle(generation)) return
-  await loadTransitionTimeline(generation)
+  await loadSnapshotOptions(generation, selection)
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+  await loadHoldings(generation, selection)
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+  await loadDiff(generation, selection)
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+  await loadWeightEvolution(generation, selection)
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+  await loadTransitionTimeline(generation, selection)
 }
 
 async function reloadHoldings() {
+  const selection = profileSelectionGeneration
   offset.value = 0
-  await loadHoldings()
+  await loadHoldings(lifecycleGeneration, selection)
 }
 
 async function reloadForSnapshotChange() {
   const generation = lifecycleGeneration
+  const selection = profileSelectionGeneration
   offset.value = 0
-  await loadHoldings(generation)
-  if (!isCurrentLifecycle(generation)) return
+  await loadHoldings(generation, selection)
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   if (!compareOptions.value.some(option => String(option.snapshot_id) === compareSnapshotId.value)) {
     compareSnapshotId.value = compareOptions.value[0] ? String(compareOptions.value[0].snapshot_id) : ''
   }
-  await loadDiff(generation)
+  await loadDiff(generation, selection)
 }
 
-async function loadSnapshotOptions(generation = lifecycleGeneration) {
-  if (!isCurrentLifecycle(generation)) return
+async function loadSnapshotOptions(
+  generation = lifecycleGeneration,
+  selection = profileSelectionGeneration,
+) {
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   const profile = selectedProfile.value
   if (!profile) return
   const loaded = await api.get<ETFHoldingsDate[]>(`/etf-holdings/${encodeURIComponent(profile.symbol)}/dates`)
-  if (!isCurrentLifecycle(generation)) return
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   snapshotOptions.value = loaded
   if (!loaded.length) {
     selectedSnapshotId.value = ''
@@ -857,8 +872,11 @@ async function loadSnapshotOptions(generation = lifecycleGeneration) {
   }
 }
 
-async function loadHoldings(generation = lifecycleGeneration) {
-  if (!isCurrentLifecycle(generation)) return
+async function loadHoldings(
+  generation = lifecycleGeneration,
+  selection = profileSelectionGeneration,
+) {
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   const profile = selectedProfile.value
   if (!profile) return
   if (!selectedSnapshotId.value) {
@@ -877,20 +895,23 @@ async function loadHoldings(generation = lifecycleGeneration) {
       limit: limit.value,
       offset: offset.value,
     })
-    if (!isCurrentLifecycle(generation) || seq !== holdingsLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== holdingsLoadSeq) return
     page.value = loaded
     selectedHolding.value = loaded.holdings[0] ?? null
   } catch (error) {
-    if (!isCurrentLifecycle(generation) || seq !== holdingsLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== holdingsLoadSeq) return
     page.value = null
     selectedHolding.value = null
     loadError.value = error instanceof Error ? error.message : 'Could not load holdings.'
   }
 }
 
-async function loadDiff(generationOrEvent: number | Event = lifecycleGeneration) {
+async function loadDiff(
+  generationOrEvent: number | Event = lifecycleGeneration,
+  selection = profileSelectionGeneration,
+) {
   const generation = typeof generationOrEvent === 'number' ? generationOrEvent : lifecycleGeneration
-  if (!isCurrentLifecycle(generation)) return
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   const profile = selectedProfile.value
   if (!profile || !selectedSnapshotId.value || !compareSnapshotId.value) {
     diff.value = null
@@ -902,16 +923,19 @@ async function loadDiff(generationOrEvent: number | Event = lifecycleGeneration)
       left_snapshot_id: compareSnapshotId.value,
       right_snapshot_id: selectedSnapshotId.value,
     })
-    if (!isCurrentLifecycle(generation) || seq !== diffLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== diffLoadSeq) return
     diff.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || seq !== diffLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== diffLoadSeq) return
     diff.value = null
   }
 }
 
-async function loadWeightEvolution(generation = lifecycleGeneration) {
-  if (!isCurrentLifecycle(generation)) return
+async function loadWeightEvolution(
+  generation = lifecycleGeneration,
+  selection = profileSelectionGeneration,
+) {
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   const profile = selectedProfile.value
   if (!profile) {
     weightEvolution.value = null
@@ -923,16 +947,19 @@ async function loadWeightEvolution(generation = lifecycleGeneration) {
       `/etf-holdings/${encodeURIComponent(profile.symbol)}/weight-evolution`,
       { limit: 8 },
     )
-    if (!isCurrentLifecycle(generation) || seq !== evolutionLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== evolutionLoadSeq) return
     weightEvolution.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || seq !== evolutionLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== evolutionLoadSeq) return
     weightEvolution.value = null
   }
 }
 
-async function loadTransitionTimeline(generation = lifecycleGeneration) {
-  if (!isCurrentLifecycle(generation)) return
+async function loadTransitionTimeline(
+  generation = lifecycleGeneration,
+  selection = profileSelectionGeneration,
+) {
+  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   const profile = selectedProfile.value
   if (!profile) {
     transitionTimeline.value = null
@@ -944,16 +971,17 @@ async function loadTransitionTimeline(generation = lifecycleGeneration) {
       `/etf-holdings/${encodeURIComponent(profile.symbol)}/transitions`,
       { limit: 8 },
     )
-    if (!isCurrentLifecycle(generation) || seq !== transitionLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== transitionLoadSeq) return
     transitionTimeline.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || seq !== transitionLoadSeq) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== transitionLoadSeq) return
     transitionTimeline.value = null
   }
 }
 
 async function loadOverlapSummary() {
   const generation = lifecycleGeneration
+  const selection = profileSelectionGeneration
   const profile = selectedProfile.value
   if (!profile || !selectedOverlapSymbols.value.length) {
     overlapSummary.value = null
@@ -975,20 +1003,21 @@ async function loadOverlapSummary() {
         metric: 'jaccard',
       }),
     ])
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = summary
     overlapMatrix.value = matrix
   } catch {
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = null
     overlapMatrix.value = null
   } finally {
-    if (isCurrentLifecycle(generation)) loadingOverlap.value = false
+    if (isCurrentLifecycle(generation) && isCurrentSelection(selection)) loadingOverlap.value = false
   }
 }
 
 async function loadOverlapFamilyMatrix() {
   const generation = lifecycleGeneration
+  const selection = profileSelectionGeneration
   const profile = selectedProfile.value
   if (!profile || !canCompareOverlapFamily.value) {
     overlapMatrix.value = null
@@ -996,7 +1025,7 @@ async function loadOverlapFamilyMatrix() {
   }
   loadingOverlap.value = true
   try {
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = null
     const loaded = await api.post<ETFHoldingsOverlapMatrix>(
       '/etf-holdings/overlap-matrix',
@@ -1012,10 +1041,10 @@ async function loadOverlapFamilyMatrix() {
         limit: overlapFamilyLimit.value,
       },
     )
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapMatrix.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation)) return
+    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapMatrix.value = null
   } finally {
     if (isCurrentLifecycle(generation)) loadingOverlap.value = false
@@ -1024,6 +1053,7 @@ async function loadOverlapFamilyMatrix() {
 
 onUnmounted(() => {
   lifecycleGeneration += 1
+  profileSelectionGeneration += 1
   profileLoadSeq += 1
   holdingsLoadSeq += 1
   diffLoadSeq += 1
