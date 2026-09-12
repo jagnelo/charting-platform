@@ -9,6 +9,12 @@
       coverage passed `2/2`; full frontend Vitest passed `1057/1057`;
       type-check, production build, and `git diff --check` passed with only the
       existing chunk-size warning. No visual/acceptance policy changed.
+- [x] Reran the exact branch-scoped gate at docs tip `82e8786c` / product tip
+      `7c51e3b28`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
 - [ ] Rerun the exact branch-scoped gate at the next coherent documentation
       tip, then continue the next bounded provider/history or compatible
       R4/R2-R7 seam.
