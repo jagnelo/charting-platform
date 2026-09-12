@@ -120,6 +120,7 @@ class TestExposureCombined:
         assert isinstance(data["ladder"], list)
         assert isinstance(data["key_levels"], dict)
         assert "computed_at" in data
+        assert data["computed_at"].endswith("Z")
 
     def test_ladder_has_correct_strikes(self, client, auth_headers, db, instrument, ohlcv_bars):
         _seed_chain(db, instrument)
