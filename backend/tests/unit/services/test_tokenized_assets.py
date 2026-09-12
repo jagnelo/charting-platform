@@ -463,7 +463,20 @@ async def test_refresh_tokenized_events_persists_and_links_explicit_action_ident
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_events_runs_dinari_bounded_global_split_feed(db, monkeypatch):
+async def test_refresh_tokenized_events_runs_dinari_bounded_global_split_feed(
+    db, instrument, monkeypatch
+):
+    await upsert_tokenized_asset(
+        AsyncSessionAdapter(db),
+        TokenizedAssetRecord(
+            provider="dinari",
+            asset_id="dinari-stock",
+            symbol="dAAPL",
+            name="Apple dShare",
+            underlying_symbol=instrument.symbol,
+            raw_payload={},
+        ),
+    )
     calls = []
     action_kwargs = []
 
@@ -496,8 +509,8 @@ async def test_refresh_tokenized_events_runs_dinari_bounded_global_split_feed(db
 
     assert result["status"] == "refreshed"
     assert result["events"] == 1
-    assert result["linked"] == 0
-    assert result["unlinked"] == 1
+    assert result["linked"] == 1
+    assert result["unlinked"] == 0
     assert result["failed"] == 0
     assert calls == [
         (

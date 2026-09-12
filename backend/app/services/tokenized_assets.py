@@ -32,6 +32,8 @@ def tokenized_domain_key(provider: str, asset_id: str) -> str:
 _TOKENIZED_ASSET_ID_FIELDS = (
     "assetId",
     "asset_id",
+    "stockId",
+    "stock_id",
     "providerAssetId",
     "provider_asset_id",
     "tokenId",
