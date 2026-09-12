@@ -16,6 +16,17 @@
       its adapter ownership and merge only compatible canonical identity and
       freshness contracts.
 
+### 2026-09-12 — Market Map current-data freshness boundary
+
+- [x] Make current Market Map calculations fail closed on explicitly stale
+      member OHLCV bars, stale direct references, and stale reference-source
+      members. The cache identity includes the stale-state set, freshness
+      accounting includes comparison IDs, and explicit `as_of` maps retain
+      historical observations.
+- [x] Add regression coverage for current stale withholding and historical
+      `as_of` preservation. The full backend unit suite is green; the
+      database-backed regression remains subject to Docker readiness.
+
 ### 2026-09-12 — Credentialed live confirmation for newly supplied providers
 
 - [x] Run bounded live integration cases with the owner-managed runtime

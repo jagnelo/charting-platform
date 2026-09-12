@@ -845,6 +845,59 @@ class TestWatchlistsCrud:
         assert body["coverage"] == 0
         assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
 
+    def test_market_map_withholds_expired_current_bars_but_keeps_as_of_data(
+        self, client, auth_headers, db, watchlist, instrument, ohlcv_bars
+    ):
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+
+        current = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+            },
+        )
+        assert current.status_code == 200, current.text
+        current_body = current.json()
+        assert current_body["coverage"] == 0
+        assert current_body["freshness"] == "stale"
+        assert current_body["cells"][0]["warnings"][0]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in current_body["exclusions"])
+
+        historical = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "as_of": ohlcv_bars[-1].ts.isoformat(),
+            },
+        )
+        assert historical.status_code == 200, historical.text
+        historical_cell = historical.json()["cells"][0]
+        assert historical_cell["coverage"] == 1
+        assert all(item["code"] != "stale_data" for item in historical_cell["warnings"])
+
     def test_market_map_rejects_relative_colour_without_reference(
         self, client, auth_headers, watchlist
     ):
