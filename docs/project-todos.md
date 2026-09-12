@@ -14,6 +14,14 @@
       1,879/1,879 with the known 37 warnings. No frontend or ETF-provider
       adapter files changed.
 
+### 2026-09-12 — SEC ticker-directory ambiguity handling
+
+- [x] Preserve duplicate SEC ticker rows as explicit ambiguous candidates
+      instead of letting the last directory row overwrite the first CIK.
+      Profile/event lookup and issuer search now refuse ambiguous ticker-only
+      resolution until venue or security-level evidence is supplied. Focused
+      EDGAR ticker coverage passes 27/27; no provider calls were made.
+
 ### 2026-09-12 — Durable bounded EDGAR issuer-universe scan
 
 - [x] Add an additive `market_event_scan_state` table and admin-only

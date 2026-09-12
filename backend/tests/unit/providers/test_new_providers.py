@@ -2305,6 +2305,29 @@ class TestEdgarTickerMap:
         assert edgar_module._ticker_map["AAPL"] == {"cik": 320193, "title": "Apple Inc."}
         assert edgar_module._ticker_map["MSFT"] == {"cik": 789019, "title": "Microsoft Corporation"}
 
+    def test_sec_duplicate_ticker_is_preserved_as_ambiguous_and_not_resolved(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {}
+        edgar_module._ticker_map_ts = 0.0
+        fake_sec_response = {
+            "0": {"cik_str": "320193", "ticker": "DUPE", "title": "First Issuer"},
+            "1": {"cik_str": "789019", "ticker": "DUPE", "title": "Second Issuer"},
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_sec_response
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            _ensure_ticker_map({"User-Agent": "test test@test.com"})
+
+        entry = edgar_module._ticker_map["DUPE"]
+        assert entry["identity_ambiguity"] is True
+        assert {candidate["cik"] for candidate in entry["candidates"]} == {320193, 789019}
+        with patch.object(edgar_module, "_ensure_ticker_map"):
+            assert edgar_module._resolve_cik("DUPE", {}) is None
+        assert EdgarProvider().search_instruments("DUPE", limit=5) == []
+
     def test_sec_http_status_failure_is_not_converted_to_synthetic_profile(self):
         import app.providers.edgar as edgar_module
 

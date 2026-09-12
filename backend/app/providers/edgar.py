@@ -108,7 +108,8 @@ class EdgarProvider:
                 instrument_type="EQUITY",
             )
             for ticker, entry in _ticker_map.items()
-            if needle in ticker or needle in str(entry.get("title") or "").upper()
+            if not entry.get("identity_ambiguity")
+            and (needle in ticker or needle in str(entry.get("title") or "").upper())
         ]
         matches.sort(key=lambda item: (0 if item.symbol == needle else 1, item.symbol))
         return matches[:limit]
@@ -545,7 +546,14 @@ def _parse_ipo_pipeline_events(
 def _resolve_cik(symbol: str, headers: dict) -> dict | None:
     """Return {"cik": int, "title": str} for the given ticker, or None."""
     _ensure_ticker_map(headers)
-    return _ticker_map.get(symbol.upper())
+    entry = _ticker_map.get(symbol.upper())
+    # SEC's ticker directory is an issuer lookup aid, not a globally unique
+    # security key.  Preserve duplicate-ticker evidence in the cache and
+    # refuse to choose one CIK silently; callers can reconcile with venue and
+    # security-level identifiers instead.
+    if entry is None or entry.get("identity_ambiguity"):
+        return None
+    return entry
 
 
 def _parse_date(value: object) -> date | None:
@@ -601,9 +609,35 @@ def _ensure_ticker_map(headers: dict) -> None:
                 cik = int(entry["cik_str"])
             except (KeyError, TypeError, ValueError) as exc:
                 raise ProviderResponseError("edgar", "SEC EDGAR ticker directory returned an invalid CIK") from exc
-            mapping[ticker] = {
+            candidate = {
                 "cik": cik,
                 "title": entry.get("title", ticker),
+            }
+            previous = mapping.get(ticker)
+            if previous is None:
+                mapping[ticker] = candidate
+                continue
+            previous_ciks = {
+                int(previous["cik"])
+            } if previous.get("cik") not in (None, "") else set()
+            previous_ciks.update(
+                int(item["cik"])
+                for item in previous.get("candidates", [])
+                if isinstance(item, dict) and item.get("cik") not in (None, "")
+            )
+            if cik in previous_ciks:
+                continue
+            candidates = list(previous.get("candidates", []))
+            if not candidates and previous.get("cik") not in (None, ""):
+                candidates.append(
+                    {"cik": int(previous["cik"]), "title": previous.get("title", ticker)}
+                )
+            candidates.append(candidate)
+            mapping[ticker] = {
+                "cik": None,
+                "title": ticker,
+                "identity_ambiguity": True,
+                "candidates": candidates,
             }
         _ticker_map = mapping
         _ticker_map_ts = now
