@@ -753,8 +753,15 @@ progress:
       pass. This is non-transport evidence only; the already recorded bounded
       live receipts remain the source of external-call evidence, and no new
       provider calls or credential values were written.
+    - >-
+      Closed the remaining ARQ single-instrument refresh coordination gap by
+      forwarding the worker's Redis client into canonical `fetch_ohlcv`, so
+      the opt-in cross-host lock applies consistently to this registered
+      worker path. The targeted worker/market-data/bulk suite passes `56/56`,
+      with Ruff, compilation, and `git diff --check` clean. Source commit
+      `89b5782c` is pushed; no provider calls were made.
   total: 15
-  current_phase: credentialed_live_validation
+  current_phase: cross_host_refresh_coordination
   current_blocker: >-
     The complete matrix now collects 44 cases and remains 39/44: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari

@@ -660,3 +660,9 @@ Update this handoff at each coherent boundary.
   regressions pass `463/463`; Ruff, compilation, and `git diff --check` pass.
   This run made no external provider calls and does not replace the existing
   bounded live receipts for Alpaca, EDGAR, MarketData.app, and Dinari.
+- The registered ARQ `task_refresh_instrument_data` path now forwards its
+  worker Redis client into canonical `fetch_ohlcv`, extending opt-in
+  cross-host refresh coordination to the legacy single-instrument worker
+  entry point. The related worker/market-data/bulk suite passes `56/56`, with
+  Ruff, compilation, and diff checks clean. Source commit `89b5782c` is
+  pushed; no provider calls were made.
