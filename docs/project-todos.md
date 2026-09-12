@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence shared workstation content loaders
+
+- [x] Fence WorkstationToolContent instrument, comparison, condition,
+      indicator, and Python-asset loader publications after teardown by
+      component disposal and invalidated request generations (`8eb187fa`).
+- [x] Full frontend Vitest passed `1035/1035` across 115 files; frontend
+      type-check, production build, and `git diff --check` passed with only
+      the existing chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact shared-content loader gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `8eb187fab798eeb1c1f685e58198a3e7917ea89f`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence ETF source bootstrap teardown
 
 - [x] Fence explicit Market Map ETF-source bootstrap after unmount or

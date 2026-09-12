@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence shared workstation content loaders
+
+Product commit `8eb187fa` closes a bounded R6 lifecycle gap in the shared
+WorkstationToolContent surface. Instrument, comparison, condition, indicator,
+and Python-asset loader publications now stop after component disposal, and
+teardown invalidates their independent request generations. Full frontend
+Vitest passed `1035/1035` across 115 files; frontend type-check and
+production build passed with only the existing chunk-size warning; and
+`git diff --check` passed. No provider, fallback, visual baseline, mask,
+threshold, skip, or acceptance policy changed. Continue the next bounded
+provider/history or compatible R4/R2-R7 seam while preserving the six visual
+state-oracle assertions.
+
+## 2026-09-12 — Exact shared-content loader gate rechecked
+
+At product tip `8eb187fab798eeb1c1f685e58198a3e7917ea89f`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then
+exited 2 after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence ETF source bootstrap teardown
 
 Product commit `f9ae2a21` closes a bounded R6 lifecycle gap in Market Map's

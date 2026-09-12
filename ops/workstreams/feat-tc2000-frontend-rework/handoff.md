@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence shared workstation content loaders
+
+Product commit `8eb187fa` fences shared WorkstationToolContent instrument,
+comparison, condition, indicator, and Python-asset loader publications after
+component disposal and invalidates their request generations during teardown.
+Full frontend Vitest passed `1035/1035` across 115 files; type-check,
+production build, and `git diff --check` passed with only the existing
+chunk-size warning. No provider, fallback, visual, or acceptance policy
+changed. Continue in this worktree only.
+
+## 2026-09-12 — Exact shared-content loader gate rechecked
+
+At product tip `8eb187fab798eeb1c1f685e58198a3e7917ea89f`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Do not integrate, promote, deploy,
+or mutate another worktree.
+
 ## 2026-09-12 — Fence ETF source bootstrap teardown
 
 Product commit `f9ae2a21` fences explicit Market Map ETF-source bootstrap
