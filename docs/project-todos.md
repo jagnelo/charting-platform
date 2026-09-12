@@ -168,6 +168,14 @@
       `35/39` passed. The four non-passes are Alpha Vantage's typed daily
       capacity response and the intentionally deferred Tradier, IBKR, and Ondo
       credential preflights; no provider payloads or credentials entered Git.
+- [x] Supersede that earlier matrix with the refreshed 41-case run at
+      `2026-09-12T07:21:11Z`: `37/41` passed in `79.69s`, including the newly
+      supplied Alpaca, MarketData.app, Dinari Sandbox, and SEC EDGAR cases.
+      The four remaining outcomes are unchanged and intentional: Alpha
+      Vantage's documented daily-capacity response plus the deferred Tradier,
+      IBKR, and Ondo credential preflights. The redacted 26-provider receipt
+      was merged into the owner-managed external ledger; no credentials or
+      payloads entered Git.
 - [ ] Keep the provider-specific governance gates separate from transport
       evidence: MarketData.app still needs the exact reviewed plan/limit pair
       and option-chain symbol bound; Dinari remains non-routable until its

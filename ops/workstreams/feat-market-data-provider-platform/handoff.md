@@ -343,6 +343,12 @@ Update this handoff at each coherent boundary.
   the complete backend unit suite passes `1,752/1,752` with the known 37
   warnings, and static checks are clean. This only aligns configuration
   propagation; it does not widen feed or corporate-action entitlements.
+- The provider TODO ledger now records the superseding 2026-09-12 complete
+  matrix evidence (`41` cases, `37/41` passed) rather than leaving the earlier
+  `39`-case result as the latest checkpoint. The four non-passes remain the
+  documented Alpha Vantage daily-capacity response and intentional deferred
+  Tradier/IBKR/Ondo credential preflights; the redacted receipt remains in the
+  owner-managed external ledger and no credentials or payloads entered Git.
 - The required full-profile implementation-session bootstrap was retried after
   this commit but remains blocked because `docker info` hangs after the client
   section on the local Docker Desktop API. The branch is clean and pushed;
