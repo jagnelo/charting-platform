@@ -9,8 +9,12 @@ import pytest
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
-from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
-from app.services.provider_usage import read_live_usage_ledger, summarize_provider_usage
+from app.models.provider_runtime import ProviderCapability, ProviderPolicy, ProviderRequestLog
+from app.services.provider_usage import (
+    _window_end_for_reset,
+    read_live_usage_ledger,
+    summarize_provider_usage,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -56,6 +60,24 @@ def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
 
     assert result["status"] == "unavailable"
     assert result["reason"] == "ledger_missing"
+
+
+def test_window_end_for_reset_handles_calendar_boundaries_and_dst():
+    assert _window_end_for_reset(
+        datetime(2026, 9, 1, 4, tzinfo=UTC),
+        window_seconds=2_678_400,
+        reset="calendar_month_est",
+    ) == datetime(2026, 10, 1, 4, tzinfo=UTC)
+    assert _window_end_for_reset(
+        datetime(2026, 11, 1, 4, tzinfo=UTC),
+        window_seconds=86_400,
+        reset="calendar_day_est",
+    ) == datetime(2026, 11, 2, 5, tzinfo=UTC)
+    assert _window_end_for_reset(
+        datetime(2026, 11, 1, 14, 30, tzinfo=UTC),
+        window_seconds=86_400,
+        reset="09:30 America/New_York",
+    ) == datetime(2026, 11, 2, 14, 30, tzinfo=UTC)
 
 
 def test_read_live_usage_ledger_keeps_headers_from_latest_observation_not_file_order(
@@ -284,3 +306,75 @@ async def test_summarize_provider_usage_tracks_weighted_budget_windows(db):
     assert summary["current_window_utilization_pct"] == pytest.approx(15.0)
     assert summary["current_window_response_bytes"] == 4096
     assert summary["quota_limit"] == 100
+
+
+@pytest.mark.asyncio
+async def test_summarize_provider_usage_expires_calendar_month_windows_at_next_boundary(
+    db, monkeypatch, tmp_path
+):
+    """Calendar months end at the next boundary, not at a fixed 31-day offset."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(tmp_path / "missing.jsonl"))
+    source = DataSource(name="calendar-month-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    db.add(
+        ProviderPolicy(
+            data_source_id=source.id,
+            capability=ProviderCapability.PRICE_HISTORY,
+            quota_scope="api_key",
+            quota_source="unit-test calendar contract",
+            quota_contract={
+                "reset": "provider_defined",
+                "dimensions": [
+                    {
+                        "name": "unique_symbols_per_month",
+                        "limit": 500,
+                        "window_seconds": 2_678_400,
+                        "unit": "symbols",
+                        "scope": "api_key",
+                        "source": "unit-test",
+                        "reset": "calendar_month_est",
+                    }
+                ],
+            },
+        )
+    )
+    db.add_all(
+        [
+            ProviderQuotaWindow(
+                data_source_id=source.id,
+                capability=ProviderCapability.PRICE_HISTORY,
+                dimension="unique_symbols_per_month",
+                window_started_at=datetime(2026, 9, 1, 4, tzinfo=UTC),
+                window_seconds=2_678_400,
+                limit_units=500,
+                reserved_units=0,
+                consumed_units=25,
+            ),
+            ProviderQuotaWindow(
+                data_source_id=source.id,
+                capability=ProviderCapability.PRICE_HISTORY,
+                dimension="unique_symbols_per_month",
+                window_started_at=datetime(2026, 10, 1, 4, tzinfo=UTC),
+                window_seconds=2_678_400,
+                limit_units=500,
+                reserved_units=2,
+                consumed_units=3,
+            ),
+        ]
+    )
+    db.commit()
+    monkeypatch.setattr(
+        "app.services.provider_usage._now_utc",
+        lambda: datetime(2026, 10, 1, 5, tzinfo=UTC),
+    )
+
+    rows = await summarize_provider_usage(async_db)
+    summary = next(row for row in rows if row["provider"] == "calendar-month-provider")
+
+    active = summary["active_quota_windows"]
+    assert len(active) == 1
+    assert active[0]["window_started_at"] == datetime(2026, 10, 1, 4, tzinfo=UTC)
+    assert active[0]["window_ends_at"] == datetime(2026, 11, 1, 4, tzinfo=UTC)

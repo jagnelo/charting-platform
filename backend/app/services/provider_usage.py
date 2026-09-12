@@ -7,6 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from statistics import quantiles
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
-from app.models.provider_runtime import ProviderRequestLog
+from app.models.provider_runtime import ProviderPolicy, ProviderRequestLog
 from app.services.provider_runtime import seed_provider_runtime
 
 
@@ -57,6 +58,68 @@ def _bucket_start(ts: datetime, *, span: str) -> datetime:
     if span == "hour":
         return ts.replace(minute=0, second=0, microsecond=0)
     return ts.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _next_calendar_month(started_at: datetime, timezone: ZoneInfo) -> datetime:
+    """Return the next first-of-month boundary in a provider's timezone."""
+
+    local = started_at.astimezone(timezone)
+    if local.month == 12:
+        next_year, next_month = local.year + 1, 1
+    else:
+        next_year, next_month = local.year, local.month + 1
+    return datetime(next_year, next_month, 1, tzinfo=timezone).astimezone(UTC)
+
+
+def _window_end_for_reset(
+    started_at: datetime,
+    *,
+    window_seconds: int,
+    reset: str | None,
+) -> datetime:
+    """Calculate an observability end boundary without flattening calendar windows.
+
+    Quota admission stores the provider's explicit window start and a nominal
+    duration.  Calendar months and Eastern-time resets cannot use that fixed
+    duration safely because month lengths and daylight-saving transitions vary.
+    Unknown/fixed/rolling resets retain the durable duration semantics.
+    """
+
+    normalized = str(reset or "").strip().lower()
+    if "calendar_month_est" in normalized:
+        return _next_calendar_month(started_at, ZoneInfo("America/New_York"))
+    if "calendar_month" in normalized:
+        return _next_calendar_month(started_at, UTC)
+    if normalized == "calendar_day_est":
+        timezone = ZoneInfo("America/New_York")
+        eastern = started_at.astimezone(timezone)
+        next_date = eastern.date() + timedelta(days=1)
+        next_local = datetime(
+            next_date.year,
+            next_date.month,
+            next_date.day,
+            tzinfo=timezone,
+        )
+        return next_local.astimezone(UTC)
+    if normalized in {"calendar_day_utc", "calendar_day_gmt"}:
+        utc_start = started_at.astimezone(UTC)
+        return (utc_start + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    if normalized.startswith("09:30"):
+        timezone = ZoneInfo("America/New_York")
+        eastern = started_at.astimezone(timezone)
+        next_date = eastern.date() + timedelta(days=1)
+        next_local = datetime(
+            next_date.year,
+            next_date.month,
+            next_date.day,
+            9,
+            30,
+            tzinfo=timezone,
+        )
+        return next_local.astimezone(UTC)
+    return started_at + timedelta(seconds=window_seconds)
 
 
 def _live_usage_ledger_path() -> Path:
@@ -351,6 +414,23 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         .scalars()
         .all()
     )
+    policies = (await db.execute(select(ProviderPolicy))).scalars().all()
+    reset_by_source_capability_dimension: dict[tuple[int, str, str], str] = {}
+    for policy in policies:
+        contract = policy.quota_contract or {}
+        if not isinstance(contract, dict):
+            continue
+        contract_reset = str(contract.get("reset") or "").strip()
+        capability = getattr(policy.capability, "value", policy.capability)
+        for dimension in contract.get("dimensions") or []:
+            if not isinstance(dimension, dict):
+                continue
+            dimension_name = str(dimension.get("name") or "").strip()
+            if not dimension_name:
+                continue
+            reset_by_source_capability_dimension[
+                (policy.data_source_id, str(capability), dimension_name)
+            ] = str(dimension.get("reset") or contract_reset).strip()
     quota_identities = (
         (
             await db.execute(
@@ -385,7 +465,15 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         if started_at is None:
             continue
         window_seconds = max(1, int(window.window_seconds or 1))
-        ends_at = started_at + timedelta(seconds=window_seconds)
+        capability = getattr(window.capability, "value", window.capability)
+        reset = reset_by_source_capability_dimension.get(
+            (window.data_source_id, str(capability), str(window.dimension))
+        )
+        ends_at = _window_end_for_reset(
+            started_at,
+            window_seconds=window_seconds,
+            reset=reset,
+        )
         if ends_at <= now:
             continue
         active_windows_by_source[window.data_source_id].append(

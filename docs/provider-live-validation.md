@@ -299,6 +299,11 @@ every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
 `FMP_OPERATION_BYTE_BOUNDS` JSON maps. When complete maps are present, the
 runtime reserves the documented bandwidth pool before execution and settles it
 to measured response bytes; incomplete or invalid maps remain fail-closed.
+The usage summary derives `window_ends_at` from each policy's explicit calendar
+reset (including Eastern-time month/day and 09:30 ET boundaries), rather than
+adding a nominal 31-day duration. Fixed and rolling windows retain their
+duration semantics, so active-window diagnostics expire at the same boundary
+used by admission across short months and daylight-saving transitions.
 Tiingo's first-of-month Eastern bandwidth reset and FMP's rolling 30-day
 bandwidth reset are represented in the durable calendar-window engine. Tiingo's
 500-symbol monthly pool is enforced by the durable `provider_quota_identity`
