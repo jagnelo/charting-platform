@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
+
+- [x] Use the shared indicator-series formatter in the linked Instrument Alerts
+      saved-alert list and accessible label, including both comparison sides
+      and explicit multi-output keys (`cbb34eab`).
+- [x] Focused linked-instrument coverage passed `12/12`; full frontend Vitest
+      passed `1008/1008` across `114` files; type-check, production build, and
+      diff checks passed with only the existing chunk-size warning.
+- [x] Reran the exact branch-scoped gate at product tip `cbb34eab`; all
+      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
+      because Docker `/v1.55/info` returned HTTP 500. No later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker Desktop health, run the pending alert and
+      indicator-batch API regressions and exact gate at `cbb34eab`, then
+      continue provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
 
 - [x] Centralize indicator series-label formatting and use it in compact

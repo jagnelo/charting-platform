@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
+
+Product commit `cbb34eab` extends the shared indicator-series formatter into
+the linked Instrument Alerts saved-alert list. Visible labels and accessible
+names now retain explicit multi-output selections and both sides of
+indicator-versus-indicator comparisons.
+
+Focused linked-instrument coverage passed `12/12`; full frontend Vitest passed
+`1008/1008` across `114` files; type-check, build, and diff checks passed with
+only the existing chunk-size warning. The exact gate at `cbb34eab` passed all
+repository, workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup stages, then stopped at `backend-coverage` after 180
+seconds because Docker `/v1.55/info` returned HTTP 500. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed.
+
+Checkpoint scope: `frontend/src/components/workstation/InstrumentAlertsTool.vue`
+and `frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts`.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, run the pending alert and
+indicator-batch API regressions and exact gate at `cbb34eab`, then advance the
+next bounded provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
 
 Product commit `5ed246df` centralizes indicator series-label formatting and

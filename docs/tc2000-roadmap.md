@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
+
+Product commit `cbb34eab` completes the compact alert-list presentation seam.
+The linked Instrument Alerts tool now formats saved indicator alerts through
+the shared catalog series formatter, including explicit output keys and both
+sides of indicator comparisons in the visible label and accessible name. A
+saved Bollinger Band alert therefore remains identifiable as
+`BB(20,2) [bb_upper] crosses above 100` instead of collapsing to `BB`.
+
+Focused linked-instrument coverage passed `12/12`; the full frontend Vitest
+suite passed `1008/1008` across `114` files; type-check, production build, and
+`git diff --check` passed. The build emitted only the existing chunk-size
+warning. The exact branch-scoped gate at `cbb34eab` passed git-diff,
+workstream validation, dependency/migration, frontend dependency preparation,
+and lint/type-check setup, then stopped at `backend-coverage` after the fixed
+180-second Docker readiness window because `/v1.55/info` returned HTTP 500.
+No backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. The pending alert and indicator-batch API fixtures remain
+Docker-dependent. Continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Dashboard alert summaries disclose canonical indicator outputs
 
 Product commit `5ed246df` closes the remaining alert-summary presentation gap.
