@@ -267,6 +267,12 @@ intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
 response-byte telemetry was written outside Git; no credential or payload was
 persisted.
 
+The shared optional REST parser and Alpha Vantage raw-history adapter now add
+the provider name to each bar's provenance envelope. This metadata-only change
+was covered by focused provider tests (`272/272`) and the complete backend unit
+suite (`1,797/1,797`); no additional external calls were needed because the
+transport contracts were unchanged.
+
 The 2026-09-12 focused core refresh passed 4/4 checks: EDGAR profile and complete
 directory pagination, Alpaca paper-account history, and MarketData.app daily
 candles. A separate Dinari Sandbox refresh passed 1/1, covering its metadata,

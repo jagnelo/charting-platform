@@ -15,6 +15,10 @@
       the provenance update; the bounded regression passed 4/4 under run
       `canonical-persistence-provenance-20260912`, with aggregate usage kept
       outside Git.
+- [x] Ensure Alpha Vantage and the shared optional REST raw-history parser also
+      identify their provider in persisted provenance. Focused provider tests
+      pass 272/272 and the complete backend unit suite passes 1,797/1,797;
+      this metadata-only change required no additional provider calls.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 

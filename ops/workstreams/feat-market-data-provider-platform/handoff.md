@@ -483,3 +483,8 @@ Update this handoff at each coherent boundary.
   `canonical-persistence-provenance-20260912`; aggregate usage remains in the
   owner-managed ledger outside Git and no credentials or payloads were
   persisted.
+- Alpha Vantage and the shared optional REST raw-history parser now identify
+  their provider in each bar provenance envelope, closing the remaining
+  provider-attribution gap for persisted raw bars. Focused provider tests pass
+  `272/272`, the complete backend unit suite passes `1,797/1,797`, and no new
+  provider calls were needed because transport behavior is unchanged.
