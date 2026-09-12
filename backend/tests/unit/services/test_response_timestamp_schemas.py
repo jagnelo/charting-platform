@@ -10,6 +10,7 @@ from app.models.radar import (
 from app.schemas.basket import BasketMemberOut, BasketOut, BasketSnapshotOut
 from app.schemas.dashboard import DashboardOut, DashboardTabOut, DashboardWidgetOut
 from app.schemas.drawing import ChartDrawingOut
+from app.schemas.market_map import MarketMapCell, MarketMapOut, MarketMapSnapshotSummary
 from app.schemas.preset import IndicatorPresetOut
 from app.schemas.radar import (
     RadarDetectionSummaryOut,
@@ -220,3 +221,52 @@ def test_saved_tool_and_radar_responses_use_canonical_timestamp_wire_format():
     _assert_utc_z(
         radar_event.model_dump(mode="json"), "observed_at", "signal_at", "created_at", "updated_at"
     )
+
+
+def test_market_map_responses_use_canonical_timestamp_wire_format():
+    source = {
+        "source_id": "index:sp500",
+        "source_kind": "index",
+        "name": "S&P 500",
+        "locked": True,
+        "can_follow": True,
+        "can_clone": False,
+        "can_edit_membership": False,
+    }
+    cell = MarketMapCell(
+        instrument_id=1,
+        symbol="TEST",
+        name="Test",
+        observation_time=OFFSET_STAMP,
+        coverage=1.0,
+    )
+    market_map = MarketMapOut(
+        source=source,
+        group_by="sector_industry",
+        period="1D",
+        period_start=OFFSET_STAMP,
+        period_end=STAMP,
+        timeframe="D1",
+        adjustment="adjusted",
+        area_metric="market_cap",
+        color_metric="return",
+        cache_key="a" * 64,
+        cached_at=STAMP,
+        freshness="fresh",
+        coverage=1.0,
+        cells=[cell],
+    )
+    snapshot = MarketMapSnapshotSummary(
+        id=2,
+        name="S&P snapshot",
+        source_id="index:sp500",
+        cache_key="a" * 64,
+        snapshot_hash="b" * 64,
+        created_at=STAMP,
+        updated_at=STAMP,
+    )
+
+    market_map_payload = market_map.model_dump(mode="json")
+    _assert_utc_z(market_map_payload, "period_start", "period_end", "cached_at")
+    _assert_utc_z(market_map_payload["cells"][0], "observation_time")
+    _assert_utc_z(snapshot.model_dump(mode="json"), "created_at", "updated_at")
