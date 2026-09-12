@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Unify timeframe readiness across family breadth and source history
+
+Product commit `56689bad2` applies the provider-neutral `ready`/`partial`/
+`pending`/`unavailable` classifier to benchmark-family breadth history and
+generic watchlist-source history. Historical breadth roles now expose covered
+member counts and coverage percentages; generic source-history timeframes now
+expose their own readiness state, and the Market Map label includes it. This
+keeps a covered-but-below-floor leg visibly partial instead of reporting it as
+pending, while preserving legacy overall worker status, provider routing,
+fallback boundaries, and visual policy. Focused backend service coverage passed
+`26/26`; focused Market Map coverage passed `51/51`; frontend type-check, Ruff,
+and diff checks passed. The database-backed breadth regression and exhaustive
+gate remain Docker-dependent: the latest elevated gate at docs tip `eb30d4d51`
+returned HTTP 500 for Docker API `v1.55` after the fixed 180-second readiness
+window at `unix:///Users/jagnelo/.docker/run/docker.sock`, so backend
+integration, provider, browser, and visual stages did not execute.
+
 ## 2026-09-12 — Expose per-timeframe family history readiness
 
 Product commit `23c371458` adds an explicit local analysis-floor state to each
