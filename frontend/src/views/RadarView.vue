@@ -8,7 +8,7 @@
         </span>
       </div>
       <div class="radar-actions">
-        <button class="action-btn" :disabled="runningScan" @click="refresh">Refresh</button>
+        <button class="action-btn" :disabled="runningScan" @click="handleRefresh">Refresh</button>
         <button
           class="action-btn primary"
           :disabled="runningScan || !canRunScan"
@@ -31,7 +31,7 @@
             Save view
           </button>
         </div>
-        <select v-model="filters.timeframe" class="filter-select" :disabled="runningScan" @change="refresh">
+        <select v-model="filters.timeframe" class="filter-select" :disabled="runningScan" @change="handleRefresh">
           <option v-for="timeframe in timeframeOptions" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
         </select>
         <select v-model="scanUniverse.type" class="filter-select" :disabled="runningScan">
@@ -49,11 +49,11 @@
             {{ basketLabel(basket) }}
           </option>
         </select>
-        <select v-model="filters.setupType" class="filter-select" :disabled="runningScan" @change="refresh">
+        <select v-model="filters.setupType" class="filter-select" :disabled="runningScan" @change="handleRefresh">
           <option value="">All setups</option>
           <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
         </select>
-        <select v-model="filters.state" class="filter-select" :disabled="runningScan" @change="refresh">
+        <select v-model="filters.state" class="filter-select" :disabled="runningScan" @change="handleRefresh">
           <option value="">All states</option>
           <option v-for="state in radarStates" :key="state.value" :value="state.value">{{ state.label }}</option>
         </select>
@@ -62,15 +62,15 @@
           class="filter-input"
           placeholder="Symbol…"
           :disabled="runningScan"
-          @keydown.enter="refresh"
+          @keydown.enter="handleRefresh"
         />
         <label class="score-filter">
           <span>Min score</span>
-          <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" :disabled="runningScan" @change="refresh" />
+          <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" :disabled="runningScan" @change="handleRefresh" />
           <span class="score-value">{{ filters.minScore.toFixed(2) }}</span>
         </label>
         <label class="fresh-toggle">
-          <input v-model="filters.activeOnly" type="checkbox" :disabled="runningScan" @change="refresh" />
+          <input v-model="filters.activeOnly" type="checkbox" :disabled="runningScan" @change="handleRefresh" />
           <span>Open only</span>
         </label>
       </div>
@@ -457,6 +457,11 @@ const DETAIL_WIDTH_MIN = 340
 const DETAIL_WIDTH_MAX = 680
 let detailResizeStartX = 0
 let detailResizeStartWidth = 380
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const filters = reactive({
   timeframe: 'D1' as Timeframe,
@@ -1007,7 +1012,8 @@ function buildAnchorHint(
   return parts.length ? `anchor: ${parts.join(' · ')}` : undefined
 }
 
-async function refresh() {
+async function refresh(generation = lifecycleGeneration) {
+  if (!isCurrentLifecycle(generation)) return
   const activeOnly =
     filters.activeOnly
     && !(filters.state && TERMINAL_RADAR_STATES.has(filters.state as RadarState))
@@ -1023,16 +1029,21 @@ async function refresh() {
     }),
     radarStore.loadOutcomeSummary(filters.timeframe),
   ])
+  if (!isCurrentLifecycle(generation)) return
   const selectedId = radarStore.selectedDetection?.id
   if (selectedId && radarStore.detections.some(detection => detection.id === selectedId)) {
-    await selectDetection(selectedId)
+    await selectDetection(selectedId, generation)
     return
   }
   if (radarStore.detections[0]) {
-    await selectDetection(radarStore.detections[0].id)
-  } else {
+    await selectDetection(radarStore.detections[0].id, generation)
+  } else if (isCurrentLifecycle(generation)) {
     workflowMessage.value = ''
   }
+}
+
+async function handleRefresh() {
+  await refresh()
 }
 
 function persistCurrentView() {
@@ -1068,9 +1079,11 @@ async function removeSelectedView() {
   selectedSavedView.value = ''
 }
 
-async function selectDetection(id: number) {
+async function selectDetection(id: number, generation = lifecycleGeneration) {
+  if (!isCurrentLifecycle(generation)) return
   if (runningScan.value) return
   const detection = await radarStore.loadDetection(id)
+  if (!isCurrentLifecycle(generation)) return
   if (detection) {
     await radarStore.loadInstrumentHistory(detection.instrument_id, detection.timeframe)
   }
@@ -1078,6 +1091,7 @@ async function selectDetection(id: number) {
 
 async function runScan() {
   if (runningScan.value || !canRunScan.value) return
+  const generation = lifecycleGeneration
   scanPending.value = true
   try {
     await radarStore.runScan(filters.timeframe, {
@@ -1086,9 +1100,9 @@ async function runScan() {
         ? { basket_id: scanUniverse.basketId }
         : null,
     })
-    await refresh()
+    if (isCurrentLifecycle(generation)) await refresh(generation)
   } finally {
-    scanPending.value = false
+    if (isCurrentLifecycle(generation)) scanPending.value = false
   }
 }
 
@@ -1119,15 +1133,17 @@ async function addDetectionToWatchlist() {
   if (!detection || workflowPending.value) return
   workflowPendingAction.value = 'watchlist'
   workflowMessage.value = ''
+  const generation = lifecycleGeneration
   try {
     const result = await radarStore.addDetectionToWatchlist(
       detection.id,
       selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
     )
+    if (!isCurrentLifecycle(generation)) return
     workflowMessage.value = `Added to ${result.watchlist_name}.`
     await watchlistStore.loadWatchlists()
   } finally {
-    workflowPendingAction.value = null
+    if (isCurrentLifecycle(generation)) workflowPendingAction.value = null
   }
 }
 
@@ -1136,11 +1152,13 @@ async function createAlertFromDetection() {
   if (!detection || workflowPending.value) return
   workflowPendingAction.value = 'alert'
   workflowMessage.value = ''
+  const generation = lifecycleGeneration
   try {
     const alert = await radarStore.createDetectionPriceAlert(detection.id)
+    if (!isCurrentLifecycle(generation)) return
     workflowMessage.value = `Created ${alert.condition.replace(/_/g, ' ')} alert on ${alert.instrument_symbol}.`
   } finally {
-    workflowPendingAction.value = null
+    if (isCurrentLifecycle(generation)) workflowPendingAction.value = null
   }
 }
 
@@ -1172,6 +1190,7 @@ function startDetailResize(event: PointerEvent) {
 }
 
 onMounted(async () => {
+  const generation = lifecycleGeneration
   if (typeof localStorage !== 'undefined') {
     const raw = localStorage.getItem(RADAR_DETAIL_WIDTH_KEY)
     const parsed = raw ? Number(raw) : NaN
@@ -1186,13 +1205,16 @@ onMounted(async () => {
     watchlistStore.loadWatchlists(),
     refresh(),
   ])
+  if (!isCurrentLifecycle(generation)) return
   baskets.value = loadedBaskets
 })
 
 onBeforeUnmount(() => {
+  lifecycleGeneration += 1
   stopDetailResize()
   window.removeEventListener('resize', syncViewportWidth)
 })
+
 </script>
 
 <style scoped>

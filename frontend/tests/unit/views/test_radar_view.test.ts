@@ -597,4 +597,28 @@ describe('RadarView', () => {
       universe_filter: { basket_id: 44 },
     })
   })
+
+  it('does not publish late basket hydration after the view unmounts', async () => {
+    const pendingBaskets = deferred<any[]>()
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/baskets') return pendingBaskets.promise
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(RadarView, {
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
+      },
+    })
+
+    await Promise.resolve()
+    wrapper.unmount()
+    pendingBaskets.resolve([{ id: 99, name: 'Detached basket' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).baskets).toEqual([])
+  })
 })
