@@ -1008,3 +1008,22 @@ Update this handoff at each coherent boundary.
   reads plus the exact missing-credential preflights for intentionally deferred
   Tradier, IBKR, and Ondo. The wrapper retained its nonzero/no-acceptance result;
   no unexpected provider failure or routing-policy change occurred.
+
+- Source checkpoint `ed37d583a` adds an explicit fail-closed
+  `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS` control. The
+  SEC directory task refuses to run without a positive reviewed bound, rejects
+  bounds above 500 or below the configured directory page size, and the service
+  validates and persists the bound in scan-state provenance. This makes the
+  directory-page request budget and the per-CIK submissions fan-out budget
+  independently visible; it does not activate the scan. Dinari's official
+  partner-fees documentation is also recorded: Sandbox is for evaluation,
+  while production API access starts at $2,000/month; no numeric quota is
+  inferred.
+
+- Validation for this checkpoint: the focused EDGAR scan/worker suite passed
+  `46/46`; changed-file Ruff, format, compileall, diff, and root/RPi Compose
+  syntax checks passed. No provider calls or credentials were used for this
+  safety/documentation change. The prior complete credentialed matrix remains
+  `40/46` with only the documented Alpha Vantage capacity responses and the
+  intentionally deferred Tradier/IBKR/Ondo preflights; Docker-backed
+  PostgreSQL/Redis validation remains unavailable in this environment.
