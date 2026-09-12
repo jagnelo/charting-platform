@@ -31,6 +31,14 @@
       focused series/migration/service tests pass 19/19 and the complete
       backend unit suite passes 1,799/1,799. PostgreSQL-backed migration and
       full-stack validation remain blocked by unavailable Docker.
+- [x] Add the durable `market_series_default` mapping used by ordinary
+      symbol/timeframe OHLCV reads. The first admitted canonical series is
+      retained, regular-session series repair an extended-only selection, and
+      inactive mappings fall back to the first active canonical series without
+      mixing alternate feeds or legacy rows. Migration
+      `a0b1c2d3e4f5` and service/read regressions pass 21/21; the complete
+      backend unit suite passes 1,802/1,802. PostgreSQL/full-stack execution
+      remains Docker-gated.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 

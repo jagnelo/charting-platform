@@ -938,3 +938,12 @@ Kraken keyless history probes) under run
 `canonical-persistence-provenance-20260912`. Aggregate usage was written to
 the owner-managed ledger outside Git; no credentials or payloads were
 persisted.
+
+Compatibility reads now use the durable `market_series_default` mapping. The
+first admitted canonical series is stable, regular sessions supersede an
+extended-only default, and inactive mappings fall back to an active canonical
+series without mixing alternate feeds or legacy rows. Migration
+`a0b1c2d3e4f5` plus service/read regressions passed `21/21`; the complete
+backend unit suite passed `1,802/1,802`. This is persistence/query evidence,
+not additional provider transport evidence; PostgreSQL/full-stack validation
+remains Docker-gated.

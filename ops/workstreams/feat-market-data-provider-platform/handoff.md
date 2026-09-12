@@ -495,3 +495,10 @@ Update this handoff at each coherent boundary.
   series/migration/service tests pass `19/19`, the complete backend unit suite
   passes `1,799/1,799`, and PostgreSQL migration/full-stack validation remains
   blocked by unavailable Docker.
+- Compatibility reads now use a durable `market_series_default` mapping. The
+  first admitted canonical series is stable, regular sessions supersede an
+  extended-only default, and inactive mappings fall back to an active
+  canonical series without mixing alternate feeds or legacy rows. Migration
+  `a0b1c2d3e4f5` plus service/read regressions pass `21/21`; the complete
+  backend unit suite passes `1,802/1,802`; PostgreSQL/full-stack validation
+  remains Docker-gated.

@@ -415,7 +415,10 @@ symbol APIs:
 - `market_series` scopes every future canonical/raw series by venue, provider
   feed, session, timeframe, and adjustment basis/version.  Existing
   `ohlcv_bar` and `market_bar_observation` rows remain readable through nullable
-  compatibility columns.
+  compatibility columns. The `market_series_default` mapping selects one
+  stable canonical series for legacy symbol/timeframe reads; alternate feeds
+  remain addressable by explicit `market_series_id` and are never merged into
+  the default result. Migration `a0b1c2d3e4f5` creates the mapping table.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so
