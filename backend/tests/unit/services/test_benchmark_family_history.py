@@ -773,7 +773,7 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
                     "snapshot-101",
                 ),
                 (102, date(2026, 6, 30), 400, "SPYV"),
-                (103, date(2026, 5, 31), 300, "SPYG"),
+                (103, date(2026, 5, 31), 300, "SPY"),
             ]
 
     class Session:
@@ -797,3 +797,6 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
     assert plan["snapshots"][0]["source_provider"] == "sec"
     assert plan["snapshots"][0]["source_identifier"] == "issuer-2026-07-31"
     assert plan["snapshots"][0]["snapshot_hash"] == "snapshot-101"
+    assert plan["snapshots"][0]["continuity"]["status"] == "gapped"
+    assert plan["snapshots"][0]["continuity"]["gap_count"] == 1
+    assert plan["snapshots"][0]["continuity"]["cadence_sample_count"] == 1

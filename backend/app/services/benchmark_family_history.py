@@ -20,6 +20,10 @@ from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
+from app.services.benchmark_family_coverage import (
+    assess_observed_holdings_cadence,
+    assess_observed_holdings_continuity,
+)
 from app.services.etf_holdings import (
     is_equity_holding_type,
     is_placeholder_symbol,
@@ -162,6 +166,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
             "snapshots": [],
             "selected_snapshot_count": 0,
             "limited": False,
+            "continuity_by_symbol": {},
         }
 
     snapshot_instrument = aliased(Instrument)
@@ -225,13 +230,16 @@ async def plan_benchmark_family_snapshot_history_refresh(
     ).all()
     snapshots: list[dict[str, Any]] = []
     seen_ids: set[int] = set()
+    observed_dates_by_symbol: dict[str, set[date]] = {}
     for row in rows:
         snapshot_id, composition_date, resolved_count, symbol = row[:4]
+        normalized_symbol = str(symbol).strip().upper()
+        if isinstance(composition_date, date):
+            observed_dates_by_symbol.setdefault(normalized_symbol, set()).add(composition_date)
         canonical_id = int(snapshot_id)
         if canonical_id in seen_ids:
             continue
         seen_ids.add(canonical_id)
-        normalized_symbol = str(symbol).strip().upper()
         snapshot = {
             "snapshot_id": canonical_id,
             "symbol": normalized_symbol,
@@ -261,6 +269,30 @@ async def plan_benchmark_family_snapshot_history_refresh(
         for index, field in enumerate(provenance_fields, start=4):
             snapshot[field] = row[index] if len(row) > index else None
         snapshots.append(snapshot)
+    continuity_by_symbol: dict[str, dict[str, Any]] = {}
+    for symbol, composition_dates in observed_dates_by_symbol.items():
+        continuity = assess_observed_holdings_continuity(composition_dates)
+        cadence = assess_observed_holdings_cadence(composition_dates)
+        continuity_by_symbol[symbol] = {
+            "status": continuity.status,
+            "gap_count": len(continuity.gaps),
+            "max_interval_days": continuity.max_interval_days,
+            "gaps": [
+                {
+                    "from_date": gap.from_date,
+                    "to_date": gap.to_date,
+                    "interval_days": gap.interval_days,
+                }
+                for gap in continuity.gaps
+            ],
+            "cadence_status": cadence.status,
+            "cadence_sample_count": cadence.sample_count,
+            "cadence_median_interval_days": cadence.median_interval_days,
+            "cadence_min_interval_days": cadence.min_interval_days,
+            "cadence_max_interval_days": cadence.max_interval_days,
+        }
+    for snapshot in snapshots:
+        snapshot["continuity"] = continuity_by_symbol.get(snapshot["symbol"], {})
     limited = len(snapshots) > max_snapshots
     selected = snapshots[:max_snapshots]
     return {
@@ -271,6 +303,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
         "available_snapshot_count": len(snapshots),
         "selected_snapshot_count": len(selected),
         "limited": limited,
+        "continuity_by_symbol": continuity_by_symbol,
     }
 
 
