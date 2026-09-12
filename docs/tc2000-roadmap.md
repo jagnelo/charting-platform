@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Named event-artifact promotion preserves output selection
+
+Product tip `ea7eccf1` closes a concrete R4 fan-out ambiguity. A direct
+`events` CodeVersion/run may emit multiple named event artifacts; the backend
+now rejects an unnamed promotion in that case and carries the requested
+`artifact_name` through the Strategy signal lineage. Research Results and
+Study Lab show named filter/alert/signal controls for those runs, while
+top-level actions remain limited to a single unambiguous event artifact.
+
+Focused Research Results tests passed `34/34`; Study Lab plus capability tests
+passed `30/30`; Strategy Lab integration passed `27/27` with 54 warnings;
+frontend type-check, Ruff, format, and diff checks passed. The exact elevated
+branch-scoped Docker gate then passed every non-visual stage: backend units
+`1,476/1,476`, backend integration `395/395`, frontend dependency/lint/
+format/type-check/Vitest/build/contracts/probes, compose/provider contracts,
+research-runner probes, and functional Playwright `165` passed with `107`
+documented skips across `272` tests. Visual parity remained `98/104`, with
+only the six established protected state-oracle diffs. Branch-scoped teardown
+was clean; no visual, provider, fallback, or acceptance policy changed.
+
+Continue the next bounded provider/history or compatible chart/list/gauge seam,
+then R1 canonical population/history breadth, W1/MN continuity, dense-data
+evidence, and R2-R7. Preserve the unchanged visual acceptance policy and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
 
 The exact elevated branch-scoped Docker-backed integration gate ran at product

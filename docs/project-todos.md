@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Named event-artifact promotion preserves output selection
+
+- [x] Close the direct multi-output events promotion gap. The API now requires
+      an explicit `artifact_name` when a completed `events` run contains more
+      than one named events artifact instead of silently promoting the first;
+      the selected output name is preserved in Strategy signal lineage.
+- [x] Research Results and Study Lab expose named filter/alert/signal actions
+      for direct multi-event runs, while top-level promotion actions remain
+      available only for an unambiguous single event artifact. Focused checks:
+      Research Results `34/34`, Study Lab plus capability tests `30/30`, and
+      Strategy Lab integration `27/27` (54 warnings); type-check, Ruff,
+      formatting, and diff checks passed.
+- [x] Rerun the exact elevated branch-scoped gate at product tip `ea7eccf1`.
+      Backend units `1,476/1,476`, backend integration `395/395`, frontend
+      dependency/lint/format/type-check/Vitest/build/contracts/probes,
+      compose/provider contracts, research-runner probes, and functional
+      Playwright `165` passed with `107` documented skips across `272` tests.
+      Visual parity completed `98/104`; the six established protected
+      state-oracle diffs remain unchanged. Teardown removed all branch-scoped
+      containers, volumes, network, testcontainer sessions, and four images.
+      No visual, provider, fallback, or acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible chart/list/gauge
+      seam, then R1 canonical population/history breadth, W1/MN continuity,
+      dense-data evidence, and R2-R7 without changing protected visual policy.
+
 ### 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
 
 - [x] Rerun the exact branch-scoped Docker-backed integration gate at product

@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d00ddc73f44a0b179fa12a59709cf1461e9ba006",
+  "head": "ea7eccf1c1995ed0899254b84609bf0baa36ad1f",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T01:35:18.599890+00:00",
-  "last_human_progress_update": "2026-09-12T01:35:07.059328+00:00",
+  "last_checkpoint": "2026-09-12T02:11:01.938673+00:00",
+  "last_human_progress_update": "2026-09-12T02:10:42.895974+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact tip 4579d1e0 gate passed all non-visual stages and functional Playwright 165/272 (107 documented skips); frontend Vitest 991/991 at 82.7% statements; visual 98/104 with exactly the established six protected state-oracle diffs (watchlist-column-editor-open at 1080p-100/125 and workspace-floating at 1080p-100/125 plus 1440p-100/125). Gate exited only at e2e-visual; teardown clean with four images removed. No policy changes. Continue bounded provider/history or compatible consumer work.",
-    "current_phase": "R2_R4_strategy_lab_canonical_fixture_visibility",
-    "next_action": "Continue the next bounded provider/history or compatible chart/list/gauge seam after Strategy Lab ETF fixture isolation",
+    "current_blocker": "Focused checks and the exact gate non-visual stages passed; exact gate remains blocked only by the six established protected visual state-oracle diffs (98/104); no policy changes.",
+    "current_phase": "R4_named_event_artifact_selection",
+    "next_action": "Continue the next bounded provider/history or compatible chart/list/gauge seam after named event-artifact promotion",
     "total": 10,
-    "updated_at": "2026-09-12T01:35:07.058613+00:00"
+    "updated_at": "2026-09-12T02:10:42.895707+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

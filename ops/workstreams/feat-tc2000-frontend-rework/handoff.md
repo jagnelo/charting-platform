@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Named event-artifact promotion preserves output selection
+
+Product commit `ea7eccf1` makes direct multi-output `events` promotions
+explicit. The API requires `artifact_name` when more than one named events
+artifact exists and preserves that selection in Strategy signal lineage.
+Research Results and Study Lab expose named filter/alert/signal controls for
+the multi-output case; single-output top-level actions remain unambiguous.
+
+Focused Research Results `34/34`, Study Lab plus capabilities `30/30`, and
+Strategy Lab integration `27/27` (54 warnings) passed, along with frontend
+type-check, Ruff, formatting, and diff checks. The exact branch-scoped gate at
+`ea7eccf1` passed all non-visual stages and functional Playwright (`165` passed,
+`107` documented skips); visual parity remained `98/104` with the same six
+protected state-oracle diffs. Teardown was clean and no acceptance/provider/
+fallback/visual policy changed.
+
+Next: continue a bounded provider/history or compatible chart/list/gauge seam,
+then R1 canonical population/history breadth, W1/MN continuity, dense-data
+evidence, and R2-R7. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Strategy Lab ETF visibility exact-tip gate
 
 The exact elevated branch-scoped Docker-backed gate ran at product tip
