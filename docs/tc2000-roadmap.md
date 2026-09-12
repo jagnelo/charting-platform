@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Preserve named multi-output event targets
+
+Product commit `033b0397` closes a regression in the single-event target
+handler: explicitly selected named artifacts from multi-output `events` runs
+again promote through their own filter/alert endpoint payload, while
+single-output runs still require exactly one event artifact. The immutable
+event contract and source/run/artifact lineage remain unchanged.
+
+Focused Study Lab coverage passed `30/30`; full frontend Vitest passed
+`1010/1010`; type-check, backend Ruff, formatting, and `git diff --check`
+passed. The exact branch gate is pending at this coherent product tip.
+
 ## 2026-09-12 — Expose single-event Study Lab targets
 
 Product commit `df4c89f0` closes the single-output `events` fan-out gap in the

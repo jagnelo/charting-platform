@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 033b0397 corrects the Study Lab event target branch so
+  explicitly selected named artifacts from multi-output events runs retain
+  their artifact name and endpoint payload; single-output runs still require
+  exactly one event artifact. Focused Study Lab coverage passed 30/30; full
+  frontend Vitest passed 1010/1010; type-check, backend Ruff, formatting, and
+  git diff --check passed. The exact branch-scoped gate is pending at this
+  coherent product tip. Rerun the exact gate, then continue the next bounded
+  provider/history or compatible chart/list/gauge seam. No visual baseline,
+  mask, threshold, skip, provider, fallback, or acceptance policy changed.
   The exact branch-scoped gate was rerun at product tip df4c89f0 after the
   single-output events Study Lab filter/alert fan-out slice. Git-diff,
   workstream validation, dependency/migration checks, frontend preparation,

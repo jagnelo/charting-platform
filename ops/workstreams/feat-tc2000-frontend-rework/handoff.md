@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Preserve named multi-output event targets
+
+Product commit `033b0397` corrects the Study Lab event target branch so an
+explicitly selected named artifact from a multi-output `events` run is sent to
+the event-filter promotion endpoint with its own artifact name. Single-output
+runs still require exactly one event artifact. Focused coverage passed `30/30`,
+full frontend Vitest `1010/1010`, type-check, backend lint, formatting, and diff
+checks passed. Rerun the exact branch gate at this coherent product tip; no
+visual/provider/acceptance policy changed.
+
 ## 2026-09-12 — Single-event Study Lab target fan-out
 
 Product commit `df4c89f0` exposes the declared watchlist-filter and alert

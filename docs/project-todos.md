@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Preserve named multi-output event targets
+
+- [x] Correct the single-event filter/alert handler so explicitly selected
+      named artifacts in multi-output `events` runs retain their artifact name
+      and endpoint payload while single-output runs remain fail-closed
+      (`033b0397`).
+- [x] Focused Study Lab coverage passed `30/30`; full frontend Vitest passed
+      `1010/1010`; type-check, backend lint, formatting, and diff checks passed.
+- [ ] Rerun the exact branch gate at this product tip, then continue remaining
+      R4 fan-out, provider/history, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Single-event Study Lab target fan-out
 
 - [x] Add the missing named watchlist-filter and alert actions for a completed
