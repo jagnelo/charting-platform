@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Grouped screener coverage preflight
+
+- [x] Move synchronous and streaming screener evaluation to a two-phase
+      grouped local-data flow. The condition tree is walked up front to identify
+      primary/D1/W1 dependencies; each instrument/timeframe snapshot is loaded
+      once before evaluation, and no provider or per-instrument OHLCV read is
+      performed inside the evaluation loop.
+- [x] Preserve the existing primary-timeframe missing-coverage response while
+      reporting additional missing dependency timeframes explicitly. Focused
+      screener preflight/unit coverage passes `34/34`, the database-backed
+      screener integration suite passes `26/26`, and the stream remains
+      provider-free for cold members.
+- [ ] Extend the same coordinator-backed preflight to radar, chart routes,
+      future breadth/signal engines, and refresh-job status persistence; this
+      checkpoint closes only the screener consumer's grouped local snapshot
+      stage.
+
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 
 - [x] Preserve MarketData.app's `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`,
