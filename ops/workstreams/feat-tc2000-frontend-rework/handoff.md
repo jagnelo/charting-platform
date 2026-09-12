@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Watchlist-history responses use canonical wire timestamps
+
+Product commit `799db14d` makes watchlist source descriptors, member timing,
+coverage status, refresh summaries, and durable refresh-run responses emit
+canonical UTC `Z` timestamps through the shared schemas. This aligns Market
+Map/workstation freshness and point-in-time lineage consumers without changing
+membership resolution, readiness semantics, queue state, or persistence.
+
+Focused watchlist-history schema/service coverage passed `11/11`; the full
+backend unit suite passed `1490/1490` at `68.54%` coverage; Ruff, formatting,
+and diff checks passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Checkpoint scope: `backend/app/schemas/watchlist.py` and
+`backend/tests/unit/services/test_watchlist_history.py`. Restore Docker
+access, rerun the pending API regressions and exact gate, then advance the next
+bounded provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — OHLCV chart responses use canonical wire timestamps
 
 Product commit `4a95aa1c` makes `OHLCVBarOut` serialize `ts`, `derived_at`,

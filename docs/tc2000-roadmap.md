@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Watchlist-history responses use canonical wire timestamps
+
+Product commit `799db14d` closes the R1 watchlist-history response seam.
+Watchlist source descriptors, member timing, coverage status, refresh
+summaries, and durable refresh-run responses now serialize their timestamps
+through the shared UTC `Z` helper. Market Map/workstation freshness and
+point-in-time lineage therefore use one client wire timeline without changing
+membership resolution, readiness semantics, queue state, or persistence.
+
+Focused watchlist-history schema/service coverage passed `11/11`; the full
+backend unit suite passed `1490/1490` at `68.54%` coverage; Ruff, formatting,
+and `git diff --check` passed. The exact branch-scoped gate at `799db14d`
+passed repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker returned permission denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, instrument-coverage, OHLCV, and watchlist-history API
+regressions plus the exact gate, then continue the next bounded provider/history
+or compatible chart/list/gauge seam while preserving the six protected visual
+state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — OHLCV chart responses use canonical wire timestamps
 
 Product commit `4a95aa1c` closes the core chart/history response seam.

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Watchlist-history responses use canonical wire timestamps
+
+- [x] Serialize source/member timing, coverage, refresh-summary, and refresh-run
+      timestamps as canonical UTC `Z` values through the shared watchlist
+      schemas (`799db14d`).
+- [x] Focused watchlist-history schema/service coverage passed `11/11`; full
+      backend unit coverage passed `1490/1490` at `68.54%`; Ruff, formatting,
+      and diff checks passed.
+- [x] Reran the exact branch-scoped gate at `799db14d`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
+      No later API, provider, browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — OHLCV chart responses use canonical wire timestamps
 
 - [x] Serialize `OHLCVBarOut` bar and derived-lineage timestamps (`ts`,
