@@ -414,10 +414,14 @@ progress:
       Durable quota buckets now have an explicit provider-defined
       `quota_group` separate from the requested capability. MarketData.app's
       documented account/key-wide credit and concurrency dimensions share an
-      `account` bucket across capabilities; omitted groups retain the
-      capability-scoped compatibility key and blank groups fail closed. The
-      additive migration backfills existing rows, admin/usage diagnostics
-      expose the group, and grouped/ungrouped reservation regressions pass.
+      `account` bucket across capabilities; the same explicit grouping is now
+      recorded for reviewed account/key/IP/session contracts and promoted
+      byte pools, while endpoint/pair-scoped exceptions remain separate.
+      Omitted groups retain the capability-scoped compatibility key and blank
+      groups fail closed. The additive migration backfills existing rows,
+      admin/usage diagnostics expose the group, and grouped/ungrouped
+      reservation regressions pass; the complete backend unit suite passes
+      1,765/1,765.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
