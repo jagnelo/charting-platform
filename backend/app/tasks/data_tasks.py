@@ -308,9 +308,33 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
             "skipped": True,
             "reason": "EDGAR issuer and SEC directory scans are mutually exclusive",
         }
+    max_submissions_requests = int(
+        settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS
+    )
+    if max_submissions_requests <= 0:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory submissions request budget not reviewed",
+        }
+    if max_submissions_requests > 500:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory submissions request budget must be at most 500",
+        }
+    configured_max_issuers = int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS)
+    if not 1 <= configured_max_issuers <= 500:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory max issuers must be between 1 and 500",
+        }
+    if configured_max_issuers > max_submissions_requests:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory submissions request budget is below max issuers",
+        }
     today = datetime.now(UTC).date()
     lookback_days = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS))
-    max_issuers = max(1, int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS))
+    max_issuers = configured_max_issuers
     max_events = max(
         1,
         int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER),
@@ -322,6 +346,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
             end=today,
             max_issuers=max_issuers,
             max_events_per_issuer=max_events,
+            max_submissions_requests=max_submissions_requests,
         )
 
 

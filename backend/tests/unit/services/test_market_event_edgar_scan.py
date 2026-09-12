@@ -147,13 +147,13 @@ async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monk
     monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
 
     first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
-        AsyncSessionAdapter(db), max_issuers=2
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
     )
     second = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
-        AsyncSessionAdapter(db), max_issuers=2
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
     )
     third = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
-        AsyncSessionAdapter(db), max_issuers=2
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
     )
 
     state = db.execute(
@@ -220,7 +220,7 @@ async def test_edgar_directory_scan_records_malformed_page_failure(db, monkeypat
 
     monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
     result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
-        AsyncSessionAdapter(db), max_issuers=2
+        AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=2
     )
     state = db.execute(
         select(MarketEventScanState).where(
@@ -232,3 +232,15 @@ async def test_edgar_directory_scan_records_malformed_page_failure(db, monkeypat
     assert state.status == "failed"
     assert state.last_failure_count == 1
     assert "duplicate CIK" in state.last_error
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_requires_explicit_submissions_budget(db):
+    with pytest.raises(ValueError, match="max_submissions_requests"):
+        await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+            AsyncSessionAdapter(db), max_issuers=1
+        )
+    with pytest.raises(ValueError, match="cannot exceed"):
+        await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+            AsyncSessionAdapter(db), max_issuers=2, max_submissions_requests=1
+        )

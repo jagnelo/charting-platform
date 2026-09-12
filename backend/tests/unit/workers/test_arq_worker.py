@@ -294,6 +294,20 @@ async def test_edgar_scan_tasks_are_mutually_exclusive(monkeypatch):
     assert directory_result == issuer_result
 
 
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_requires_reviewed_submissions_budget(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 0)
+
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {
+        "skipped": True,
+        "reason": "EDGAR SEC directory submissions request budget not reviewed",
+    }
+
+
 def test_edgar_directory_scan_is_registered_in_worker_functions():
     assert arq_worker.scheduled_edgar_ipo_directory_scan in arq_worker.WorkerSettings.functions
 

@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: bool = False
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: int = 50
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: int = 100
+    # One bounded SEC submissions request is made per CIK in a directory page.
+    # A positive reviewed value is required before enabling that fan-out;
+    # zero keeps the scan fail-closed even if its feature flag is set.
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: int = 0
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False

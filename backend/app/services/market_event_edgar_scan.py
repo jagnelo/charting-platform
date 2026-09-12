@@ -167,6 +167,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
     end: date | None = None,
     max_issuers: int = 50,
     max_events_per_issuer: int = 100,
+    max_submissions_requests: int = 0,
 ) -> dict[str, Any]:
     """Scan the complete SEC issuer directory in durable bounded pages.
 
@@ -181,6 +182,14 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
 
     _validate_limit(max_issuers, "max_issuers")
     _validate_limit(max_events_per_issuer, "max_events_per_issuer")
+    if (
+        not isinstance(max_submissions_requests, int)
+        or isinstance(max_submissions_requests, bool)
+        or not 1 <= max_submissions_requests <= 500
+    ):
+        raise ValueError("max_submissions_requests must be between 1 and 500")
+    if max_issuers > max_submissions_requests:
+        raise ValueError("max_issuers cannot exceed max_submissions_requests")
     if start is not None and end is not None and end < start:
         raise ValueError("end must be on or after start")
 
@@ -202,6 +211,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             provenance={
                 "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
                 "directory_offset": 0,
+                "submissions_request_bound": max_submissions_requests,
             },
         )
         db.add(state)
@@ -269,6 +279,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
             "directory_offset": offset,
             "bounded": True,
+            "submissions_request_bound": max_submissions_requests,
         }
         await db.commit()
         return {
@@ -278,6 +289,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "events": 0,
             "failures": 1,
             "directory_offset": offset,
+            "submissions_request_bound": max_submissions_requests,
             "cycle_complete": False,
             "wrapped": wrapped,
         }
@@ -296,6 +308,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "last_batch_ciks": [],
             "bounded": True,
             "cycle_complete": True,
+            "submissions_request_bound": max_submissions_requests,
         }
         state.cursor_issuer_id = None
         state.cycle_count += 1
@@ -312,6 +325,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "events": 0,
             "failures": 0,
             "directory_offset": 0,
+            "submissions_request_bound": max_submissions_requests,
             "cycle_complete": True,
             "wrapped": wrapped,
         }
@@ -339,6 +353,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         },
         "bounded": True,
         "cycle_complete": cycle_complete,
+        "submissions_request_bound": max_submissions_requests,
     }
     state.cursor_issuer_id = None
     state.cycle_count += 1 if cycle_complete else 0
@@ -357,6 +372,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         "scan_key": _DIRECTORY_SCAN_KEY,
         "issuers_considered": len(ciks),
         "directory_offset": 0 if cycle_complete else next_offset,
+        "submissions_request_bound": max_submissions_requests,
         "cycle_complete": cycle_complete,
         "wrapped": wrapped,
     }
