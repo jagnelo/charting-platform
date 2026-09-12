@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Complete event-first provider-factor refresh ordering
+
+Product commit `d0bdba6d1` closes the inverse provider-refresh ordering gap.
+After raw OHLCV bars are durably upserted by range, latest-page,
+historical-page, or bulk ingestion, the existing provider-factor materializer
+now runs for that timeframe when explicit factors were previously observed.
+The operation remains fail-closed for unsupported, incomplete, mixed, or
+ambiguous evidence; raw and provider-native adjusted rows remain authoritative,
+and a derived-view failure cannot fail raw ingestion. Focused event, bulk, and
+market-data coverage passes `41/41`; the full backend unit suite passes
+`1531/1531` with 69.01% total coverage; Ruff, formatting, and diff checks pass.
+No provider routing, fallback, migration, visual, or acceptance policy
+changed. R1 provider population, broader family history, bar floors, and
+AC2–AC7/AC10 remain open; rerun the exact gate at the next clean documentation
+tip.
+
 ## 2026-09-12 — Exact gate at provider-factor refresh tip
 
 At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip

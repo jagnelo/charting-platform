@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Event-first provider-factor refresh closure
+
+Product commit `d0bdba6d1` runs the existing provider-factor materializer after
+raw OHLCV persistence across range, latest-page, historical-page, and bulk
+refresh paths. This makes event-first and price-first arrival ordering
+equivalent while preserving fail-closed handling for unsupported, incomplete,
+mixed, or ambiguous factor evidence and preserving provider-native adjusted
+rows. Focused event/bulk/market-data coverage passes `41/41`; full backend
+units pass `1531/1531` at 69.01% total coverage; Ruff, format, and diff checks
+pass. No provider, fallback, migration, visual, or acceptance rule changed;
+provider completeness, bar floors, and the remaining V25 gates remain open.
+
 ## 2026-09-12 — Exact full-stack gate rechecked at provider-factor refresh tip
 
 At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip
