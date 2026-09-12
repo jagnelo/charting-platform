@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize profile snapshot provenance timestamps
+
+- [x] Normalize profile listing lifecycle and flattened field-provenance timestamps
+      through the shared UTC-`Z` formatter (`e9921de8`).
+- [x] Focused provider-persistence and instrument-sync metadata coverage passed
+      `14/14`; Ruff, formatting, and diff checks passed.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
+      this product tip, then continue bounded provider/history or compatible
+      chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact instrument-sync provenance gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `cc714b1b`; repository/workstream,

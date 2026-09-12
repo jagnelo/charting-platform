@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize profile snapshot provenance timestamps
+
+Product commit `e9921de8` closes the adjacent instrument-profile lineage seam.
+Profile listing lifecycle fields and flattened field-provenance entries now
+normalize offset-aware and legacy naive timestamps through the shared UTC-`Z`
+formatter before they are persisted or reused by point-in-time consumers.
+Identity, provider routing, listing semantics, and profile payload meaning are
+unchanged.
+
+Focused provider-persistence and instrument-sync metadata coverage passed
+`14/14`; Ruff, formatting, and `git diff --check` passed. The exact branch gate
+is pending at this new coherent product tip because Docker access remains
+permission-denied. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Restore Docker health, rerun pending
+API regressions and the exact gate, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Exact instrument-sync provenance gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `cc714b1b` after the

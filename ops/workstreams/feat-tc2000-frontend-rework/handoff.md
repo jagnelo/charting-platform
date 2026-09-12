@@ -2,6 +2,22 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize profile snapshot provenance timestamps
+
+Product commit `e9921de8` routes profile listing lifecycle fields and flattened
+field-provenance timestamps through the shared UTC-`Z` serializer before they
+are persisted or consumed by point-in-time reads. Identity, provider routing,
+listing semantics, and profile payload meaning are unchanged.
+
+Focused provider-persistence and instrument-sync metadata coverage passed
+`14/14`; Ruff, formatting, and `git diff --check` passed. The exact branch gate
+is pending at this coherent product tip because Docker access remains denied;
+no visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health, rerun pending API regressions and the
+exact gate, then advance the next bounded provider/history or compatible
+chart/list/gauge seam. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact instrument-sync provenance gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `cc714b1b` after the
