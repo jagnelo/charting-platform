@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard analytics teardown
+
+Product commit `3a22c9ae9` fences Economic Calendar and Seasonality response
+hydration by mounted lifecycle and request generations. Focused coverage
+passed `2/2`; full frontend Vitest passed `1062/1062` across 120 files;
+type-check/build/diff checks passed with only the existing chunk-size warning.
+Calendar/seasonality API, period, provider, visual, and acceptance contracts
+are unchanged. Record the exact gate at the next coherent documentation tip
+and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard screener gate rechecked
 
 At documentation tip `520cbd60e` (product tip `e7136f18`), the exact gate

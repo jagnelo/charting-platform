@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard analytics teardown
+
+- [x] Fence Economic Calendar and Seasonality dashboard responses by mounted
+      lifecycle and request generations (`3a22c9ae9`); payloads, period
+      semantics, provider routing, and visual/acceptance contracts are
+      unchanged.
+- [x] Focused analytics lifecycle coverage passed `2/2`; full frontend Vitest
+      passed `1062/1062` across 120 files; type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning. No
+      visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
+      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact dashboard screener gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `520cbd60e` / product tip

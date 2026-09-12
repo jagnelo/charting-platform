@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard analytics teardown
+
+Product commit `3a22c9ae9` closes bounded R2/R6 lifecycle gaps in the
+Economic Calendar and Seasonality dashboard widgets. Calendar and monthly
+seasonality responses now stop when the widget is unmounted or a newer symbol
+request supersedes them; loading, error, month selection, and event state are
+generation-guarded. Calendar/seasonality payloads, canonical symbols, provider
+routing, period semantics, and visual contracts are unchanged. Focused
+analytics lifecycle coverage passed `2/2`; full frontend Vitest passed
+`1062/1062` across 120 files; frontend type-check and production build passed
+with only the existing chunk-size warning; and `git diff --check` passed. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Record the exact gate at the next documentation tip then
+continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard screener gate rechecked
 
 At documentation tip `520cbd60e` (product tip `e7136f18`), the exact
