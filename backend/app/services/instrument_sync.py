@@ -272,14 +272,16 @@ async def _provider_chain_label(db: AsyncSession, capability: ProviderCapability
 
 async def seed_universe(db: AsyncSession) -> dict:
     """
-    Idempotent bootstrap of the full global instrument universe via the
-    configured discovery providers.
+    Idempotent bootstrap of the configured instrument universe via the
+    capability-routed discovery providers. The default chain is US venue
+    focused; crypto providers may add non-US instruments where explicitly
+    configured, but this function does not claim global market completeness.
 
     For every supported discovery type the provider is paged in batches
     of 250. Each page response contains all the metadata needed (name, sector,
     industry, country, exchange, currency, marketCap) so no per-instrument info
-    call is required — the whole universe is seeded quickly and covers global
-    markets (US, EU, Asia, etc.).
+    call is required. Coverage and completeness remain provider- and
+    entitlement-specific and are retained as discovery observations.
 
     Detail/listing/stat rows created per quote type:
       EQUITY / ETF / MUTUALFUND / INDEX → EquityDetail (sector, industry, …)

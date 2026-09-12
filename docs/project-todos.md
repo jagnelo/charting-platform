@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — US-first universe scope honesty
+
+- [x] Correct the discovery-service documentation so the configured provider
+      chain is described as US-venue focused (with explicitly configured crypto
+      exceptions), rather than claiming global-market completeness. Provider
+      coverage and entitlement-specific completeness remain retained as
+      observations and are not overstated.
+
 ### 2026-09-12 — Venue-qualified universe identity
 
 - [x] Harden legacy `seed_universe` discovery so a ticker is never treated as
