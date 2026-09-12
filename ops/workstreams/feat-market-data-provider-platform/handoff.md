@@ -523,3 +523,8 @@ Update this handoff at each coherent boundary.
   history. Focused selector coverage passes `22/22`; the complete backend unit
   suite passes `1,806/1,806`; no provider calls were needed and
   PostgreSQL/full-stack validation remains Docker-gated.
+- Provider batches containing mixed session/feed/adjustment metadata are now
+  partitioned into separate deterministic `MarketSeries` identities before
+  persistence. Focused market-data coverage passes `29/29`; the complete
+  backend unit suite passes `1,807/1,807`; no provider calls were needed and
+  PostgreSQL/full-stack validation remains Docker-gated.

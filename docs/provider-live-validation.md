@@ -969,3 +969,8 @@ suppresses legacy rows. A pre-created or emptied canonical series therefore
 cannot hide readable legacy history. Focused selector coverage passed `22/22`,
 and the complete backend unit suite passed `1,806/1,806`; no provider calls
 were made.
+
+Provider batches with mixed session/feed/adjustment metadata are now split into
+separate deterministic series before persistence. Focused market-data coverage
+passed `29/29`, and the complete backend unit suite passed `1,807/1,807`; this
+was a local normalization correction with no provider calls.

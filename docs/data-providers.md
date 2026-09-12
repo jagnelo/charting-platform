@@ -428,6 +428,8 @@ symbol APIs:
   the same no-mixing rule for derived chart series.
   If a canonical mapping exists without matching bars, the selector retains
   readable legacy history until canonical observations are actually present.
+  Provider batches with mixed sessions, feeds, adjustment bases, or adjustment
+  versions are partitioned into separate series before persistence.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so

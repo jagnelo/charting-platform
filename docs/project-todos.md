@@ -64,6 +64,11 @@
       history; the focused selector coverage passes 22/22 and the complete
       backend unit suite passes 1,806/1,806. PostgreSQL/full-stack validation
       remains Docker-gated.
+- [x] Partition provider responses containing mixed session/feed/adjustment
+      metadata into separate deterministic `MarketSeries` identities. A batch
+      no longer inherits the first bar's scope; focused market-data coverage
+      passes 29/29 and the complete backend unit suite passes 1,807/1,807.
+      PostgreSQL/full-stack validation remains Docker-gated.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 
