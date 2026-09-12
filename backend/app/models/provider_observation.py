@@ -159,6 +159,11 @@ class MarketBarObservation(Base):
     session: Mapped[str] = mapped_column(
         String(16), nullable=False, default="regular", server_default="regular"
     )
+    # Stable conflict key for a scoped series while retaining nullable
+    # compatibility for legacy rows that have no MarketSeries relationship.
+    scope_key: Mapped[str] = mapped_column(
+        String(180), nullable=False, default="legacy:regular", server_default="legacy:regular"
+    )
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
@@ -186,6 +191,7 @@ class MarketBarObservation(Base):
             "timeframe",
             "ts",
             "is_adjusted",
+            "scope_key",
             name="uq_market_bar_observation",
         ),
     )

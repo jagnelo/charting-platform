@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.market_data_foundation import AdjustmentBasis
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     DatasetStatus,
@@ -65,6 +66,7 @@ from app.providers.optional_market_data import (
     estimate_twelve_data_ohlcv_request_count,
 )
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
+from app.services.market_series import SeriesScope, get_or_create_series
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
     store_latest_price_snapshot,
@@ -80,6 +82,13 @@ logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+_OHLCV_CONFLICT_COLUMNS = [
+    "instrument_id",
+    "timeframe",
+    "ts",
+    "is_adjusted",
+    "scope_key",
+]
 
 # Process-local coalescing for identical interactive refreshes. Durable
 # background refresh jobs provide cross-worker coalescing; this map prevents
@@ -366,6 +375,7 @@ async def _record_bar_observations(
                 "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
                 "market_series_id": pg_insert(MarketBarObservation).excluded.market_series_id,
                 "session": pg_insert(MarketBarObservation).excluded.session,
+                "scope_key": pg_insert(MarketBarObservation).excluded.scope_key,
                 "observed_at": pg_insert(MarketBarObservation).excluded.observed_at,
                 "open": pg_insert(MarketBarObservation).excluded.open,
                 "high": pg_insert(MarketBarObservation).excluded.high,
@@ -386,6 +396,7 @@ async def _record_bar_observations(
                 "provider_symbol": provider_symbol,
                 "timeframe": bar.timeframe,
                 "session": bar.session,
+                "scope_key": _bar_scope_key(bar),
                 "ts": bar.ts,
                 "observed_at": observed_at,
                 "open": bar.open,
@@ -468,7 +479,7 @@ async def persist_price_history_bars(
     insert_stmt = pg_insert(OHLCVBar)
     if use_upsert:
         insert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+            index_elements=_OHLCV_CONFLICT_COLUMNS,
             set_={
                 "open": insert_stmt.excluded.open,
                 "high": insert_stmt.excluded.high,
@@ -479,6 +490,7 @@ async def persist_price_history_bars(
                 "data_source_id": insert_stmt.excluded.data_source_id,
                 "market_series_id": insert_stmt.excluded.market_series_id,
                 "session": insert_stmt.excluded.session,
+                "scope_key": insert_stmt.excluded.scope_key,
                 "adjustment_basis": insert_stmt.excluded.adjustment_basis,
                 "adjustment_version": insert_stmt.excluded.adjustment_version,
                 "provenance": insert_stmt.excluded.provenance,
@@ -486,7 +498,7 @@ async def persist_price_history_bars(
         )
     else:
         insert_stmt = insert_stmt.on_conflict_do_nothing(
-            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+            index_elements=_OHLCV_CONFLICT_COLUMNS
         )
     await db.execute(insert_stmt, [_bar_as_dict(bar) for bar in bars])
     await _touch_ohlcv_dataset_state(
@@ -555,7 +567,7 @@ async def recompute_synthetic_ohlcv(
                     try:
                         await db.execute(
                             pg_insert(OHLCVBar).on_conflict_do_nothing(
-                                index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                                index_elements=_OHLCV_CONFLICT_COLUMNS
                             ),
                             [_bar_as_dict(b) for b in new_bars],
                         )
@@ -625,6 +637,7 @@ async def recompute_synthetic_ohlcv(
                 "vwap": None,
                 "is_adjusted": True,
                 "session": "regular",
+                "scope_key": "legacy:regular",
                 "adjustment_basis": "derived",
                 "adjustment_version": "expression-engine",
                 "provenance": {
@@ -641,7 +654,7 @@ async def recompute_synthetic_ohlcv(
         try:
             await db.execute(
                 pg_insert(OHLCVBar).on_conflict_do_update(
-                    index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                    index_elements=_OHLCV_CONFLICT_COLUMNS,
                     set_={
                         "open": pg_insert(OHLCVBar).excluded.open,
                         "high": pg_insert(OHLCVBar).excluded.high,
@@ -823,7 +836,7 @@ async def _fetch_ohlcv_impl(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
                     [_bar_as_dict(b) for b in new_bars],
                 )
@@ -951,6 +964,44 @@ async def _fetch_provider(
     for bar in bars:
         bar.instrument_id = instrument.id
         bar.data_source_id = execution.data_source.id
+    if bars:
+        first_bar = bars[0]
+        try:
+            basis_value = getattr(first_bar.adjustment_basis, "value", first_bar.adjustment_basis)
+            adjustment_basis = AdjustmentBasis(str(basis_value))
+        except ValueError:
+            adjustment_basis = (
+                AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+            )
+        feed_scope = str((first_bar.provenance or {}).get("feed") or "provider_native")
+        series = await get_or_create_series(
+            db,
+            SeriesScope(
+                instrument_id=instrument.id,
+                data_source_id=execution.data_source.id,
+                feed_scope=feed_scope,
+                session_code=first_bar.session,
+                timeframe=timeframe.value,
+                adjustment_basis=adjustment_basis,
+                adjustment_version=first_bar.adjustment_version,
+            ),
+            canonical=True,
+            source_series_key=(
+                f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
+                f"{first_bar.session}:{adjustment_basis.value}:{first_bar.adjustment_version}"
+            ),
+            provenance={
+                "provider": execution.provider_name,
+                "provider_symbol": provider_symbol,
+                "feed_scope": feed_scope,
+                "session": first_bar.session,
+                "timeframe": timeframe.value,
+                "adjustment_basis": adjustment_basis.value,
+                "adjustment_version": first_bar.adjustment_version,
+            },
+        )
+        for bar in bars:
+            bar.market_series_id = series.id
     await _record_bar_observations(
         db,
         bars,
@@ -1044,7 +1095,7 @@ async def _fetch_ohlcv_latest_impl(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
                     [_bar_as_dict(b) for b in new_bars],
                 )
@@ -1079,7 +1130,7 @@ async def _fetch_ohlcv_latest_impl(
                 try:
                     await db.execute(
                         pg_insert(OHLCVBar).on_conflict_do_update(
-                            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                            index_elements=_OHLCV_CONFLICT_COLUMNS,
                             set_={
                                 "open": pg_insert(OHLCVBar).excluded.open,
                                 "high": pg_insert(OHLCVBar).excluded.high,
@@ -1118,7 +1169,7 @@ async def _fetch_ohlcv_latest_impl(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_update(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                        index_elements=_OHLCV_CONFLICT_COLUMNS,
                         set_={
                             "open": pg_insert(OHLCVBar).excluded.open,
                             "high": pg_insert(OHLCVBar).excluded.high,
@@ -1267,7 +1318,7 @@ async def _fetch_ohlcv_page_before_impl(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
                     [_bar_as_dict(b) for b in fetched],
                 )
@@ -1284,6 +1335,15 @@ async def _fetch_ohlcv_page_before_impl(
     return rows
 
 
+def _bar_scope_key(b: OHLCVBar) -> str:
+    """Return the persisted conflict key for a scoped or legacy bar."""
+
+    session = str(b.session or "regular").strip() or "regular"
+    if b.market_series_id is None:
+        return f"legacy:{session}"
+    return f"series:{b.market_series_id}:{session}"
+
+
 def _bar_as_dict(b: OHLCVBar) -> dict:
     return {
         "instrument_id": b.instrument_id,
@@ -1292,6 +1352,7 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
         "timeframe": b.timeframe,
         "ts": b.ts,
         "session": b.session,
+        "scope_key": _bar_scope_key(b),
         "open": b.open,
         "high": b.high,
         "low": b.low,

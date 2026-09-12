@@ -85,6 +85,7 @@ def test_bar_insert_mapping_preserves_series_adjustment_and_provenance():
         "timeframe": Timeframe.D1,
         "ts": datetime(2026, 1, 2, tzinfo=UTC),
         "session": "regular",
+        "scope_key": "series:99:regular",
         "open": 100,
         "high": 102,
         "low": 99,
@@ -124,6 +125,7 @@ async def test_observation_insert_mapping_preserves_series_adjustment_and_payloa
             "provider_symbol": "AAPL",
             "timeframe": Timeframe.D1,
             "session": "regular",
+            "scope_key": "series:99:regular",
             "ts": datetime(2026, 1, 2, tzinfo=UTC),
             "observed_at": datetime(2026, 1, 3, tzinfo=UTC),
             "open": 100,
@@ -139,6 +141,58 @@ async def test_observation_insert_mapping_preserves_series_adjustment_and_payloa
         }
     ]
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
+
+
+@pytest.mark.asyncio
+async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=123)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    instrument = SimpleNamespace(id=42)
+    result = await market_data._fetch_provider(
+        object(),
+        instrument,
+        Timeframe.D1,
+        datetime(2026, 1, 1, tzinfo=UTC),
+        datetime(2026, 1, 3, tzinfo=UTC),
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.feed_scope == "provider_native"
+    assert scope.session_code == "regular"
+    assert scope.timeframe == "D1"
+    assert scope.adjustment_basis.value == "provider_adjusted"
+    assert scope.adjustment_version == "alpaca-all"
+    assert captured["kwargs"]["canonical"] is True
+    assert result[0].market_series_id == 123
 
 
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):

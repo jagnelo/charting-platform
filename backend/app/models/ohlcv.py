@@ -79,6 +79,11 @@ class OHLCVBar(Base):
     session: Mapped[str] = mapped_column(
         String(16), default="regular", server_default="regular", nullable=False
     )
+    # Stable conflict key for a scoped series while retaining nullable
+    # compatibility for legacy rows that have no MarketSeries relationship.
+    scope_key: Mapped[str] = mapped_column(
+        String(180), default="legacy:regular", server_default="legacy:regular", nullable=False
+    )
 
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     high: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
@@ -113,6 +118,7 @@ class OHLCVBar(Base):
             "timeframe",
             "ts",
             "is_adjusted",
+            "scope_key",
             unique=True,
         ),
         Index("ix_ohlcv_series_tf_ts", "market_series_id", "timeframe", "ts"),
