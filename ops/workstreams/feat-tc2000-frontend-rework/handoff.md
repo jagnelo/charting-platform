@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact gate rechecked at unified-readiness tip
+
+At documentation tip `43d24923d` (product tip `d1d9577c9`), the exact
+branch-scoped `full_stack_browser` gate passed git-diff, workstream validation
+(`30` records), locked dependency and migration checks, frontend dependency
+preparation, Ruff check/format, and TypeScript. `backend-coverage` then exited
+`2` after the fixed 180-second Docker readiness window because Docker returned
+HTTP 500 for API `v1.55` at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Unify timeframe readiness across family breadth and source history
 
 Product commit `56689bad2` applies the provider-neutral `ready`/`partial`/
