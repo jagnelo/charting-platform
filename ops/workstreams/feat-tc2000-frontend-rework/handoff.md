@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
+
+Product tip `af142b1d` adds the explicit `scalar_target_to_boolean` adapter for
+finite numeric scalar Study outputs. Direct and structured Study Lab results
+now offer thresholded Boolean columns, filters, scans, Market Gauges, alerts,
+and Strategy signals; the isolated runner evaluates the selected scalar per
+declared canonical member and retains source/run/output/membership lineage.
+Focused runner coverage passed `114/114`, code-asset integration `24/24` with
+two existing warnings, Research Results `35/35`, Study Lab `28/28`, type-check,
+Ruff, formatting, and diff checks passed. The exact gate is pending at this
+tip. No visual/provider/fallback/acceptance policy changed; preserve the six
+protected visual state-oracle diffs.
+
+Next: rerun the exact branch-scoped gate at `af142b1d`, then continue a bounded
+provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Exact gate after named event-filter artifact guard
 
 The exact elevated branch-scoped Docker-backed gate ran at product tip

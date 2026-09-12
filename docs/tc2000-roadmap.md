@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
+
+Product tip `af142b1d` closes a bounded R4 compatibility gap. Finite numeric
+scalar artifacts from direct or structured Study Lab runs can now be compared
+with an explicit operator and threshold and promoted as immutable Boolean
+conditions for watchlist columns, filters, scans, Market Gauges, alerts, or
+Strategy signals. The backend validates the scalar output contract and finite
+threshold, and the isolated runner applies the `scalar_target_to_boolean`
+adapter per declared canonical member; source/run/output/membership lineage is
+preserved and non-finite or incompatible values fail closed.
+
+Focused runner coverage passed `114/114`, code-asset integration passed
+`24/24` with two existing warnings, Research Results plus Study Lab component
+coverage passed `35/35` and `28/28`, frontend type-check passed, and Ruff,
+formatting, and diff checks passed. The exact branch-scoped gate is pending at
+this product tip. No visual, provider, fallback, or acceptance policy changed;
+rerun the gate before the next bounded slice and preserve the six protected
+visual state-oracle diffs.
+
 ## 2026-09-12 — Exact gate after named event-filter artifact guard
 
 The exact elevated branch-scoped Docker-backed gate was rerun at product tip

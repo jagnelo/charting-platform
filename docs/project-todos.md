@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
+
+- [x] Add a finite numeric scalar threshold adapter for direct and structured
+      Study Lab results. The explicit `scalar_target_to_boolean` contract
+      supports immutable Boolean columns, watchlist filters, scans, Market
+      Gauges, alerts, and Strategy signals while preserving source/run/output
+      and canonical membership lineage; invalid/non-finite inputs fail closed.
+- [x] Add focused regressions: runner `114/114`, code-asset integration `24/24`
+      (two existing warnings), Research Results `35/35`, Study Lab `28/28`,
+      frontend type-check, Ruff, formatting, and diff checks all passed.
+- [ ] Rerun the exact branch-scoped gate at product tip `af142b1d`; continue
+      provider/history or compatible chart/list/gauge work without changing the
+      six protected visual state-oracle diffs or acceptance policy.
+
 ### 2026-09-12 — Exact gate after named event-filter artifact guard
 
 - [x] Rerun the exact elevated branch-scoped Docker-backed gate at product tip
