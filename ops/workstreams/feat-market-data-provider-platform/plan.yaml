@@ -507,10 +507,18 @@ progress:
       Fixture, registry, quota, and focused provider coverage pass; the bounded
       credentialed AAPL live earnings case also passed 1/1 under run
       `alpha-earnings-20260912` after the observed capacity response.
+    - >-
+      The subsequent complete 42-case matrix at 2026-09-12T10:00Z passed
+      37/42. Alpha Vantage returned provider-native 25-requests/day capacity
+      responses for both IPO-calendar and earnings after the shared key was
+      exercised; Tradier, IBKR, and Ondo failed only their exact intentional
+      credential preflights. All other configured and keyless cases passed,
+      and the aggregate-only usage receipt was written outside Git. The
+      wrapper returned exit code 2 and made no acceptance claim.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
-    The complete matrix now collects 41 cases and remains 37/41: newly supplied
+    The complete matrix now collects 42 cases and remains 37/42: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
     Sandbox probes, including the MarketData.app expirations/option-chain
     surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.
@@ -521,8 +529,9 @@ progress:
     intentionally unconfigured. MarketData.app routing is also intentionally
     closed until the account plan/limit pair is explicitly reviewed; its live
     key currently reports a 10,000-credit daily header. Alpha Vantage remains at its documented
-    25-requests/day capacity for daily history and IPO-calendar reads; the
-    earnings-history probe now passes independently. FRED,
+    25-requests/day capacity for IPO-calendar and earnings reads after the
+    shared key was exercised; a standalone earnings probe passed independently.
+    FRED,
     FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
     Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
     deployment-owned SEC contact distribution, and the separately approved

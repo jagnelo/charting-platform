@@ -879,3 +879,12 @@ annual/quarterly rows that passed strict fiscal/reported-date and EPS/surprise
 normalization; the aggregate usage receipt remains outside Git. This is
 endpoint-specific evidence and does not change the existing 25-requests/day
 quota or the still-open full-matrix/terms gates.
+
+The follow-up complete matrix at 2026-09-12T10:00Z collected 42 cases and
+passed `37/42`. The two Alpha Vantage non-passes were provider-native
+25-requests/day capacity responses for IPO-calendar and earnings after the
+shared key was exercised; the other three were the exact intentional
+credential preflights for Tradier, IBKR, and Ondo. The wrapper returned exit
+code `2` and made no acceptance claim. This confirms the provider-specific
+quota guard under fan-out; it does not invalidate the separate successful
+standalone Alpha earnings normalization probe.

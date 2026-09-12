@@ -126,12 +126,12 @@
   "head": "1980313e63047b137d21bbafd08790f8858dc362",
   "implementation_sha": "1980313e63047b137d21bbafd08790f8858dc362",
   "interrupted": true,
-  "last_checkpoint": "2026-09-12T09:59:50+00:00",
+  "last_checkpoint": "2026-09-12T10:02:47+00:00",
   "last_human_progress_update": "2026-09-12T08:24:37+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Keep the pushed Alpha Vantage earnings capability and live evidence alongside the prior 37/41 complete matrix result. Restore Docker readiness for the required full-profile session bootstrap, then keep deferred-provider preflights, provider-specific quota/legal/terms reviews, venue reconciliation, secret distribution, and separately approved 30-day shadow gates open; keep MarketData.app response-dependent chain/quote routing fail-closed until a reviewed reservation bound exists.",
+  "next_action": "Keep the pushed Alpha Vantage earnings capability and its standalone live evidence alongside the latest 37/42 complete matrix result. Restore Docker readiness for the required full-profile session bootstrap, then keep deferred-provider preflights, provider-specific quota/legal/terms reviews, venue reconciliation, secret distribution, and separately approved 30-day shadow gates open; keep MarketData.app response-dependent chain/quote routing fail-closed until a reviewed reservation bound exists.",
   "parent_branch": "staging",
-  "plan_hash": "0dc28884a26cc0740e7a3c201113f34fb578d6a65d5023a0bd8c45ee8ce1d155",
+  "plan_hash": "173e472147804b8365d7760304ff8e460322f5173a928f1134f2874584ba05c2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -156,11 +156,11 @@
       "AC-RATE-FAILURE",
       "AC-LIVE-EVIDENCE"
     ],
-    "current_blocker": "The complete matrix remains 37/41: Alpha Vantage returned its documented 25-requests/day capacity response in that run, while the new bounded Alpha Vantage earnings probe separately passed 1/1 after the provider window allowed it. Tradier, Ondo, and IBKR are intentionally deferred. MarketData.app expirations, current chain, and historical option-quote transport are live-proven, but response-dependent chain/quote credits remain unroutable without a reviewed reservation bound. FRED, FINRA OTC/async, Nasdaq, tokenized-provider terms/quota, Marketstack discovery, Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret distribution, deployment-owned SEC contact distribution, and separately approved 30-day shadow gates remain open. Docker readiness is currently unavailable for the required full-profile session bootstrap.",
+    "current_blocker": "The latest complete matrix collects 42 cases and passes 37/42. Alpha Vantage returned provider-native 25-requests/day capacity responses for IPO-calendar and earnings after the shared key was exercised; a standalone bounded earnings probe passed 1/1. Tradier, Ondo, and IBKR are intentionally deferred. MarketData.app expirations, current chain, and historical option-quote transport are live-proven, but response-dependent chain/quote credits remain unroutable without a reviewed reservation bound. FRED, FINRA OTC/async, Nasdaq, tokenized-provider terms/quota, Marketstack discovery, Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret distribution, deployment-owned SEC contact distribution, and separately approved 30-day shadow gates remain open. Docker readiness is currently unavailable for the required full-profile session bootstrap.",
     "current_phase": "credentialed_live_validation",
     "next_action": "Restore Docker readiness and run agent-session-start; then keep deferred-provider preflights explicit, complete provider-specific quota/legal and venue-reconciliation reviews, retain provider-native usage accounting, and do not activate MarketData.app chain/quote routing or deploy until all gates are satisfied.",
     "total": 15,
-    "updated_at": "2026-09-12T09:59:50.000000+00:00"
+    "updated_at": "2026-09-12T10:02:47.000000+00:00"
   },
   "remote": "1980313e63047b137d21bbafd08790f8858dc362",
   "remote_sha": "1980313e63047b137d21bbafd08790f8858dc362",
