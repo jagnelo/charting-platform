@@ -2513,6 +2513,16 @@ class TestWorkspaces:
         assert snapshot_payload["rows"][0]["last"]["value"] is None
         assert snapshot_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
 
+        rotation = client.get(
+            "/api/v1/analysis/groups/stale-breadth-test/relative-rotation",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert rotation.status_code == 200
+        rotation_payload = rotation.json()
+        assert rotation_payload["rows"][0]["coverage"] == 0
+        assert rotation_payload["rows"][0]["warnings"][0]["code"] == "stale_data"
+
     def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

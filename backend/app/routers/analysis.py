@@ -1780,6 +1780,14 @@ async def group_relative_rotation(
         db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
     )
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
+    rotation_ids = [*instrument_ids, benchmark_instrument.id]
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, rotation_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     rows: list[RelativeRotationRow] = []
     for member in sorted(members, key=lambda item: item.position):
@@ -1787,6 +1795,31 @@ async def group_relative_rotation(
         if instrument is None:
             continue
         bars = bars_by_id.get(instrument.id, [])
+        stale_member = instrument.id in stale_ids or benchmark_instrument.id in stale_ids
+        if stale_member:
+            stale_target = (
+                benchmark_instrument.id
+                if benchmark_instrument.id in stale_ids
+                else instrument.id
+            )
+            rows.append(
+                RelativeRotationRow(
+                    instrument_id=instrument.id,
+                    symbol=instrument.symbol,
+                    name=instrument.name,
+                    coverage=0,
+                    tail=[],
+                    history=[],
+                    warnings=[
+                        AnalysisWarning(
+                            code="stale_data",
+                            message="Persisted OHLCV freshness has expired; rotation was withheld.",
+                            instrument_id=stale_target,
+                        )
+                    ],
+                )
+            )
+            continue
         aligned = [
             (bar.ts, float(bar.close / benchmark_bars[bar.ts].close))
             for bar in bars
