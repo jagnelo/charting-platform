@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact reusable-basket gate rechecked
+
+At documentation tip `8632f1aa` (product tip `f43ed459`), the exact
+branch-scoped gate passed repository/workstream validation, dependency and
+migration checks, frontend preparation, Ruff, formatting, and TypeScript. It
+then stopped at `backend-coverage` after the fixed 180-second Docker readiness
+window because access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence reusable basket teardown
 
 Product commit `f43ed459` fences reusable-universe basket reload, save, and

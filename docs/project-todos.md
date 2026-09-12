@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact reusable-basket gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `8632f1aa` / product tip
+      `f43ed459`; git-diff, workstream validation (30 records), dependency/
+      migration, frontend preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence reusable basket teardown
 
 - [x] Fence reusable-universe basket reload, save, and delete flows by a
