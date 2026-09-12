@@ -86,6 +86,34 @@ describe('linked instrument tool stale-response guards', () => {
     expect(wrapper.get('[role="listitem"][aria-label*="bb_upper"]').exists()).toBe(true)
   })
 
+  it('discloses selected outputs in compact firing history', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/history/instrument/1') {
+        return Promise.resolve([{
+          id: 51,
+          alert_type: 'indicator',
+          fired_at: '2026-08-03T12:00:00Z',
+          trigger_value: 101.25,
+          condition_snapshot: {
+            indicator: 'bb',
+            output_a: 'bb_upper',
+            indicator_b: 'sma',
+            output_b: 'sma',
+            condition: 'crosses_above',
+          },
+          is_viewed: false,
+        }])
+      }
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('BB [bb_upper] crosses above SMA [sma]'))
+    const historyButton = wrapper.get('.alerts-tool__history button')
+    expect(historyButton.text()).toContain('101.25')
+    expect(historyButton.attributes('aria-label')).toContain('BB [bb_upper] crosses above SMA [sma]')
+  })
+
   it('does not leave the alerts tool busy when an older mutation completes after relinking', async () => {
     const mutation = deferred<{ id: number; condition: string; threshold_price: number; status: string; repeat: boolean }>()
     apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {

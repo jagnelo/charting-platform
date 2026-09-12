@@ -110,8 +110,8 @@
     </ul>
     <section v-if="instrumentId && history.length" class="alerts-tool__history" role="region" aria-label="Alert firing history">
       <header>Recent firing history</header>
-      <button v-for="event in history" :key="event.id" type="button" :aria-label="`${event.alert_type} fired ${formatFiredAt(event.fired_at)}`" @click="markViewed(event.id)">
-        <span>{{ formatFiredAt(event.fired_at) }}</span><b>{{ event.alert_type }}</b><small>{{ event.trigger_value == null ? 'No trigger value' : formatPrice(event.trigger_value) }}</small>
+      <button v-for="event in history" :key="event.id" type="button" :aria-label="`${event.alert_type} fired ${formatFiredAt(event.fired_at)}: ${historyEventLabel(event)}; ${historyTriggerLabel(event)}`" @click="markViewed(event.id)">
+        <span>{{ formatFiredAt(event.fired_at) }}</span><b>{{ event.alert_type }}</b><small>{{ historyEventLabel(event) }} · {{ historyTriggerLabel(event) }}</small>
       </button>
     </section>
   </section>
@@ -139,7 +139,14 @@ type IndicatorAlert = {
   repeat: boolean
 }
 type ScreenerAlert = { id: number; screener_id: number; screener_name?: string; trigger_type: string; status: string; repeat: boolean }
-type AlertHistory = { id: number; alert_type: string; fired_at: string; trigger_value: number | string | null; is_viewed: boolean }
+type AlertHistory = {
+  id: number
+  alert_type: string
+  fired_at: string
+  trigger_value: number | string | null
+  condition_snapshot?: Record<string, unknown> | null
+  is_viewed: boolean
+}
 
 const props = withDefaults(defineProps<{ instrumentId: number | null | undefined; symbol: string; timeframe?: string }>(), { timeframe: 'D1' })
 const queryClient = useQueryClient()
@@ -341,6 +348,30 @@ function indicatorAlertLabel(alert: IndicatorAlert): string {
   return `${left} ${conditionText} ${alert.threshold_value ?? ''}`.trim()
 }
 function formatFiredAt(value: string) { return new Date(value).toLocaleString() }
+function snapshotIndicator(snapshot: Record<string, unknown>, typeKey: 'indicator' | 'indicator_b', outputKey: 'output_a' | 'output_b'): string {
+  const type = typeof snapshot[typeKey] === 'string' ? snapshot[typeKey] as string : ''
+  if (!type) return ''
+  const output = typeof snapshot[outputKey] === 'string' ? snapshot[outputKey] as string : ''
+  return indicatorSeriesDisplayName({ type: type as IndicatorType, params: output ? { output } : {} })
+}
+function historyEventLabel(event: AlertHistory): string {
+  const snapshot = event.condition_snapshot ?? {}
+  const conditionText = typeof snapshot.condition === 'string' ? conditionLabel(snapshot.condition) : ''
+  const left = snapshotIndicator(snapshot, 'indicator', 'output_a')
+  if (left) {
+    const right = snapshotIndicator(snapshot, 'indicator_b', 'output_b')
+    const target = right || (snapshot.threshold == null ? '' : String(snapshot.threshold))
+    return `${left}${conditionText ? ` ${conditionText}` : ''}${target ? ` ${target}` : ''}`.trim()
+  }
+  if (conditionText) {
+    const threshold = snapshot.threshold == null ? '' : ` ${String(snapshot.threshold)}`
+    return `${conditionText}${threshold}`.trim()
+  }
+  return event.alert_type
+}
+function historyTriggerLabel(event: AlertHistory): string {
+  return event.trigger_value == null ? 'No trigger value' : formatPrice(event.trigger_value)
+}
 
 watch(() => props.instrumentId, () => { void load() }, { immediate: true })
 watch(() => props.timeframe, value => {
