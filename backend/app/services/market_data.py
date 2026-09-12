@@ -19,6 +19,7 @@ import numpy as np
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.config import settings
 from app.models.data_source import DataSource
@@ -170,14 +171,19 @@ def _default_series_bar_condition(
         MarketSeriesDefault.is_adjusted == adjusted,
     )
     mapped_id = mapping.scalar_subquery()
-    mapping_target_active = (
+    mapped_bar = aliased(OHLCVBar)
+    mapping_target_has_bars = (
         select(MarketSeriesDefault.id)
         .join(MarketSeries, MarketSeries.id == MarketSeriesDefault.market_series_id)
+        .join(mapped_bar, mapped_bar.market_series_id == MarketSeries.id)
         .where(
             MarketSeriesDefault.instrument_id == instrument_id,
             MarketSeriesDefault.timeframe == timeframe.value,
             MarketSeriesDefault.is_adjusted == adjusted,
             MarketSeries.is_active.is_(True),
+            mapped_bar.instrument_id == instrument_id,
+            mapped_bar.timeframe == timeframe,
+            mapped_bar.is_adjusted == adjusted,
         )
         .exists()
     )
@@ -199,17 +205,27 @@ def _default_series_bar_condition(
         .limit(1)
     )
     canonical_id = canonical.scalar_subquery()
-    canonical_exists = canonical.exists()
+    canonical_bar = aliased(OHLCVBar)
+    canonical_has_bars = (
+        select(canonical_bar.id)
+        .where(
+            canonical_bar.instrument_id == instrument_id,
+            canonical_bar.timeframe == timeframe,
+            canonical_bar.is_adjusted == adjusted,
+            canonical_bar.market_series_id == canonical_id,
+        )
+        .exists()
+    )
     return or_(
-        and_(mapping_target_active, OHLCVBar.market_series_id == mapped_id),
+        and_(mapping_target_has_bars, OHLCVBar.market_series_id == mapped_id),
         and_(
-            ~mapping_target_active,
-            canonical_exists,
+            ~mapping_target_has_bars,
+            canonical_has_bars,
             OHLCVBar.market_series_id == canonical_id,
         ),
         and_(
-            ~mapping_target_active,
-            ~canonical_exists,
+            ~mapping_target_has_bars,
+            ~canonical_has_bars,
             OHLCVBar.market_series_id.is_(None),
         ),
     )

@@ -197,3 +197,35 @@ def test_default_condition_excludes_alternate_and_legacy_bars():
     finally:
         session.close()
         engine.dispose()
+
+
+def test_default_condition_keeps_legacy_bars_when_canonical_series_is_empty():
+    engine, session = _db()
+    try:
+        session.add(
+            MarketSeries(
+                id=10,
+                instrument_id=1,
+                data_source_id=10,
+                feed_scope="provider_native",
+                session_code="regular",
+                timeframe="D1",
+                adjustment_basis=AdjustmentBasis.PROVIDER_ADJUSTED,
+                adjustment_version="v1",
+                is_canonical=True,
+                is_active=True,
+            )
+        )
+        session.add(_bar(series_id=None))
+        session.flush()
+        statement = select(OHLCVBar).where(
+            OHLCVBar.instrument_id == 1,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+            _default_series_bar_condition(1, Timeframe.D1, True),
+        )
+        rows = session.execute(statement).scalars().all()
+        assert [row.market_series_id for row in rows] == [None]
+    finally:
+        session.close()
+        engine.dispose()
