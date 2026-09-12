@@ -463,6 +463,55 @@ async def test_refresh_tokenized_events_persists_and_links_explicit_action_ident
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_events_runs_dinari_bounded_global_split_feed(db, monkeypatch):
+    calls = []
+    action_kwargs = []
+
+    def fetch_actions(**kwargs):
+        action_kwargs.append(kwargs)
+        return [
+            {
+                "stock_id": "dinari-stock",
+                "action_type": "split",
+                "effective_date": "2026-09-11",
+            }
+        ]
+
+    provider = SimpleNamespace(name="dinari", fetch_tokenized_corporate_actions=fetch_actions)
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        calls.append((capability, operation, kwargs["provider_name"]))
+        result = kwargs["invoke"](provider, None)
+        return SimpleNamespace(provider_name="dinari", result=result)
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_events(
+        AsyncSessionAdapter(db), max_providers=1, page_size=25, include_upcoming=True
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["events"] == 1
+    assert result["linked"] == 0
+    assert result["unlinked"] == 1
+    assert result["failed"] == 0
+    assert calls == [
+        (
+            ProviderCapability.TOKENIZED_CORPORATE_ACTIONS,
+            "fetch_tokenized_corporate_actions",
+            "dinari",
+        )
+    ]
+    # The scheduler uses Dinari's bounded global split feed and never guesses
+    # an unsupported upcoming filter.
+    assert action_kwargs == [{}]
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_events_reports_adapters_without_action_surface(db, monkeypatch):
     provider = SimpleNamespace(name="bybit_xstocks")
     async def fake_chain(*_args, **_kwargs):

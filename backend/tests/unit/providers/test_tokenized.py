@@ -126,7 +126,8 @@ def test_exchange_tokenized_adapters_expose_required_provider_surface():
 def test_only_action_capable_tokenized_adapters_expose_corporate_action_capability():
     assert "tokenized_corporate_actions" in list_provider_capabilities("xstocks")
     assert "tokenized_corporate_actions" in list_provider_capabilities("robinhood_tokens")
-    for provider in ("bybit_xstocks", "gate_tradfi", "kraken_xstocks"):
+    assert "tokenized_corporate_actions" in list_provider_capabilities("dinari")
+    for provider in ("bybit_xstocks", "gate_tradfi", "kraken_xstocks", "ondo_global_markets"):
         assert "tokenized_corporate_actions" not in list_provider_capabilities(provider)
 
 
@@ -367,6 +368,45 @@ def test_dinari_symbol_lookup_uses_documented_server_side_filter(monkeypatch):
         "order": "asc",
         "symbols": ["AAPL"],
     }
+
+
+def test_dinari_corporate_actions_combine_symbol_scoped_dividends_and_splits(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    responses = [
+        _response({"data": [stock], "pagination_metadata": {"next": None}}),
+        _response([{"payment_date": "2026-01-02", "amount": "0.25"}]),
+        _response({"data": [{"ex_date": "2026-02-03"}], "pagination_metadata": {"next": None}}),
+    ]
+    with patch("app.providers.tokenized.httpx.get", side_effect=responses) as get:
+        rows = DinariTokenProvider().fetch_tokenized_corporate_actions(symbol="aapl")
+    assert [row["action_type"] for row in rows] == ["dividend", "split"]
+    assert all(row["stock_id"] == stock["id"] for row in rows)
+    assert get.call_count == 3
+    assert get.call_args_list[1].args[0].endswith(f"/stocks/{stock['id']}/dividends")
+    assert get.call_args_list[2].kwargs["params"] == {"limit": 100, "order": "desc"}
+
+
+def test_dinari_corporate_actions_global_path_exposes_splits_only(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    response = _response(
+        {"data": [{"stock_id": _dinari_stock()["id"]}], "pagination_metadata": {"next": None}}
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        rows = DinariTokenProvider().fetch_tokenized_corporate_actions()
+    assert rows == [{"stock_id": _dinari_stock()["id"], "action_type": "split"}]
+    assert get.call_args.kwargs["params"] == {"limit": 100, "order": "desc"}
+
+
+def test_dinari_corporate_actions_reject_unsupported_upcoming_filter(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderResponseError, match="upcoming filter"):
+            DinariTokenProvider().fetch_tokenized_corporate_actions(upcoming=True)
+    get.assert_not_called()
 
 
 def test_dinari_stock_cursor_is_required_and_reused_for_subsequent_pages(monkeypatch):

@@ -309,7 +309,10 @@ requests (asset metadata plus quote/order-book), while discovery and asset reads
 reserve one. Dinari's quote, historical, news, dividend, and split operations,
 and Ondo's market-summary and OHLC operations likewise reserve two requests
 because each resolves
-provider metadata before the data read. Robinhood additionally reserves four
+provider metadata before the data read. Dinari's symbol-scoped corporate-action
+operation reserves three requests (metadata, dividends, and splits); the global
+split-only path safely uses the same bound because its pagination is bounded.
+Robinhood additionally reserves four
 requests: one asset lookup plus the bounded three-attempt quote retry worst
 case. This prevents a successful quote response or bounded retry from being
 recorded as fewer requests than the adapter may actually make. Dinari's history
@@ -360,7 +363,9 @@ independently from quote polling. Set
 `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` and
 `TOKENIZED_EVENT_REFRESH_PAGE_SIZE`, in both the backend and worker
 environment. xStocks is read in separate historical and upcoming requests;
-Robinhood exposes one combined action feed. Every request uses the exact
+Robinhood exposes one combined action feed; Dinari exposes global splits and
+symbol-scoped dividend/split rows but has no upcoming filter, so that semantic
+is rejected rather than guessed. Every request uses the exact
 `fetch_tokenized_corporate_actions` operation cost declared for that provider.
 Rows are persisted as provisional `MarketEvent` records with the complete raw
 provider payload. A token is linked only when an explicit provider asset ID or
@@ -967,7 +972,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 ```
 

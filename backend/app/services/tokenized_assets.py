@@ -453,9 +453,10 @@ async def refresh_tokenized_events(
     """Persist provider corporate actions into the canonical market-event table.
 
     The provider catalog is intentionally broader than the corporate-action
-    surface: xStocks and Robinhood currently expose public action feeds, while
-    the exchange adapters only expose metadata/quotes.  Unsupported adapters
-    are reported and skipped rather than invoked through a guessed method.
+    surface: xStocks, Robinhood, and Dinari expose public action feeds (Dinari's
+    unscoped feed is split-only), while the other exchange adapters only expose
+    metadata/quotes. Unsupported adapters are reported and skipped rather than
+    invoked through a guessed method.
     Every request goes through the provider runtime so durable quota
     reservations, request telemetry, and circuit state remain authoritative.
     """
@@ -501,7 +502,8 @@ async def refresh_tokenized_events(
         phases = ["history", "upcoming"] if include_upcoming else ["history"]
         if resolved.provider_name != "xstocks":
             # Robinhood's public endpoint combines historical and upcoming
-            # actions and has no page/upcoming parameters.
+            # actions; Dinari's unscoped feed is a bounded global split read
+            # with no upcoming semantic. Both use provider-native defaults.
             phases = ["combined"]
         by_asset, by_symbol = await _tokenized_detail_maps(db, resolved.provider_name)
         provider_count = 0

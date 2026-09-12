@@ -1396,6 +1396,7 @@ def test_tokenized_history_operations_charge_the_metadata_resolution_and_data_re
         "fetch_tokenized_news": 2,
         "fetch_tokenized_dividends": 2,
         "fetch_tokenized_splits": 2,
+        "fetch_tokenized_corporate_actions": 3,
     }
     assert settings.PROVIDER_USAGE_PROFILE_SEEDS["ondo_global_markets"]["operation_costs"] == {
         "discover_tokenized_assets": 1,

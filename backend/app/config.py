@@ -169,7 +169,11 @@ class Settings(BaseSettings):
             "dinari",
             "ondo_global_markets",
         ],
-        "tokenized_corporate_actions": ["robinhood_tokens", "xstocks"],
+        # Dinari exposes global splits and per-stock dividends/splits. Keep it
+        # in the capability chain so reviewed quota/terms can admit it later;
+        # its currently unknown partner quota still makes runtime resolution
+        # fail closed.
+        "tokenized_corporate_actions": ["robinhood_tokens", "xstocks", "dinari"],
     }
     # Provider-specific, documentation-backed budgets.  An omitted provider
     # (or omitted dimension) is intentionally unknown and therefore not
@@ -1218,6 +1222,10 @@ class Settings(BaseSettings):
                 "fetch_tokenized_news": 2,
                 "fetch_tokenized_dividends": 2,
                 "fetch_tokenized_splits": 2,
+                # Symbol-scoped corporate actions resolve metadata once and
+                # then read dividends and splits. The global split path costs
+                # one request but safely over-reserves this compound bound.
+                "fetch_tokenized_corporate_actions": 3,
             },
         },
         "ondo_global_markets": {

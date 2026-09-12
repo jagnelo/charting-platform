@@ -279,6 +279,12 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     )
     assert split_measurement.http_requests >= 2
     assert isinstance(splits, list)
+    actions, action_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol), "dinari"
+    )
+    assert action_measurement.http_requests >= 3
+    assert isinstance(actions, list)
+    assert all(row.get("action_type") in {"dividend", "split"} for row in actions)
     assert measurement.http_requests == 1
 
 
