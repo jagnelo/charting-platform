@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize Nautilus Study Lab execution timestamps
+
+Product commit `7df2dd5c` closes the Study Lab execution-timeline seam.
+Nautilus-generated trade, open-position, and equity-curve timestamps now use
+the shared UTC-`Z` formatter. Backtest ordering, signal replay, position
+semantics, and execution calculations are unchanged.
+
+Focused Nautilus Study Lab coverage passed `14/14`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact ETF provenance gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `e01d7dd1` after the ETF

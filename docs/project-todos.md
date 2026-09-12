@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize Nautilus Study Lab execution timestamps
+
+- [x] Route Nautilus trade, open-position, and equity-curve timestamps through
+      the shared UTC-`Z` formatter (`7df2dd5c`) without changing backtest
+      semantics.
+- [x] Focused Nautilus Study Lab coverage passed `14/14`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact ETF provenance gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `e01d7dd1`; repository/workstream,
