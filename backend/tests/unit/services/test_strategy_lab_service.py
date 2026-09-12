@@ -481,7 +481,9 @@ def test_build_dense_portfolio_history_tracks_full_bar_timeline():
 
     assert len(equity_curve) == 5
     assert len(portfolio_timeline) == 5
-    assert equity_curve[0]["ts"] == "2026-01-01T00:00:00+00:00"
+    assert equity_curve[0]["ts"] == "2026-01-01T00:00:00Z"
+    assert all(point["ts"].endswith("Z") for point in equity_curve)
+    assert all(point["ts"].endswith("Z") for point in portfolio_timeline)
     assert portfolio_timeline[1]["open_position_count"] == 1
     assert portfolio_timeline[2]["open_position_count"] == 2
     assert portfolio_timeline[-1]["open_position_count"] == 0

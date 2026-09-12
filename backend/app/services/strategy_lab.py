@@ -1649,12 +1649,25 @@ def _wire_datetime(value: datetime | None) -> str | None:
     return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _study_fallback_timestamp(value: date | None) -> str:
+def _study_fallback_timestamp(value: date | datetime | None) -> str:
     """Return a canonical timeline fallback for runs without a start date."""
 
+    if isinstance(value, datetime):
+        return _wire_datetime(value) or ""
     if value is not None:
         return value.isoformat()
     return _wire_datetime(datetime.now(UTC)) or ""
+
+
+def _canonical_timeline_timestamp(value: str | None) -> str:
+    """Normalize timestamp-bearing timeline values without changing date-only fields."""
+
+    if not value or "T" not in value:
+        return value or ""
+    try:
+        return _wire_datetime(_parse_iso_datetime(value)) or value
+    except (TypeError, ValueError):
+        return value
 
 
 def _annotate_dynamic_universe_execution_log(
@@ -1900,13 +1913,19 @@ def _build_portfolio_equity_curve(
     initial_capital: float,
     fallback_ts: str,
 ) -> list[dict[str, float | str]]:
+    fallback_ts = _canonical_timeline_timestamp(fallback_ts)
     if not trades:
         return [{"ts": fallback_ts, "equity": round(initial_capital, 4)}]
     running_equity = initial_capital
     grouped: dict[str, float] = defaultdict(float)
     for trade in trades:
-        grouped[trade.exit_at] += float(trade.pnl)
-    curve = [{"ts": trades[0].entry_at or fallback_ts, "equity": round(initial_capital, 4)}]
+        grouped[_canonical_timeline_timestamp(trade.exit_at)] += float(trade.pnl)
+    curve = [
+        {
+            "ts": _canonical_timeline_timestamp(trades[0].entry_at) or fallback_ts,
+            "equity": round(initial_capital, 4),
+        }
+    ]
     for ts in sorted(grouped.keys()):
         running_equity += grouped[ts]
         curve.append({"ts": ts, "equity": round(running_equity, 4)})
@@ -1922,12 +1941,9 @@ def _build_dense_portfolio_history(
     fallback_ts: str,
 ) -> dict[str, list[dict[str, float | int | str]]]:
     open_positions = open_positions or []
+    fallback_ts = _canonical_timeline_timestamp(fallback_ts)
     all_timestamps = sorted(
-        {
-            bar.ts.astimezone(UTC).isoformat()
-            for bars in bars_by_instrument.values()
-            for bar in bars
-        },
+        {_wire_datetime(bar.ts) or "" for bars in bars_by_instrument.values() for bar in bars},
         key=_parse_iso_datetime,
     )
     if not all_timestamps:
@@ -1949,11 +1965,13 @@ def _build_dense_portfolio_history(
     bars_by_ts: dict[str, list[tuple[int, float]]] = defaultdict(list)
     for instrument_id, bars in bars_by_instrument.items():
         for bar in bars:
-            bars_by_ts[bar.ts.astimezone(UTC).isoformat()].append((instrument_id, float(bar.close)))
+            bars_by_ts[_wire_datetime(bar.ts) or ""].append((instrument_id, float(bar.close)))
 
     entry_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
     exit_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for trade in trades:
+        entry_at = _canonical_timeline_timestamp(trade.entry_at)
+        exit_at = _canonical_timeline_timestamp(trade.exit_at)
         direction = 1.0 if str(trade.side).lower() == "long" else -1.0
         event_payload = {
             "position_id": f"{trade.instrument_symbol}-{trade.entry_at}",
@@ -1965,12 +1983,13 @@ def _build_dense_portfolio_history(
             "side": str(trade.side).lower(),
             "direction": direction,
         }
-        entry_events[trade.entry_at].append(event_payload)
-        exit_events[trade.exit_at].append(event_payload)
+        entry_events[entry_at].append(event_payload)
+        exit_events[exit_at].append(event_payload)
 
     for position in open_positions:
+        entry_at = _canonical_timeline_timestamp(position.entry_at)
         direction = 1.0 if str(position.side).lower() == "long" else -1.0
-        entry_events[position.entry_at].append(
+        entry_events[entry_at].append(
             {
                 "position_id": f"{position.instrument_symbol}-{position.entry_at}",
                 "instrument_id": position.instrument_id,
@@ -2088,7 +2107,7 @@ def _build_position_timelines(
 
         points: list[dict[str, Any]] = [
             {
-                "ts": trade.entry_at,
+                "ts": _canonical_timeline_timestamp(trade.entry_at),
                 "value": 0.0,
                 "detail": (
                     f"Entry · {trade.instrument_symbol} {trade.side.upper()} · "
@@ -2103,7 +2122,7 @@ def _build_position_timelines(
             pnl_value = (close_price - float(trade.entry_price)) * float(trade.quantity) * direction
             points.append(
                 {
-                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "ts": _wire_datetime(bar.ts) or "",
                     "value": round(pnl_value, 4),
                     "detail": None,
                     "marker": None,
@@ -2112,7 +2131,7 @@ def _build_position_timelines(
 
         points.append(
             {
-                "ts": trade.exit_at,
+                "ts": _canonical_timeline_timestamp(trade.exit_at),
                 "value": round(float(trade.pnl), 4),
                 "detail": (
                     f"Exit · {str(trade.exit_reason).replace('_', ' ')} · "
@@ -2135,8 +2154,8 @@ def _build_position_timelines(
                 "label": f"{trade.instrument_symbol} #{symbol_counts[trade.instrument_symbol]}",
                 "symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "quantity": trade.quantity,
@@ -2166,7 +2185,7 @@ def _build_position_timelines(
 
         points: list[dict[str, Any]] = [
             {
-                "ts": position.entry_at,
+                "ts": _canonical_timeline_timestamp(position.entry_at),
                 "value": 0.0,
                 "detail": (
                     f"Entry · {position.instrument_symbol} {position.side.upper()} · "
@@ -2183,7 +2202,7 @@ def _build_position_timelines(
             )
             points.append(
                 {
-                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "ts": _wire_datetime(bar.ts) or "",
                     "value": round(pnl_value, 4),
                     "detail": None,
                     "marker": None,
@@ -2192,7 +2211,7 @@ def _build_position_timelines(
 
         points.append(
             {
-                "ts": position.current_at,
+                "ts": _canonical_timeline_timestamp(position.current_at),
                 "value": round(float(position.unrealized_pnl), 4),
                 "detail": (
                     f"Open · mark {position.current_price:.2f} · "
@@ -2215,11 +2234,11 @@ def _build_position_timelines(
                 "label": f"{position.instrument_symbol} #{symbol_counts[position.instrument_symbol]}",
                 "symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
                 "exit_at": None,
                 "entry_price": position.entry_price,
                 "exit_price": None,
-                "current_at": position.current_at,
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "current_price": position.current_price,
                 "quantity": position.quantity,
                 "pnl": position.unrealized_pnl,
