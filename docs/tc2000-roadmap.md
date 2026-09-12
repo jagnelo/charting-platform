@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — History progress uses canonical wire timestamps
+
+Product commit `65e14448` closes a live refresh read-boundary gap. Redis bulk
+fetch progress and durable watchlist refresh aggregation now publish their
+`updated_at` values through the shared UTC `Z` helper, keeping worker progress,
+history status, and the workstation timeline consistent without changing queue
+identity, provider behavior, coverage semantics, or refresh state transitions.
+
+Focused history-progress coverage passed `22/22`; the full backend unit suite
+passed `1502/1502` at `68.76%` coverage; Ruff, formatting, and
+`git diff --check` passed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending API regressions and
+exact gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Analysis responses use canonical wire timestamps
 
 Product commit `c072c91f` closes the shared analysis response boundary. A

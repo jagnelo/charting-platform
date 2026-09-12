@@ -2,6 +2,25 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — History progress uses canonical wire timestamps
+
+Product commit `65e14448` makes Redis bulk-fetch progress and durable
+watchlist refresh aggregation emit canonical UTC `Z` `updated_at` values via
+the shared helper. Worker progress and history-status consumers now share the
+same timeline; queue identity, provider behavior, coverage semantics, and
+state transitions are unchanged.
+
+Focused history-progress coverage passed `22/22`; the full backend unit suite
+passed `1502/1502` at `68.76%` coverage; Ruff, formatting, and diff checks
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/services/bulk_fetch.py`,
+`backend/app/routers/watchlists.py`, and their focused unit regressions.
+Restore Docker access, rerun pending API regressions and the exact gate, then
+advance the next bounded provider/history or compatible chart/list/gauge seam.
+Do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Analysis responses use canonical wire timestamps
 
 Product commit `c072c91f` adds a shared `AnalysisContractModel` that emits

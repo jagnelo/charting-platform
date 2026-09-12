@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — History progress uses canonical wire timestamps
+
+- [x] Emit Redis bulk-fetch and durable watchlist refresh progress `updated_at`
+      values as canonical UTC `Z` timestamps (`65e14448`).
+- [x] Focused history-progress coverage passed `22/22`; full backend unit
+      coverage passed `1502/1502` at `68.76%`; Ruff, formatting, and diff
+      checks passed.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Analysis responses use canonical wire timestamps
 
 - [x] Serialize direct analysis-model `datetime` fields through the shared
