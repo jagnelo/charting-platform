@@ -1264,6 +1264,33 @@ class TestMassiveReferenceProvider:
             with pytest.raises(ProviderResponseError, match="Massive"):
                 MassiveProvider().search_instruments("AAPL")
 
+    @pytest.mark.parametrize(
+        "next_url,match",
+        [
+            ({"cursor": "abc"}, "invalid next_url"),
+            ("https://api.massive.com/v3/reference/tickers?page=2", "without one valid cursor"),
+            (
+                "https://api.massive.com/v3/reference/tickers?cursor=one&cursor=two",
+                "without one valid cursor",
+            ),
+        ],
+    )
+    def test_discovery_rejects_malformed_continuation_cursor(self, next_url, match):
+        response = MagicMock()
+        response.json.return_value = {
+            "results": [{"ticker": "AAPL", "name": "Apple Inc.", "type": "CS"}],
+            "next_url": next_url,
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match=match):
+                MassiveProvider().discover_universe_page("EQUITY", 0)
+
     def test_ipo_calendar_normalizes_bounds_status_and_cursor_without_following_pages(self):
         response = MagicMock()
         response.json.return_value = {
@@ -1328,6 +1355,35 @@ class TestMassiveReferenceProvider:
             mock_settings.MARKETDATA_API_KEY = ""
             with pytest.raises(ProviderResponseError, match="Massive"):
                 MassiveProvider().fetch_market_events()
+
+    @pytest.mark.parametrize(
+        "next_url",
+        [
+            {"cursor": "abc"},
+            "https://api.massive.com/vX/reference/ipos?page=2",
+        ],
+    )
+    def test_ipo_calendar_rejects_malformed_continuation_cursor(self, next_url):
+        response = MagicMock()
+        response.json.return_value = {
+            "results": [
+                {
+                    "ticker": "NEW",
+                    "issuer_name": "New Corp",
+                    "listing_date": "2024-01-02",
+                }
+            ],
+            "next_url": next_url,
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match="Massive IPO calendar"):
+                MassiveProvider().fetch_market_events_page()
 
     def test_market_holidays_normalize_array_rows_and_early_close(self):
         response = MagicMock()

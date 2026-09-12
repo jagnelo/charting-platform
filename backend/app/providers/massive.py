@@ -150,10 +150,9 @@ class MassiveProvider:
             for result in (self._result(row) for row in rows)
         ]
         next_url = (payload or {}).get("next_url")
-        if isinstance(next_url, str):
-            next_cursor = parse_qs(urlparse(next_url).query).get("cursor", [None])[0]
-            if next_cursor:
-                self._cursor_by_page[page + 1] = next_cursor
+        next_cursor = _require_next_cursor(next_url, self.name, "ticker discovery")
+        if next_cursor:
+            self._cursor_by_page[page + 1] = next_cursor
         return {
             # Massive exposes cursor pagination rather than a global result
             # count. Do not mislabel each page length as the universe total;
@@ -226,8 +225,7 @@ class MassiveProvider:
             ):
                 events.append(event)
         next_url = payload.get("next_url")
-        if next_url is not None and not isinstance(next_url, str):
-            raise ProviderResponseError(self.name, "Massive IPO endpoint returned an invalid next_url")
+        _require_next_cursor(next_url, self.name, "IPO calendar")
         return {
             "events": events,
             "next_url": next_url,
@@ -327,6 +325,33 @@ class MassiveProvider:
             exchange=str(row.get("primary_exchange") or row.get("exchange") or ""),
             instrument_type=str(row.get("type") or "EQUITY").upper(),
         )
+
+
+def _require_next_cursor(
+    next_url: Any, provider_name: str, operation: str
+) -> str | None:
+    """Validate Massive's continuation URL and return its sole cursor.
+
+    Massive's reference endpoints expose an opaque continuation URL, but the
+    discovery adapter advances through it by extracting the documented
+    ``cursor`` query parameter.  Treat a malformed URL or missing/ambiguous
+    cursor as a provider-response failure instead of silently replaying the
+    first page or claiming completion.
+    """
+
+    if next_url is None or next_url == "":
+        return None
+    if not isinstance(next_url, str):
+        raise ProviderResponseError(
+            provider_name, f"Massive {operation} returned an invalid next_url"
+        )
+    cursor_values = parse_qs(urlparse(next_url).query).get("cursor", [])
+    if len(cursor_values) != 1 or not cursor_values[0].strip():
+        raise ProviderResponseError(
+            provider_name,
+            f"Massive {operation} returned a next_url without one valid cursor",
+        )
+    return cursor_values[0]
 
 
 def _parse_date(value: Any) -> date | None:
