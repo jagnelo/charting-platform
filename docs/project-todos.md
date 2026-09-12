@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-12 — Compose provider-wiring validation
+
+- [x] Validate both root and RPi Compose manifests after the Dinari Sandbox
+      correction. Root Compose parses with its configured environment; RPi
+      Compose parses with non-secret deployment placeholders. No services were
+      started or restarted.
+
 ### 2026-09-12 — Core bootstrap provider-error redaction
 
 - [x] Apply bounded credential redaction to core workstation history, ETF
