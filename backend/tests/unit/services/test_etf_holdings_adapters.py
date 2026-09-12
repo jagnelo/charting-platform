@@ -21238,8 +21238,8 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
-    assert result.legal_metadata["known_at"] == "2026-06-01T13:45:30+00:00"
-    assert result.legal_metadata["published_at"] == "2026-06-01T13:45:30+00:00"
+    assert result.legal_metadata["known_at"] == "2026-06-01T13:45:30Z"
+    assert result.legal_metadata["published_at"] == "2026-06-01T13:45:30Z"
 
 
 @pytest.mark.asyncio

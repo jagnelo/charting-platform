@@ -23,6 +23,7 @@ import httpx
 import requests
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 
 
 @dataclass(slots=True)
@@ -3067,8 +3068,8 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                             # reconstructed through this fallback route. Keep
                             # it in the adapter result so refresh ingestion
                             # does not replace it with wall-clock fetch time.
-                            "known_at": filing_known_at.isoformat(),
-                            "published_at": filing_known_at.isoformat(),
+                            "known_at": wire_datetime(filing_known_at),
+                            "published_at": wire_datetime(filing_known_at),
                             "form": filing.form,
                             "accession_number": filing.accession_number,
                             "parser_version": parser_version,
