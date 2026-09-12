@@ -164,6 +164,14 @@ class AlphaVantageProvider:
     ) -> list[OHLCVBar]:
         if timeframe is not Timeframe.D1:
             return []
+        if adjusted:
+            # The free ``TIME_SERIES_DAILY`` endpoint returns raw OHLCV. The
+            # adjusted daily endpoint is a premium surface, so never let a
+            # raw response enter the platform's adjusted dataset silently.
+            raise ProviderResponseError(
+                self.name,
+                "Alpha Vantage free daily history is raw; request adjusted=False",
+            )
         # Alpha Vantage's free key currently rejects ``outputsize=full`` as a
         # premium-only feature. ``compact`` is the documented free response
         # (latest 100 daily points); older history must use another provider.
@@ -195,6 +203,8 @@ class AlphaVantageProvider:
                         close=numbers[3],
                         volume=numbers[4],
                         is_adjusted=False,
+                        adjustment_basis="raw",
+                        adjustment_version="provider-native",
                     )
                 )
             except (KeyError, TypeError, ValueError) as exc:
@@ -226,7 +236,7 @@ class AlphaVantageProvider:
         return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))
 
     def get_current_price(self, symbol: str) -> float | None:
-        bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
+        bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1, adjusted=False)
         return float(bars[-1].close) if bars else None
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:

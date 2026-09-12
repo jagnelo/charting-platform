@@ -515,6 +515,13 @@ progress:
       credential preflights. All other configured and keyless cases passed,
       and the aggregate-only usage receipt was written outside Git. The
       wrapper returned exit code 2 and made no acceptance claim.
+    - >-
+      Alpha Vantage's free daily-history adapter now rejects adjusted requests
+      explicitly because the documented free TIME_SERIES_DAILY response is
+      raw and the adjusted daily surface is premium. Raw bars carry explicit
+      raw/provider-native adjustment provenance, and the latest-price helper
+      requests the raw form intentionally; focused Alpha coverage passes
+      25/25 plus the complete backend unit suite at 1,781/1,781.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

@@ -888,3 +888,11 @@ credential preflights for Tradier, IBKR, and Ondo. The wrapper returned exit
 code `2` and made no acceptance claim. This confirms the provider-specific
 quota guard under fan-out; it does not invalidate the separate successful
 standalone Alpha earnings normalization probe.
+
+The Alpha Vantage adapter was then tightened to reject adjusted daily-history
+requests before transport: the free `TIME_SERIES_DAILY` response is raw, while
+the adjusted daily surface is premium. Raw history is now requested explicitly
+for the latest-price helper and carries `raw`/`provider-native` adjustment
+provenance. Focused Alpha coverage passed `25/25`, and the complete backend unit
+suite passed `1,781/1,781` with the existing 37 warnings; no provider call was
+needed for this correctness regression.

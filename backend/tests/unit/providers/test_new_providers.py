@@ -1342,9 +1342,28 @@ class TestAlphaVantageProvider:
                 Timeframe.D1,
                 datetime(2024, 1, 2, tzinfo=UTC),
                 datetime(2024, 1, 4, tzinfo=UTC),
+                adjusted=False,
             )
         assert [bar.close for bar in bars] == [99.0, 102.0]
         assert get.call_args.kwargs["params"]["outputsize"] == "compact"
+
+    def test_adjusted_history_is_rejected_on_free_raw_endpoint(self):
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get") as get,
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(
+                ProviderResponseError,
+                match="free daily history is raw; request adjusted=False",
+            ):
+                AlphaVantageProvider().fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 4, tzinfo=UTC),
+                )
+        get.assert_not_called()
 
     def test_listing_status_becomes_paginated_universe_evidence(self):
         response = MagicMock()
@@ -1497,6 +1516,7 @@ class TestAlphaVantageProvider:
                     Timeframe.D1,
                     datetime(2024, 1, 1, tzinfo=UTC),
                     datetime(2024, 2, 1, tzinfo=UTC),
+                    adjusted=False,
                 )
         assert exc_info.value.provider_name == "alpha_vantage"
 
@@ -1583,6 +1603,7 @@ class TestAlphaVantageProvider:
                     Timeframe.D1,
                     datetime(2024, 1, 1, tzinfo=UTC),
                     datetime(2024, 1, 5, tzinfo=UTC),
+                    adjusted=False,
                 )
 
     def test_non_rate_limit_http_failure_is_typed(self):

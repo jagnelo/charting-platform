@@ -316,7 +316,9 @@ def test_alpha_vantage_credentialed_daily():
     _require("ALPHA_VANTAGE_API_KEY")
     start, end = _bounds()
     rows, _ = _observed_read(
-        lambda: AlphaVantageProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end),
+        lambda: AlphaVantageProvider().fetch_ohlcv(
+            "AAPL", Timeframe.D1, start, end, adjusted=False
+        ),
         "alpha_vantage",
     )
     assert rows and rows[-1].close > 0
