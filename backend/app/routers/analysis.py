@@ -5349,9 +5349,7 @@ async def benchmark_family_breadth_history(
                 member_count=member_count,
                 covered_member_count=covered_member_count,
                 coverage_percent=(
-                    round((covered_member_count / member_count) * 100, 2)
-                    if member_count
-                    else 0.0
+                    round((covered_member_count / member_count) * 100, 2) if member_count else 0.0
                 ),
                 analysis_ready_member_count=analysis_ready_member_count,
                 analysis_ready_percent=(
