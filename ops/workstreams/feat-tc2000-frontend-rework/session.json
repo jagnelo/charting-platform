@@ -97,10 +97,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "229c961af91d5abe01d9ac0c47aa44e29fac8282",
+  "head": "9b26b8bb254efd517ed2c326eae925601e6411ee",
   "implementation_sha": "a959dcaf0eeca722f64b0fa6d012c8b041049eb5",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T09:31:48+00:00",
+  "last_checkpoint": "2026-09-12T09:35:46+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, and options API regressions plus the exact gate at product tip a959dcaf, then continue the next bounded provider/history or compatible chart/list/gauge seam",
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact branch-scoped gate at product tip 36ed5513 stopped at backend-coverage after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript passed, but backend integration, provider, browser, and visual stages remain pending. The Market Map and breadth analytics timeline slices at product tip a959dcaf, together with combo-source exclusion and research dataset timeline slices, are unit-validated.",
+    "current_blocker": "The exact branch-scoped gate at product tip a959dcaf stopped at backend-coverage after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; repository/workstream, dependency, migration, frontend preparation, Ruff, formatting, and TypeScript passed, but backend integration, provider, browser, and visual stages remain pending. The Market Map and breadth analytics timeline slices at product tip a959dcaf, together with combo-source exclusion and research dataset timeline slices, are unit-validated.",
     "current_phase": "R3_market_map_breadth_timestamp_wire_contract",
     "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, Radar, Market Map, calendar, legacy-alert, analysis, history-progress, and options API regressions plus the exact gate at product tip a959dcaf, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T09:31:48.000000+00:00"
+    "updated_at": "2026-09-12T09:35:46.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

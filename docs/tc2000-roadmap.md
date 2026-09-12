@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact analytics-tip gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `a959dcaf` after the
+Market Map and breadth analytics timeline slice. Repository/workstream
+validation, dependency resolution, migration checks, frontend preparation,
+Ruff, formatting, and TypeScript passed. The `backend-coverage` stage then
+stopped after the fixed 180-second Docker readiness window because the Docker
+socket returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker health outside the worktree, rerun the pending
+API regressions and exact gate at this tip, then continue the next bounded
+provider/history or compatible chart/list/gauge seam while preserving the six
+protected visual state-oracle diffs and the no-integration/no-promotion/no-
+deployment boundary.
+
 ## 2026-09-12 — Canonicalize Market Map and breadth analytics timelines
 
 Product commits `1607f017` and `a959dcaf` close two remaining analytics
