@@ -94,10 +94,17 @@ variables. Put the reviewed non-secret safety settings
 `TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
-configuration variables; the workflow passes them through without inventing
-entitlements. Leave the MarketData.app pair blank/zero and the option bound at
-zero until the account plan, response-priced exposure, and redistribution
-terms have been reviewed. Keep required reviewers enabled. Ordinary
+configuration variables. The SEC directory controls
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`,
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS`,
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER`,
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`, and
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE` are also
+passed through as non-secret variables. The workflow passes these controls
+through without inventing entitlements. Leave the MarketData.app pair
+blank/zero, the option bound at zero, and the SEC directory scan disabled with
+a zero submissions bound until the corresponding reviews are complete. Keep
+required reviewers enabled. Ordinary
 push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
