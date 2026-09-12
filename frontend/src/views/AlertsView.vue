@@ -244,7 +244,8 @@ import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { formatMoney } from '@/lib/format'
-import type { AlertFiringEvent, IndicatorAlert } from '@/types'
+import { indicatorDisplayName } from '@/lib/indicators/catalog'
+import type { AlertFiringEvent, IndicatorAlert, IndicatorType } from '@/types'
 
 const alertsStore         = useAlertsStore()
 const screenerAlertsStore = useScreenerAlertsStore()
@@ -296,18 +297,10 @@ function fmtIndValue(value: number | null, type: string | null | undefined, curr
   return Number(value).toFixed(4)
 }
 
-function fmtTs(ts: number): string {
-  const d = new Date(ts * 1000)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`
-}
-
 function fmtIndicatorParams(type: string, params: Record<string, unknown>): string {
-  if (!params || !Object.keys(params).length) return type.toUpperCase()
-  if (type === 'avwap' && params.anchorTime) {
-    return `AVWAP(${fmtTs(params.anchorTime as number)})`
-  }
-  return `${type.toUpperCase()}(${Object.values(params).join(',')})`
+  const label = indicatorDisplayName({ type: type as IndicatorType, params: params ?? {} })
+  const output = typeof params?.output === 'string' ? params.output.trim() : ''
+  return output ? `${label} [${output}]` : label
 }
 
 function indAlertExpr(a: IndicatorAlert): string {
