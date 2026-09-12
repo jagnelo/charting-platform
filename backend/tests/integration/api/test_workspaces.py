@@ -2182,7 +2182,7 @@ class TestWorkspaces:
         assert payload["volume_ratio_50"] > 1
 
     def test_indicator_batch_returns_local_latest_values_and_exclusions(
-        self, client, auth_headers, instrument, ohlcv_bars
+        self, client, auth_headers, db, instrument, ohlcv_bars
     ):
         response = client.post(
             "/api/v1/analysis/indicator-batch",
@@ -2206,6 +2206,34 @@ class TestWorkspaces:
         assert payload["values"][instrument.symbol]["warning"] is None
         assert payload["values"]["UNKNOWN"]["warning"]["code"] == "instrument_not_found"
         assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
+
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "sma",
+                "params": {"period": 2},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert stale_response.status_code == 200
+        stale_payload = stale_response.json()
+        assert stale_payload["evaluated_count"] == 0
+        assert stale_payload["values"][instrument.symbol]["warning"]["code"] == "stale_data"
+        assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
 
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars

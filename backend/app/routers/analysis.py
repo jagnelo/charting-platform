@@ -689,6 +689,9 @@ async def indicator_batch(
     bars_by_id = await _bars_by_instrument(
         db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
     )
+    stale_ids = await _stale_instrument_ids(
+        db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
+    )
     values: dict[str, dict[str, object]] = {}
     exclusions: list[AnalysisWarning] = []
     for symbol in symbols:
@@ -707,6 +710,19 @@ async def indicator_batch(
             exclusions.append(warning)
             continue
         bars = bars_by_id.get(instrument.id, [])[-500:]
+        if instrument.id in stale_ids:
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the indicator was withheld.",
+                instrument_id=instrument.id,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": None,
+                "warning": warning.model_dump(),
+            }
+            exclusions.append(warning)
+            continue
         if not bars:
             warning = AnalysisWarning(
                 code="no_bars",

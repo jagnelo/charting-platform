@@ -71,6 +71,9 @@
       withholds stale direct benchmarks, and records stale derived-reference
       members. Its historical endpoint continues to use observed point-in-time
       bars without projecting current freshness backward.
+- [x] The current `/indicator-batch` endpoint now withholds expired OHLCV
+      snapshots and emits a per-symbol `stale_data` warning instead of
+      calculating indicators from stale bars.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 
