@@ -15,6 +15,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 DEFAULT_LEDGER = Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
 _CAPACITY_HEADERS = {
@@ -50,6 +51,7 @@ _CAPACITY_HEADERS = {
     "x-ratelimit-used",
 }
 _observations: list[tuple[str, int, int, dict[str, str]]] = []
+_PROCESS_RUN_ID = str(uuid4())
 
 
 def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
@@ -112,7 +114,12 @@ def flush_observations(exit_status: int) -> Path | None:
         grouped[provider]["operations"] += 1
         grouped[provider]["response_headers"].update(response_headers)
 
-    run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or f"pid-{os.getpid()}"
+    # The wrapper supplies an explicit run ID for CI/local manifest runs. A
+    # direct pytest invocation must still get a fresh identity: process IDs can
+    # be reused across sessions, and merging those rows would corrupt cross-day
+    # usage attribution. Keep the generated value process-local and never
+    # derive it from a credential or filesystem path.
+    run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or _PROCESS_RUN_ID
     now = datetime.now(UTC).isoformat()
     usage_scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip() or "unspecified"
     rows = [

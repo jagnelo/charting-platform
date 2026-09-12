@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+from uuid import UUID
 
 from tests.live import live_usage
 
@@ -67,6 +68,20 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         },
     ]
     assert live_usage.flush_observations(0) is None
+
+
+def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.delenv("PROVIDER_LIVE_RUN_ID", raising=False)
+    live_usage._reset_for_test()
+    live_usage.record_observation("fred", http_requests=1, response_bytes=10)
+
+    assert live_usage.flush_observations(0) == ledger
+    row = json.loads(ledger.read_text())
+    generated = UUID(row["run_id"])
+    assert str(generated) == row["run_id"]
+    assert not row["run_id"].startswith("pid-")
 
 
 def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path: Path):
