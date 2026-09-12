@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Bounded provider adapter diagnostics
+
+- [x] Bound redacted transport-exception messages emitted by Alpaca, Binance,
+      yfinance, instrument sync, and US-universe reconciliation to 1,000
+      characters while durable fields retain their 4,000-character limit. The
+      combined provider/service regression set passes 393/393; the full backend
+      unit suite passes 1739/1739 with Ruff, compilation, and diff checks clean.
+
 ### 2026-09-12 — Provider adapter log redaction
 
 - [x] Route transport exception text through the shared credential redactor in

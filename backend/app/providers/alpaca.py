@@ -284,7 +284,9 @@ class AlpacaProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
         except KeyError as exc:
-            logger.debug("alpaca get_current_price %s: %s", symbol, redact_provider_message(exc))
+            logger.debug(
+                "alpaca get_current_price %s: %s", symbol, redact_provider_message(exc)[:1000]
+            )
             return None
 
     # ── Corporate Actions (Events) ────────────────────────────────────────────

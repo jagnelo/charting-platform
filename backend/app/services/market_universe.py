@@ -787,7 +787,7 @@ async def reconcile_us_universe(
                     "universe reconciliation %s/%s failed: %s",
                     resolved.provider_name,
                     quote_type,
-                    redact_provider_message(exc),
+                    redact_provider_message(exc)[:1000],
                 )
             run.finished_at = _utc()
             await db.commit()

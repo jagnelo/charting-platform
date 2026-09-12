@@ -654,7 +654,7 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                 logger.info(
                     "No metadata refresh available for %s: %s",
                     inst.symbol,
-                    redact_provider_message(exc),
+                    redact_provider_message(exc)[:1000],
                 )
                 profile = None
             await asyncio.sleep(settings.INSTRUMENT_METADATA_DELAY_SECONDS)
