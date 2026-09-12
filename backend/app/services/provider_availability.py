@@ -29,7 +29,7 @@ from app.models.provider_runtime import (
     ProviderHealthState,
     ProviderPolicy,
 )
-from app.providers import get_provider, provider_configuration_required, provider_is_configured
+from app.providers import get_provider, provider_is_configured
 from app.providers.errors import bounded_redact_provider_message
 from app.services.onesignal import send_provider_availability_notification
 
@@ -83,6 +83,41 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         },
     }
     return dict(values[capability])
+
+
+def representative_operation(capability: ProviderCapability) -> str | None:
+    """Return the concrete adapter operation exercised by an availability probe.
+
+    Configuration is sometimes operation-scoped.  Marketstack history/latest
+    only needs its API key, whereas its universe discovery also needs an
+    explicit MIC; using the actual representative operation keeps availability
+    diagnostics aligned with runtime admission.  The operation names also make
+    multi-field credentials (Dinari ID/secret, IBKR URL/cookie, SEC User-Agent)
+    flow through the single provider registry contract instead of a legacy
+    ``*_API_KEY`` heuristic.
+    """
+
+    return {
+        ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
+        ProviderCapability.INSTRUMENT_METADATA: "get_instrument_profile",
+        ProviderCapability.PRICE_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.LATEST_PRICE: "get_current_price",
+        ProviderCapability.INSTRUMENT_EVENTS: "fetch_instrument_events",
+        ProviderCapability.INSTRUMENT_IDENTIFIERS: "fetch_stable_identifiers",
+        ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
+        ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
+        ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_instrument_events",
+        ProviderCapability.EARNINGS: "fetch_instrument_events",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.FUTURES_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
+    }.get(capability)
 
 
 def classify_exception(exc: BaseException) -> str:
@@ -217,14 +252,23 @@ async def default_probe(
     return await result if inspect.isawaitable(result) else result
 
 
-def provider_configured(source: DataSource, entitlement: ProviderEntitlement | None) -> bool:
-    if entitlement and entitlement.authentication_required:
-        config = source.config or {}
-        if config.get("api_key") or config.get("credentials"):
-            return True
-        provider_key = f"{source.name.upper()}_API_KEY"
-        return bool(getattr(settings, provider_key, ""))
-    return True
+def provider_configured(
+    source: DataSource,
+    entitlement: ProviderEntitlement | None,
+    *,
+    operation: str | None = None,
+) -> bool:
+    """Use the registry's complete, operation-aware configuration contract.
+
+    ``DataSource.config`` intentionally contains no secret values, so the
+    former API-key-only fallback could not correctly validate providers with
+    multiple credentials or non-key authentication.  Keep the entitlement
+    argument for the availability caller's compatibility, but make the
+    registry authoritative for every provider and operation.
+    """
+
+    del entitlement
+    return provider_is_configured(source.name, operation=operation)
 
 
 def notification_due(
@@ -296,6 +340,7 @@ async def run_availability_probes(
     provider_locks: dict[str, asyncio.Lock] = {}
     for policy, source, entitlement in rows:
         request = representative_request(policy.capability)
+        operation = representative_operation(policy.capability)
         classification = "success"
         success = False
         error_message = None
@@ -305,9 +350,7 @@ async def run_availability_probes(
             not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}
         ):
             classification = "entitlement_exclusion"
-        elif (
-            provider_configuration_required(source.name) and not provider_is_configured(source.name)
-        ) or not provider_configured(source, entitlement):
+        elif not provider_configured(source, entitlement, operation=operation):
             classification = "not_configured"
         else:
             try:

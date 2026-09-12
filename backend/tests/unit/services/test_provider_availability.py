@@ -8,6 +8,8 @@ from app.services.provider_availability import (
     classify_exception,
     classify_response,
     notification_due,
+    provider_configured,
+    representative_operation,
     representative_request,
     response_shape,
 )
@@ -18,6 +20,29 @@ def test_representative_contract_covers_each_capability():
         request = representative_request(capability)
         assert request
         assert "symbol" in request or "query" in request or "quote_type" in request
+
+
+def test_representative_operations_cover_probeable_capabilities():
+    for capability in ProviderCapability:
+        request = representative_request(capability)
+        operation = representative_operation(capability)
+        if request and capability != ProviderCapability.MARKET_CALENDAR:
+            assert operation
+
+
+def test_availability_configuration_uses_operation_aware_registry(monkeypatch):
+    source = SimpleNamespace(name="marketstack")
+    entitlement = SimpleNamespace()
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "marketstack-key")
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+
+    assert provider_configured(source, entitlement, operation="fetch_latest_ohlcv")
+    assert not provider_configured(source, entitlement, operation="discover_universe_page")
+
+    dinari = SimpleNamespace(name="dinari")
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "dinari-id")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "dinari-secret")
+    assert provider_configured(dinari, entitlement, operation="discover_tokenized_assets")
 
 
 def test_classification_is_deterministic_for_empty_and_transport_failures():
