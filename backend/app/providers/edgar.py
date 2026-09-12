@@ -146,6 +146,72 @@ class EdgarProvider:
         ]
         return {"total": len(_exchange_directory), "quotes": quotes}
 
+    def discover_issuer_ciks_page(self, offset: int, *, limit: int = 250) -> dict[str, Any]:
+        """Page the complete SEC issuer ticker directory by unique CIK.
+
+        ``company_tickers.json`` is an issuer/ticker directory rather than a
+        listing feed.  A ticker can therefore occur more than once, while one
+        issuer can publish multiple tickers.  Build a deterministic unique-CIK
+        view before paging so a durable filing scan never requests the same
+        submissions document twice merely because an issuer has several
+        listings.  Ambiguous ticker rows are retained as candidates; their CIK
+        evidence is still authoritative for issuer-level scanning.
+        """
+
+        if (
+            not isinstance(offset, int)
+            or isinstance(offset, bool)
+            or offset < 0
+            or not isinstance(limit, int)
+            or isinstance(limit, bool)
+            or not 1 <= limit <= 500
+        ):
+            raise ValueError("offset must be non-negative and limit must be between 1 and 500")
+
+        self._ensure_ticker_map(self._headers())
+        by_cik: dict[int, dict[str, Any]] = {}
+        for ticker, entry in _ticker_map.items():
+            candidates = entry.get("candidates") if entry.get("identity_ambiguity") else [entry]
+            if not isinstance(candidates, list):
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR ticker directory returned invalid ambiguity candidates"
+                )
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned a malformed candidate"
+                    )
+                try:
+                    cik = int(candidate["cik"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned an invalid candidate CIK"
+                    ) from exc
+                if cik <= 0:
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned a non-positive CIK"
+                    )
+                row = by_cik.setdefault(
+                    cik,
+                    {
+                        "cik": f"{cik:010d}",
+                        "name": str(candidate.get("title") or entry.get("title") or ticker).strip(),
+                        "tickers": [],
+                    },
+                )
+                if ticker not in row["tickers"]:
+                    row["tickers"].append(ticker)
+                if not row["name"]:
+                    row["name"] = ticker
+
+        issuers = sorted(by_cik.values(), key=lambda row: int(row["cik"]))
+        return {
+            "total": len(issuers),
+            "offset": offset,
+            "limit": limit,
+            "issuers": issuers[offset : offset + limit],
+        }
+
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]
 
@@ -185,9 +251,8 @@ class EdgarProvider:
         raw_tickers = sub.get("tickers")
         if raw_tickers is None:
             tickers = [normalized_symbol]
-        elif (
-            not isinstance(raw_tickers, list)
-            or any(not isinstance(value, str) or not value.strip() for value in raw_tickers)
+        elif not isinstance(raw_tickers, list) or any(
+            not isinstance(value, str) or not value.strip() for value in raw_tickers
         ):
             raise ProviderResponseError(
                 self.name,
@@ -199,9 +264,8 @@ class EdgarProvider:
         raw_exchanges = sub.get("exchanges")
         if raw_exchanges is None:
             exchanges = []
-        elif (
-            not isinstance(raw_exchanges, list)
-            or any(not isinstance(value, str) or not value.strip() for value in raw_exchanges)
+        elif not isinstance(raw_exchanges, list) or any(
+            not isinstance(value, str) or not value.strip() for value in raw_exchanges
         ):
             raise ProviderResponseError(
                 self.name,
@@ -357,26 +421,36 @@ class EdgarProvider:
         fetched = datetime.now(UTC)
         filings = sub.get("filings", {})
         if not isinstance(filings, dict):
-            raise ProviderResponseError(self.name, "SEC EDGAR submissions returned an invalid filings object")
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned an invalid filings object"
+            )
         recent = filings.get("recent", {})
         if not isinstance(recent, dict):
-            raise ProviderResponseError(self.name, "SEC EDGAR submissions returned an invalid recent filings object")
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned an invalid recent filings object"
+            )
 
         columns: dict[str, list] = {}
         for field in ("form", "filingDate", "accessionNumber"):
             value = recent.get(field, [])
             if not isinstance(value, list):
-                raise ProviderResponseError(self.name, f"SEC EDGAR submissions returned an invalid {field} array")
+                raise ProviderResponseError(
+                    self.name, f"SEC EDGAR submissions returned an invalid {field} array"
+                )
             columns[field] = value
         forms = columns["form"]
         dates = columns["filingDate"]
         accessions = columns["accessionNumber"]
         if not (len(forms) == len(dates) == len(accessions)):
-            raise ProviderResponseError(self.name, "SEC EDGAR submissions returned misaligned filing arrays")
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned misaligned filing arrays"
+            )
 
         for form, date_str, acc in zip(forms, dates, accessions, strict=True):
             if not all(isinstance(value, str) for value in (form, date_str, acc)):
-                raise ProviderResponseError(self.name, "SEC EDGAR submissions returned a malformed filing row")
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR submissions returned a malformed filing row"
+                )
             if form not in ("10-Q", "10-K"):
                 continue
             try:
@@ -394,7 +468,9 @@ class EdgarProvider:
                     )
                 )
             except ValueError as exc:
-                raise ProviderResponseError(self.name, "SEC EDGAR submissions returned an invalid filing date") from exc
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR submissions returned an invalid filing date"
+                ) from exc
 
         return events
 
@@ -423,23 +499,37 @@ class EdgarProvider:
             raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
         facts = payload.get("facts")
         if not isinstance(facts, dict):
-            raise ProviderResponseError(self.name, "SEC EDGAR company facts returned an invalid facts object")
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR company facts returned an invalid facts object"
+            )
         records: list[FundamentalFactRecord] = []
         for namespace, namespace_facts in facts.items():
             if not isinstance(namespace_facts, dict):
-                raise ProviderResponseError(self.name, "SEC EDGAR company facts returned malformed namespace facts")
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR company facts returned malformed namespace facts"
+                )
             for key, definition in namespace_facts.items():
                 if not isinstance(definition, dict):
-                    raise ProviderResponseError(self.name, "SEC EDGAR company facts returned a malformed fact definition")
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR company facts returned a malformed fact definition"
+                    )
                 units = definition.get("units")
                 if not isinstance(units, dict):
-                    raise ProviderResponseError(self.name, "SEC EDGAR company facts returned an invalid units object")
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR company facts returned an invalid units object"
+                    )
                 for unit, observations in units.items():
                     if not isinstance(observations, list):
-                        raise ProviderResponseError(self.name, "SEC EDGAR company facts returned an invalid observations array")
+                        raise ProviderResponseError(
+                            self.name,
+                            "SEC EDGAR company facts returned an invalid observations array",
+                        )
                     for observation in observations:
                         if not isinstance(observation, dict):
-                            raise ProviderResponseError(self.name, "SEC EDGAR company facts returned a malformed observation")
+                            raise ProviderResponseError(
+                                self.name,
+                                "SEC EDGAR company facts returned a malformed observation",
+                            )
                         records.append(
                             FundamentalFactRecord(
                                 namespace=str(namespace),
@@ -480,20 +570,28 @@ def _parse_ipo_pipeline_events(
 
     filings = submissions.get("filings")
     if not isinstance(filings, dict):
-        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid filings object")
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned an invalid filings object"
+        )
     recent = filings.get("recent")
     if not isinstance(recent, dict):
-        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid recent filings object")
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned an invalid recent filings object"
+        )
 
     required_fields = ("form", "filingDate", "accessionNumber")
     columns: dict[str, list[Any]] = {}
     for field in required_fields:
         value = recent.get(field, [])
         if not isinstance(value, list):
-            raise ProviderResponseError("edgar", f"SEC EDGAR submissions returned an invalid {field} array")
+            raise ProviderResponseError(
+                "edgar", f"SEC EDGAR submissions returned an invalid {field} array"
+            )
         columns[field] = value
     if len({len(values) for values in columns.values()}) != 1:
-        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned misaligned filing arrays")
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned misaligned filing arrays"
+        )
 
     optional_columns: dict[str, list[Any]] = {}
     for field in ("primaryDocument", "reportDate"):
@@ -502,7 +600,9 @@ def _parse_ipo_pipeline_events(
             optional_columns[field] = [None] * len(columns["form"])
             continue
         if not isinstance(value, list) or len(value) != len(columns["form"]):
-            raise ProviderResponseError("edgar", f"SEC EDGAR submissions returned an invalid {field} array")
+            raise ProviderResponseError(
+                "edgar", f"SEC EDGAR submissions returned an invalid {field} array"
+            )
         optional_columns[field] = value
 
     issuer_name = str(submissions.get("name") or "").strip() or None
@@ -520,22 +620,30 @@ def _parse_ipo_pipeline_events(
         )
     ):
         if not all(isinstance(value, str) for value in (form, filing_date_raw, accession)):
-            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a malformed filing row")
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a malformed filing row"
+            )
         normalized_form = form.strip().upper()
         if normalized_form not in _IPO_PIPELINE_FORMS and not normalized_form.startswith("424B"):
             continue
         try:
             filing_date = date.fromisoformat(filing_date_raw)
         except ValueError as exc:
-            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid filing date") from exc
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned an invalid filing date"
+            ) from exc
         if (start is not None and filing_date < start) or (end is not None and filing_date > end):
             continue
         accession_value = accession.strip()
         if not accession_value:
-            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a filing without an accession number")
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a filing without an accession number"
+            )
         primary_document = optional_columns["primaryDocument"][index]
         if primary_document is not None and not isinstance(primary_document, str):
-            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a malformed primary document")
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a malformed primary document"
+            )
         accession_path = accession_value.replace("-", "")
         filing_url = (
             f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_path}/"
@@ -548,7 +656,9 @@ def _parse_ipo_pipeline_events(
             "form": normalized_form,
             "filing_date": filing_date.isoformat(),
             "accession_number": accession_value,
-            "primary_document": primary_document.strip() if isinstance(primary_document, str) else None,
+            "primary_document": primary_document.strip()
+            if isinstance(primary_document, str)
+            else None,
             "filing_url": filing_url,
             "issuer_name": issuer_name,
             "tickers": normalized_tickers,
@@ -631,14 +741,20 @@ def _ensure_ticker_map(headers: dict) -> None:
         mapping: dict[str, dict] = {}
         for entry in raw.values():
             if not isinstance(entry, dict):
-                raise ProviderResponseError("edgar", "SEC EDGAR ticker directory returned a malformed row")
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned a malformed row"
+                )
             ticker = (entry.get("ticker") or "").upper()
             if not ticker or entry.get("cik_str") in (None, ""):
-                raise ProviderResponseError("edgar", "SEC EDGAR ticker directory returned an incomplete row")
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned an incomplete row"
+                )
             try:
                 cik = int(entry["cik_str"])
             except (KeyError, TypeError, ValueError) as exc:
-                raise ProviderResponseError("edgar", "SEC EDGAR ticker directory returned an invalid CIK") from exc
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned an invalid CIK"
+                ) from exc
             candidate = {
                 "cik": cik,
                 "title": entry.get("title", ticker),
@@ -647,9 +763,9 @@ def _ensure_ticker_map(headers: dict) -> None:
             if previous is None:
                 mapping[ticker] = candidate
                 continue
-            previous_ciks = {
-                int(previous["cik"])
-            } if previous.get("cik") not in (None, "") else set()
+            previous_ciks = (
+                {int(previous["cik"])} if previous.get("cik") not in (None, "") else set()
+            )
             previous_ciks.update(
                 int(item["cik"])
                 for item in previous.get("candidates", [])
@@ -698,10 +814,18 @@ def _ensure_exchange_directory(headers: dict) -> None:
         rows: list[dict] = []
         if fields is not None or raw_rows is not None:
             if raw_rows is None or not isinstance(raw_rows, list):
-                raise ProviderResponseError("edgar", "SEC EDGAR exchange directory returned an invalid data array")
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned an invalid data array"
+                )
             if fields is not None:
-                if not isinstance(fields, list) or not fields or any(not isinstance(field, str) for field in fields):
-                    raise ProviderResponseError("edgar", "SEC EDGAR exchange directory returned invalid fields")
+                if (
+                    not isinstance(fields, list)
+                    or not fields
+                    or any(not isinstance(field, str) for field in fields)
+                ):
+                    raise ProviderResponseError(
+                        "edgar", "SEC EDGAR exchange directory returned invalid fields"
+                    )
                 for raw in raw_rows:
                     if not isinstance(raw, list | tuple) or len(raw) != len(fields):
                         raise ProviderResponseError(
@@ -711,11 +835,15 @@ def _ensure_exchange_directory(headers: dict) -> None:
             else:
                 for raw in raw_rows:
                     if not isinstance(raw, dict):
-                        raise ProviderResponseError("edgar", "SEC EDGAR exchange directory returned a malformed row")
+                        raise ProviderResponseError(
+                            "edgar", "SEC EDGAR exchange directory returned a malformed row"
+                        )
                     rows.append(raw)
         elif payload:
             if any(not isinstance(row, dict) for row in payload.values()):
-                raise ProviderResponseError("edgar", "SEC EDGAR exchange directory returned malformed object rows")
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned malformed object rows"
+                )
             rows = list(payload.values())
 
         directory: list[dict] = []
@@ -724,7 +852,9 @@ def _ensure_exchange_directory(headers: dict) -> None:
             name = str(row.get("name") or row.get("title") or "").strip()
             exchange = str(row.get("exchange") or row.get("exchange_name") or "").strip()
             if not ticker or not name:
-                raise ProviderResponseError("edgar", "SEC EDGAR exchange directory returned an incomplete row")
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned an incomplete row"
+                )
             cik_raw = row.get("cik") or row.get("cik_str")
             try:
                 cik = int(cik_raw) if cik_raw not in (None, "") else None

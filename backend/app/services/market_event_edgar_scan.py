@@ -9,11 +9,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import Issuer, MarketEventScanState
+from app.models.provider_runtime import ProviderCapability
+from app.providers.errors import bounded_redact_provider_message
 from app.services.market_events import refresh_edgar_ipo_pipeline
+from app.services.provider_runtime import execute_provider_call
 
 _SCAN_KEY = "edgar:ipo_pipeline:issuer_universe"
+_DIRECTORY_SCAN_KEY = "edgar:ipo_pipeline:sec_directory"
 _PROVIDER = "edgar"
 _OPERATION = "fetch_ipo_pipeline_events"
+_DIRECTORY_OPERATION = "discover_issuer_ciks_page"
 
 
 def _validate_limit(value: int, name: str) -> None:
@@ -78,13 +83,17 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(
         state.cursor_issuer_id = None
         state.cycle_started_at = now
         issuer_rows = (
-            await db.execute(
-                select(Issuer)
-                .where(Issuer.cik.is_not(None))
-                .order_by(Issuer.id)
-                .limit(max_issuers + 1)
+            (
+                await db.execute(
+                    select(Issuer)
+                    .where(Issuer.cik.is_not(None))
+                    .order_by(Issuer.id)
+                    .limit(max_issuers + 1)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
     truncated = len(issuer_rows) > max_issuers
     issuer_rows = issuer_rows[:max_issuers]
@@ -146,6 +155,208 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(
         "scan_key": _SCAN_KEY,
         "issuers_considered": len(issuer_rows),
         "cursor_issuer_id": state.cursor_issuer_id,
+        "cycle_complete": cycle_complete,
+        "wrapped": wrapped,
+    }
+
+
+async def refresh_edgar_ipo_pipeline_for_sec_directory(
+    db: AsyncSession,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    max_issuers: int = 50,
+    max_events_per_issuer: int = 100,
+) -> dict[str, Any]:
+    """Scan the complete SEC issuer directory in durable bounded pages.
+
+    EDGAR has no global IPO-calendar endpoint, but its official ticker
+    directory is a complete issuer catalogue.  This workflow pages that
+    catalogue by unique CIK and then reuses the existing per-CIK submissions
+    parser.  The offset is kept in the scan-state provenance JSON so the
+    existing issuer foreign key remains dedicated to the legacy canonical-
+    issuer scan.  A cycle is still only a statement that every directory CIK
+    was attempted; it is not a claim that filing dates equal listing dates.
+    """
+
+    _validate_limit(max_issuers, "max_issuers")
+    _validate_limit(max_events_per_issuer, "max_events_per_issuer")
+    if start is not None and end is not None and end < start:
+        raise ValueError("end must be on or after start")
+
+    state = (
+        await db.execute(
+            select(MarketEventScanState)
+            .where(MarketEventScanState.scan_key == _DIRECTORY_SCAN_KEY)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    now = datetime.now(UTC)
+    if state is None:
+        state = MarketEventScanState(
+            scan_key=_DIRECTORY_SCAN_KEY,
+            provider=_PROVIDER,
+            operation=_DIRECTORY_OPERATION,
+            cycle_started_at=now,
+            status="running",
+            provenance={
+                "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
+                "directory_offset": 0,
+            },
+        )
+        db.add(state)
+        await db.flush()
+
+    provenance = state.provenance if isinstance(state.provenance, dict) else {}
+    raw_offset = provenance.get("directory_offset", 0)
+    if isinstance(raw_offset, bool) or not isinstance(raw_offset, int) or raw_offset < 0:
+        raise ValueError("SEC directory scan state contains an invalid directory offset")
+    offset = raw_offset
+    wrapped = offset == 0 and state.cycle_count > 0
+    state.status = "running"
+    state.last_error = None
+
+    try:
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.MARKET_EVENTS,
+            _DIRECTORY_OPERATION,
+            provider_name=_PROVIDER,
+            invoke=lambda provider, _provider_symbol: provider.discover_issuer_ciks_page(
+                offset, limit=max_issuers
+            ),
+            response_items=lambda result: len(result.get("issuers") or [])
+            if isinstance(result, dict)
+            else None,
+            treat_empty_as_failure=False,
+        )
+        page = execution.result
+        if not isinstance(page, dict):
+            raise ValueError("SEC issuer directory returned a malformed page")
+        total = page.get("total")
+        page_offset = page.get("offset")
+        rows = page.get("issuers")
+        if (
+            isinstance(total, bool)
+            or not isinstance(total, int)
+            or total < 0
+            or page_offset != offset
+            or not isinstance(rows, list)
+            or len(rows) > max_issuers
+        ):
+            raise ValueError("SEC issuer directory returned invalid pagination metadata")
+        ciks: list[str] = []
+        seen: set[str] = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("SEC issuer directory returned a malformed issuer row")
+            cik = str(row.get("cik") or "").strip()
+            if len(cik) != 10 or not cik.isdigit() or int(cik) <= 0 or cik in seen:
+                raise ValueError("SEC issuer directory returned an invalid or duplicate CIK")
+            seen.add(cik)
+            ciks.append(cik)
+        if offset > total or (offset < total and not rows):
+            raise ValueError("SEC issuer directory returned a non-progressing page")
+    except Exception as exc:  # noqa: BLE001 - persist bounded scan failure.
+        state.status = "failed"
+        state.last_scanned_at = now
+        state.last_batch_count = 0
+        state.last_event_count = 0
+        state.last_failure_count = 1
+        state.last_error = bounded_redact_provider_message(exc, max_length=500)
+        state.provenance = {
+            **provenance,
+            "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
+            "directory_offset": offset,
+            "bounded": True,
+        }
+        await db.commit()
+        return {
+            "status": "failed",
+            "scan_key": _DIRECTORY_SCAN_KEY,
+            "issuers_considered": 0,
+            "events": 0,
+            "failures": 1,
+            "directory_offset": offset,
+            "cycle_complete": False,
+            "wrapped": wrapped,
+        }
+
+    if not ciks:
+        # A zero-row page at the exact catalogue end is the only successful
+        # terminal condition; reset the cursor for the next full cycle.
+        cycle_complete = offset >= total
+        if not cycle_complete:
+            raise ValueError("SEC issuer directory returned an empty non-terminal page")
+        state.provenance = {
+            **provenance,
+            "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
+            "directory_offset": 0,
+            "directory_total": total,
+            "last_batch_ciks": [],
+            "bounded": True,
+            "cycle_complete": True,
+        }
+        state.cursor_issuer_id = None
+        state.cycle_count += 1
+        state.last_scanned_at = now
+        state.last_batch_count = 0
+        state.last_event_count = 0
+        state.last_failure_count = 0
+        state.status = "complete"
+        await db.commit()
+        return {
+            "status": "complete",
+            "scan_key": _DIRECTORY_SCAN_KEY,
+            "issuers_considered": 0,
+            "events": 0,
+            "failures": 0,
+            "directory_offset": 0,
+            "cycle_complete": True,
+            "wrapped": wrapped,
+        }
+
+    result = await refresh_edgar_ipo_pipeline(
+        db,
+        ciks,
+        start=start,
+        end=end,
+        max_ciks=max_issuers,
+        max_events_per_issuer=max_events_per_issuer,
+        commit=False,
+    )
+    next_offset = offset + len(ciks)
+    cycle_complete = next_offset >= total
+    state.provenance = {
+        **provenance,
+        "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
+        "directory_offset": 0 if cycle_complete else next_offset,
+        "directory_total": total,
+        "last_batch_ciks": ciks,
+        "window": {
+            "start": start.isoformat() if start else None,
+            "end": end.isoformat() if end else None,
+        },
+        "bounded": True,
+        "cycle_complete": cycle_complete,
+    }
+    state.cursor_issuer_id = None
+    state.cycle_count += 1 if cycle_complete else 0
+    state.scanned_count += len(ciks)
+    state.last_batch_count = len(ciks)
+    state.last_event_count = int(result.get("events", 0))
+    state.last_failure_count = int(result.get("failures", 0))
+    state.last_scanned_at = now
+    state.status = "complete" if cycle_complete else "partial"
+    state.last_error = (
+        "one or more SEC issuer pipeline reads failed" if state.last_failure_count else None
+    )
+    await db.commit()
+    return {
+        **result,
+        "scan_key": _DIRECTORY_SCAN_KEY,
+        "issuers_considered": len(ciks),
+        "directory_offset": 0 if cycle_complete else next_offset,
         "cycle_complete": cycle_complete,
         "wrapped": wrapped,
     }

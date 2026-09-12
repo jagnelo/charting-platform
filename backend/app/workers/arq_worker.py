@@ -517,6 +517,16 @@ async def scheduled_edgar_ipo_universe_scan(ctx: dict):
     return await refresh_edgar_ipo_pipeline_for_issuer_universe(ctx)
 
 
+async def scheduled_edgar_ipo_directory_scan(ctx: dict):
+    """Scan one complete SEC issuer-directory page when explicitly enabled."""
+
+    if not settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED:
+        return {"skipped": True, "reason": "EDGAR SEC directory scan disabled"}
+    from app.tasks.data_tasks import refresh_edgar_ipo_pipeline_for_sec_directory
+
+    return await refresh_edgar_ipo_pipeline_for_sec_directory(ctx)
+
+
 async def worker_startup(ctx: dict):
     """Queue the first hydration without blocking worker readiness.
 
@@ -571,6 +581,7 @@ class WorkerSettings:
         scheduled_tokenized_event_refresh,
         scheduled_market_events_refresh,
         scheduled_edgar_ipo_universe_scan,
+        scheduled_edgar_ipo_directory_scan,
         scheduled_market_event_prelisting,
     ]
     cron_jobs = (
@@ -591,6 +602,7 @@ class WorkerSettings:
             cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
             cron(scheduled_market_events_refresh, hour=1, minute=30),
             cron(scheduled_edgar_ipo_universe_scan, hour=1, minute=40),
+            cron(scheduled_edgar_ipo_directory_scan, hour=1, minute=42),
             cron(scheduled_market_event_prelisting, hour=1, minute=45),
         ]
         if (
@@ -606,6 +618,7 @@ class WorkerSettings:
             or settings.TOKENIZED_EVENT_REFRESH_ENABLED
             or settings.MARKET_EVENTS_REFRESH_ENABLED
             or settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED
+            or settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED
             or settings.MARKET_EVENTS_PRELISTING_ENABLED
         )
         else []

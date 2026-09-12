@@ -16297,3 +16297,23 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Keep provider quota, account-plan, commercial, redistribution, and
       response-dependent routing gates fail-closed until their exact reviewed
       contracts are supplied; this live rerun is transport/schema evidence only.
+
+### 2026-09-12 — Complete SEC issuer-directory scan path
+
+- [x] Add a separate SEC directory-backed issuer CIK pager that deduplicates
+      ambiguous ticker rows by CIK, retains all associated tickers, validates
+      bounds and pagination, and reuses the official cached ticker directory.
+- [x] Add a durable, bounded ARQ scan that persists its directory offset and
+      cycle state in `MarketEventScanState.provenance`, composes the existing
+      per-CIK IPO-pipeline parser, records typed/redacted failures, and refuses
+      simultaneous legacy issuer-table and directory scans to prevent quota
+      double-spend.
+- [x] Add disabled-by-default configuration, worker scheduling, Compose wiring,
+      unit regressions, and a live SEC probe that proves complete unique-CIK
+      pagination. The full backend unit suite passed `1,922/1,922` before the
+      final mutual-exclusion regression, which also passes; the live probe
+      passed `1/1` and recorded only aggregate telemetry outside Git.
+- [ ] Keep activation separately reviewed: this catalogue is an issuer
+      directory, not a tradability/listing-date guarantee. Production SEC
+      request budgeting, canonical issuer materialization policy, and the
+      broader NMS/OTC reconciliation and provider-terms gates remain open.

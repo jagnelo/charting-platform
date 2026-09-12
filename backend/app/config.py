@@ -76,6 +76,13 @@ class Settings(BaseSettings):
     MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS: int = 365
     MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS: int = 50
     MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER: int = 100
+    # The SEC directory-backed IPO scan is a separate, more complete source
+    # path. It is disabled independently so deployments can choose whether
+    # to spend submissions requests on every SEC issuer rather than only
+    # issuers already materialized in the canonical table.
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: bool = False
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: int = 50
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: int = 100
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False
@@ -340,7 +347,7 @@ class Settings(BaseSettings):
                         "source": "https://developer.finra.org/support",
                         "reset": "calendar_month",
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
-                    }
+                    },
                 ],
                 "reset": "rolling_or_provider_defined",
                 "dimension_costs_required": True,
@@ -557,7 +564,9 @@ class Settings(BaseSettings):
         "dinari": {
             "quota_contract": {
                 "dimensions": [],
-                "unknown_dimensions": ["account/partner request limits and commercial data entitlements"],
+                "unknown_dimensions": [
+                    "account/partner request limits and commercial data entitlements"
+                ],
                 "source": "https://docs.dinari.com/reference",
             },
             "quota_scope": "api_key_id_and_partner_account",
@@ -1032,7 +1041,7 @@ class Settings(BaseSettings):
                 "download_bytes_per_calendar_month": {
                     "fetch_short_interest": 3145728,
                     "fetch_market_events": 3145728,
-                }
+                },
             },
         },
         # A cold SEC metadata/event lookup resolves the ticker through the
@@ -1044,6 +1053,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "search_instruments": 1,
                 "discover_universe_page": 1,
+                "discover_issuer_ciks_page": 1,
                 "get_instrument_profile": 2,
                 "fetch_instrument_events": 2,
                 "fetch_fundamental_facts": 1,
@@ -1887,8 +1897,7 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                         "account_plan": plan,
                         "account_limit_reviewed": True,
                     }
-                    if isinstance(dimension, dict)
-                    and dimension.get("name") == "credits_per_day"
+                    if isinstance(dimension, dict) and dimension.get("name") == "credits_per_day"
                     else dimension
                     for dimension in contract.get("dimensions") or []
                 ]
@@ -1943,8 +1952,7 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         (
             item
             for item in untracked
-            if isinstance(item, dict)
-            and str(item.get("unit") or "").lower() in {"byte", "bytes"}
+            if isinstance(item, dict) and str(item.get("unit") or "").lower() in {"byte", "bytes"}
         ),
         None,
     )
@@ -1952,7 +1960,11 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         return seed
     contract["untracked_constraints"] = [item for item in untracked if item is not byte_constraint]
     dimensions = list(contract.get("dimensions") or [])
-    if not any(item.get("name") == byte_constraint.get("name") for item in dimensions if isinstance(item, dict)):
+    if not any(
+        item.get("name") == byte_constraint.get("name")
+        for item in dimensions
+        if isinstance(item, dict)
+    ):
         dimensions.append(dict(byte_constraint))
     contract["dimensions"] = dimensions
     contract["dimension_costs_required"] = True

@@ -825,7 +825,9 @@ class TestCryptoOHLCVPagination:
     def test_coinbase_transport_failure_is_typed(self):
         failure = httpx.ConnectError(
             "connection failed",
-            request=httpx.Request("GET", "https://api.exchange.coinbase.com/products/BTC-USD/ticker"),
+            request=httpx.Request(
+                "GET", "https://api.exchange.coinbase.com/products/BTC-USD/ticker"
+            ),
         )
         with patch("app.providers.crypto_market_data.httpx.get", side_effect=failure):
             with pytest.raises(ProviderResponseError) as exc_info:
@@ -881,7 +883,12 @@ class TestCryptoOHLCVPagination:
         responses = [
             httpx.Response(
                 200,
-                json={"result": {"XXBTZUSD": [first_row], "last": int((start + timedelta(minutes=719)).timestamp())}},
+                json={
+                    "result": {
+                        "XXBTZUSD": [first_row],
+                        "last": int((start + timedelta(minutes=719)).timestamp()),
+                    }
+                },
                 request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
             ),
             httpx.Response(
@@ -934,9 +941,7 @@ class TestCryptoOHLCVPagination:
             json={"price": "not-a-number"},
             request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=coinbase_response):
             with pytest.raises(ProviderResponseError):
                 CoinbaseProvider().get_current_price("BTC-USD")
 
@@ -945,9 +950,7 @@ class TestCryptoOHLCVPagination:
             json={"result": {}},
             request=httpx.Request("GET", "https://api.kraken.com/0/public/Ticker"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=kraken_response):
             with pytest.raises(ProviderResponseError):
                 KrakenProvider().get_current_price("BTC-USD")
 
@@ -984,9 +987,7 @@ class TestCryptoOHLCVPagination:
             json=[{"id": "BTC-USD"}, "invalid"],
             request=httpx.Request("GET", "https://api.exchange.coinbase.com/products"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=coinbase_response):
             with pytest.raises(ProviderResponseError):
                 CoinbaseProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
@@ -995,9 +996,7 @@ class TestCryptoOHLCVPagination:
             json={"result": {"XXBTZUSD": "invalid"}},
             request=httpx.Request("GET", "https://api.kraken.com/0/public/AssetPairs"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=kraken_response):
             with pytest.raises(ProviderResponseError):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
@@ -1007,9 +1006,7 @@ class TestCryptoOHLCVPagination:
             json=[{"quote_currency": "USD", "status": "online", "id": "BTC-USD"}],
             request=httpx.Request("GET", "https://api.exchange.coinbase.com/products"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=coinbase_response):
             with pytest.raises(ProviderResponseError, match="incomplete product identity"):
                 CoinbaseProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
@@ -1018,9 +1015,7 @@ class TestCryptoOHLCVPagination:
             json={"result": {"XXBTZUSD": {"quote": "ZUSD", "wsname": "XBT/USD"}}},
             request=httpx.Request("GET", "https://api.kraken.com/0/public/AssetPairs"),
         )
-        with patch(
-            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
-        ):
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=kraken_response):
             with pytest.raises(ProviderResponseError, match="incomplete asset-pair identity"):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
@@ -1588,9 +1583,7 @@ class TestAlphaVantageProvider:
             (
                 {
                     "annualEarnings": [],
-                    "quarterlyEarnings": [
-                        {"fiscalDateEnding": "2024-03-30", "reportedEPS": "NaN"}
-                    ],
+                    "quarterlyEarnings": [{"fiscalDateEnding": "2024-03-30", "reportedEPS": "NaN"}],
                 },
                 "reportedEPS",
             ),
@@ -1754,7 +1747,9 @@ class TestAlphaVantageProvider:
 
     def test_ipo_csv_information_message_is_typed_as_rate_limit(self):
         response = MagicMock(status_code=200)
-        response.text = "symbol,name,ipoDate,priceRangeLow,priceRangeHigh,currency,exchange\nI,n,f,o,r,m,a\n"
+        response.text = (
+            "symbol,name,ipoDate,priceRangeLow,priceRangeHigh,currency,exchange\nI,n,f,o,r,m,a\n"
+        )
         response.raise_for_status.return_value = None
         before = datetime.now(UTC) + timedelta(days=1)
         with (
@@ -2283,6 +2278,42 @@ class TestEdgarTickerMap:
         results = EdgarProvider().search_instruments("apple", limit=5)
 
         assert [(item.symbol, item.name) for item in results] == [("AAPL", "Apple Inc.")]
+
+    def test_sec_issuer_directory_pages_unique_ciks_and_retains_ambiguous_tickers(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {
+            "BETA": {"cik": 20, "title": "Beta Holdings"},
+            "ALPHA": {"cik": 10, "title": "Alpha Corp"},
+            "ALPHA-A": {"cik": 10, "title": "Alpha Corp"},
+            "DUPE": {
+                "cik": None,
+                "title": "DUPE",
+                "identity_ambiguity": True,
+                "candidates": [
+                    {"cik": 30, "title": "Third Issuer"},
+                    {"cik": 40, "title": "Fourth Issuer"},
+                ],
+            },
+        }
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+
+        provider = EdgarProvider()
+        first = provider.discover_issuer_ciks_page(0, limit=2)
+        second = provider.discover_issuer_ciks_page(2, limit=2)
+
+        assert first["total"] == 4
+        assert [row["cik"] for row in first["issuers"]] == ["0000000010", "0000000020"]
+        assert first["issuers"][0]["tickers"] == ["ALPHA", "ALPHA-A"]
+        assert [row["cik"] for row in second["issuers"]] == ["0000000030", "0000000040"]
+
+    @pytest.mark.parametrize(
+        "offset,limit",
+        [(True, 1), (-1, 1), (0, True), (0, 0), (0, 501)],
+    )
+    def test_sec_issuer_directory_pages_reject_invalid_bounds(self, offset, limit):
+        with pytest.raises(ValueError, match="offset must be non-negative"):
+            EdgarProvider().discover_issuer_ciks_page(offset, limit=limit)
 
     def test_ensure_ticker_map_parses_sec_json(self):
         import app.providers.edgar as edgar_module

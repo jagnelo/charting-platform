@@ -81,6 +81,14 @@ CIKs already present in the canonical issuer table, persists its cursor in
 `market_event_scan_state`, and reports partial cycles; it never claims that a
 bounded batch is a complete SEC universe.
 
+If complete SEC issuer-directory coverage is required for filing-driven
+candidate scans, use the separate `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`
+flag with bounded `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS` and
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER` values. This worker
+pages unique CIKs from the official SEC ticker directory and stores its offset
+in scan-state provenance. It is disabled by default and must not be enabled
+without reviewing fair-access, candidate-use, and redistribution requirements.
+
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
 contracts, and reconciliation completeness have been reviewed, set

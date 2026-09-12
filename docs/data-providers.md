@@ -440,6 +440,17 @@ worker. Its durable cursor advances through issuer CIKs in bounded batches and
 records `partial` versus `complete` cycles in `market_event_scan_state`; this is
 an auditable best-effort enrichment layer, not proof of global SEC coverage.
 
+For complete SEC issuer coverage, the separately disabled
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED` worker pages the official
+`company_tickers.json` directory into unique CIK batches and then reuses the
+same bounded submissions parser. Its offset is durable in the scan-state
+provenance JSON, so restarts do not silently return to the first page. A
+`complete` cycle means every CIK present in that directory was attempted; it
+does not turn filing dates into listing dates or imply that the SEC directory
+is a tradability authority. Keep this path disabled until the deployment has
+reviewed the SEC fair-access budget and the intended candidate/redistribution
+use.
+
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
 | alpaca     | Primary     | API key + secret        | Free     |
@@ -966,6 +977,9 @@ MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED=false
 MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS=365
 MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS=50
 MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER=100
+MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false
+MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS=50
+MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER=100
 
 # Optional complete US universe/lifecycle reconciliation (worker only)
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false

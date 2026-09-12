@@ -271,6 +271,11 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(ctx: dict) -> dict:
 
     if not settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED:
         return {"skipped": True, "reason": "EDGAR issuer-universe scan disabled"}
+    if settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED:
+        return {
+            "skipped": True,
+            "reason": "EDGAR issuer and SEC directory scans are mutually exclusive",
+        }
     today = datetime.now(UTC).date()
     lookback_days = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS))
     max_issuers = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_ISSUERS))
@@ -280,6 +285,38 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(ctx: dict) -> dict:
     )
     async with AsyncSessionLocal() as db:
         return await _refresh_edgar_ipo_pipeline_for_issuer_universe(
+            db,
+            start=today - timedelta(days=lookback_days),
+            end=today,
+            max_issuers=max_issuers,
+            max_events_per_issuer=max_events,
+        )
+
+
+async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
+    """Scan one durable page of the complete SEC issuer directory."""
+
+    from app.config import settings
+    from app.services.market_event_edgar_scan import (
+        refresh_edgar_ipo_pipeline_for_sec_directory as _refresh_edgar_ipo_pipeline_for_sec_directory,
+    )
+
+    if not settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED:
+        return {"skipped": True, "reason": "EDGAR SEC directory scan disabled"}
+    if settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED:
+        return {
+            "skipped": True,
+            "reason": "EDGAR issuer and SEC directory scans are mutually exclusive",
+        }
+    today = datetime.now(UTC).date()
+    lookback_days = max(1, int(settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_LOOKBACK_DAYS))
+    max_issuers = max(1, int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS))
+    max_events = max(
+        1,
+        int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER),
+    )
+    async with AsyncSessionLocal() as db:
+        return await _refresh_edgar_ipo_pipeline_for_sec_directory(
             db,
             start=today - timedelta(days=lookback_days),
             end=today,

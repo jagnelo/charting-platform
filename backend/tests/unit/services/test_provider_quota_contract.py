@@ -98,7 +98,9 @@ def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
         dimensions = contract.get("dimensions", []) + contract.get("untracked_constraints", [])
         byte_pools = [item for item in dimensions if item.get("unit") == "bytes"]
         assert byte_pools
-        assert all(str(item.get("limit_basis", "")).startswith("decimal_bytes_") for item in byte_pools)
+        assert all(
+            str(item.get("limit_basis", "")).startswith("decimal_bytes_") for item in byte_pools
+        )
 
 
 def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
@@ -158,7 +160,9 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
 
 
 @pytest.mark.asyncio
-async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_contract(db, monkeypatch):
+async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_contract(
+    db, monkeypatch
+):
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
     monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
@@ -200,7 +204,9 @@ async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
 
 
 @pytest.mark.asyncio
-async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map_change(db, monkeypatch):
+async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map_change(
+    db, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     complete_bounds = {
         "fetch_ohlcv": 1_000_000,
@@ -369,6 +375,7 @@ def test_finra_authenticated_dataset_usage_covers_cold_oauth_token_request():
 
 def test_edgar_metadata_and_events_cover_cold_ticker_directory_lookup():
     profile = get_provider_usage_profile("edgar")
+    assert profile["operation_costs"]["discover_issuer_ciks_page"] == 1
     assert profile["operation_costs"]["get_instrument_profile"] == 2
     assert profile["operation_costs"]["fetch_instrument_events"] == 2
     assert profile["operation_costs"]["fetch_ipo_pipeline_events"] == 1
@@ -706,28 +713,20 @@ def test_byte_dimension_requires_explicit_operation_bound():
     source.config["usage_tracking"]["dimension_costs"]["requests_per_minute"] = {
         "fetch_short_interest": 0
     }
-    assert not provider_contract_operation_cost_known(
-        policy, source, "fetch_short_interest"
-    )
+    assert not provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
     with pytest.raises(ProviderQuotaUnknownError):
-        _dimension_costs_for_operation(
-            policy, source, "fetch_short_interest", default_units=1
-        )
+        _dimension_costs_for_operation(policy, source, "fetch_short_interest", default_units=1)
     source.config["usage_tracking"]["dimension_costs"].pop("requests_per_minute")
     for invalid_bound in (0, -1, True, 1.5, "not-a-bound"):
-        source.config["usage_tracking"]["dimension_costs"][
-            "download_bytes_per_month"
-        ]["fetch_short_interest"] = invalid_bound
-        assert not provider_contract_operation_cost_known(
-            policy, source, "fetch_short_interest"
-        )
+        source.config["usage_tracking"]["dimension_costs"]["download_bytes_per_month"][
+            "fetch_short_interest"
+        ] = invalid_bound
+        assert not provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
         with pytest.raises(ProviderQuotaUnknownError):
-            _dimension_costs_for_operation(
-                policy, source, "fetch_short_interest", default_units=1
-            )
-    source.config["usage_tracking"]["dimension_costs"][
-        "download_bytes_per_month"
-    ]["fetch_short_interest"] = 3_000_000
+            _dimension_costs_for_operation(policy, source, "fetch_short_interest", default_units=1)
+    source.config["usage_tracking"]["dimension_costs"]["download_bytes_per_month"][
+        "fetch_short_interest"
+    ] = 3_000_000
     source.config["usage_tracking"].pop("dimension_costs")
     assert not provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
@@ -856,10 +855,7 @@ async def test_dimension_reservation_settles_observed_bytes_without_charging_req
             "download_bytes_per_month": 1_200,
         },
     )
-    rows = {
-        row.dimension: row
-        for row in db.execute(select(ProviderQuotaWindow)).scalars().all()
-    }
+    rows = {row.dimension: row for row in db.execute(select(ProviderQuotaWindow)).scalars().all()}
     assert rows["requests_per_minute"].consumed_units == 1
     assert rows["download_bytes_per_month"].consumed_units == 1_200
     assert "async_requests_per_minute" not in rows
@@ -898,10 +894,7 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
         dimension["source"].startswith("https://ibkrcampus.com/")
         for dimension in ibkr["dimensions"]
     )
-    assert (
-        ibkr["endpoint_constraints"]["iserver/marketdata/history"]["max_response_points"]
-        == 1000
-    )
+    assert ibkr["endpoint_constraints"]["iserver/marketdata/history"]["max_response_points"] == 1000
     usage = settings.PROVIDER_USAGE_PROFILE_SEEDS["ibkr"]
     assert usage["operation_costs"]["get_current_price"] == 2
     assert usage["dimension_costs"]["historical_requests_per_minute"]["get_current_price"] == {}
@@ -1100,9 +1093,9 @@ def test_blank_explicit_quota_group_fails_closed():
 
 def test_marketdata_app_option_chain_cost_requires_explicit_symbol_bound(monkeypatch):
     monkeypatch.setattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 0)
-    assert "fetch_option_chain" not in get_provider_usage_profile("marketdata_app")[
-        "operation_costs"
-    ]
+    assert (
+        "fetch_option_chain" not in get_provider_usage_profile("marketdata_app")["operation_costs"]
+    )
 
     monkeypatch.setattr(settings, "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", 12)
     profile = get_provider_usage_profile("marketdata_app")
@@ -1320,7 +1313,9 @@ async def test_failed_contract_rolls_back_one_in_flight_slot(db):
     assert result is None
     db.flush()
     windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
-    assert {window.dimension: (window.reserved_units, window.consumed_units) for window in windows} == {
+    assert {
+        window.dimension: (window.reserved_units, window.consumed_units) for window in windows
+    } == {
         "concurrent_requests": (0, 0),
         "requests_per_minute": (0, 0),
     }
@@ -1350,7 +1345,10 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert [item["limit"] for item in eodhd["dimensions"]] == [1000, 20]
     assert [item["unit"] for item in eodhd["dimensions"]] == ["requests", "calls"]
     assert eodhd["operation_costs_required"] is True
-    assert settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["get_instrument_profile"] == 10
+    assert (
+        settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["get_instrument_profile"]
+        == 10
+    )
 
     gate = settings.PROVIDER_RATE_LIMIT_SEEDS["gate_tradfi"]["quota_contract"]
     assert gate.get("untracked_constraints", []) == []
@@ -1359,10 +1357,10 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
             "name": "stock_public_requests_per_second",
             "limit": 5,
             "window_seconds": 1,
-                "unit": "requests",
-                "scope": "ip",
-                "quota_group": "ip",
-                "source": "https://www.gate.com/docs/developers/apiv4/en/",
+            "unit": "requests",
+            "scope": "ip",
+            "quota_group": "ip",
+            "source": "https://www.gate.com/docs/developers/apiv4/en/",
         }
     ]
 
@@ -1434,9 +1432,9 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
 
 def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
     for provider_name in ("tiingo", "eodhd", "fmp", "marketstack", "marketdata_app"):
-        assert get_provider_usage_profile(provider_name)["operation_costs"][
-            "get_current_price"
-        ] == 1
+        assert (
+            get_provider_usage_profile(provider_name)["operation_costs"]["get_current_price"] == 1
+        )
 
 
 def test_fmp_profile_charges_market_event_calendar_operation():
@@ -1513,7 +1511,7 @@ def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_windo
                     "scope": "api_key",
                     "source": "https://support.twelvedata.com/en/articles/5713553-control-over-usage",
                 }
-            ]
+            ],
         },
     )
     measurement = SimpleNamespace(
@@ -1555,16 +1553,19 @@ def test_provider_native_tradier_and_binance_counters_require_contract_match():
             }
         ),
     ) == {"market_data_requests_per_minute": 17}
-    assert _observed_dimension_totals(
-        tradier_policy,
-        SimpleNamespace(
-            response_headers={
-                "x-ratelimit-allowed": "60",
-                "x-ratelimit-used": "17",
-                "x-ratelimit-available": "43",
-            }
-        ),
-    ) == {}
+    assert (
+        _observed_dimension_totals(
+            tradier_policy,
+            SimpleNamespace(
+                response_headers={
+                    "x-ratelimit-allowed": "60",
+                    "x-ratelimit-used": "17",
+                    "x-ratelimit-available": "43",
+                }
+            ),
+        )
+        == {}
+    )
 
     binance_policy = ProviderPolicy(
         data_source_id=1,
@@ -1614,15 +1615,18 @@ def test_provider_native_tradier_and_binance_counters_require_contract_match():
             }
         ),
     ) == {"http_requests_per_five_seconds": 13}
-    assert _observed_dimension_totals(
-        bybit_policy,
-        SimpleNamespace(
-            response_headers={
-                "x-bapi-limit": "100",
-                "x-bapi-limit-status": "87",
-            }
-        ),
-    ) == {}
+    assert (
+        _observed_dimension_totals(
+            bybit_policy,
+            SimpleNamespace(
+                response_headers={
+                    "x-bapi-limit": "100",
+                    "x-bapi-limit-status": "87",
+                }
+            ),
+        )
+        == {}
+    )
 
     gate_policy = ProviderPolicy(
         data_source_id=1,
@@ -1650,15 +1654,18 @@ def test_provider_native_tradier_and_binance_counters_require_contract_match():
             }
         ),
     ) == {"stock_public_requests_per_second": 2}
-    assert _observed_dimension_totals(
-        gate_policy,
-        SimpleNamespace(
-            response_headers={
-                "x-ratelimit-limit": "10",
-                "x-ratelimit-remaining": "8",
-            }
-        ),
-    ) == {}
+    assert (
+        _observed_dimension_totals(
+            gate_policy,
+            SimpleNamespace(
+                response_headers={
+                    "x-ratelimit-limit": "10",
+                    "x-ratelimit-remaining": "8",
+                }
+            ),
+        )
+        == {}
+    )
 
 
 @pytest.mark.asyncio
@@ -1943,9 +1950,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finra_otc = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]["quota_contract"]
     tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
     fmp = settings.PROVIDER_RATE_LIMIT_SEEDS["fmp"]["quota_contract"]
-    finra_bytes = next(
-        item for item in finra["dimensions"] if item["unit"] == "bytes"
-    )
+    finra_bytes = next(item for item in finra["dimensions"] if item["unit"] == "bytes")
     assert finra_bytes["limit"] == 10_000_000_000
     assert finra["dimension_costs_required"] is True
     assert finra_otc["dimensions"][0]["limit"] == 1200
@@ -2004,9 +2009,7 @@ def test_finra_otc_reviewed_operation_costs_are_explicitly_admitted(monkeypatch)
     policy = ProviderPolicy(
         data_source_id=1,
         capability=ProviderCapability.UNIVERSE_DISCOVERY,
-        quota_contract=settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"][
-            "quota_contract"
-        ],
+        quota_contract=settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]["quota_contract"],
     )
     assert provider_contract_operation_cost_known(policy, source, "discover_universe_page:OTC:0")
     assert provider_contract_operation_cost_known(policy, source, "reconcile_universe_page:OTC:0")
@@ -2057,9 +2060,12 @@ async def test_seeded_finra_policy_contains_dimension_cost_profile(db):
     ).scalar_one()
     assert policy_has_known_quota(policy)
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
-    assert source.config["usage_tracking"]["dimension_costs"][
-        "download_bytes_per_calendar_month"
-    ]["fetch_short_interest"] == 3 * 1024**2
+    assert (
+        source.config["usage_tracking"]["dimension_costs"]["download_bytes_per_calendar_month"][
+            "fetch_short_interest"
+        ]
+        == 3 * 1024**2
+    )
 
 
 def test_credit_contract_requires_the_requested_operation_cost():
@@ -2140,9 +2146,8 @@ def test_quota_dimension_limits_and_windows_reject_non_strict_positive_integers(
     policy.quota_contract["dimensions"][0]["limit"] = 10
     policy.quota_contract["dimensions"][0]["window_seconds"] = invalid_value
     assert not policy_has_known_quota(policy)
-    assert (
-        "quota_contract.dimensions[0].window_seconds"
-        in quota_contract_missing_dimensions(policy)
+    assert "quota_contract.dimensions[0].window_seconds" in quota_contract_missing_dimensions(
+        policy
     )
 
 

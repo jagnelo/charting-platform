@@ -139,9 +139,7 @@ async def test_single_instrument_refresh_forwards_worker_redis_to_canonical_fetc
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
     monkeypatch.setattr("app.services.market_data.fetch_ohlcv", fake_fetch)
 
-    result = await arq_worker.task_refresh_instrument_data(
-        {"redis": redis}, 42, "D1"
-    )
+    result = await arq_worker.task_refresh_instrument_data({"redis": redis}, 42, "D1")
 
     assert result == {"bars_fetched": 2}
     assert len(calls) == 1
@@ -253,6 +251,51 @@ async def test_edgar_issuer_universe_scan_delegates_to_bounded_task(monkeypatch)
 
 def test_edgar_issuer_universe_scan_is_registered_in_worker_functions():
     assert arq_worker.scheduled_edgar_ipo_universe_scan in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_is_explicitly_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", False)
+
+    result = await arq_worker.scheduled_edgar_ipo_directory_scan({})
+
+    assert result == {"skipped": True, "reason": "EDGAR SEC directory scan disabled"}
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_delegates_to_bounded_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    calls = []
+
+    async def fake_scan(ctx):
+        calls.append(ctx)
+        return {"status": "partial", "directory_offset": 50}
+
+    monkeypatch.setattr(data_tasks, "refresh_edgar_ipo_pipeline_for_sec_directory", fake_scan)
+
+    result = await arq_worker.scheduled_edgar_ipo_directory_scan({"redis": "test"})
+
+    assert result == {"status": "partial", "directory_offset": 50}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_edgar_scan_tasks_are_mutually_exclusive(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+
+    issuer_result = await data_tasks.refresh_edgar_ipo_pipeline_for_issuer_universe({})
+    directory_result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert issuer_result == {
+        "skipped": True,
+        "reason": "EDGAR issuer and SEC directory scans are mutually exclusive",
+    }
+    assert directory_result == issuer_result
+
+
+def test_edgar_directory_scan_is_registered_in_worker_functions():
+    assert arq_worker.scheduled_edgar_ipo_directory_scan in arq_worker.WorkerSettings.functions
 
 
 def test_market_event_prelisting_is_registered_in_worker_functions():

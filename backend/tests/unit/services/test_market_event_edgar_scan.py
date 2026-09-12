@@ -1,4 +1,5 @@
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
@@ -105,3 +106,129 @@ async def test_edgar_issuer_scan_rejects_reversed_window_and_invalid_limits(db):
         await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
             AsyncSessionAdapter(db), max_issuers=0
         )
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monkeypatch):
+    pages = {
+        0: {
+            "total": 3,
+            "offset": 0,
+            "limit": 2,
+            "issuers": [
+                {"cik": "0000000001", "name": "One", "tickers": ["ONE"]},
+                {"cik": "0000000002", "name": "Two", "tickers": ["TWO"]},
+            ],
+        },
+        2: {
+            "total": 3,
+            "offset": 2,
+            "limit": 2,
+            "issuers": [{"cik": "0000000003", "name": "Three", "tickers": ["THREE"]}],
+        },
+    }
+    page_calls = []
+    refresh_calls = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability.value == "market_events"
+        assert operation == "discover_issuer_ciks_page"
+        provider = SimpleNamespace(
+            discover_issuer_ciks_page=lambda offset, *, limit: page_calls.append((offset, limit))
+            or pages[offset]
+        )
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_refresh(_db, ciks, **kwargs):
+        refresh_calls.append((list(ciks), kwargs))
+        return {"status": "no_events", "events": 0, "failures": 0, "issuers": []}
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+
+    first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2
+    )
+    second = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2
+    )
+    third = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2
+    )
+
+    state = db.execute(
+        select(MarketEventScanState).where(
+            MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+        )
+    ).scalar_one()
+    assert page_calls == [(0, 2), (2, 2), (0, 2)]
+    assert refresh_calls == [
+        (
+            ["0000000001", "0000000002"],
+            {
+                "commit": False,
+                "max_ciks": 2,
+                "max_events_per_issuer": 100,
+                "start": None,
+                "end": None,
+            },
+        ),
+        (
+            ["0000000003"],
+            {
+                "commit": False,
+                "max_ciks": 2,
+                "max_events_per_issuer": 100,
+                "start": None,
+                "end": None,
+            },
+        ),
+        (
+            ["0000000001", "0000000002"],
+            {
+                "commit": False,
+                "max_ciks": 2,
+                "max_events_per_issuer": 100,
+                "start": None,
+                "end": None,
+            },
+        ),
+    ]
+    assert first["cycle_complete"] is False
+    assert first["directory_offset"] == 2
+    assert second["cycle_complete"] is True
+    assert second["directory_offset"] == 0
+    assert third["wrapped"] is True
+    assert state.status == "partial"
+    assert state.provenance["directory_offset"] == 2
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_records_malformed_page_failure(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **_kwargs):
+        return SimpleNamespace(
+            result={
+                "total": 2,
+                "offset": 0,
+                "limit": 2,
+                "issuers": [
+                    {"cik": "0000000001"},
+                    {"cik": "0000000001"},
+                ],
+            }
+        )
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db), max_issuers=2
+    )
+    state = db.execute(
+        select(MarketEventScanState).where(
+            MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+        )
+    ).scalar_one()
+    assert result["status"] == "failed"
+    assert result["failures"] == 1
+    assert state.status == "failed"
+    assert state.last_failure_count == 1
+    assert "duplicate CIK" in state.last_error
