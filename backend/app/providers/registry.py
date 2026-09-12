@@ -296,6 +296,12 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         "kraken",
     }:
         capabilities.append("crypto_history")
+    if "price_history" in capabilities and provider_supports_adjustment(provider_name, True):
+        # Adjustment support is a distinct semantic capability. A provider
+        # may expose an OHLCV-shaped endpoint while only returning raw bars;
+        # advertising this separately lets admin/routing consumers filter
+        # without inferring semantics from the method name alone.
+        capabilities.append("adjusted_price_history")
     if "price_history" in capabilities and (
         provider_name == "yfinance" or bool(getattr(provider, "supports_futures_history", False))
     ):

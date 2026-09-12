@@ -52,6 +52,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
         "fmp",
     }
     assert "price_history" in list_provider_capabilities("twelve_data")
+    assert "adjusted_price_history" not in list_provider_capabilities("twelve_data")
     assert "instrument_metadata" in list_provider_capabilities("finnhub")
     assert "instrument_search" in list_provider_capabilities("tiingo")
     assert "universe_discovery" in list_provider_capabilities("eodhd")

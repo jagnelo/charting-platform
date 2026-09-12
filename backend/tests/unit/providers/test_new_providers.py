@@ -79,6 +79,7 @@ class TestRegistryCapabilities:
     def test_alpaca_capabilities(self):
         caps = set(list_provider_capabilities("alpaca"))
         assert "price_history" in caps
+        assert "adjusted_price_history" in caps
         assert "latest_price" in caps
         assert "instrument_events" in caps
         assert "universe_discovery" in caps
@@ -95,6 +96,7 @@ class TestRegistryCapabilities:
     def test_binance_capabilities(self):
         caps = set(list_provider_capabilities("binance"))
         assert "price_history" in caps
+        assert "adjusted_price_history" not in caps
         assert "latest_price" in caps
         assert "universe_discovery" in caps
         assert "instrument_metadata" not in caps
