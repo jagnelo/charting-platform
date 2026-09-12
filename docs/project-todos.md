@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence ChartView selection hydration
+
+- [x] Fence ChartView symbol/timeframe, linked-panel, comparison, drawings,
+      alerts, radar-overlay, and mount hydration by lifecycle and selection
+      generations (`75bc03a3`); canonical data and provider contracts remain
+      unchanged.
+- [x] Focused ChartView coverage passed `2/2`; full frontend Vitest passed
+      `1050/1050`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
+### 2026-09-12 — Exact provider-panel gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `ff767486` / product tip
+      `450c9746`; repository/workstream, dependency/migration, frontend
+      preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
 
 - [x] Fence Options Chain instrument/chain loads and embedded ETF Holdings

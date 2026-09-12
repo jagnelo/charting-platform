@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence ChartView selection hydration
+
+Product commit `75bc03a3` closes a bounded R2/R6 top-down chart race. Single
+and multi-panel symbol loads, linked drawings/alerts, comparisons, radar
+overlays, timeframe changes, and mount hydration now stop when a newer
+selection or teardown supersedes them. Existing canonical symbol resolution,
+provider routing, chart data, ratios, indicators, drawings, and radar contracts
+are unchanged. Focused ChartView handoff coverage passed `2/2`; full frontend
+Vitest passed `1050/1050` across 115 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue the next bounded provider/history or
+compatible R4/R2-R7 seam while preserving the six protected visual
+state-oracle assertions.
+
+## 2026-09-12 — Exact provider-panel gate rechecked
+
+At documentation tip `ff767486` (product tip `450c9746`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
 
 Product commit `450c9746` closes the paired provider/history read-panel

@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence ChartView selection hydration
+
+Product commit `75bc03a3` fences ChartView symbol/timeframe hydration,
+linked-panel loads, comparisons, drawings, alerts, radar overlays, and mount
+startup by lifecycle and selection generations. Focused coverage passed `2/2`;
+full frontend Vitest passed `1050/1050`; type-check/build/diff checks passed
+with only the existing chunk-size warning. Canonical data, provider, visual,
+and acceptance contracts are unchanged. Continue in this worktree only.
+
+## 2026-09-12 — Exact provider-panel gate rechecked
+
+At documentation tip `ff767486` (product tip `450c9746`), the exact gate passed
+repository/workstream, dependency/migration, frontend preparation, Ruff,
+formatting, and TypeScript, then stopped at backend-coverage after the fixed
+180-second Docker readiness window because Docker access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
 
 Product commit `450c9746` fences Options Chain and embedded ETF Holdings
