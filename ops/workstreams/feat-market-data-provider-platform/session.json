@@ -126,7 +126,7 @@
   "head": "cf51a20a87c115c002b94b04ab9c7c997dbeb578",
   "implementation_sha": "cf51a20a87c115c002b94b04ab9c7c997dbeb578",
   "interrupted": true,
-  "last_checkpoint": "2026-09-12T10:10:00+00:00",
+  "last_checkpoint": "2026-09-12T10:14:00+00:00",
   "last_human_progress_update": "2026-09-12T08:24:37+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Keep the pushed Alpha Vantage earnings capability and its standalone live evidence alongside the latest 37/42 complete matrix result. Restore Docker readiness for the required full-profile session bootstrap, then keep deferred-provider preflights, provider-specific quota/legal/terms reviews, venue reconciliation, secret distribution, and separately approved 30-day shadow gates open; keep MarketData.app response-dependent chain/quote routing fail-closed until a reviewed reservation bound exists. Alpha Vantage adjusted daily history is explicitly unsupported on the free raw endpoint and must not be labeled adjusted.",
@@ -160,7 +160,7 @@
     "current_phase": "credentialed_live_validation",
     "next_action": "Restore Docker readiness and run agent-session-start; then keep deferred-provider preflights explicit, complete provider-specific quota/legal and venue-reconciliation reviews, retain provider-native usage accounting, and do not activate MarketData.app chain/quote routing or deploy until all gates are satisfied.",
     "total": 15,
-    "updated_at": "2026-09-12T10:10:00.000000+00:00"
+    "updated_at": "2026-09-12T10:14:00.000000+00:00"
   },
   "remote": "cf51a20a87c115c002b94b04ab9c7c997dbeb578",
   "remote_sha": "cf51a20a87c115c002b94b04ab9c7c997dbeb578",
