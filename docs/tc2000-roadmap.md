@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Chart Plot Library loader lifecycle
+
+Product commit `51be2db1` closes a bounded R6 lifecycle gap in Chart Plot
+Library. Python asset and EasyScan history loaders are now fenced by mounted
+state and independent load generations, so late or superseded responses cannot
+repopulate a closed menu or overwrite newer loader state. Focused Chart Plot
+Library coverage passed `31/31`; full frontend Vitest passed `1022/1022`
+across 115 files; frontend type-check and production build passed with only
+the existing chunk-size warning; and `git diff --check` passed. No provider,
+fallback, visual baseline, mask, threshold, skip, or acceptance policy
+changed. Continue the next bounded provider/history or compatible R4/R2-R7
+seam while preserving the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact Chart Plot Library lifecycle gate rechecked
+
+At product tip `51be2db172319759a13094961fc4421439d4b7d5`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Exact Code Library lifecycle gate rechecked
 
 At product tip `dffcc5cde1b9edee0749f12cdf6158fd9dd5da44`, the exact

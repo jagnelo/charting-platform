@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Chart Plot Library loader lifecycle
+
+- [x] Fence Python asset and EasyScan history loaders by mounted state and
+      independent generations so late or superseded responses cannot repopulate
+      a closed menu (`51be2db1`).
+- [x] Focused Chart Plot Library coverage passed `31/31`; full frontend Vitest
+      passed `1022/1022` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Chart Plot Library lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `51be2db172319759a13094961fc4421439d4b7d5`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact Code Library lifecycle gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip
