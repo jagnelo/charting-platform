@@ -15,9 +15,17 @@
       only. Focused checks passed runner `3/3`, code-asset integration `1/1`
       (two existing NumPy warnings), Research Results `36/36`, Study Lab
       `29/29`, frontend type-check, Ruff, formatting, and diff checks.
-- [ ] Rerun the exact elevated branch-scoped Docker-backed gate at this
-      product tip; preserve the six protected visual state-oracle diffs and
-      unchanged visual/provider/fallback/acceptance policy.
+- [x] Run and record the exact elevated branch-scoped Docker-backed gate at
+      product tip `15f97dfa`: backend unit coverage passed `1,479/1,479`, then
+      all backend integration tests failed at shared Testcontainers setup when
+      Docker returned HTTP 500 creating `testcontainers/ryuk:0.7.0` (Docker
+      Desktop VM `192.168.65.7:2376` had no route). The gate stopped at
+      `backend-coverage` before frontend/stack/provider/browser/visual stages;
+      cleanup refused because Docker inspection was unavailable. No product
+      assertion or visual policy failure was observed.
+- [ ] Once Docker Desktop is healthy, rerun the exact gate; preserve the six
+      protected visual state-oracle diffs and unchanged visual/provider/
+      fallback/acceptance policy.
 
 ### 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
 

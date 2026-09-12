@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
+
+Product tip `60b485b3` makes cross-sectional Study Lab results explicit from
+execution through promotion. Factory breadth/ranking studies persist their
+`result_scope`; the isolated runner executes aggregate Study sources once over
+the prepared universe; and the explicit `study_series_to_series` adapter
+promotes one named finite series without replaying it per member. Research
+Results and Study Lab expose aggregate chart-plot promotion only, while
+scalar, Boolean, range, latest-value, and threshold coercions remain
+view/export-only. The API requires the named `series` contract and preserves
+source/run/output/membership lineage.
+
+Focused runner coverage passed `3/3`, code-asset integration `1/1` with two
+existing NumPy warnings, Research Results `36/36`, Study Lab `29/29`, frontend
+type-check, Ruff, formatting, and diff checks. The exact elevated gate reached
+backend unit coverage and passed `1,479/1,479`; backend integration then failed
+for every test during shared Testcontainers setup because Docker returned HTTP
+500 creating `testcontainers/ryuk:0.7.0` (Docker Desktop VM
+`192.168.65.7:2376` had no route). The gate stopped at `backend-coverage`
+before frontend/stack/provider/browser/visual stages, and cleanup refused
+because Docker inspection was unavailable. No product assertion or visual
+policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+After Docker Desktop is healthy, rerun the exact gate, then continue the next
+bounded provider/history or compatible chart/list/gauge seam. Preserve the six
+protected visual state-oracle diffs and the no-integration/no-promotion/
+no-deployment boundary.
+
 ## 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
 
 Product tip `af142b1d` closes a bounded R4 compatibility gap. Finite numeric

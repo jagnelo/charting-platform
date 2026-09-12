@@ -16,9 +16,16 @@ named `series` output and preserves source/run/output/membership lineage.
 
 Focused checks passed: runner `3/3`, code-asset integration `1/1` with two
 existing NumPy warnings, Research Results `36/36`, Study Lab `29/29`, frontend
-type-check, Ruff, formatting, and diff checks. The exact branch-scoped gate is
-pending at this product slice. No visual baseline, mask, threshold, skip,
-provider, fallback, or acceptance policy changed.
+type-check, Ruff, formatting, and diff checks. The exact gate reached backend
+unit coverage at product tip `15f97dfa`: all `1,479` backend unit tests passed.
+Backend integration then failed during shared Testcontainers setup for every
+test because Docker returned HTTP 500 creating `testcontainers/ryuk:0.7.0`;
+Docker Desktop logs report no route to the VM endpoint `192.168.65.7:2376`.
+The gate stopped at `backend-coverage` before frontend, stack, provider,
+functional, or visual stages, and cleanup refused because Docker inspection was
+unavailable. No product assertion or visual policy failure was observed.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
 
 Checkpoint scope: `backend/app/routers/code.py`,
 `backend/research_runner/runner.py`, `backend/tests/integration/api/test_code.py`,
@@ -26,13 +33,16 @@ Checkpoint scope: `backend/app/routers/code.py`,
 `frontend/src/components/workstation/StudyLabTool.vue`,
 `frontend/tests/unit/components/test_research_results_tool.test.ts`,
 `frontend/tests/unit/components/test_study_lab_tool.test.ts`, `docs/project-todos.md`,
+`docs/tc2000-roadmap.md`,
 `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
-`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
 `scripts/agent-session.py`.
 
-Next: run the exact gate, then continue a bounded provider/history or
-compatible chart/list/gauge seam. Preserve the six protected visual
-state-oracle diffs and the no-integration/no-promotion/no-deployment boundary.
+Next: after Docker Desktop is healthy, rerun the exact gate, then continue a
+bounded provider/history or compatible chart/list/gauge seam. Preserve the six
+protected visual state-oracle diffs and the no-integration/no-promotion/
+no-deployment boundary.
 
 ## 2026-09-12 — Scalar Study outputs gain explicit threshold fan-out
 
