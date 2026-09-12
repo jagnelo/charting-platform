@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize benchmark Study Lab timeline timestamps
+
+Product commit `2e2d7b78` routes benchmark buy-and-hold position,
+execution-log, and equity-curve timestamps through the shared UTC-`Z`
+serializer. Return calculations, position state, coverage semantics, and
+date-only fields are unchanged.
+
+Focused Study Lab service coverage passed `12/12`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Canonicalize background alert timestamps
 
 Product commit `fbf5ed08` routes scheduled price and indicator alert

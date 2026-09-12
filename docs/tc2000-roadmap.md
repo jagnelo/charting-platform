@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize benchmark Study Lab timeline timestamps
+
+Product commit `2e2d7b78` closes the benchmark buy-and-hold Study Lab result
+seam. Position, execution-log, and equity-curve timestamps now use the shared
+UTC-`Z` formatter, aligning benchmark output with the Nautilus execution
+contract. Return calculations, position state, coverage semantics, and
+date-only fields are unchanged.
+
+Focused Study Lab service coverage passed `12/12`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Canonicalize background alert timestamps
 
 Product commit `fbf5ed08` closes the background alert notification timeline

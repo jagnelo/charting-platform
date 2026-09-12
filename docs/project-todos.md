@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize benchmark Study Lab timeline timestamps
+
+- [x] Route benchmark buy-and-hold position, execution-log, and equity-curve
+      timestamps through the shared UTC-`Z` formatter (`2e2d7b78`) without
+      changing return, position, coverage, or date-only semantics.
+- [x] Focused Study Lab service coverage passed `12/12`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Canonicalize background alert timestamps
 
 - [x] Route scheduled price and indicator alert WebSocket `triggered_at`
