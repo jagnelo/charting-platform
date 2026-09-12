@@ -1098,14 +1098,17 @@ class TestWorkspaces:
         assert daily["required_bar_count"] == 252
         assert daily["analysis_ready_member_count"] == 1
         assert daily["analysis_ready_percent"] == 50.0
+        assert daily["analysis_ready_status"] == "partial"
         weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
         assert weekly["covered_member_count"] == 1
+        assert weekly["analysis_ready_status"] == "partial"
 
         historical_weekly = next(
             item for item in historical.json()["roles"] if item["role"] == "cap_weight"
         )["member_bar_history"]["timeframes"]
         historical_weekly = next(item for item in historical_weekly if item["timeframe"] == "W1")
         assert historical_weekly["covered_member_count"] == 2
+        assert historical_weekly["analysis_ready_status"] == "partial"
         assert daily["bar_count"] == 253
         assert daily["provider_member_count"] == 2
         assert daily["derived_member_count"] == 0
@@ -1267,6 +1270,8 @@ class TestWorkspaces:
         }
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 1
+        assert daily["analysis_ready_member_count"] == 0
+        assert daily["analysis_ready_status"] == "pending"
 
     def test_benchmark_family_coverage_deduplicates_metadata_readiness_members(
         self, client, auth_headers, db, instrument_type, instrument

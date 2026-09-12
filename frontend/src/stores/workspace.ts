@@ -541,6 +541,7 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframeState {
   coverage_percent: number
   analysis_ready_member_count: number
   analysis_ready_percent: number
+  analysis_ready_status?: 'ready' | 'partial' | 'pending' | 'unavailable' | string
   bar_count: number
   provider_member_count?: number
   derived_member_count?: number

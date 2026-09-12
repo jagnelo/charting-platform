@@ -6,7 +6,24 @@ from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
     assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
+    classify_analysis_readiness,
 )
+
+
+@pytest.mark.parametrize(
+    ("member_count", "covered_count", "ready_count", "status"),
+    [
+        (0, 0, 0, "unavailable"),
+        (2, 0, 0, "pending"),
+        (2, 1, 0, "partial"),
+        (2, 2, 1, "partial"),
+        (2, 2, 2, "ready"),
+    ],
+)
+def test_analysis_readiness_keeps_short_history_distinct_from_missing_history(
+    member_count, covered_count, ready_count, status
+):
+    assert classify_analysis_readiness(member_count, covered_count, ready_count) == status
 
 
 def test_observed_cadence_collapses_same_date_revisions_and_reports_statistics():

@@ -724,7 +724,8 @@ function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
     const oldest = history.oldest ? history.oldest.slice(0, 10) : null
     const newest = history.newest ? history.newest.slice(0, 10) : null
     const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
-    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
+    const status = history.analysis_ready_status ? ` · ${history.analysis_ready_status}` : ''
+    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready${status} · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
   }).join(' · ')
 }
 

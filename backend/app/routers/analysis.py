@@ -135,6 +135,7 @@ from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
     assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
+    classify_analysis_readiness,
 )
 from app.services.breadth import (
     BreadthMember,
@@ -407,6 +408,9 @@ async def _family_member_bar_history(
         rows = list(by_timeframe.get(timeframe, {}).values())
         covered_count = len(rows)
         ready_count = sum(1 for row in rows if row["bar_count"] >= required_bar_count)
+        analysis_ready_status = classify_analysis_readiness(
+            len(member_ids), covered_count, ready_count
+        )
         provider_member_count = sum(1 for row in rows if row["provider_bar_count"] > 0)
         derived_member_count = sum(1 for row in rows if row["derived_bar_count"] > 0)
         provider_only_member_count = sum(
@@ -453,6 +457,7 @@ async def _family_member_bar_history(
                 coverage_percent=round((covered_count / len(member_ids)) * 100, 2),
                 analysis_ready_member_count=ready_count,
                 analysis_ready_percent=round((ready_count / len(member_ids)) * 100, 2),
+                analysis_ready_status=analysis_ready_status,
                 bar_count=sum(int(row["bar_count"]) for row in rows),
                 provider_member_count=provider_member_count,
                 derived_member_count=derived_member_count,

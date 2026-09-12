@@ -50,6 +50,29 @@ class HoldingsCadenceAssessment:
     max_interval_days: int | None = None
 
 
+def classify_analysis_readiness(
+    member_count: int,
+    covered_member_count: int,
+    analysis_ready_member_count: int,
+) -> str:
+    """Classify one timeframe against its declared technical-history floor.
+
+    ``covered`` and ``analysis_ready`` intentionally remain separate signals:
+    a short history tail is useful evidence but cannot satisfy a long-term
+    study floor.  Counts are clamped only for the state decision so malformed
+    or legacy callers cannot accidentally report a ready timeframe for an
+    empty universe.
+    """
+
+    if member_count <= 0:
+        return "unavailable"
+    if analysis_ready_member_count >= member_count:
+        return "ready"
+    if covered_member_count > 0:
+        return "partial"
+    return "pending"
+
+
 def assess_observed_holdings_cadence(
     composition_dates: Iterable[date],
 ) -> HoldingsCadenceAssessment:

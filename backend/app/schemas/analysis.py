@@ -343,6 +343,10 @@ class BenchmarkFamilyMemberBarHistoryTimeframeOut(AnalysisContractModel):
     coverage_percent: float = Field(default=0.0, ge=0, le=100)
     analysis_ready_member_count: int = 0
     analysis_ready_percent: float = Field(default=0.0, ge=0, le=100)
+    # Keep the floor decision explicit: a covered member can still be below
+    # the technical-history floor required by the workstation.  This is a
+    # local readiness state, not a provider-entitlement claim.
+    analysis_ready_status: Literal["ready", "partial", "pending", "unavailable"] = "unavailable"
     bar_count: int = 0
     provider_member_count: int = Field(default=0, ge=0)
     derived_member_count: int = Field(default=0, ge=0)
