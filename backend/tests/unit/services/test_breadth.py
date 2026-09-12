@@ -342,7 +342,7 @@ def test_history_occurrences_serialize_offset_timestamps_on_the_utc_timeline():
     occurrences = detect_breadth_occurrences(points)
 
     assert occurrences[0]["timestamp"] == datetime(2026, 1, 2, tzinfo=UTC)
-    assert occurrences[0]["occurrence_id"] == "1:2026-01-02T00:00:00+00:00:member_entered"
+    assert occurrences[0]["occurrence_id"] == "1:2026-01-02T00:00:00Z:member_entered"
 
 
 def test_composite_conditions_and_comparison_fields_are_reusable():

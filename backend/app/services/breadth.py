@@ -19,6 +19,8 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
+from app.lib.time_utils import wire_datetime
+
 
 @dataclass(frozen=True)
 class BreadthMember:
@@ -1597,7 +1599,7 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
             if prior is not None and current is not None and prior is not current:
                 kind = "member_entered" if current else "member_exited"
                 occurrence_timestamp = (
-                    timestamp_value.isoformat()
+                    wire_datetime(timestamp_value)
                     if hasattr(timestamp_value, "isoformat")
                     else str(timestamp_value)
                 )
