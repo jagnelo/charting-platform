@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Direct alert forms expose explicit multi-output selection
+
+Product commit `a557ba57` completes the user-facing alert side of the
+canonical indicator-output contract. Instrument Alerts and the reusable Alert
+Form now expose output selectors whenever an indicator has multiple canonical
+series (for example Bollinger Bands), require a selection before submission,
+preserve selected outputs when editing or promoting alerts, and include the
+explicit key in both indicator parameters. Single-output alerts retain the
+existing canonicalization behavior.
+
+The focused linked-instrument alert suite passed `11/11`; the full frontend
+Vitest suite passed `1004/1004` across `113` files; frontend type-check and
+build passed, with only the existing chunk-size warning; backend indicator
+unit coverage remains `30/30`; Ruff, formatting, and `git diff --check`
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. The API regressions and exact branch-scoped gate
+remain pending the Docker-backed fixture; rerun them at this product tip once
+Docker health is available before advancing the next bounded seam.
+
+The next action is to restore Docker Desktop health, run the pending alert and
+indicator-batch API regressions plus the exact branch-scoped gate at product
+tip `a557ba57`, then continue the next bounded provider/history or compatible
+chart/list/gauge seam. Preserve the six protected visual state-oracle diffs
+and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Indicator alerts require explicit multi-output selection
 
 Product commit `d3bf41e3` closes the alert side of the canonical indicator

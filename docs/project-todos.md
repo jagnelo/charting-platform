@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Direct alert forms expose explicit multi-output selection
+
+- [x] Add explicit output selectors to Instrument Alerts and the reusable Alert
+      Form for multi-output indicators; disable submission until the selected
+      canonical key is present and preserve it through edit/promotion
+      payloads (`a557ba57`).
+- [x] Focused linked-instrument alert coverage passed `11/11`; full frontend
+      Vitest passed `1004/1004` across `113` files; build, type-check,
+      Ruff/format, and diff checks passed. No visual, provider, fallback, or
+      acceptance policy changed.
+- [ ] Restore Docker Desktop health, run the pending alert and
+      indicator-batch API regressions and exact branch-scoped gate at this tip,
+      then continue provider/history or another compatible chart/list/gauge
+      seam.
+
 ### 2026-09-12 — Indicator alerts require explicit multi-output selection
 
 - [x] Reject unnamed or invalid multi-output indicator outputs at

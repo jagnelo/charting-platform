@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Direct alert forms expose explicit multi-output selection
+
+Product commit `a557ba57` adds canonical output selectors to Instrument Alerts
+and the reusable Alert Form. Multi-output indicators cannot be submitted
+without an explicit series; selected outputs are preserved on edit and carried
+in alert promotion payloads. Single-output alerts remain compatible.
+
+Focused linked-instrument alert coverage passed `11/11`; full frontend Vitest
+passed `1004/1004` across `113` files; frontend build/type-check, Ruff,
+formatting, and diff checks passed. The Docker-backed alert and
+indicator-batch API fixtures plus the exact branch-scoped gate remain pending;
+no visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed.
+
+Checkpoint scope: `frontend/src/components/workstation/InstrumentAlertsTool.vue`,
+`frontend/src/components/alerts/AlertForm.vue`,
+`frontend/tests/unit/components/test_linked_instrument_tool_races.test.ts`,
+and these roadmap/TODO records. Restore Docker health, rerun the pending API
+regressions and exact gate at `a557ba57`, then advance the next bounded seam.
+
 ## 2026-09-12 — Indicator alerts require explicit multi-output selection
 
 Product commit `d3bf41e3` makes `/alerts/indicator` reject missing or invalid
