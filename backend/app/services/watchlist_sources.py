@@ -55,6 +55,14 @@ def _holdings_snapshot_availability(
         return "profile_not_loaded"
     if snapshot is None:
         return "holdings_snapshot_not_loaded"
+    # Source-list queries eagerly load snapshot rows.  Once row detail is
+    # present, the raw provider counter is only audit evidence: a positive
+    # ``resolved_count`` must not make a cash/non-equity-only or placeholder
+    # materialization look publishable.  Metadata-only legacy snapshots retain
+    # the counter fallback because no row-level eligibility can be evaluated.
+    canonical_member_count = _snapshot_canonical_member_count(snapshot)
+    if canonical_member_count is not None:
+        return "available" if canonical_member_count > 0 else "holdings_snapshot_unresolved"
     if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
         return "holdings_snapshot_unresolved"
     return "available"

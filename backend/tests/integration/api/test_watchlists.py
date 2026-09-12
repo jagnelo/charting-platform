@@ -249,6 +249,83 @@ class TestWatchlistsCrud:
         assert history.status_code == 200, history.text
         assert history.json()["overall_status"] == "pending"
 
+    def test_materialized_non_equity_snapshot_is_pending_not_available(
+        self, client, auth_headers, db, asset_class, instrument
+    ):
+        """Raw resolved counters cannot publish a cash-only materialization."""
+
+        from app.models.asset_class import InstrumentType
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="NON-EQUITY-ONLY",
+            name="Non-equity-only ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="ready")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="canonical_provider",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="non-equity-only-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol="CASH",
+                reported_name="Cash and cash equivalents",
+                weight=1.0,
+                holding_type="cash",
+                row_type="security",
+                source_row_hash="non-equity-only-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        source = next(
+            item for item in listed.json() if item["source_id"] == "etf-holdings:NON-EQUITY-ONLY"
+        )
+        assert source["locked"] is True
+        assert source["member_count"] == 0
+        assert source["provenance"]["availability"] == "holdings_snapshot_unresolved"
+        assert source["provenance"]["snapshot_row_count"] == 1
+        assert source["provenance"]["snapshot_resolved_count"] == 1
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/etf-holdings:NON-EQUITY-ONLY",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["members"] == []
+        assert resolved.json()["source"]["provenance"]["availability"] == (
+            "holdings_snapshot_unresolved"
+        )
+
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
         self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
     ):
