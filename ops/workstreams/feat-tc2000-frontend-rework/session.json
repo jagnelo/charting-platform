@@ -57,7 +57,7 @@
   "dirty_paths": [],
   "docker": {
     "available": false,
-    "reason": "Docker /v1.55/info returned HTTP 500 after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "reason": "Docker access was denied after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -82,7 +82,7 @@
   },
   "docker_ready": {
     "ready": false,
-    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because Docker /v1.55/info returned HTTP 500; no desktop restart was attempted.",
+    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; no desktop restart was attempted.",
     "started_desktop": false,
     "wait_seconds": 180
   },
@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7306528c2f15b5a7c7ee30d97724f32eebd92f08",
-  "implementation_sha": "aeddaa1e230ce9c5f5b0a21033e222497662ea90",
+  "head": "6a62aaa87269b3e6485304f6476c9322c4ec173c",
+  "implementation_sha": "3377a8b1f4d162d7baaf2cb1a4f42f72bdae31cf",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T08:12:42+00:00",
+  "last_checkpoint": "2026-09-12T08:22:45+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, and strategy API regressions plus the exact gate at product tip aeddaa1e, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "a16c2e2007eee4c2918ea93293a1d4882774fcc11e2a31045ffa67f35a8ae394",
+  "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, and Radar API regressions plus the exact gate at product tip 3377a8b1, then continue the next bounded provider/history or compatible chart/list/gauge seam",
+  "plan_hash": "6f90f7e0a4568cffba20f74715a15b7599c0e24894d53f523495dc44e2ae318e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact branch-scoped gate at product tip aeddaa1e passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker /v1.55/info returned HTTP 500 at unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
-    "current_phase": "R4_strategy_timestamp_contract",
-    "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, and strategy API regressions plus the exact gate at product tip aeddaa1e, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "current_blocker": "Exact branch-scoped gate at product tip 3377a8b1 passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker access was denied for unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
+    "current_phase": "R4_saved_tool_radar_timestamp_contract",
+    "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, workstation, coverage, benchmark-history, ETF-holdings, instrument, strategy, saved-tool, and Radar API regressions plus the exact gate at product tip 3377a8b1, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T07:03:20.066569+00:00"
+    "updated_at": "2026-09-12T08:22:45.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
