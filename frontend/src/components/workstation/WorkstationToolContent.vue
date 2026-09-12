@@ -952,6 +952,12 @@ const props = defineProps<{
 // component lifetime; request generations alone do not distinguish a closed
 // tool from a newer request in the same instance.
 let disposed = false
+// Personal watchlist and combo mutations may outlive a Golden Layout virtual
+// root. Keep their post-response local state publication separate from the
+// shared store so a closed root cannot replay stale selection or busy/error UI.
+let comboListLoadSequence = 0
+let comboMutationSequence = 0
+let personalMutationSequence = 0
 const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
@@ -1116,15 +1122,18 @@ function hydrateSelectedCombo() {
 }
 
 async function loadComboLists() {
+  const sequence = ++comboListLoadSequence
   try {
-    comboLists.value = await queryClient.fetchQuery<ComboListDefinition[]>({
+    const lists = await queryClient.fetchQuery<ComboListDefinition[]>({
       queryKey: ['workstation', 'library-items', 'combo_list'],
       queryFn: async () => (await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })) ?? [],
       staleTime: 30_000,
     })
+    if (disposed || sequence !== comboListLoadSequence) return
+    comboLists.value = lists
     hydrateSelectedCombo()
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to load combo lists'
+    if (!disposed && sequence === comboListLoadSequence) comboError.value = cause?.message ?? 'Unable to load combo lists'
   }
 }
 
@@ -1133,7 +1142,8 @@ async function saveComboList() {
   const union = comboUnionIds.value.filter(id => Number.isInteger(id) && id > 0)
   const intersection = comboIntersectionIds.value.filter(id => Number.isInteger(id) && id > 0)
   const exclude = comboExcludeIds.value.filter(id => Number.isInteger(id) && id > 0)
-  if (!name || (!union.length && !intersection.length) || comboBusy.value) return
+  if (disposed || !name || (!union.length && !intersection.length) || comboBusy.value) return
+  const sequence = ++comboMutationSequence
   comboBusy.value = true
   comboError.value = ''
   try {
@@ -1143,7 +1153,9 @@ async function saveComboList() {
       payload: { union_watchlist_ids: union, intersection_watchlist_ids: intersection, exclude_watchlist_ids: exclude },
       dependency_metadata: { watchlist_ids: [...new Set([...union, ...intersection, ...exclude])] },
     })
+    if (disposed || sequence !== comboMutationSequence) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
+    if (disposed || sequence !== comboMutationSequence) return
     const index = comboLists.value.findIndex(item => item.stable_key === stableKey)
     if (index >= 0) comboLists.value[index] = saved
     else comboLists.value.push(saved)
@@ -1155,20 +1167,23 @@ async function saveComboList() {
     selectedPersonalWatchlistId.value = null
     publishWatchlistConfiguration(`combo:${stableKey}`)
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to save combo list'
+    if (!disposed && sequence === comboMutationSequence) comboError.value = cause?.message ?? 'Unable to save combo list'
   } finally {
-    comboBusy.value = false
+    if (sequence === comboMutationSequence) comboBusy.value = false
   }
 }
 
 async function deleteComboList() {
   const combo = selectedCombo.value
-  if (!combo || comboBusy.value) return
+  if (disposed || !combo || comboBusy.value) return
+  const sequence = ++comboMutationSequence
   comboBusy.value = true
   comboError.value = ''
   try {
     await api.delete(`/workspaces/library/items/combo_list/${encodeURIComponent(combo.stable_key)}`)
+    if (disposed || sequence !== comboMutationSequence) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
+    if (disposed || sequence !== comboMutationSequence) return
     comboLists.value = comboLists.value.filter(item => item.stable_key !== combo.stable_key)
     selectedComboKey.value = null
     comboNameDraft.value = ''
@@ -1178,9 +1193,9 @@ async function deleteComboList() {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to delete combo list'
+    if (!disposed && sequence === comboMutationSequence) comboError.value = cause?.message ?? 'Unable to delete combo list'
   } finally {
-    comboBusy.value = false
+    if (sequence === comboMutationSequence) comboBusy.value = false
   }
 }
 
@@ -1189,11 +1204,17 @@ async function createPersonalWatchlist(event?: Event) {
   // root may retain that flag while its visible successor owns the current
   // draft; the store's name-keyed request deduplication remains the operation
   // guard, and the live input value below is authoritative.
+  if (disposed) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   // A click can arrive in the same task as the input's final v-model update
   // when a virtual tool root is being activated. Read the committed draft,
   // not the previous render's value, before issuing the create request.
   await nextTick()
+  if (disposed || sequence !== personalMutationSequence) {
+    if (sequence === personalMutationSequence) personalListBusy.value = false
+    return
+  }
   // Read the live control as well as the component ref. During a Golden Layout
   // virtual-root handoff, the DOM button can outlive the closure that received
   // it; the input value is still the user's current draft and must win over a
@@ -1202,7 +1223,7 @@ async function createPersonalWatchlist(event?: Event) {
   const liveInput = button?.closest('.personal-watchlist-tool')?.querySelector<HTMLInputElement>('input[aria-label="Personal watchlist name"]')
   const name = (latestPersonalListDraft || liveInput?.value || personalListNameDraft.value).trim()
   if (!name) {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
     return
   }
   // Golden Layout may briefly leave a stale virtual root alive while a new
@@ -1212,6 +1233,7 @@ async function createPersonalWatchlist(event?: Event) {
   personalWatchlistError.value = ''
   try {
     const created = await watchlistStore.createWatchlist(name)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!created) throw new Error('Unable to create personal watchlist')
     // A stale virtual root can replay the same create after the first root has
     // already committed it. Selecting the canonical returned row is safe even
@@ -1223,57 +1245,63 @@ async function createPersonalWatchlist(event?: Event) {
     personalListNameDraft.value = created.name
     publishWatchlistConfiguration(created.id)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function renamePersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
   const name = personalListNameDraft.value.trim()
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !name || personalListBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || !name || personalListBusy.value) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const renamed = await watchlistStore.renameWatchlist(watchlist.id, name)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!renamed) throw new Error('Unable to rename personal watchlist')
     personalListNameDraft.value = renamed.name
     personalListNameEditing.value = false
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function copyPersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
-  if (!watchlist || personalListBusy.value) return
+  if (disposed || !watchlist || personalListBusy.value) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const copy = await watchlistStore.copyWatchlist(watchlist.id)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!copy) throw new Error('Unable to copy personal watchlist')
     selectedPersonalWatchlistId.value = copy.id
     personalListNameDraft.value = copy.name
     personalListNameEditing.value = false
     publishWatchlistConfiguration(copy.id)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function deletePersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || personalListBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || personalListBusy.value) return
   if (!window.confirm(`Delete personal watchlist “${watchlist.name}”?`)) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const deleted = await watchlistStore.deleteWatchlist(watchlist.id)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!deleted) throw new Error('Unable to delete personal watchlist')
     const next = personalWatchlists.value[0] ?? null
     flaggedItemsSelected.value = false
@@ -1281,20 +1309,22 @@ async function deletePersonalWatchlist() {
     personalListNameDraft.value = next?.name ?? ''
     publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function addPersonalSymbol() {
   const watchlist = selectedPersonalWatchlist.value
   const raw = personalSymbolDraft.value.trim()
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !raw || personalWatchlistBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || !raw || personalWatchlistBusy.value) return
+  const sequence = ++personalMutationSequence
   personalWatchlistBusy.value = true
   personalWatchlistError.value = ''
   try {
     const item = await watchlistStore.addBySymbol(watchlist.id, raw, true)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!item) throw new Error(`${raw.toUpperCase()} could not be added (it may already be in the list).`)
     // A concurrent Golden Layout root can echo an older workspace selection
     // while the item request is in flight. Reassert the list that accepted the
@@ -1306,14 +1336,14 @@ async function addPersonalSymbol() {
     publishWatchlistConfiguration(watchlist.id)
     personalSymbolDraft.value = ''
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
   } finally {
-    personalWatchlistBusy.value = false
+    if (sequence === personalMutationSequence) personalWatchlistBusy.value = false
   }
 }
 
 async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-watchlist', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }, targetWatchlistId?: number, selectedRows: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }> = [row]) {
-  if (row.instrumentId == null || targetWatchlistId == null) return
+  if (disposed || row.instrumentId == null || targetWatchlistId == null) return
   const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
   if (!target || target.is_locked || target.is_managed) {
     personalWatchlistError.value = 'Choose an unlocked personal watchlist as the destination.'
@@ -1334,12 +1364,14 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
     personalWatchlistError.value = 'The source watchlist item is no longer available; reload the list and try again.'
     return
   }
+  const sequence = ++personalMutationSequence
   const transferred = await watchlistStore.transferItems(
     sourceId,
     itemIds,
     target.id,
     action === 'move-to-watchlist' ? 'move' : 'copy',
   )
+  if (disposed || sequence !== personalMutationSequence) return
   if (transferred.length !== itemIds.length) {
     personalWatchlistError.value = `${selectedRows.length} selected row${selectedRows.length === 1 ? '' : 's'} could not be ${action === 'move-to-watchlist' ? 'moved' : 'copied'} to ${target.name}.`
   }
@@ -1367,10 +1399,15 @@ onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
   if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
     await watchlistStore.loadWatchlistSources()
+    if (disposed) return
   }
-  if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
+  if (!watchlistStore.watchlists.length && !watchlistStore.loading) {
+    await watchlistStore.loadWatchlists()
+    if (disposed) return
+  }
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
   await loadComboLists()
+  if (disposed) return
   if (selectedPersonalWatchlistId.value == null && !flaggedItemsSelected.value) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
@@ -1379,7 +1416,10 @@ onMounted(async () => {
     }
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
-  if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) {
+    await watchlistStore.fetchPrices(symbols, false, true)
+    if (disposed) return
+  }
   void loadIndicatorColumns([
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
@@ -1847,6 +1887,9 @@ onBeforeUnmount(() => {
   benchmarkFamilyLoadSequence += 1
   pythonPlotRequestSequence += 1
   scanPlotRequestSequence += 1
+  comboListLoadSequence += 1
+  comboMutationSequence += 1
+  personalMutationSequence += 1
   for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
   pythonPlotRunIds.clear()
 })
