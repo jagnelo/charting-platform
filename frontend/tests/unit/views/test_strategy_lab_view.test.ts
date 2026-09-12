@@ -1741,4 +1741,25 @@ describe('StrategyLabView', () => {
 
     expect(api.delete).toHaveBeenCalledWith('/strategy-lab/definitions/4')
   })
+
+  it('does not publish late universe options after the view unmounts', async () => {
+    let resolveWatchlists!: (value: any[]) => void
+    const watchlistsPromise = new Promise<any[]>((resolve) => {
+      resolveWatchlists = resolve
+    })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([])
+      if (path === '/watchlists') return watchlistsPromise
+      if (path === '/screeners' || path === '/baskets' || path === '/etf-holdings') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await Promise.resolve()
+    wrapper.unmount()
+    resolveWatchlists([{ id: 99, name: 'Detached universe' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).availableWatchlists).toEqual([])
+  })
 })

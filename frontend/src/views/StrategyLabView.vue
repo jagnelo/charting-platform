@@ -1563,7 +1563,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ResizeHandle from '@/components/common/ResizeHandle.vue'
@@ -1753,6 +1753,11 @@ const executionLogFilters = reactive<Record<ExecutionLogColumnKey, string>>({
 })
 const openExecutionLogFilter = ref<ExecutionLogColumnKey | null>(null)
 let coveragePreviewSequence = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 type OptionalNumberInput = number | string | '' | null
 type SweepMode = 'single' | 'list' | 'range'
@@ -3082,29 +3087,39 @@ const showUniverseValidation = computed(() =>
 )
 
 onMounted(async () => {
+  const generation = lifecycleGeneration
   await Promise.all([
     strategyLab.loadAll(),
     api.get<Watchlist[]>('/watchlists').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableWatchlists.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableWatchlists.value = []
     }),
     api.get<ScreenerOption[]>('/screeners').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableScreeners.value = rows.map(row => ({ id: row.id, name: row.name }))
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableScreeners.value = []
     }),
     api.get<Basket[]>('/baskets').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableBaskets.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableBaskets.value = []
     }),
     api.get<ETFProfile[]>('/etf-holdings').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableEtfHoldings.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableEtfHoldings.value = []
     }),
   ])
+  if (!isCurrentLifecycle(generation)) return
   hydrateFromSelection(strategyLab.selectedDefinition)
 })
 
@@ -3122,6 +3137,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
+})
+
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  coveragePreviewSequence += 1
 })
 
 watch([sidebarWidth, sidebarCollapsed], ([width, collapsed]) => {
@@ -3146,6 +3166,7 @@ function scheduleCoveragePreview() {
 }
 
 async function fetchCoveragePreview() {
+  const generation = lifecycleGeneration
   const requestId = ++coveragePreviewSequence
   coveragePreviewLoading.value = true
   coveragePreviewError.value = null
@@ -3154,14 +3175,14 @@ async function fetchCoveragePreview() {
       '/strategy-lab/coverage-preview',
       coveragePreviewPayload.value,
     )
-    if (requestId !== coveragePreviewSequence) return
+    if (!isCurrentLifecycle(generation) || requestId !== coveragePreviewSequence) return
     coveragePreview.value = preview
   } catch (err: any) {
-    if (requestId !== coveragePreviewSequence) return
+    if (!isCurrentLifecycle(generation) || requestId !== coveragePreviewSequence) return
     coveragePreview.value = null
     coveragePreviewError.value = err?.message ?? 'Failed to refresh coverage preview'
   } finally {
-    if (requestId === coveragePreviewSequence) {
+    if (isCurrentLifecycle(generation) && requestId === coveragePreviewSequence) {
       coveragePreviewLoading.value = false
     }
   }
@@ -4204,7 +4225,9 @@ function buildDefinitionPayload() {
 }
 
 async function reload() {
+  const generation = lifecycleGeneration
   await strategyLab.loadAll()
+  if (!isCurrentLifecycle(generation)) return
   hydrateFromSelection(strategyLab.selectedDefinition)
 }
 
