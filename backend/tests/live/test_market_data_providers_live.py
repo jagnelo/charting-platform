@@ -13,6 +13,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
+from app.config import settings
 from app.models.ohlcv import Timeframe
 from app.providers.alpaca import AlpacaProvider
 from app.providers.alpha_vantage import AlphaVantageProvider
@@ -260,10 +261,14 @@ def test_alpaca_credentialed_latest_price():
     assert price is not None and price > 0
 
 
-def test_alpaca_credentialed_assets_and_corporate_actions():
+def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     """Exercise the non-price Alpaca surfaces used by universe/event refreshes."""
 
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    # Keep the direct live probe bounded even when the provider returns a
+    # cursor. This is test-safety only; deployment routing still requires its
+    # own operator-reviewed positive bound and remains fail-closed by default.
+    monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 2)
     provider = AlpacaProvider()
     page, _ = _observed_read(
         lambda: provider.discover_universe_page("EQUITY", 0), "alpaca"
