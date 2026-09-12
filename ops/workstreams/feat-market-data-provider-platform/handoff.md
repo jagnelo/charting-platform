@@ -766,3 +766,7 @@ Update this handoff at each coherent boundary.
   candidate enumeration, provider governance/credential gates, production
   reconciliation, 30-day shadow evidence, and frontend calendar surfaces remain
   open; no ETF-provider files changed.
+- Documented the separate backend/worker deployment controls for pre-listing
+  materialization, including its explicit opt-in, bounded lookahead/event
+  limits, quarantine behavior, and prohibition on ticker-only identity merges.
+  Source commit `eeb8b36e` is pushed; no runtime/provider calls were made.
