@@ -765,6 +765,36 @@ describe('MarketMapTool', () => {
     expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('12')
   })
 
+  it('ignores stale snapshot responses after a newer snapshot selection', async () => {
+    const older = { id: 12, name: 'Older leaders', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: 'a'.repeat(64), snapshot_hash: 'b'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: response }
+    const newer = { ...older, id: 13, name: 'Newer leaders', cache_key: 'c'.repeat(64), snapshot_hash: 'd'.repeat(64) }
+    let resolveOlder!: (value: typeof older) => void
+    const olderResult = new Promise<typeof older>(resolve => { resolveOlder = resolve })
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map/snapshots') return Promise.resolve([{ id: older.id, name: older.name }, { id: newer.id, name: newer.name }])
+      if (path === '/analysis/market-map/snapshots/12') return olderResult
+      if (path === '/analysis/market-map/snapshots/13') return Promise.resolve(newer)
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool)
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Market Map snapshot"] option[value="12"]').exists()).toBe(true))
+
+    const snapshotSelect = wrapper.get('[aria-label="Market Map snapshot"]')
+    await snapshotSelect.setValue('12')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots/12'))
+    snapshotSelect.element.removeAttribute('disabled')
+    await snapshotSelect.setValue('13')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots/13'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Snapshot · Newer leaders'))
+
+    resolveOlder(older)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Snapshot · Newer leaders')
+    expect(wrapper.text()).not.toContain('Snapshot · Older leaders')
+    wrapper.unmount()
+  })
+
   it('exports the current source-agnostic map cells as CSV', async () => {
     const createObjectURL = vi.fn(() => 'blob:market-map')
     const revokeObjectURL = vi.fn()

@@ -425,6 +425,7 @@ let runGeneration = 0
 let historyGeneration = 0
 let benchmarkCoverageGeneration = 0
 let pythonAssetsGeneration = 0
+let snapshotGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -1545,15 +1546,19 @@ async function saveBreadthDefinition() {
 }
 
 async function loadSnapshot() {
+  const generation = ++snapshotGeneration
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0) {
     activeSnapshotName.value = ''
+    snapshotLoading.value = false
+    snapshotError.value = ''
     return
   }
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
     const snapshot = await fetchMarketMapSnapshot(snapshotId)
+    if (!componentMounted || generation !== snapshotGeneration || snapshotSelectionId.value !== String(snapshotId)) return
     skipNextSourceRun.value = true
     sourceId.value = snapshot.source_id
     map.value = snapshot.map
@@ -1574,9 +1579,11 @@ async function loadSnapshot() {
     selectedIds.value = []
     resetViewport()
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === String(snapshotId)) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 
@@ -1764,6 +1771,7 @@ onMounted(async () => {
 onUnmounted(() => {
   componentMounted = false
   pythonAssetsGeneration += 1
+  snapshotGeneration += 1
   runGeneration += 1
   historyGeneration += 1
   benchmarkCoverageGeneration += 1
