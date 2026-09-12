@@ -606,3 +606,12 @@ Update this handoff at each coherent boundary.
   95 upstream requests, and 23,108,321 response bytes in the owner-only
   external ledger. The wrapper made no acceptance claim; routing and
   provider-governance controls remain fail-closed.
+- Direct live usage receipts now distinguish provider-row status from the
+  pytest process result. Each provider records `failed_operations` and
+  `exit_status`, while `process_exit_status` preserves the overall matrix
+  outcome; the backend reader aggregates both views and the merger remains
+  backward-compatible with legacy rows. A mixed-result regression proves a
+  successful provider is not marked failed when another provider fails.
+  Focused usage coverage passed `20/20`, the complete backend unit suite passed
+  `1,810/1,810`, and Ruff, compileall, and diff checks passed. Source commit
+  `00dad98d` is pushed; no provider calls were needed.

@@ -707,6 +707,16 @@ progress:
       95 upstream requests, and 23,108,321 response bytes in the owner-only
       external ledger. The wrapper made no acceptance claim; routing and
       provider-governance controls remain fail-closed.
+    - >-
+      Direct live usage receipts now distinguish provider-row status from the
+      pytest process result. Each provider records `failed_operations` and
+      `exit_status`, while `process_exit_status` preserves the overall matrix
+      outcome; the backend reader aggregates both views and the merger remains
+      backward-compatible with legacy rows. A mixed-result regression proves a
+      successful provider is not marked failed when another provider fails.
+      Focused usage coverage passes `20/20`, the complete backend unit suite
+      passes `1,810/1,810`, and Ruff, compileall, and diff checks pass. Source
+      commit `00dad98d` is pushed; no provider calls were needed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -736,5 +746,8 @@ progress:
     conflict identity is now covered by migration `9f0a1b2c3d4e`; the new
     persistence semantics now include the default-series compatibility mapping
     in migration `a0b1c2d3e4f5`; they still require the blocked
-    PostgreSQL/full-stack gate before promotion.
+    PostgreSQL/full-stack gate before promotion. Provider live-ledger receipts
+    now preserve provider-scoped failures separately from the process-wide
+    matrix status, so historical usage diagnostics no longer overstate failed
+    providers when unrelated matrix cases fail.
   next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
