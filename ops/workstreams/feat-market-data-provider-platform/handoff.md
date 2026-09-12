@@ -488,3 +488,10 @@ Update this handoff at each coherent boundary.
   provider-attribution gap for persisted raw bars. Focused provider tests pass
   `272/272`, the complete backend unit suite passes `1,797/1,797`, and no new
   provider calls were needed because transport behavior is unchanged.
+- Provider refreshes now create/reuse a deterministic `MarketSeries` and attach
+  its ID to canonical bars and provider observations. OHLCV conflict identity
+  is series/session-aware through `scope_key`, with `legacy:<session>` retained
+  for older rows; migration `9f0a1b2c3d4e` backfills existing rows. Focused
+  series/migration/service tests pass `19/19`, the complete backend unit suite
+  passes `1,799/1,799`, and PostgreSQL migration/full-stack validation remains
+  blocked by unavailable Docker.

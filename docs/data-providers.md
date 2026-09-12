@@ -416,6 +416,12 @@ symbol APIs:
   feed, session, timeframe, and adjustment basis/version.  Existing
   `ohlcv_bar` and `market_bar_observation` rows remain readable through nullable
   compatibility columns.
+  Provider refreshes create/reuse a deterministic series and persist a
+  `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
+  rows) in both bar tables. All OHLCV upserts target that scoped key, so
+  different feeds or sessions cannot overwrite one another. Migration
+  `9f0a1b2c3d4e` backfills existing rows; PostgreSQL execution remains subject
+  to the Docker-backed migration gate.
 - `exchange_session_rule` and `exchange_calendar_exception` retain versioned
   sessions, holidays, early closes, overnight trade-date rules, and source
   provenance.

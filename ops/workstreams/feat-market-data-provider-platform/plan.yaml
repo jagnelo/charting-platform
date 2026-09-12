@@ -573,6 +573,15 @@ progress:
       pass `272/272`, the complete backend unit suite passes `1,797/1,797`, and
       no new provider calls were needed because transport behavior is
       unchanged.
+    - >-
+      Provider refreshes now create or reuse a deterministic `MarketSeries` and
+      attach its ID to canonical bars and provider observations. OHLCV conflict
+      identity is series/session-aware through `scope_key`, with
+      `legacy:<session>` retained for pre-series rows; migration
+      `9f0a1b2c3d4e` backfills existing rows. Focused series/migration/service
+      coverage passes `19/19`, and the complete backend unit suite passes
+      `1,799/1,799`; PostgreSQL migration and full-stack validation remain
+      Docker-gated.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -598,5 +607,8 @@ progress:
     `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound; direct adapter/live evidence does
     not silently promote that control. Raw-only direct calls are now guarded
     independently of resolver admission, so no caller can silently persist an
-    exchange or optional-provider raw response as adjusted data.
-  next_action: complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
+    exchange or optional-provider raw response as adjusted data. Series-scoped
+    conflict identity is now covered by migration `9f0a1b2c3d4e`; the new
+    persistence semantics still require the blocked PostgreSQL/full-stack gate
+    before promotion.
+  next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change

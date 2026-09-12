@@ -20,6 +20,18 @@
       pass 272/272 and the complete backend unit suite passes 1,797/1,797;
       this metadata-only change required no additional provider calls.
 
+### 2026-09-12 — Series-scoped OHLCV conflict identity
+
+- [x] Assign provider refresh results to a deterministic `MarketSeries` and
+      carry that ID into canonical bars and provider observations.
+- [x] Replace the legacy instrument/timeframe/timestamp uniqueness keys with
+      series/session-aware `scope_key` keys, while preserving a
+      `legacy:<session>` compatibility scope for older rows. Migration
+      `9f0a1b2c3d4e` and SQLite upgrade/backfill/downgrade coverage are added;
+      focused series/migration/service tests pass 19/19 and the complete
+      backend unit suite passes 1,799/1,799. PostgreSQL-backed migration and
+      full-stack validation remain blocked by unavailable Docker.
+
 ### 2026-09-12 — Alpha Vantage earnings history capability
 
 - [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`

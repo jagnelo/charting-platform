@@ -267,6 +267,15 @@ intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
 response-byte telemetry was written outside Git; no credential or payload was
 persisted.
 
+Provider refreshes now create/reuse a deterministic `MarketSeries` and attach
+its ID to canonical bars and provider observations. OHLCV conflict identity is
+series/session-aware through `scope_key`, with `legacy:<session>` retained for
+older rows; migration `9f0a1b2c3d4e` backfills the key. Focused
+series/migration coverage passed `19/19` and the complete backend unit suite
+passed `1,799/1,799`; this is persistence/schema evidence, not additional
+provider transport evidence, and PostgreSQL migration validation remains
+Docker-gated.
+
 The shared optional REST parser and Alpha Vantage raw-history adapter now add
 the provider name to each bar's provenance envelope. This metadata-only change
 was covered by focused provider tests (`272/272`) and the complete backend unit
