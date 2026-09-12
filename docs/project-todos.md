@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Credentialed live confirmation for newly supplied providers
+
+- [x] Run bounded live integration cases with the owner-managed runtime
+      credentials for SEC EDGAR, Alpaca, MarketData.app, and Dinari Sandbox.
+      The selected matrix passed `7/7`, including SEC directory pagination,
+      Alpaca history/latest-price reads, MarketData.app option paths, and
+      Dinari metadata/quote/history/news. Only aggregate usage telemetry was
+      written outside Git; no credentials or payloads were persisted.
+- [ ] Keep the provider-specific governance gates separate from transport
+      evidence: MarketData.app still needs the exact reviewed plan/limit pair
+      and option-chain symbol bound; Dinari remains non-routable until its
+      quota/cache/redistribution terms are reviewed. SEC deployment contacts,
+      account isolation, and the 30-day shadow run remain open.
+
 ### 2026-09-12 — Coalesce identical OHLCV refreshes
 
 - [x] Add a process-local refresh gate around the complete canonical
@@ -38,6 +52,19 @@
       future breadth/signal engines, and refresh-job status persistence; this
       checkpoint closes only the screener consumer's grouped local snapshot
       stage.
+
+### 2026-09-12 — Persist radar coverage outcomes
+
+- [x] Persist radar coverage separately from execution status. Each completed
+      run now records `full`, `partial`, `unavailable`, or `empty` coverage,
+      total/missing counts, timeframe, and a bounded sample of missing
+      instrument IDs. The detector remains DB-only during evaluation, so a
+      partial run cannot be mistaken for a fully evaluated universe.
+- [x] Bound persisted missing-ID evidence and cover full/partial/unavailable/
+      empty classifications with unit regression tests.
+- [ ] Add freshness-aware radar preflight and coordinator-backed repair/queue
+      semantics; this change reports absence explicitly but does not fetch
+      provider data from the evaluator.
 
 ### 2026-09-12 — MarketData.app provider-native option credit accounting
 

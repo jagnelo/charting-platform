@@ -49,6 +49,10 @@ class RadarRunOut(BaseModel):
     completed_at: datetime | None
     evaluated_count: int
     detection_count: int
+    coverage_status: str
+    coverage_total_count: int
+    coverage_missing_count: int
+    coverage_summary: dict | None
     error_summary: str | None
     created_at: datetime
     updated_at: datetime

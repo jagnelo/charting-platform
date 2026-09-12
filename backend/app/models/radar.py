@@ -64,6 +64,20 @@ class RadarRun(Base, TimestampMixin):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     evaluated_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     detection_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Coverage is kept separate from execution status: a completed scan can
+    # still be partial when some instruments had no locally available bars.
+    # This prevents an empty/partial result set from being mistaken for a
+    # fully evaluated universe by API consumers and operators.
+    coverage_status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="unknown", server_default="unknown"
+    )
+    coverage_total_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    coverage_missing_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    coverage_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     detections: Mapped[list["RadarDetection"]] = relationship(

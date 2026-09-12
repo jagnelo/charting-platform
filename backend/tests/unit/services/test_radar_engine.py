@@ -18,6 +18,7 @@ from app.services.radar_engine import (
     _find_matching_thread,
     _invalidation_price,
     _overlapping_current_run_detection,
+    _radar_coverage_summary,
     _timeframe_importance,
     analyze_instrument,
 )
@@ -88,6 +89,33 @@ class TestInvalidationPrice:
 
 
 class TestRadarEngine:
+    def test_radar_coverage_summary_distinguishes_full_partial_unavailable_and_empty(self):
+        bars = {1: _make_bars([100, 101])}
+
+        status, summary = _radar_coverage_summary([1, 2], bars, Timeframe.D1)
+        assert status == "partial"
+        assert summary["evaluated_count"] == 1
+        assert summary["missing_instrument_ids"] == [2]
+
+        status, summary = _radar_coverage_summary([1], bars, Timeframe.D1)
+        assert status == "full"
+        assert summary["missing_instrument_ids"] == []
+
+        status, summary = _radar_coverage_summary([2], bars, Timeframe.D1)
+        assert status == "unavailable"
+        assert summary["evaluated_count"] == 0
+
+        status, summary = _radar_coverage_summary([], bars, Timeframe.D1)
+        assert status == "empty"
+        assert summary["evaluated_count"] == 0
+
+    def test_radar_coverage_summary_bounds_missing_ids(self):
+        status, summary = _radar_coverage_summary(list(range(150)), {}, Timeframe.D1)
+
+        assert status == "unavailable"
+        assert len(summary["missing_instrument_ids"]) == 100
+        assert summary["missing_instrument_ids_truncated"] is True
+
     def test_timeframe_importance_is_explicit_and_monotonic(self):
         values = [_timeframe_importance(timeframe) for timeframe in Timeframe]
 

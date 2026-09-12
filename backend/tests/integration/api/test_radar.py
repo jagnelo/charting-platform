@@ -47,6 +47,9 @@ class TestRadarAPI:
         run_data = run_res.json()
         assert run_data["status"] == "completed"
         assert run_data["detection_count"] >= 1
+        assert run_data["coverage_status"] == "full"
+        assert run_data["coverage_total_count"] == 2
+        assert run_data["coverage_missing_count"] == 0
 
         list_res = client.get("/api/v1/radar/detections", headers=auth_headers)
         assert list_res.status_code == 200
@@ -105,6 +108,24 @@ class TestRadarAPI:
         assert run_data["universe_type"] == "basket"
         assert run_data["universe_filter"]["basket_id"] == basket.json()["id"]
         assert run_data["evaluated_count"] == 1
+        assert run_data["coverage_status"] == "full"
+
+    def test_run_exposes_partial_coverage_without_claiming_full_evaluation(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        _seed_radar_bars(
+            db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98]
+        )
+
+        run_res = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["status"] == "completed"
+        assert run_data["coverage_status"] == "partial"
+        assert run_data["coverage_total_count"] == 2
+        assert run_data["coverage_missing_count"] == 1
+        assert run_data["evaluated_count"] == 1
+        assert run_data["coverage_summary"]["missing_instrument_ids"] == [instrument_b.id]
 
     def test_run_and_filter_by_custom_timeframe(self, client, auth_headers, db, instrument):
         from app.models.ohlcv import Timeframe

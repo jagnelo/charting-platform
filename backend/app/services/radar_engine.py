@@ -211,6 +211,36 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
 
 
+def _radar_coverage_summary(
+    instrument_ids: list[int],
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+    timeframe: Timeframe,
+) -> tuple[str, dict]:
+    """Classify local radar coverage without contacting a provider.
+
+    Coverage is deliberately based on the exact instrument universe selected
+    for this run. Missing IDs are bounded before persistence so an unusually
+    large universe cannot create an unbounded JSON row.
+    """
+
+    missing_instrument_ids = [
+        instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
+    ]
+    evaluated_count = len(instrument_ids) - len(missing_instrument_ids)
+    if not instrument_ids:
+        status = "empty"
+    elif missing_instrument_ids:
+        status = "unavailable" if evaluated_count == 0 else "partial"
+    else:
+        status = "full"
+    return status, {
+        "timeframe": timeframe.value,
+        "missing_instrument_ids": missing_instrument_ids[:100],
+        "missing_instrument_ids_truncated": len(missing_instrument_ids) > 100,
+        "evaluated_count": evaluated_count,
+    }
+
+
 async def _load_bars_by_instrument(
     db: AsyncSession,
     instrument_ids: list[int],
@@ -2387,6 +2417,14 @@ async def run_radar_scan(
         instruments = list((await db.execute(instrument_stmt)).scalars().all())
         instrument_ids = [instrument.id for instrument in instruments]
         bars_by_instrument = await _load_bars_by_instrument(db, instrument_ids, timeframe)
+        coverage_status, coverage_summary = _radar_coverage_summary(
+            instrument_ids, bars_by_instrument, timeframe
+        )
+        evaluated = int(coverage_summary["evaluated_count"])
+        run.coverage_status = coverage_status
+        run.coverage_total_count = len(instruments)
+        run.coverage_missing_count = len(instrument_ids) - evaluated
+        run.coverage_summary = coverage_summary
         thread_rows = (
             (
                 await db.execute(
@@ -2411,12 +2449,10 @@ async def run_radar_scan(
             threads_by_instrument[thread.instrument_id].append(thread)
 
         detections: list[RadarDetection] = []
-        evaluated = 0
         for instrument in instruments:
             bars = bars_by_instrument.get(instrument.id, [])
             if not bars:
                 continue
-            evaluated += 1
             instrument_run_detections: list[RadarDetection] = []
             observed_at = bars[-1].ts if bars[-1].ts.tzinfo else bars[-1].ts.replace(tzinfo=UTC)
             latest_close = float(bars[-1].close)
