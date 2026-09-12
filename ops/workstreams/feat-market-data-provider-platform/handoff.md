@@ -666,3 +666,9 @@ Update this handoff at each coherent boundary.
   entry point. The related worker/market-data/bulk suite passes `56/56`, with
   Ruff, compilation, and diff checks clean. Source commit `89b5782c` is
   pushed; no provider calls were made.
+- The opt-in core workstation bootstrap now also forwards its explicit Redis
+  client into canonical OHLCV refreshes (while retaining the no-Redis unit
+  path), so both registered bootstrap and single-instrument worker entry
+  points participate in the cross-host gate. The bootstrap/worker/market-data/
+  bulk regression set passes `57/57`; Ruff, compilation, and diff checks pass.
+  Source commit `cfb5e8c6` is pushed; no provider calls were made.

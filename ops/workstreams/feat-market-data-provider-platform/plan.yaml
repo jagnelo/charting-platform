@@ -760,6 +760,13 @@ progress:
       worker path. The targeted worker/market-data/bulk suite passes `56/56`,
       with Ruff, compilation, and `git diff --check` clean. Source commit
       `89b5782c` is pushed; no provider calls were made.
+    - >-
+      Extended explicit Redis-client forwarding to the opt-in core workstation
+      bootstrap's OHLCV refresh path; its Redis argument was previously used
+      only for constituent-history queueing. The bootstrap/worker/market-data/
+      bulk regression set passes `57/57`, with Ruff, compilation, and diff
+      checks clean. Source commit `cfb5e8c6` is pushed; no provider calls were
+      made.
   total: 15
   current_phase: cross_host_refresh_coordination
   current_blocker: >-
