@@ -1110,3 +1110,9 @@ Update this handoff at each coherent boundary.
   `1,936/1,936` with the known 37 warnings. No provider calls or credentials
   were used; Docker-backed migration/full-stack validation and provider,
   deployment, and shadow gates remain open.
+
+- Source checkpoint `9861703a` adds the backend environment-example and
+  secret-wiring regression for the SEC policy setting. Root/RPi Compose and
+  GitHub workflow paths are asserted to pass it only to backend/worker trusted
+  processes, with `disabled` as the default; the research runner receives no
+  provider controls.
