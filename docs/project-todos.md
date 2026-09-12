@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Indicator-batch API requires explicit multi-output selection
+
+- [x] Reject missing or invalid outputs for known multi-output indicators at
+      `/analysis/indicator-batch` with actionable 422 contracts; preserve
+      single-output and valid explicit-output behavior (`39562441`).
+- [x] Add API regression coverage for missing, valid, and invalid Bollinger Band
+      outputs. The indicator engine unit suite passed `29/29`; Ruff, formatting,
+      and diff checks passed. The API fixture coverage remains pending the
+      Docker-backed integration environment. No visual, provider, fallback, or
+      acceptance policy changed.
+- [ ] Restore Docker Desktop health, run the focused indicator-batch API
+      regressions and exact branch-scoped gate, then continue provider/history
+      or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
 
 - [x] Reject missing/invalid outputs during persisted watchlist indicator

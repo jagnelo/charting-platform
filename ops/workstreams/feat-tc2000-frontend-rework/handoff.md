@@ -2,6 +2,25 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Indicator-batch API requires explicit multi-output selection
+
+Product commit `39562441` makes the canonical indicator-batch endpoint fail
+closed for missing or invalid multi-output indicator outputs. Direct callers
+now receive explicit 422 capability errors instead of an implicit first-series
+value; single-output indicators and valid explicit selections remain supported.
+
+The indicator engine unit suite passed `29/29`; Ruff, formatting, and diff
+checks passed. API regression coverage is present for missing, valid, and
+invalid Bollinger Band outputs but awaits the Docker-backed integration
+fixture. No backend contract outside this bounded output validation, visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Checkpoint scope: `backend/app/routers/analysis.py`,
+`backend/tests/integration/api/test_workspaces.py`, and these roadmap/TODO
+records. Rerun the focused API tests and exact gate after Docker health is
+restored before advancing the next bounded seam.
+
 ## 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
 
 Product commit `385faf40` makes persisted watchlist indicator columns obey the

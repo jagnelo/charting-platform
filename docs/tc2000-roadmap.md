@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Indicator-batch API requires explicit multi-output selection
+
+Product commit `39562441` closes the backend side of the chart/list output
+contract. The canonical `/analysis/indicator-batch` endpoint now rejects a
+missing or invalid output for multi-output indicators with an actionable
+`explicit_indicator_output_required` or `invalid_indicator_output` response,
+while single-output indicators and valid explicit selections remain compatible.
+This prevents direct API callers from receiving an implicit first series.
+
+The indicator engine unit suite passed `29/29`; Ruff and formatting checks
+passed, and `git diff --check` passed. API regression coverage for missing,
+valid, and invalid Bollinger Band outputs is recorded but requires the
+Docker-backed integration fixture. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+The next action is to rerun the focused API coverage and exact branch-scoped
+gate after Docker Desktop health is restored, then continue the next bounded
+provider/history or compatible chart/list/gauge seam. Preserve the six
+protected visual state-oracle diffs and the no-integration/no-promotion/
+no-deployment boundary.
+
 ## 2026-09-12 — Persisted watchlist indicator columns fail closed on ambiguity
 
 Product commit `385faf40` closes the legacy-configuration side of the R4
