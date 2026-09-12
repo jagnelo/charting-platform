@@ -744,7 +744,12 @@ async def recompute_synthetic_ohlcv(
     # Return ORM objects
     stmt = (
         select(OHLCVBar)
-        .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == timeframe)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(True),
+            _default_series_bar_condition(instrument.id, timeframe, True),
+        )
         .order_by(OHLCVBar.ts)
     )
     return list((await db.execute(stmt)).scalars().all())
