@@ -13,6 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 218ad3b8 fences current and historical breadth event rows and
+  source fetch-state markers by the evaluation cutoff. Future-fetched events
+  cannot leak into earlier breadth maps/history, provider rows are associated
+  only with their own eligible source state, and missing fetch state remains
+  unavailable instead of crashing or creating a false event-negative. Focused
+  analysis-router coverage passed 32/32; the full backend unit suite passed
+  1522/1522 at 69.01% coverage; Ruff, formatting, and git diff --check passed.
+  No provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+  policy changed. The exact branch-scoped gate remains pending behind the
+  Docker socket permission failure; continue the next bounded provider/history
+  or compatible R4/R2-R7 seam at this coherent tip.
   Product commit 0e04d489 fences Market Map snapshot save/delete responses by
   shared generation, mounted state, current map cache, and selected snapshot.
   A save begun for an older map can no longer select or label that snapshot

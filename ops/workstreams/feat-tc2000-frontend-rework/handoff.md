@@ -15,6 +15,19 @@ acceptance policy changed. The exact gate remains pending behind the Docker
 socket permission failure; do not integrate, promote, deploy, or mutate
 another worktree.
 
+## 2026-09-12 — Fence historical breadth event knowledge
+
+Product commit `218ad3b8` fences current and historical breadth event rows and
+source fetch-state markers by the evaluation cutoff. Future-fetched events no
+longer leak into earlier breadth maps/history, provider rows cannot be mixed
+with another source's loaded marker, and orphan rows remain unavailable rather
+than crashing the read path. Focused analysis-router coverage passed `32/32`,
+the full backend unit suite passed `1522/1522` at `69.01%` coverage, and Ruff,
+formatting, plus `git diff --check` passed. No provider, fallback, visual, or
+acceptance policy changed. The exact gate remains pending behind the Docker
+socket permission failure; do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-12 — Exact historical-event gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `26161b90`. Repository,

@@ -14,6 +14,19 @@
       provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
       policy changed.
 
+### 2026-09-12 — Fence historical breadth event knowledge
+
+- [x] Enforce the breadth event knowledge boundary: current and historical
+      breadth reads now filter event rows and source-scoped fetch-state markers
+      by the evaluation cutoff, and only associate rows with an eligible
+      source state; missing state remains unavailable (`218ad3b8`).
+- [x] Focused analysis-router coverage passed `32/32`; the full backend unit
+      suite passed `1522/1522` at `69.01%`; Ruff, formatting, and
+      `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact historical-event gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `26161b90`;

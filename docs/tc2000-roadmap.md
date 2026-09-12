@@ -21,6 +21,22 @@ threshold, skip, or acceptance policy changed. The exact branch gate remains
 pending behind the Docker socket permission failure; continue the next bounded
 provider/history or compatible R4/R2-R7 seam.
 
+## 2026-09-12 — Fence historical breadth event knowledge
+
+Product commit `218ad3b8` closes the analogous R2/R6 boundary in current and
+historical breadth evaluation. Breadth event rows and source fetch-state
+markers now honor the evaluation cutoff, and rows are included only when their
+source has an eligible fetch state. Missing fetch state remains explicitly
+unavailable instead of making an event-dependent predicate look event-free or
+crashing on an orphan row.
+
+The focused analysis-router suite passed `32/32`; the full backend unit suite
+passed `1522/1522` at `69.01%` coverage; Ruff, formatting, and `git diff
+--check` passed. No provider routing, fallback, visual baseline, mask,
+threshold, skip, or acceptance policy changed. The exact branch gate remains
+pending behind the Docker socket permission failure; continue the next bounded
+provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact historical-event gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `26161b90`. Repository,
