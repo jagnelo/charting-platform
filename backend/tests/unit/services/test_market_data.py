@@ -528,6 +528,17 @@ async def test_provider_dataset_state_limits_factor_provenance_to_coverage_end(d
                 observed_at=datetime(2026, 6, 11, tzinfo=UTC),
                 factor_version="afv1-future",
             ),
+            AdjustmentFactorObservation(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                provider_symbol="TEST",
+                factor_type="split",
+                effective_at=datetime(2025, 6, 20, tzinfo=UTC),
+                factor=Decimal("4"),
+                source_event_key="split:2025-06-20-late",
+                observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+                factor_version="afv1-late",
+            ),
         ]
     )
     bar = OHLCVBar(
@@ -601,6 +612,17 @@ async def test_provider_dataset_state_limits_legacy_event_fallback_to_coverage_e
                 source_event_key="split:2026-06-10",
                 split_ratio=Decimal("3"),
                 fetched_at=datetime(2026, 6, 11, tzinfo=UTC),
+            ),
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.SPLIT,
+                event_time=datetime(2025, 6, 20, tzinfo=UTC),
+                time_hint=EventTimeHint.UNKNOWN,
+                title="Late-discovered split",
+                source=source.name,
+                source_event_key="split:2025-06-20-late",
+                split_ratio=Decimal("4"),
+                fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
             ),
         ]
     )

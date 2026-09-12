@@ -490,6 +490,7 @@ async def _touch_ohlcv_dataset_state(
                             AdjustmentFactorObservation.instrument_id == instrument.id,
                             AdjustmentFactorObservation.data_source_id == data_source_id,
                             AdjustmentFactorObservation.effective_at <= state.coverage_end,
+                            AdjustmentFactorObservation.observed_at <= state.coverage_end,
                         )
                     )
                 )
@@ -528,6 +529,7 @@ async def _touch_ohlcv_dataset_state(
                                         [InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND]
                                     ),
                                     InstrumentEvent.event_time <= state.coverage_end,
+                                    InstrumentEvent.fetched_at <= state.coverage_end,
                                 )
                                 .order_by(
                                     InstrumentEvent.event_time,
