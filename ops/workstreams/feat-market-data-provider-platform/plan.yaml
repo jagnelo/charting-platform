@@ -686,6 +686,16 @@ progress:
       Source commit `4f4d388b68c88e5d692f57950768c498fe5038f9` is pushed. This
       is transport evidence only; Alpaca corporate-action pagination remains
       fail-closed until its reviewed deployment bound is supplied.
+    - >-
+      MarketData.app's credentialed live coverage now includes its documented
+      five-minute delayed stock-candle path, in addition to daily candles,
+      expirations, current option chains, and historical single-contract quote
+      reads. The new bounded live case passed `1/1` with one upstream request
+      and 14,724 response bytes; native rate-limit headers were observed and
+      retained only in the redacted external ledger. Source commit
+      `47d2920c37895427386d6732e789816ad5579e50` is pushed. The account-plan,
+      response-priced chain/quote bound, and redistribution controls remain
+      fail-closed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
