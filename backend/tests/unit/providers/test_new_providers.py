@@ -517,6 +517,7 @@ class TestAlpacaOHLCVParsing:
         assert get.call_args_list[0].kwargs["params"]["types"] == (
             "forward_split,reverse_split,cash_dividend"
         )
+        assert get.call_args_list[0].kwargs["params"]["limit"] == 1000
         assert get.call_args_list[1].kwargs["params"]["page_token"] == "next-page"
 
     def test_corporate_actions_positive_page_bound_fails_before_unreserved_page(self):

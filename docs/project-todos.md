@@ -19,6 +19,12 @@
       retain their short-window grouping. Focused accounting coverage passes 7/7
       and the complete backend unit suite passes 1,769/1,769.
 
+### 2026-09-12 — Alpaca corporate-actions page fidelity
+
+- [x] Request Alpaca's documented 1,000-record corporate-actions page maximum
+      and retain the explicit local page-budget guard. Focused coverage passes
+      6/6, and the bounded credentialed assets/actions live case passes 1/1.
+
 ### 2026-09-12 — Newly configured provider live revalidation
 
 - [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,

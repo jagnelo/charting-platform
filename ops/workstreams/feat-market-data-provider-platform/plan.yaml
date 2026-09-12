@@ -451,6 +451,12 @@ progress:
       coverage passes 7/7 and the complete backend unit suite passes 1,769/1,769
       with Ruff, compilation, and diff checks clean at source checkpoint
       `3f611eaa8160ad4f1efdb2acf665f07bee45ec5f`.
+    - >-
+      Alpaca corporate-actions requests now explicitly use the documented
+      1,000-record page maximum, minimizing calls without weakening the
+      explicit local pagination budget. Focused corporate-action coverage
+      passes 6/6, the bounded credentialed live assets/actions case passes 1/1,
+      and the complete backend unit suite passes 1,769/1,769.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

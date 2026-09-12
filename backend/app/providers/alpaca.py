@@ -319,6 +319,11 @@ class AlpacaProvider:
                 "types": "forward_split,reverse_split,cash_dividend",
                 "start": since,
                 "end": until,
+                # Alpaca documents a maximum of 1,000 corporate actions per
+                # response. Requesting that page size minimizes calls while
+                # the explicit local page budget below still prevents an
+                # unbounded pagination loop.
+                "limit": 1000,
             }
             if page_token:
                 params["page_token"] = page_token
