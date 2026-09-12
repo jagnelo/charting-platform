@@ -377,6 +377,15 @@ def _event_condition_metric(
         event_time = event_time.astimezone(UTC)
         if event_time < start or event_time > as_of_utc:
             continue
+        raw_fetched_at = getattr(event, "fetched_at", None)
+        if isinstance(raw_fetched_at, datetime):
+            fetched_at = (
+                raw_fetched_at
+                if raw_fetched_at.tzinfo is not None
+                else raw_fetched_at.replace(tzinfo=UTC)
+            ).astimezone(UTC)
+            if fetched_at > as_of_utc:
+                continue
         raw_type = getattr(getattr(event, "event_type", None), "value", None)
         raw_type = raw_type or getattr(event, "event_type", None)
         actual_type = str(raw_type or "").lower()

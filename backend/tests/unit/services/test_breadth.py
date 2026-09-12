@@ -221,6 +221,29 @@ def test_event_breadth_history_is_point_in_time_and_never_forward_fills_events()
     assert points[2]["members"][0].value is False
 
 
+def test_event_breadth_history_excludes_late_fetched_events_until_known():
+    bars = _bars([100, 101, 102])
+    events = [
+        SimpleNamespace(
+            event_type="split",
+            event_time=bars[0].ts,
+            fetched_at=bars[1].ts,
+        )
+    ]
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: bars},
+        {
+            "kind": "event",
+            "params": {"event_type": "split", "lookback_days": 10},
+        },
+        limit=10,
+        events_by_instrument={1: events},
+    )
+
+    assert [point["members"][0].value for point in points] == [False, True, True]
+
+
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():
     members = [
         BreadthMember(1, "A", "A"),
