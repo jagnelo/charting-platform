@@ -795,6 +795,38 @@ describe('MarketMapTool', () => {
     wrapper.unmount()
   })
 
+  it('refreshes the live map after leaving a loaded snapshot', async () => {
+    const snapshot = { id: 12, name: 'Morning leaders', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: 'saved-cache', snapshot_hash: 'b'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: { ...response, cache_key: 'saved-cache' } }
+    const refreshed = { ...response, cache_key: 'live-cache' }
+    let mapRuns = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map/snapshots') return Promise.resolve([{ id: snapshot.id, name: snapshot.name }])
+      if (path === '/analysis/market-map/snapshots/12') return Promise.resolve(snapshot)
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map') {
+        mapRuns += 1
+        return Promise.resolve(mapRuns === 1 ? response : refreshed)
+      }
+      return Promise.resolve(snapshot)
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await vi.waitFor(() => expect(mapRuns).toBe(1))
+
+    const snapshotSelect = wrapper.get('[aria-label="Market Map snapshot"]')
+    await snapshotSelect.setValue('12')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Snapshot · Morning leaders'))
+    await snapshotSelect.setValue('')
+
+    await vi.waitFor(() => expect(mapRuns).toBe(2))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Cached result'))
+    expect(wrapper.text()).not.toContain('Snapshot · Morning leaders')
+    expect(apiPost).toHaveBeenLastCalledWith('/analysis/market-map', expect.objectContaining({ source_id: 'market-group:sp500' }))
+    expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('')
+    wrapper.unmount()
+  })
+
   it('does not publish a snapshot save after a newer map refresh', async () => {
     const saved = { id: 14, name: 'Prior map', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: response.cache_key, snapshot_hash: 'e'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: response }
     let resolveSave!: (value: typeof saved) => void

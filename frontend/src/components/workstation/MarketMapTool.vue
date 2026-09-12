@@ -1549,9 +1549,11 @@ async function loadSnapshot() {
   const generation = ++snapshotGeneration
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0) {
+    const hadLoadedSnapshot = Boolean(activeSnapshotName.value)
     activeSnapshotName.value = ''
     snapshotLoading.value = false
     snapshotError.value = ''
+    if (hadLoadedSnapshot && componentMounted && (sourceId.value || explicitSymbols.value.trim())) void run()
     return
   }
   snapshotLoading.value = true
@@ -1623,6 +1625,7 @@ async function deleteSnapshot() {
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     snapshotName.value = ''
+    if (componentMounted && (sourceId.value || explicitSymbols.value.trim())) void run()
   } catch (cause) {
     if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === selectionId) {
       snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
