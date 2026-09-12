@@ -879,8 +879,16 @@ progress:
       provenance. Focused tokenized service coverage passes 10/10 and the
       complete backend unit suite passes 1,879/1,879 with the known 37
       warnings; no frontend or ETF-provider adapter files changed.
+    - >-
+      SEC ticker-directory loading now preserves duplicate ticker rows as an
+      explicit ambiguous cache entry instead of silently letting the last CIK
+      win. Profile, earnings, and issuer-search resolution refuse ambiguous
+      ticker-only candidates until venue or security-level evidence is present.
+      Focused EDGAR ticker coverage passes 27/27 and the complete backend unit
+      suite passes 1,880/1,880 with the known 37 warnings; no provider calls
+      were made.
   total: 15
-  current_phase: tokenized_underlying_identity
+  current_phase: edgar_ticker_identity
   current_blocker: >-
     The latest local matrix collects 45 cases and remains 39/45: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari

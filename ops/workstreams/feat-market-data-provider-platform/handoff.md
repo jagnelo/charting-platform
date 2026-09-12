@@ -795,3 +795,12 @@ Update this handoff at each coherent boundary.
   ETF-constituent adapter files changed. Source commit and metadata checkpoint
   are pending for this continuation; Docker-backed validation remains
   unavailable.
+
+- SEC EDGAR ticker-directory loading now preserves duplicate ticker rows as an
+  explicit ambiguous cache entry instead of silently overwriting the earlier
+  CIK. Profile, earnings, and issuer-search resolution refuse ambiguous
+  ticker-only candidates until venue or security-level evidence is available.
+  Focused EDGAR ticker coverage passes 27/27 and the complete backend unit
+  suite passes 1,880/1,880 with the known 37 warnings. No provider calls were
+  made; source commit `8418c5ed` is pushed and Docker-backed validation remains
+  unavailable.
