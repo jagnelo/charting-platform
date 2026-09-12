@@ -42,6 +42,9 @@
 - [x] Extend the same process/PostgreSQL gate to implicit latest-window and
       page-before refresh paths used by chart/instrument reads; focused
       coalescing coverage now includes both implicit paths.
+- [x] Serialize PostgreSQL refresh-queue enqueue admission by request key so
+      concurrent workers do not race through select-then-insert before the
+      durable unique constraint; SQLite/unit adapters retain their no-op path.
 
 ### 2026-09-12 — Grouped screener coverage preflight
 

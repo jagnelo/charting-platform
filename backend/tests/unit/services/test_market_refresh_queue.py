@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.services.market_refresh_queue import (
+    _acquire_enqueue_lock,
     claim_refresh_jobs,
     complete_refresh_job,
     enqueue_refresh_job,
@@ -83,3 +84,29 @@ async def test_provider_reset_defers_job_until_retry_at(db):
     assert job.status == "deferred"
     assert job.next_attempt_at == retry_at
     assert job.metadata_payload["defer_reason"] == "provider_reset"
+
+
+@pytest.mark.asyncio
+async def test_postgres_enqueue_admission_uses_transaction_scoped_lock():
+    executed = []
+
+    class _Db:
+        bind = type("_Bind", (), {"dialect": type("_Dialect", (), {"name": "postgresql"})()})()
+
+        async def execute(self, statement):
+            executed.append(statement)
+
+    await _acquire_enqueue_lock(_Db(), "d1:42")
+
+    assert len(executed) == 1
+
+
+@pytest.mark.asyncio
+async def test_non_postgres_enqueue_admission_is_a_noop():
+    class _Db:
+        bind = type("_Bind", (), {"dialect": type("_Dialect", (), {"name": "sqlite"})()})()
+
+        async def execute(self, _statement):
+            raise AssertionError("SQLite must not receive PostgreSQL advisory SQL")
+
+    await _acquire_enqueue_lock(_Db(), "d1:42")

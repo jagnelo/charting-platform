@@ -2,12 +2,33 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import MarketRefreshJob
+
+
+async def _acquire_enqueue_lock(db: AsyncSession, request_key: str) -> None:
+    """Serialize same-key enqueue admission across PostgreSQL workers.
+
+    The unique request-key constraint remains the durable backstop. The
+    transaction-scoped advisory lock prevents the common select-then-insert
+    race before that constraint has to abort a worker's surrounding
+    transaction. SQLite and lightweight unit adapters intentionally remain
+    lock-free; their database constraint still preserves uniqueness.
+    """
+
+    bind = getattr(db, "bind", None)
+    if bind is None:
+        bind = getattr(getattr(db, "sync_session", None), "bind", None)
+    if getattr(getattr(bind, "dialect", None), "name", None) != "postgresql":
+        return
+    digest = hashlib.sha256(request_key.encode("utf-8")).digest()
+    advisory_key = int.from_bytes(digest[:8], byteorder="big", signed=True)
+    await db.execute(select(func.pg_advisory_xact_lock(advisory_key)))
 
 
 async def enqueue_refresh_job(
@@ -26,6 +47,7 @@ async def enqueue_refresh_job(
     """Insert or coalesce a queued job, raising priority for urgent demand."""
 
     current = now or datetime.now(UTC)
+    await _acquire_enqueue_lock(db, request_key)
     job = (
         await db.execute(
             select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
