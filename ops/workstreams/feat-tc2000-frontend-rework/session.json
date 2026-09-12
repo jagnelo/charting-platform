@@ -54,33 +54,10 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "docs/tc2000-acceptance-governance.md",
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -120,11 +97,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a6cba5845702d99e74e86c01c087bcb4d36cd486",
+  "head": "c1b502368eab09468fd65ea0740c47a1c4d410bc",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
-  "last_human_progress_update": "2026-09-12T21:13:51.294899+00:00",
+  "last_human_progress_update": "2026-09-12T21:20:54.222981+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
   "plan_hash": "7a9aacf69fc43d25ec76bccaa34d6040972396ffbb25ec125cc03be876cfdbf7",
@@ -140,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "None; exact gate passed all non-visual stages and retained only the six pre-existing protected visual diffs under the unchanged policy.",
-    "current_phase": "r7_exact_tip_derived_equal_weight_gate",
-    "next_action": "Continue the next bounded R1 provider/history or compatible R4/R2-R7 seam in this exact worktree; rerun the exact gate at the next coherent tip.",
+    "current_blocker": "None; same-date revisions are deduplicated while full provider population and bar-floor readiness remain open.",
+    "current_phase": "r1_snapshot_revision_dedupe",
+    "next_action": "Run the exact branch-scoped gate at the clean documentation tip, then continue the next bounded canonical provider/history or compatible R4/R2-R7 seam.",
     "total": 10,
-    "updated_at": "2026-09-12T21:13:51.294588+00:00"
+    "updated_at": "2026-09-12T21:20:54.222913+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
