@@ -637,3 +637,9 @@ Update this handoff at each coherent boundary.
   settings remain absent, and a tracked-file scan found no configured secret.
   Worktree `.env` and `backend/.env.dev` both resolve to the owner-only
   `/Users/jagnelo/.config/charting-platform/app.env` (mode `0600`).
+- A production-seed regression now prevents the retired generic cooldown,
+  concurrency, and burst defaults from returning; Coinbase's explicit
+  provider-native 10-requests/second plus 15-burst contract remains allowed.
+  Quota coverage passed `72/72`, the complete backend unit suite passed
+  `1,814/1,814`, and Ruff, compileall, and diff checks passed. Source commit
+  `e746b266` is pushed; no provider calls were needed.
