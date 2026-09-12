@@ -553,3 +553,10 @@ Update this handoff at each coherent boundary.
   37 warnings; Ruff, compileall, and diff checks passed. Source commit
   `836b4b72145746eb5006c46e9d7a1d1890725c89` is pushed. This was a
   transport-neutral safety fix, so no new live calls were made.
+- Typed `ProviderRateLimitError` instances now filter response headers at
+  construction time, so direct adapter failures cannot retain Authorization,
+  Cookie, or provider-key headers before durable persistence filtering.
+  Focused provider-error/quota coverage passed `4/4`; the complete backend unit
+  suite passed `1,809/1,809` with the known 37 warnings; Ruff, compileall, and
+  diff checks passed. Source commit `bdba91af78d27d55cbb5eac2b365bb39c0bfc606` is pushed. This
+  was transport-neutral, so no new live calls were made.

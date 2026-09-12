@@ -646,6 +646,15 @@ progress:
       compileall, and diff checks are clean. Source commit `836b4b72145746eb5006c46e9d7a1d1890725c89`
       is pushed; no live provider calls were needed for this transport-neutral
       safety fix.
+    - >-
+      Typed `ProviderRateLimitError` instances now filter response headers at
+      construction time, closing the direct-adapter path where Authorization,
+      Cookie, or provider-key headers could remain visible before durable
+      persistence filtering. Focused provider-error/quota coverage passes
+      `4/4`; the complete backend unit suite passes `1,809/1,809`; Ruff,
+      compileall, and diff checks are clean. Source commit
+      `bdba91af78d27d55cbb5eac2b365bb39c0bfc606` is pushed; no live provider calls were needed for
+      this transport-neutral safety fix.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
