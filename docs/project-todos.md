@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize provider reconciliation timestamps
+
+- [x] Serialize reconciliation PATCH `resolved_at` through the shared UTC-`Z`
+      helper (`a0f9e252`) without changing governance or resolution semantics.
+- [x] Provider router coverage passed `8/8`; Ruff, formatting, and diff checks
+      passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Canonicalize options-exposure computation time
 
 - [x] Route options-exposure `computed_at` through the shared UTC-`Z`

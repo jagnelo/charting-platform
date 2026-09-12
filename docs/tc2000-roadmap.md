@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize provider reconciliation timestamps
+
+Product commit `a0f9e252` closes the remaining provider-governance response
+leak: reconciliation issue updates now serialize `resolved_at` on the shared
+UTC-`Z` timeline. Issue status, resolution payload, audit identity, and admin
+workflow semantics are unchanged.
+
+The provider router suite passed `8/8`; Ruff, formatting, and `git diff --check`
+passed. The exact gate remains pending at this coherent product tip. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. Run the exact gate, then continue the next bounded provider/history or
+compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Canonicalize options-exposure computation time
 
 Product commit `c4e933a0` closes the options analytics response-timeline gap:

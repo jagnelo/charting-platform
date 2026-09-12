@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize provider reconciliation timestamps
+
+Product commit `a0f9e252` routes reconciliation PATCH `resolved_at` through the
+shared UTC-`Z` serializer. Issue status, resolution payload, audit identity,
+and admin workflow semantics are unchanged.
+
+The provider router suite passed `8/8`; Ruff, formatting, and `git diff --check`
+passed. The exact gate is pending at this coherent product tip. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. Run the exact gate, then advance the next bounded provider/history or
+compatible chart/list/gauge seam. Do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-12 — Canonicalize options-exposure computation time
 
 Product commit `c4e933a0` routes options-exposure `computed_at` through the
