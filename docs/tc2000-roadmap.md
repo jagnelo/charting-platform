@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence workstation watchlist mutations
+
+Product commit `8b63be84` closes a bounded R6 lifecycle gap in the shared
+WorkstationToolContent surface. Combo-list loading/mutations and personal
+watchlist create, rename, copy, delete, add, and transfer actions now use
+disposal-scoped sequences; on-mounted watchlist hydration also stops at each
+async boundary after teardown. No store or API contract changed. Full frontend
+Vitest passed `1041/1041` across 115 files; type-check and production build
+passed with only the existing chunk-size warning; and `git diff --check`
+passed. No provider, fallback, visual baseline, mask, threshold, skip, or
+acceptance policy changed. The shared content has no dedicated component test
+harness; higher-level workstation suites remain green.
+
+## 2026-09-12 — Exact workstation-mutation gate rechecked
+
+At product tip `8b63be84`, the exact branch-scoped gate passed git-diff,
+workstream validation (30 records), dependency resolution, migration
+head/compatibility, frontend dependency preparation, Ruff, formatting, and
+TypeScript. `backend-coverage` then exited 2 after the fixed 180-second Docker
+readiness window because Docker returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Market Map definition publication
 
 Product commit `5d4ca6a3` closes a bounded R6 lifecycle gap in reusable Market

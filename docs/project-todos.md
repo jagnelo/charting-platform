@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence workstation watchlist mutations
+
+- [x] Fence shared WorkstationToolContent combo and personal-watchlist
+      loading/mutations by disposal-scoped sequences and hydration checkpoints
+      (`8b63be84`).
+- [x] Full frontend Vitest passed `1041/1041` across 115 files; type-check,
+      production build, and `git diff --check` passed with only the existing
+      chunk-size warning. No dedicated shared-content harness exists;
+      higher-level workstation suites remain green.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact workstation-mutation gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `8b63be84`;
+      repository/workstream, dependency/migration, frontend preparation,
+      Ruff, formatting, and TypeScript passed. The gate stopped at
+      `backend-coverage` after 180 seconds because Docker returned permission
+      denied for `unix:///Users/jagnelo/.docker/run/docker.sock`; no later
+      backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Market Map definition publication
 
 - [x] Fence reusable Market Map breadth-definition saves by mounted source
