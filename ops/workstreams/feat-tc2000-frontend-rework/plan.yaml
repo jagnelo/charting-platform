@@ -17,11 +17,17 @@ current_blocker: >-
   resolved_at through the shared UTC Z wire serializer without changing issue
   status, resolution, or admin workflow semantics. Provider router coverage
   passed 8/8; Ruff, formatting, and git diff --check passed. The exact
-  branch-scoped gate remains pending at this coherent product tip. No visual
-  baseline, mask, threshold, skip, provider, fallback, or acceptance policy
-  changed. Run the exact gate, then continue the next bounded provider/history
-  or compatible chart/list/gauge seam while preserving the six protected visual
-  state-oracle diffs and the no-integration/no-deployment boundary.
+  branch-scoped gate was rerun at this coherent product tip and stopped at
+  backend-coverage after the fixed 180-second Docker readiness window because
+  the Docker socket returned permission denied at
+  unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+  provider, browser, or visual stage ran; no product assertion or visual-policy
+  failure was observed. No visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. Restore Docker health outside the
+  worktree, rerun pending API regressions and the exact gate at product tip
+  a0f9e252, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle
+  diffs and the no-integration/no-deployment boundary.
   Product commit c4e933a0 canonicalizes options-exposure computed_at through
   the shared UTC Z wire serializer without changing GEX/DEX semantics. Ruff,
   formatting, diff checks, module compilation, and the offset-normalization
