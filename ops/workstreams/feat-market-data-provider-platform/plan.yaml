@@ -723,6 +723,13 @@ progress:
       Focused live-ledger/usage coverage passes `21/21`, the complete backend
       unit suite passes `1,811/1,811`, and Ruff, compileall, and diff checks
       pass. Source commit `4234b2f2` is pushed; no provider calls were needed.
+    - >-
+      The backend live-usage reader now rejects empty, oversized, or
+      non-printable provider identifiers before aggregating owner-managed
+      receipts, matching the merger's input boundary. Focused usage coverage
+      passes `22/22`, the complete backend unit suite passes `1,812/1,812`,
+      and Ruff, compileall, and diff checks pass. Source commit `b70ad8bf` is
+      pushed; no provider calls were needed.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
