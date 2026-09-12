@@ -15,6 +15,12 @@ vi.mock('@/components/workstation/GenericBreadthHistoryUPlot.vue', () => ({ defa
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
+
 describe('ResearchResultsTool', () => {
   beforeEach(() => { apiGet.mockReset(); apiPost.mockReset() })
 
@@ -164,6 +170,22 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Research run 23 details"]').exists()).toBe(false)
+  })
+
+  it('does not publish a late rerun response after the tool unmounts', async () => {
+    const run = { id: 24, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifacts: [] }
+    const rerun = deferred<typeof run>()
+    apiGet.mockResolvedValue([run])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/24/rerun?snapshot=true' ? rerun.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    wrapper.unmount()
+    rerun.resolve({ ...run, id: 25, status: 'queued' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { runs: typeof run[] }).runs).toEqual([run])
   })
 
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {

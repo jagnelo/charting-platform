@@ -191,6 +191,8 @@ const documentVisible = ref(typeof document === 'undefined' || document.visibili
 const runsQueryKey = ['workstation', 'research-runs'] as const
 const queryClient = useQueryClient()
 let visibilityObserver: IntersectionObserver | null = null
+let mounted = false
+let mutationGeneration = 0
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
@@ -577,10 +579,12 @@ async function retryDetail() {
 }
 async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   const selectedRunIdAtStart = selectedRun.value?.id
+  const generation = mutationGeneration
   rerunning.value = true
   error.value = ''
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
+    if (!mounted || generation !== mutationGeneration) return
     const nextRuns = [queued, ...runs.value.filter(item => item.id !== queued.id)]
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, nextRuns)
     runs.value = nextRuns
@@ -588,16 +592,18 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => [queued, ...(current ?? []).filter(item => item.id !== queued.id)])
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to queue study rerun'
+    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to queue study rerun'
   } finally {
-    rerunning.value = false
+    if (mounted && generation === mutationGeneration) rerunning.value = false
   }
 }
 async function cancel(run: ResearchRunSummary) {
+  const generation = mutationGeneration
   canceling.value = true
   error.value = ''
   try {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, nextRuns)
     runs.value = nextRuns
@@ -605,9 +611,9 @@ async function cancel(run: ResearchRunSummary) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to cancel research run'
+    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to cancel research run'
   } finally {
-    canceling.value = false
+    if (mounted && generation === mutationGeneration) canceling.value = false
   }
 }
 async function promoteScan(run: ResearchRunSummary) {
@@ -1303,6 +1309,7 @@ async function promoteColumn(run: ResearchRunSummary) {
 }
 
 onMounted(() => {
+  mounted = true
   document.addEventListener('visibilitychange', updateDocumentVisibility)
   if (typeof IntersectionObserver !== 'undefined' && resultsRoot.value) {
     visibilityObserver = new IntersectionObserver(entries => {
@@ -1312,6 +1319,8 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
+  mounted = false
+  mutationGeneration += 1
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()
   visibilityObserver = null
