@@ -1590,6 +1590,10 @@ export interface WsMessage {
   entered?: string[]
   left?: string[]
   symbol?: string
+  indicator?: string
+  indicator_b?: string
+  output_a?: string
+  output_b?: string
   condition?: string
   threshold?: number
   current_price?: number

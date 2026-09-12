@@ -284,8 +284,13 @@ function handleHistoryRowClick(e: AlertFiringEvent) {
 function fmtSnapshot(snap: Record<string, unknown>): string {
   const cond = (snap.condition as string | undefined)?.replace(/_/g, ' ') ?? ''
   const threshold = snap.threshold != null ? ` ${Number(snap.threshold).toPrecision(6)}` : ''
-  const indicator = snap.indicator ? ` ${snap.indicator}` : ''
-  return `${indicator}${cond}${threshold}`.trim()
+  const indicator = snap.indicator
+    ? `${snap.indicator}${snap.output_a ? ` [${snap.output_a}]` : ''}`
+    : ''
+  const right = snap.indicator_b
+    ? ` ${snap.indicator_b}${snap.output_b ? ` [${snap.output_b}]` : ''}`
+    : ''
+  return `${indicator} ${cond}${snap.indicator_b ? right : threshold}`.trim()
 }
 
 // Indicators that share the price axis — their values are formatted as currency.

@@ -55,13 +55,33 @@ async def send_alert_notification(
 
 
 async def send_indicator_alert_notification(
-    symbol, indicator_type, condition, value, threshold, alert_id
+    symbol,
+    indicator_type,
+    condition,
+    value,
+    threshold,
+    alert_id,
+    output_a: str | None = None,
+    output_b: str | None = None,
+    indicator_b_type: str | None = None,
 ) -> str | None:
+    indicator_label = indicator_type.upper()
+    if output_a:
+        indicator_label = f"{indicator_label} [{output_a}]"
+    if output_b:
+        right_label = (indicator_b_type or indicator_type).upper()
+        indicator_label = f"{indicator_label} vs {right_label} [{output_b}]"
     return await _send(
-        title=f"🔔 {symbol} — {indicator_type.upper()} Alert",
-        message=f"{symbol} {indicator_type.upper()} {condition} {threshold:.4f} (current: {value:.4f})",
+        title=f"🔔 {symbol} — {indicator_label} Alert",
+        message=f"{symbol} {indicator_label} {condition} {threshold:.4f} (current: {value:.4f})",
         url=f"/chart/{symbol}",
-        data={"alert_id": alert_id, "alert_kind": "indicator", "symbol": symbol},
+        data={
+            "alert_id": alert_id,
+            "alert_kind": "indicator",
+            "symbol": symbol,
+            **({"output_a": output_a} if output_a else {}),
+            **({"output_b": output_b} if output_b else {}),
+        },
     )
 
 
