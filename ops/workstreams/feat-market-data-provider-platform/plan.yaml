@@ -807,8 +807,18 @@ progress:
       backend unit suite passes `1,842/1,842`, live-test collection, Ruff,
       compileall, and diff checks pass. Source commit `d954443e` is pushed;
       no provider calls or services were started in this change.
+    - >-
+      Added the authenticated backend-only `GET /api/v1/calendar/market-events`
+      read path for persisted market-wide events. Inclusive date bounds support
+      both effective-date and timestamp-only records; optional event type,
+      source, instrument, issuer, and bounded limit filters preserve provider
+      provenance without triggering upstream I/O. Router regression coverage
+      passes `2/2`, the complete backend unit suite passes `1,844/1,844`, and
+      Ruff, compileall, and diff checks pass. No frontend or ETF-provider files
+      changed and no services or provider calls were started. Source commit
+      `b83fac31` is pushed with the implementation and documentation.
   total: 15
-  current_phase: alpha_forward_earnings_calendar
+  current_phase: market_event_calendar_api
   current_blocker: >-
     The complete matrix now collects 44 cases and remains 39/44: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
@@ -847,8 +857,9 @@ progress:
     refresh coalescing is now covered at the process and explicit Redis-client
     boundaries, but its cross-process contention proof still requires Docker.
     The normalized market-event persistence/worker path is implemented and
-    remains disabled by default; cross-provider event reconciliation,
+    remains disabled by default; its authenticated database-only calendar read
+    API is available, while cross-provider event reconciliation,
     pre-listing materialization, EDGAR IPO-pipeline completion, live evidence
-    for the new Alpha forward-calendar case, and calendar-facing surfaces
-    remain open.
+    for the new Alpha forward-calendar case, and frontend calendar surfaces
+    remain open; the backend persisted-event read API is now available.
   next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; add event reconciliation/pre-listing work only after the provider persistence path is reviewed; rerun the manifest only after deferred credentials or reviewed entitlements change

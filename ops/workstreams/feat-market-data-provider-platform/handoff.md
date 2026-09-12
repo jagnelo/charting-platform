@@ -711,3 +711,12 @@ Update this handoff at each coherent boundary.
   change. The new live case remains pending execution because the shared Alpha
   key has already returned its documented daily-capacity response; this is not
   represented as live success.
+- Added the authenticated backend-only `GET /api/v1/calendar/market-events`
+  read path for persisted market-wide events. Inclusive date bounds cover both
+  effective-date and timestamp-only records; optional event type, source,
+  instrument, issuer, and bounded limit filters preserve provider provenance
+  without triggering upstream I/O. Router coverage passes `2/2`, the complete
+  backend unit suite passes `1,844/1,844` with the existing 37 warnings, and
+  Ruff, compileall, and diff checks pass. No frontend or ETF-provider files
+  changed and no services or provider calls were started. Source commit
+  `b83fac31` is pushed with the implementation and documentation.
