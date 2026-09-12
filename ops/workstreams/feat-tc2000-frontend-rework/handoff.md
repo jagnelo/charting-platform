@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
+
+Product commit `9462d4f6` makes economic-calendar event timing and legacy
+indicator-alert lifecycle timestamps emit canonical UTC `Z` values through
+their response models. Calendar, alerts, charts, and workstation consumers now
+share one client timeline without changing endpoint, request, or persistence
+semantics.
+
+Focused response-schema coverage passed `3/3`; the full backend unit suite
+passed `1499/1499` at `68.74%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+Checkpoint scope: `backend/app/routers/calendar.py`,
+`backend/app/routers/indicator_alerts.py`, and the shared
+`backend/tests/unit/services/test_response_timestamp_schemas.py`. Restore
+Docker access, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Market Map responses use canonical wire timestamps
 
 Product commit `0ab4c169` makes Market Map period bounds, cache freshness,

@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
+
+- [x] Serialize economic-calendar event timing and legacy indicator-alert
+      lifecycle timestamps as canonical UTC `Z` values through their response
+      models (`9462d4f6`).
+- [x] Focused response-schema coverage passed `3/3`; full backend unit
+      coverage passed `1499/1499` at `68.74%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `9462d4f6`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      access was denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
+      browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Market Map responses use canonical wire timestamps
 
 - [x] Serialize Market Map period bounds, cache freshness, per-cell

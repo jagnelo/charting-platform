@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Calendar and legacy alert responses use canonical wire timestamps
+
+Product commit `9462d4f6` closes the remaining calendar and legacy indicator
+alert read boundaries. Economic-event `event_time`/`fetched_at` and legacy
+indicator-alert lifecycle timestamps now serialize through the shared UTC `Z`
+helper, keeping calendar, alerts, charts, and workstation consumers on one
+stable timeline without changing endpoint, request, or persistence semantics.
+
+Focused response-schema coverage passed `3/3`; the full backend unit suite
+passed `1499/1499` at `68.74%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `9462d4f6` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending API regressions and
+exact gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Market Map responses use canonical wire timestamps
 
 Product commit `0ab4c169` closes the remaining Market Map read boundary. Map
