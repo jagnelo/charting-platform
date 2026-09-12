@@ -1404,6 +1404,9 @@ class TestAlphaVantageProvider:
             )
         assert [bar.close for bar in bars] == [99.0, 102.0]
         assert get.call_args.kwargs["params"]["outputsize"] == "compact"
+        assert bars[0].adjustment_basis == "raw"
+        assert bars[0].adjustment_version == "provider-native"
+        assert bars[0].provenance["provider"] == "alpha_vantage"
 
     def test_adjusted_history_is_rejected_on_free_raw_endpoint(self):
         with (

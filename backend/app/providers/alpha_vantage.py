@@ -205,6 +205,13 @@ class AlphaVantageProvider:
                         is_adjusted=False,
                         adjustment_basis="raw",
                         adjustment_version="provider-native",
+                        provenance={
+                            "provider": self.name,
+                            "endpoint": "TIME_SERIES_DAILY",
+                            "provider_symbol": symbol,
+                            "outputsize": "compact",
+                            "provider_payload": row,
+                        },
                     )
                 )
             except (KeyError, TypeError, ValueError) as exc:

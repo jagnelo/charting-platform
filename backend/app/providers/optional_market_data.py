@@ -768,7 +768,10 @@ class _RESTProvider:
             is_adjusted=False,
             adjustment_basis="raw",
             adjustment_version="provider-native",
-            provenance={"provider_payload": row},
+            provenance={
+                "provider": self.name,
+                "provider_payload": row,
+            },
         )
 
     def fetch_latest_ohlcv(
