@@ -358,3 +358,7 @@ Update this handoff at each coherent boundary.
   directory chain, and refresh/universe/shadow controls plus Nasdaq request
   identity are documented. Static checks and both Compose contract parses pass;
   no services, provider calls, credentials, or payloads were used.
+- Compose now passes the market refresh, shadow-report, and US-universe
+  reconciliation controls to backend and worker processes in both local and RPi
+  manifests, while keeping them out of the research runner. The new wiring
+  regression passes 14/14, and Compose contract parsing remains green.

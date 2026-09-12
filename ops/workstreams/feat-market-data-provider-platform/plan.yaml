@@ -361,6 +361,11 @@ progress:
       US directory chain, and refresh/universe/shadow controls plus Nasdaq
       request identity are documented; static checks and both Compose contract
       parses pass with no services or provider calls started.
+    - >-
+      Compose now passes the market refresh, shadow-report, and US-universe
+      reconciliation controls to backend and worker processes in both local and
+      RPi manifests, while keeping them out of the research runner; the wiring
+      regression passes 14/14 and both Compose contract parses remain green.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

@@ -66,6 +66,12 @@ TOKENIZED_REFRESH_SETTINGS = {
     "TOKENIZED_ASSET_REFRESH_ENABLED",
     "TOKENIZED_ASSET_REFRESH_MAX_ASSETS",
 }
+MARKET_OPERATION_SETTINGS = {
+    "MARKET_DATA_REFRESH_SCHEDULE_ENABLED",
+    "MARKET_DATA_SHADOW_REPORT_ENABLED",
+    "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
+    "MARKET_UNIVERSE_MISSING_CONFIRMATIONS",
+}
 
 
 def _service_environment(compose: str, service: str) -> str:
@@ -120,6 +126,18 @@ def test_local_and_rpi_compose_pass_tokenized_refresh_settings_to_backend_and_wo
         worker = _service_environment(compose, "worker")
         research = _service_environment(compose, "research-runner")
         for name in TOKENIZED_REFRESH_SETTINGS:
+            assert f"{name}:" in backend, (relative_path, "backend", name)
+            assert f"{name}:" in worker, (relative_path, "worker", name)
+            assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
+def test_local_and_rpi_compose_pass_market_operation_settings_to_backend_and_worker_only():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        for name in MARKET_OPERATION_SETTINGS:
             assert f"{name}:" in backend, (relative_path, "backend", name)
             assert f"{name}:" in worker, (relative_path, "worker", name)
             assert f"{name}:" not in research, (relative_path, "research-runner", name)
