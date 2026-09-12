@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize background alert timestamps
+
+Product commit `fbf5ed08` closes the background alert notification timeline
+seam. Price and indicator alert tasks now serialize their WebSocket
+`triggered_at` values through the shared UTC-`Z` formatter, keeping scheduled
+alerts aligned with the typed and synchronous alert contracts. Trigger
+evaluation, repeat/status behavior, notification dispatch, targeting, and
+alert persistence are unchanged.
+
+Focused background-alert coverage passed `2/2`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact screener timeline gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `8e406e36` after the

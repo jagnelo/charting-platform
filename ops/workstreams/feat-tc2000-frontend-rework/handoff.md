@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize background alert timestamps
+
+Product commit `fbf5ed08` routes scheduled price and indicator alert
+WebSocket `triggered_at` values through the shared UTC-`Z` serializer. Trigger
+evaluation, repeat/status behavior, notification dispatch, targeting, and
+alert persistence are unchanged.
+
+Focused background-alert coverage passed `2/2`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact screener timeline gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `8e406e36` after the

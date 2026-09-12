@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize background alert timestamps
+
+- [x] Route scheduled price and indicator alert WebSocket `triggered_at`
+      values through the shared UTC-`Z` formatter (`fbf5ed08`) without changing
+      evaluation, repeat/status, targeting, or persistence semantics.
+- [x] Focused background-alert coverage passed `2/2`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact screener timeline gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `8e406e36`; repository/workstream,
