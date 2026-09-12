@@ -3156,6 +3156,66 @@ class TestWorkspaces:
         assert payload["values"]["UNKNOWN"]["warning"]["code"] == "instrument_not_found"
         assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
 
+    def test_indicator_batch_requires_explicit_output_for_multi_output_indicators(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == {
+            "code": "explicit_indicator_output_required",
+            "indicator": "bb",
+            "output_options": ["bb_upper", "bb_mid", "bb_lower"],
+        }
+
+    def test_indicator_batch_accepts_explicit_multi_output_series(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2, "output": "bb_upper"},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["params"]["output"] == "bb_upper"
+        assert payload["values"][instrument.symbol]["value"] is not None
+
+    def test_indicator_batch_rejects_unknown_indicator_output(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2, "output": "bb_middle"},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["code"] == "invalid_indicator_output"
+        assert detail["output"] == "bb_middle"
+        assert detail["output_options"] == ["bb_upper", "bb_mid", "bb_lower"]
+
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

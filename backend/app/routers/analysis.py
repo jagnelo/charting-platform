@@ -150,7 +150,7 @@ from app.services.etf_holdings import (
     normalize_holding_type,
 )
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.indicators import INDICATOR_REGISTRY, OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.ohlcv_coverage import (
     bar_visible_through as _bar_visible_through,
@@ -1135,6 +1135,40 @@ async def indicator_batch(
         raise HTTPException(
             422, detail={"code": "invalid_timeframe", "timeframe": body.timeframe}
         ) from exc
+    indicator_definition = INDICATOR_REGISTRY.get(body.indicator)
+    requested_output = body.params.get("output")
+    if indicator_definition is not None:
+        output_keys = tuple(indicator_definition.output_keys)
+        if len(output_keys) > 1:
+            if not isinstance(requested_output, str) or not requested_output.strip():
+                raise HTTPException(
+                    422,
+                    detail={
+                        "code": "explicit_indicator_output_required",
+                        "indicator": body.indicator,
+                        "output_options": list(output_keys),
+                    },
+                )
+            if requested_output not in output_keys:
+                raise HTTPException(
+                    422,
+                    detail={
+                        "code": "invalid_indicator_output",
+                        "indicator": body.indicator,
+                        "output": requested_output,
+                        "output_options": list(output_keys),
+                    },
+                )
+        elif requested_output is not None and requested_output != output_keys[0]:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "invalid_indicator_output",
+                    "indicator": body.indicator,
+                    "output": requested_output,
+                    "output_options": list(output_keys),
+                },
+            )
     symbols = list(
         dict.fromkeys(symbol.upper().strip() for symbol in body.symbols if symbol.strip())
     )
