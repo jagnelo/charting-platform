@@ -596,3 +596,13 @@ Update this handoff at each coherent boundary.
   `47d2920c37895427386d6732e789816ad5579e50` is pushed. The account-plan,
   response-priced chain/quote bound, and redistribution controls remain
   fail-closed.
+- The complete 44-case manifest live matrix was rerun on 2026-09-12 after
+  adding the Alpaca and MarketData.app five-minute probes. It passed `39/44`:
+  all newly credentialed Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox
+  cases passed; Alpha Vantage returned its typed documented 25-requests/day
+  capacity responses; and Tradier, IBKR, and Ondo remained exact intentional
+  credential preflights. Generated run
+  `e0e58468-df1a-493b-bfc4-f20fdce5a568` recorded 26 aggregate provider rows,
+  95 upstream requests, and 23,108,321 response bytes in the owner-only
+  external ledger. The wrapper made no acceptance claim; routing and
+  provider-governance controls remain fail-closed.
