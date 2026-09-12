@@ -2,6 +2,31 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Restore live Market Map after snapshot selection
+
+Product commit `02716f1b` fixes the saved-snapshot to live-result transition:
+leaving a loaded snapshot or deleting it now refreshes the current source map
+instead of leaving the saved map visible as `Live / cached result`. Focused
+Market Map coverage passed `43/43`; full frontend Vitest passed `1017/1017`
+across 115 files; frontend type-check, production build, and `git diff
+--check` passed, with only the existing chunk-size warning. No provider,
+fallback, visual, or acceptance policy changed. The exact gate was rerun at
+this tip and remains pending at Docker-backed `backend-coverage` because the
+Docker socket returned permission denied; do not integrate, promote, deploy,
+or mutate another worktree.
+
+## 2026-09-12 — Exact live-snapshot transition gate rechecked
+
+At product tip `02716f1b`, git-diff, workstream validation (30 records),
+dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
+passed. `backend-coverage` stopped after the fixed 180-second Docker readiness
+window because Docker returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure
+was observed. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. Do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-12 — Fence per-point breadth event knowledge
 
 Product commit `070f6ef8` fences each breadth-history event predicate by the

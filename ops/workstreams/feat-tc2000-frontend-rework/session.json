@@ -54,10 +54,16 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
-    "reason": "Docker access was denied after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -97,14 +103,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
+  "head": "02716f1b21ffc3e054a8df5409a3f47f63df001d",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
-  "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
+  "last_human_progress_update": "2026-09-12T13:44:15.148416+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "265690cdca4fd33f79ecba52d28e18cc73d1105b3bab5430de9f1a798a44b669",
+  "plan_hash": "8370489fc5fed631a757c0418fd89d1e41b06f49871ca690a3b537cb6e4f2985",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +123,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact branch-scoped gate was rerun at product tip 070f6ef8. Repository, workstream validation (30 records), dependency/migration checks, frontend preparation, Ruff, formatting, and TypeScript passed; backend-coverage stopped after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. Product commit 070f6ef8 fences each breadth-history event predicate by its fetched_at and individual point timestamp, so later-discovered events cannot affect earlier points. Focused breadth service coverage passed 29/29; full backend unit coverage passed 1523/1523 at 69.02%; Ruff, formatting, and git diff --check passed. No provider, fallback, visual baseline, mask, threshold, skip, or acceptance policy changed. Restore Docker health and rerun the exact gate, then continue the next bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.",
-    "current_phase": "R2_historical_event_knowledge_boundary_and_r7_exact_tip_gate",
-    "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
-    "total": 11,
-    "updated_at": "2026-09-12T13:34:13.000000+00:00"
+    "current_blocker": "The exact branch-scoped gate was rerun at product tip 02716f1b21ffc3e054a8df5409a3f47f63df001d. Git-diff, workstream validation (30 records), dependency/migration checks, frontend preparation, Ruff, formatting, and TypeScript passed; backend-coverage stopped after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. Product commit 02716f1b restores the current Market Map result after leaving or deleting a loaded snapshot; focused component coverage passed 43/43, full frontend Vitest passed 1017/1017, type-check/build/diff checks passed, and no policy changed. Continue the next bounded provider/history or compatible R4/R2-R7 seam while preserving the six visual state-oracle assertions.",
+    "current_phase": "R6_market_map_snapshot_state_restoration_and_r7_exact_tip_gate",
+    "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 02716f1b21ffc3e054a8df5409a3f47f63df001d, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy.",
+    "total": 10,
+    "updated_at": "2026-09-12T13:44:15.148219+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
