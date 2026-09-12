@@ -100,7 +100,10 @@ async def get_refresh_queue_status(
                 "next_attempt_at": job.next_attempt_at,
                 "leased_until": job.leased_until,
                 "lease_expired": _refresh_lease_expired(job, now),
+                "started_at": job.started_at,
+                "finished_at": job.finished_at,
                 "last_error": redact_provider_message(job.last_error) if job.last_error else None,
+                "result_summary": job.result_summary,
                 "metadata": job.metadata_payload,
             }
             for job in rows

@@ -61,6 +61,9 @@ def test_refresh_queue_status_is_admin_only_and_hides_lease_tokens(
     assert payload["counts"]["queued"] == 1
     row = next(item for item in payload["jobs"] if item["instrument_id"] == instrument.id)
     assert row["status"] == "queued"
+    assert row["started_at"] is None
+    assert row["finished_at"] is None
+    assert row["result_summary"] is None
     assert "lease_token" not in row
 
 

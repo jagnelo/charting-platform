@@ -121,7 +121,13 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
     result = await data_tasks.process_refresh_jobs({})
 
     assert result == {"claimed": 1, "completed": 0, "retried": 0, "lease_lost": 1}
-    complete.assert_awaited_once_with(session, job)
+    complete.assert_awaited_once()
+    summary = complete.await_args.kwargs["result_summary"]
+    assert summary["instrument_id"] == 42
+    assert summary["timeframe"] == "D1"
+    assert summary["requested_end"] is None
+    assert summary["bars_observed"] == 0
+    assert summary["data_status"] == "empty"
     retry.assert_not_awaited()
     assert session.commits == 1
 

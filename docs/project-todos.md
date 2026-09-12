@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
+
+- [x] Persist durable refresh-job `started_at`, `finished_at`, and redacted
+      `result_summary` fields. Worker completions now record observed-bar counts
+      and empty responses; retry/defer paths retain bounded error and provider
+      reset evidence. The admin refresh-queue diagnostic exposes these fields
+      without lease tokens, so operators and future evaluators can distinguish
+      completed, empty, retry, deferred, and leased work. Focused queue/worker/
+      migration coverage passes 49/49 and the admin integration coverage passes
+      3/3. Migration `5f6a7b8c9d0e` follows the provider-account-usage
+      migration; no frontend or ETF-provider files changed.
+
 ### 2026-09-12 — Pagination cursor safety
 
 - [x] Reject repeated Alpaca history page tokens and malformed/repeated

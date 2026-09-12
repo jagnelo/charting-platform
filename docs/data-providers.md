@@ -572,6 +572,13 @@ symbol APIs:
   `provider_routing_decision` make reservations and routing explanations
   durable across workers; administrators can inspect them through the
   backend-only `/api/v1/market-data/*` diagnostics routes.
+- `market_refresh_job` now persists each attempt's `started_at`, `finished_at`,
+  and redacted `result_summary` in addition to its queue/lease status. Worker
+  outcomes distinguish observed bars from an empty provider response and
+  preserve retry/defer reasons without exposing lease tokens. The admin
+  `/api/v1/market-data/refresh/queue` response exposes these fields so broad
+  evaluators and operators can distinguish completed, empty, retry, deferred,
+  and still-leased work without making a provider call inside evaluation.
 - `market_coverage_snapshot`, `provider_shadow_observation`, and
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`

@@ -144,7 +144,7 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                     raise ValueError(f"instrument {job.instrument_id} no longer exists")
                 timeframe = Timeframe(job.timeframe)
                 start = job.start_at or (datetime.now(UTC) - timedelta(days=7))
-                await fetch_ohlcv(
+                bars = await fetch_ohlcv(
                     db,
                     instrument,
                     timeframe,
@@ -152,7 +152,18 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                     end=job.end_at,
                     redis=ctx.get("redis"),
                 )
-                await complete_refresh_job(db, job)
+                await complete_refresh_job(
+                    db,
+                    job,
+                    result_summary={
+                        "instrument_id": instrument.id,
+                        "timeframe": timeframe.value,
+                        "requested_start": start.isoformat(),
+                        "requested_end": job.end_at.isoformat() if job.end_at else None,
+                        "bars_observed": len(bars),
+                        "data_status": "observed" if bars else "empty",
+                    },
+                )
                 completed += 1
             except RefreshLeaseLostError as exc:
                 # Another worker owns this job now (or its lease expired).

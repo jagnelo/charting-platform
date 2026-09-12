@@ -44,9 +44,21 @@ async def test_refresh_jobs_coalesce_and_claim_in_priority_order(db, instrument)
     assert [job.request_key for job in jobs] == ["d1:1"]
     assert jobs[0].status == "leased"
     assert jobs[0].lease_token and len(jobs[0].lease_token) == 32
-    await complete_refresh_job(async_db, jobs[0], now=now)
+    await complete_refresh_job(
+        async_db,
+        jobs[0],
+        now=now,
+        result_summary={"bars_observed": 12, "data_status": "observed"},
+    )
     assert jobs[0].status == "completed"
     assert jobs[0].lease_token is None
+    assert jobs[0].started_at == now
+    assert jobs[0].finished_at == now
+    assert jobs[0].result_summary == {
+        "outcome": "completed",
+        "bars_observed": 12,
+        "data_status": "observed",
+    }
 
 
 @pytest.mark.asyncio
@@ -63,6 +75,9 @@ async def test_failed_job_uses_bounded_exponential_retry(db):
     await retry_refresh_job(async_db, job, "provider timeout", now=now)
     assert job.status == "retry"
     assert job.next_attempt_at >= now + timedelta(seconds=2)
+    assert job.finished_at == now
+    assert job.result_summary["outcome"] == "retry"
+    assert "provider timeout" in job.result_summary["error"]
 
 
 @pytest.mark.asyncio
@@ -109,6 +124,8 @@ async def test_provider_reset_defers_job_until_retry_at(db):
     assert job.next_attempt_at == retry_at
     assert job.metadata_payload["defer_reason"] == "provider_reset"
     assert job.lease_token is None
+    assert job.result_summary["outcome"] == "deferred"
+    assert job.result_summary["provider_retry_at"] == retry_at.isoformat()
 
 
 @pytest.mark.asyncio

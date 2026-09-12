@@ -113,6 +113,9 @@ async def claim_refresh_jobs(
         job.leased_until = current + timedelta(seconds=lease_seconds)
         job.lease_token = uuid4().hex
         job.attempts += 1
+        if job.started_at is None:
+            job.started_at = current
+        job.finished_at = None
     if jobs:
         await db.flush()
     return list(jobs)
@@ -124,11 +127,13 @@ async def complete_refresh_job(
     *,
     now: datetime | None = None,
     lease_token: str | None = None,
+    result_summary: dict | None = None,
 ) -> None:
     """Complete a job only while the caller's durable lease is still valid."""
 
     token = lease_token or job.lease_token
     current = now or datetime.now(UTC)
+    summary = {"outcome": "completed", **(result_summary or {})}
     if not token:
         raise RefreshLeaseLostError(f"refresh job {job.id} has no lease token")
     result = await db.execute(
@@ -147,6 +152,8 @@ async def complete_refresh_job(
             leased_until=None,
             lease_token=None,
             last_error=None,
+            finished_at=current,
+            result_summary=summary,
         )
     )
     if getattr(result, "rowcount", None) != 1:
@@ -155,6 +162,8 @@ async def complete_refresh_job(
     job.leased_until = None
     job.lease_token = None
     job.last_error = None
+    job.finished_at = current
+    job.result_summary = summary
 
 
 async def retry_refresh_job(
@@ -166,6 +175,7 @@ async def retry_refresh_job(
     max_backoff_seconds: int = 3600,
     retry_at: datetime | None = None,
     lease_token: str | None = None,
+    result_summary: dict | None = None,
 ) -> None:
     current = now or datetime.now(UTC)
     backoff = min(max_backoff_seconds, 2 ** min(job.attempts, 10))
@@ -178,6 +188,12 @@ async def retry_refresh_job(
         "provider_retry_at": retry_at.isoformat() if retry_at else None,
     }
     safe_error = redact_provider_message(error)[:2000]
+    summary = {
+        "outcome": "deferred" if is_quota_defer else "retry",
+        "error": safe_error,
+        "provider_retry_at": retry_at.isoformat() if retry_at else None,
+        **(result_summary or {}),
+    }
     token = lease_token or job.lease_token
     if not token:
         raise RefreshLeaseLostError(f"refresh job {job.id} has no lease token")
@@ -199,6 +215,8 @@ async def retry_refresh_job(
             last_error=safe_error,
             next_attempt_at=next_attempt_at,
             metadata_payload=metadata_payload,
+            finished_at=current,
+            result_summary=summary,
         )
     )
     if getattr(result, "rowcount", None) != 1:
@@ -209,3 +227,5 @@ async def retry_refresh_job(
     job.last_error = safe_error
     job.next_attempt_at = next_attempt_at
     job.metadata_payload = metadata_payload
+    job.finished_at = current
+    job.result_summary = summary
