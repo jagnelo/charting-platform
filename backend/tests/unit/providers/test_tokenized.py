@@ -575,17 +575,94 @@ def test_dinari_history_news_and_split_shapes_fail_closed():
     assert get.call_args_list[-1].kwargs["params"] == {"limit": 100, "order": "desc"}
 
 
-def test_dinari_split_cursor_continuation_is_not_silently_truncated():
+def test_dinari_split_cursor_continuation_is_explicitly_reused():
     stock = _dinari_stock()
+    provider = DinariTokenProvider()
     with patch(
         "app.providers.tokenized.httpx.get",
         side_effect=[
             _response([stock]),
-            _response({"data": [], "pagination_metadata": {"next": "split-cursor"}}),
+            _response(
+                {
+                    "data": [{"ex_date": "2026-01-02"}],
+                    "pagination_metadata": {"next": "split-cursor"},
+                }
+            ),
+            _response([stock]),
+            _response({"data": [{"ex_date": "2025-01-02"}], "pagination_metadata": {"next": None}}),
         ],
-    ):
-        with pytest.raises(ProviderResponseError, match="additional pages"):
-            DinariTokenProvider().fetch_tokenized_splits("AAPL")
+    ) as get:
+        assert (
+            provider.fetch_tokenized_splits("AAPL", page=1, page_size=1)[0]["ex_date"]
+            == "2026-01-02"
+        )
+        assert (
+            provider.fetch_tokenized_splits("AAPL", page=2, page_size=1)[0]["ex_date"]
+            == "2025-01-02"
+        )
+    assert get.call_args_list[1].kwargs["params"] == {"limit": 20, "order": "desc"}
+    assert get.call_args_list[3].kwargs["params"] == {
+        "limit": 20,
+        "order": "desc",
+        "next": "split-cursor",
+    }
+
+
+def test_dinari_split_page_without_preceding_cursor_fails_closed():
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderResponseError, match="preceding page cursor"):
+            DinariTokenProvider()._fetch_global_splits(page=2, page_size=1)
+    get.assert_not_called()
+
+
+def test_dinari_global_split_cursor_continuation_is_explicitly_reused():
+    provider = DinariTokenProvider()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response(
+                {"data": [{"stock_id": "stock-1"}], "pagination_metadata": {"next": "cursor-1"}}
+            ),
+            _response({"data": [{"stock_id": "stock-2"}], "pagination_metadata": {"next": None}}),
+        ],
+    ) as get:
+        assert provider.fetch_tokenized_corporate_actions(page=1, page_size=1) == [
+            {"stock_id": "stock-1", "action_type": "split"}
+        ]
+        assert provider.fetch_tokenized_corporate_actions(page=2, page_size=1) == [
+            {"stock_id": "stock-2", "action_type": "split"}
+        ]
+    assert get.call_args_list[1].kwargs["params"] == {
+        "limit": 20,
+        "order": "desc",
+        "next": "cursor-1",
+    }
+
+
+def test_dinari_symbol_action_pages_continue_splits_without_replaying_dividends():
+    stock = _dinari_stock()
+    provider = DinariTokenProvider()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response({"data": [stock], "pagination_metadata": {"next": None}}),
+            _response([{"payment_date": "2026-01-01", "amount": "0.25"}]),
+            _response(
+                {"data": [{"ex_date": "2026-01-02"}], "pagination_metadata": {"next": "cursor-1"}}
+            ),
+            _response({"data": [stock], "pagination_metadata": {"next": None}}),
+            _response({"data": [{"ex_date": "2025-01-02"}], "pagination_metadata": {"next": None}}),
+        ],
+    ) as get:
+        first = provider.fetch_tokenized_corporate_actions(symbol="AAPL", page=1, page_size=1)
+        second = provider.fetch_tokenized_corporate_actions(symbol="AAPL", page=2, page_size=1)
+    assert [row["action_type"] for row in first] == ["dividend", "split"]
+    assert second == [{"ex_date": "2025-01-02", "action_type": "split", "stock_id": stock["id"]}]
+    assert get.call_args_list[4].kwargs["params"] == {
+        "limit": 20,
+        "order": "desc",
+        "next": "cursor-1",
+    }
 
 
 def _ondo_metadata():

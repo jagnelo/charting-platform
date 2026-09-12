@@ -892,6 +892,9 @@ class DinariTokenProvider:
         self._stock_cursors: dict[tuple[tuple[str, ...], int, int], str] = {}
         self._stock_exhausted_pages: set[tuple[tuple[str, ...], int, int]] = set()
         self._stock_legacy_page_size: int | None = None
+        self._split_cursors: dict[tuple[str, int, int], str] = {}
+        self._split_exhausted_pages: set[tuple[str, int, int]] = set()
+        self._split_legacy_page_size: int | None = None
 
     def _base_url(self) -> str:
         value = str(getattr(settings, "DINARI_API_BASE_URL", "") or "").strip().rstrip("/")
@@ -1239,26 +1242,61 @@ class DinariTokenProvider:
         stock_id = self._stock_id(identifier)
         return self._fetch_dividends_for_stock_id(stock_id) if stock_id is not None else []
 
-    def _fetch_splits_for_stock_id(self, stock_id: str) -> list[dict[str, Any]]:
+    def _fetch_split_page(
+        self,
+        *,
+        endpoint: str,
+        scope: str,
+        page: int,
+        page_size: int,
+    ) -> list[dict[str, Any]]:
+        """Read one documented split page and retain only its next cursor.
+
+        Dinari's cursor is opaque and scoped to the exact feed/limit.  A
+        caller must therefore request pages in order on the same adapter
+        instance; this prevents accidental cross-feed reuse and avoids an
+        unbounded loop that could consume a partner quota unexpectedly.
+        """
+
+        self._require_configured()
+        if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+            raise ProviderResponseError(self.name, "Dinari split page must be positive")
+        if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
+            raise ProviderResponseError(self.name, "Dinari split page size must be positive")
+        requested_page_size = min(page_size, 100)
+        limit = max(20, requested_page_size)
+        cursor_key = (scope, limit, page)
+        if self._split_legacy_page_size is not None:
+            params: dict[str, Any] = {
+                "page": page,
+                "page_size": self._split_legacy_page_size,
+            }
+        elif page == 1:
+            params = {"limit": limit, "order": "desc"}
+        else:
+            if cursor_key in self._split_exhausted_pages:
+                return []
+            cursor = self._split_cursors.get(cursor_key)
+            if cursor is None:
+                raise ProviderResponseError(
+                    self.name, "Dinari split page requires the preceding page cursor"
+                )
+            params = {"limit": limit, "order": "desc", "next": cursor}
         payload = _http_json(
-            f"{self._base_url()}/market_data/stocks/{stock_id}/splits",
+            endpoint,
             provider_name=self.name,
-            # Supplying ``limit`` selects Dinari's current cursor response.
-            # This method intentionally exposes one bounded page only; an
-            # unexpected continuation is an explicit error rather than a
-            # silently incomplete corporate-action history.
-            params={"limit": 100, "order": "desc"},
+            params=params,
             headers=self._headers(),
         )
         if isinstance(payload, list):
             rows = payload
+            if self._split_legacy_page_size is None:
+                self._split_legacy_page_size = requested_page_size
         elif isinstance(payload, dict):
             rows = payload.get("data")
             metadata = payload.get("pagination_metadata")
-            if not isinstance(metadata, dict):
+            if not isinstance(metadata, dict) or "next" not in metadata:
                 raise ProviderResponseError(self.name, "provider omitted split pagination metadata")
-            if "next" not in metadata:
-                raise ProviderResponseError(self.name, "provider omitted split pagination cursor")
             next_cursor = metadata["next"]
             if next_cursor is not None and (
                 isinstance(next_cursor, bool)
@@ -1269,10 +1307,15 @@ class DinariTokenProvider:
                     self.name, "provider returned an invalid split pagination cursor"
                 )
             if next_cursor is not None:
-                raise ProviderResponseError(
-                    self.name,
-                    "Dinari split response has additional pages; bounded adapter refuses incomplete history",
-                )
+                next_cursor = next_cursor.strip()
+                previous_cursor = params.get("next")
+                if previous_cursor is not None and next_cursor == previous_cursor:
+                    raise ProviderResponseError(
+                        self.name, "provider repeated the split pagination cursor"
+                    )
+                self._split_cursors[(scope, limit, page + 1)] = next_cursor
+            else:
+                self._split_exhausted_pages.add((scope, limit, page + 1))
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
@@ -1281,58 +1324,33 @@ class DinariTokenProvider:
             )
         return rows
 
-    def fetch_tokenized_splits(self, identifier: str) -> list[dict[str, Any]]:
+    def _fetch_splits_for_stock_id(
+        self, stock_id: str, *, page: int = 1, page_size: int = 100
+    ) -> list[dict[str, Any]]:
+        return self._fetch_split_page(
+            endpoint=f"{self._base_url()}/market_data/stocks/{stock_id}/splits",
+            scope=f"stock:{stock_id}",
+            page=page,
+            page_size=page_size,
+        )
+
+    def fetch_tokenized_splits(
+        self, identifier: str, *, page: int = 1, page_size: int = 100
+    ) -> list[dict[str, Any]]:
         stock_id = self._stock_id(identifier)
-        return self._fetch_splits_for_stock_id(stock_id) if stock_id is not None else []
+        return (
+            self._fetch_splits_for_stock_id(stock_id, page=page, page_size=page_size)
+            if stock_id is not None
+            else []
+        )
 
     def _fetch_global_splits(self, *, page: int, page_size: int) -> list[dict[str, Any]]:
-        if isinstance(page, bool) or not isinstance(page, int) or page < 1:
-            raise ProviderResponseError(self.name, "Dinari corporate-action page must be positive")
-        if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
-            raise ProviderResponseError(
-                self.name, "Dinari corporate-action page size must be positive"
-            )
-        if page != 1:
-            raise ProviderResponseError(
-                self.name,
-                "Dinari global split pagination requires an explicit cursor continuation",
-            )
-        payload = _http_json(
-            f"{self._base_url()}/market_data/stocks/splits",
-            provider_name=self.name,
-            params={"limit": max(20, min(page_size, 100)), "order": "desc"},
-            headers=self._headers(),
+        return self._fetch_split_page(
+            endpoint=f"{self._base_url()}/market_data/stocks/splits",
+            scope="global",
+            page=page,
+            page_size=page_size,
         )
-        if isinstance(payload, list):
-            rows = payload
-        elif isinstance(payload, dict):
-            rows = payload.get("data")
-            metadata = payload.get("pagination_metadata")
-            if not isinstance(metadata, dict) or "next" not in metadata:
-                raise ProviderResponseError(
-                    self.name, "provider omitted global split pagination metadata"
-                )
-            next_cursor = metadata["next"]
-            if next_cursor is not None and (
-                isinstance(next_cursor, bool)
-                or not isinstance(next_cursor, str)
-                or not next_cursor.strip()
-            ):
-                raise ProviderResponseError(
-                    self.name, "provider returned an invalid global split pagination cursor"
-                )
-            if next_cursor is not None:
-                raise ProviderResponseError(
-                    self.name,
-                    "Dinari global split response has additional pages; bounded adapter refuses incomplete history",
-                )
-        else:
-            rows = None
-        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-            raise ProviderResponseError(
-                self.name, "provider returned an invalid global split row container"
-            )
-        return rows
 
     def fetch_tokenized_corporate_actions(
         self,
@@ -1361,15 +1379,11 @@ class DinariTokenProvider:
                 self.name, "Dinari corporate-action symbol must be non-empty"
             )
         if symbol is not None:
-            if page != 1:
-                raise ProviderResponseError(
-                    self.name, "Dinari per-stock corporate actions do not support page offsets"
-                )
             stock_id = self._stock_id(str(symbol).strip())
             if stock_id is None:
                 return []
-            dividends = self._fetch_dividends_for_stock_id(stock_id)
-            splits = self._fetch_splits_for_stock_id(stock_id)
+            dividends = self._fetch_dividends_for_stock_id(stock_id) if page == 1 else []
+            splits = self._fetch_splits_for_stock_id(stock_id, page=page, page_size=page_size)
             return [
                 {**row, "action_type": "dividend", "stock_id": stock_id} for row in dividends
             ] + [{**row, "action_type": "split", "stock_id": stock_id} for row in splits]

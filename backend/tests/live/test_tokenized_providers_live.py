@@ -279,6 +279,15 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     )
     assert split_measurement.http_requests >= 2
     assert isinstance(splits, list)
+    # If the provider advertises another split page, exercise the explicit
+    # same-instance cursor continuation. A terminal first page consumes no
+    # additional request and is still a valid live observation.
+    if provider._split_cursors:
+        continued, continuation_measurement = _observed_read(
+            lambda: provider.fetch_tokenized_splits(identifier, page=2), "dinari"
+        )
+        assert continuation_measurement.http_requests >= 2
+        assert isinstance(continued, list)
     actions, action_measurement = _observed_read(
         lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol), "dinari"
     )
