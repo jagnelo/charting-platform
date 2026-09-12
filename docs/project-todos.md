@@ -16270,3 +16270,15 @@ The current source also passes the focused authenticated top-down browser slice 
       and changed-file lint/compile/diff checks pass.
 - [ ] Complete Dinari quota, commercial, US-eligibility, display/cache, and
       redistribution review before any routing admission.
+
+### 2026-09-12 — Dinari paginated UUID lookup safety
+
+- [x] Treat a UUID lookup that misses the first unfiltered catalogue page but
+      receives a `next` cursor as an explicit incomplete-catalogue condition,
+      rather than returning `None` and allowing a false not-found result.
+- [x] Add a regression for the fail-closed path; fresh metadata remains fetched
+      on every lookup so ticker/lifecycle changes are not hidden by an
+      unreviewed in-memory cache. The complete provider suite passes `65/65`.
+- [ ] Complete Dinari catalogue enumeration and provider quota/terms review
+      before routing admission; callers must advance the documented cursor
+      explicitly when resolving UUIDs beyond the first page.

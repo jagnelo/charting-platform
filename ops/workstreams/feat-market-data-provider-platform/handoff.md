@@ -926,3 +926,12 @@ Update this handoff at each coherent boundary.
   requests and 12 measured operations. Source commit `ba527830` is pushed;
   no frontend or ETF-provider files changed. Dinari quota, terms, and routing
   admission remain fail-closed.
+
+- Dinari UUID metadata lookups now fail closed when the first unfiltered
+  catalogue page advertises a continuation but does not contain the requested
+  UUID. This prevents a paginated miss from being reported as `None`; every
+  lookup still fetches current metadata, with no unreviewed cache. The focused
+  tokenized provider suite passes `65/65`, and the complete backend unit suite
+  passes `1,911/1,911`. Source commit `51fed55b` is pushed; no frontend or
+  ETF-provider files changed. Dinari quota, terms, and routing admission remain
+  fail-closed.
