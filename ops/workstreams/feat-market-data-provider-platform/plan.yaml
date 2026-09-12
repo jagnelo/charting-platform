@@ -469,6 +469,15 @@ progress:
       otherwise emit unattributed `unspecified` receipts. Focused ledger
       coverage passes 11/11 and the complete backend unit suite passes
       1,774/1,774.
+    - >-
+      A fresh complete 41-case matrix at 2026-09-12T09:36:37Z passed 37/41
+      against the existing configured keys. The four honest non-passes were
+      Alpha Vantage's documented daily-capacity response plus exact missing
+      credential preflights for intentionally deferred Tradier, IBKR, and
+      Ondo. The redacted receipt recorded 26 provider rows, 64 operations, 86
+      HTTP requests, and 22,749,358 response bytes under run
+      `d1125f7c-ad38-41bc-81bc-0b65f68c2ca9`; no credentials or payloads entered
+      Git.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

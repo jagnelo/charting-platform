@@ -851,3 +851,18 @@ Focused Dinari/Ondo and surrounding registry/quota/secret coverage passed
 combined gate passed `1994/1994` with `89` warnings and `80.50%` coverage in
 `521.76s` (isolated PostgreSQL/Redis session
 `3f19adca-0e0a-4f86-97b3-04e03a7c45d3`, cleaned without host-wide pruning).
+
+The fresh complete matrix at `2026-09-12T09:36:37Z` collected all 41 cases and
+passed `37/41` using the existing configured keys. Alpha Vantage returned its
+documented 25-requests/day capacity response; Tradier, IBKR, and Ondo failed
+only their exact intentionally deferred credential preflights. The owner
+ledger recorded 26 aggregate provider rows (`64` operations, `86` HTTP
+requests, `22,749,358` response bytes) under a unique run identity. The
+wrapper returned exit code `2` and made no acceptance claim; no credentials or
+payloads entered Git.
+
+The live pytest session now checks both ledger writability and the non-secret
+`PROVIDER_LIVE_USAGE_SCOPE` before invoking any provider. An unwritable ledger
+or missing/invalid scope exits with code `2` before collection/provider calls,
+so direct invocations cannot spend quota without a durable, attributable
+receipt.

@@ -39,6 +39,14 @@
       new receipts cannot silently use `unspecified`. Focused ledger coverage
       passes 11/11 and the complete backend unit suite passes 1,774/1,774.
 
+### 2026-09-12 — Complete configured-provider live revalidation
+
+- [x] Re-run the full 41-case manifest with the existing configured keys and a
+      fresh usage identity. It passed 37/41; Alpha Vantage capacity and the
+      intentionally deferred Tradier/IBKR/Ondo credential preflights remain
+      explicit non-passes. The external receipt contains aggregate-only usage
+      telemetry and no credentials or payloads.
+
 ### 2026-09-12 — Newly configured provider live revalidation
 
 - [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,
