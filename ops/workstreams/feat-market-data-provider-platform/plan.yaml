@@ -390,6 +390,12 @@ progress:
       retention, and support-TTL controls as the deployment manifests; focused
       wiring/reference coverage passes 16/16 and static/Compose checks remain
       green.
+    - >-
+      Marketstack configuration is now operation-scoped: history and quote
+      routes require only the API key, while universe discovery and
+      reconciliation still require the explicit `MARKETSTACK_DISCOVERY_EXCHANGE`
+      MIC. Registry/runtime coverage passes 48/48 and the complete backend unit
+      suite passes 1,757/1,757; no live provider calls were rerun.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

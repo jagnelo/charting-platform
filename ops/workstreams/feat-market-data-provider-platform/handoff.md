@@ -397,6 +397,21 @@ Update this handoff at each coherent boundary.
 - This Docker-state correction is based on the synchronized operational
   checkpoint `5d9db49c387f566b00b0296895b89fc30007599c`; the enclosing
   checkpoint commit will be verified externally after push.
+- Marketstack configuration is now operation-scoped: daily history and quote
+  routes require only `MARKETSTACK_API_KEY`, while discovery/reconciliation
+  continue to require the explicit `MARKETSTACK_DISCOVERY_EXCHANGE` MIC. The
+  registry/runtime regression passes `48/48`; the complete backend unit suite
+  passes `1,757/1,757` with 37 existing warnings. No live provider calls were
+  rerun because this change only affects routing admission.
+- The Marketstack routing implementation and its full unit validation are now
+  based on synchronized commit `372926faee2bc30031b9883e632ce9a9188969a9`;
+  this next operational checkpoint records that prior SHA and will be verified
+  externally after its own push.
+- The operation-scoped Marketstack implementation was committed and pushed as
+  `8299a34eedbec74ba4a265e1cd4d32538022178f`, with local and remote refs
+  matching. The session state below records that exact implementation SHA;
+  this operational checkpoint remains a separate commit and will be verified
+  externally after push.
 - The branch validator succeeds when invoked with an isolated writable
   `UV_CACHE_DIR`, and both root and RPi Compose contract manifests parse
   successfully under the same override. This confirms the earlier failure was
