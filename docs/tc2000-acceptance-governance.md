@@ -12,6 +12,18 @@ The focused regression passes `27/27` and the full backend unit suite passes
 or the remaining rebalance and Version 25 acceptance gates. No provider,
 fallback, visual, migration, or acceptance policy changed.
 
+## 2026-09-12 — Provider-factor event refresh wiring
+
+Instrument-event refreshes now trigger the existing local provider-factor
+materializer for raw timeframes already cached when the event response
+contains an explicit provider-supplied factor. The operation is fail-closed
+for amount-only, split-only, mixed, or incomplete evidence, preserves raw and
+provider-adjusted rows, and records the same provider-neutral derived lineage
+as the explicit route. Focused event/adjustment-factor coverage passes `22/22`
+and full backend units pass `1530/1530`; no provider, fallback, visual,
+migration, or acceptance rule changed. This is an R1 wiring gate, not a waiver
+of provider completeness, bar floors, or the remaining V25 acceptance work.
+
 ## 2026-09-12 — Exact full-stack gate rechecked at revision-aware history tip
 
 The exact branch-scoped gate passed backend unit (`1529/1529`), backend

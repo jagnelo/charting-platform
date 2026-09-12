@@ -19,6 +19,22 @@ visual, or acceptance policy changed. This is a bounded R1 rebalance-continuity
 maintenance closure; full provider population, bar floors, and AC2–AC7/AC10
 remain open.
 
+## 2026-09-12 — Materialize explicit provider factors after event refresh
+
+Product commit `77f63e7c5` wires the provider-supplied adjustment-factor
+contract into instrument-event refreshes. When a provider event response
+contains an explicit factor, the refresh now discovers already-cached raw
+timeframes and materializes their adjusted view through the existing
+`provider_adjustment_factor` rebuilder. Split-only, amount-only, mixed, or
+incomplete evidence remains fail-closed, raw/provider rows remain immutable,
+and event-first or price-first arrival order is supported. Focused event and
+adjustment-factor coverage passes `22/22`; the full backend unit suite passes
+`1530/1530` with the existing 34 dependency warnings; Ruff, formatting, and
+diff checks pass. No provider routing, fallback, migration, visual, or
+acceptance policy changed. R1 provider population, broader family history,
+bar floors, and AC2–AC7/AC10 remain open; rerun the exact gate at the next
+clean documentation tip.
+
 ## 2026-09-12 — Exact gate at revision-aware history tip
 
 At product tip `f54c5761a` and documentation tip `c1b502368`, the exact
