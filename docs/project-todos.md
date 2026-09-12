@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
+
+- [x] Remove synchronous screener first-output fallback for indicator-threshold,
+      indicator-cross, and price-vs-indicator conditions; report structured
+      per-instrument exclusions for missing or invalid outputs (`93849ae6`).
+- [x] Add focused ambiguous/invalid Bollinger Band condition regressions;
+      screener-engine coverage passed `33/33`, Ruff, formatting, and diff checks
+      passed. No visual, provider, fallback, or acceptance policy changed.
+- [ ] Restore Docker Desktop health, run the pending indicator-batch API
+      regressions and exact branch-scoped gate, then continue provider/history
+      or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Indicator-batch API requires explicit multi-output selection
 
 - [x] Reject missing or invalid outputs for known multi-output indicators at

@@ -2,6 +2,24 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
+
+Product commit `93849ae6` carries the explicit indicator-output contract into
+the synchronous screener. Missing or invalid keys on indicator-threshold,
+indicator-cross, and price-vs-indicator conditions now produce structured
+per-instrument exclusions instead of an implicit first-series evaluation;
+single-output and valid named-output conditions remain supported.
+
+Focused screener-engine coverage passed `33/33`; Ruff, formatting, and diff
+checks passed. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. The Docker-backed integration gate remains
+blocked at `backend-coverage` before API, browser, and visual stages.
+
+Checkpoint scope: `backend/app/services/screener_engine.py`,
+`backend/tests/unit/services/test_screener_engine.py`, and these roadmap/TODO
+records. Rerun the pending indicator-batch API regressions and exact gate after
+Docker health is restored before advancing the next bounded seam.
+
 ## 2026-09-12 — Indicator-batch API requires explicit multi-output selection
 
 Product commit `39562441` makes the canonical indicator-batch endpoint fail

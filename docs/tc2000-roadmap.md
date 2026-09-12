@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
+
+Product commit `93849ae6` extends the explicit output contract into the
+canonical synchronous screener. Indicator-threshold, indicator-cross, and
+price-vs-indicator conditions now refuse missing or invalid multi-output keys
+instead of selecting the first returned series. The run records a structured
+per-instrument exclusion with an actionable output-selection message, while
+single-output and valid named-output conditions remain compatible.
+
+Focused screener-engine coverage passed `33/33`; Ruff, formatting, and
+`git diff --check` passed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. The Docker-backed API/integration gate
+remains blocked at `backend-coverage` before later stages.
+
+The next action is to restore Docker Desktop health, run the pending focused
+indicator-batch API regressions and exact gate at this product tip, then
+continue the next bounded provider/history or compatible chart/list/gauge seam.
+Preserve the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Indicator-batch API requires explicit multi-output selection
 
 Product commit `39562441` closes the backend side of the chart/list output
