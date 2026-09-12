@@ -132,6 +132,32 @@ describe('linked instrument tool stale-response guards', () => {
     expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
   })
 
+  it('does not publish a late alert bundle after the tool unmounts', async () => {
+    const prices = deferred<unknown[]>()
+    const indicators = deferred<unknown[]>()
+    const screeners = deferred<unknown[]>()
+    const history = deferred<unknown[]>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/price') return prices.promise
+      if (path === '/alerts/indicator') return indicators.promise
+      if (path === '/alerts/screener') return screeners.promise
+      return history.promise
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 7, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(4))
+    await wrapper.unmount()
+
+    prices.resolve([{ id: 1, condition: 'touches', threshold_price: 9, status: 'active', repeat: false }])
+    indicators.resolve([])
+    screeners.resolve([])
+    history.resolve([])
+    await Promise.all([prices.promise, indicators.promise, screeners.promise, history.promise])
+    await Promise.resolve()
+
+    expect((wrapper.vm as unknown as { alerts: unknown[] }).alerts).toEqual([])
+    expect((wrapper.vm as unknown as { loading: boolean }).loading).toBe(true)
+  })
+
   it('renders and manages saved EasyScan alerts alongside instrument alerts', async () => {
     apiGet.mockImplementation((_path: string) => {
       if (_path === '/alerts/screener') return Promise.resolve([{ id: 9, screener_id: 4, screener_name: 'Momentum', trigger_type: 'entered', status: 'active', repeat: true }])

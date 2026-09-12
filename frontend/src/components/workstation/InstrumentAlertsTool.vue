@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { INDICATOR_CATALOG, indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
@@ -199,6 +199,7 @@ const loading = ref(false)
 const busy = ref(false)
 const error = ref('')
 let viewGeneration = 0
+let mounted = false
 const validThreshold = computed(() => Number.isFinite(Number(threshold.value)) && Number(threshold.value) > 0)
 const validIndicatorOutputs = computed(() =>
   (!indicatorOutputOptions.value.length || Boolean(indicatorOutput.value))
@@ -236,11 +237,11 @@ async function load() {
         queryFn: () => api.get<ScreenerAlert[]>('/alerts/screener'),
         staleTime: 30_000,
       })
-      if (generation === viewGeneration && !props.instrumentId) screenerAlerts.value = scans
+      if (mounted && generation === viewGeneration && !props.instrumentId) screenerAlerts.value = scans
     } catch (cause: any) {
-      if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
+      if (mounted && generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
     } finally {
-      if (generation === viewGeneration) loading.value = false
+      if (mounted && generation === viewGeneration) loading.value = false
     }
     return
   }
@@ -254,7 +255,7 @@ async function load() {
       queryClient.fetchQuery<ScreenerAlert[]>({ queryKey: [...alertsQueryRoot, 'screener'], queryFn: () => api.get<ScreenerAlert[]>('/alerts/screener'), staleTime: 30_000 }),
       queryClient.fetchQuery<AlertHistory[]>({ queryKey: [...alertsQueryRoot, 'history', instrumentId], queryFn: () => api.get<AlertHistory[]>(`/alerts/history/instrument/${instrumentId}`), staleTime: 30_000 }),
     ])
-    if (generation !== viewGeneration || props.instrumentId !== instrumentId) return
+    if (!mounted || generation !== viewGeneration || props.instrumentId !== instrumentId) return
     alerts.value = prices
     const serverIds = new Set(indicators.map(alert => alert.id))
     pendingIndicatorAlerts.value = pendingIndicatorAlerts.value.filter(alert => !serverIds.has(alert.id))
@@ -262,14 +263,15 @@ async function load() {
     screenerAlerts.value = scans
     history.value = firingHistory
   } catch (cause: any) {
-    if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
+    if (mounted && generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
   } finally {
-    if (generation === viewGeneration) loading.value = false
+    if (mounted && generation === viewGeneration) loading.value = false
   }
 }
 
 async function create() {
   if (!props.instrumentId || !validTarget.value) return
+  const generation = viewGeneration
   busy.value = true
   error.value = ''
   try {
@@ -285,6 +287,7 @@ async function create() {
           : { threshold_value: Number(threshold.value) }),
         repeat: repeat.value,
       })
+      if (!mounted || generation !== viewGeneration) return
       pendingIndicatorAlerts.value = [alert, ...pendingIndicatorAlerts.value.filter(item => item.id !== alert.id)]
       indicatorAlerts.value = [alert, ...indicatorAlerts.value.filter(item => item.id !== alert.id)]
     } else {
@@ -295,15 +298,16 @@ async function create() {
         price_field: 'close',
         repeat: repeat.value,
       })
+      if (!mounted || generation !== viewGeneration) return
       alerts.value.unshift(alert)
     }
     threshold.value = ''
     repeat.value = false
-    void queryClient.invalidateQueries({ queryKey: alertsQueryRoot })
+    if (mounted && generation === viewGeneration) void queryClient.invalidateQueries({ queryKey: alertsQueryRoot })
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to create alert'
+    if (mounted && generation === viewGeneration) error.value = cause?.message ?? 'Unable to create alert'
   } finally {
-    busy.value = false
+    if (mounted && generation === viewGeneration) busy.value = false
   }
 }
 async function deletePrice(id: number) { await mutate(() => api.delete(`/alerts/price/${id}`), () => { alerts.value = alerts.value.filter(alert => alert.id !== id) }) }
@@ -322,12 +326,12 @@ async function mutate<T>(request: () => Promise<T>, apply: (value: T) => void) {
   error.value = ''
   try {
     const result = await request()
-    if (generation === viewGeneration) apply(result)
-    void queryClient.invalidateQueries({ queryKey: alertsQueryRoot })
+    if (mounted && generation === viewGeneration) apply(result)
+    if (mounted && generation === viewGeneration) void queryClient.invalidateQueries({ queryKey: alertsQueryRoot })
   } catch (cause: any) {
-    if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to update alert'
+    if (mounted && generation === viewGeneration) error.value = cause?.message ?? 'Unable to update alert'
   } finally {
-    if (generation === viewGeneration) busy.value = false
+    if (mounted && generation === viewGeneration) busy.value = false
   }
 }
 function conditionLabel(value: string) { return value.replace(/_/g, ' ') }
@@ -388,6 +392,12 @@ watch(indicatorBType, () => {
 watch(alertKind, value => {
   if (value === 'indicator' && condition.value === 'touches') condition.value = 'crosses_above'
   if (value === 'price' && ['gt', 'gte', 'lt', 'lte'].includes(condition.value)) condition.value = 'crosses_above'
+})
+
+onMounted(() => { mounted = true })
+onBeforeUnmount(() => {
+  mounted = false
+  viewGeneration += 1
 })
 </script>
 
