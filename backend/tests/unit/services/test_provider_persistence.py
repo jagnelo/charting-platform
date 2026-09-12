@@ -520,6 +520,210 @@ async def test_seed_universe_does_not_merge_same_ticker_across_venues(db, monkey
 
 
 @pytest.mark.asyncio
+async def test_seed_universe_reuses_stable_identifier_across_ticker_change(
+    db, instrument, monkeypatch
+):
+    """A provider ticker change must update the stable security, not create a duplicate."""
+
+    async_db = AsyncSessionAdapter(db)
+    instrument.domain_key = "figi:BBG000B9XRY4"
+    db.add(
+        InstrumentIdentifier(
+            instrument_id=instrument.id,
+            identifier_type=InstrumentIdentifierType.FIGI,
+            identifier_value="BBG000B9XRY4",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "NEW",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "bbg000b9xry4",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 0
+    assert result["updated"] == 1
+    assert db.query(Instrument).count() == 1
+    assert instrument.symbol == "AAPL"
+    assert [listing.ticker for listing in instrument.listings] == ["NEW"]
+    assert instrument.domain_key == "figi:BBG000B9XRY4"
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_merge_unresolved_stable_identifier_by_ticker(
+    db, instrument, monkeypatch
+):
+    """A new stable key is provisional and must not reuse a ticker-only legacy row."""
+
+    async_db = AsyncSessionAdapter(db)
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            ticker="AAPL",
+            is_primary=True,
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "BBG000B9XRY4",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 1
+    assert db.query(Instrument).count() == 2
+    assert (
+        db.query(Instrument).filter(Instrument.domain_key == "figi:BBG000B9XRY4").one().id
+        != instrument.id
+    )
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_quarantines_conflicting_stable_identifier_owners(
+    db, instrument, instrument_b, monkeypatch
+):
+    """Conflicting FIGI/ISIN owners must not be resolved by provider row order."""
+
+    async_db = AsyncSessionAdapter(db)
+    db.add_all(
+        [
+            InstrumentIdentifier(
+                instrument_id=instrument.id,
+                identifier_type=InstrumentIdentifierType.FIGI,
+                identifier_value="BBG000B9XRY4",
+                is_primary=True,
+                is_active=True,
+            ),
+            InstrumentIdentifier(
+                instrument_id=instrument_b.id,
+                identifier_type=InstrumentIdentifierType.ISIN,
+                identifier_value="US0378331005",
+                is_primary=True,
+                is_active=True,
+            ),
+        ]
+    )
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    massive = _resolved_provider(
+        db,
+        provider_name="massive",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [massive]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="massive",
+            data_source=massive.data_source,
+            policy=massive.policy,
+            health=massive.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "figi": "BBG000B9XRY4",
+                        "isin": "US0378331005",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result == {"created": 0, "updated": 0, "total": 0}
+    assert db.query(InstrumentListing).count() == 0
+
+
+@pytest.mark.asyncio
 async def test_seed_universe_does_not_reactivate_existing_canonical_instrument(
     db, instrument, monkeypatch
 ):

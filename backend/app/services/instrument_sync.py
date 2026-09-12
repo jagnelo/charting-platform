@@ -20,11 +20,13 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.providers.base import IdentifierRecord
 from app.providers.errors import redact_provider_message
 from app.services.exchange_catalog import (
     coerce_listing_lifecycle_at,
@@ -35,9 +37,15 @@ from app.services.instrument_mastering import (
     ensure_external_identifier,
     ensure_internal_identifier,
     ingest_provider_profile,
+    register_identifier,
     register_provider_symbol,
 )
 from app.services.instrument_reconciliation import record_discovery_ambiguities
+from app.services.market_data_identity import (
+    apply_domain_identity,
+    choose_domain_key,
+    normalize_identifier_value,
+)
 from app.services.provider_observations import store_universe_discovery_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -164,6 +172,57 @@ def _seed_symbol_key(value: str | None) -> str:
     """
 
     return str(value or "").strip().upper()
+
+
+_SEED_STABLE_IDENTIFIER_FIELDS: tuple[tuple[str, InstrumentIdentifierType], ...] = (
+    ("figi", InstrumentIdentifierType.FIGI),
+    ("composite_figi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("compositeFigi", InstrumentIdentifierType.COMPOSITE_FIGI),
+    ("isin", InstrumentIdentifierType.ISIN),
+    ("cusip", InstrumentIdentifierType.CUSIP),
+    ("sedol", InstrumentIdentifierType.SEDOL),
+)
+
+
+def _seed_stable_identifiers(
+    quote: dict,
+) -> dict[InstrumentIdentifierType, str]:
+    """Extract normalized security identifiers from a discovery observation."""
+
+    identifiers: dict[InstrumentIdentifierType, str] = {}
+    for field_name, identifier_type in _SEED_STABLE_IDENTIFIER_FIELDS:
+        raw_value = quote.get(field_name)
+        if raw_value in (None, ""):
+            continue
+        value = normalize_identifier_value(str(raw_value))
+        if not value:
+            continue
+        previous = identifiers.get(identifier_type)
+        if previous is not None and previous != value:
+            # Two aliases for one identifier type disagree. Retain a sentinel
+            # that the caller will treat as an ambiguous stable identity.
+            identifiers[identifier_type] = ""
+            continue
+        identifiers[identifier_type] = value
+    return identifiers
+
+
+def _add_unique_stable_candidate(
+    candidates: dict[tuple[InstrumentIdentifierType, str], Instrument],
+    ambiguous: set[tuple[InstrumentIdentifierType, str]],
+    key: tuple[InstrumentIdentifierType, str],
+    instrument: Instrument,
+) -> None:
+    """Index an existing stable identifier only when it has one owner."""
+
+    if key in ambiguous:
+        return
+    previous = candidates.get(key)
+    if previous is None:
+        candidates[key] = instrument
+    elif previous is not instrument:
+        candidates.pop(key, None)
+        ambiguous.add(key)
 
 
 def _add_unique_seed_candidate(
@@ -325,6 +384,10 @@ async def seed_universe(db: AsyncSession) -> dict:
     unqualified_by_symbol_type: dict[tuple[str, int], Instrument] = {}
     ambiguous_unqualified: set[tuple[str, int]] = set()
     known_venue_symbol_types: set[tuple[str, int]] = set()
+    stable_owner_by_key: dict[tuple[InstrumentIdentifierType, str], Instrument] = {}
+    ambiguous_stable_keys: set[tuple[InstrumentIdentifierType, str]] = set()
+    domain_owner_by_key: dict[str, Instrument] = {}
+    ambiguous_domain_keys: set[str] = set()
 
     for existing_instrument in existing_instruments:
         instrument_type_key = existing_instrument.instrument_type_id
@@ -376,6 +439,43 @@ async def seed_universe(db: AsyncSession) -> dict:
                 elif previous is not existing_instrument:
                     unqualified_by_symbol_type.pop(unqualified_key, None)
                     ambiguous_unqualified.add(unqualified_key)
+
+        if existing_instrument.domain_key:
+            domain_key = str(existing_instrument.domain_key).strip().lower()
+            previous_domain_owner = domain_owner_by_key.get(domain_key)
+            if previous_domain_owner is None:
+                domain_owner_by_key[domain_key] = existing_instrument
+            elif previous_domain_owner is not existing_instrument:
+                domain_owner_by_key.pop(domain_key, None)
+                ambiguous_domain_keys.add(domain_key)
+
+    existing_identifiers = (
+        (
+            await db.execute(
+                select(InstrumentIdentifier)
+                .options(selectinload(InstrumentIdentifier.instrument))
+                .where(InstrumentIdentifier.is_active.is_(True))
+            )
+        )
+        .scalars()
+        .unique()
+        .all()
+    )
+    for identifier in existing_identifiers:
+        if identifier.identifier_type == InstrumentIdentifierType.INTERNAL:
+            continue
+        owner = identifier.instrument
+        if owner is None or owner.is_synthetic:
+            continue
+        value = normalize_identifier_value(identifier.identifier_value)
+        if not value:
+            continue
+        _add_unique_stable_candidate(
+            stable_owner_by_key,
+            ambiguous_stable_keys,
+            (identifier.identifier_type, value),
+            owner,
+        )
 
     created = 0
     updated = 0
@@ -461,13 +561,55 @@ async def seed_universe(db: AsyncSession) -> dict:
                     qualified_key = (symbol_key, exchange_mic, type_id)
                     symbol_type_key = (symbol_key, type_id)
 
+                    stable_identifiers = _seed_stable_identifiers(q)
+                    stable_identifier_conflict = any(
+                        not value for value in stable_identifiers.values()
+                    )
+                    stable_owner_candidates: set[Instrument] = set()
+                    stable_key_ambiguous = stable_identifier_conflict
+                    for identifier_type, identifier_value in stable_identifiers.items():
+                        if not identifier_value:
+                            continue
+                        stable_key = (identifier_type, identifier_value)
+                        if stable_key in ambiguous_stable_keys:
+                            stable_key_ambiguous = True
+                            continue
+                        owner = stable_owner_by_key.get(stable_key)
+                        if owner is not None:
+                            stable_owner_candidates.add(owner)
+
+                    stable_values = {
+                        identifier_type: identifier_value
+                        for identifier_type, identifier_value in stable_identifiers.items()
+                        if identifier_value
+                    }
+                    observed_domain_key = choose_domain_key(stable_values)
+                    if observed_domain_key is not None:
+                        observed_domain_key = observed_domain_key.lower()
+                        if observed_domain_key in ambiguous_domain_keys:
+                            stable_key_ambiguous = True
+                        else:
+                            owner = domain_owner_by_key.get(observed_domain_key)
+                            if owner is not None:
+                                stable_owner_candidates.add(owner)
+
+                    if stable_key_ambiguous or len(stable_owner_candidates) > 1:
+                        logger.warning(
+                            "seed_universe: conflicting stable identity for %s via %s; "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            page_provider_name,
+                        )
+                        continue
+                    stable_owner = next(iter(stable_owner_candidates), None)
+
                     # Prefer an exact venue/type match.  A venue-less legacy
                     # listing may be enriched only when it is the sole
                     # unqualified candidate and no known venue already claims
                     # this symbol/type.  Never fall back from one known venue
                     # to another, and never select an arbitrary duplicate.
                     inst = existing_by_key.get(qualified_key)
-                    if qualified_key in ambiguous_keys:
+                    if qualified_key in ambiguous_keys and stable_owner is None:
                         logger.warning(
                             "seed_universe: local identity ambiguity for %s (%s/%s); "
                             "retaining discovery snapshot without promotion",
@@ -476,7 +618,28 @@ async def seed_universe(db: AsyncSession) -> dict:
                             quote_type,
                         )
                         continue
-                    if inst is None and symbol_type_key not in ambiguous_unqualified:
+                    if stable_owner is not None and stable_owner.instrument_type_id != type_id:
+                        logger.warning(
+                            "seed_universe: stable identity for %s belongs to a different "
+                            "instrument type; retaining discovery snapshot without promotion",
+                            symbol,
+                        )
+                        continue
+                    if inst is not None and stable_owner is not None and inst is not stable_owner:
+                        logger.warning(
+                            "seed_universe: venue and stable identity disagree for %s via %s; "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            page_provider_name,
+                        )
+                        continue
+                    if stable_owner is not None:
+                        inst = stable_owner
+                    if (
+                        inst is None
+                        and not stable_identifiers
+                        and symbol_type_key not in ambiguous_unqualified
+                    ):
                         if exchange_mic is None or symbol_type_key not in known_venue_symbol_types:
                             inst = unqualified_by_symbol_type.get(symbol_type_key)
 
@@ -589,6 +752,47 @@ async def seed_universe(db: AsyncSession) -> dict:
                         known_at=fetched_at,
                         delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
                     )
+                    for index, (identifier_type, identifier_value) in enumerate(
+                        stable_values.items()
+                    ):
+                        await register_identifier(
+                            db,
+                            inst,
+                            page_provider_name,
+                            IdentifierRecord(
+                                identifier_type=identifier_type.value,
+                                identifier_value=identifier_value,
+                                is_primary=index == 0,
+                                source=page_provider_name,
+                            ),
+                        )
+                    if stable_values and not inst.domain_key:
+                        await apply_domain_identity(
+                            db,
+                            inst,
+                            identifiers=stable_values,
+                            provider_name=page_provider_name,
+                            provider_symbol=symbol,
+                            exchange_mic=exchange_mic,
+                            candidate_payload=q,
+                        )
+                    for identifier_type, identifier_value in stable_values.items():
+                        _add_unique_stable_candidate(
+                            stable_owner_by_key,
+                            ambiguous_stable_keys,
+                            (identifier_type, identifier_value),
+                            inst,
+                        )
+                    if (
+                        observed_domain_key is not None
+                        and observed_domain_key not in ambiguous_domain_keys
+                    ):
+                        previous_domain_owner = domain_owner_by_key.get(observed_domain_key)
+                        if previous_domain_owner is None or previous_domain_owner is inst:
+                            domain_owner_by_key[observed_domain_key] = inst
+                        else:
+                            domain_owner_by_key.pop(observed_domain_key, None)
+                            ambiguous_domain_keys.add(observed_domain_key)
                     await _upsert_stats(db, inst, q, source_provider=page_provider_name)
                     await ensure_internal_identifier(db, inst)
 
