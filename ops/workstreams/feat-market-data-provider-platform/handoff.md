@@ -676,3 +676,12 @@ Update this handoff at each coherent boundary.
   `1,828/1,828` passed with the repository's known 37 warnings. No provider
   calls or services were started; source commit `cfb5e8c6` remains clean under
   the focused static checks.
+- Latest-price refreshes now use the same keyed process gate and opt-in
+  tokenized Redis coordinator as OHLCV refreshes. The cache is rechecked while
+  ownership is held before any provider call, and alert-worker preflight passes
+  its ARQ Redis client explicitly. Focused latest-price/alert coverage passes
+  `42/42`; the complete backend unit suite passes `1,832/1,832` with the
+  repository's known 37 warnings, and Ruff, compileall, and diff checks pass.
+  Source commit `f32d93a4` is pushed; no provider calls or services were
+  started. The independent-client Redis contention regression remains blocked
+  only by unavailable Docker and is not represented as passed evidence.

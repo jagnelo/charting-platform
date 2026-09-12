@@ -772,6 +772,16 @@ progress:
       fixes: `1,828/1,828` passed with the repository's known 37 warnings.
       No provider calls or services were started, and the source commit
       `cfb5e8c6` remains clean under the focused static checks.
+    - >-
+      Latest-price refreshes now participate in the same keyed process gate and
+      opt-in tokenized Redis coordinator as OHLCV refreshes. The refresh path
+      rechecks the cache while holding ownership before calling a provider, and
+      alert-worker preflight forwards its ARQ Redis client explicitly. Focused
+      latest-price/alert coverage passes `42/42`; the complete backend unit
+      suite passes `1,832/1,832` with the repository's known 37 warnings, and
+      Ruff, compileall, and diff checks pass. Source commit `f32d93a4` is
+      pushed; no provider calls or services were started. The independent-client
+      Redis contention test remains Docker-gated.
   total: 15
   current_phase: cross_host_refresh_coordination
   current_blocker: >-
@@ -808,5 +818,7 @@ progress:
     FINRA, Tiingo, and FMP are guarded by conservative decimal-byte ceilings
     with an explicit contract basis rather than an assumed binary conversion.
     Production provider-rate seeds are also regression-guarded against the
-    retired generic cooldown, concurrency, and burst defaults.
+    retired generic cooldown, concurrency, and burst defaults. Latest-price
+    refresh coalescing is now covered at the process and explicit Redis-client
+    boundaries, but its cross-process contention proof still requires Docker.
   next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
