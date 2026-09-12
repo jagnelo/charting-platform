@@ -13,8 +13,10 @@ columns use their canonical key automatically.
 Full frontend Vitest remained `1002/1002` across `113` files; frontend
 type-check, Ruff/format, and diff checks passed. No backend contract, visual
 baseline, mask, threshold, skip, provider, fallback, or acceptance policy
-changed. The latest exact gate at product tip `1152b4e3` remains blocked at
-`backend-coverage` by Docker `/v1.55/info` HTTP 500 after 180 seconds.
+changed. The exact gate was rerun at product tip `385faf40` and stopped at
+`backend-coverage` after the 180-second Docker readiness window because Docker
+`/v1.55/info` returned HTTP 500; no backend integration, provider, browser, or
+visual stage ran.
 
 Checkpoint scope: `frontend/src/components/workstation/WorkstationToolContent.vue`
 and these roadmap/TODO records. Rerun the exact gate at the new product tip

@@ -9,9 +9,13 @@
       behavior. Full frontend Vitest remained `1002/1002` across `113` files;
       type-check, Ruff/format, and diff checks passed. No backend, visual,
       provider, fallback, or acceptance policy changed.
-- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate at the
-      new product tip, then continue provider/history or another compatible
-      chart/list/gauge seam.
+- [x] Reran the exact branch-scoped gate at product tip `385faf40`. Repository,
+      dependency, migration, frontend-preparation, and lint stages passed;
+      `backend-coverage` stopped after the 180-second Docker readiness window
+      because Docker Desktop `/v1.55/info` returned HTTP 500. No later stage
+      ran and no product or visual failure was observed.
+- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate, then
+      continue provider/history or another compatible chart/list/gauge seam.
 
 ### 2026-09-12 — Chart Plot Library exposes explicit multi-output selection
 
