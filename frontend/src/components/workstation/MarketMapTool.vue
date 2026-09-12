@@ -1589,36 +1589,46 @@ async function loadSnapshot() {
 
 async function saveSnapshot() {
   if (!map.value || !snapshotName.value.trim() || snapshotLoading.value) return
+  const generation = ++snapshotGeneration
+  const cacheKey = map.value.cache_key
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
-    const snapshot = await saveMarketMapSnapshot(snapshotName.value.trim(), map.value.cache_key)
+    const snapshot = await saveMarketMapSnapshot(snapshotName.value.trim(), cacheKey)
+    if (!componentMounted || generation !== snapshotGeneration || map.value?.cache_key !== cacheKey) return
     snapshots.value = [snapshot, ...snapshots.value.filter(item => item.id !== snapshot.id)]
     snapshotSelectionId.value = String(snapshot.id)
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to save Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to save Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 
 async function deleteSnapshot() {
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0 || snapshotLoading.value) return
+  const generation = ++snapshotGeneration
+  const selectionId = String(snapshotId)
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
     await deleteMarketMapSnapshot(snapshotId)
+    if (!componentMounted || generation !== snapshotGeneration || snapshotSelectionId.value !== selectionId) return
     snapshots.value = snapshots.value.filter(item => item.id !== snapshotId)
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     snapshotName.value = ''
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === selectionId) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 

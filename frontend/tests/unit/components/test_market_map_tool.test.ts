@@ -795,6 +795,39 @@ describe('MarketMapTool', () => {
     wrapper.unmount()
   })
 
+  it('does not publish a snapshot save after a newer map refresh', async () => {
+    const saved = { id: 14, name: 'Prior map', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: response.cache_key, snapshot_hash: 'e'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: response }
+    let resolveSave!: (value: typeof saved) => void
+    const saveResult = new Promise<typeof saved>(resolve => { resolveSave = resolve })
+    let mapRuns = 0
+    apiGet.mockResolvedValue([])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map') {
+        mapRuns += 1
+        return Promise.resolve(mapRuns === 1 ? response : { ...response, cache_key: 'refreshed-map-cache' })
+      }
+      if (path === '/analysis/market-map/snapshots') return saveResult
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await vi.waitFor(() => expect(mapRuns).toBeGreaterThan(0))
+    await flushPromises()
+    const initialMapRuns = mapRuns
+
+    await wrapper.get('[aria-label="Market Map snapshot name"]').setValue('Prior map')
+    await wrapper.findAll('button').find(button => button.text() === 'Save snapshot')!.trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/analysis/market-map/snapshots', { name: 'Prior map', cache_key: response.cache_key }))
+
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await vi.waitFor(() => expect(mapRuns).toBe(initialMapRuns + 1))
+    resolveSave(saved)
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('')
+    expect(wrapper.text()).not.toContain('Snapshot · Prior map')
+    wrapper.unmount()
+  })
+
   it('exports the current source-agnostic map cells as CSV', async () => {
     const createObjectURL = vi.fn(() => 'blob:market-map')
     const revokeObjectURL = vi.fn()
