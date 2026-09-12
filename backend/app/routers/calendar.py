@@ -11,12 +11,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent
 from app.models.user import User
@@ -45,6 +46,10 @@ class CalendarEvent(BaseModel):
     time_hint: str
     source: str
     is_estimate: bool = False
+
+    @field_serializer("event_time", "fetched_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
 
 
 def _as_utc(value: datetime | None) -> datetime | None:

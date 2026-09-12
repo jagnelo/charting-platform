@@ -7,6 +7,8 @@ from app.models.radar import (
     RadarSetupType,
     RadarState,
 )
+from app.routers.calendar import CalendarEvent
+from app.routers.indicator_alerts import IndicatorAlertOut as LegacyIndicatorAlertOut
 from app.schemas.basket import BasketMemberOut, BasketOut, BasketSnapshotOut
 from app.schemas.dashboard import DashboardOut, DashboardTabOut, DashboardWidgetOut
 from app.schemas.drawing import ChartDrawingOut
@@ -270,3 +272,38 @@ def test_market_map_responses_use_canonical_timestamp_wire_format():
     _assert_utc_z(market_map_payload, "period_start", "period_end", "cached_at")
     _assert_utc_z(market_map_payload["cells"][0], "observation_time")
     _assert_utc_z(snapshot.model_dump(mode="json"), "created_at", "updated_at")
+
+
+def test_calendar_and_legacy_indicator_alert_responses_use_canonical_timestamps():
+    calendar_event = CalendarEvent(
+        id=1,
+        date="2026-01-02",
+        event_time=OFFSET_STAMP,
+        fetched_at=STAMP,
+        event_type="earnings",
+        symbol="TEST",
+        title="Earnings",
+        time_hint="before_open",
+        source="provider",
+    )
+    indicator_alert = LegacyIndicatorAlertOut(
+        id=2,
+        instrument_id=3,
+        timeframe=Timeframe.D1,
+        indicator_type="rsi",
+        indicator_params={},
+        condition="crosses_above",
+        threshold_value=None,
+        compare_indicator_type=None,
+        compare_indicator_params=None,
+        status="active",
+        repeat=False,
+        notes=None,
+        triggered_at=OFFSET_STAMP,
+        trigger_count=0,
+        last_indicator_value=None,
+        created_at=STAMP,
+    )
+
+    _assert_utc_z(calendar_event.model_dump(mode="json"), "event_time", "fetched_at")
+    _assert_utc_z(indicator_alert.model_dump(mode="json"), "triggered_at", "created_at")
