@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Exact full-stack gate rechecked at provider-factor refresh tip
+
+At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip
+`efff81c9f`), the exact branch-scoped gate passed locked dependency and
+migration checks, Ruff check/format, TypeScript, backend unit (`1530/1530`),
+backend integration (`404/404`, `81.98%` combined coverage), frontend unit
+(`1067/1067`), research-runner sandbox/resource probes, and functional E2E
+(`165 passed`, `107 skipped`). Visual acceptance remains `98/104` with only
+the six unchanged protected watchlist-column-editor and workspace-floating
+diffs. The stack, volumes, and four built images were cleaned. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed; this receipt does not waive provider completeness, bar floors, or the
+remaining V25 acceptance work.
+
 ## 2026-09-12 — Backfill uses the latest-known effective disclosure
 
 The scheduled benchmark-family member-history maintenance contract now

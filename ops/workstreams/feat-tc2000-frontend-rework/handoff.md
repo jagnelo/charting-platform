@@ -2,6 +2,21 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact gate at provider-factor refresh tip
+
+At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip
+`efff81c9f`), the exact branch-scoped `full_stack_browser` gate passed locked
+dependency and migration checks, Ruff check/format, TypeScript, backend unit
+(`1530/1530`), backend integration (`404/404`, `81.98%` combined coverage),
+frontend unit (`1067/1067`), research-runner sandbox/resource probes, and
+functional E2E (`165 passed`, `107 skipped`). Visual E2E passed `98/104`; the
+six unchanged protected diffs are watchlist-column-editor at 1080p 100/125 and
+workspace-floating at 1080p 100/125 and 1440p 100/125. The branch-scoped
+stack, volumes, and four built images were cleaned. No visual threshold, mask,
+skip, provider, fallback, migration, or acceptance rule changed. Continue the
+next bounded canonical provider/history or compatible R4/R2–R7 seam;
+provider population, bar floors, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-12 — Snapshot backfill collapses same-date revisions
 
 Product commit `07c62953e` makes the scheduled benchmark-family member-history
