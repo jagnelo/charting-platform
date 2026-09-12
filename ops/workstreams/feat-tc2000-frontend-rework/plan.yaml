@@ -13,6 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest exact-tip full_stack_browser gate at product tip d0bdba6d1 completed
+  all repository, dependency, backend, research-runner, functional browser,
+  and visual stages. It passed 165 functional cases (107 documented skips) and
+  98/104 visual assertions; the only failures are the six unchanged protected
+  watchlist-column-editor/workspace-floating baselines. Docker resources were
+  cleaned. Provider population/history, bar floors, and AC2–AC7/AC10 remain
+  open; no visual, provider, fallback, migration, or acceptance policy changed.
+  Historical receipts follow.
   Product commit 94f451e0 fences Market Map locked-source publication across
   its API write, source reload, source selection, and rerun by mounted
   publication generation; focused Market Map coverage passed 49/49 and full

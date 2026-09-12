@@ -12,6 +12,20 @@ units pass `1531/1531` at 69.01% total coverage; Ruff, format, and diff checks
 pass. No provider, fallback, migration, visual, or acceptance rule changed;
 provider completeness, bar floors, and the remaining V25 gates remain open.
 
+## 2026-09-12 — Exact full-stack gate at event-first provider-factor tip
+
+At product tip `d0bdba6d1`, the exact branch-scoped gate passed repository and
+workstream validation, locked dependencies and migration checks, Ruff
+check/format, TypeScript, backend unit (`1531/1531`), backend integration
+(`404/404`, `81.97%` combined coverage), research-runner sandbox/resource
+probes, and functional E2E (`165 passed`, `107 skipped`). Visual E2E passed
+`98/104`; the six unchanged protected diffs remain watchlist-column-editor at
+1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p 100/125. The
+branch-scoped stack, volumes, and four built images were cleaned. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed. This receipt does not waive provider completeness, bar floors, or the
+remaining Version 25 acceptance work.
+
 ## 2026-09-12 — Exact full-stack gate rechecked at provider-factor refresh tip
 
 At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip
