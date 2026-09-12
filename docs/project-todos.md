@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-12 — Provider adapter log redaction
+
+- [x] Route transport exception text through the shared credential redactor in
+      Alpaca, Binance, and legacy yfinance adapter logs. All provider unit tests
+      pass 369/369; the full backend unit suite passes 1739/1739 with Ruff,
+      compilation, and diff checks clean.
+
 ### 2026-09-12 — Provider-run diagnostic error redaction
 
 - [x] Extend credential redaction to the durable instrument-sync and US-universe

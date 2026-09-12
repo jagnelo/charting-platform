@@ -19,6 +19,7 @@ from app.providers.base import (
     OptionContractRecord,
     ProviderSearchResult,
 )
+from app.providers.errors import redact_provider_message
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +271,7 @@ class YFinanceProvider:
                 if q.get("symbol")
             ]
         except Exception as exc:
-            logger.error("Ticker search failed for '%s': %s", query, exc)
+            logger.error("Ticker search failed for '%s': %s", query, redact_provider_message(exc))
             return []
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
@@ -279,9 +280,9 @@ class YFinanceProvider:
         except Exception as exc:
             message = str(exc)
             if "Quote not found for symbol" in message or "HTTP Error 404" in message:
-                logger.debug("yfinance profile miss for %s: %s", symbol, exc)
+                logger.debug("yfinance profile miss for %s: %s", symbol, redact_provider_message(exc))
             else:
-                logger.error("Failed to get info for %s: %s", symbol, exc)
+                logger.error("Failed to get info for %s: %s", symbol, redact_provider_message(exc))
             return None
         if not info:
             return None
@@ -350,7 +351,7 @@ class YFinanceProvider:
                 actions=False,
             )
         except Exception as exc:
-            logger.error("yfinance fetch failed for %s: %s", symbol, exc)
+            logger.error("yfinance fetch failed for %s: %s", symbol, redact_provider_message(exc))
             return []
 
         if df is None or df.empty:
@@ -411,7 +412,7 @@ class YFinanceProvider:
             fast_info = ticker.fast_info
             return float(fast_info.last_price) if hasattr(fast_info, "last_price") else None
         except Exception as exc:
-            logger.error("Failed to get price for %s: %s", symbol, exc)
+            logger.error("Failed to get price for %s: %s", symbol, redact_provider_message(exc))
             return None
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
@@ -487,7 +488,7 @@ class YFinanceProvider:
                         )
                     )
         except Exception as exc:
-            logger.debug("yfinance calendar fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance calendar fetch failed for %s: %s", symbol, redact_provider_message(exc))
 
         try:
             get_earnings_dates = getattr(ticker, "get_earnings_dates", None)
@@ -502,13 +503,13 @@ class YFinanceProvider:
                     if seen < limit or added == 0:
                         break
         except Exception as exc:
-            logger.debug("yfinance get_earnings_dates fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance get_earnings_dates fetch failed for %s: %s", symbol, redact_provider_message(exc))
 
         try:
             earnings = ticker.earnings_dates
             _append_earnings_events(symbol, earnings, fetched_at, events)
         except Exception as exc:
-            logger.debug("yfinance earnings_dates fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance earnings_dates fetch failed for %s: %s", symbol, redact_provider_message(exc))
 
         try:
             divs = ticker.dividends
@@ -533,7 +534,7 @@ class YFinanceProvider:
                             )
                         )
         except Exception as exc:
-            logger.debug("yfinance dividends fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance dividends fetch failed for %s: %s", symbol, redact_provider_message(exc))
 
         try:
             splits = ticker.splits
@@ -559,7 +560,7 @@ class YFinanceProvider:
                         )
                     )
         except Exception as exc:
-            logger.debug("yfinance splits fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance splits fetch failed for %s: %s", symbol, redact_provider_message(exc))
 
         deduped: dict[str, InstrumentEventRecord] = {}
         for event in events:
@@ -571,7 +572,7 @@ class YFinanceProvider:
         try:
             value = yf.Ticker(symbol).isin
         except Exception as exc:
-            logger.debug("yfinance ISIN fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance ISIN fetch failed for %s: %s", symbol, redact_provider_message(exc))
             value = None
         if value and value not in ("-", "None", ""):
             identifiers.append(
@@ -588,7 +589,7 @@ class YFinanceProvider:
         try:
             expirations = yf.Ticker(symbol).options or []
         except Exception as exc:
-            logger.debug("yfinance option expirations fetch failed for %s: %s", symbol, exc)
+            logger.debug("yfinance option expirations fetch failed for %s: %s", symbol, redact_provider_message(exc))
             return []
 
         parsed: list[date] = []
@@ -619,7 +620,7 @@ class YFinanceProvider:
                 "yfinance option chain fetch failed for %s %s: %s",
                 symbol,
                 expiration.isoformat(),
-                exc,
+                redact_provider_message(exc),
             )
             return []
 
@@ -710,7 +711,7 @@ class YFinanceProvider:
                 "yfinance screener page failed (type=%s offset=%d): %s",
                 quote_type,
                 offset,
-                exc,
+                redact_provider_message(exc),
             )
             return {}
 

@@ -36,6 +36,7 @@ from app.providers.errors import (
     ProviderResponseError,
     provider_response_headers,
     raise_for_provider_error_envelope,
+    redact_provider_message,
 )
 from app.providers.telemetry import observe_response
 
@@ -145,7 +146,9 @@ class BinanceProvider:
                     status_code=r.status_code,
                 ) from exc
             except httpx.RequestError as exc:
-                logger.warning("binance fetch_ohlcv %s: %s", symbol, exc)
+                logger.warning(
+                    "binance fetch_ohlcv %s: %s", symbol, redact_provider_message(exc)
+                )
                 raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
             except (TypeError, ValueError, IndexError, KeyError, OverflowError, OSError) as exc:
                 raise ProviderResponseError("binance", f"malformed klines response: {exc}") from exc
@@ -252,7 +255,7 @@ class BinanceProvider:
                 status_code=r.status_code,
             ) from exc
         except httpx.RequestError as exc:
-            logger.debug("binance get_current_price %s: %s", symbol, exc)
+            logger.debug("binance get_current_price %s: %s", symbol, redact_provider_message(exc))
             raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
         except (TypeError, ValueError, KeyError, OverflowError) as exc:
             raise ProviderResponseError("binance", f"malformed ticker response: {exc}") from exc
@@ -388,7 +391,7 @@ def _cached_usdt_pairs() -> list[dict]:
             status_code=r.status_code,
         ) from exc
     except httpx.RequestError as exc:
-        logger.warning("binance _cached_usdt_pairs: %s", exc)
+        logger.warning("binance _cached_usdt_pairs: %s", redact_provider_message(exc))
         raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
     except (TypeError, ValueError, KeyError) as exc:
         raise ProviderResponseError("binance", f"malformed exchange-info response: {exc}") from exc

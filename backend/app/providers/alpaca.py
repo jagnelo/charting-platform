@@ -29,7 +29,11 @@ from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentEventRecord
-from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderResponseError,
+    redact_provider_message,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -280,7 +284,7 @@ class AlpacaProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
         except KeyError as exc:
-            logger.debug("alpaca get_current_price %s: %s", symbol, exc)
+            logger.debug("alpaca get_current_price %s: %s", symbol, redact_provider_message(exc))
             return None
 
     # ── Corporate Actions (Events) ────────────────────────────────────────────

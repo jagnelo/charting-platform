@@ -312,6 +312,7 @@ progress:
     - refresh-job retry errors are redacted before durable persistence and again at the admin-read boundary, covering unexpected transport exception text as well as typed provider failures; focused queue/admin coverage passes 8/8 and the full backend unit suite passes 1735/1735
     - provider-availability and instrument/provider-support diagnostic errors are now bounded and credential-redacted before persistence, covering unexpected transport exceptions as well as typed provider failures; focused provider/queue/admin coverage passes 19/19 and the full backend unit suite passes 1737/1737
     - instrument-sync and US-universe reconciliation run errors, plus their provider-failure log messages, now use the same bounded credential-redaction boundary; affected provider/run coverage passes 24/24 and the full backend unit suite passes 1739/1739 with static checks clean
+    - Alpaca, Binance, and legacy yfinance transport-exception logs now use the shared credential redactor; all provider unit tests pass 369/369 and the full backend unit suite remains at 1739/1739 with static checks clean
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
