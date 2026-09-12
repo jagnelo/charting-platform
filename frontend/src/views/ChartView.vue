@@ -283,6 +283,12 @@ const comparisonTargets = ref<Array<{
   bars: OHLCVBar[]
 }>>([])
 let comparisonSeq = 0
+let selectionGeneration = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const COMPARE_COLORS = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
 
@@ -399,6 +405,7 @@ function removeComparison(symbol: string) {
 
 async function loadComparisonBars() {
   if (!chartStore.symbol || !comparisonTargets.value.length) return
+  const generation = lifecycleGeneration
   const seq = ++comparisonSeq
   const tf = currentTf.value
   const targets = [...comparisonTargets.value]
@@ -422,7 +429,7 @@ async function loadComparisonBars() {
       return { symbol: target.symbol, bars: [] as OHLCVBar[] }
     }
   }))
-  if (seq !== comparisonSeq) return
+  if (!isCurrentLifecycle(generation) || seq !== comparisonSeq) return
   comparisonTargets.value = comparisonTargets.value.map(target => ({
     ...target,
     bars: loaded.find(item => item.symbol === target.symbol)?.bars ?? [],
@@ -430,6 +437,9 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
+  const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
   if (chartStore.symbol !== symbol) {
     radarStore.clearChartDetections()
   }
@@ -442,15 +452,19 @@ async function onSymbolSelect(symbol: string) {
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value)
+    if (!isCurrentSelection()) return
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
+      if (!isCurrentSelection()) return
       await alertsStore.loadAlerts(inst.id)
+      if (!isCurrentSelection()) return
       const def = presetsStore.getDefault()
       if (def) chartStore.setIndicators([...def.indicators])
     }
     lastClose.value = currentPrice.value
     await loadComparisonBars()
+    if (!isCurrentSelection()) return
     await syncRadarOverlays()
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
@@ -461,18 +475,23 @@ async function onSymbolSelect(symbol: string) {
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
       await pStore.loadBars(symbol, p.timeframe)
+      if (!isCurrentSelection()) return
     }
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
       await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
+      if (!isCurrentSelection()) return
       await alertsStore.loadAlerts(activeInst.id)
+      if (!isCurrentSelection()) return
     }
     await syncRadarOverlays()
   }
 }
 
 async function syncRadarOverlays() {
+  const generation = lifecycleGeneration
+  if (!isCurrentLifecycle(generation)) return
   if (!chartStore.instrument) {
     radarStore.clearChartDetections()
     return
@@ -482,6 +501,7 @@ async function syncRadarOverlays() {
     chartStore.instrument.symbol,
   )
   await radarStore.loadChartDetections(chartStore.instrument.id, chartStore.timeframe, detectionId)
+  if (!isCurrentLifecycle(generation)) return
 }
 
 function stripLegacyRadarDetectionQuery() {
@@ -492,13 +512,17 @@ function stripLegacyRadarDetectionQuery() {
 }
 
 watch(currentTf, async (tf) => {
+  const generation = lifecycleGeneration
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
   await chartStore.loadBars(chartStore.symbol, tf)
+  if (!isCurrentLifecycle(generation)) return
   const inst = chartStore.instrument
   if (inst) {
     await drawStore.loadDrawings(inst.id, tf)
+    if (!isCurrentLifecycle(generation)) return
     await alertsStore.loadAlerts(inst.id)
+    if (!isCurrentLifecycle(generation)) return
   }
   await loadComparisonBars()
   await syncRadarOverlays()
@@ -510,23 +534,27 @@ watch(() => chartStore.bars.length, () => {
 
 // When switching from single to multi-panel, carry the current symbol into all panels
 watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
+  const generation = lifecycleGeneration
   if (oldLayout === '1' && newLayout !== '1' && chartStore.symbol) {
     for (const p of layoutStore.panels) {
       if (!p.linkedToGlobal) continue
       layoutStore.updatePanel(p.id, { symbol: chartStore.symbol })
       const pStore = usePanelStore(p.id)
       await pStore.loadBars(chartStore.symbol, p.timeframe)
+      if (!isCurrentLifecycle(generation)) return
     }
   }
 })
 
 // When the active panel changes in multi-panel mode, sync drawings and alerts to that panel
 watch(() => layoutStore.activePanelId, async (panelId) => {
+  const generation = lifecycleGeneration
   if (layoutStore.layout === '1') return
   const pStore = usePanelStore(panelId)
   const inst = pStore.instrument
   if (inst) {
     await drawStore.loadDrawings(inst.id, pStore.timeframe)
+    if (!isCurrentLifecycle(generation)) return
     await alertsStore.loadAlerts(inst.id)
   }
 })
@@ -575,8 +603,10 @@ async function confirmCreateWatchlist(name: string) {
 }
 
 onMounted(async () => {
+  const generation = lifecycleGeneration
   document.addEventListener('click', onDocClick, true)
   await presetsStore.loadPresets()
+  if (!isCurrentLifecycle(generation)) return
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
   const pending = radarStore.pendingChartDetection
@@ -589,6 +619,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  lifecycleGeneration += 1
+  selectionGeneration += 1
+  comparisonSeq += 1
   document.removeEventListener('click', onDocClick, true)
   radarStore.clearPendingChartDetection()
 })

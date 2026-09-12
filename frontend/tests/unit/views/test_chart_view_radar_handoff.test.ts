@@ -156,4 +156,62 @@ describe('ChartView radar handoff', () => {
     expect(radarStore.activeChartDetectionIds).toEqual([42])
     expect(radarStore.focusedChartDetectionId).toBe(42)
   })
+
+  it('does not publish detached drawing state after a symbol load finishes', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const chartStore = useChartStore()
+    const drawStore = useDrawingsStore()
+    const alertsStore = useAlertsStore()
+    const layoutStore = useLayoutStore()
+    const optionsExposureStore = useOptionsExposureStore()
+    const presetsStore = usePresetsStore()
+    const radarStore = useRadarStore()
+    layoutStore.layout = '1'
+
+    let resolveBars!: () => void
+    const barsLoaded = new Promise<void>(resolve => {
+      resolveBars = resolve
+    })
+    vi.spyOn(chartStore, 'loadBars').mockImplementation(async (symbol: string) => {
+      await barsLoaded
+      chartStore.symbol = symbol
+      chartStore.instrument = { id: 7, symbol, name: 'Tesla', is_active: true, currency: 'USD' }
+    })
+    const loadDrawingsSpy = vi.spyOn(drawStore, 'loadDrawings').mockImplementation(async () => {})
+    vi.spyOn(alertsStore, 'loadAlerts').mockImplementation(async () => {})
+    vi.spyOn(optionsExposureStore, 'load').mockImplementation(async () => {})
+    vi.spyOn(optionsExposureStore, 'reset').mockImplementation(() => {})
+    vi.spyOn(presetsStore, 'loadPresets').mockImplementation(async () => {})
+    vi.spyOn(presetsStore, 'getDefault').mockImplementation(() => null)
+    vi.spyOn(radarStore, 'loadChartDetections').mockImplementation(async () => [])
+
+    const wrapper = mount(ChartView, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          SearchBar: { template: '<div />' },
+          TimeframeSelector: { template: '<div />' },
+          LayoutPicker: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' },
+          IndicatorPanel: { template: '<div />' },
+          WatchlistPanel: { template: '<div />' },
+          ResizeHandle: { template: '<div />' },
+          TextPromptModal: { template: '<div />' },
+          OptionsChainPanel: { template: '<div />' },
+          OptionsExposurePanel: { template: '<div />' },
+          MultiChartLayout: { template: '<div />' },
+          UPlotChart: { template: '<div />' },
+        },
+      },
+    })
+
+    const selection = (wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }).onSymbolSelect('TSLA')
+    await Promise.resolve()
+    wrapper.unmount()
+    resolveBars()
+    await selection
+
+    expect(loadDrawingsSpy).not.toHaveBeenCalled()
+  })
 })
