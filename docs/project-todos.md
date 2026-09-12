@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Options reads use typed canonical response contracts
+
+- [x] Add typed expiration, chain, contract-summary, snapshot, and
+      quote-history response models with canonical UTC `Z` observation
+      timestamps (`6fb7ca7b`).
+- [x] Focused options-schema coverage passed `2/2`; full backend unit
+      coverage passed `1504/1504` at `68.81%`; Ruff, formatting, and diff
+      checks passed.
+- [ ] Run the exact branch-scoped gate at this product tip, then continue
+      provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Exact history-progress gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `65e14448`; all

@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Options reads use typed canonical response contracts
+
+Product commit `6fb7ca7b` closes the options read-boundary gap. Expiration,
+chain, contract-summary, snapshot, and quote-history endpoints now use typed
+provider-neutral response models; chain and quote observation timestamps emit
+canonical UTC `Z` values while date fields retain their existing ISO date
+shape. The frontend payload shape and provider/persistence behavior are
+unchanged.
+
+Focused options-schema coverage passed `2/2`; the full backend unit suite
+passed `1504/1504` at `68.81%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this new
+product tip.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Run the exact gate, then continue the next bounded
+provider/history or compatible chart/list/gauge seam while preserving the six
+protected visual state-oracle diffs and the no-integration/no-promotion/no-
+deployment boundary.
+
 ## 2026-09-12 — Exact history-progress gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `65e14448` after the

@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Options reads use typed canonical response contracts
+
+Product commit `6fb7ca7b` adds provider-neutral response models for options
+expirations, chains, contract summaries, snapshots, and quote history. Chain
+and quote observation timestamps now emit canonical UTC `Z` values; date fields
+retain their existing ISO date shape, and provider/persistence behavior is
+unchanged.
+
+Focused options-schema coverage passed `2/2`; the full backend unit suite
+passed `1504/1504` at `68.81%` coverage; Ruff, formatting, and diff checks
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. The exact branch gate is pending at this product
+tip.
+
+Checkpoint scope: `backend/app/schemas/options.py`,
+`backend/app/routers/options.py`, and
+`backend/tests/unit/services/test_options_schemas.py`. Run the exact gate,
+then advance the next bounded provider/history or compatible chart/list/gauge
+seam. Do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Exact history-progress gate rechecked
 
 The exact gate was rerun at product tip `65e14448` after the history-progress
