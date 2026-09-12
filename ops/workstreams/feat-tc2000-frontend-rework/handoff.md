@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize Study Lab timeline points
+
+Product commit `40b8db13` normalizes dense Study Lab bar timestamps and
+trade/open-position event keys onto the shared UTC-`Z` timeline. Date-only
+fallbacks, position identity, P&L, and event semantics are unchanged.
+
+Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact Study Lab fallback timing gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `780ef1e3` after the

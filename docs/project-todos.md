@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize Study Lab timeline points
+
+- [x] Normalize dense Study Lab bar timestamps and trade/open-position event
+      keys to the shared UTC-`Z` timeline (`40b8db13`) without changing
+      date-only fallbacks, position identity, P&L, or event semantics.
+- [x] Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact Study Lab fallback timing gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `780ef1e3`; repository/workstream,
