@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize provider observability timelines
+
+- [x] Normalize provider usage window/lifecycle timestamps, hourly/daily bucket
+      starts, and provider-observation retention summaries through the shared
+      UTC-`Z` serializer (`51e04a00`) without changing provider semantics.
+- [x] Focused provider usage/maintenance coverage passed `4/4`; full backend
+      unit coverage passed `1506/1506` at `68.83%`; Ruff, formatting, and diff
+      checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact analytics-tip gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `a959dcaf` after the

@@ -13,6 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 51e04a00 canonicalizes provider usage windows, lifecycle
+  timestamps, hourly/daily bucket starts, and provider-observation retention
+  summaries through the shared UTC Z wire serializer. Focused provider
+  usage/maintenance coverage passed 4/4; the full backend unit suite passed
+  1506/1506 at 68.83% coverage; Ruff, formatting, and git diff --check passed.
+  The exact branch-scoped gate is pending at this coherent product tip. No
+  visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+  policy changed. Run the exact gate, then continue the next bounded
+  provider/history or compatible chart/list/gauge seam while preserving the
+  six protected visual state-oracle diffs and the no-integration/no-deployment
+  boundary.
   Product commits 1607f017 and a959dcaf canonicalize Market Map profile/cache
   provenance and breadth occurrence identifiers through the shared UTC Z wire
   serializer. Focused Market Map coverage passed 10/10 and breadth coverage

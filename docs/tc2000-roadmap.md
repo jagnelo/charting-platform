@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize provider observability timelines
+
+Product commit `51e04a00` closes a provider-readiness contract gap in the
+Settings/operator read models. Provider usage windows, lifecycle timestamps,
+hourly/daily bucket starts, and provider-observation retention summaries now
+cross the service boundary through the shared UTC-`Z` serializer. Provider
+usage, retention, quota, and health semantics are unchanged; the client now
+receives one stable timeline for provenance and freshness displays.
+
+Focused provider usage/maintenance coverage passed `4/4`; the full backend
+unit suite passed `1506/1506` at `68.83%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact gate is pending at this coherent product
+tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Run the exact gate, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Exact analytics-tip gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `a959dcaf` after the
