@@ -207,6 +207,7 @@ _DIMENSION_RATE_UNITS = {
     "unique_symbol",
     "unique_symbols",
 }
+_IN_FLIGHT_UNITS = {"concurrent_requests", "concurrency"}
 
 
 def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dict[str, Any]:
@@ -781,24 +782,31 @@ def _apply_policy_defaults(
         policy.effective_score = _DEFAULT_EFFECTIVE_SCORE
 
 
-def _local_control_group(policy: ProviderPolicy) -> str:
+def _local_control_group(policy: ProviderPolicy, *, include_concurrency: bool = False) -> str:
     """Return the reviewed scope used by process-local admission controls.
 
     Durable reservations are authoritative, but the in-process token bucket and
     semaphore are still useful as an early back-pressure layer. They must use
     the same explicitly reviewed grouping as the durable contract; otherwise a
     provider-wide allowance would be multiplied once per capability inside one
-    worker process. Only request/credit/weight dimensions participate in the
-    token bucket. A contract without such a dimension retains the capability
-    compatibility key and therefore cannot accidentally share an unrelated
-    local limiter.
+    worker process. Request/credit/weight dimensions participate in the token
+    bucket, while callers creating a semaphore may also include concurrent-
+    request dimensions. A contract without a relevant dimension retains the
+    capability compatibility key and therefore cannot accidentally share an
+    unrelated local limiter.
     """
 
     capability = str(getattr(policy.capability, "value", policy.capability))
     groups: set[str] = set()
     for dimension in quota_dimensions(policy):
         unit = str(dimension.get("unit") or "").strip().lower()
-        if unit not in _DIMENSION_RATE_UNITS:
+        if unit not in _DIMENSION_RATE_UNITS and not (
+            include_concurrency and unit in _IN_FLIGHT_UNITS
+        ):
+            continue
+        if unit in _IN_FLIGHT_UNITS:
+            configured = str(dimension.get("quota_group") or "").strip()
+            groups.add(configured or capability)
             continue
         # ``tokens_per_minute`` is the legacy process-local bucket. Prefer a
         # provider dimension that represents that same short rate window and
@@ -841,7 +849,7 @@ def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaph
     configured_concurrency = (
         policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
     )
-    key = (provider_name, _local_control_group(policy))
+    key = (provider_name, _local_control_group(policy, include_concurrency=True))
     cached = _semaphores.get(key)
     if cached is None or cached[0] != configured_concurrency:
         sem = asyncio.Semaphore(configured_concurrency)

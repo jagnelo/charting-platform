@@ -1034,7 +1034,16 @@ def test_local_admission_controls_share_explicit_quota_group_across_capabilities
                 "scope": "api_key",
                 "quota_group": "account",
                 "source": "unit-test contract",
-            }
+            },
+            {
+                "name": "concurrent_requests",
+                "limit": 2,
+                "window_seconds": 1,
+                "unit": "concurrent_requests",
+                "scope": "api_key",
+                "quota_group": "account",
+                "source": "unit-test contract",
+            },
         ],
     }
     first_policy = ProviderPolicy(
