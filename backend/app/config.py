@@ -121,7 +121,7 @@ class Settings(BaseSettings):
         "instrument_metadata": ["edgar"],
         "price_history": ["alpaca", "alpha_vantage"],
         "latest_price": ["alpaca", "alpha_vantage"],
-        "instrument_events": ["alpaca", "edgar"],
+        "instrument_events": ["alpaca", "edgar", "finnhub"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
         # Nasdaq covers the documented NMS files, while the explicitly
         # configured FINRA directory is the fail-closed OTC counterpart. The

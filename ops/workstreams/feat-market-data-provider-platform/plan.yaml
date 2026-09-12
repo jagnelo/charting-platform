@@ -490,6 +490,13 @@ progress:
       capability. The focused provider/registry regression passes 91/91;
       the provider's already-live-proven earnings surfaces are now selectable
       through capability-aware routing.
+    - >-
+      Finnhub is now included after Alpaca and EDGAR in the default
+      `instrument_events` fallback chain, making its live-proven earnings
+      adapter reachable through normal capability-aware routing. The root and
+      backend environment examples, README, and provider documentation agree
+      on the same chain; no provider calls were made for this configuration
+      change.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

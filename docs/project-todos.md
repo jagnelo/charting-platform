@@ -6,6 +6,10 @@
       forward earnings-calendar methods under the explicit `earnings`
       capability, with a registry regression. Focused provider/registry tests
       pass 91/91.
+- [x] Add Finnhub to the default `instrument_events` fallback chain after
+      Alpaca and EDGAR so the live-proven earnings adapter is reachable through
+      normal capability-aware routing; configuration examples and README are
+      synchronized.
 
 ### 2026-09-12 — Live-ledger crash durability and permissions
 

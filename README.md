@@ -178,7 +178,7 @@ MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
-PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}
+PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
