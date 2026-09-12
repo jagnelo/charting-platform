@@ -376,3 +376,7 @@ Update this handoff at each coherent boundary.
   chains (including the Dinari/Ondo tokenized priority) and explain the new
   deployment control semantics. Workstream and diff validation remain green;
   no provider calls or services were started.
+- `backend/.env.example` now documents the same paid-routing, availability,
+  retention, and support-TTL controls as the deployment manifests. Focused
+  wiring/reference coverage passes 16/16; static checks and both Compose
+  contract parses remain green.

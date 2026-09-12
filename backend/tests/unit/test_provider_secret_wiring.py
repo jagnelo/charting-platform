@@ -228,6 +228,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     ):
         assert f"{name}=" in example
     assert 'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in example
+    for name in PROVIDER_CONFIGURATION_SETTINGS | PROVIDER_OPERATION_SETTINGS:
+        assert f"{name}=" in example
 
 
 def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host():

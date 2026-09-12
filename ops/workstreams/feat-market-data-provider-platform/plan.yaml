@@ -385,6 +385,11 @@ progress:
       chains, including the Dinari/Ondo tokenized priority, and explain the new
       deployment control semantics; workstream and diff validation remain green
       with no provider calls or services started.
+    - >-
+      backend/.env.example now documents the same paid-routing, availability,
+      retention, and support-TTL controls as the deployment manifests; focused
+      wiring/reference coverage passes 16/16 and static/Compose checks remain
+      green.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
