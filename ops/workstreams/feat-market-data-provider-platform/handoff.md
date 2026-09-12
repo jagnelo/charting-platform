@@ -698,3 +698,16 @@ Update this handoff at each coherent boundary.
   schedule is disabled by default and does not add frontend changes. Docker
   full-stack validation, cross-provider reconciliation, pre-listing
   materialization, EDGAR/Alpha feed completion, and calendar UX remain open.
+- Added Alpha Vantage's documentation-faithful `EARNINGS_CALENDAR` CSV
+  adapter with explicit 3/6/12-month horizon validation, inclusive filtering,
+  strict row/date checks, and normalized forward-earnings event keys. The
+  market-event service invokes it as a separate `fetch_earnings_calendar`
+  operation, independently reserving one request against Alpha's documented
+  25-requests/day key. The opt-in live suite now contains a bounded Alpha
+  calendar case. Provider/service/quota fixtures pass `275/275`, the complete
+  backend unit suite passes `1,842/1,842` with 37 known warnings, and live
+  collection, Ruff, compileall, and diff checks pass. Source commit
+  `d954443e` is pushed; no provider calls or services were started in this
+  change. The new live case remains pending execution because the shared Alpha
+  key has already returned its documented daily-capacity response; this is not
+  represented as live success.
