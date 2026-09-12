@@ -8,6 +8,10 @@
       Alpaca history/latest-price reads, MarketData.app option paths, and
       Dinari metadata/quote/history/news. Only aggregate usage telemetry was
       written outside Git; no credentials or payloads were persisted.
+- [x] Rerun the complete 39-case manifest matrix with the same environment:
+      `35/39` passed. The four non-passes are Alpha Vantage's typed daily
+      capacity response and the intentionally deferred Tradier, IBKR, and Ondo
+      credential preflights; no provider payloads or credentials entered Git.
 - [ ] Keep the provider-specific governance gates separate from transport
       evidence: MarketData.app still needs the exact reviewed plan/limit pair
       and option-chain symbol bound; Dinari remains non-routable until its
