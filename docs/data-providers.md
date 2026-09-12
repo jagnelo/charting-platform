@@ -92,6 +92,11 @@ durable `ProviderQuotaWindow` counters. “Unknown” is deliberate; it is not a
 placeholder estimate. Limits are for the named plan/scope only and must be
 re-reviewed when credentials or billing plans change.
 
+Published bandwidth pools expressed by vendors as GB/MB are represented as
+conservative decimal-byte ceilings when the provider does not explicitly state
+binary units. This prevents the local guard from permitting more bytes than a
+decimal interpretation would allow; the contract records the basis explicitly.
+
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested) | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |

@@ -80,6 +80,27 @@ def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unk
             assert int(dimension["window_seconds"]) > 0, (provider_name, dimension)
 
 
+def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
+    assert (
+        provider_rate_limit_seed("finra")["quota_contract"]["dimensions"][2]["limit"]
+        == 10_000_000_000
+    )
+    assert (
+        provider_rate_limit_seed("tiingo")["quota_contract"]["untracked_constraints"][0]["limit"]
+        == 1_000_000_000
+    )
+    assert (
+        provider_rate_limit_seed("fmp")["quota_contract"]["untracked_constraints"][0]["limit"]
+        == 512_000_000
+    )
+    for provider_name in ("finra", "tiingo", "fmp"):
+        contract = provider_rate_limit_seed(provider_name)["quota_contract"]
+        dimensions = contract.get("dimensions", []) + contract.get("untracked_constraints", [])
+        byte_pools = [item for item in dimensions if item.get("unit") == "bytes"]
+        assert byte_pools
+        assert all(str(item.get("limit_basis", "")).startswith("decimal_bytes_") for item in byte_pools)
+
+
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
     async_db = AsyncSessionAdapter(db)
@@ -242,7 +263,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     contract = seed["quota_contract"]
     assert contract["untracked_constraints"] == []
     bytes_dimension = next(item for item in contract["dimensions"] if item["unit"] == "bytes")
-    assert bytes_dimension["limit"] == 1024**3
+    assert bytes_dimension["limit"] == 1_000_000_000
     assert contract["dimension_costs_required"] is True
     assert seed["_byte_reservation_bounds"] == bounds
     profile = get_provider_usage_profile("tiingo")
@@ -1906,7 +1927,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finra_bytes = next(
         item for item in finra["dimensions"] if item["unit"] == "bytes"
     )
-    assert finra_bytes["limit"] == 10 * 1024**3
+    assert finra_bytes["limit"] == 10_000_000_000
     assert finra["dimension_costs_required"] is True
     assert finra_otc["dimensions"][0]["limit"] == 1200
     assert finra_otc["dimensions"][0]["scope"] == "ip"
@@ -1914,9 +1935,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500
     assert tiingo["dimensions"][0]["reset"] == "calendar_month_est"
-    assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
+    assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
-    assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
+    assert fmp["untracked_constraints"][0]["limit"] == 512_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
@@ -1987,7 +2008,7 @@ def test_finra_synchronous_budget_uses_documented_byte_reservation():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]
     contract = seed["quota_contract"]
     bytes_dimension = next(item for item in contract["dimensions"] if item["unit"] == "bytes")
-    assert bytes_dimension["limit"] == 10 * 1024**3
+    assert bytes_dimension["limit"] == 10_000_000_000
     assert contract["maximum_synchronous_response_bytes"] == 3 * 1024**2
     source = DataSource(
         name="finra",

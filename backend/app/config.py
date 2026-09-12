@@ -304,13 +304,17 @@ class Settings(BaseSettings):
                     },
                     {
                         "name": "download_bytes_per_calendar_month",
-                        "limit": 10737418240,
+                        # FINRA publishes "10 GB" without defining binary
+                        # versus decimal units. Use the decimal-byte ceiling
+                        # so the local guard cannot exceed either reading.
+                        "limit": 10_000_000_000,
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
                         "quota_group": "public_credential",
                         "source": "https://developer.finra.org/support",
                         "reset": "calendar_month",
+                        "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     }
                 ],
                 "reset": "rolling_or_provider_defined",
@@ -580,13 +584,17 @@ class Settings(BaseSettings):
                 "untracked_constraints": [
                     {
                         "name": "bandwidth_bytes_per_month",
-                        "limit": 1073741824,
+                        # Tiingo publishes "1 GB"; decimal bytes are the
+                        # conservative interpretation when the vendor does
+                        # not state a binary unit.
+                        "limit": 1_000_000_000,
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                         "reset": "calendar_month_est",
+                        "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     }
                 ],
             },
@@ -700,13 +708,17 @@ class Settings(BaseSettings):
                 "untracked_constraints": [
                     {
                         "name": "bandwidth_bytes_per_30_days",
-                        "limit": 536870912,
+                        # The operator account reports "512 MB" without a
+                        # binary-unit declaration. Keep the hard ceiling at
+                        # the decimal-byte value rather than overestimating.
+                        "limit": 512_000_000,
                         "unit": "bytes",
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
                         "window_seconds": 2_592_000,
                         "reset": "rolling_30_days",
+                        "limit_basis": "decimal_bytes_conservative_for_published_MB",
                     }
                 ],
             },
