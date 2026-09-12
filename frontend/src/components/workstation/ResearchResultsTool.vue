@@ -455,17 +455,18 @@ function canPromoteBreadthBoolean(run: ResearchRunSummary) {
 function canPromoteEventSignal(run: ResearchRunSummary) {
   return run.status === 'completed'
     && (!run.output_contract || run.output_contract === 'events')
-    && run.artifacts.some(artifact => artifact.artifact_type === 'events')
+    && run.artifacts.filter(artifact => artifact.artifact_type === 'events').length === 1
 }
 function canPromoteEventFilter(run: ResearchRunSummary) {
   return run.status === 'completed'
     && run.output_contract === 'events'
-    && run.artifacts.some(artifact => artifact.artifact_type === 'events')
+    && run.artifacts.filter(artifact => artifact.artifact_type === 'events').length === 1
 }
 function canPromoteStructuredEventArtifact(run: ResearchRunSummary | null, artifact: ResearchRunSummary['artifacts'][number]) {
   return Boolean(run)
     && run?.status === 'completed'
-    && run.output_contract === 'study'
+    && (run.output_contract === 'study'
+      || (run.output_contract === 'events' && run.artifacts.filter(item => item.artifact_type === 'events').length > 1))
     && artifact.artifact_type === 'events'
 }
 function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: ResearchRunSummary['artifacts'][number]) {

@@ -317,6 +317,42 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Alert created from event filter “Breakout event filter”')
   })
 
+  it('requires a named artifact when a direct events run contains multiple outputs', async () => {
+    const run = {
+      id: 31,
+      status: 'completed',
+      code_version_id: 15,
+      output_contract: 'events',
+      run_config: { symbols: ['SPY'], timeframe: 'D1' },
+      dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+      diagnostics: [],
+      artifacts: [
+        { id: 20, name: 'breakouts', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout' }] } },
+        { id: 21, name: 'breakdowns', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-03T00:00:00Z', kind: 'breakdown' }] } },
+      ],
+    }
+    const source = "output.events('breakouts', [])\noutput.events('breakdowns', [])"
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([run])
+      : Promise.resolve([{ name: 'Multi-event study', versions: [{ id: 15, source, output_contract: 'events', parameter_schema: {}, default_parameters: {} }] }]))
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'events', output_name: 'breakdowns', lineage: { source_output_name: 'breakdowns', target: 'signal' } } })
+        return Promise.resolve({ id: 90, name: 'Breakdowns signal', versions: [{ id: 90 }] })
+      }
+      if (path === '/strategy-lab/signals/from-code/90') return Promise.resolve({ id: 91, name: 'Breakdowns Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save events as Strategy signal')).toBe(false)
+    const named = wrapper.get('[aria-label="Save Strategy signal: breakdowns"]')
+    await named.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Saved event artifact “breakdowns” as Strategy signal “Breakdowns Strategy Signal” (#91).')
+  })
+
   it('exposes named filter and alert actions for structured-study event artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 30, status: 'completed', code_version_id: 14, output_contract: 'study', run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       {

@@ -895,8 +895,14 @@ async def promote_event_artifact_to_strategy_signal(
                 "status": run.status,
             },
         )
+    source_version = run.code_version
+    event_artifacts = [item for item in run.artifacts if item.artifact_type == "events"]
     event_artifact = next(
-        (item for item in run.artifacts if item.artifact_type == "events"),
+        (
+            item
+            for item in event_artifacts
+            if body.artifact_name is None or item.name == body.artifact_name
+        ),
         None,
     )
     if event_artifact is None:
@@ -904,7 +910,24 @@ async def promote_event_artifact_to_strategy_signal(
             status_code=422,
             detail={
                 "code": "research_signal_promotion_events_artifact_required",
-                "message": "The completed run does not contain an events artifact.",
+                "message": (
+                    "The completed run does not contain the requested events artifact."
+                    if body.artifact_name
+                    else "The completed run does not contain an events artifact."
+                ),
+            },
+        )
+    if (
+        source_version is not None
+        and source_version.output_contract == "events"
+        and body.artifact_name is None
+        and len(event_artifacts) > 1
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_artifact_name_required",
+                "message": "A run with multiple events artifacts must select the artifact to promote.",
             },
         )
     event_value = (
@@ -918,7 +941,6 @@ async def promote_event_artifact_to_strategy_signal(
                 "message": "The events artifact does not contain a persisted event list.",
             },
         )
-    source_version = run.code_version
     source_asset = source_version.asset if source_version is not None else None
     if (
         source_version is None

@@ -374,7 +374,11 @@ const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'ra
   // already valid boolean result or strand the newly-created scan before it
   // can be promoted to an alert/signal.
   if (!run.value || !runSource.value || (run.value.status !== 'completed' && promotedScanId.value == null)) return null
-  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' || runContract.value === 'range' ? runContract.value : null
+  const eventCount = (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length
+  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'range'
+    || (runContract.value === 'events' && eventCount === 1)
+    ? runContract.value
+    : null
 })
 const progressLabel = computed(() => {
   const progress = run.value?.progress
@@ -479,7 +483,9 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return []
   // Compatible single-output runs reuse their immutable version directly;
   // named promotion controls are reserved for structured/multi-output runs.
-  if (runContract.value && runContract.value !== 'study') return []
+  if (runContract.value && runContract.value !== 'study') {
+    if (runContract.value !== 'events' || (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length < 2) return []
+  }
   const promotions: ArtifactPromotion[] = []
   for (const artifact of run.value.artifacts ?? []) {
     if (artifact.artifact_type === 'series') {

@@ -123,6 +123,79 @@ class TestStrategyLabAPI:
         assert promotion_res.status_code == 201
         assert promotion_res.json()["metadata"]["code_version_id"] == version_id
 
+    def test_multi_event_run_requires_and_preserves_named_signal_artifact(
+        self, client, auth_headers, db, user
+    ):
+        """Direct events runs cannot silently promote the first of several outputs."""
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="multi-event-signal-promotion",
+            name="Multi-event study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source=("output.events('breakouts', [])\n" "output.events('breakdowns', [])"),
+            output_contract="events",
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest={"source": "canonical_database", "timeframe": "D1"},
+            reproducibility_hash="multi-event-signal-hash",
+        )
+        run.artifacts.extend(
+            [
+                ResearchArtifact(
+                    artifact_type="events",
+                    name="breakouts",
+                    payload={
+                        "value": [{"symbol": "SPY", "timestamp": "2026-01-02", "kind": "breakout"}]
+                    },
+                ),
+                ResearchArtifact(
+                    artifact_type="events",
+                    name="breakdowns",
+                    payload={
+                        "value": [{"symbol": "SPY", "timestamp": "2026-01-03", "kind": "breakdown"}]
+                    },
+                ),
+            ]
+        )
+        db.add(run)
+        db.flush()
+
+        missing_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert missing_name.status_code == 422
+        assert (
+            missing_name.json()["detail"]["code"]
+            == "research_signal_promotion_artifact_name_required"
+        )
+
+        selected = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={"artifact_name": "breakdowns", "name": "Breakdowns signal"},
+        )
+        assert selected.status_code == 201, selected.text
+        payload = selected.json()
+        assert payload["name"] == "Breakdowns signal"
+        assert payload["metadata"]["source_artifact_name"] == "breakdowns"
+        assert payload["versions"][0]["definition_snapshot"]["source_artifact_name"] == "breakdowns"
+
     def test_chart_indicator_code_version_keeps_chart_promotion_origin(self, client, auth_headers):
         asset_res = client.post(
             "/api/v1/code/assets",
