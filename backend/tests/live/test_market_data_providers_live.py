@@ -187,6 +187,13 @@ def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete()
     """Exercise the directory-backed issuer scan catalogue used by the worker."""
 
     _require("EDGAR_USER_AGENT")
+    # Keep this case independently runnable.  Other SEC probes populate the
+    # provider's documented in-process directory cache, while this assertion
+    # intentionally requires one measured network response for the catalogue.
+    import app.providers.edgar as edgar_module
+
+    edgar_module._ticker_map = {}
+    edgar_module._ticker_map_ts = 0.0
     provider = EdgarProvider()
     rows: list[dict] = []
     offset = 0
