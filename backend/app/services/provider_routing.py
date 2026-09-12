@@ -156,6 +156,7 @@ class ProviderRequirements:
     units: int = 1
     priority: int = 100
     usage_identity: str | None = None
+    adjusted: bool | None = None
 
 
 def _entitlement_matches(
@@ -484,6 +485,7 @@ async def select_provider(
         requirements.capability,
         instrument_id=requirements.instrument_id,
         operation=requirements.operation,
+        adjusted=requirements.adjusted,
     )
     candidates: list[dict[str, Any]] = []
     rejected: dict[str, str] = {}

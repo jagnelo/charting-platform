@@ -472,6 +472,29 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
 
 
 @pytest.mark.asyncio
+async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
+    await seed_provider_runtime(async_db)
+
+    raw_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        adjusted=False,
+    )
+    adjusted_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        adjusted=True,
+    )
+
+    assert any(item.provider_name == "alpha_vantage" for item in raw_chain)
+    assert all(item.provider_name != "alpha_vantage" for item in adjusted_chain)
+
+
+@pytest.mark.asyncio
 async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "configured-key")

@@ -43,6 +43,7 @@ from app.providers import (
     provider_missing_settings,
     provider_required_settings,
     provider_routing_control_settings,
+    provider_supports_adjustment,
     provider_supports_instrument,
     supported_provider_names,
 )
@@ -1277,6 +1278,7 @@ async def resolve_provider_chain(
     instrument_id: int | None = None,
     operation: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
+    adjusted: bool | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -1325,6 +1327,10 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        if capability == ProviderCapability.PRICE_HISTORY and not provider_supports_adjustment(
+            data_source.name, adjusted
+        ):
+            continue
         # ``ALLOW_PAID_PROVIDER_ROUTING`` only controls whether a *reviewed*
         # paid plan may participate.  It must never turn an unreviewed
         # descriptor (the default for optional adapters) into a usable route.
@@ -1511,6 +1517,7 @@ async def execute_provider_call(
     usage_identity: str | Callable[[str], str | None] | None = None,
     provider_name: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
+    adjusted: bool | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
@@ -1521,6 +1528,7 @@ async def execute_provider_call(
         instrument_id=instrument_id,
         operation=operation,
         operation_cost_overrides=operation_cost_overrides,
+        adjusted=adjusted,
     )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]

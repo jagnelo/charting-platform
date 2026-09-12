@@ -158,6 +158,26 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "etf_holdings_internal": frozenset({"equity", "etf"}),
 }
 
+# Some providers expose only raw historical bars on the plan currently
+# supported by this adapter.  Keeping this admission rule in the registry
+# lets routing reject an adjusted-history request before quota reservation or
+# transport, rather than discovering the mismatch inside the provider call.
+_RAW_HISTORY_ONLY_PROVIDERS = frozenset({"alpha_vantage", "ibkr"})
+
+
+def provider_supports_adjustment(provider_name: str, adjusted: bool | None) -> bool:
+    """Return whether a provider may serve the requested history adjustment.
+
+    ``None`` means the caller has not expressed an adjustment requirement and
+    therefore preserves legacy capability discovery.  Raw history is always
+    admitted; adjusted history is denied for providers whose currently
+    supported endpoint/plan is explicitly raw-only.
+    """
+
+    if adjusted is None or not adjusted:
+        return True
+    return provider_name not in _RAW_HISTORY_ONLY_PROVIDERS
+
 
 def _instrument_kind(value: str | None) -> str:
     """Normalize model/provider class labels into stable routing tokens."""

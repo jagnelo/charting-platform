@@ -446,3 +446,9 @@ Update this handoff at each coherent boundary.
 - 2026-09-12 complete post-change live matrix: the 42-case provider suite passed `37/42`. Alpha Vantage produced its typed 25-requests/day capacity response for IPO-calendar and earnings after the shared key was exercised; Tradier, IBKR, and Ondo failed only their intentional credential preflights. The external ledger recorded 26 aggregate rows, 65 operations, 87 HTTP requests, and 22,749,557 response bytes under run `3a31e993-4b4c-41af-9688-e3ad8b8c3029`; no acceptance claim was made.
 - 2026-09-12 Alpha Vantage adjustment correctness: the free `TIME_SERIES_DAILY` adapter now rejects `adjusted=True` before any provider call because the documented free response is raw and adjusted daily history is premium. Raw bars carry `raw`/`provider-native` provenance, and `get_current_price` explicitly requests raw history. Focused Alpha coverage passed `25/25`; the complete backend unit suite passed `1,781/1,781` with the existing 37 warnings. This prevents a raw response from being stored or reported as an adjusted dataset; no provider calls were made by the focused regression.
 - The changed Alpha Vantage raw-history path was then credentialed-live validated on 2026-09-12: the bounded daily case passed `1/1` with `adjusted=False`. A sandboxed first attempt was stopped by the usage-ledger writability guard before transport; the authorized retry used the owner-managed ledger and recorded aggregate usage only outside Git.
+- Adjustment-aware routing is now carried from market-data/workload requirements
+  through provider resolution. Alpha Vantage and IBKR are explicitly raw-only
+  under their supported contracts, so adjusted history requests are filtered
+  before quota reservation or transport while raw requests remain eligible.
+  Registry/resolver regressions, Ruff, compilation, and the complete backend
+  unit suite pass `1,783/1,783`; no provider calls were made for this change.

@@ -918,6 +918,7 @@ async def _fetch_provider(
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
@@ -1303,6 +1304,7 @@ async def _fetch_provider_latest(
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
         invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
