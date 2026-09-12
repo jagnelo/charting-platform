@@ -596,6 +596,7 @@ import {
   INDICATOR_BY_TYPE,
   cloneDefaultIndicator,
   indicatorDisplayName,
+  indicatorSeriesDisplayName,
   indicatorDefaultPane,
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
@@ -1115,9 +1116,7 @@ function fmtTs(ts: number): string {
 }
 
 function fmtIndParams(type: string, params: Record<string, unknown>): string {
-  const label = indicatorDisplayName({ type: type as IndicatorType, params: params ?? {} })
-  const output = typeof params?.output === 'string' ? params.output.trim() : ''
-  return output ? `${label} [${output}]` : label
+  return indicatorSeriesDisplayName({ type: type as IndicatorType, params: params ?? {} })
 }
 
 function indAlertLabel(a: IndicatorAlert): string {

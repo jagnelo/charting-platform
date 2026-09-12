@@ -244,7 +244,7 @@ import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { formatMoney } from '@/lib/format'
-import { indicatorDisplayName } from '@/lib/indicators/catalog'
+import { indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
 import type { AlertFiringEvent, IndicatorAlert, IndicatorType } from '@/types'
 
 const alertsStore         = useAlertsStore()
@@ -298,9 +298,7 @@ function fmtIndValue(value: number | null, type: string | null | undefined, curr
 }
 
 function fmtIndicatorParams(type: string, params: Record<string, unknown>): string {
-  const label = indicatorDisplayName({ type: type as IndicatorType, params: params ?? {} })
-  const output = typeof params?.output === 'string' ? params.output.trim() : ''
-  return output ? `${label} [${output}]` : label
+  return indicatorSeriesDisplayName({ type: type as IndicatorType, params: params ?? {} })
 }
 
 function indAlertExpr(a: IndicatorAlert): string {
