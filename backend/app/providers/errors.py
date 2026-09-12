@@ -151,7 +151,12 @@ class ProviderRateLimitError(RuntimeError):
         self.retry_at = retry_at
         self.status_code = status_code
         self.scope = scope
-        self.headers = headers or {}
+        # Typed capacity failures may be surfaced directly by adapters before
+        # durable runtime persistence gets a chance to filter transport
+        # metadata.  Keep only the allow-listed quota/reset headers here so a
+        # caller cannot accidentally expose credentials such as
+        # Authorization, Cookie, or provider API-key headers.
+        self.headers = provider_capacity_headers(headers)
 
 
 def provider_retry_at_from_headers(

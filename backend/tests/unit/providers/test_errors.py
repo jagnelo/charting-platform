@@ -83,6 +83,21 @@ def test_error_envelope_retains_provider_reset_headers_and_retry_time():
     assert 6 <= (failure.retry_at - datetime.now(UTC)).total_seconds() <= 8
 
 
+def test_typed_rate_limit_error_filters_sensitive_transport_headers():
+    failure = ProviderRateLimitError(
+        "provider",
+        "quota exceeded",
+        headers={
+            "Authorization": "Bearer should-not-be-retained",
+            "Cookie": "session=secret",
+            "Retry-After": "7",
+            "X-RateLimit-Remaining": "0",
+        },
+    )
+
+    assert failure.headers == {"Retry-After": "7", "X-RateLimit-Remaining": "0"}
+
+
 def test_provider_retry_at_header_parser_rejects_unknown_values_without_guessing():
     now = datetime(2026, 9, 10, 10, 0, tzinfo=UTC)
     assert provider_retry_at_from_headers({"Retry-After": "not-a-reset"}, now=now) is None
