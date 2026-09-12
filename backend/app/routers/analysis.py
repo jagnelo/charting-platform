@@ -5400,7 +5400,7 @@ async def group_breadth(
         },
         new_high_lookback=new_high_lookback,
         near_threshold=near_threshold,
-        evaluated_count=len(members) - len(missing_ids) - len(stale_ids),
+        evaluated_count=len(set(member_ids) - (missing_ids | stale_ids)),
         missing_count=len(missing_ids),
         stale_count=len(stale_ids),
         exclusions=exclusions,
