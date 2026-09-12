@@ -1066,3 +1066,10 @@ Update this handoff at each coherent boundary.
   path is covered against that documented response shape. The Docker-backed
   migration/full-stack gate and the broader provider/legal/deployment gates
   remain open.
+
+- Source checkpoint `1aeb25989` records the bounded MarketData.app account
+  snapshot in `docs/provider-live-validation.md`, including the observed native
+  10,000-credit daily header and the fact that it remains observational until
+  the operator reviews the plan/credit pair and option-chain bound. The guide
+  also reiterates that the account probe is quota-aware and does not widen
+  routing.
