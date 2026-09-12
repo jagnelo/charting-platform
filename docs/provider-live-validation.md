@@ -980,3 +980,20 @@ Provider batches with mixed session/feed/adjustment metadata are now split into
 separate deterministic series before persistence. Focused market-data coverage
 passed `29/29`, and the complete backend unit suite passed `1,807/1,807`; this
 was a local normalization correction with no provider calls.
+
+On 2026-09-12, the newly supplied operator credentials were revalidated in
+bounded provider-specific runs after the Dinari transport was updated for its
+current cursor-paginated v2 catalogue contract. SEC EDGAR profile, filing/facts,
+and complete ticker/exchange-directory cases passed `3/3` (5 operations, 6
+requests); Alpaca paper daily/intraday/latest/assets/events passed `4/4` (5
+operations, 5 requests); MarketData.app options and five-minute history passed
+`2/2` (4 operations, 4 requests); and Dinari Sandbox metadata, fair price,
+quote, all four documented history windows, news, dividends, and splits passed
+`1/1` (10 operations, 19 requests). Redacted receipts were merged into the
+owner-managed cross-session ledger with `accepted=4`, `duplicates=0`, and
+`rejected=0`; no credentials or response payloads were persisted. Dinari stock
+and split reads now send `limit`/`order` and validate `pagination_metadata.next`,
+while explicitly retaining a legacy list-response fallback and refusing an
+unfetched continuation. This is transport/schema evidence only: Dinari partner
+quota, US SIP/NBBO fees, redistribution approval, and MarketData.app reviewed
+plan/option bounds remain independent routing gates.

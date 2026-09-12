@@ -935,6 +935,15 @@ progress:
       passes 14/14 and the complete backend unit suite passes 1,893/1,893 with
       the known 37 warnings. Changed-file Ruff, format, compileall, and diff
       checks pass; no provider calls or frontend/ETF-provider files changed.
+    - >-
+      Fresh bounded live validation using the newly supplied Alpaca paper, SEC
+      EDGAR, MarketData.app, and rotated Dinari Sandbox credentials passed 10/10
+      selected test functions. Dinari's stock/split transport now uses the current
+      cursor contract with strict continuation parsing and explicit legacy fallback;
+      focused tokenized coverage passes 57/57 and the combined provider/runtime
+      contract slice passes 396/396. Redacted receipts merged into the owner ledger
+      with accepted=4, duplicates=0, rejected=0. Source commit `f9c18fc3` is pushed;
+      no frontend or ETF-provider files changed.
   total: 15
   current_phase: stable_identifier_lifecycle_reconciliation
   current_blocker: >-
@@ -989,13 +998,9 @@ progress:
     keys rather than silently merging them; stable FIGI/composite FIGI/ISIN/CUSIP/
     SEDOL observations are also reconciled before ticker compatibility, with
     unresolved or conflicting stable owners retained as discovery evidence only;
-    source commit `495854e8` is pushed.
-    - >-
-      SEC EDGAR profile ingestion now rejects scalar, malformed, or
-      ticker/exchange-length-mismatched listing arrays instead of iterating
-      characters or silently creating partial provider-symbol history. Focused
-      SEC regression coverage passes 5/5; the provider/tokenized unit suites
-      pass 258/258 and the complete backend unit suite passes 1,896/1,896 with
-      the known 37 warnings. Ruff, compileall, and diff checks pass; no provider
-      calls, frontend files, or ETF-provider adapter files changed.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation plus strict SEC listing-array validation are implemented at source commit `853d95f5`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+    source commit `495854e8` is pushed. Dinari stock and split catalogues now
+    use the current cursor contract with strict continuation validation at
+    source commit `f9c18fc3`; selected live transport evidence is recorded in
+    the handoff and validation ledger, while quota, terms, and routing admission
+    remain fail-closed.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, and the Dinari cursor transport are implemented at source commit `f9c18fc3`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.

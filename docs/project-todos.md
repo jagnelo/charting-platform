@@ -16207,3 +16207,24 @@ The current source also passes the focused authenticated top-down browser slice 
       profiles before creating provider-symbol/listing history.
 - [x] Add focused regression coverage and preserve the existing no-network live-provider boundary.
 - [ ] Complete/global SEC and OTC venue reconciliation remains a separate universe-coverage gate.
+
+### 2026-09-12 — Newly supplied provider credentials and Dinari cursor contract
+
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR, MarketData.app, and rotated
+      Dinari Sandbox credentials through bounded live cases. The selected provider
+      test functions passed `10/10`: EDGAR `3/3`, Alpaca `4/4`, MarketData.app
+      `2/2`, and Dinari `1/1`; exact operation/request counts and allow-listed capacity
+      headers were written only to the owner-managed external ledger.
+- [x] Update Dinari stock and stock-split reads to the current cursor-paginated
+      contract (`limit`, `order`, `next`) with instance-scoped cursor state, strict
+      continuation metadata validation, explicit legacy list fallback, and a
+      fail-closed error when split history has an unfetched continuation.
+- [x] Add regression coverage for cursor reuse, missing/malformed/repeated cursors,
+      legacy response compatibility, and split continuation truncation; focused
+      tokenized coverage passes `57/57`, the combined provider/runtime contract
+      slice passes `396/396`, and no frontend or ETF-provider files changed.
+- [ ] Dinari remains non-routable until partner/account quota, US SIP/NBBO fee,
+      display-only/no-cache, redistribution, and commercial eligibility terms are
+      reviewed; MarketData.app remains non-routable until its exact plan/credit
+      pair and response-dependent option bound are reviewed. Tradier, Ondo, and
+      IBKR remain intentionally deferred per the current provider plan.

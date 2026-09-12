@@ -872,3 +872,21 @@ Update this handoff at each coherent boundary.
   complete backend unit suite passes `1,896/1,896` with the known 37 warnings.
   Ruff, compileall, and diff checks pass. Source commit `853d95f5` is pushed;
   no provider calls, frontend files, or ETF-provider adapter files changed.
+
+- Dinari stock and stock-split catalogue reads now use the current v2 cursor
+  contract (`limit`/`order`/`next`) with instance-scoped cursor state. The
+  adapter validates `pagination_metadata.next`, rejects missing/malformed or
+  repeated cursors, retains an explicit legacy list-response fallback, and
+  refuses to return a silently incomplete split history when another page is
+  advertised. Focused tokenized coverage passes `57/57`; the combined
+  provider/runtime contract slice passes `396/396`. Source commit `f9c18fc3`
+  is pushed; no frontend or ETF-provider files changed.
+
+- Fresh credentialed live validation on 2026-09-12 passed all `10/10` selected
+  test functions: SEC EDGAR `3/3` (5 operations/6 requests), Alpaca paper `4/4`
+  (5/5), MarketData.app `2/2` (4/4), and Dinari Sandbox `1/1` (10 operations/19
+  requests) after the cursor transport change. Redacted receipts were merged
+  into the owner-managed external ledger (`accepted=4`, `duplicates=0`,
+  `rejected=0`). This proves bounded transport/schema behavior only; provider
+  quota, legal/redistribution, account-plan, and routing-admission gates remain
+  independent and fail-closed.
