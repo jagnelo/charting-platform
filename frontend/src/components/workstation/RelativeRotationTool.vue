@@ -76,6 +76,7 @@ let observer: ResizeObserver | null = null
 let observedPlotHost: HTMLElement | null = null
 let points: PlotPoint[] = []
 let loadGeneration = 0
+let mounted = false
 function percent(value: number | null | undefined) { return value == null ? '—' : `${(value * 100).toFixed(2)}%` }
 function sortValue(row: Row, key: SortKey): string | number | null {
   if (key === 'symbol' || key === 'state' || key === 'transition') return row[key] ?? null
@@ -205,15 +206,16 @@ async function load() {
       queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params),
       staleTime: 30_000,
     })
-    if (generation !== loadGeneration) return
+    if (!mounted || generation !== loadGeneration) return
     rows.value = (payload.roles ?? payload.rows ?? []).map(row => ({ ...row, tail: row.tail ?? [], history: row.history ?? [], symbol: row.symbol ?? row.label ?? row.role ?? 'Unavailable' }))
     rotationBenchmark.value = payload.benchmark ?? benchmark.value.toUpperCase()
     freshness.value = payload.freshness ?? ''; await nextTick(); drawPlot()
   } catch (cause: any) {
-    if (generation === loadGeneration) { rows.value = []; error.value = cause?.message ?? 'Relative rotation is unavailable.' }
-  } finally { if (generation === loadGeneration) loading.value = false }
+    if (mounted && generation === loadGeneration) { rows.value = []; error.value = cause?.message ?? 'Relative rotation is unavailable.' }
+  } finally { if (mounted && generation === loadGeneration) loading.value = false }
 }
 onMounted(async () => {
+  mounted = true
   observer = new ResizeObserver(drawPlot)
   syncPlotObserver()
   await load()
@@ -232,7 +234,11 @@ watch(() => props.configuration, configuration => {
   if (configuration?.as_of === null) asOf.value = ''
   if (typeof configuration?.adjusted === 'boolean') adjusted.value = configuration.adjusted
 }, { deep: true })
-onBeforeUnmount(() => { observer?.disconnect(); observedPlotHost = null; plot?.destroy(); plot = null })
+onBeforeUnmount(() => {
+  mounted = false
+  loadGeneration += 1
+  observer?.disconnect(); observedPlotHost = null; plot?.destroy(); plot = null
+})
 </script>
 
 <style scoped>.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>

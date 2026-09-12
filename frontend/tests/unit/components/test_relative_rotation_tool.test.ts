@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -125,6 +125,19 @@ describe('RelativeRotationTool', () => {
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-atomic')).toBe('true')
     expect(api.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not publish a late rotation response after the tool unmounts', async () => {
+    let resolveRotation!: (value: unknown) => void
+    vi.mocked(api.get).mockReturnValue(new Promise(resolve => { resolveRotation = resolve }))
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
+    wrapper.unmount()
+
+    resolveRotation({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1, tail: [] }] })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { rows: unknown[] }).rows).toEqual([])
   })
 
   it('surfaces backend coverage and insufficient-history warnings on the row', async () => {
