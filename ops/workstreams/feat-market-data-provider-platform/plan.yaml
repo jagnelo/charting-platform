@@ -958,8 +958,9 @@ progress:
       Dinari now advertises the generic `tokenized_corporate_actions` capability.
       Symbol-scoped reads combine the documented per-stock dividends and splits;
       unscoped reads use the bounded global split feed because Dinari has no
-      global dividend endpoint. The unsupported `upcoming` semantic and unfetched
-      continuation pages fail closed. The changed Sandbox live case passed 1/1
+      global dividend endpoint. The unsupported `upcoming` semantic is rejected;
+      split continuation is available only through explicit in-order cursor
+      pages on the same adapter instance. The changed Sandbox live case passed 1/1
       with 12 measured operations/23 HTTP requests, and the complete backend
       unit suite passes 1,907/1,907 with Ruff, compilation, and diff checks clean.
       Source commit `f296a50790868b654dc456ce63908f041c804791` is pushed; no
@@ -972,6 +973,15 @@ progress:
       with changed-file Ruff, compilation, and diff checks clean. Source commit
       `e332e727a57facf1cf1120bc01eaceb2fb16b625` is pushed; no provider calls or
       frontend/ETF-provider files changed.
+    - >-
+      Dinari global and per-stock split feeds now retain each documented opaque
+      `next` cursor and permit explicit in-order continuation on the same
+      adapter instance, while rejecting missing, repeated, or cross-limit
+      cursor state and preserving the legacy page response fallback. Focused
+      tokenized provider coverage passes 64/64, the complete backend unit suite
+      passes 1,910/1,910, and the credentialed Dinari Sandbox case passes 1/1
+      (12 measured operations/23 HTTP requests). Source commit `ba527830` is
+      pushed; no frontend or ETF-provider files changed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1033,9 +1043,13 @@ progress:
     remain fail-closed. Dinari ticker-like metadata now uses its documented
     server-side symbols filter; its generic corporate-action surface combines
     documented symbol-scoped dividends/splits and bounded global splits while
-    rejecting unsupported upcoming semantics. The changed compound Sandbox case
-    passed 1/1 with 23 upstream requests and its aggregate receipts were merged
-    into the owner ledger. The shared event linker now recognizes Dinari's
+    rejecting unsupported upcoming semantics. Split-page continuation now
+    reuses only the preceding opaque cursor and never follows pages in an
+    unbounded loop. The changed compound Sandbox case passed 1/1 with 23
+    upstream requests and its aggregate receipts were merged into the owner
+    ledger. The shared event linker now recognizes Dinari's
     `stock_id`/`stockId` identity fields and links global split rows by provider
-    asset ID; source commit `e332e727a57facf1cf1120bc01eaceb2fb16b625` is pushed.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, Dinari cursor transport, symbol filtering, corporate-action capability, and tokenized action identity linkage are implemented at source commit `e332e727a57facf1cf1120bc01eaceb2fb16b625`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+    asset ID. Dinari split feeds now also support explicit same-instance
+    cursor continuation without unbounded page following; source commit
+    `ba5278304ae1352fd3b8593038e262826b463348` is pushed.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, and explicit Dinari split-page continuation are implemented at source commit `ba5278304ae1352fd3b8593038e262826b463348`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.

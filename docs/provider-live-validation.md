@@ -993,8 +993,9 @@ quote, all four documented history windows, news, dividends, and splits passed
 owner-managed cross-session ledger with `accepted=4`, `duplicates=0`, and
 `rejected=0`; no credentials or response payloads were persisted. Dinari stock
 and split reads now send `limit`/`order` and validate `pagination_metadata.next`,
-while explicitly retaining a legacy list-response fallback and refusing an
-unfetched continuation. This is transport/schema evidence only: Dinari partner
+while explicitly retaining a legacy list-response fallback and requiring
+explicit in-order continuation for any advertised next cursor. This is
+transport/schema evidence only: Dinari partner
 quota, US SIP/NBBO fees, redistribution approval, and MarketData.app reviewed
 plan/option bounds remain independent routing gates.
 
@@ -1014,7 +1015,8 @@ provider's cursor-backed metadata lookup, fair price/quote/history/news, direct
 dividend/split reads, and the symbol-scoped combined action path. Aggregate-only
 telemetry was merged into the owner-managed ledger outside Git. Dinari's
 unscoped action path remains split-only (there is no documented global dividend
-feed), rejects `upcoming`, and refuses an advertised continuation page; partner
+feed), rejects `upcoming`, and supports only explicit same-instance cursor
+continuation; partner
 quota, US eligibility, fees, display/cache, redistribution, and commercial
 routing gates remain fail-closed.
 
@@ -1022,3 +1024,12 @@ The shared tokenized event linker was then corrected to recognize Dinari's
 provider-native `stock_id` identity field. This is local persistence/linkage
 evidence only; it used the existing scheduler fixture and did not consume any
 additional provider quota or persist live payloads.
+
+On 2026-09-12, the Dinari split adapter was extended to retain documented
+opaque `next` cursors and support explicit same-instance continuation for both
+global and per-stock feeds. The credentialed Sandbox compound case passed
+`1/1` (12 measured operations, 23 HTTP requests); the live response was already
+terminal, so no additional continuation request was needed. Fixture coverage
+passed `64/64`, and the complete backend unit suite passed `1,910/1,910`.
+This remains transport/schema evidence only; Dinari quota, fees, eligibility,
+display/cache, redistribution, and commercial routing gates remain fail-closed.

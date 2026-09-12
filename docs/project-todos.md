@@ -16249,8 +16249,10 @@ The current source also passes the focused authenticated top-down browser slice 
       per-stock dividends and splits; unscoped reads use the bounded global split
       feed because Dinari does not publish a global dividend endpoint.
 - [x] Reject the unsupported `upcoming` semantic instead of labelling Dinari's
-      historical/global response as future data; refuse unfetched cursor pages
-      rather than silently truncating action history.
+      historical/global response as future data. Split reads now retain the
+      opaque `next` cursor and permit only explicit in-order continuation on the
+      same adapter instance; missing, repeated, or cross-feed cursor state fails
+      closed rather than silently truncating action history.
 - [x] Add provider/runtime/quota and scheduler regressions plus a credentialed
       Sandbox live case. The changed case passed `1/1` with 23 HTTP requests and
       12 measured operations; aggregate-only telemetry was merged into the

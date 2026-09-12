@@ -877,10 +877,10 @@ Update this handoff at each coherent boundary.
   contract (`limit`/`order`/`next`) with instance-scoped cursor state. The
   adapter validates `pagination_metadata.next`, rejects missing/malformed or
   repeated cursors, retains an explicit legacy list-response fallback, and
-  refuses to return a silently incomplete split history when another page is
-  advertised. Focused tokenized coverage passes `57/57`; the combined
-  provider/runtime contract slice passes `396/396`. Source commit `f9c18fc3`
-  is pushed; no frontend or ETF-provider files changed.
+  permits only explicit in-order split-page continuation on the same adapter
+  instance. It never follows cursors in an unbounded loop or silently reuses a
+  cursor across split feeds. Focused tokenized provider coverage passes `63/63` after
+  the continuation addition; no frontend or ETF-provider files changed.
 
 - Fresh credentialed live validation on 2026-09-12 passed all `10/10` selected
   test functions: SEC EDGAR `3/3` (5 operations/6 requests), Alpaca paper `4/4`
@@ -901,8 +901,10 @@ Update this handoff at each coherent boundary.
 
 - Dinari now advertises the generic `tokenized_corporate_actions` capability.
   Symbol-scoped reads combine its per-stock dividends and splits; unscoped
-  reads are the bounded global split feed, with `upcoming` rejected and any
-  unfetched continuation refused. The changed Sandbox live case passed `1/1`
+  reads are the bounded global split feed, with `upcoming` rejected. Later
+  split pages require the preceding page's opaque cursor and are requested
+  explicitly; unsupported or missing continuation state fails closed. The
+  changed Sandbox live case passed `1/1`
   (12 measured operations/23 HTTP requests), and its aggregate-only receipt was
   merged into the owner-managed ledger. Full backend unit coverage passes
   `1,907/1,907`; source commit `f296a507` is pushed. Dinari quota, terms, and
@@ -914,3 +916,13 @@ Update this handoff at each coherent boundary.
   unlinked; full backend unit coverage passes `1,907/1,907`, source commit
   `e332e727` is pushed, and no provider calls or frontend/ETF-provider files
   changed. Dinari quota, terms, and routing admission remain fail-closed.
+
+- Dinari global and per-stock split feeds now retain each documented opaque
+  `next` cursor and allow only explicit in-order continuation on the same
+  adapter instance. Missing, repeated, or cross-limit cursor state fails
+  closed; legacy page-shaped responses remain supported. Focused tokenized
+  provider coverage passes `64/64`, the complete backend unit suite passes
+  `1,910/1,910`, and the credentialed Sandbox case passes `1/1` with 23 HTTP
+  requests and 12 measured operations. Source commit `ba527830` is pushed;
+  no frontend or ETF-provider files changed. Dinari quota, terms, and routing
+  admission remain fail-closed.
