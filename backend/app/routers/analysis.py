@@ -1097,6 +1097,61 @@ def _equal_weight_series(
     return [(timestamp, _mean([item[timestamp] for item in series])) for timestamp in timestamps]
 
 
+def _point_in_time_equal_weight_series(
+    group: MarketGroup,
+    bars_by_id: dict[int, list[OHLCVBar]],
+    *,
+    as_of: datetime | None = None,
+) -> tuple[list[tuple[datetime, float]], set[int]]:
+    """Build an equal-weight series from membership valid at each bar timestamp.
+
+    A derived family leg has no issuer snapshot of its own, so its membership
+    must be evaluated against the group's effective/known-at boundaries for
+    every observation.  Selecting one current member set and reusing it for
+    older bars would introduce survivorship/look-ahead bias whenever a member
+    was added or removed during the requested history.
+    """
+
+    series_by_id = {
+        instrument_id: _normalised_bar_series(bars) for instrument_id, bars in bars_by_id.items()
+    }
+    timestamps = sorted({timestamp for series in series_by_id.values() for timestamp in series})
+    points: list[tuple[datetime, float]] = []
+    membership_versions: set[int] = set()
+    constituent_relationships = {
+        "constituent",
+        "official_constituent",
+        "etf_proxy_constituent",
+    }
+    for timestamp in timestamps:
+        active_members = [
+            member
+            for member in _group_members_at(
+                group,
+                timestamp,
+                allow_late_registered_group=True,
+            )
+            if member.relationship_type in constituent_relationships
+        ]
+        active_ids = {
+            member.instrument_id
+            for member in active_members
+            if member.instrument_id in series_by_id
+        }
+        values = [
+            series_by_id[instrument_id][timestamp]
+            for instrument_id in active_ids
+            if timestamp in series_by_id[instrument_id]
+        ]
+        if not values:
+            continue
+        membership_versions.add(_group_membership_version(group, active_members))
+        points.append((timestamp, _mean(values)))
+    if as_of is not None:
+        points = [point for point in points if _as_utc(point[0]) <= _as_utc(as_of)]
+    return points, membership_versions
+
+
 def _ratio_cell(
     values: list[tuple[datetime, float]],
     reference: dict[datetime, float],
@@ -5905,12 +5960,27 @@ async def benchmark_family_derived_equal_weight(
         in {"constituent", "official_constituent", "etf_proxy_constituent"}
     ]
     membership_version = _group_membership_version(group, constituent_members)
+    # Load the complete known constituent history so the series helper can
+    # select membership at each observation timestamp.  The response's
+    # ``member_count`` remains scoped to the requested ``as_of`` universe,
+    # while future members are prevented from influencing earlier points.
+    all_constituent_members = [
+        member
+        for member in group.members
+        if member.relationship_type
+        in {"constituent", "official_constituent", "etf_proxy_constituent"}
+    ]
     member_ids = [member.instrument_id for member in constituent_members]
+    all_member_ids = sorted({member.instrument_id for member in all_constituent_members})
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(db, all_member_ids, timeframe, adjusted), as_of
     )
     covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
-    series = _equal_weight_series(bars_by_id, member_ids)
+    series, membership_versions = _point_in_time_equal_weight_series(
+        group,
+        bars_by_id,
+        as_of=as_of,
+    )
     exclusions: list[AnalysisWarning] = []
     if not constituent_members:
         exclusions.append(
@@ -5948,6 +6018,9 @@ async def benchmark_family_derived_equal_weight(
         universe_provenance={
             **_group_provenance(group, as_of),
             "membership_semantics": "point_in_time_constituent_derived_equal_weight",
+            "membership_selection": "effective_at_and_known_at_per_observation",
+            "membership_version_count": len(membership_versions),
+            "membership_versions": sorted(membership_versions),
             "member_count": len(constituent_members),
             "covered_member_count": covered_member_count,
             "weight_method": str(method_metadata.get("method") or "declared_equal_weight"),

@@ -2718,7 +2718,8 @@ class TestWorkspaces:
         assert available_payload["member_count"] == 1
         assert available_payload["covered_member_count"] == 1
         assert available_payload["coverage"] == 1
-        assert len(available_payload["points"]) == len(ohlcv_bars)
+        assert len(available_payload["points"]) == len(ohlcv_bars) - 1
+        assert available_payload["points"][0]["timestamp"].startswith("2024-01-02")
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
         )
@@ -2748,6 +2749,85 @@ class TestWorkspaces:
         )
         assert not_allowed.status_code == 422
         assert not_allowed.json()["detail"]["code"] == "derived_equal_weight_not_allowed"
+
+    def test_derived_equal_weight_applies_membership_at_each_observation(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from sqlalchemy import select
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        family = db.execute(
+            select(MarketGroup).where(MarketGroup.stable_key == "sp1500")
+        ).scalar_one()
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=family.id,
+                    instrument_id=instrument.id,
+                    relationship_type="etf_proxy_constituent",
+                    position=0,
+                    source="controlled_fixture",
+                    verification_state="proxy_verified",
+                    effective_at=base,
+                    known_at=base,
+                ),
+                MarketGroupMember(
+                    market_group_id=family.id,
+                    instrument_id=instrument_b.id,
+                    relationship_type="etf_proxy_constituent",
+                    position=1,
+                    source="controlled_fixture",
+                    verification_state="proxy_verified",
+                    effective_at=base + timedelta(days=3),
+                    known_at=base + timedelta(days=3),
+                ),
+            ]
+        )
+        # The later member has no bars before its effective date.  A single
+        # membership set reused for the whole series would therefore discard
+        # the earlier AAPL observations instead of evaluating the historical
+        # universe at each timestamp.
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=3 + index),
+                    open=Decimal(str(200 + index)),
+                    high=Decimal(str(201 + index)),
+                    low=Decimal(str(199 + index)),
+                    close=Decimal(str(200 + index)),
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+                for index in range(len(ohlcv_bars) - 3)
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["member_count"] == 2
+        assert payload["covered_member_count"] == 2
+        assert payload["universe_provenance"]["membership_selection"] == (
+            "effective_at_and_known_at_per_observation"
+        )
+        assert payload["universe_provenance"]["membership_version_count"] == 2
+        timestamps = [point["timestamp"] for point in payload["points"]]
+        assert timestamps[0].startswith("2024-01-01")
+        assert timestamps[3].startswith("2024-01-04")
 
     def test_etf_industries_are_derived_from_point_in_time_holdings(
         self, client, admin_headers, auth_headers, db, instrument

@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Preserve point-in-time membership in derived equal-weight history
+
+The derived-equal-weight benchmark endpoint now evaluates canonical constituent
+membership at each observation timestamp instead of applying one as-of member
+set to the entire returned history. This removes the look-ahead/survivorship
+gap for additions and removals while retaining the existing bar normalization,
+coverage, and provenance contracts; the response now records the per-observation
+membership-selection semantics and distinct membership-version count. The
+Docker-backed integration regression passes `2/2`, Ruff and format checks pass,
+and no provider, fallback, migration, visual, or acceptance policy changed.
+This is a bounded R3 correctness slice; R1 canonical provider/history readiness
+and the remaining R2–R7 acceptance work stay open.
+
 ## 2026-09-12 — Synchronize structured Study Lab visual baselines
 
 The current Study Lab structured-result fixture now intentionally renders the

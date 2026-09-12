@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-12 — Point-in-time membership is now explicit in derived history
+
+The derived equal-weight history acceptance contract now requires membership
+selection at each observation timestamp, including effective and known-at
+semantics for canonical constituents. The regression proves a later-added
+constituent does not back-propagate into earlier observations and that the
+response exposes membership-selection semantics and version evidence. Focused
+Docker-backed integration coverage passes `2/2`; no visual baseline, mask,
+threshold, skip, provider, fallback, migration, or acceptance rule changed.
+This is a correctness gate for represented canonical history, not approval of
+provider completeness or the remaining V25 reference-state work.
+
 ## 2026-09-12 — Structured Study Lab visual baseline synchronization
 
 The structured-result Study Lab fixture now shows the promotion fan-out that

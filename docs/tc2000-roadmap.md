@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Preserve point-in-time membership in derived equal-weight history
+
+The derived-equal-weight benchmark contract now applies canonical constituent
+membership at each observation timestamp, rather than reusing a single
+as-of-selected set across all history. This closes a bounded R3
+look-ahead/survivorship gap for point-in-time additions and removals while
+keeping bar normalization, coverage, and provenance behavior stable; the
+response records the per-observation membership-selection semantics and the
+number of distinct membership versions used. Docker-backed integration coverage
+passes `2/2`; Ruff, format, and diff checks pass. No provider, fallback,
+migration, visual, or acceptance policy changed. R1 canonical provider/history
+readiness and AC2–AC7/AC10 remain open; continue with the next bounded seam and
+rerun the exact gate at a clean coherent tip.
+
 ## 2026-09-12 — Exact dashboard Watchlist gate rechecked
 
 At documentation tip `14d0a2b09` (product tip `f12e6f910`), the exact
