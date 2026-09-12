@@ -54,9 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "docs/project-todos.md"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
@@ -99,7 +97,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e035d0f4c4e587348267422484ffff2110e2f53d",
+  "head": "84e1b1acb71f807b1446cae7e912f7c2bfc7c7e9",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
