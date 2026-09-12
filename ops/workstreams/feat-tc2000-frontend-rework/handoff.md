@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Alert-history API timestamps use the canonical wire format
+
+Product commit `1a4c1f70` makes `AlertFiringEventOut` serialize persisted
+`fired_at` and `created_at` values as canonical UTC `Z` strings through the
+shared wire helper. Aware and legacy naive datetimes are normalized without
+changing persistence or event ordering.
+
+Focused notification/schema coverage passed `2/2`; the full backend unit suite
+passed `1486/1486` at `68.52%` coverage; Ruff, formatting, and diff checks
+passed.
+
+The exact gate at this tip passed repository/workstream, dependency/migration,
+frontend-preparation, and lint/type-check setup, then stopped at
+`backend-coverage` after 180 seconds because Docker returned permission denied
+for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/alert_history.py` and
+`backend/tests/unit/services/test_alert_engine_notifications.py`. Restore
+Docker access, rerun pending API regressions and the exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Compact alert history discloses canonical condition context
 
 Product commit `fc0cef98` closes the linked Instrument Alerts history seam.

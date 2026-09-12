@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Alert-history API timestamps use the canonical wire format
+
+Product commit `1a4c1f70` closes the alert-history response boundary. The
+`AlertFiringEventOut` schema now serializes persisted `fired_at` and
+`created_at` values through the shared UTC `Z` wire helper, normalizing both
+aware and legacy naive datetimes without changing persistence or ordering.
+
+Focused alert notification/schema coverage passed `2/2`; the full backend unit
+suite passed `1486/1486` at `68.52%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `1a4c1f70` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker returned permission denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending API regressions and
+exact gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Compact alert history discloses canonical condition context
 
 Product commit `fc0cef98` closes the remaining linked Instrument Alerts

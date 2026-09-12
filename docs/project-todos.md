@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Alert-history API timestamps use the canonical wire format
+
+- [x] Serialize alert-history `fired_at` and `created_at` values as canonical
+      UTC `Z` strings at the response schema boundary (`1a4c1f70`).
+- [x] Focused notification/schema coverage passed `2/2`; full backend unit
+      coverage passed `1486/1486` at `68.52%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `1a4c1f70`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
+      No later stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Compact alert history discloses canonical condition context
 
 - [x] Retain and render firing-event condition snapshots in the linked
