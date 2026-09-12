@@ -71,16 +71,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
-  "dirty_paths": [
-    "ackend/tests/live/test_tokenized_providers_live.py",
-    "docs/data-providers.md",
-    "docs/project-todos.md",
-    "docs/provider-live-validation.md",
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -139,7 +130,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ab1018ae3ad0428ca540c2141941a1e8b8307fef",
+  "head": "cc835710f70d6d8a4278c9e867c7650aa2f83cb3",
   "implementation_sha": "71840248a45f3b2d46880fd4b93ee21ffa349a61",
   "interrupted": true,
   "last_checkpoint": "2026-09-11T17:49:22.289367+00:00",
@@ -178,9 +169,9 @@
     "total": 15,
     "updated_at": "2026-09-12T00:52:15.391270+00:00"
   },
-  "remote": "5a43abb0613be35e64c30ac466d80da59df806ce",
+  "remote": "cc835710f70d6d8a4278c9e867c7650aa2f83cb3",
   "remote_sha": "71840248a45f3b2d46880fd4b93ee21ffa349a61",
-  "remote_synchronized": false,
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "6b29e837-6b43-4c05-a9fc-2308847b4d0e",
