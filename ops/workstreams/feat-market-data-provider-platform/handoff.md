@@ -579,3 +579,11 @@ Update this handoff at each coherent boundary.
   Source commit `a4b2fd1f185f00fca29b6c1e6ece1f2af4bbfef7` is pushed. This
   strengthens transport evidence only; Dinari quota, terms, and routing
   admission remain fail-closed.
+- Alpaca's credentialed live coverage now includes the free-IEX five-minute
+  candle path in addition to daily history, latest price, assets, and corporate
+  actions. The new bounded live case passed `1/1` with one upstream request and
+  36,274 response bytes; the complete backend unit suite passed `1,809/1,809`,
+  and Ruff, compileall, and diff checks passed. Source commit
+  `4f4d388b68c88e5d692f57950768c498fe5038f9` is pushed. This is transport
+  evidence only; Alpaca corporate-action pagination remains fail-closed until
+  its reviewed deployment bound is supplied.
