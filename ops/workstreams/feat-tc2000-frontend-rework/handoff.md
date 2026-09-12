@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Instrument coverage timestamps use the canonical wire format
+
+Product commit `41586210` routes instrument membership `last_run_at` and data
+coverage `oldest`/`newest` values through the canonical UTC `Z` wire serializer,
+keeping the R1 instrument contract stable for aware and naive backend values.
+Focused instrument-router coverage passed `8/8`; Ruff, formatting, and diff
+checks passed.
+
+The exact gate at `41586210` passed repository/workstream, dependency,
+migration, frontend-preparation, and lint/type-check setup, then stopped at
+`backend-coverage` after the fixed 180-second Docker readiness window because
+the Docker socket returned `permission denied` at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Checkpoint scope: `backend/app/routers/instruments.py` and
+`backend/tests/unit/routers/test_instruments_router.py`. Restore Docker access,
+rerun the pending API regressions and exact gate, then advance the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
 
 Product commit `cbb34eab` extends the shared indicator-series formatter into

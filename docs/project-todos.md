@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Instrument coverage timestamps use the canonical wire format
+
+- [x] Serialize instrument membership `last_run_at` and coverage `oldest` /
+      `newest` through the canonical UTC `Z` wire serializer (`41586210`).
+- [x] Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
+      diff checks passed.
+- [x] Reran the exact branch-scoped gate at product tip `41586210`; all
+      pre-Docker stages passed and `backend-coverage` stopped after 180 seconds
+      because the Docker socket was inaccessible (`permission denied` for
+      `/Users/jagnelo/.docker/run/docker.sock`). No later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker access, run the pending alert, indicator-batch, and
+      instrument-coverage API regressions plus the exact gate, then continue
+      provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
 
 - [x] Use the shared indicator-series formatter in the linked Instrument Alerts

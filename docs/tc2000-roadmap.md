@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Instrument coverage timestamps use the canonical wire format
+
+Product commit `41586210` closes a narrow R1/R7 contract seam at the
+instrument membership and data-coverage boundaries. Membership `last_run_at`
+and coverage `oldest`/`newest` timestamps now pass through the shared wire
+serializer, so aware and naive backend values consistently reach clients as
+canonical UTC `Z` timestamps rather than mixed ISO representations.
+
+Focused instrument-router coverage passed `8/8`; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `41586210` passed
+git-diff, workstream validation, dependency/migration, frontend dependency
+preparation, and lint/type-check setup, then stopped at `backend-coverage`
+after the fixed 180-second Docker readiness window because the Docker socket
+was not accessible (`permission denied` for
+`unix:///Users/jagnelo/.docker/run/docker.sock`). No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, and instrument-coverage API regressions plus the exact gate at
+this tip. Continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Instrument alert lists disclose canonical indicator outputs
 
 Product commit `cbb34eab` completes the compact alert-list presentation seam.
