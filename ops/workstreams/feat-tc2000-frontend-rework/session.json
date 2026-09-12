@@ -57,7 +57,7 @@
   "dirty_paths": [],
   "docker": {
     "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "reason": "Docker /v1.55/info returned HTTP 500 after the readiness probe window at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -82,7 +82,7 @@
   },
   "docker_ready": {
     "ready": false,
-    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because the Docker socket returned permission denied; no desktop restart was attempted.",
+    "reason": "The exact gate's docker-ready helper timed out after 180 seconds because Docker /v1.55/info returned HTTP 500; no desktop restart was attempted.",
     "started_desktop": false,
     "wait_seconds": 180
   },
@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "abf1a300babe54d16e6b3e1519ae16cf85c5ddea",
-  "implementation_sha": "799db14dfcb735109b819c1607f649547c954d4c",
+  "head": "b85af6b2c4b16c362f32b09d51635de58b108a24",
+  "implementation_sha": "54f08a5c403b456eac5b5307fd618bc3ed762c91",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T06:35:33+00:00",
+  "last_checkpoint": "2026-09-12T07:36:22+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Restore Docker access outside the worktree, rerun the pending alert, indicator-batch, and instrument-coverage API regressions plus the exact gate at product tip fc0cef98, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "1af72fd8a5af061b6da570bba10159973bae7ee903cda7aa0b092a30669a2943",
+  "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, and workstation API regressions plus the exact gate at product tip 54f08a5c, then continue the next bounded provider/history or compatible chart/list/gauge seam",
+  "plan_hash": "d2bc02385eef341c0ea3b760f16d3dbf30dd0b01b0c99948a52b2f32482fdd7e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,9 +117,9 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact branch-scoped gate at product tip a466b3c3 passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
-    "current_phase": "R4_alert_list_timestamp_contract",
-    "next_action": "Restore Docker access outside the worktree, rerun the pending alert, indicator-batch, and instrument-coverage API regressions plus the exact gate at product tip a466b3c3, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "current_blocker": "Exact branch-scoped gate at product tip 54f08a5c passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker /v1.55/info returned HTTP 500 at unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
+    "current_phase": "R1_workstation_timestamp_contract",
+    "next_action": "Restore Docker Desktop health outside the worktree, rerun the pending alert, indicator-batch, instrument-coverage, OHLCV, watchlist-history, and workstation API regressions plus the exact gate at product tip 54f08a5c, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
     "updated_at": "2026-09-12T07:03:20.066569+00:00"
   },
