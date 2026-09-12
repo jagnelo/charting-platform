@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 94f451e0 fences Market Map locked-source publication across
+  its API write, source reload, source selection, and rerun by mounted
+  publication generation; focused Market Map coverage passed 49/49 and full
+  frontend Vitest passed 1038/1038 across 115 files, with type-check,
+  production build, and git diff --check passing. The exact branch-scoped gate
+  was rerun at this tip: git-diff, workstream validation (30 records),
+  dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
+  passed; backend-coverage exited 2 after 180 seconds because Docker permission
+  was denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend
+  integration, provider, browser, or visual stage ran; no product assertion or
+  visual-policy failure was observed. No visual baseline, mask, threshold,
+  skip, provider, fallback, or acceptance policy changed.
   Product commit cfc31024 resets stale Market Map clone busy, message, error,
   and retry state when the active universe changes; focused Market Map coverage
   passed 47/47 and full frontend Vitest passed 1037/1037 across 115 files,
@@ -2902,8 +2914,20 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R6_market_map_source_clone_teardown_and_r7_exact_tip_gate
+  current_phase: R6_market_map_locked_source_publication_and_r7_exact_tip_gate
   current_blocker: >-
+    Product commit 94f451e0 fences Market Map locked-source publication across
+    its API write, source reload, source selection, and rerun by mounted
+    publication generation; focused Market Map coverage passed 49/49 and full
+    frontend Vitest passed 1038/1038 across 115 files, with type-check,
+    production build, and git diff --check passing. The exact branch-scoped
+    gate was rerun at this tip: git-diff, workstream validation (30 records),
+    dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
+    passed; backend-coverage exited 2 after 180 seconds because Docker
+    permission was denied for unix:///Users/jagnelo/.docker/run/docker.sock. No
+    backend integration, provider, browser, or visual stage ran; no product
+    assertion or visual-policy failure was observed. No visual baseline, mask,
+    threshold, skip, provider, fallback, or acceptance policy changed.
     Product commit cfc31024 resets stale Market Map clone busy, message, error,
     and retry state when the active universe changes; focused Market Map
     coverage passed 47/47 and full frontend Vitest passed 1037/1037 across 115
@@ -4010,7 +4034,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip cfc31024; rerun the exact gate when Docker is responsive and preserve the six visual state-oracle assertions plus unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 94f451e0; rerun the exact gate when Docker is responsive and preserve the six visual state-oracle assertions plus unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

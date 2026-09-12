@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence locked-source publication
+
+Product commit `94f451e0` fences Market Map locked-source publication across
+its API write, source reload, selection, and rerun by mounted publication
+generation. Focused Market Map coverage passed `49/49`; full frontend Vitest
+passed `1038/1038`; type-check, production build, and `git diff --check` passed
+with only the existing chunk-size warning. No provider, fallback, visual, or
+acceptance policy changed. Continue in this worktree only.
+
+## 2026-09-12 — Exact locked-source gate rechecked
+
+At product tip `94f451e0`, git-diff, workstream validation (30 records),
+dependency/migration, frontend preparation, Ruff, formatting, and TypeScript
+passed. `backend-coverage` stopped after the fixed 180-second Docker readiness
+window because Docker returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy failure
+was observed. No visual baseline, mask, threshold, skip, provider, fallback,
+or acceptance policy changed. Do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-12 — Reset stale Market Map clone state
 
 Product commit `cfc31024` clears invalidated Market Map clone busy, message,
