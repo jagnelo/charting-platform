@@ -130,7 +130,8 @@ async def _stable_identity_owner(
     conditions = [
         and_(
             InstrumentIdentifier.identifier_type == identifier_type,
-            InstrumentIdentifier.identifier_value == identifier_value,
+            func.replace(func.upper(InstrumentIdentifier.identifier_value), " ", "")
+            == identifier_value,
         )
         for identifier_type, identifier_value in identifiers.items()
     ]
@@ -150,7 +151,13 @@ async def _stable_identity_owner(
     domain_matches: list[Instrument] = []
     if domain_key is not None:
         domain_matches = (
-            (await db.execute(select(Instrument).where(Instrument.domain_key == domain_key)))
+            (
+                await db.execute(
+                    select(Instrument).where(
+                        func.lower(Instrument.domain_key) == domain_key.lower()
+                    )
+                )
+            )
             .scalars()
             .all()
         )
