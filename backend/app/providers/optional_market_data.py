@@ -134,12 +134,14 @@ def _account_integer(
         raise ProviderResponseError(
             "marketdata_app", f"provider returned an invalid account {field}"
         )
-    try:
-        value = int(raw)
-    except (TypeError, ValueError, OverflowError) as exc:
+    if isinstance(raw, int):
+        value = raw
+    elif isinstance(raw, str) and raw.strip().lstrip("+-").isdigit():
+        value = int(raw.strip())
+    else:
         raise ProviderResponseError(
             "marketdata_app", f"provider returned an invalid account {field}"
-        ) from exc
+        )
     if value < 0 and field in {"limit", "consumed"}:
         raise ProviderResponseError(
             "marketdata_app", f"provider returned an invalid account {field}"

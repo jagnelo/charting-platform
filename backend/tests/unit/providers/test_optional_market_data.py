@@ -831,6 +831,27 @@ def test_marketdata_app_account_usage_rejects_missing_documented_fields():
             provider.fetch_account_usage()
 
 
+@pytest.mark.parametrize(
+    "field",
+    ["x-ratelimit-requests-limit", "x-ratelimit-requests-remaining"],
+)
+def test_marketdata_app_account_usage_rejects_fractional_counters(field):
+    provider = MarketDataAppProvider()
+    response = _response({field: 10.5, "x-options-data-permissions": ""})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="invalid account"):
+            provider.fetch_account_usage()
+
+
 def test_marketdata_app_parses_documented_option_expirations():
     provider = MarketDataAppProvider()
     payload = {
