@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Coalesce identical OHLCV refreshes
+
+- [x] Add a process-local refresh gate around the complete canonical
+      `fetch_ohlcv` read/refresh/persist transaction. Concurrent identical
+      instrument/timeframe/range/adjustment requests now serialize and the
+      waiting caller re-runs the normal coverage check after the first commit,
+      preventing duplicate provider quota consumption inside one backend
+      process. Local-only and synthetic reads remain unaffected; durable
+      refresh jobs continue to provide cross-worker coalescing.
+- [x] Add concurrent regression coverage and rerun OHLCV router/background
+      tests. Focused market-data coverage passes `10/10`, router/background
+      coverage passes `13/13`, and no generic quota fallback is introduced.
+- [ ] Extend the same coalescing contract across process boundaries with a
+      durable distributed lease/refresh-result protocol; this checkpoint does
+      not claim cross-host deduplication.
+
 ### 2026-09-12 — Grouped screener coverage preflight
 
 - [x] Move synchronous and streaming screener evaluation to a two-phase

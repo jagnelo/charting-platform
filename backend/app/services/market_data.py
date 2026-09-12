@@ -7,6 +7,7 @@ from constituent bars and written to the standard ohlcv_bar table so the rest
 of the system (chart, alert, indicator, screener) reads them transparently.
 """
 
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -74,6 +75,13 @@ from app.services.provider_runtime import (
 logger = logging.getLogger(__name__)
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+
+# Process-local coalescing for identical interactive refreshes. Durable
+# background refresh jobs provide cross-worker coalescing; this map prevents
+# concurrent requests handled by one process from independently spending the
+# same provider quota before the first transaction commits its bars.
+_OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
+_OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
 
 
 def _e2e_fixture_bar_condition():
@@ -589,6 +597,65 @@ async def recompute_synthetic_ohlcv(
 
 
 async def fetch_ohlcv(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None = None,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+) -> list[OHLCVBar]:
+    """Read/refresh OHLCV with identical in-process requests coalesced.
+
+    The lock covers the complete cache-read, provider-refresh, and persistence
+    transaction. A waiter therefore re-enters the implementation only after
+    the first caller has committed, allowing the normal coverage check to
+    return the newly persisted bars without another provider request. Local
+    only and synthetic reads remain lock-free.
+    """
+
+    if not allow_provider_fetch or instrument.is_synthetic:
+        return await _fetch_ohlcv_impl(
+            db,
+            instrument,
+            timeframe,
+            start,
+            end,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        )
+
+    lock_key = (
+        instrument.id,
+        timeframe.value,
+        _as_utc(start),
+        _as_utc(end) if end is not None else None,
+        adjusted,
+    )
+    lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
+    _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
+    try:
+        async with lock:
+            return await _fetch_ohlcv_impl(
+                db,
+                instrument,
+                timeframe,
+                start,
+                end,
+                adjusted,
+                allow_provider_fetch=allow_provider_fetch,
+            )
+    finally:
+        remaining = _OHLCV_REFRESH_LOCK_USERS[lock_key] - 1
+        if remaining:
+            _OHLCV_REFRESH_LOCK_USERS[lock_key] = remaining
+        else:
+            _OHLCV_REFRESH_LOCK_USERS.pop(lock_key, None)
+            _OHLCV_REFRESH_LOCKS.pop(lock_key, None)
+
+
+async def _fetch_ohlcv_impl(
     db: AsyncSession,
     instrument: Instrument,
     timeframe: Timeframe,

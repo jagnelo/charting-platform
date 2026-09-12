@@ -1,7 +1,11 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
+import pytest
+
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
+from app.services import market_data
 from app.services.market_data import (
     _historical_repair_start,
     _is_positive_repair_slice,
@@ -139,3 +143,36 @@ def test_coverage_planner_reports_cold_range_and_bounded_slice():
     assert assessment.status is CoverageStatus.MISSING
     assert assessment.missing_slices == ((start, end),)
     assert assessment.bar_count == 0
+
+
+@pytest.mark.asyncio
+async def test_identical_provider_refreshes_are_coalesced_per_process(monkeypatch):
+    active = 0
+    max_active = 0
+    provider_calls = 0
+    cache_ready = False
+
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, max_active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
+
+    monkeypatch.setattr(market_data, "_fetch_ohlcv_impl", fake_impl)
+    instrument = SimpleNamespace(id=42, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    results = await asyncio.gather(
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+    )
+
+    assert results == [["fresh"], ["cached"]]
+    assert provider_calls == 1
+    assert max_active == 1
