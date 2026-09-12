@@ -35,6 +35,7 @@ from app.providers.crypto_market_data import (
     estimate_coinbase_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
+from app.providers.errors import bounded_redact_provider_message
 from app.providers.optional_market_data import (
     estimate_marketstack_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
@@ -171,7 +172,9 @@ async def get_fetch_progress(instrument_id: int, redis) -> dict | None:
         raw = await redis.get(key)
         return json.loads(raw) if raw else None
     except Exception as e:
-        logger.warning(f"Could not read fetch progress from Redis: {e}")
+        logger.warning(
+            "Could not read fetch progress from Redis: %s", bounded_redact_provider_message(e)
+        )
         return None
 
 
@@ -188,7 +191,10 @@ async def _is_cancel_requested(redis, cancel_key: str | None) -> bool:
         value = await redis.get(cancel_key)
         return value not in (None, b"", "", b"0", "0", False)
     except Exception as exc:  # noqa: BLE001 - cancellation must not break fetches.
-        logger.warning("Could not read history refresh cancellation marker: %s", exc)
+        logger.warning(
+            "Could not read history refresh cancellation marker: %s",
+            bounded_redact_provider_message(exc),
+        )
         return False
 
 
@@ -213,8 +219,9 @@ async def _fetch_one_timeframe(
             end=end,
         )
     except Exception as e:
-        logger.error(f"Bulk fetch failed for {ticker_sym} {timeframe.value}: {e}")
-        return f"error:{e}"
+        safe_error = bounded_redact_provider_message(e)
+        logger.error("Bulk fetch failed for %s %s: %s", ticker_sym, timeframe.value, safe_error)
+        return f"error:{safe_error}"
 
 
 async def _do_fetch_and_store(
@@ -386,4 +393,6 @@ async def _publish_progress(
         )
         await redis.set(key, payload, ex=_REDIS_TTL_SECONDS)
     except Exception as e:
-        logger.warning(f"Could not write fetch progress to Redis: {e}")
+        logger.warning(
+            "Could not write fetch progress to Redis: %s", bounded_redact_provider_message(e)
+        )

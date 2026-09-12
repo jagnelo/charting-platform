@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import bounded_redact_provider_message
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
@@ -93,7 +94,12 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
                     bars = await fetch_ohlcv(db, instrument, tf, start)
                     total_bars += len(bars)
                 except Exception as e:
-                    logger.error(f"Refresh failed {instrument.symbol} {tf.value}: {e}")
+                    logger.error(
+                        "Refresh failed %s %s: %s",
+                        instrument.symbol,
+                        tf.value,
+                        bounded_redact_provider_message(e),
+                    )
 
         return {"instruments_refreshed": len(instruments), "total_bars": total_bars}
 
@@ -145,7 +151,11 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                 # Another worker owns this job now (or its lease expired).
                 # Never retry or overwrite that worker's state from this
                 # stale execution; the durable queue will expose/reclaim it.
-                logger.info("Refresh job %s lease no longer owned: %s", job.id, exc)
+                logger.info(
+                    "Refresh job %s lease no longer owned: %s",
+                    job.id,
+                    bounded_redact_provider_message(exc),
+                )
                 lease_lost += 1
             except Exception as exc:
                 try:
@@ -156,7 +166,11 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                         retry_at=getattr(exc, "retry_at", None),
                     )
                 except RefreshLeaseLostError as lease_exc:
-                    logger.info("Refresh job %s lease lost during retry: %s", job.id, lease_exc)
+                    logger.info(
+                        "Refresh job %s lease lost during retry: %s",
+                        job.id,
+                        bounded_redact_provider_message(lease_exc),
+                    )
                     lease_lost += 1
                 else:
                     retried += 1

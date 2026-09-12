@@ -52,6 +52,7 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
+from app.providers.errors import bounded_redact_provider_message
 from app.providers.ibkr import (
     estimate_ibkr_current_price_request_count,
     estimate_ibkr_latest_ohlcv_request_count,
@@ -786,7 +787,7 @@ async def _fetch_ohlcv_impl(
                     "Skipping unavailable provider repair slice %s to %s: %s",
                     repair_start,
                     repair_end,
-                    exc,
+                    bounded_redact_provider_message(exc),
                 )
         if new_bars:
             try:

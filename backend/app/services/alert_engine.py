@@ -17,6 +17,7 @@ from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
+from app.providers.errors import bounded_redact_provider_message
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_data import fetch_ohlcv, get_current_price_async
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
@@ -141,7 +142,11 @@ async def _preflight_price_alerts(
         try:
             prices[instrument_id] = await get_current_price_async(db, instrument)
         except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
-            logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
+            logger.debug(
+                "Latest price unavailable for %s: %s",
+                instrument.symbol,
+                bounded_redact_provider_message(exc),
+            )
             prices[instrument_id] = None
     return prices
 
@@ -174,7 +179,7 @@ async def _preflight_indicator_alerts(
                 "Indicator OHLCV unavailable for instrument %s (%s): %s",
                 instrument_id,
                 timeframe,
-                exc,
+                bounded_redact_provider_message(exc),
             )
             prepared[key] = None
     return prepared
@@ -394,6 +399,10 @@ async def run_alert_check():
                     alert.last_value_b = Decimal(str(val_b))
 
             except Exception as e:
-                logger.error(f"Indicator alert {alert.id} evaluation failed: {e}")
+                logger.error(
+                    "Indicator alert %s evaluation failed: %s",
+                    alert.id,
+                    bounded_redact_provider_message(e),
+                )
 
         await db.commit()

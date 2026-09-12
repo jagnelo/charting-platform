@@ -11,6 +11,7 @@ from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
+from app.providers.errors import bounded_redact_provider_message
 from app.services import indicators as ind_engine
 from app.services.market_data import get_current_price_async
 from app.services.onesignal import send_alert_notification
@@ -102,7 +103,11 @@ async def _preflight_latest_prices(
         try:
             prices[instrument_id] = await get_current_price_async(db, instrument)
         except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
-            logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
+            logger.debug(
+                "Latest price unavailable for %s: %s",
+                instrument.symbol,
+                bounded_redact_provider_message(exc),
+            )
             prices[instrument_id] = None
     return prices
 
@@ -293,7 +298,7 @@ async def check_all_alerts(ctx: dict) -> dict:
             await db.commit()
 
         except Exception as e:
-            logger.error(f"Alert check failed: {e}", exc_info=True)
+            logger.error("Alert check failed: %s", bounded_redact_provider_message(e), exc_info=True)
             await db.rollback()
 
     return {"price_fired": price_fired, "indicator_fired": indicator_fired}

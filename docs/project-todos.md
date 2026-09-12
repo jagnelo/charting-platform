@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Provider exception boundary hardening
+
+- [x] Extend bounded credential redaction to provider-facing market-data
+      refresh, bulk-history, alert preflight, and background refresh diagnostics,
+      including returned bulk-fetch error state. Focused coverage passes 76/76;
+      the full backend unit suite passes 1741/1741 with Ruff, compilation, and
+      diff checks clean.
+
 ### 2026-09-12 — Central bounded provider diagnostics
 
 - [x] Centralize credential redaction plus bounded diagnostic output for the
