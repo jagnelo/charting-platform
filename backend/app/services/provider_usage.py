@@ -35,6 +35,14 @@ def _to_float(value: Decimal | int | float | None) -> float:
     return float(value)
 
 
+def _strict_positive_window_seconds(value: Any) -> int | None:
+    """Return a durable quota-window duration only when its type is exact."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None
+    return value
+
+
 def _response_bytes(log: ProviderRequestLog) -> int:
     """Return observed transport bytes, preserving unknown as zero for sums."""
     return max(0, int(log.response_bytes or 0))
@@ -481,6 +489,7 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             logs_by_source[log.data_source_id].append(log)
 
     active_windows_by_source: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    invalid_windows_by_source: dict[int, list[dict[str, Any]]] = defaultdict(list)
     identity_counts: Counter[tuple[int, str, str, datetime, int]] = Counter(
         (
             identity.data_source_id,
@@ -496,7 +505,16 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         started_at = _ensure_aware(window.window_started_at)
         if started_at is None:
             continue
-        window_seconds = max(1, int(window.window_seconds or 1))
+        window_seconds = _strict_positive_window_seconds(window.window_seconds)
+        if window_seconds is None:
+            invalid_windows_by_source[window.data_source_id].append(
+                {
+                    "id": window.id,
+                    "dimension": str(window.dimension),
+                    "reason": "window_seconds must be a positive integer",
+                }
+            )
+            continue
         capability = getattr(window.capability, "value", window.capability)
         quota_group = str(window.quota_group or capability)
         reset = reset_by_source_capability_dimension.get(
@@ -719,6 +737,10 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "active_quota_windows": sorted(
                     active_windows_by_source.get(data_source.id, []),
                     key=lambda row: (row["dimension"], row["window_started_at"]),
+                ),
+                "invalid_quota_windows": sorted(
+                    invalid_windows_by_source.get(data_source.id, []),
+                    key=lambda row: (row["dimension"], row["id"] or 0),
                 ),
                 "last_success_at": max(
                     (

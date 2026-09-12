@@ -11,6 +11,7 @@ from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy, ProviderRequestLog
 from app.services.provider_usage import (
+    _strict_positive_window_seconds,
     _window_end_for_reset,
     read_live_usage_ledger,
     summarize_provider_usage,
@@ -106,6 +107,14 @@ def test_window_end_for_reset_handles_calendar_boundaries_and_dst():
         window_seconds=86_400,
         reset="09:30 America/New_York",
     ) == datetime(2026, 11, 2, 14, 30, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(1, 1), (3600, 3600), (None, None), (True, None), (0, None), (-1, None), ("3600", None)],
+)
+def test_strict_positive_window_seconds_does_not_invent_duration(value, expected):
+    assert _strict_positive_window_seconds(value) == expected
 
 
 def test_read_live_usage_ledger_keeps_headers_from_latest_observation_not_file_order(
