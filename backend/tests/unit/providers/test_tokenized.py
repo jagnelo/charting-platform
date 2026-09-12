@@ -345,7 +345,54 @@ def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch
         "X-API-Key-Id": "id-secret",
         "X-API-Secret-Key": "secret-value",
     }
-    assert get.call_args.kwargs["params"] == {"page": 1, "page_size": 25}
+    assert get.call_args.kwargs["params"] == {"limit": 25, "order": "asc"}
+
+
+def test_dinari_stock_cursor_is_required_and_reused_for_subsequent_pages(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    provider = DinariTokenProvider()
+    responses = [
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-1"}}),
+        _response({"data": [], "pagination_metadata": {"next": None}}),
+    ]
+    with patch("app.providers.tokenized.httpx.get", side_effect=responses) as get:
+        assert provider.discover_tokenized_assets(page=0, page_size=1)
+        assert provider.discover_tokenized_assets(page=1, page_size=1) == []
+    assert get.call_args_list[0].kwargs["params"] == {"limit": 20, "order": "asc"}
+    assert get.call_args_list[1].kwargs["params"] == {
+        "limit": 20,
+        "order": "asc",
+        "next": "cursor-1",
+    }
+
+
+def test_dinari_stock_page_without_preceding_cursor_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    provider = DinariTokenProvider()
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderResponseError, match="preceding page cursor"):
+            provider.discover_tokenized_assets(page=1, page_size=25)
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {},
+        {"next": True},
+        {"next": ""},
+    ],
+)
+def test_dinari_stock_cursor_metadata_is_strict(monkeypatch, metadata):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    response = _response({"data": [_dinari_stock()], "pagination_metadata": metadata})
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError, match="pagination"):
+            DinariTokenProvider().discover_tokenized_assets(page=0, page_size=25)
 
 
 def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
@@ -457,8 +504,22 @@ def test_dinari_history_news_and_split_shapes_fail_closed():
     with patch(
         "app.providers.tokenized.httpx.get",
         side_effect=[_response([stock]), _response({"data": [], "pagination_metadata": {"next": None}})],
-    ):
+    ) as get:
         assert DinariTokenProvider().fetch_tokenized_splits("AAPL") == []
+    assert get.call_args_list[-1].kwargs["params"] == {"limit": 100, "order": "desc"}
+
+
+def test_dinari_split_cursor_continuation_is_not_silently_truncated():
+    stock = _dinari_stock()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response([stock]),
+            _response({"data": [], "pagination_metadata": {"next": "split-cursor"}}),
+        ],
+    ):
+        with pytest.raises(ProviderResponseError, match="additional pages"):
+            DinariTokenProvider().fetch_tokenized_splits("AAPL")
 
 
 def _ondo_metadata():

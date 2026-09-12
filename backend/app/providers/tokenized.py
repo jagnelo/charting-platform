@@ -851,6 +851,17 @@ class DinariTokenProvider:
     base_url = "https://api-enterprise.sandbox.dinari.com/api/v2"
     description = "Dinari dShare tokenized-stock metadata, prices, quotes, and history"
 
+    def __init__(self) -> None:
+        # Dinari's current v2 contract uses opaque cursors once ``limit`` is
+        # supplied.  Keep cursors scoped to this adapter instance so a cursor
+        # from one authenticated base URL, account, or run can never leak into
+        # another.  A caller that asks for a later page without first reading
+        # the preceding page fails closed instead of silently re-reading page 1
+        # and under-accounting the request.
+        self._stock_cursors: dict[tuple[int, int], str] = {}
+        self._stock_exhausted_pages: set[tuple[int, int]] = set()
+        self._stock_legacy_page_size: int | None = None
+
     def _base_url(self) -> str:
         value = str(getattr(settings, "DINARI_API_BASE_URL", "") or "").strip().rstrip("/")
         return value or self.base_url
@@ -869,26 +880,68 @@ class DinariTokenProvider:
             )
 
     def _stocks(self, *, page: int = 0, page_size: int = 100) -> list[dict[str, Any]]:
-        # The published v2 API retains page/page_size compatibility while
-        # cursor pagination is being introduced.  Do not silently use an
-        # opaque cursor that this protocol cannot persist between calls.
+        # Dinari introduced cursor pagination for this endpoint and began
+        # deprecating page/page_size after the transition window.  ``page`` is
+        # retained in our provider interface, but is translated into a cursor
+        # chain.  Legacy list responses remain supported for older sandbox
+        # deployments only; once such a response is observed we explicitly
+        # continue with the documented page/page_size compatibility mode.
         self._require_configured()
+        if isinstance(page, bool) or not isinstance(page, int) or page < 0:
+            raise ProviderResponseError(self.name, "Dinari stock page must be a non-negative integer")
+        if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
+            raise ProviderResponseError(self.name, "Dinari stock page size must be a positive integer")
+        requested_page_size = min(page_size, 100)
+        limit = max(20, requested_page_size)
+        cursor_key = (limit, page)
+        if self._stock_legacy_page_size is not None:
+            params: dict[str, Any] = {
+                "page": page + 1,
+                "page_size": self._stock_legacy_page_size,
+            }
+        else:
+            if page > 0:
+                if cursor_key in self._stock_exhausted_pages:
+                    return []
+                cursor = self._stock_cursors.get(cursor_key)
+                if cursor is None:
+                    raise ProviderResponseError(
+                        self.name,
+                        "Dinari stock page requires the preceding page cursor",
+                    )
+                params = {"limit": limit, "order": "asc", "next": cursor}
+            else:
+                params = {"limit": limit, "order": "asc"}
         payload = _http_json(
             f"{self._base_url()}/market_data/stocks/",
             provider_name=self.name,
-            params={
-                "page": max(1, page + 1),
-                "page_size": max(1, min(page_size, 100)),
-            },
+            params=params,
             headers=self._headers(),
         )
         if isinstance(payload, list):
             rows = payload
+            if self._stock_legacy_page_size is None:
+                self._stock_legacy_page_size = requested_page_size
         elif isinstance(payload, dict):
             rows = payload.get("data")
             metadata = payload.get("pagination_metadata")
             if not isinstance(metadata, dict):
                 raise ProviderResponseError(self.name, "provider omitted pagination metadata")
+            if "next" not in metadata:
+                raise ProviderResponseError(self.name, "provider omitted stock pagination cursor")
+            next_cursor = metadata["next"]
+            if next_cursor is not None:
+                if isinstance(next_cursor, bool) or not isinstance(next_cursor, str):
+                    raise ProviderResponseError(self.name, "provider returned an invalid stock pagination cursor")
+                next_cursor = next_cursor.strip()
+                if not next_cursor:
+                    raise ProviderResponseError(self.name, "provider returned an empty stock pagination cursor")
+                previous_cursor = params.get("next")
+                if previous_cursor is not None and next_cursor == previous_cursor:
+                    raise ProviderResponseError(self.name, "provider repeated the stock pagination cursor")
+                self._stock_cursors[(limit, page + 1)] = next_cursor
+            else:
+                self._stock_exhausted_pages.add((limit, page + 1))
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
@@ -1095,15 +1148,34 @@ class DinariTokenProvider:
         payload = _http_json(
             f"{self._base_url()}/market_data/stocks/{stock_id}/splits",
             provider_name=self.name,
-            params={"page": 1, "page_size": 100},
+            # Supplying ``limit`` selects Dinari's current cursor response.
+            # This method intentionally exposes one bounded page only; an
+            # unexpected continuation is an explicit error rather than a
+            # silently incomplete corporate-action history.
+            params={"limit": 100, "order": "desc"},
             headers=self._headers(),
         )
         if isinstance(payload, list):
             rows = payload
         elif isinstance(payload, dict):
             rows = payload.get("data")
-            if not isinstance(payload.get("pagination_metadata"), dict):
+            metadata = payload.get("pagination_metadata")
+            if not isinstance(metadata, dict):
                 raise ProviderResponseError(self.name, "provider omitted split pagination metadata")
+            if "next" not in metadata:
+                raise ProviderResponseError(self.name, "provider omitted split pagination cursor")
+            next_cursor = metadata["next"]
+            if next_cursor is not None and (
+                isinstance(next_cursor, bool)
+                or not isinstance(next_cursor, str)
+                or not next_cursor.strip()
+            ):
+                raise ProviderResponseError(self.name, "provider returned an invalid split pagination cursor")
+            if next_cursor is not None:
+                raise ProviderResponseError(
+                    self.name,
+                    "Dinari split response has additional pages; bounded adapter refuses incomplete history",
+                )
         else:
             rows = None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
