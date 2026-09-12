@@ -7,8 +7,11 @@ Integration tests for background tasks:
 These tests patch provider-facing market data calls and OneSignal while using a real DB.
 """
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class AsyncSessionAdapter:
@@ -49,6 +52,44 @@ class AsyncSessionContext:
 
     async def __aexit__(self, exc_type, exc, tb):
         return False
+
+
+@pytest.mark.asyncio
+async def test_refresh_job_lease_token_blocks_stale_worker_mutation(db, instrument):
+    """A reclaimed PostgreSQL job cannot be completed by its prior worker."""
+
+    from app.services.market_refresh_queue import (
+        RefreshLeaseLostError,
+        claim_refresh_jobs,
+        complete_refresh_job,
+        enqueue_refresh_job,
+    )
+
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 12, 12, tzinfo=UTC)
+    await enqueue_refresh_job(
+        async_db,
+        request_key=f"integration-lease:{instrument.id}",
+        capability="price_history",
+        instrument_id=instrument.id,
+        timeframe="D1",
+        now=now,
+    )
+    first_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    first_token = first_claim.lease_token
+    assert first_token
+
+    first_claim.leased_until = now - timedelta(seconds=1)
+    await async_db.flush()
+    second_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    assert second_claim.lease_token
+    assert second_claim.lease_token != first_token
+
+    with pytest.raises(RefreshLeaseLostError):
+        await complete_refresh_job(async_db, second_claim, now=now, lease_token=first_token)
+
+    await complete_refresh_job(async_db, second_claim, now=now)
+    assert second_claim.status == "completed"
 
 
 # ── Alert engine ───────────────────────────────────────────────────────────────
