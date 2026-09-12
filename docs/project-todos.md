@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-12 — Single-event Study Lab target fan-out
+
+- [x] Add the missing named watchlist-filter and alert actions for a completed
+      single-output `events` Study Lab run. Both use the existing
+      `events_to_boolean` promotion endpoint and preserve named artifact/run
+      lineage (`df4c89f0`); the existing Strategy signal action remains intact.
+- [x] Focused Study Lab component coverage passed `30/30`; full frontend
+      Vitest passed `1010/1010`; type-check, production build, backend lint,
+      formatting, and diff checks passed.
+- [x] The exact gate passed all pre-Docker stages and stopped at
+      `backend-coverage` after 180 seconds on Docker socket permission denied.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate,
+      then continue remaining R4 fan-out, provider/history, and R2-R7 evidence.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Structured Study Lab Boolean signal fan-out
 
 - [x] Add the missing named Strategy Lab signal action for Boolean artifacts

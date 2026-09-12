@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Single-event Study Lab target fan-out
+
+Product commit `df4c89f0` exposes the declared watchlist-filter and alert
+targets for completed single-output `events` Study Lab runs in the primary
+Study Lab tool. Exactly one named event artifact is required; promotion uses the
+existing `events_to_boolean` endpoint and alert creation references the
+persisted promoted filter. Strategy signal promotion and all other capability
+boundaries remain unchanged. Focused coverage passed `30/30`, full frontend
+Vitest `1010/1010`, type-check/build, backend lint, formatting, and diff checks
+passed.
+
+The exact gate at this tip passed all pre-Docker stages, then stopped at
+`backend-coverage` after 180 seconds because Docker returned permission denied
+at `unix:///Users/jagnelo/.docker/run/docker.sock`. Restore Docker health and
+rerun the pending regressions and exact gate. No visual/provider/acceptance
+policy changed; do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Structured Study Lab Boolean signal fan-out
 
 Product commit `1e128acd` exposes a named Strategy Lab signal action for

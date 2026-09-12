@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Expose single-event Study Lab targets
+
+Product commit `df4c89f0` closes the single-output `events` fan-out gap in the
+primary Study Lab tool. Completed event studies now expose the declared
+watchlist-filter and alert actions in addition to the existing Strategy signal
+action. Both actions require exactly one named event artifact, route through the
+existing `events_to_boolean` promotion endpoint, preserve run/artifact lineage,
+and create an alert only from the persisted promoted filter. No event contract,
+provider, fallback, visual, or acceptance policy changed.
+
+Focused Study Lab component coverage passed `30/30`; full frontend Vitest passed
+`1010/1010`; type-check and production build passed with only the existing
+chunk-size warning; backend Ruff, formatting, and `git diff --check` passed.
+The exact branch gate is pending at this coherent product tip.
+
+## 2026-09-12 — Exact single-event target gate rechecked
+
+The exact branch-scoped gate was rerun at product tip `df4c89f0` after the
+single-event filter/alert slice. Git-diff, workstream validation,
+dependency/migration checks, frontend preparation, Ruff, formatting, and
+TypeScript passed. The `backend-coverage` stage then stopped after the fixed
+180-second Docker readiness window because the Docker socket returned permission
+denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. Restore Docker health, rerun pending API
+regressions and the exact gate, then continue the next bounded provider/history
+or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Expose structured Study Lab Boolean signals
 
 Product commit `1e128acd` closes an R4 fan-out cell in the primary Study Lab
