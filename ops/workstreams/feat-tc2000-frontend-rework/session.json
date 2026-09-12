@@ -101,7 +101,7 @@
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
-  "last_human_progress_update": "2026-09-12T20:24:01.758708+00:00",
+  "last_human_progress_update": "2026-09-12T20:36:24.667123+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
   "plan_hash": "7a9aacf69fc43d25ec76bccaa34d6040972396ffbb25ec125cc03be876cfdbf7",
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "None; the exact gate is green with six pre-existing protected visual diffs retained under the unchanged policy.",
-    "current_phase": "r7_exact_tip_structured_study_visual_gate",
-    "next_action": "Continue the next bounded R1 provider/history seam in this exact worktree; AC2-AC7 and AC10 remain open.",
+    "current_blocker": "None; focused Docker-backed derived equal-weight integration coverage passes 2/2; exact branch gate still pending at this new tip.",
+    "current_phase": "r3_point_in_time_derived_equal_weight_history",
+    "next_action": "Run the exact branch-scoped gate at this clean coherent tip, then continue the next bounded R1 provider/history or compatible R4/R2-R7 seam.",
     "total": 10,
-    "updated_at": "2026-09-12T20:24:01.757918+00:00"
+    "updated_at": "2026-09-12T20:36:24.667058+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
