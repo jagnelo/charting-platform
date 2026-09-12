@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact gate receipt at alert-form tip
+
+- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+      at product tip `a557ba57` after the alert-form output-selector slice;
+      repository/workstream/dependency/migration/frontend-preparation and
+      lint/type-check setup passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned
+      HTTP 500 for `/v1.55/info` after 180 seconds. No API, provider, browser,
+      build, or visual stage ran; no product or visual-policy failure was
+      observed.
+- [ ] Restore Docker Desktop health, run the pending alert and
+      indicator-batch API regressions and exact gate again at `a557ba57`, then
+      continue provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Direct alert forms expose explicit multi-output selection
 
 - [x] Add explicit output selectors to Instrument Alerts and the reusable Alert

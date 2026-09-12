@@ -2,6 +2,22 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact gate receipt at alert-form tip
+
+The exact branch-scoped gate was rerun at product tip `a557ba57` (documentation
+tip `3715caa4`). Git-diff, workstream validation, dependency, migration,
+frontend-preparation, and lint/type-check setup passed. It stopped at
+`backend-coverage` after the fixed 180-second Docker readiness window because
+Docker `/v1.55/info` returned HTTP 500 on
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, build, browser, or visual stage ran; no product or visual-policy
+failure was observed. The alert and indicator-batch API fixtures remain
+pending. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+Next action: restore Docker health, run the pending API regressions and exact
+gate at `a557ba57`, then advance the next bounded seam.
+
 ## 2026-09-12 — Direct alert forms expose explicit multi-output selection
 
 Product commit `a557ba57` adds canonical output selectors to Instrument Alerts

@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact gate receipt at alert-form tip
+
+The exact branch-scoped gate was rerun at product tip `a557ba57` after the
+alert-form output-selector slice; the documentation tip before this receipt
+was `3715caa4`. Git-diff, workstream validation (`30` records), dependency
+resolution, migration-head/compatibility, frontend dependency preparation,
+and lint/type-check setup passed. The gate then stopped at `backend-coverage`
+after the fixed 180-second Docker readiness window because Docker returned
+HTTP 500 for API route `/v1.55/info` on
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, frontend build, browser, or visual stage ran, and no product
+assertion or visual-policy failure was observed.
+
+The alert and indicator-batch API regressions remain pending the Docker-backed
+fixture. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. The next action is to restore Docker Desktop health,
+run those API regressions and the exact gate again at `a557ba57`, then continue
+the next bounded provider/history or compatible chart/list/gauge seam while
+preserving the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Direct alert forms expose explicit multi-output selection
 
 Product commit `a557ba57` completes the user-facing alert side of the
