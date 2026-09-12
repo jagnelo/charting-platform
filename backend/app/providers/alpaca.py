@@ -158,6 +158,7 @@ class AlpacaProvider:
 
         bars: list[OHLCVBar] = []
         page_token: str | None = None
+        seen_page_tokens: set[str] = set()
 
         while True:
             if page_token:
@@ -237,6 +238,11 @@ class AlpacaProvider:
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid pagination token")
             if not page_token:
                 break
+            if page_token in seen_page_tokens:
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned a repeated pagination token"
+                )
+            seen_page_tokens.add(page_token)
 
         return bars
 

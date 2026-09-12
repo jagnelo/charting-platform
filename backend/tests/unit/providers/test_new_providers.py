@@ -460,6 +460,29 @@ class TestAlpacaOHLCVParsing:
                     datetime(2024, 1, 5, tzinfo=UTC),
                 )
 
+    def test_fetch_ohlcv_rejects_repeated_pagination_token(self):
+        provider = AlpacaProvider()
+        response = MagicMock()
+        response.json.side_effect = [
+            {"bars": {"AAPL": []}, "next_page_token": "same-token"},
+            {"bars": {"AAPL": []}, "next_page_token": "same-token"},
+        ]
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError, match="repeated pagination token"):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 5, tzinfo=UTC),
+                )
+
     @pytest.mark.parametrize(
         "actions,match",
         [

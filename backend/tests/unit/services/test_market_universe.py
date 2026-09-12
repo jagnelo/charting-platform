@@ -492,6 +492,42 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
 
 
 @pytest.mark.asyncio
+async def test_universe_reconciliation_rejects_repeated_pagination_next_url(db, monkeypatch):
+    from app.services import market_universe
+
+    source = DataSource(name="fixture-repeated-cursor", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="fixture-repeated-cursor", data_source=source)
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def repeated_cursor(*_args, **_kwargs):
+        return SimpleNamespace(
+            result={
+                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "next_offset": 1,
+                "next_url": "https://provider.example/page?cursor=stuck",
+            },
+            data_source=source,
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", repeated_cursor)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-repeated-cursor"
+    )
+
+    assert result["status"] == "failed"
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert "repeated a pagination next_url" in (run.error or "")
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "quotes,match",
     [

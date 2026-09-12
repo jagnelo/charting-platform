@@ -851,6 +851,7 @@ async def reconcile_us_universe(
             rows: list[dict[str, Any]] = []
             offset = 0
             total: int | None = None
+            seen_next_urls: set[str] = set()
             try:
                 while True:
                     execution = await execute_provider_call(
@@ -900,7 +901,16 @@ async def reconcile_us_universe(
                                 "discovery provider total is smaller than observed rows"
                             )
                     next_offset = page.get("next_offset")
-                    next_url = bool(page.get("next_url"))
+                    raw_next_url = page.get("next_url")
+                    if raw_next_url is not None and not isinstance(raw_next_url, str):
+                        raise ValueError("discovery provider returned an invalid next_url")
+                    if isinstance(raw_next_url, str) and raw_next_url:
+                        if raw_next_url in seen_next_urls:
+                            raise ValueError(
+                                "discovery provider repeated a pagination next_url"
+                            )
+                        seen_next_urls.add(raw_next_url)
+                    next_url = bool(raw_next_url)
                     if isinstance(next_offset, int) and next_offset > offset:
                         if next_offset > 2_000_000:
                             raise ValueError("discovery provider exceeded safety page limit")
