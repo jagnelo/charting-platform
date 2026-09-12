@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { describeOhlcvCoverage } from '@/lib/workstation/ohlcvCoverageAccessibility'
@@ -175,6 +175,7 @@ const rangeAccessibilitySummary = computed(() => {
 })
 let requestId = 0
 let rangeRequestId = 0
+let disposed = false
 
 const daily = computed(() => coverage.value.D1 ?? null)
 const rangeValidationError = computed(() => {
@@ -202,16 +203,16 @@ watch(() => props.symbol, async symbol => {
       }>(`/coverage/instruments/${encodeURIComponent(symbol)}`),
       staleTime: 30_000,
     })
-    if (id !== requestId) return
+    if (disposed || id !== requestId) return
     coverage.value = response.local_coverage ?? {}
     datasetStates.value = (response.dataset_states ?? []).slice(0, 6)
   } catch (caught: any) {
-    if (id !== requestId) return
+    if (disposed || id !== requestId) return
     coverage.value = {}
     datasetStates.value = []
     error.value = caught?.message ?? 'Coverage is unavailable.'
   } finally {
-    if (id === requestId) loading.value = false
+    if (!disposed && id === requestId) loading.value = false
   }
 }, { immediate: true })
 
@@ -257,16 +258,22 @@ async function checkRange() {
       queryFn: () => api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, params),
       staleTime: 30_000,
     })
-    if (id === rangeRequestId) rangeAssessment.value = response
+    if (!disposed && id === rangeRequestId) rangeAssessment.value = response
   } catch (caught: any) {
-    if (id === rangeRequestId) {
+    if (!disposed && id === rangeRequestId) {
       rangeAssessment.value = null
       rangeError.value = caught?.message ?? 'OHLCV readiness is unavailable.'
     }
   } finally {
-    if (id === rangeRequestId) rangeLoading.value = false
+    if (!disposed && id === rangeRequestId) rangeLoading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  disposed = true
+  requestId += 1
+  rangeRequestId += 1
+})
 
 function formatRange(start: string | null, end: string | null) {
   if (!start || !end) return 'Unavailable'

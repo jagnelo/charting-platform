@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -103,5 +103,24 @@ describe('CoverageSummaryTool', () => {
     await vi.waitFor(() => expect(first.text()).toContain('Canonical instrument'))
     await vi.waitFor(() => expect(second.text()).toContain('Canonical instrument'))
     expect(apiGet).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not publish a late coverage response after the tool unmounts', async () => {
+    apiGet.mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({
+        local_coverage: { D1: { oldest: '2024-01-01T00:00:00Z', newest: '2025-12-31T00:00:00Z', bar_count: 500 } },
+        dataset_states: [{ dataset_type: 'ohlcv', dataset_key: 'D1', status: 'fresh' }],
+      }), 0)
+    }))
+    const wrapper = mountTool({ props: { symbol: 'SPY' } })
+    const vm = wrapper.vm as any
+
+    expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY')
+    wrapper.unmount()
+    await new Promise(resolve => setTimeout(resolve, 10))
+    await flushPromises()
+
+    expect(vm.loading).toBe(true)
+    expect(vm.coverage).toEqual({})
   })
 })
