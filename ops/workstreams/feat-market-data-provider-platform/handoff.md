@@ -1230,3 +1230,11 @@ Update this handoff at each coherent boundary.
   unit suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
   checks pass. No provider calls or credentials were used, and no frontend or
   ETF-provider files changed.
+
+- Source checkpoint `71faddb0` closes malformed `next_offset` handling in
+  universe reconciliation. Boolean, non-integer, negative, and non-progressing
+  offsets now fail closed instead of being treated as valid Python integers or
+  allowing silent completion. Focused universe pagination coverage passes
+  `5/5`, and the complete backend unit suite passes `2,000/2,000` with 37
+  warnings; Ruff, compileall, and diff checks pass. No provider calls or
+  credentials were used, and no frontend or ETF-provider files changed.

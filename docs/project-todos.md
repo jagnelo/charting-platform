@@ -16424,3 +16424,13 @@ The current source also passes the focused authenticated top-down browser slice 
       suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
       checks pass. Source checkpoint `3cedc9d6`; no provider calls, credentials,
       frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Universe offset metadata safety
+
+- [x] Reject boolean, non-integer, negative, and non-progressing discovery
+      `next_offset` metadata instead of accepting Python bool values as offsets
+      or silently claiming completion. Focused universe pagination coverage
+      passes `5/5`, and the complete backend unit suite passes `2,000/2,000`
+      with 37 warnings; Ruff, compileall, and diff checks pass. Source
+      checkpoint `71faddb0`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.
