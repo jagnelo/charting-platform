@@ -568,6 +568,23 @@ def test_marketdata_app_credentialed_option_surface():
     assert isinstance(quote_points, list)
 
 
+def test_marketdata_app_credentialed_intraday_history():
+    """Exercise the documented five-minute delayed stock-candle surface."""
+
+    _require("MARKETDATA_APP_API_KEY")
+    end = datetime.now(UTC)
+    start = end - timedelta(days=5)
+    rows, measurement = _observed_read(
+        lambda: MarketDataAppProvider().fetch_ohlcv(
+            "AAPL", Timeframe.M5, start, end, adjusted=False
+        ),
+        "marketdata_app",
+    )
+    assert measurement.http_requests > 0
+    assert rows and rows[-1].close > 0
+    assert all(row.ts.tzinfo is not None for row in rows)
+
+
 def test_finnhub_credentialed_company_profile():
     """The observed free key does not entitle the stock-candle endpoint."""
 
