@@ -541,6 +541,15 @@ progress:
       revalidation of the newly credentialed providers also passed `9/9`:
       Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox. Aggregate usage
       remains in the owner-managed external ledger only.
+    - >-
+      Direct adapter calls now fail closed for adjusted history whenever the
+      provider exposes raw candles only. Optional REST adapters, Binance,
+      Coinbase, and Kraken reject before transport; exchange bars are labeled
+      `raw`/`provider-native`, and current-price helpers explicitly request
+      raw history. Focused provider tests pass `284/284`, the complete backend
+      unit suite passes `1,794/1,794` with the known 37 warnings, and the
+      bounded keyless Binance/Coinbase/Kraken live probes pass `3/3` under run
+      `51b1b146-7d5b-47ac-86be-5b545bad3b6d`, with aggregate usage outside Git.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -564,5 +573,7 @@ progress:
     30-day shadow remain open review or deployment gates. Alpaca event routing is
     additionally fail-closed until the deployment records a positive reviewed
     `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound; direct adapter/live evidence does
-    not silently promote that control.
+    not silently promote that control. Raw-only direct calls are now guarded
+    independently of resolver admission, so no caller can silently persist an
+    exchange or optional-provider raw response as adjusted data.
   next_action: complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
