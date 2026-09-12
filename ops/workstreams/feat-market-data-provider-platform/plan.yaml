@@ -1000,6 +1000,20 @@ progress:
       measured zero requests and was excluded. This is transport/schema
       evidence only, so provider quota, plan, commercial, redistribution, and
       response-dependent routing gates remain fail-closed.
+    - >-
+      Added a separate complete SEC issuer-directory enumeration path. The
+      provider deduplicates official ticker-directory rows by CIK while
+      retaining ambiguous ticker evidence; the durable worker scan persists a
+      bounded offset/cycle in scan-state provenance, composes the existing
+      per-CIK IPO parser, records redacted failures, and refuses simultaneous
+      legacy issuer-table and directory scans. Focused EDGAR/scan/quota/worker
+      coverage passes 149/149 (focused coverage status only), the added
+      mutual-exclusion regression plus EDGAR slice passes 40/40, and the final
+      complete backend unit suite passes 1,923/1,923 with the known 37
+      warnings. The credentialed SEC completeness probe passes 1/1; changed
+      file static checks and both Compose parses pass. The path remains
+      disabled until its request budget and issuer-materialization policy are
+      reviewed; Docker-backed migration/full-stack validation remains blocked.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
@@ -1044,8 +1058,10 @@ progress:
     candidate reconciliation, and audited pre-listing materialization/promotion
     workflow are implemented and remain disabled by default; the authenticated
     database-only calendar, admin-consensus, pre-listing evidence, and scan-state
-    APIs are available. Complete/global EDGAR candidate enumeration beyond the
-    known canonical issuer table, production NMS/OTC
+    APIs are available. A complete SEC issuer-directory enumeration path is now
+    implemented as a separate disabled-by-default scan; its activation,
+    submissions-request budget, and canonical issuer-materialization policy
+    remain review gates. Production NMS/OTC
     reconciliation, and frontend calendar surfaces remain open. The new Alpha
     forward-calendar and EDGAR IPO-pipeline live reads are
     still pending a reset/usable quota window, while Alpaca/MarketData.app/
@@ -1071,4 +1087,4 @@ progress:
     cursor continuation without unbounded page following, and paginated UUID
     misses fail closed; source commit
     `51fed55bde477918b15e1a3e1ccf8fb6f775c50d` is pushed.
-  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the bounded EDGAR issuer scan against the canonical issuer-ingestion strategy and determine whether a separately sourced complete SEC universe is required; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, and paginated UUID miss safety are implemented at source commit `51fed55bde477918b15e1a3e1ccf8fb6f775c50d`; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; review the disabled EDGAR directory scan's submissions budget and issuer-materialization policy; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe and lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized action identity linkage, explicit Dinari split-page continuation, and paginated UUID miss safety are implemented in the current source checkpoint; the complete backend unit suite and changed-file gates are green, while Docker-backed migration/full-stack validation and the broader provider/legal/deployment gates remain open.

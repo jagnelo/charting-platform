@@ -950,3 +950,39 @@ Update this handoff at each coherent boundary.
   commercial, US-eligibility, redistribution, and response-dependent routing
   gates remain independently fail-closed; no credentials or payloads entered
   Git.
+
+- Added a separate complete SEC issuer-directory path. `EdgarProvider` now
+  deduplicates the official cached `company_tickers.json` rows by CIK (including
+  ambiguous ticker candidates) and exposes deterministic bounded pages. The
+  durable `edgar:ipo_pipeline:sec_directory` scan stores its offset, total,
+  cycle, and last batch in `MarketEventScanState.provenance`, routes directory
+  discovery through the EDGAR market-events quota policy, and reuses the
+  existing bounded per-CIK IPO parser. It records redacted failures, refuses
+  non-progressing or duplicate-CIK pages, and the task layer prevents the
+  legacy issuer-table scan and directory scan from running together. The new
+  worker schedule and configuration are disabled by default and wired through
+  local/RPi Compose without secrets or frontend/ETF-provider changes.
+
+- Validation after this change: focused EDGAR/scan/worker/quota coverage passed
+  `149/149` (the command was intentionally focused, so pytest reported the
+  repository coverage threshold as unmet); the added mutual-exclusion regression
+  plus EDGAR/scan slice passed `40/40` with `--no-cov`; changed-file Ruff,
+  format, compileall, and diff checks passed. The final complete backend unit
+  suite against the pushed source passed `1,923/1,923` with 69.68% coverage and
+  the known 37 warnings. The credentialed SEC live directory-completeness probe
+  passed `1/1`, verified the declared total and unique 10-digit CIK pagination,
+  and emitted one aggregate-only usage row outside Git (the live command's
+  process status is `1` solely because single-test coverage is below the global
+  threshold). Compose parsing passed with `--no-interpolate` for both root and
+  RPi definitions. Docker-backed migration/full-stack validation remains
+  blocked by the local Docker API 500.
+
+- The SEC directory scan remains opt-in and non-routable until an operator
+  reviews its submissions-request budget and canonical issuer-materialization
+  policy. A complete directory cycle means every CIK was attempted; it does not
+  claim current tradability or infer listing dates from filing dates. Provider
+  quota/legal/redistribution gates, production NMS/OTC reconciliation, CI and
+  deployment secret distribution, and the separately approved shadow run remain
+  open. The parallel `feat/etf-holdings-constituents` branch remains untouched;
+  only the generic issuer/identity surface is shared and must be reconciled at
+  staging integration.
