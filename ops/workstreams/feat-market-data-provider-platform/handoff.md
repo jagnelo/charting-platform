@@ -1162,3 +1162,11 @@ Update this handoff at each coherent boundary.
   the complete backend unit suite passes `1,953/1,953` with 37 warnings. Ruff,
   compileall, and diff checks pass. No provider calls or credentials were
   used, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `db8eb16e` hardens durable quota reservation entry points.
+  Boolean, fractional, string, negative, zero, and malformed reservation
+  values are rejected instead of coerced into provider units. Focused
+  routing/quota coverage passes `92/92` selected cases and the complete backend
+  unit suite passes `1,967/1,967` with 37 warnings. Ruff, compileall, and diff
+  checks pass. No provider calls or credentials were used, and no frontend or
+  ETF-provider files changed.
