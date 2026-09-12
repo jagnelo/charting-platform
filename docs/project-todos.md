@@ -63,6 +63,10 @@
       rotation plus benchmark-family relative-rotation reads. These local
       evaluators now exclude explicitly stale current snapshots while retaining
       historical `as_of` behavior.
+- [x] Group snapshots now include benchmark freshness in the same deduplicated
+      summary as their members. Expired benchmark bars produce an explicit
+      `stale_data` exclusion and stale relative cells rather than an ambiguous
+      unaligned-benchmark result; the historical `as_of` path remains unchanged.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 

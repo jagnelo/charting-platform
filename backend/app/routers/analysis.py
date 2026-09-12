@@ -5147,7 +5147,7 @@ async def group_snapshot(
         ).scalars()
     }
     benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
-    all_ids = instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])
+    all_ids = list(dict.fromkeys(instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])))
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
     )
@@ -5170,6 +5170,14 @@ async def group_snapshot(
     calendar_years = list(range(latest_year - _CALENDAR_YEAR_LOOKBACK + 1, latest_year + 1))
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
+    if benchmark_instrument and benchmark_instrument.id in stale_ids:
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                instrument_id=benchmark_instrument.id,
+            )
+        )
     covered = 0
     for member in sorted(members, key=lambda item: item.position):
         instrument = instruments.get(member.instrument_id)
@@ -5267,19 +5275,30 @@ async def group_snapshot(
         technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
         relative: AnalysisCell | None = None
         if benchmark_instrument:
-            benchmark_bar = benchmark_bars.get(latest.ts)
-            if benchmark_bar is None or benchmark_bar.close == 0:
+            if benchmark_instrument.id in stale_ids:
                 relative = _cell(
                     None,
                     latest,
                     AnalysisWarning(
-                        code="unaligned_benchmark",
-                        message="No aligned benchmark bar is available.",
-                        instrument_id=instrument.id,
+                        code="stale_data",
+                        message="Persisted OHLCV freshness has expired; benchmark-relative values were withheld.",
+                        instrument_id=benchmark_instrument.id,
                     ),
                 )
             else:
-                relative = _cell(float(latest.close / benchmark_bar.close), latest)
+                benchmark_bar = benchmark_bars.get(latest.ts)
+                if benchmark_bar is None or benchmark_bar.close == 0:
+                    relative = _cell(
+                        None,
+                        latest,
+                        AnalysisWarning(
+                            code="unaligned_benchmark",
+                            message="No aligned benchmark bar is available.",
+                            instrument_id=instrument.id,
+                        ),
+                    )
+                else:
+                    relative = _cell(float(latest.close / benchmark_bar.close), latest)
         rows.append(
             GroupSnapshotRow(
                 instrument_id=instrument.id,
@@ -5292,7 +5311,7 @@ async def group_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
+    freshness, freshness_detail = await _batch_freshness(db, all_ids, timeframe, adjusted)
     return GroupSnapshotOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,

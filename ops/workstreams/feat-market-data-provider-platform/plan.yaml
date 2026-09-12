@@ -294,6 +294,7 @@ progress:
     - MarketData.app option-chain routing diagnostics now require the same documented minimum bound as the adapter/runtime (at least two symbols); a bound of one is explicitly non-routable and the focused wiring suite passes 11/11
     - current group-breadth analysis now excludes members with explicitly stale persisted OHLCV state, reports missing/stale/evaluated counts, and leaves point-in-time `as_of` reads unchanged; analysis unit coverage passes 20/20 plus Ruff/compile/diff, while the new database-backed regression is blocked only by Docker's HTTP 500 readiness failure
     - chart-facing technical, relative-strength, group-snapshot, group-relative-rotation, and benchmark-family relative-rotation endpoints now withhold explicitly stale current bars while preserving historical `as_of` behavior; the shared stale-breadth API regression covers the ordinary chart routes, and the resolver unit suite passes 21/21 while Docker integration remains blocked before test startup
+    - group snapshots now deduplicate member/benchmark IDs in freshness summaries and emit explicit `stale_data` benchmark exclusions and relative cells when the current benchmark snapshot is expired; Ruff, compilation, diff checks, and analysis unit coverage remain green, while the database-backed regression remains Docker-readiness blocked
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

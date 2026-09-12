@@ -2506,12 +2506,15 @@ class TestWorkspaces:
         snapshot = client.get(
             "/api/v1/analysis/groups/stale-breadth-test/snapshot",
             headers=auth_headers,
+            params={"benchmark": instrument.symbol},
         )
         assert snapshot.status_code == 200
         snapshot_payload = snapshot.json()
         assert snapshot_payload["coverage"] == 0
         assert snapshot_payload["rows"][0]["last"]["value"] is None
         assert snapshot_payload["rows"][0]["last"]["warning"]["code"] == "stale_data"
+        assert snapshot_payload["freshness_detail"]["requested"] == 1
+        assert any(item["code"] == "stale_data" for item in snapshot_payload["exclusions"])
 
         rotation = client.get(
             "/api/v1/analysis/groups/stale-breadth-test/relative-rotation",
