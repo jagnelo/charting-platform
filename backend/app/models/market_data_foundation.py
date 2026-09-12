@@ -24,6 +24,7 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
     event,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -178,6 +179,48 @@ class MarketSeries(Base, TimestampMixin):
             name="uq_market_series_scope",
         ),
         Index("ix_market_series_instrument_lookup", "instrument_id", "timeframe", "session_code"),
+    )
+
+
+class MarketSeriesDefault(Base, TimestampMixin):
+    """The compatibility series selected for ordinary OHLCV reads.
+
+    A provider may expose several valid feeds for the same instrument and
+    timeframe.  ``MarketSeries.is_canonical`` records eligibility, while this
+    row records the one series used by legacy symbol/timeframe reads.  The
+    mapping is deliberately separate so an operator can change the default
+    without rewriting observations or silently deleting alternate feeds.
+    """
+
+    __tablename__ = "market_series_default"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    timeframe: Mapped[str] = mapped_column(String(12), nullable=False)
+    is_adjusted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    selection_reason: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="first_canonical"
+    )
+    selected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    instrument: Mapped["Instrument"] = relationship()
+    market_series: Mapped[MarketSeries] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint(
+            "instrument_id",
+            "timeframe",
+            "is_adjusted",
+            name="uq_market_series_default_scope",
+        ),
     )
 
 

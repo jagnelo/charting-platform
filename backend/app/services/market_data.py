@@ -16,14 +16,14 @@ from decimal import Decimal
 from typing import TypeVar
 
 import numpy as np
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
-from app.models.market_data_foundation import AdjustmentBasis
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     DatasetStatus,
@@ -148,6 +148,70 @@ def _e2e_fixture_bar_condition():
     return (
         OHLCVBar.data_source_id
         == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
+    )
+
+
+def _default_series_bar_condition(
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+):
+    """Restrict compatibility reads to one selected series.
+
+    New provider writes create an explicit default mapping.  The canonical
+    series fallback handles rows created before that mapping existed, while
+    the legacy branch keeps old symbol-based rows readable when no series has
+    ever been recorded for the scope.
+    """
+
+    mapping = select(MarketSeriesDefault.market_series_id).where(
+        MarketSeriesDefault.instrument_id == instrument_id,
+        MarketSeriesDefault.timeframe == timeframe.value,
+        MarketSeriesDefault.is_adjusted == adjusted,
+    )
+    mapped_id = mapping.scalar_subquery()
+    mapping_target_active = (
+        select(MarketSeriesDefault.id)
+        .join(MarketSeries, MarketSeries.id == MarketSeriesDefault.market_series_id)
+        .where(
+            MarketSeriesDefault.instrument_id == instrument_id,
+            MarketSeriesDefault.timeframe == timeframe.value,
+            MarketSeriesDefault.is_adjusted == adjusted,
+            MarketSeries.is_active.is_(True),
+        )
+        .exists()
+    )
+    adjustment_predicate = (
+        MarketSeries.adjustment_basis != AdjustmentBasis.RAW
+        if adjusted
+        else MarketSeries.adjustment_basis == AdjustmentBasis.RAW
+    )
+    canonical = (
+        select(MarketSeries.id)
+        .where(
+            MarketSeries.instrument_id == instrument_id,
+            MarketSeries.timeframe == timeframe.value,
+            MarketSeries.is_canonical.is_(True),
+            MarketSeries.is_active.is_(True),
+            adjustment_predicate,
+        )
+        .order_by(MarketSeries.id)
+        .limit(1)
+    )
+    canonical_id = canonical.scalar_subquery()
+    canonical_exists = canonical.exists()
+    return or_(
+        and_(mapping_target_active, OHLCVBar.market_series_id == mapped_id),
+        and_(
+            ~mapping_target_active,
+            canonical_exists,
+            OHLCVBar.market_series_id == canonical_id,
+        ),
+        and_(
+            ~mapping_target_active,
+            ~canonical_exists,
+            OHLCVBar.market_series_id.is_(None),
+        ),
     )
 
 
@@ -553,6 +617,9 @@ async def recompute_synthetic_ohlcv(
                 OHLCVBar.instrument_id == c.constituent_instrument_id,
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(True),
+                _default_series_bar_condition(
+                    c.constituent_instrument_id, timeframe, True
+                ),
             )
             .order_by(OHLCVBar.ts)
         )
@@ -789,6 +856,7 @@ async def _fetch_ohlcv_impl(
         OHLCVBar.ts >= start,
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -1075,6 +1143,7 @@ async def _fetch_ohlcv_latest_impl(
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -1286,6 +1355,7 @@ async def _fetch_ohlcv_page_before_impl(
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
         OHLCVBar.ts < before,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())

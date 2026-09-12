@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.market_data_foundation import AdjustmentBasis, MarketSeries
+from app.models.market_data_foundation import (
+    AdjustmentBasis,
+    MarketSeries,
+    MarketSeriesDefault,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +73,81 @@ async def get_or_create_series(
             series.source_series_key = source_series_key
         if provenance:
             series.provenance = {**(series.provenance or {}), **provenance}
+    if canonical:
+        await _ensure_default_series(db, scope, series, provenance=provenance)
     return series
+
+
+async def _ensure_default_series(
+    db: AsyncSession,
+    scope: SeriesScope,
+    series: MarketSeries,
+    *,
+    provenance: dict[str, Any] | None = None,
+) -> None:
+    """Create the first canonical compatibility mapping without replacement.
+
+    Multiple providers can produce valid series for one instrument.  The first
+    provider admitted by the reviewed chain becomes the compatibility default;
+    alternate series remain queryable through their explicit ID and never
+    overwrite ordinary symbol/timeframe reads.  A stale or deleted target is
+    repaired, and concurrent creators use the unique scope constraint as the
+    arbitration point.
+    """
+
+    is_adjusted = scope.adjustment_basis != AdjustmentBasis.RAW
+    query = select(MarketSeriesDefault).where(
+        MarketSeriesDefault.instrument_id == scope.instrument_id,
+        MarketSeriesDefault.timeframe == scope.timeframe,
+        MarketSeriesDefault.is_adjusted == is_adjusted,
+    )
+    default = (await db.execute(query)).scalar_one_or_none()
+    if default is None:
+        candidate = MarketSeriesDefault(
+            instrument_id=scope.instrument_id,
+            timeframe=scope.timeframe,
+            is_adjusted=is_adjusted,
+            market_series_id=series.id,
+            selection_reason="first_canonical",
+            selected_at=datetime.now(UTC),
+            provenance={
+                "selection": "first_canonical",
+                "market_series_id": series.id,
+                **(provenance or {}),
+            },
+        )
+        try:
+            savepoint = db.begin_nested()
+            if hasattr(savepoint, "__aenter__"):
+                async with savepoint:
+                    db.add(candidate)
+                    await db.flush()
+            else:
+                with savepoint:
+                    db.add(candidate)
+                    await db.flush()
+            default = candidate
+        except IntegrityError:
+            default = (await db.execute(query)).scalar_one_or_none()
+            if default is None:
+                raise
+    if default.market_series_id == series.id:
+        return
+    target = await db.get(MarketSeries, default.market_series_id)
+    prefer_regular = scope.session_code == "regular" and (
+        target is not None and target.session_code != "regular"
+    )
+    if target is None or not target.is_active or prefer_regular:
+        default.market_series_id = series.id
+        default.selection_reason = (
+            "prefer_regular_session" if prefer_regular else "repair_missing_or_inactive"
+        )
+        default.selected_at = datetime.now(UTC)
+        default.provenance = {
+            "selection": default.selection_reason,
+            "market_series_id": series.id,
+            **(provenance or {}),
+        }
 
 
 def series_key(scope: SeriesScope) -> str:
