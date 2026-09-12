@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
+
+- [x] Add the same explicit finite-observation threshold controls to named
+      scalar, series, and range-center artifacts in multi-output/structured
+      Study Lab runs. The controls reuse the existing Boolean column, filter,
+      scan, Market Gauge, alert, and Strategy signal adapters with preserved
+      output and membership lineage; cross-sectional aggregate restrictions are
+      unchanged.
+- [x] Focused Study Lab coverage passed `30/30`; full frontend Vitest passed
+      `997/997` across `113` files; frontend type-check, Ruff, formatting, and
+      diff checks passed. No backend, visual, provider, fallback, or acceptance
+      policy changed (`e048db09`).
+- [ ] Rerun the exact branch-scoped gate at this tip after Docker Desktop's API
+      is healthy, then continue provider/history or another compatible
+      chart/list/gauge seam.
+
 ### 2026-09-12 — Study capability matrix matches threshold fan-out
 
 - [x] Align the shared Study artifact capability matrix with the implemented

@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
+
+Product commit `e048db09` aligns Study Lab's named multi-output artifacts with
+the persisted Research Results promotion contract. Finite scalar, series, and
+range-center artifacts now expose explicit threshold controls for Boolean
+columns, watchlist filters, scans, Market Gauges, alerts, and Strategy signals.
+The existing adapters preserve source/run/output/membership lineage; aggregate
+cross-sectional runs remain chart-only for series and view/export-only for
+scalar, Boolean, and range artifacts. Non-finite observations remain closed.
+
+Focused Study Lab coverage passed `30/30`; full frontend Vitest passed `997/997`
+across `113` files; frontend type-check, Ruff, formatting, and diff checks
+passed. No backend contract, visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. The exact branch-scoped gate remains
+blocked by the existing Docker Desktop API failure and must be rerun at this
+tip after Docker health is restored.
+
+Checkpoint scope: `frontend/src/components/workstation/StudyLabTool.vue`,
+`frontend/tests/unit/components/test_study_lab_tool.test.ts`,
+`docs/project-todos.md`, `docs/tc2000-roadmap.md`, and this handoff.
+
 ## 2026-09-12 — Study capability matrix matches threshold fan-out
 
 The shared Study artifact capability matrix now matches the implemented

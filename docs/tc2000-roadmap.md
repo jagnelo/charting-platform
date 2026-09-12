@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
+
+Product commit `e048db09` closes the remaining Study Lab UI gap for named
+artifacts in multi-output/structured runs. Finite scalar, series, and
+range-center cards now expose explicit threshold targets for Boolean columns,
+watchlist filters, scans, Market Gauges, alerts, and Strategy signals through
+the existing lineage-preserving adapters. Cross-sectional aggregate runs remain
+unchanged: scalar, Boolean, and range artifacts stay view/export-only and
+aggregate series stay chart-plot-only. Invalid or non-finite observations do
+not expose threshold controls.
+
+Focused Study Lab coverage passed `30/30`; the full frontend Vitest suite
+passed `997/997` across `113` files; frontend type-check, Ruff, formatting,
+and diff checks passed. No backend contract, visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. The exact gate remains
+blocked by the existing Docker Desktop API failure and must be rerun at this
+tip after Docker health is restored.
+
 ## 2026-09-12 — Study capability matrix matches threshold fan-out
 
 The shared Study artifact capability matrix now describes the targets that the
