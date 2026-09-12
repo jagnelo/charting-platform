@@ -209,6 +209,18 @@ def routing_safety_preflight() -> dict[str, str]:
         if expected_marketdata_limit is not None and marketdata_limit == expected_marketdata_limit
         else "non-routable: explicit reviewed plan/limit pair required"
     )
+    raw_option_chain_bound = (
+        os.getenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0").strip() or "0"
+    )
+    try:
+        option_chain_bound = int(raw_option_chain_bound)
+    except ValueError:
+        option_chain_bound = 0
+    result["marketdata.app option chain"] = (
+        "routable"
+        if option_chain_bound > 0
+        else "non-routable: positive reviewed MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS required"
+    )
 
     for provider, operations in BYTE_BOUND_OPERATIONS.items():
         variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"

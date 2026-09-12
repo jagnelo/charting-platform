@@ -52,6 +52,7 @@ PROVIDER_SAFETY_SETTINGS = {
     "FMP_OPERATION_BYTE_BOUNDS",
     "MARKETDATA_APP_REVIEWED_PLAN",
     "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+    "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS",
 }
 PROVIDER_CONFIGURATION_SETTINGS = {
     "FINRA_OTC_SYMBOL_DIRECTORY_URL",
@@ -146,6 +147,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     assert "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: ${{ vars.MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT || '0' }}" in workflow
+    assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}" in workflow
     assert "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}" in workflow
 
 
@@ -161,6 +163,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN=" in example
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
+    assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0" in example
     for name in (
         "IBKR_READ_ONLY_URL",
         "COINBASE_API_KEY",
@@ -179,6 +182,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0")
+    monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0")
     statuses = routing_safety_preflight()
     assert statuses["finra async result bytes"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
@@ -190,6 +194,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
     assert statuses["marketdata.app account plan"] == "non-routable: explicit reviewed plan/limit pair required"
+    assert statuses["marketdata.app option chain"].startswith("non-routable:")
 
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "60")
@@ -230,9 +235,15 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
+    monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "25")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"
     assert statuses["marketdata.app account plan"] == "routable"
+    assert statuses["marketdata.app option chain"] == "routable"
+
+    monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "not-an-integer")
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app option chain"].startswith("non-routable:")
 
 
 def test_live_credential_preflight_rejects_placeholder_sec_contact(monkeypatch):

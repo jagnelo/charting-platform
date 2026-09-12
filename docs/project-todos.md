@@ -115,7 +115,8 @@
       pair; Quant/Prime require a separate per-minute contract model.
 - [x] Wire the MarketData.app account-plan/limit gate through routing
       diagnostics, local/RPi Compose, the manual GitHub live workflow, and
-      environment examples. The authoritative backend gate passed 2078/2078
+      environment examples, including the operation-specific option-chain
+      symbol bound. The authoritative backend gate passed 2078/2078
       at 80.69% coverage; the final live matrix passed 35/39 with only the
       documented Alpha Vantage capacity response and intentionally deferred
       Tradier/IBKR/Ondo credential preflights remaining (plus this new
