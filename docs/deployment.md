@@ -90,7 +90,12 @@ One SEC submissions request is made per CIK in each directory page, so the
 submissions bound must cover the configured page size. This worker pages unique
 CIKs from the official SEC ticker directory and stores its offset in scan-state
 provenance. It is disabled by default and must not be enabled without reviewing
-fair-access, candidate-use, and redistribution requirements.
+fair-access, candidate-use, and redistribution requirements. Issuer writes are
+separately controlled by `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`:
+keep the default `disabled` mode for a read-only scan, or explicitly review and
+select `create_missing` to create only absent CIK/name `Issuer` rows. That mode
+never creates instruments/listings, changes existing legal names, or infers
+tradability or listing dates.
 
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
