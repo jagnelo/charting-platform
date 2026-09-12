@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence VirtualWatchlist hydration lifecycle
+
+- [x] Fence saved-screener, Python asset, and column-set hydration by mounted
+      state and independent load generations so late or superseded responses
+      cannot repopulate a closed list (`6e54f192`).
+- [x] Focused VirtualWatchlist coverage passed `71/71`; full frontend Vitest
+      passed `1026/1026` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact VirtualWatchlist lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `6e54f192ecbc6b35fec42f75ef9541407d678675`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Chart Template loading lifecycle
 
 - [x] Fence Chart Template hydration by mounted state and load generation so

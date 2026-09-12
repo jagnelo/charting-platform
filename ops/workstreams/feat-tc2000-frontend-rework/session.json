@@ -58,6 +58,7 @@
     "docs/project-todos.md",
     "docs/tc2000-roadmap.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -103,14 +104,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2cfaa4f6b5e987aba6ce84684d0ca39ad572458b",
+  "head": "6e54f192ecbc6b35fec42f75ef9541407d678675",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
-  "last_human_progress_update": "2026-09-12T14:11:45.041821+00:00",
+  "last_human_progress_update": "2026-09-12T14:18:53.019135+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "d90c95a709aa959035a2aacb090aba64c38862efa4fe4b7de1ffb303f403fc55",
+  "plan_hash": "5f98359842a902f8d3644a7cbec47e0a1522c044a1d8b62eec0bd50fdac0aaee",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -123,11 +124,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product commit 2cfaa4f6 fences Chart Template hydration by mounted state and load generation, preventing late or superseded responses from repopulating a closed control or overwriting newer template state. Focused Chart Template coverage passed 10/10; full frontend Vitest passed 1023/1023 across 115 files; frontend type-check and production build passed with only the existing chunk-size warning; and git diff --check passed. The exact branch-scoped gate was rerun at this product tip: repository/workstream validation, dependency/migration checks, frontend preparation, Ruff, formatting, and TypeScript passed, then backend-coverage stopped after the fixed 180-second Docker readiness window because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue the next bounded provider/history or compatible R4/R2-R7 seam while preserving the six visual state-oracle assertions.",
-    "current_phase": "R6_chart_template_loading_lifecycle_and_r7_exact_tip_gate",
-    "next_action": "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 2cfaa4f6b5e987aba6ce84684d0ca39ad572458b; keep the exact gate receipt current and rerun it when Docker is healthy.",
+    "current_blocker": "Product commit 6e54f192 fences VirtualWatchlist saved-screener, Python asset, and column-set hydration by mounted state and independent load generations. Focused coverage passed 71/71; full frontend Vitest passed 1026/1026 across 115 files; type-check, production build, and git diff --check passed with only the existing chunk-size warning. The exact gate at this tip passed all pre-Docker stages, then backend-coverage exited 2 after 180 seconds because Docker permission was denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed.",
+    "current_phase": "R6_virtual_watchlist_hydration_lifecycle_and_r7_exact_tip_gate",
+    "next_action": "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 6e54f192ecbc6b35fec42f75ef9541407d678675; rerun the exact gate when Docker is healthy and preserve unchanged visual/provider fallback policy.",
     "total": 10,
-    "updated_at": "2026-09-12T14:11:45.041322+00:00"
+    "updated_at": "2026-09-12T14:18:53.019074+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
