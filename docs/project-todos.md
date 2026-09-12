@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard Heat Map hydration teardown
+
+- [x] Fence Heat Map screener/watchlist resolution, heatmap-data loading, and
+      nested live-price hydration by mounted lifecycle and request generations
+      (`33b73482d`); treemap, metric, payload, provider, and visual/acceptance
+      contracts are unchanged.
+- [x] Focused Heat Map lifecycle coverage passed `2/2`; full frontend Vitest
+      passed `1064/1064` across 121 files; type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning. No
+      visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
+      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact dashboard analytics gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `2124d0730` / product tip

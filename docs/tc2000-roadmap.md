@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard Heat Map hydration teardown
+
+Product commit `33b73482d` closes a bounded R2/R6 lifecycle gap in the
+dashboard Heat Map. Screener/watchlist universe resolution, heatmap-data
+loading, and nested live-price hydration now stop when the widget is unmounted
+or a newer refresh supersedes them. Treemap geometry, metric coloring, live
+price overlay semantics, API payloads, provider routing, and visual contracts
+are unchanged. Focused Heat Map lifecycle coverage passed `2/2`; full frontend
+Vitest passed `1064/1064` across 121 files; frontend type-check and production
+build passed with only the existing chunk-size warning; and `git diff --check`
+passed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Record the exact gate at the next documentation tip
+then continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard analytics gate rechecked
 
 At documentation tip `2124d0730` (product tip `3a22c9ae9`), the exact

@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard Heat Map hydration teardown
+
+Product commit `33b73482d` fences Heat Map universe resolution, data loading,
+and nested live-price hydration by mounted lifecycle and request generations.
+Focused coverage passed `2/2`; full frontend Vitest passed `1064/1064` across
+121 files; type-check/build/diff checks passed with only the existing
+chunk-size warning. Treemap/API, provider, visual, and acceptance contracts
+are unchanged. Record the exact gate at the next coherent documentation tip
+and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard analytics gate rechecked
 
 At documentation tip `2124d0730` (product tip `3a22c9ae9`), the exact gate
