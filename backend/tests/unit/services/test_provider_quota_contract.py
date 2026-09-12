@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import httpx
@@ -660,6 +661,36 @@ def test_simple_request_contract_is_non_routable_without_operation_costs():
     assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
     assert not provider_contract_operation_cost_known(
         policy, source, "get_current_price", operation_cost_override=0
+    )
+
+
+@pytest.mark.parametrize("invalid_cost", [0.5, Decimal("1.5"), True, "1.5"])
+def test_operation_costs_reject_non_integral_values(invalid_cost):
+    source = DataSource(
+        name="fractional-cost-provider",
+        config={"usage_tracking": {"operation_costs": {"get_current_price": invalid_cost}}},
+    )
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                }
+            ],
+            "reset": "rolling",
+        },
+    )
+
+    assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
+    assert not provider_contract_operation_cost_known(
+        policy, source, "get_current_price", operation_cost_override=invalid_cost
     )
 
 

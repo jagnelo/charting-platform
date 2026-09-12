@@ -180,7 +180,11 @@ def _is_positive_operation_cost(value: Any) -> bool:
         parsed = Decimal(str(value))
     except (TypeError, ValueError, ArithmeticError):
         return False
-    return parsed.is_finite() and parsed > 0
+    return (
+        parsed.is_finite()
+        and parsed > 0
+        and parsed == parsed.to_integral_value()
+    )
 
 
 def _positive_integer_cost(value: Any) -> int | None:
@@ -311,6 +315,11 @@ def _dimension_costs_for_operation(
     tracking = _usage_tracking_config(data_source)
     contract = dict(policy.quota_contract or {})
     explicit = tracking.get("dimension_costs") or contract.get("dimension_costs")
+    default_cost = _positive_integer_cost(default_units)
+    if default_cost is None:
+        raise ProviderQuotaUnknownError(
+            f"No valid reviewed operation cost for {data_source.name}/{operation}"
+        )
     result: dict[str, int] = {}
     family = _operation_family(operation)
     for dimension in quota_dimensions(policy):
@@ -360,7 +369,7 @@ def _dimension_costs_for_operation(
                     raise ProviderQuotaUnknownError(
                         f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
                     )
-        result[name] = max(1, int(default_units))
+        result[name] = default_cost
     if contract.get("dimension_costs_required") and not explicit:
         return {}
     return result
@@ -1636,11 +1645,17 @@ async def execute_provider_call(
             settle_provider_contract,
         )
 
+        operation_units = _positive_integer_cost(usage_units)
+        if operation_units is None:
+            raise ProviderQuotaUnknownError(
+                f"No valid integral operation cost for "
+                f"{resolved.data_source.name}/{operation}"
+            )
         reservations = await reserve_provider_contract(
             db,
             resolved=resolved,
             capability=capability.value,
-            units=max(1, int(usage_units.to_integral_value())),
+            units=operation_units,
             dimension_units=dimension_units,
             usage_identity=resolved_usage_identity,
             now=datetime.now(UTC),
@@ -1652,11 +1667,11 @@ async def execute_provider_call(
             and resolved.policy.burst_capacity is not None
         ):
             if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
-                max(1, int(usage_units.to_integral_value()))
+                operation_units
             ):
                 settle_provider_contract(
                     reservations,
-                    units=max(1, int(usage_units.to_integral_value())),
+                    units=operation_units,
                     success=False,
                     reserved_dimension_units=dimension_units,
                     consumed_dimension_units={name: 0 for name in dimension_units},
@@ -1714,7 +1729,7 @@ async def execute_provider_call(
             )
             settle_provider_contract(
                 reservations,
-                units=max(1, int(usage_units.to_integral_value())),
+                units=operation_units,
                 success=True,
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=_consumed_dimension_costs(
@@ -1783,7 +1798,7 @@ async def execute_provider_call(
             last_error = exc
             settle_provider_contract(
                 reservations,
-                units=max(1, int(usage_units.to_integral_value())),
+                units=operation_units,
                 success=False,
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=_consumed_dimension_costs(
