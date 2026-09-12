@@ -659,6 +659,15 @@ def _saved_explicit_known_at_exclusions(
     )
 
 
+def _combo_definition_as_of_exclusion(combo: WorkspaceLibraryItem) -> dict:
+    """Explain why a combo definition is unavailable before its persisted version."""
+
+    return {
+        "reason": "combo_definition_not_known_at_as_of",
+        "known_at": wire_datetime(combo.updated_at),
+    }
+
+
 def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
     membership = ",".join(str(instrument_id) for instrument_id in instrument_ids)
     return WatchlistSourceRead(
@@ -1145,12 +1154,7 @@ async def resolve_watchlist_source(
             return ResolvedWatchlistSource(
                 descriptor=_combo_descriptor(combo, 0, dependency_versions),
                 members=(),
-                exclusions=(
-                    {
-                        "reason": "combo_definition_not_known_at_as_of",
-                        "known_at": combo.updated_at.isoformat(),
-                    },
-                ),
+                exclusions=(_combo_definition_as_of_exclusion(combo),),
             )
         if as_of is not None:
             for instrument_id in sorted(set(selected_ids) - set(selected_at_as_of)):

@@ -57,6 +57,17 @@ def test_saved_explicit_source_known_at_cutoff_normalizes_to_utc():
     assert sources._saved_explicit_known_at_exclusions(item, [17, 23], at_known_at) == ()
 
 
+def test_combo_definition_as_of_exclusion_normalizes_known_at_to_utc():
+    combo = SimpleNamespace(
+        updated_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2)))
+    )
+
+    assert sources._combo_definition_as_of_exclusion(combo) == {
+        "reason": "combo_definition_not_known_at_as_of",
+        "known_at": "2024-01-01T00:00:00Z",
+    }
+
+
 def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
     profile = SimpleNamespace(
         adapter_key="demo",
