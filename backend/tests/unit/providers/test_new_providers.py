@@ -582,6 +582,31 @@ class TestAlpacaOHLCVParsing:
 
         assert get.call_count == 1
 
+    def test_corporate_actions_rejects_repeated_pagination_cycle(self):
+        responses = []
+        for token in ("page-a", "page-b", "page-a"):
+            response = MagicMock()
+            response.json.return_value = {
+                "corporate_actions": {"cash_dividends": []},
+                "next_page_token": token,
+            }
+            response.raise_for_status.return_value = None
+            responses.append(response)
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", side_effect=responses) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_CORPORATE_ACTIONS_MAX_PAGES = 0
+            with pytest.raises(
+                ProviderResponseError,
+                match="repeated corporate-actions pagination token",
+            ):
+                AlpacaProvider().fetch_instrument_events("AAPL")
+
+        assert get.call_count == 3
+
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────
 

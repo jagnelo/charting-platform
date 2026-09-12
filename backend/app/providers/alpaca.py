@@ -328,6 +328,7 @@ class AlpacaProvider:
         # documented page token so long history cannot be silently truncated.
         page_token: str | None = None
         page_count = 0
+        seen_page_tokens: set[str] = set()
         max_pages = provider_positive_integer(
             getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
         )
@@ -463,6 +464,12 @@ class AlpacaProvider:
                 break
             if not isinstance(next_token, str) or next_token == page_token:
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+            if next_token in seen_page_tokens:
+                raise ProviderResponseError(
+                    self.name,
+                    "Alpaca returned a repeated corporate-actions pagination token",
+                )
+            seen_page_tokens.add(next_token)
             page_count += 1
             if max_pages is not None and page_count >= max_pages:
                 raise ProviderResponseError(
