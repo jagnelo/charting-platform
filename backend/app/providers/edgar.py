@@ -25,6 +25,7 @@ import logging
 import time
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any
 
 import httpx
 
@@ -35,6 +36,7 @@ from app.providers.base import (
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
+    MarketEventRecord,
     ProviderSearchResult,
 )
 from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
@@ -46,6 +48,8 @@ _TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 _TICKERS_EXCHANGE_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
 _SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 _TICKER_CACHE_TTL = 3600 * 24  # 24 hours
+_IPO_PIPELINE_FORMS = frozenset({"S-1", "S-1/A", "F-1", "F-1/A"})
+_IPO_PIPELINE_MAX_EVENTS = 500
 
 # Module-level cache: upper-case ticker → {"cik": int, "title": str}
 _ticker_map: dict[str, dict] = {}
@@ -236,6 +240,64 @@ class EdgarProvider:
 
     # ── Events (earnings history) ─────────────────────────────────────────────
 
+    def fetch_ipo_pipeline_events(
+        self,
+        cik: str,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        max_events: int = 100,
+    ) -> list[MarketEventRecord]:
+        """Detect filings that indicate a possible future public listing.
+
+        This is deliberately a candidate detector, not an IPO-date oracle:
+        EDGAR filings expose submission dates and filing forms, while an
+        exchange listing may later be postponed, withdrawn, or never occur.
+        The method performs one bounded submissions request for the supplied
+        issuer CIK and only inspects the SEC ``recent`` filing arrays.  It does
+        not enumerate every issuer or fetch archived submission files
+        implicitly; callers must provide an explicit bounded CIK set when
+        building a watchlist.
+        """
+
+        normalized_cik = _normalize_cik(cik)
+        if normalized_cik is None:
+            raise ProviderResponseError(self.name, "SEC EDGAR IPO pipeline requires a valid CIK")
+        if (
+            not isinstance(max_events, int)
+            or isinstance(max_events, bool)
+            or not 1 <= max_events <= _IPO_PIPELINE_MAX_EVENTS
+        ):
+            raise ValueError(f"max_events must be between 1 and {_IPO_PIPELINE_MAX_EVENTS}")
+        if start is not None and end is not None and end < start:
+            raise ValueError("end must be on or after start")
+
+        try:
+            response = httpx.get(
+                _SUBMISSIONS_URL.format(cik=int(normalized_cik)),
+                headers=self._headers(),
+                timeout=20,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            submissions = response.json()
+            if not isinstance(submissions, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
+
+        return _parse_ipo_pipeline_events(
+            submissions,
+            cik=normalized_cik,
+            start=start,
+            end=end,
+            max_events=max_events,
+        )
+
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
         entry = _resolve_cik(symbol, self._headers())
         if entry is None:
@@ -366,6 +428,118 @@ class EdgarProvider:
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
+
+
+def _normalize_cik(value: Any) -> str | None:
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if not digits or len(digits) > 10:
+        return None
+    return digits.zfill(10)
+
+
+def _parse_ipo_pipeline_events(
+    submissions: dict[str, Any],
+    *,
+    cik: str,
+    start: date | None,
+    end: date | None,
+    max_events: int,
+) -> list[MarketEventRecord]:
+    """Normalize recent SEC prospectus/registration filings as candidates."""
+
+    filings = submissions.get("filings")
+    if not isinstance(filings, dict):
+        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid filings object")
+    recent = filings.get("recent")
+    if not isinstance(recent, dict):
+        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid recent filings object")
+
+    required_fields = ("form", "filingDate", "accessionNumber")
+    columns: dict[str, list[Any]] = {}
+    for field in required_fields:
+        value = recent.get(field, [])
+        if not isinstance(value, list):
+            raise ProviderResponseError("edgar", f"SEC EDGAR submissions returned an invalid {field} array")
+        columns[field] = value
+    if len({len(values) for values in columns.values()}) != 1:
+        raise ProviderResponseError("edgar", "SEC EDGAR submissions returned misaligned filing arrays")
+
+    optional_columns: dict[str, list[Any]] = {}
+    for field in ("primaryDocument", "reportDate"):
+        value = recent.get(field, [])
+        if value in (None, []):
+            optional_columns[field] = [None] * len(columns["form"])
+            continue
+        if not isinstance(value, list) or len(value) != len(columns["form"]):
+            raise ProviderResponseError("edgar", f"SEC EDGAR submissions returned an invalid {field} array")
+        optional_columns[field] = value
+
+    issuer_name = str(submissions.get("name") or "").strip() or None
+    tickers = submissions.get("tickers")
+    if not isinstance(tickers, list):
+        tickers = []
+    normalized_tickers = [str(ticker).strip().upper() for ticker in tickers if str(ticker).strip()]
+    events: list[MarketEventRecord] = []
+    for index, (form, filing_date_raw, accession) in enumerate(
+        zip(
+            columns["form"],
+            columns["filingDate"],
+            columns["accessionNumber"],
+            strict=True,
+        )
+    ):
+        if not all(isinstance(value, str) for value in (form, filing_date_raw, accession)):
+            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a malformed filing row")
+        normalized_form = form.strip().upper()
+        if normalized_form not in _IPO_PIPELINE_FORMS and not normalized_form.startswith("424B"):
+            continue
+        try:
+            filing_date = date.fromisoformat(filing_date_raw)
+        except ValueError as exc:
+            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned an invalid filing date") from exc
+        if (start is not None and filing_date < start) or (end is not None and filing_date > end):
+            continue
+        accession_value = accession.strip()
+        if not accession_value:
+            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a filing without an accession number")
+        primary_document = optional_columns["primaryDocument"][index]
+        if primary_document is not None and not isinstance(primary_document, str):
+            raise ProviderResponseError("edgar", "SEC EDGAR submissions returned a malformed primary document")
+        accession_path = accession_value.replace("-", "")
+        filing_url = (
+            f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_path}/"
+            f"{primary_document.strip()}"
+            if isinstance(primary_document, str) and primary_document.strip()
+            else None
+        )
+        payload = {
+            "cik": cik,
+            "form": normalized_form,
+            "filing_date": filing_date.isoformat(),
+            "accession_number": accession_value,
+            "primary_document": primary_document.strip() if isinstance(primary_document, str) else None,
+            "filing_url": filing_url,
+            "issuer_name": issuer_name,
+            "tickers": normalized_tickers,
+            "pipeline_status": "candidate",
+            "source": "sec_edgar_submissions_recent",
+        }
+        events.append(
+            MarketEventRecord(
+                event_type="ipo_pipeline",
+                event_key=f"edgar:ipo_pipeline:{cik}:{accession_path}",
+                event_time=datetime.combine(filing_date, datetime.min.time(), tzinfo=UTC),
+                effective_date=filing_date,
+                title=f"SEC {normalized_form} IPO pipeline filing"
+                + (f" — {issuer_name}" if issuer_name else ""),
+                source_version="submissions:recent",
+                is_provisional=True,
+                raw_payload=payload,
+            )
+        )
+        if len(events) >= max_events:
+            break
+    return events
 
 
 def _resolve_cik(symbol: str, headers: dict) -> dict | None:

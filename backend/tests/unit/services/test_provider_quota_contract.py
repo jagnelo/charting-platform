@@ -371,6 +371,7 @@ def test_edgar_metadata_and_events_cover_cold_ticker_directory_lookup():
     profile = get_provider_usage_profile("edgar")
     assert profile["operation_costs"]["get_instrument_profile"] == 2
     assert profile["operation_costs"]["fetch_instrument_events"] == 2
+    assert profile["operation_costs"]["fetch_ipo_pipeline_events"] == 1
 
 
 @pytest.mark.asyncio

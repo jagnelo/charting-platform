@@ -289,6 +289,16 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         name for required_methods, name in capabilities if _supports(provider, *required_methods)
     ]
     provider_name = str(getattr(provider, "name", "")).lower()
+    # EDGAR's filing-driven IPO detector is a market-event subtype with an
+    # issuer/CIK input rather than the calendar-wide ``fetch_market_events``
+    # shape. Keep it under the existing market-events policy/quota capability;
+    # the dedicated service supplies the explicit CIK batch.
+    if (
+        provider_name == "edgar"
+        and "market_events" not in capabilities
+        and _supports(provider, "fetch_ipo_pipeline_events")
+    ):
+        capabilities.append("market_events")
     if "price_history" in capabilities and provider_name in {
         "binance",
         "coingecko",

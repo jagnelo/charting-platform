@@ -196,6 +196,61 @@ async def test_refresh_market_events_links_exact_issuer_cik_and_retains_other_fa
 
 
 @pytest.mark.asyncio
+async def test_refresh_edgar_ipo_pipeline_uses_explicit_ciks_and_links_issuer(
+    db, monkeypatch
+):
+    source = DataSource(name="edgar", base_url="https://data.sec.gov")
+    issuer = Issuer(
+        domain_key="cik:0000320193",
+        legal_name="Apple Inc.",
+        cik="0000320193",
+        country_code="US",
+    )
+    db.add_all([source, issuer])
+    db.flush()
+
+    calls = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_ipo_pipeline_events"
+        calls.append(kwargs["usage_identity"])
+        return SimpleNamespace(
+            provider_name="edgar",
+            result=[
+                MarketEventRecord(
+                    event_type="ipo_pipeline",
+                    event_key="edgar:ipo_pipeline:0000320193:000032019324000001",
+                    event_time=datetime(2026, 9, 12, tzinfo=UTC),
+                    effective_date=date(2026, 9, 12),
+                    title="SEC S-1 IPO pipeline filing",
+                    source_version="submissions:recent",
+                    is_provisional=True,
+                    raw_payload={"cik": "0000320193", "form": "S-1"},
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_edgar_ipo_pipeline(
+        AsyncSessionAdapter(db),
+        ["320193", "320193", "not-a-cik"],
+        max_ciks=10,
+    )
+
+    assert calls == ["cik:0000320193"]
+    assert result["status"] == "refreshed"
+    assert result["requested_ciks"] == 1
+    assert result["invalid_ciks"] == 1
+    assert result["failures"] == 1
+    assert result["linked"] == 1
+    row = db.execute(select(MarketEvent)).scalar_one()
+    assert row.issuer_id == issuer.id
+    assert row.event_type == "ipo_pipeline"
+    assert row.is_provisional is True
+
+
+@pytest.mark.asyncio
 async def test_market_events_task_uses_bounded_forward_window(monkeypatch):
     class _Session:
         async def __aenter__(self):

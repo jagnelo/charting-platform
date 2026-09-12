@@ -102,7 +102,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested) | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
 | Massive | US ticker search and reference universe | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | 5 requests/min, Basic Stocks | API key / minute | credentialed reference search live-proven |
 | Alpha Vantage | Raw daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` and adjusted daily history are premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact raw daily history and the bounded AAPL earnings normalization are live-proven; adjusted history is rejected explicitly; IPO-calendar remains subject to its documented capacity response |
-| SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value |
+| SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
 | Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations admitted only when the calculated weight fits |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / rolling | history is explicitly paged and reserves `ceil(requested candles / 300)` calls; keyless live evidence required |
@@ -680,6 +680,7 @@ headers are captured when capacity failures occur.
 |-----------------------|---------------------------------------------------------------|
 | `instrument_metadata` | US company profile: name, exchange, SIC, CIK, fiscal year end|
 | `instrument_events`   | Historical 10-Q/10-K filing dates as earnings event records   |
+| `market_events`       | Provisional S-1/F-1/424B* IPO-pipeline candidates for a supplied CIK |
 
 **Earnings date accuracy**: EDGAR records filing submission dates, not the earnings call date.
 Large-caps typically file 1–5 days after earnings; small-caps can take up to 40 days.
@@ -698,6 +699,13 @@ ticker through `company_tickers.json` and then fetches the issuer submissions
 resource, so runtime accounting reserves two requests for those compound
 operations. Warm directory/profile caches may reduce observed transport
 without weakening the reservation.
+
+`fetch_ipo_pipeline_events(cik, start, end, max_events)` is a separate,
+explicitly bounded market-event operation. It performs one submissions read
+for the supplied CIK and normalizes recent `S-1`, `S-1/A`, `F-1`, `F-1/A`, and
+`424B*` filings as provisional `ipo_pipeline` candidates. It never enumerates
+all issuers or fetches archived submission files implicitly, and its filing
+date must not be presented as an exact listing date.
 
 **Rate limit**: max 10 requests/second per SEC guidelines.
 

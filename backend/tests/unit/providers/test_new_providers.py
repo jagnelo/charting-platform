@@ -115,6 +115,7 @@ class TestRegistryCapabilities:
         assert "instrument_search" in caps
         assert "instrument_metadata" in caps
         assert "instrument_events" in caps
+        assert "market_events" in caps
         assert "price_history" not in caps
         assert "universe_discovery" in caps
 
@@ -2414,6 +2415,82 @@ class TestEdgarTickerMap:
         titles = [e.title for e in events]
         assert any("Quarterly" in t for t in titles)
         assert any("Annual" in t for t in titles)
+
+    def test_fetch_ipo_pipeline_events_normalizes_candidate_filings(self):
+        submissions = {
+            "name": "Example Issuer, Inc.",
+            "tickers": ["EXMP"],
+            "filings": {
+                "recent": {
+                    "form": ["S-1", "8-K", "F-1/A", "424B4"],
+                    "filingDate": ["2024-01-02", "2024-01-03", "2024-02-04", "2024-03-05"],
+                    "accessionNumber": [
+                        "0000123456-24-000001",
+                        "0000123456-24-000002",
+                        "0000123456-24-000003",
+                        "0000123456-24-000004",
+                    ],
+                    "primaryDocument": ["s1.htm", "8k.htm", "f1a.htm", "424b4.htm"],
+                }
+            },
+        }
+        response = MagicMock()
+        response.json.return_value = submissions
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response) as get,
+        ):
+            configured.EDGAR_USER_AGENT = "test test@example.invalid"
+            events = EdgarProvider().fetch_ipo_pipeline_events(
+                "123456",
+                start=date(2024, 1, 1),
+                end=date(2024, 2, 29),
+            )
+
+        assert [event.raw_payload["form"] for event in events] == ["S-1", "F-1/A"]
+        assert events[0].event_type == "ipo_pipeline"
+        assert events[0].event_key == "edgar:ipo_pipeline:0000123456:000012345624000001"
+        assert events[0].is_provisional is True
+        assert events[0].raw_payload["filing_url"].endswith("/s1.htm")
+        get.assert_called_once_with(
+            "https://data.sec.gov/submissions/CIK0000123456.json",
+            headers={"User-Agent": "test test@example.invalid"},
+            timeout=20,
+        )
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"cik": "not-a-cik"},
+            {"cik": "123", "max_events": 0},
+            {"cik": "123", "start": date(2024, 2, 1), "end": date(2024, 1, 1)},
+        ],
+    )
+    def test_fetch_ipo_pipeline_events_rejects_invalid_bounds(self, kwargs):
+        provider = EdgarProvider()
+        with pytest.raises((ProviderResponseError, ValueError)):
+            provider.fetch_ipo_pipeline_events(**kwargs)
+
+    def test_fetch_ipo_pipeline_events_rejects_misaligned_arrays(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "filings": {
+                "recent": {
+                    "form": ["S-1"],
+                    "filingDate": ["2024-01-02"],
+                    "accessionNumber": [],
+                }
+            }
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
+        ):
+            configured.EDGAR_USER_AGENT = "test test@example.invalid"
+            with pytest.raises(ProviderResponseError, match="misaligned filing arrays"):
+                EdgarProvider().fetch_ipo_pipeline_events("123456")
 
     def test_fetch_instrument_events_rejects_misaligned_filing_arrays(self):
         import app.providers.edgar as edgar_module

@@ -141,6 +141,15 @@ def test_sec_edgar_credentialed_filings_and_company_facts():
     )
     assert facts
     assert any(fact.namespace and fact.key and fact.unit for fact in facts)
+    pipeline_events, _ = _observed_read(
+        lambda: provider.fetch_ipo_pipeline_events(
+            "320193",
+            start=date.today() - timedelta(days=365 * 5),
+            end=date.today(),
+        ),
+        "edgar",
+    )
+    assert all(event.event_type == "ipo_pipeline" for event in pipeline_events)
 
 
 def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():

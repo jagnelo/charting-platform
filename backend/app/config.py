@@ -1036,6 +1036,7 @@ class Settings(BaseSettings):
                 "get_instrument_profile": 2,
                 "fetch_instrument_events": 2,
                 "fetch_fundamental_facts": 1,
+                "fetch_ipo_pipeline_events": 1,
             },
         },
         # A cold Nasdaq refresh reads both official directory files. ETag and

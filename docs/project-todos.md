@@ -11294,8 +11294,8 @@ What remains:
     - ingest `LISTING_STATUS` into the instrument-master follow-through side so future IPO placeholders can be promoted once the listing is real
     - normalize CSV payloads into the same event schema
   - `edgar`
-    - add a supplementary IPO-pipeline detector for filings such as `S-1`, `S-1/A`, `F-1`, `F-1/A`, `424B*`
-    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates
+    - `fetch_ipo_pipeline_events` now detects recent `S-1`, `S-1/A`, `F-1`, `F-1/A`, and `424B*` filings for an explicitly supplied CIK
+    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates; archived submissions and global issuer enumeration remain explicit caller work
   - optionally `finnhub`
     - only after free-tier access is explicitly validated in practice
     - if validated, use it as another corroborating structured IPO source, not as the sole source of truth

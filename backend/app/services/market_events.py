@@ -72,7 +72,14 @@ def market_event_provider_names(
             capabilities = list_provider_capabilities(name)
         except KeyError:
             continue
-        if "market_events" in capabilities:
+        # Filing-driven subfeeds (currently EDGAR's IPO pipeline) share the
+        # persisted market-events policy but require an explicit issuer/CIK
+        # batch. They are dispatched by their dedicated service, not by this
+        # calendar-wide fan-out.
+        provider = get_provider(name)
+        if "market_events" in capabilities and callable(
+            getattr(provider, "fetch_market_events", None)
+        ):
             result.append(name)
     return result
 
@@ -304,4 +311,156 @@ async def refresh_market_events(
         "linked": total_linked,
         "unlinked": total_unlinked,
         "failures": failures,
+    }
+
+
+async def refresh_edgar_ipo_pipeline(
+    db: AsyncSession,
+    ciks: Sequence[str],
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    max_ciks: int = 50,
+    max_events_per_issuer: int = 100,
+) -> dict[str, Any]:
+    """Persist bounded EDGAR filing candidates for an explicit CIK batch.
+
+    EDGAR does not publish a global IPO calendar.  Requiring callers to supply
+    the candidate CIKs makes the request budget and watchlist scope explicit;
+    this function never enumerates the SEC issuer universe implicitly.
+    """
+
+    if not isinstance(max_ciks, int) or isinstance(max_ciks, bool) or not 1 <= max_ciks <= 500:
+        raise ValueError("max_ciks must be between 1 and 500")
+    if (
+        not isinstance(max_events_per_issuer, int)
+        or isinstance(max_events_per_issuer, bool)
+        or not 1 <= max_events_per_issuer <= 500
+    ):
+        raise ValueError("max_events_per_issuer must be between 1 and 500")
+    if start is not None and end is not None and end < start:
+        raise ValueError("end must be on or after start")
+
+    normalized_ciks: list[str] = []
+    seen: set[str] = set()
+    invalid = 0
+    for raw_cik in ciks:
+        digits = "".join(character for character in str(raw_cik or "") if character.isdigit())
+        if not digits or len(digits) > 10:
+            invalid += 1
+            continue
+        cik = digits.zfill(10)
+        if cik in seen:
+            continue
+        seen.add(cik)
+        normalized_ciks.append(cik)
+        if len(normalized_ciks) >= max_ciks:
+            break
+
+    provider_name = "edgar"
+    provider = get_provider(provider_name)
+    if not callable(getattr(provider, "fetch_ipo_pipeline_events", None)):
+        return {
+            "status": "unsupported",
+            "provider": provider_name,
+            "requested_ciks": len(normalized_ciks),
+            "invalid_ciks": invalid,
+            "events": 0,
+            "persisted": 0,
+            "linked": 0,
+            "unlinked": 0,
+            "failures": 1,
+            "issuers": [],
+        }
+
+    issuer_results: list[dict[str, Any]] = []
+    total_events = 0
+    total_persisted = 0
+    total_linked = 0
+    total_unlinked = 0
+    failures = invalid
+    for cik in normalized_ciks:
+        events = 0
+        linked = 0
+        unlinked = 0
+        error: dict[str, str] | None = None
+        try:
+            execution = await execute_provider_call(
+                db,
+                ProviderCapability.MARKET_EVENTS,
+                "fetch_ipo_pipeline_events",
+                provider_name=provider_name,
+                usage_identity=f"cik:{cik}",
+                invoke=lambda resolved, _provider_symbol, candidate=cik: resolved.fetch_ipo_pipeline_events(
+                    candidate,
+                    start=start,
+                    end=end,
+                    max_events=max_events_per_issuer,
+                ),
+                response_items=lambda result: len(result) if isinstance(result, list) else None,
+                treat_empty_as_failure=False,
+            )
+            records = execution.result
+            if not isinstance(records, list) or any(
+                not isinstance(record, MarketEventRecord) for record in records
+            ):
+                raise TypeError("EDGAR IPO pipeline returned malformed records")
+            for record in records:
+                payload = dict(record.raw_payload or {})
+                instrument_id, issuer_id = await _resolve_event_targets(
+                    db,
+                    provider_name=execution.provider_name,
+                    payload=payload,
+                )
+                await persist_market_event(
+                    db,
+                    event_key=record.event_key,
+                    event_type=record.event_type,
+                    source=execution.provider_name,
+                    instrument_id=instrument_id,
+                    issuer_id=issuer_id,
+                    event_time=record.event_time,
+                    effective_date=record.effective_date,
+                    source_version=record.source_version,
+                    payload=payload,
+                    is_provisional=record.is_provisional,
+                )
+                events += 1
+                if instrument_id is None and issuer_id is None:
+                    unlinked += 1
+                else:
+                    linked += 1
+        except Exception as exc:  # noqa: BLE001 - retain per-issuer outcome.
+            failures += 1
+            error = {
+                "error_type": exc.__class__.__name__,
+                "error": bounded_redact_provider_message(exc, max_length=500),
+            }
+        issuer_results.append(
+            {
+                "cik": cik,
+                "status": "failed" if error else "refreshed",
+                "events": events,
+                "linked": linked,
+                "unlinked": unlinked,
+                "error": error,
+            }
+        )
+        total_events += events
+        total_persisted += events
+        total_linked += linked
+        total_unlinked += unlinked
+
+    await db.commit()
+    return {
+        "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
+        "provider": provider_name,
+        "requested_ciks": len(normalized_ciks),
+        "invalid_ciks": invalid,
+        "events": total_events,
+        "persisted": total_persisted,
+        "linked": total_linked,
+        "unlinked": total_unlinked,
+        "failures": failures,
+        "issuers": issuer_results,
     }
