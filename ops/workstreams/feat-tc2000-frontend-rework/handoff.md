@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Screener-alert API timestamps use the canonical wire format
+
+Product commit `8ae68865` extends the shared alert response contract to
+`ScreenerAlertOut`. Persisted `triggered_at`, `created_at`, and `updated_at`
+values normalize as canonical UTC `Z` strings for screener-alert list and
+mutation responses without changing state transitions, persistence, or
+ordering.
+
+Focused notification/schema coverage passed `4/4`; the full backend unit suite
+passed `1488/1488` at `68.53%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Checkpoint scope: `backend/app/schemas/screener_alert.py` and
+`backend/tests/unit/services/test_alert_engine_notifications.py`. Restore
+Docker access, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Alert-list API timestamps use the canonical wire format
 
 Product commit `a466b3c3` makes the `/alerts/price` and `/alerts/indicator`

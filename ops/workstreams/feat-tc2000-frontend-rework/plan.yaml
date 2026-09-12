@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 8ae68865 canonicalizes ScreenerAlertOut triggered_at, created_at,
+  and updated_at timestamps through the shared UTC Z wire serializer. Focused
+  notification/schema coverage passed 4/4; the full backend unit suite passed
+  1488/1488 at 68.53% coverage; Ruff, formatting, and git diff --check passed.
+  The exact branch-scoped gate at this tip passed repository/workstream,
+  dependency/migration, frontend-preparation, and lint/type-check setup, then
+  stopped at backend-coverage after 180 seconds because Docker returned
+  permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No
+  backend integration, provider, browser, or visual stage ran. No visual
+  baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+  changed. Restore Docker access, rerun pending alert, indicator-batch, and
+  instrument-coverage API regressions plus the exact gate, then continue the
+  next bounded provider/history or compatible chart/list/gauge seam while
+  preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
   Product tip a466b3c3 canonicalizes PriceAlertOut and IndicatorAlertOut
   triggered_at, created_at, and updated_at timestamps through the shared UTC Z
   wire serializer. Focused notification/schema coverage passed 3/3; the full
