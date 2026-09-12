@@ -484,6 +484,12 @@ progress:
       releasing its lock. Focused ledger coverage passes 12/12 and the complete
       backend unit suite passes 1,775/1,775; no provider calls were made for
       this durability change.
+    - >-
+      Finnhub's existing per-symbol earnings history and forward earnings
+      calendar methods are now explicitly registered under the `earnings`
+      capability. The focused provider/registry regression passes 91/91;
+      the provider's already-live-proven earnings surfaces are now selectable
+      through capability-aware routing.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

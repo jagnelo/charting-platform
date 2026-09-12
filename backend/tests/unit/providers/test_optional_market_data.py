@@ -57,6 +57,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "universe_discovery" in list_provider_capabilities("eodhd")
     assert "instrument_events" in list_provider_capabilities("finnhub")
     assert "market_events" in list_provider_capabilities("finnhub")
+    assert "earnings" in list_provider_capabilities("finnhub")
     assert "option_chain" in list_provider_capabilities("tradier")
     assert "option_chain" in list_provider_capabilities("marketdata_app")
     assert "option_quote_history" in list_provider_capabilities("marketdata_app")

@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-12 — Finnhub earnings capability registration
+
+- [x] Register Finnhub's already-implemented per-symbol earnings history and
+      forward earnings-calendar methods under the explicit `earnings`
+      capability, with a registry regression. Focused provider/registry tests
+      pass 91/91.
+
 ### 2026-09-12 — Live-ledger crash durability and permissions
 
 - [x] Harden the owner-managed aggregate-only live-usage ledger to mode `0600`
