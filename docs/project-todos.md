@@ -49,6 +49,12 @@
       coverage passes 21/21 and the complete backend unit suite passes
       1,804/1,804 with the known 37 warnings; PostgreSQL/full-stack validation
       remains Docker-gated.
+- [x] Apply the same series attachment to bulk historical refreshes and the
+      risk-free-rate provider path. Their persisted bars now participate in
+      the selected default series instead of silently creating legacy rows;
+      focused bulk/risk-free/market-data coverage passes 27/27 and the
+      complete backend unit suite passes 1,805/1,805. PostgreSQL/full-stack
+      validation remains Docker-gated.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 

@@ -422,6 +422,8 @@ symbol APIs:
   Cold/latest provider fetches use the same attachment path, so newly persisted
   latest bars cannot fall back to a legacy `NULL` series that would disappear
   from subsequent compatibility reads.
+  Bulk historical refreshes and the risk-free-rate history path use this same
+  series attachment before persistence.
   Provider refreshes create/reuse a deterministic series and persist a
   `scope_key` (series ID plus session, or `legacy:<session>` for pre-series
   rows) in both bar tables. All OHLCV upserts target that scoped key, so

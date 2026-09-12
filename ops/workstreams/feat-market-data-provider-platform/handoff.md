@@ -508,3 +508,8 @@ Update this handoff at each coherent boundary.
   created. Focused market-data/default-mapping coverage passes `21/21`; the
   complete backend unit suite passes `1,804/1,804`; no provider calls were
   needed and PostgreSQL/full-stack validation remains Docker-gated.
+- Bulk historical refreshes and the risk-free-rate history path now apply the
+  same series attachment before persistence. Focused bulk/risk-free/market-data
+  coverage passes `27/27`; the complete backend unit suite passes `1,805/1,805`;
+  no provider calls were needed and PostgreSQL/full-stack validation remains
+  Docker-gated.

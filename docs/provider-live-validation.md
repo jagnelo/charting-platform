@@ -953,3 +953,8 @@ the same `MarketSeries` attachment as historical repairs. Focused
 market-data/default-mapping coverage passed `21/21`, and the complete backend
 unit suite passed `1,804/1,804`; this adds no provider transport evidence and
 does not change the external usage ledger.
+
+Bulk historical refreshes and the risk-free-rate history path now apply the
+same series attachment before persistence. Focused bulk/risk-free/market-data
+coverage passed `27/27`, and the complete backend unit suite passed
+`1,805/1,805`; no provider calls were needed for this correction.
