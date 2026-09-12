@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence reusable basket teardown
+
+Product commit `f43ed459` closes a bounded R6 lifecycle gap in the reusable
+universe editor. Basket reloads now use a lifecycle generation and request
+sequence; save and delete flows stop before reloading or publishing local
+selection, status, or error state after teardown. The refresh action uses an
+event-safe wrapper while preserving the existing basket API, weighting,
+read-only, and synthetic-chart behavior. Focused basket coverage passed
+`6/6`; full frontend Vitest passed `1045/1045` across 115 files; frontend
+type-check and production build passed with only the existing chunk-size
+warning; and `git diff --check` passed. No provider, fallback, visual
+baseline, mask, threshold, skip, or acceptance policy changed. Continue the
+next bounded provider/history or compatible R4/R2-R7 seam while preserving the
+six protected visual state-oracle assertions.
+
 ## 2026-09-12 — Exact ETF Holdings selection gate rechecked
 
 At documentation tip `99328434` (product tip `a9602ebe`), the exact

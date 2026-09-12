@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence reusable basket teardown
+
+Product commit `f43ed459` fences reusable-universe basket reload, save, and
+delete flows by lifecycle generation and request sequence. Detached responses
+cannot publish local selection, status, or error state; basket API, weighting,
+read-only, and synthetic-chart behavior are unchanged. Focused coverage passed
+`6/6`; full frontend Vitest passed `1045/1045`; type-check/build/diff checks
+passed with only the existing chunk-size warning. No provider, fallback,
+visual, or acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Exact ETF Holdings selection gate rechecked
 
 At documentation tip `99328434` (product tip `a9602ebe`), the exact

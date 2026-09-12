@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence reusable basket teardown
+
+- [x] Fence reusable-universe basket reload, save, and delete flows by a
+      lifecycle generation and reload sequence so detached responses cannot
+      publish local selection, status, or error state (`f43ed459`).
+- [x] Focused basket coverage passed `6/6`; full frontend Vitest passed
+      `1045/1045`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No provider, fallback, visual,
+      or acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact ETF Holdings selection gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `99328434` / product tip
