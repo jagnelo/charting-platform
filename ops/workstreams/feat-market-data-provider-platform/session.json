@@ -164,7 +164,7 @@
   },
   "remote": "e8eae7b8",
   "remote_sha": "e8eae7b8",
-  "remote_synchronized": false,
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "f98d8516-3106-48fa-8289-7c144e168735",
