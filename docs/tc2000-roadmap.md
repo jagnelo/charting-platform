@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize Market Map and breadth analytics timelines
+
+Product commits `1607f017` and `a959dcaf` close two remaining analytics
+provenance leaks. Market Map profile/cache timestamps now use the shared UTC-
+`Z` serializer for provenance and cache identity, and breadth occurrence IDs
+use the same canonical timeline. Offset-equivalent observations therefore keep
+stable provenance and transition identities without changing map, breadth, or
+member-selection semantics.
+
+Focused Market Map coverage passed `10/10`; breadth coverage passed `28/28`;
+the full backend unit suite passed `1506/1506` at `68.83%` coverage; Ruff,
+formatting, and `git diff --check` passed. The exact gate remains pending at
+this coherent product tip; the preceding run stopped at Docker readiness.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Rerun the exact gate now, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Exact research-timeline gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `36ed5513` after the

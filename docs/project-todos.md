@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize Market Map and breadth analytics timelines
+
+- [x] Normalize Market Map profile/cache provenance and breadth occurrence identifiers on the
+      shared UTC-`Z` timeline (`1607f017`, `a959dcaf`) without changing analytics semantics.
+- [x] Focused Market Map coverage passed `10/10`, breadth coverage `28/28`, and full backend
+      unit coverage passed `1506/1506` at `68.83%`; Ruff, formatting, and diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue provider/history or
+      compatible chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact research-timeline gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `36ed5513`; repository/workstream,
