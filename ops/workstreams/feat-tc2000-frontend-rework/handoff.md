@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
+
+Product tip `4579d1e0` applies the shared exact-pair controlled-fixture
+visibility contract to both static and dynamic Strategy Lab ETF holdings
+resolution. Canonical research no longer lets a newer deterministic
+`controlled_fixture` + `e2e_reference` snapshot replace a provider-backed
+disclosure; seeded runs remain explicitly fixture-scoped and other
+deterministic integration fixtures remain compatible.
+
+The focused coverage-preview regression passed `1/1`; the complete Strategy
+Lab integration file passed `26/26`; Ruff, formatting, and diff checks passed;
+and backend units passed `1,476/1,476` at `68.52%` isolated coverage. The exact
+branch-scoped integration gate is pending at this tip. No visual, provider,
+fallback, or acceptance policy changed. Continue R1 provider/family history
+breadth, canonical population, W1/MN continuity, dense-data evidence, and
+R2-R7; preserve the no-integration/no-deployment boundary.
+
 ## 2026-09-12 — SEC fallback requires canonical materialized members
 
 Product tip `87cc8bd2` closes the adjacent ETF bootstrap fallback seam. The

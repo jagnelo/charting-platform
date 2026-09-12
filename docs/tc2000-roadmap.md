@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
+
+At product tip `4579d1e0`, Strategy Lab's static and dynamic ETF holdings
+resolvers now share the exact controlled-fixture visibility boundary used by
+the workstation source catalog. Normal canonical research excludes the
+`controlled_fixture` + `e2e_reference` pair, while seeded browser runs select
+that pair explicitly; ordinary deterministic integration fixtures using other
+provider labels remain compatible.
+
+The focused authenticated coverage-preview regression passed `1/1`; the
+complete Strategy Lab integration file passed `26/26`; Ruff, formatting, and
+diff checks passed; and the full backend unit suite passed `1,476/1,476` at
+`68.52%` isolated coverage. The exact branch-scoped integration gate is still
+pending for this product tip. No visual, provider, fallback, or acceptance
+policy changed. Continue R1 provider/family history breadth, canonical
+population, W1/MN continuity, dense-data evidence, and R2-R7 without changing
+protected visual policy.
+
 ## 2026-09-12 — SEC fallback requires canonical materialized members
 
 At product tip `87cc8bd2`, the ETF bootstrap SEC fallback now inspects

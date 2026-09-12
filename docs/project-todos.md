@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Strategy Lab ETF universes honor canonical fixture visibility
+
+- [x] Apply the shared controlled-fixture visibility contract to Strategy Lab's
+      static and dynamic ETF holdings resolvers. Canonical research reads now
+      exclude the exact `controlled_fixture` + `e2e_reference` pair, while
+      seeded runs remain explicitly fixture-scoped (`4579d1e0`).
+- [x] Add the integration regression proving a newer deterministic fixture
+      snapshot cannot replace a canonical ETF snapshot in a Strategy Lab
+      coverage preview. The focused case passed `1/1`, the complete Strategy
+      Lab integration file passed `26/26`, Ruff/formatting/diff checks passed,
+      and the full backend unit suite passed `1,476/1,476` at `68.52%` isolated
+      coverage.
+- [ ] Rerun the exact branch-scoped integration gate at this product tip;
+      continue provider/family history breadth, canonical population, W1/MN
+      continuity, dense-data evidence, and R2-R7 without changing protected
+      visual policy.
+
 ### 2026-09-12 — SEC fallback requires canonical materialized members
 
 - [x] Keep the SEC bootstrap fallback eligible when the latest materialized
