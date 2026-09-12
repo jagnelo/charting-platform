@@ -1170,3 +1170,12 @@ Update this handoff at each coherent boundary.
   unit suite passes `1,967/1,967` with 37 warnings. Ruff, compileall, and diff
   checks pass. No provider calls or credentials were used, and no frontend or
   ETF-provider files changed.
+
+- Source checkpoint `b9435a63` hardens quota settlement. Malformed
+  reserved/consumed/observed units and missing transport reservation dimensions
+  are rejected rather than converted to zero or one; explicit zero remains
+  valid for non-applicable dimensions. Focused settlement coverage passes
+  `112/112` selected cases and the complete backend unit suite passes
+  `1,971/1,971` with 37 warnings. Ruff, compileall, and diff checks pass. No
+  provider calls or credentials were used, and no frontend or ETF-provider
+  files changed.
