@@ -14,8 +14,10 @@ is blocked. A missing credential is never reported as a passing skip. The
 wrapper returns exit code `2` for an incomplete credential/usage preflight.
 It also prints a routing-safety preflight for FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
-poll controls, and the operation-level Tiingo/FMP byte-bound maps. A direct
-adapter read can therefore be green while its provider remains non-routable:
+poll controls, the MarketData.app reviewed account-plan/credit pair and
+operation-specific option-chain symbol bound, and the operation-level
+Tiingo/FMP byte-bound maps. A direct adapter read can therefore be green while
+its provider remains non-routable:
 missing, invalid, partial, or non-positive safety controls are reported
 explicitly and never guessed.
 The same preflight reports whether the non-secret
@@ -70,9 +72,13 @@ variables. Put the reviewed non-secret safety settings
 `FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
 `FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
-`TIINGO_OPERATION_BYTE_BOUNDS`, and `FMP_OPERATION_BYTE_BOUNDS` in the same
-environment's configuration variables; the workflow passes them through
-without inventing defaults. Keep required reviewers enabled. Ordinary
+`TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
+`MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
+and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
+configuration variables; the workflow passes them through without inventing
+entitlements. Leave the MarketData.app pair blank/zero and the option bound at
+zero until the account plan, response-priced exposure, and redistribution
+terms have been reviewed. Keep required reviewers enabled. Ordinary
 push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
