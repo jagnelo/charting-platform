@@ -316,6 +316,7 @@ progress:
     - provider transport diagnostics are now bounded to 1000 characters after redaction across the affected adapters and instrument/universe services; combined provider/service coverage passes 393/393 and the full backend unit suite remains at 1739/1739 with static checks clean
     - the shared provider runtime now uses a bounded redaction helper for request-log errors (4000 characters), health/fallback diagnostics (1000 characters), capacity events, and availability probes; focused runtime/error coverage passes 38/38 and the full backend unit suite passes 1741/1741 with static checks clean
     - provider-facing market-data refresh, bulk-history, alert preflight, and background task diagnostics now use bounded redaction, including returned bulk-fetch error state; focused market-data/task/runtime coverage passes 76/76 and the full backend unit suite remains at 1741/1741 with static checks clean
+    - caller-visible bulk-history failure states now have a direct regression proving provider credential text is redacted and bounded before return; focused bulk/provider-runtime/error coverage passes 36/36, the full backend unit suite passes 1742/1742, and Ruff, compilation, and diff checks are clean
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

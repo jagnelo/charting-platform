@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Bulk-fetch returned-error redaction regression
+
+- [x] Add a regression proving bulk historical fetch failures returned to the
+      caller are credential-redacted and bounded, not merely redacted in logs.
+      Focused bulk/provider-runtime/error coverage passes 36/36; the full
+      backend unit suite passes 1742/1742 with Ruff, compilation, and diff
+      checks clean.
+
 ### 2026-09-12 — Provider exception boundary hardening
 
 - [x] Extend bounded credential redaction to provider-facing market-data

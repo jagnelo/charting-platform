@@ -62,3 +62,25 @@ def test_bars_through_end_rejects_future_provider_rows():
     ]
 
     assert bulk_fetch._bars_through_end(bars, end) == bars[:1]
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_failure_state_redacts_provider_credentials(monkeypatch):
+    async def failing_fetch(**_kwargs):
+        raise RuntimeError("GET https://provider.test/data?api_key=bulk-secret")
+
+    monkeypatch.setattr(bulk_fetch, "_do_fetch_and_store", failing_fetch)
+
+    result = await bulk_fetch._fetch_one_timeframe(
+        db=object(),
+        instrument=object(),
+        ticker_sym="SPY",
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        end=bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+    )
+
+    assert isinstance(result, str)
+    assert "bulk-secret" not in result
+    assert "<redacted>" in result
+    assert len(result) <= len("error:") + 1000
