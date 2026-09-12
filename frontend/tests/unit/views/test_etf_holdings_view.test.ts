@@ -925,4 +925,19 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.text()).toContain('no source URL, URL template')
   })
+
+  it('does not publish a late profile response after the view unmounts', async () => {
+    let resolveProfiles: ((profiles: typeof profile[]) => void) | undefined
+    vi.mocked(api.get).mockReturnValueOnce(new Promise(resolve => {
+      resolveProfiles = resolve
+    }) as never)
+
+    const wrapper = mount(ETFHoldingsView)
+    wrapper.unmount()
+    resolveProfiles?.([profile])
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/SPY/dates')
+  })
 })
