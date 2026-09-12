@@ -196,11 +196,100 @@ async def test_edgar_directory_scan_pages_unique_ciks_and_wraps_durably(db, monk
     ]
     assert first["cycle_complete"] is False
     assert first["directory_offset"] == 2
+    assert first["issuer_materialization_mode"] == "disabled"
+    assert first["issuers_materialized"] == 0
     assert second["cycle_complete"] is True
     assert second["directory_offset"] == 0
     assert third["wrapped"] is True
     assert state.status == "partial"
     assert state.provenance["directory_offset"] == 2
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_create_missing_materializes_only_issuers(db, monkeypatch):
+    page_calls = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability.value == "market_events"
+        assert operation == "discover_issuer_ciks_page"
+        provider = SimpleNamespace(
+            discover_issuer_ciks_page=lambda offset, *, limit: page_calls.append((offset, limit))
+            or {
+                "total": 1,
+                "offset": 0,
+                "limit": 2,
+                "issuers": [
+                    {"cik": "0000000042", "name": "Example Holdings, Inc.", "tickers": ["EXM"]}
+                ],
+            }
+        )
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    async def fake_refresh(_db, ciks, **_kwargs):
+        assert list(ciks) == ["0000000042"]
+        return {"status": "no_events", "events": 0, "failures": 0, "issuers": []}
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+
+    result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db),
+        max_issuers=1,
+        max_submissions_requests=1,
+        issuer_materialization_mode="create_missing",
+    )
+
+    issuer = db.execute(select(Issuer).where(Issuer.cik == "0000000042")).scalar_one()
+    assert page_calls == [(0, 1)]
+    assert result["issuers_materialized"] == 1
+    assert result["existing_issuers"] == 0
+    assert issuer.domain_key == "cik:0000000042"
+    assert issuer.legal_name == "Example Holdings, Inc."
+    assert issuer.provenance["materialization_policy"] == "create_missing"
+    assert db.execute(select(Issuer)).scalars().all()
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_materialization_rejects_missing_name(db, monkeypatch):
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        provider = SimpleNamespace(
+            discover_issuer_ciks_page=lambda offset, *, limit: {
+                "total": 1,
+                "offset": 0,
+                "limit": limit,
+                "issuers": [{"cik": "0000000042", "tickers": ["EXM"]}],
+            }
+        )
+        return SimpleNamespace(result=kwargs["invoke"](provider, None))
+
+    monkeypatch.setattr(market_event_edgar_scan, "execute_provider_call", fake_execute)
+    result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+        AsyncSessionAdapter(db),
+        max_issuers=1,
+        max_submissions_requests=1,
+        issuer_materialization_mode="create_missing",
+    )
+
+    state = db.execute(
+        select(MarketEventScanState).where(
+            MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+        )
+    ).scalar_one()
+    assert result["status"] == "failed"
+    assert "requires a non-empty name" in state.last_error
+    assert db.execute(select(Issuer)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_rejects_unknown_materialization_mode(db):
+    with pytest.raises(ValueError, match="issuer_materialization_mode"):
+        # The provider call is never reached; this validates the policy gate.
+        await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory(
+            AsyncSessionAdapter(db),
+            max_issuers=1,
+            max_submissions_requests=1,
+            issuer_materialization_mode="update_existing",
+        )
 
 
 @pytest.mark.asyncio

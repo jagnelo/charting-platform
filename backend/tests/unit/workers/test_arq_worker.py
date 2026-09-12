@@ -308,6 +308,26 @@ async def test_edgar_directory_scan_requires_reviewed_submissions_budget(monkeyp
     }
 
 
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_rejects_unknown_materialization_mode(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 1)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS", 1)
+    monkeypatch.setattr(
+        settings,
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE",
+        "update_existing",
+    )
+
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {
+        "skipped": True,
+        "reason": "EDGAR SEC directory issuer materialization mode is invalid",
+    }
+
+
 def test_edgar_directory_scan_is_registered_in_worker_functions():
     assert arq_worker.scheduled_edgar_ipo_directory_scan in arq_worker.WorkerSettings.functions
 

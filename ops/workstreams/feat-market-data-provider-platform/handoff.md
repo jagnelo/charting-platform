@@ -1084,3 +1084,14 @@ Update this handoff at each coherent boundary.
   or credentials were used by this full suite; the Docker-backed migration and
   full-stack gate remains the authoritative unverified check in this
   environment.
+
+- Source checkpoint after the SEC directory policy completion adds an explicit
+  `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE` control.
+  The default `disabled` mode performs no issuer writes. The reviewed
+  `create_missing` mode validates directory CIK/name/ticker evidence, creates
+  only absent canonical `Issuer` rows, records the policy and ticker evidence
+  in provenance, and never creates instruments/listings, changes existing
+  legal names, or deactivates records. Domain conflicts and malformed names or
+  tickers fail closed. Focused SEC directory/service/worker coverage passes
+  `50/50`; the full backend unit gate and deployment/full-stack gates remain
+  to be rerun/verified after the source checkpoint is committed.

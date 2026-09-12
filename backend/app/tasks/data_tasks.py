@@ -339,6 +339,14 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
         1,
         int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER),
     )
+    materialization_mode = str(
+        settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE
+    ).strip().lower()
+    if materialization_mode not in {"disabled", "create_missing"}:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory issuer materialization mode is invalid",
+        }
     async with AsyncSessionLocal() as db:
         return await _refresh_edgar_ipo_pipeline_for_sec_directory(
             db,
@@ -347,6 +355,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
             max_issuers=max_issuers,
             max_events_per_issuer=max_events,
             max_submissions_requests=max_submissions_requests,
+            issuer_materialization_mode=materialization_mode,
         )
 
 

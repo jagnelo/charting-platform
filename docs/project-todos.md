@@ -16347,3 +16347,18 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Keep the matrix result non-accepting until deferred credentials and the
       provider-specific quota, terms, routing, Docker, deployment, and shadow
       gates are resolved; the live run changed no routing entitlement.
+
+### 2026-09-12 — Explicit SEC directory issuer-materialization policy
+
+- [x] Add an explicit `disabled`/`create_missing` policy to the complete SEC
+      issuer-directory scan. The default performs no issuer writes; the
+      reviewed `create_missing` mode validates CIK/name/ticker evidence and
+      creates only missing canonical `Issuer` rows with provenance.
+- [x] Keep security-master boundaries explicit: this path never creates or
+      updates instruments/listings, changes existing legal names, or
+      deactivates records; malformed evidence and domain conflicts fail closed.
+      Focused SEC directory/service/worker coverage passes `50/50`.
+- [ ] Operator review of the SEC submissions budget and the chosen
+      materialization policy is still required before enabling the worker; this
+      implementation does not infer tradability, listing dates, or redistribution
+      rights from the issuer directory.

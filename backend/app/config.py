@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     # A positive reviewed value is required before enabling that fan-out;
     # zero keeps the scan fail-closed even if its feature flag is set.
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: int = 0
+    # Issuer rows are never created by the directory scan unless this explicit
+    # policy is selected. ``create_missing`` creates only CIK/name issuer rows;
+    # it never creates instruments/listings or mutates existing legal names.
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE: str = "disabled"
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False

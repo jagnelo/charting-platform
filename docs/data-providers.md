@@ -456,7 +456,14 @@ use. Enabling it also requires a positive, reviewed
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS` bound. One
 submissions request is made per CIK in each directory page; the bound must be
 at least as large as `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS`, and zero
-is fail-closed.
+is fail-closed. Issuer-row creation is a separate explicit policy controlled by
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`: the default
+`disabled` mode creates nothing; `create_missing` creates only missing
+`Issuer` rows from validated CIK/name evidence, records the associated ticker
+list and policy in provenance, and never creates instruments/listings, changes
+existing legal names, or deactivates records. This keeps issuer materialization
+distinct from security-master/listing reconciliation and makes the governance
+decision visible in `market_event_scan_state`.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
@@ -997,6 +1004,7 @@ MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_MAX_EVENTS_PER_ISSUER=100
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS=50
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER=100
+MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE=disabled
 
 # Optional complete US universe/lifecycle reconciliation (worker only)
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false

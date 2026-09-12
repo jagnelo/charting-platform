@@ -19,11 +19,108 @@ _DIRECTORY_SCAN_KEY = "edgar:ipo_pipeline:sec_directory"
 _PROVIDER = "edgar"
 _OPERATION = "fetch_ipo_pipeline_events"
 _DIRECTORY_OPERATION = "discover_issuer_ciks_page"
+_ISSUER_MATERIALIZATION_MODES = frozenset({"disabled", "create_missing"})
 
 
 def _validate_limit(value: int, name: str) -> None:
     if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= 500:
         raise ValueError(f"{name} must be between 1 and 500")
+
+
+def _validate_issuer_materialization_mode(value: str) -> str:
+    """Validate the explicit SEC directory issuer-materialization policy."""
+
+    mode = str(value or "").strip().lower()
+    if mode not in _ISSUER_MATERIALIZATION_MODES:
+        allowed = ", ".join(sorted(_ISSUER_MATERIALIZATION_MODES))
+        raise ValueError(f"issuer_materialization_mode must be one of: {allowed}")
+    return mode
+
+
+async def _materialize_directory_issuers(
+    db: AsyncSession,
+    rows: list[dict[str, Any]],
+    *,
+    mode: str,
+    observed_at: datetime,
+) -> tuple[int, int]:
+    """Create missing issuer rows only when the operator selected that policy.
+
+    The SEC directory provides issuer-level CIK/name evidence, not a complete
+    security master. This policy therefore creates *only* missing ``Issuer``
+    rows, never instruments/listings, never changes existing legal names, and
+    never deactivates anything. ``disabled`` performs no database writes.
+    """
+
+    if mode == "disabled" or not rows:
+        return 0, 0
+
+    names_by_cik: dict[str, str] = {}
+    tickers_by_cik: dict[str, list[str]] = {}
+    for row in rows:
+        cik = str(row.get("cik") or "").strip()
+        name = str(row.get("name") or "").strip()
+        if not name or len(name) > 300:
+            raise ValueError(
+                "SEC issuer directory materialization requires a non-empty name "
+                "of at most 300 characters"
+            )
+        names_by_cik[cik] = name
+        raw_tickers = row.get("tickers")
+        if raw_tickers is not None and (
+            not isinstance(raw_tickers, list)
+            or any(not isinstance(ticker, str) or not ticker.strip() for ticker in raw_tickers)
+        ):
+            raise ValueError("SEC issuer directory materialization returned invalid tickers")
+        tickers_by_cik[cik] = sorted(
+            {str(ticker).strip().upper() for ticker in raw_tickers or []}
+        )
+
+    ciks = list(names_by_cik)
+    existing_rows = (
+        (await db.execute(select(Issuer).where(Issuer.cik.in_(ciks)))).scalars().all()
+    )
+    existing_by_cik = {str(issuer.cik): issuer for issuer in existing_rows if issuer.cik}
+    domain_rows = (
+        (
+            await db.execute(
+                select(Issuer).where(Issuer.domain_key.in_([f"cik:{cik}" for cik in ciks]))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    domain_owners = {issuer.domain_key: issuer for issuer in domain_rows}
+
+    missing = 0
+    for cik, name in names_by_cik.items():
+        if cik in existing_by_cik:
+            continue
+        domain_key = f"cik:{cik}"
+        owner = domain_owners.get(domain_key)
+        if owner is not None and owner.cik != cik:
+            raise ValueError(
+                f"SEC issuer directory CIK {cik} conflicts with existing issuer domain key"
+            )
+        db.add(
+            Issuer(
+                domain_key=domain_key,
+                legal_name=name,
+                cik=cik,
+                country_code="US",
+                provenance={
+                    "source": _PROVIDER,
+                    "directory": "company_tickers.json",
+                    "observed_at": observed_at.isoformat(),
+                    "tickers": tickers_by_cik.get(cik, []),
+                    "materialization_policy": mode,
+                },
+            )
+        )
+        missing += 1
+    if missing:
+        await db.flush()
+    return missing, len(existing_by_cik)
 
 
 async def refresh_edgar_ipo_pipeline_for_issuer_universe(
@@ -168,6 +265,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
     max_issuers: int = 50,
     max_events_per_issuer: int = 100,
     max_submissions_requests: int = 0,
+    issuer_materialization_mode: str = "disabled",
 ) -> dict[str, Any]:
     """Scan the complete SEC issuer directory in durable bounded pages.
 
@@ -182,6 +280,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
 
     _validate_limit(max_issuers, "max_issuers")
     _validate_limit(max_events_per_issuer, "max_events_per_issuer")
+    issuer_materialization_mode = _validate_issuer_materialization_mode(
+        issuer_materialization_mode
+    )
     if (
         not isinstance(max_submissions_requests, int)
         or isinstance(max_submissions_requests, bool)
@@ -212,6 +313,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
                 "algorithm": "edgar_ipo_pipeline_sec_directory_v1",
                 "directory_offset": 0,
                 "submissions_request_bound": max_submissions_requests,
+                "issuer_materialization_mode": issuer_materialization_mode,
             },
         )
         db.add(state)
@@ -225,6 +327,8 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
     wrapped = offset == 0 and state.cycle_count > 0
     state.status = "running"
     state.last_error = None
+    materialized_issuers = 0
+    existing_issuers = 0
 
     try:
         execution = await execute_provider_call(
@@ -267,6 +371,12 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             ciks.append(cik)
         if offset > total or (offset < total and not rows):
             raise ValueError("SEC issuer directory returned a non-progressing page")
+        materialized_issuers, existing_issuers = await _materialize_directory_issuers(
+            db,
+            rows,
+            mode=issuer_materialization_mode,
+            observed_at=now,
+        )
     except Exception as exc:  # noqa: BLE001 - persist bounded scan failure.
         state.status = "failed"
         state.last_scanned_at = now
@@ -280,6 +390,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "directory_offset": offset,
             "bounded": True,
             "submissions_request_bound": max_submissions_requests,
+            "issuer_materialization_mode": issuer_materialization_mode,
         }
         await db.commit()
         return {
@@ -290,6 +401,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "failures": 1,
             "directory_offset": offset,
             "submissions_request_bound": max_submissions_requests,
+            "issuer_materialization_mode": issuer_materialization_mode,
+            "issuers_materialized": 0,
+            "existing_issuers": 0,
             "cycle_complete": False,
             "wrapped": wrapped,
         }
@@ -309,6 +423,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "bounded": True,
             "cycle_complete": True,
             "submissions_request_bound": max_submissions_requests,
+            "issuer_materialization_mode": issuer_materialization_mode,
+            "issuers_materialized": 0,
+            "existing_issuers": 0,
         }
         state.cursor_issuer_id = None
         state.cycle_count += 1
@@ -326,6 +443,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
             "failures": 0,
             "directory_offset": 0,
             "submissions_request_bound": max_submissions_requests,
+            "issuer_materialization_mode": issuer_materialization_mode,
+            "issuers_materialized": 0,
+            "existing_issuers": 0,
             "cycle_complete": True,
             "wrapped": wrapped,
         }
@@ -354,6 +474,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         "bounded": True,
         "cycle_complete": cycle_complete,
         "submissions_request_bound": max_submissions_requests,
+        "issuer_materialization_mode": issuer_materialization_mode,
+        "issuers_materialized": materialized_issuers,
+        "existing_issuers": existing_issuers,
     }
     state.cursor_issuer_id = None
     state.cycle_count += 1 if cycle_complete else 0
@@ -373,6 +496,9 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(
         "issuers_considered": len(ciks),
         "directory_offset": 0 if cycle_complete else next_offset,
         "submissions_request_bound": max_submissions_requests,
+        "issuer_materialization_mode": issuer_materialization_mode,
+        "issuers_materialized": materialized_issuers,
+        "existing_issuers": existing_issuers,
         "cycle_complete": cycle_complete,
         "wrapped": wrapped,
     }
