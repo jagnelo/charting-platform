@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Exact Code Library lifecycle gate rechecked
+
+At product tip `dffcc5cde1b9edee0749f12cdf6158fd9dd5da44`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Code Library refresh lifecycle
 
 Product commit `53d57c1d` closes a bounded R6 lifecycle gap in the Python

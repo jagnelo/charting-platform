@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact Code Library lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `dffcc5cde1b9edee0749f12cdf6158fd9dd5da44`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Code Library refresh lifecycle
 
 - [x] Fence Python Library refresh responses by mounted state and refresh
