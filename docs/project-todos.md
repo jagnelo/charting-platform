@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize research dataset timelines
+
+- [x] Normalize research dataset-manifest `as_of` and materialized
+      instrument/benchmark/reference/batch timestamp arrays through the shared UTC-`Z`
+      serializer (`36ed5513`); date-only fields and immutable run semantics are unchanged.
+- [x] Focused research-router coverage passed `3/3`; full backend unit coverage passed
+      `1506/1506` at `68.83%`; Ruff, formatting, and diff checks passed.
+- [ ] Rerun the exact gate at this product tip when Docker is healthy, then continue the
+      next bounded provider/history or compatible chart/list/gauge seam. No policy changed.
+
 ### 2026-09-12 — Canonicalize combo-source exclusion timing
 
 - [x] Normalize combo point-in-time exclusion `known_at` through the shared UTC-`Z`

@@ -7978,3 +7978,18 @@ No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
 policy changed. Continue the next bounded provider/history or compatible
 chart/list/gauge seam and rerun the exact gate at the next coherent tip when
 Docker is healthy.
+## 2026-09-12 — Canonicalize research dataset timelines
+
+Product commit `36ed5513` closes a Study Lab transport gap in the canonical
+research dataset path. Dataset-manifest `as_of` values and all materialized
+OHLCV/reference timestamp arrays now use the shared UTC-`Z` wire serializer,
+covering instrument, benchmark, equal-reference, and batch datasets. Date-only
+fields and immutable run semantics remain unchanged.
+
+Focused research-router coverage passed `3/3`; the full backend unit suite
+passed `1506/1506` at `68.83%` coverage; Ruff, formatting, and `git diff --check`
+passed. The exact gate remains pending at this new product tip; Docker’s prior
+`/v1.55/info` HTTP 500 is recorded separately. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Rerun the
+exact gate when Docker is healthy, then continue the next bounded
+provider/history or compatible chart/list/gauge seam.

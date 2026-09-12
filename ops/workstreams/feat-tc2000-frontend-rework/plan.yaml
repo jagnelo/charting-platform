@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 36ed5513 canonicalizes research dataset-manifest as_of values
+  and all materialized instrument, benchmark, equal-reference, and batch
+  timestamp arrays through the shared UTC Z wire serializer. Focused
+  research-router coverage passed 3/3; the full backend unit suite passed
+  1506/1506 at 68.83% coverage; Ruff, formatting, and git diff --check passed.
+  The exact branch-scoped gate is pending at this new product tip; its prior
+  attempt stopped at backend-coverage because Docker returned HTTP 500 for
+  /v1.55/info after the fixed 180-second readiness window. No visual baseline,
+  mask, threshold, skip, provider, fallback, or acceptance policy changed.
+  Restore Docker health outside the worktree, rerun pending API regressions and
+  the exact gate, then continue the next bounded provider/history or compatible
+  chart/list/gauge seam while preserving the six protected visual state-oracle
+  diffs and the no-integration/no-deployment boundary.
   Product tip dc1dfbcb canonicalizes the combo-watchlist point-in-time
   exclusion known_at timestamp through the shared UTC Z wire serializer.
   Focused watchlist-source coverage passed 7/7; the full backend unit suite
