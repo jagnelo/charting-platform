@@ -34,7 +34,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
-from app.services.market_data import persist_price_history_bars
+from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.provider_runtime import execute_provider_call
 
 _FALLBACK_RFR = 0.05
@@ -166,9 +166,13 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
         bars = execution.result
         if not bars:
             return None
-        for bar in bars:
-            bar.instrument_id = instrument.id
-            bar.data_source_id = execution.data_source.id
+        bars = await _attach_provider_series(
+            db,
+            instrument,
+            Timeframe.D1,
+            True,
+            execution,
+        )
         await persist_price_history_bars(
             db,
             instrument,

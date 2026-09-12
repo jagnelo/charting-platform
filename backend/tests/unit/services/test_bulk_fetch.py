@@ -84,3 +84,57 @@ async def test_bulk_fetch_failure_state_redacts_provider_credentials(monkeypatch
     assert "bulk-secret" not in result
     assert "<redacted>" in result
     assert len(result) <= len("error:") + 1000
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch):
+    bar = SimpleNamespace(ts=bulk_fetch.datetime(2024, 1, 1, tzinfo=bulk_fetch.UTC))
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=9),
+        result=[bar],
+    )
+    calls: dict[str, object] = {}
+
+    async def _fake_execute(*_args, **_kwargs):
+        return execution
+
+    async def _fake_attach(_db, _instrument, timeframe, adjusted, execution_arg, **kwargs):
+        received = kwargs["bars"]
+        calls["attach"] = (timeframe, adjusted, execution_arg, kwargs)
+        received[0].market_series_id = 123
+        return received
+
+    async def _fake_existing(*_args, **_kwargs):
+        return set()
+
+    async def _fake_record(*_args, **_kwargs):
+        calls["record"] = True
+
+    async def _fake_touch(*_args, **_kwargs):
+        calls["touch"] = True
+
+    class _Db:
+        def add_all(self, rows):
+            calls["rows"] = rows
+
+        async def commit(self):
+            calls["committed"] = True
+
+    monkeypatch.setattr(bulk_fetch, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(bulk_fetch, "_attach_provider_series", _fake_attach)
+    monkeypatch.setattr(bulk_fetch, "_existing_timestamps", _fake_existing)
+    monkeypatch.setattr(bulk_fetch, "_record_bar_observations", _fake_record)
+    monkeypatch.setattr(bulk_fetch, "_touch_ohlcv_dataset_state", _fake_touch)
+
+    instrument = SimpleNamespace(id=42, symbol="SPY")
+    result = await bulk_fetch._do_fetch_and_store(
+        _Db(), instrument, "SPY", Timeframe.D1, True, bar.ts
+    )
+
+    assert result == 1
+    assert calls["attach"][0:2] == (Timeframe.D1, True)
+    assert calls["attach"][2] is execution
+    assert calls["rows"] == [bar]
+    assert bar.market_series_id == 123
+    assert calls["committed"] is True

@@ -40,7 +40,12 @@ from app.providers.optional_market_data import (
     estimate_marketstack_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
 )
-from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
+from app.services.market_data import (
+    _attach_provider_series,
+    _default_series_bar_condition,
+    _record_bar_observations,
+    _touch_ohlcv_dataset_state,
+)
 from app.services.provider_runtime import execute_provider_call
 
 logger = logging.getLogger(__name__)
@@ -280,6 +285,14 @@ async def _do_fetch_and_store(
         await db.commit()
         return 0
 
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+        bars=bars,
+    )
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
 
     new_bars: list[OHLCVBar] = []
@@ -342,6 +355,7 @@ async def _existing_timestamps(
         OHLCVBar.instrument_id == instrument_id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument_id, timeframe, adjusted),
     )
     rows = (await db.execute(stmt)).scalars().all()
     return {_to_utc(ts) for ts in rows}
