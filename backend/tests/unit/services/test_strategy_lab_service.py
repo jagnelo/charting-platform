@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -19,6 +19,21 @@ from app.services.strategy_lab import (
     _trade_distributions,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
+
+
+def test_study_fallback_timestamp_uses_canonical_utc_z(monkeypatch):
+    from app.services import strategy_lab
+
+    class FrozenDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            assert tz is UTC
+            return datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
+
+    monkeypatch.setattr(strategy_lab, "datetime", FrozenDateTime)
+
+    assert strategy_lab._study_fallback_timestamp(None) == "2026-09-12T16:30:00Z"
+    assert strategy_lab._study_fallback_timestamp(date(2026, 9, 11)) == "2026-09-11"
 
 
 class _ScalarResult:

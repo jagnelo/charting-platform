@@ -1649,6 +1649,14 @@ def _wire_datetime(value: datetime | None) -> str | None:
     return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
+def _study_fallback_timestamp(value: date | None) -> str:
+    """Return a canonical timeline fallback for runs without a start date."""
+
+    if value is not None:
+        return value.isoformat()
+    return _wire_datetime(datetime.now(UTC)) or ""
+
+
 def _annotate_dynamic_universe_execution_log(
     execution_log: list[dict[str, Any]],
     *,
@@ -2756,7 +2764,7 @@ async def _run_rules_backtest(
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
         max_symbol_allocation_pct=max_symbol_allocation_pct,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     trades = list(portfolio_view["accepted_trades"])
     open_positions = list(portfolio_view["accepted_open_positions"])
@@ -2772,7 +2780,7 @@ async def _run_rules_backtest(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
         initial_capital=initial_capital,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     equity_curve = list(dense_history["equity_curve"])
     portfolio_timeline = list(dense_history["portfolio_timeline"])
@@ -3414,7 +3422,7 @@ async def _run_radar_signal_research(
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
         max_symbol_allocation_pct=max_symbol_allocation_pct,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     trades = list(portfolio_view["accepted_trades"])
     open_positions = list(portfolio_view["accepted_open_positions"])
@@ -3424,7 +3432,7 @@ async def _run_radar_signal_research(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
         initial_capital=initial_capital,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     equity_curve = list(dense_history["equity_curve"])
     portfolio_timeline = list(dense_history["portfolio_timeline"])
