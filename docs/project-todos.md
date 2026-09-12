@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact ETF Holdings selection gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `99328434` / product tip
+      `a9602ebe`; git-diff, workstream validation (30 records), dependency/
+      migration, frontend preparation, Ruff, formatting, and TypeScript passed.
+- [ ] Docker API access was denied after the fixed 180-second readiness window;
+      backend integration, provider, browser, and visual stages did not run.
+      No visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence ETF Holdings profile-selection races
 
 - [x] Scope canonical ETF Holdings profile/bootstrap, snapshot, holdings,

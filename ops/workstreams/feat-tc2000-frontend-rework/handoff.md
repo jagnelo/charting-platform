@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Exact ETF Holdings selection gate rechecked
+
+At documentation tip `99328434` (product tip `a9602ebe`), the exact
+branch-scoped gate passed repository/workstream validation, dependency and
+migration checks, frontend preparation, Ruff, formatting, and TypeScript. It
+then stopped at `backend-coverage` after the fixed 180-second Docker readiness
+window because access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product or visual-policy failure was
+observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence ETF Holdings profile-selection races
 
 Product commit `a9602ebe` scopes the canonical ETF Holdings profile/bootstrap,
