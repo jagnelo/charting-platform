@@ -9,7 +9,7 @@
 - [x] Add the additive migration and unit coverage for token issuance,
       clearing, wrong-token rejection, expiry rejection, and worker behavior
       that avoids retrying after lease loss. Focused queue/worker coverage
-      passes 32/32; the full backend unit suite passes 1733/1733 with Ruff,
+      passes 32/32; the full backend unit suite passes 1734/1734 with Ruff,
       compilation, and diff checks clean.
 - [x] Expose bounded admin-only `/api/v1/market-data/refresh/queue` diagnostics
       with status counts, lease-expiry/degradation state, retry metadata, and
