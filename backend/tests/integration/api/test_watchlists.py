@@ -851,7 +851,16 @@ class TestWatchlistsCrud:
         from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
         from app.models.watchlist import WatchlistItem
 
-        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        watchlist.items.append(
+            WatchlistItem(
+                instrument_id=instrument.id,
+                position=0,
+                # Make the membership known before the historical bars so the
+                # explicit point-in-time request tests data, not a future
+                # membership exclusion.
+                added_at=ohlcv_bars[0].ts,
+            )
+        )
         db.add(
             InstrumentDatasetState(
                 instrument_id=instrument.id,

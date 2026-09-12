@@ -12,16 +12,19 @@ def _seed_radar_bars(
     start_at: datetime | None = None,
     timeframe=None,
 ):
-    from app.models.ohlcv import OHLCVBar, Timeframe
+    from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 
-    base = start_at or (datetime.now(UTC) - timedelta(days=len(prices)))
     tf = timeframe or Timeframe.D1
+    step_seconds = TIMEFRAME_SECONDS.get(tf, TIMEFRAME_SECONDS[Timeframe.D1])
+    base = start_at or (
+        datetime.now(UTC) - timedelta(seconds=step_seconds * len(prices))
+    )
     for index, price in enumerate(prices):
         db.add(
             OHLCVBar(
                 instrument_id=instrument.id,
                 timeframe=tf,
-                ts=base + timedelta(days=index),
+                ts=base + timedelta(seconds=step_seconds * index),
                 open=Decimal(str(round(price - 0.5, 4))),
                 high=Decimal(str(round(price + 1.3, 4))),
                 low=Decimal(str(round(price - 1.3, 4))),
