@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Tokenized underlying stable-identifier retention
+
+- [x] Retain provider-published underlying FIGI, composite FIGI, ISIN, and
+      CUSIP values for xStocks and Dinari token records, persist them on the
+      tokenized-asset detail model, and resolve the underlying through the
+      canonical instrument/domain-key/active-identifier registry before any
+      ticker fallback. Added a reversible migration and focused coverage for
+      FIGI, composite FIGI, ISIN, CUSIP, ambiguity, and unresolved-identifier
+      cases. Providers that do not document these fields (for example the
+      current Robinhood public asset payload) leave them absent rather than
+      inventing identity evidence.
+
 ### 2026-09-12 — Stable-ID-first tokenized underlying linkage
 
 - [x] Make tokenized-security persistence resolve an economic underlying by a

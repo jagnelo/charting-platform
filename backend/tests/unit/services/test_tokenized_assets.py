@@ -120,6 +120,133 @@ async def test_upsert_prefers_underlying_isin_over_duplicate_ticker(db, instrume
 
 
 @pytest.mark.asyncio
+async def test_upsert_links_underlying_by_figi_before_ticker(db, instrument_type, instrument):
+    instrument.domain_key = "figi:BBG000B9XRY4"
+    duplicate = Instrument(
+        symbol="AAPL",
+        name="Apple duplicate listing",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(duplicate)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-figi",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_figi="BBG000B9XRY4",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_figi"
+    assert detail.underlying_figi == "BBG000B9XRY4"
+
+
+@pytest.mark.asyncio
+async def test_upsert_links_underlying_by_composite_figi_identifier(db, instrument, instrument_type):
+    identifier = InstrumentIdentifier(
+        instrument_id=instrument.id,
+        identifier_type=InstrumentIdentifierType.COMPOSITE_FIGI,
+        identifier_value="BBG000B9XRY4",
+        is_active=True,
+    )
+    db.add(identifier)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-composite-figi",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_composite_figi="BBG000B9XRY4",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_composite_figi"
+    assert detail.underlying_composite_figi == "BBG000B9XRY4"
+
+
+@pytest.mark.asyncio
+async def test_upsert_links_underlying_by_cusip_identifier(db, instrument, instrument_type):
+    identifier = InstrumentIdentifier(
+        instrument_id=instrument.id,
+        identifier_type=InstrumentIdentifierType.CUSIP,
+        identifier_value="037833100",
+        is_active=True,
+    )
+    db.add(identifier)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-cusip",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_cusip="037833100",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id == instrument.id
+    assert detail.provenance["underlying_link_status"] == "linked_by_cusip"
+    assert detail.underlying_cusip == "037833100"
+
+
+@pytest.mark.asyncio
+async def test_upsert_refuses_conflicting_stable_underlying_identifiers(
+    db, instrument_type, instrument
+):
+    instrument.domain_key = "figi:BBG000B9XRY4"
+    conflicting = Instrument(
+        symbol="AAPL",
+        name="Apple conflicting identity",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        domain_key="isin:US0378331005",
+    )
+    db.add(conflicting)
+    db.flush()
+
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="d-aapl-conflict",
+        symbol="dAAPL",
+        name="Apple Token",
+        underlying_symbol="AAPL",
+        underlying_figi="BBG000B9XRY4",
+        underlying_isin="US0378331005",
+        raw_payload={},
+    )
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+
+    assert detail.underlying_instrument_id is None
+    assert detail.provenance["underlying_link_status"] == "unresolved_or_ambiguous_figi"
+
+
+@pytest.mark.asyncio
 async def test_upsert_resolves_underlying_isin_from_canonical_identifier(db, instrument, instrument_type):
     identifier = InstrumentIdentifier(
         instrument_id=instrument.id,

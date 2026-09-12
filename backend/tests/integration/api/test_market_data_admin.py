@@ -74,6 +74,10 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
             provider_name="xstocks",
             token_symbol="xAAPL",
             underlying_symbol="AAPL",
+            underlying_figi="BBG000B9XRY4",
+            underlying_composite_figi="BBG000B9XRY4",
+            underlying_isin="US0378331005",
+            underlying_cusip="037833100",
             backing_type="fully_backed",
             deployments=[{"network": "solana", "address": "So111"}],
             provenance={"provider": "xstocks"},
@@ -103,6 +107,10 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
     assert row["provider"] == "xstocks"
     assert row["provider_asset_id"] == "x:AAPL"
     assert row["token_symbol"] == "xAAPL"
+    assert row["underlying_figi"] == "BBG000B9XRY4"
+    assert row["underlying_composite_figi"] == "BBG000B9XRY4"
+    assert row["underlying_isin"] == "US0378331005"
+    assert row["underlying_cusip"] == "037833100"
     assert row["deployments"][0]["address"] == "So111"
     assert row["latest_price"] == 123.45
     assert row["latest_price_provider_symbol"] == "xAAPL"

@@ -299,7 +299,15 @@ class XStocksProvider:
             symbol=symbol,
             name=name,
             underlying_symbol=underlying.get("symbol") or payload.get("underlyingSymbol") or None,
+            underlying_figi=underlying.get("figi") or payload.get("underlyingFigi") or None,
+            underlying_composite_figi=(
+                underlying.get("compositeFigi")
+                or underlying.get("composite_figi")
+                or payload.get("underlyingCompositeFigi")
+                or None
+            ),
             underlying_isin=underlying.get("isin") or payload.get("underlyingIsin") or None,
+            underlying_cusip=underlying.get("cusip") or payload.get("underlyingCusip") or None,
             isin=payload.get("isin") or None,
             network=network,
             chain_id=chain_id,
@@ -908,6 +916,10 @@ class DinariTokenProvider:
             symbol=symbol,
             name=name,
             underlying_symbol=symbol,
+            underlying_figi=payload.get("figi") or payload.get("underlying_figi") or None,
+            underlying_composite_figi=payload.get("composite_figi") or None,
+            underlying_isin=payload.get("isin") or payload.get("underlying_isin") or None,
+            underlying_cusip=payload.get("cusip") or payload.get("underlying_cusip") or None,
             network=network,
             chain_id=chain_id,
             contract_address=address,

@@ -191,7 +191,10 @@ async def _underlying_instrument(
     db: AsyncSession,
     *,
     symbol: str | None,
+    figi: str | None,
+    composite_figi: str | None,
     isin: str | None,
+    cusip: str | None,
 ) -> tuple[Instrument | None, str]:
     """Resolve a token's economic underlying with stable-ID-first semantics.
 
@@ -202,32 +205,56 @@ async def _underlying_instrument(
     still accepted only when exactly one active instrument has that symbol.
     """
 
-    normalized_isin = str(isin or "").strip().upper()
-    if normalized_isin:
-        direct = (
-            await db.execute(
+    stable_identifiers = (
+        ("figi", figi, InstrumentIdentifierType.FIGI),
+        ("composite_figi", composite_figi, InstrumentIdentifierType.COMPOSITE_FIGI),
+        ("isin", isin, InstrumentIdentifierType.ISIN),
+        ("cusip", cusip, InstrumentIdentifierType.CUSIP),
+    )
+    supplied = [
+        (label, str(value).strip().upper(), identifier_type)
+        for label, value, identifier_type in stable_identifiers
+        if str(value or "").strip()
+    ]
+    if supplied:
+        candidates: dict[int, Instrument] = {}
+        matched_labels: list[str] = []
+        for label, value, identifier_type in supplied:
+            queries = [
                 select(Instrument).where(
-                    Instrument.isin == normalized_isin,
                     Instrument.is_active.is_(True),
+                    Instrument.domain_key == f"{label.replace('_', '-')}:{value}",
                 )
-            )
-        ).scalars().all()
-        by_identifier = (
-            await db.execute(
+            ]
+            if identifier_type is InstrumentIdentifierType.ISIN:
+                queries.append(
+                    select(Instrument).where(
+                        Instrument.isin == value,
+                        Instrument.is_active.is_(True),
+                    )
+                )
+            queries.append(
                 select(Instrument)
                 .join(InstrumentIdentifier, InstrumentIdentifier.instrument_id == Instrument.id)
                 .where(
-                    InstrumentIdentifier.identifier_type == InstrumentIdentifierType.ISIN,
-                    InstrumentIdentifier.identifier_value == normalized_isin,
+                    InstrumentIdentifier.identifier_type == identifier_type,
+                    InstrumentIdentifier.identifier_value == value,
                     InstrumentIdentifier.is_active.is_(True),
                     Instrument.is_active.is_(True),
                 )
             )
-        ).scalars().all()
-        candidates = {candidate.id: candidate for candidate in (*direct, *by_identifier)}
-        if len(candidates) == 1:
-            return next(iter(candidates.values())), "linked_by_isin"
-        return None, "unresolved_or_ambiguous_isin"
+            matched = {
+                candidate.id: candidate
+                for query in queries
+                for candidate in (await db.execute(query)).scalars().all()
+            }
+            if matched:
+                matched_labels.append(label)
+                candidates.update(matched)
+        if len(candidates) == 1 and matched_labels:
+            return next(iter(candidates.values())), f"linked_by_{matched_labels[0]}"
+        strongest = supplied[0][0]
+        return None, f"unresolved_or_ambiguous_{strongest}"
 
     if not symbol:
         return None, "unresolved_or_ambiguous"
@@ -280,7 +307,10 @@ async def upsert_tokenized_asset(
     underlying, underlying_link_status = await _underlying_instrument(
         db,
         symbol=record.underlying_symbol,
+        figi=record.underlying_figi,
+        composite_figi=record.underlying_composite_figi,
         isin=record.underlying_isin,
+        cusip=record.underlying_cusip,
     )
     detail = (
         await db.execute(
@@ -300,7 +330,10 @@ async def upsert_tokenized_asset(
     detail.token_symbol = record.symbol
     detail.isin = record.isin
     detail.underlying_symbol = record.underlying_symbol
+    detail.underlying_figi = record.underlying_figi
+    detail.underlying_composite_figi = record.underlying_composite_figi
     detail.underlying_isin = record.underlying_isin
+    detail.underlying_cusip = record.underlying_cusip
     detail.backing_type = record.backing_type
     detail.multiplier = record.multiplier
     detail.circulating_supply = record.circulating_supply

@@ -46,7 +46,13 @@ def test_xstocks_record_preserves_underlying_and_chain_deployment():
             "id": "x:AAPL",
             "symbol": "xAAPL",
             "name": "Apple xStock",
-            "underlying": {"symbol": "AAPL", "isin": "US0378331005"},
+            "underlying": {
+                "symbol": "AAPL",
+                "isin": "US0378331005",
+                "figi": "BBG000B9XRY4",
+                "compositeFigi": "BBG000B9XRY4",
+                "cusip": "037833100",
+            },
             "currentMultiplier": "0.97",
             "deployments": [
                 {"network": "solana", "chainId": 101, "address": "So111"},
@@ -55,7 +61,10 @@ def test_xstocks_record_preserves_underlying_and_chain_deployment():
     )
     assert record.asset_id == "x:AAPL"
     assert record.underlying_symbol == "AAPL"
+    assert record.underlying_figi == "BBG000B9XRY4"
+    assert record.underlying_composite_figi == "BBG000B9XRY4"
     assert record.underlying_isin == "US0378331005"
+    assert record.underlying_cusip == "037833100"
     assert record.network == "solana"
     assert record.chain_id == 101
     assert record.contract_address == "So111"

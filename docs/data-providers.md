@@ -246,15 +246,17 @@ scraping endpoint is substituted.
 Tokenized products are first-class instruments, not ticker aliases. Each stored
 instrument receives a stable provider-scoped `domain_key` and retains the
 provider asset ID, chain/network, contract deployment(s), token ISIN when
-published, underlying symbol/ISIN, multiplier, supply, backing classification,
-and corporate-action payload. When a provider publishes an underlying ISIN,
-linkage is stable-ID-first: the canonical `Instrument.isin` and active ISIN
-identifier registry are checked before any symbol lookup. An unresolved or
-ambiguous ISIN never falls back to a ticker, preventing a token from attaching
-to the wrong share class or venue. Ticker fallback is retained only when no
-stable underlying identifier is supplied and exactly one active listing has
-that symbol; a collision leaves the relationship unresolved rather than
-merging two securities.
+published, underlying symbol and every published stable identifier (FIGI,
+composite FIGI, ISIN, or CUSIP), multiplier, supply, backing classification,
+and corporate-action payload. Underlying linkage is stable-ID-first: the
+canonical instrument fields, domain keys, and active identifier registry are
+checked in FIGI/composite-FIGI/ISIN/CUSIP order before any symbol lookup. If
+multiple supplied identifiers disagree, or a supplied identifier is not
+resolved uniquely, the relationship remains unresolved; it is never weakened
+to a ticker match. Ticker fallback is retained only when no stable underlying
+identifier is supplied and exactly one active listing has that symbol; a
+collision leaves the relationship unresolved rather than merging two
+securities.
 
 The current public adapters are read-only. They do not submit orders, mint,
 redeem, transfer tokens, or index wallets. Tokenized perpetuals and other
