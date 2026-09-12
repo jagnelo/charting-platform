@@ -464,3 +464,7 @@ Update this handoff at each coherent boundary.
   credentialed Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox cases
   passed `9/9` under run `9c961135-70dc-49ab-9e01-e456530a2e4f`; aggregate
   provider usage remains outside Git.
+- A current read-only Docker readiness check remains blocked: the unprivileged
+  socket probe was denied and the authorized check hung without a server
+  version, so it was interrupted. No services or containers were started; the
+  required Docker-backed acceptance gate remains unverified.
