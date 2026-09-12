@@ -958,6 +958,9 @@ let disposed = false
 let comboListLoadSequence = 0
 let comboMutationSequence = 0
 let personalMutationSequence = 0
+let benchmarkFamilyReadinessSequence = 0
+let familyAnalyticsSequence = 0
+let familyOverviewSequence = 0
 const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
@@ -1429,7 +1432,7 @@ onMounted(async () => {
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
     ...constituentRows.value,
-  ])
+    ])
   void loadConditionColumns([
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
@@ -1439,7 +1442,7 @@ onMounted(async () => {
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
     ...constituentRows.value,
-  ])
+    ])
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
@@ -1885,6 +1888,9 @@ onBeforeUnmount(() => {
   conditionRequestGeneration += 1
   indicatorRequestGeneration += 1
   benchmarkFamilyLoadSequence += 1
+  benchmarkFamilyReadinessSequence += 1
+  familyAnalyticsSequence += 1
+  familyOverviewSequence += 1
   pythonPlotRequestSequence += 1
   scanPlotRequestSequence += 1
   comboListLoadSequence += 1
@@ -3603,7 +3609,7 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 }
 let benchmarkFamilyLoadSequence = 0
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
-  if (props.tool.instance_key !== 'benchmark-list' || !familyKey) return
+  if (disposed || props.tool.instance_key !== 'benchmark-list' || !familyKey) return
   const sequence = ++benchmarkFamilyLoadSequence
   benchmarkFamilyLoading.value = true
   try {
@@ -3617,23 +3623,25 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       }),
     ])
   } finally {
-    if (sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
+    if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
   }
 }, { immediate: true })
 watch(() => props.tool.instance_key, async instanceKey => {
-  if (instanceKey !== 'benchmark-list') return
+  if (disposed || instanceKey !== 'benchmark-list') return
+  const sequence = ++benchmarkFamilyReadinessSequence
   benchmarkFamilyReadinessLoading.value = true
   try {
     await workspaceStore.loadBenchmarkFamilyReadiness()
   } finally {
-    benchmarkFamilyReadinessLoading.value = false
+    if (!disposed && sequence === benchmarkFamilyReadinessSequence) benchmarkFamilyReadinessLoading.value = false
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf, familyRankPeriod], async ([groupKey, timeframe, adjusted, market]) => {
-  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  if (disposed || !isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  const sequence = ++familyAnalyticsSequence
   familyRatioLoading.value = true
   familyTechnicalsLoading.value = true
   familyBreadthLoading.value = true
@@ -3653,29 +3661,32 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, top_n: 10, limit: 500 }),
       workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value }),
       workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, limit: 500 }),
-    ])
+  ])
   } finally {
-    familyRatioLoading.value = false
-    familyTechnicalsLoading.value = false
-    familyBreadthLoading.value = false
-    familyRankingLoading.value = false
-    familyConcentrationLoading.value = false
-    familyConcentrationHistoryLoading.value = false
-    crossFamilyRankingLoading.value = false
-    crossFamilyRankingHistoryLoading.value = false
+    if (!disposed && sequence === familyAnalyticsSequence) {
+      familyRatioLoading.value = false
+      familyTechnicalsLoading.value = false
+      familyBreadthLoading.value = false
+      familyRankingLoading.value = false
+      familyConcentrationLoading.value = false
+      familyConcentrationHistoryLoading.value = false
+      crossFamilyRankingLoading.value = false
+      crossFamilyRankingHistoryLoading.value = false
+    }
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, role, market]) => {
-  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  if (disposed || !isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  const sequence = ++familyOverviewSequence
   familyOverviewLoading.value = true
   try {
     await Promise.all([
       workspaceStore.loadBenchmarkFamilyOverview(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyCoverage(groupKey, { as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyConstituents(groupKey, role, { timeframe, adjusted, as_of: familyAsOf.value || undefined, market_benchmark: market }),
-    ])
+  ])
   } finally {
-    familyOverviewLoading.value = false
+    if (!disposed && sequence === familyOverviewSequence) familyOverviewLoading.value = false
   }
 }, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
