@@ -898,3 +898,12 @@ Update this handoff at each coherent boundary.
   passed `1/1` (11 measured operations/20 HTTP requests); two aggregate-only
   receipts were merged into the owner ledger (`accepted=2`, `duplicates=0`,
   `rejected=0`). Dinari quota, terms, and routing admission remain fail-closed.
+
+- Dinari now advertises the generic `tokenized_corporate_actions` capability.
+  Symbol-scoped reads combine its per-stock dividends and splits; unscoped
+  reads are the bounded global split feed, with `upcoming` rejected and any
+  unfetched continuation refused. The changed Sandbox live case passed `1/1`
+  (12 measured operations/23 HTTP requests), and its aggregate-only receipt was
+  merged into the owner-managed ledger. Full backend unit coverage passes
+  `1,907/1,907`; source commit `f296a507` is pushed. Dinari quota, terms, and
+  routing admission remain fail-closed; no frontend or ETF-provider files changed.

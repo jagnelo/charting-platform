@@ -1006,3 +1006,14 @@ two secret-free aggregate receipts were merged into the owner-managed ledger
 (`accepted=2`, `duplicates=0`, `rejected=0`). UUID lookups retain the
 unfiltered compatibility path; provider quota, commercial terms, and routing
 admission remain independent fail-closed gates.
+
+On 2026-09-12, Dinari's direct dividend/split adapters were also exposed through
+the generic `tokenized_corporate_actions` capability. The changed rotated-Sandbox
+case passed `1/1` with 23 HTTP requests and 12 measured operations, covering the
+provider's cursor-backed metadata lookup, fair price/quote/history/news, direct
+dividend/split reads, and the symbol-scoped combined action path. Aggregate-only
+telemetry was merged into the owner-managed ledger outside Git. Dinari's
+unscoped action path remains split-only (there is no documented global dividend
+feed), rejects `upcoming`, and refuses an advertised continuation page; partner
+quota, US eligibility, fees, display/cache, redistribution, and commercial
+routing gates remain fail-closed.

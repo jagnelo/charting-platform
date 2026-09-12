@@ -16241,3 +16241,19 @@ The current source also passes the focused authenticated top-down browser slice 
       `rejected=0`) after an overlapping retry completed.
 - [ ] Dinari quota, US eligibility, fee, display/cache, redistribution, and
       commercial routing gates remain unchanged and fail-closed.
+
+### 2026-09-12 — Dinari corporate-action capability completeness
+
+- [x] Expose Dinari's documented split/dividend reads through the generic
+      `tokenized_corporate_actions` adapter surface. Symbol-scoped reads combine
+      per-stock dividends and splits; unscoped reads use the bounded global split
+      feed because Dinari does not publish a global dividend endpoint.
+- [x] Reject the unsupported `upcoming` semantic instead of labelling Dinari's
+      historical/global response as future data; refuse unfetched cursor pages
+      rather than silently truncating action history.
+- [x] Add provider/runtime/quota and scheduler regressions plus a credentialed
+      Sandbox live case. The changed case passed `1/1` with 23 HTTP requests and
+      12 measured operations; aggregate-only telemetry was merged into the
+      owner-managed ledger outside Git.
+- [ ] Dinari partner quota, US eligibility, fee, display/cache, redistribution,
+      and commercial routing gates remain unchanged and fail-closed.
