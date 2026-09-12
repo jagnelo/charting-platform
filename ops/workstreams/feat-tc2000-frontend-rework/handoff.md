@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Chart Template loading lifecycle
+
+Product commit `2cfaa4f6` fences Chart Template hydration by mounted state and
+load generation. A late or superseded response cannot repopulate a closed
+control or overwrite newer template state. Focused coverage passed `10/10`;
+full frontend Vitest passed `1023/1023` across 115 files; type-check,
+production build, and `git diff --check` passed with only the existing
+chunk-size warning. No provider, fallback, visual, or acceptance policy
+changed. Continue implementation in this worktree only.
+
+## 2026-09-12 — Exact Chart Template lifecycle gate rechecked
+
+At product tip `2cfaa4f6b5e987aba6ce84684d0ca39ad572458b`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Chart Plot Library loader lifecycle
 
 Product commit `51be2db1` fences Chart Plot Library Python asset and EasyScan

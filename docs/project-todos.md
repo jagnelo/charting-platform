@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Chart Template loading lifecycle
+
+- [x] Fence Chart Template hydration by mounted state and load generation so
+      late or superseded responses cannot repopulate a closed control
+      (`2cfaa4f6`).
+- [x] Focused Chart Template coverage passed `10/10`; full frontend Vitest
+      passed `1023/1023` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Chart Template lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `2cfaa4f6b5e987aba6ce84684d0ca39ad572458b`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Chart Plot Library loader lifecycle
 
 - [x] Fence Python asset and EasyScan history loaders by mounted state and
