@@ -1033,7 +1033,8 @@ progress:
     Dinari required the
     operator-only base URL to be corrected from the live sbt host to the
     documented Sandbox host; the replacement pair then passed its bounded
-    credentialed case. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
+    credentialed case. The subsequent isolated 9-case rerun passed 9/9 after
+    resetting the SEC directory cache at the live-test boundary. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
     intentionally unconfigured. MarketData.app routing is also intentionally
     closed until the account plan/limit pair is explicitly reviewed; its live
     key currently reports a 10,000-credit daily header. Alpha Vantage remains
