@@ -7,10 +7,11 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 import numpy as np
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.models.basket import Basket, BasketMember, BasketSnapshot
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
@@ -58,6 +59,27 @@ SHORT_BIASED_RADAR_SETUPS = {
     RadarSetupType.COMPRESSION_RESISTANCE,
     RadarSetupType.FAILED_RECLAIM,
 }
+
+
+def _etf_snapshot_visibility_conditions() -> list[object]:
+    """Keep Strategy Lab ETF universes on the same fixture/canonical boundary.
+
+    Seeded browser runs must select the exact controlled fixture pair. Normal
+    research reads must exclude that pair so deterministic holdings cannot
+    replace canonical provider disclosures merely because the fixture is newer.
+    """
+
+    if settings.E2E_SEED_MARKET_DATA:
+        return [
+            ETFHoldingsSnapshot.provenance == "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider == "e2e_reference",
+        ]
+    return [
+        or_(
+            ETFHoldingsSnapshot.provenance != "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider != "e2e_reference",
+        )
+    ]
 
 
 @dataclass(frozen=True)
@@ -970,7 +992,10 @@ async def _resolve_universe_instruments(
         )
         snapshot_stmt = (
             select(ETFHoldingsSnapshot)
-            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            .where(
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                *_etf_snapshot_visibility_conditions(),
+            )
             .options(
                 selectinload(ETFHoldingsSnapshot.rows).selectinload(
                     ETFHolding.constituent_instrument
@@ -1165,7 +1190,10 @@ async def _resolve_dynamic_etf_universe(
 
     snapshot_stmt = (
         select(ETFHoldingsSnapshot)
-        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        .where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            *_etf_snapshot_visibility_conditions(),
+        )
         .options(
             selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
         )

@@ -932,6 +932,96 @@ class TestStrategyLabAPI:
         assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
         assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
 
+    def test_strategy_etf_universe_excludes_newer_controlled_fixture_snapshot(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+        monkeypatch,
+    ):
+        """Canonical research must not select a newer deterministic fixture disclosure."""
+
+        from datetime import UTC, datetime
+
+        from app.config import settings
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        ingest_res = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-02T00:00:00Z",
+                "source_provider": "canonical-provider",
+                "provenance": "issuer_current_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "holding_type": "Common Stock",
+                        "row_type": "Security",
+                    }
+                ],
+            },
+        )
+        assert ingest_res.status_code == 200, ingest_res.text
+
+        spy = db.query(Instrument).filter_by(symbol="SPY").one()
+        profile = db.query(ETFProfile).filter_by(instrument_id=spy.id).one()
+        fixture_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 2, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 2, 2, tzinfo=UTC),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            source_quality="deterministic",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="strategy-fixture-newer",
+        )
+        db.add(fixture_snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=fixture_snapshot.id,
+                constituent_instrument_id=instrument_b.id,
+                position=0,
+                reported_symbol=instrument_b.symbol,
+                reported_name=instrument_b.name,
+                weight=1.0,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="strategy-fixture-newer-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "universe_config": {"etf_holdings": {"symbol": "SPY", "snapshot_mode": "latest"}},
+                "benchmark_config": {},
+            },
+        )
+        assert preview_res.status_code == 200, preview_res.text
+        assert preview_res.json()["universe"]["resolved_symbols"] == [instrument.symbol]
+
     def test_strategy_run_can_use_dynamic_etf_holdings_universe(
         self,
         client,
