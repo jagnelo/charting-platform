@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Relative Rotation lifecycle
+
+Product commit `4a798f03` fences Relative Rotation responses by mounted state
+and load generation. A late request cannot repopulate a closed tool or
+overwrite newer configuration. Focused coverage passed `10/10`; full
+frontend Vitest passed `1029/1029` across 115 files; type-check, production
+build, and `git diff --check` passed with only the existing chunk-size
+warning. No provider, fallback, visual, or acceptance policy changed.
+Continue implementation in this worktree only.
+
+## 2026-09-12 — Exact Relative Rotation lifecycle gate rechecked
+
+At product tip `4a798f03ef42463a86f466e7a21a47b0d338664c`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Instrument Note lifecycle
 
 Product commit `b3b1aaec` fences Instrument Note hydration and debounced

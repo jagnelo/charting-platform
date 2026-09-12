@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Relative Rotation lifecycle
+
+Product commit `4a798f03` closes a bounded R6 lifecycle gap in Relative
+Rotation. Rotation responses are now fenced by mounted state and load
+generation, so a late request cannot repopulate a closed tool or overwrite a
+newer configuration. Focused Relative Rotation coverage passed `10/10`; full
+frontend Vitest passed `1029/1029` across 115 files; frontend type-check and
+production build passed with only the existing chunk-size warning; and
+`git diff --check` passed. No provider, fallback, visual baseline, mask,
+threshold, skip, or acceptance policy changed. Continue the next bounded
+provider/history or compatible R4/R2-R7 seam while preserving the six visual
+state-oracle assertions.
+
+## 2026-09-12 — Exact Relative Rotation lifecycle gate rechecked
+
+At product tip `4a798f03ef42463a86f466e7a21a47b0d338664c`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then
+exited 2 after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Instrument Note lifecycle
 
 Product commit `b3b1aaec` closes a bounded R6 lifecycle gap in Instrument

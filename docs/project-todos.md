@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Relative Rotation lifecycle
+
+- [x] Fence Relative Rotation responses by mounted state and load generation
+      so late requests cannot repopulate a closed tool or overwrite newer
+      configuration (`4a798f03`).
+- [x] Focused Relative Rotation coverage passed `10/10`; full frontend
+      Vitest passed `1029/1029` across 115 files; frontend type-check,
+      production build, and `git diff --check` passed with only the existing
+      chunk-size warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact Relative Rotation lifecycle gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `4a798f03ef42463a86f466e7a21a47b0d338664c`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Instrument Note lifecycle
 
 - [x] Fence note hydration and debounced saves by mounted state and load
