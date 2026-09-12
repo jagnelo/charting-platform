@@ -39,6 +39,15 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 ## Current implementation boundary
 
+- Latest source checkpoint: `e8eae7b8` adds `evaluator_preflight.py` and wires
+  exact range/freshness preflight into Strategy Lab rules and Radar signal
+  replay. Incomplete or stale instruments are withheld before evaluation;
+  optional `queue_coverage_repairs` uses only bounded durable refresh jobs and
+  never performs provider I/O in an evaluator. Focused preflight coverage is
+  `4/4`, the complete Strategy Lab API suite is `20/20`, the complete unit suite
+  is `2,018/2,018`, and the authoritative Docker-backed gate is `2,397/2,397`
+  at `81.36%` combined coverage with 89 warnings. The new source and docs did
+  not touch frontend or ETF-provider adapter ownership.
 - Phase: provider-transport usage implementation and credentialed/integration validation (not ready for review yet; three credential domains, GitHub live-environment verification, provider-terms reviews, and complete universe reconciliation remain pending).
 - Latest source checkpoint: `3950f477c` adds durable provider-native account-usage observations, the `ACCOUNT_USAGE` capability, MarketData.app account refresh/history admin endpoints, explicit operation accounting, and strict native counter/reset validation. The direct credentialed MarketData.app account probe passed `1/1`; only that provider currently exposes the native account snapshot contract. The reviewed plan/credit pair and response-priced option-chain bound remain fail-closed. Generic migration compatibility is blocked by the repository's pre-existing duplicate Alembic revision and multiple heads; this branch does not reconcile unrelated migration history.
 - Latest source checkpoint superseding that account-usage slice: `a4af6f95d` persists refresh-job `started_at`, `finished_at`, and redacted `result_summary` fields; workers record observed-bar counts and empty responses, and retry/defer paths preserve bounded error/reset evidence. The admin refresh-queue diagnostic exposes these fields without lease tokens. Focused queue/worker/migration coverage passed `49/49`, the admin PostgreSQL integration passed `3/3`, and the Docker-backed combined gate passed `2,393/2,393` at `81.35%` coverage. Future breadth/signal evaluator preflight remains open, as does generic migration compatibility because of the pre-existing Alembic graph.
