@@ -900,6 +900,12 @@ progress:
       calls were made. Stable identifier values are canonicalized with the
       shared identity normalizer before lookup and persistence, while provider
       raw payloads remain available for audit.
+    - >-
+      The affected credentialed/public live adapter checks passed 2/2 on
+      2026-09-12 for xStocks and Dinari after the stable-identifier mapping
+      change (xStocks: 2 operations/3 requests; Dinari: 10 operations/19
+      requests). Only aggregate telemetry was written to the owner-managed
+      external ledger; no credentials or provider payloads entered Git.
   total: 15
   current_phase: tokenized_underlying_stable_identifiers
   current_blocker: >-

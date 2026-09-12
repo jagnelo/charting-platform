@@ -817,3 +817,11 @@ Update this handoff at each coherent boundary.
   pushed; no provider calls or credentials were used. Stable identifier values
   are canonicalized with the shared identity normalizer before lookup and
   persistence, while the raw provider payload remains available for audit.
+
+- The affected live adapter checks passed `2/2` on 2026-09-12 after the
+  stable-identifier mapping change: xStocks completed 2 operations/3 HTTP
+  requests and Dinari Sandbox completed 10 operations/19 HTTP requests.
+  Aggregate-only receipts are in the owner-managed external ledger under run
+  `tokenized-identifiers-20260912`; no credentials or provider payloads entered
+  Git. This is provider transport/parsing evidence, not entitlement or
+  redistribution approval.
