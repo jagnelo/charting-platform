@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence ETF Holdings teardown
+
+Product commit `d5e4b070` fences the canonical ETF Holdings view by a mounted
+lifecycle generation across profile search/bootstrap, selection, snapshot
+options, holdings, diff, weight evolution, transition, and overlap requests.
+Late responses cannot publish detached state, and chained selection stops at
+each async boundary. Focused coverage passed `6/6`; full frontend Vitest
+passed `1043/1043`; type-check/build/diff checks passed with only the existing
+chunk-size warning. API, provider, point-in-time, fallback, visual, and
+acceptance contracts are unchanged. Continue in this worktree only.
+
+## 2026-09-12 — Exact Research Results promotion gate rechecked
+
+At documentation tip `7710ad52` (product tip `22a2548c`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency/migration, frontend preparation, Ruff, formatting, and TypeScript.
+`backend-coverage` stopped after the fixed 180-second Docker readiness window
+because Docker access was denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy failure
+was observed. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence Research Results promotion teardown
 
 Product commit `22a2548c` fences persisted Research Results promotion flows by

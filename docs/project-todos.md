@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence ETF Holdings teardown
+
+- [x] Fence canonical ETF Holdings profile search/bootstrap, profile selection,
+      snapshot options, holdings, diff, weight-evolution, transition, and
+      overlap requests by a mounted lifecycle generation (`d5e4b070`).
+- [x] Focused ETF Holdings coverage passed `6/6`; full frontend Vitest passed
+      `1043/1043`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No API, provider, point-in-
+      time, fallback, visual, or acceptance policy changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
+### 2026-09-12 — Exact Research Results promotion gate rechecked
+
+- [x] Reran the exact branch-scoped gate at docs tip `7710ad52` / product tip
+      `22a2548c`; git-diff, workstream validation (30 records),
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker access was denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence Research Results promotion teardown
 
 - [x] Fence persisted Research Results breadth, event, structured

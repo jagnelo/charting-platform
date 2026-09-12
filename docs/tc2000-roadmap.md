@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence ETF Holdings teardown
+
+Product commit `d5e4b070` closes a bounded R6 lifecycle gap in the canonical
+ETF Holdings view. Profile search/bootstrap, profile selection, snapshot
+options, holdings, diff, weight-evolution, transition, and overlap requests
+now share a mounted lifecycle generation in addition to their existing
+request sequencing. Late responses stop before publishing detached profile,
+snapshot, comparison, evolution, transition, overlap, loading, or error state;
+chained profile selection also stops at every async boundary. API payloads,
+provider routing, point-in-time semantics, fallback behavior, visual baselines,
+masks, thresholds, skips, and acceptance policy are unchanged. Focused ETF
+Holdings coverage passed `6/6`; full frontend Vitest passed `1043/1043` across
+115 files; frontend type-check and production build passed with only the
+existing chunk-size warning; and `git diff --check` passed. A teardown
+regression proves a late profile response does not trigger snapshot loading.
+Continue the next bounded provider/history or compatible R4/R2-R7 seam while
+preserving the six protected visual state-oracle assertions.
+
+## 2026-09-12 — Exact Research Results promotion gate rechecked
+
+At documentation tip `7710ad52` (product tip `22a2548c`), the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Research Results promotion teardown
 
 Product commit `22a2548c` closes a bounded R6 lifecycle gap in the persisted
