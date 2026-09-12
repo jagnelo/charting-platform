@@ -16415,3 +16415,12 @@ The current source also passes the focused authenticated top-down browser slice 
       warnings; Ruff, compileall, and diff checks pass. Source checkpoint
       `acfbfb2a`; no provider calls, credentials, frontend files, or ETF-provider
       adapter files changed.
+
+### 2026-09-12 — Dinari cursor-chain safety
+
+- [x] Reject repeated Dinari stock-catalogue and split pagination cursor cycles
+      and clear stale cursor-chain state on a fresh first-page request. Focused
+      Dinari pagination coverage passes `11/11`, and the complete backend unit
+      suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
+      checks pass. Source checkpoint `3cedc9d6`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.

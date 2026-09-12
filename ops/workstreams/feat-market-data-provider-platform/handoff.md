@@ -1222,3 +1222,11 @@ Update this handoff at each coherent boundary.
   passes `1,993/1,993` with 37 warnings; Ruff, compileall, and diff checks
   pass. No provider calls or credentials were used, and no frontend or
   ETF-provider files changed.
+
+- Source checkpoint `3cedc9d6` closes Dinari stock-catalogue and split pagination
+  cycle edges. Both cursor chains now reject repeated cursors, and a fresh
+  first-page request clears stale chain state before beginning a new run.
+  Focused Dinari pagination coverage passes `11/11`, and the complete backend
+  unit suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
+  checks pass. No provider calls or credentials were used, and no frontend or
+  ETF-provider files changed.
