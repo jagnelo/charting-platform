@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Research Results mutation lifecycle
+
+Product commit `d9bd37c3` closes a bounded R6 lifecycle gap in Research
+Results. Rerun and cancel responses are now fenced by mounted state and a
+mutation generation, so late responses cannot repopulate a closed results
+surface or overwrite newer state. Focused Research Results coverage passed
+`38/38`; full frontend Vitest passed `1030/1030` across 115 files; frontend
+type-check and production build passed with only the existing chunk-size
+warning; and `git diff --check` passed. No provider, fallback, visual
+baseline, mask, threshold, skip, or acceptance policy changed. Continue the
+next bounded provider/history or compatible R4/R2-R7 seam while preserving
+the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact Research Results mutation gate rechecked
+
+At product tip `d9bd37c3c2d8e84f629fd4d65460771cc5ebadfb`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then
+exited 2 after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or
+visual-policy failure was observed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Relative Rotation lifecycle
 
 Product commit `4a798f03` closes a bounded R6 lifecycle gap in Relative
