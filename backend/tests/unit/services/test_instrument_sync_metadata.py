@@ -4,7 +4,7 @@ from app.services.instrument_sync import _listing_evidence
 
 
 def test_listing_evidence_preserves_provider_dates_and_provenance():
-    observed_at = datetime(2026, 8, 11, 12, 30, tzinfo=UTC)
+    observed_at = datetime.fromisoformat("2026-08-11T14:30:00+02:00")
 
     evidence = _listing_evidence(
         {
@@ -21,7 +21,7 @@ def test_listing_evidence_preserves_provider_dates_and_provenance():
         "ipo_date": "2010-01-04",
         "delisting_date": "2026-07-31",
         "source": "alpha_vantage",
-        "observed_at": "2026-08-11T12:30:00+00:00",
+        "observed_at": "2026-08-11T12:30:00Z",
         "evidence_role": "provider_listing_observation",
     }
 

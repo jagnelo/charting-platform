@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
@@ -145,7 +146,7 @@ def _listing_evidence(
     return {
         **{key: value for key, value in values.items() if value not in (None, "")},
         "source": provider_name,
-        "observed_at": observed_at.isoformat(),
+        "observed_at": wire_datetime(observed_at) or "",
         "evidence_role": "provider_listing_observation",
     }
 
@@ -215,7 +216,7 @@ async def _upsert_stats(
             setattr(stats, attr, value)
             provenance[attr] = {
                 "source": source_provider,
-                "fetched_at": datetime.now(UTC).isoformat(),
+                "fetched_at": wire_datetime(datetime.now(UTC)) or "",
                 "provider_symbol": instrument.symbol,
             }
     stats.field_provenance = provenance or None
@@ -371,19 +372,19 @@ async def seed_universe(db: AsyncSession) -> dict:
                     provenance = dict(inst.field_provenance or {})
                     provenance["symbol"] = {
                         "source": page_provider_name,
-                        "fetched_at": fetched_at.isoformat(),
+                        "fetched_at": wire_datetime(fetched_at) or "",
                         "provider_symbol": symbol,
                     }
                     if name:
                         provenance["name"] = {
                             "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
+                            "fetched_at": wire_datetime(fetched_at) or "",
                             "provider_symbol": symbol,
                         }
                     if currency:
                         provenance["currency"] = {
                             "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
+                            "fetched_at": wire_datetime(fetched_at) or "",
                             "provider_symbol": symbol,
                         }
                     inst.field_provenance = provenance
@@ -460,7 +461,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                             if value is not None:
                                 field_provenance[field_name] = {
                                     "source": page_provider_name,
-                                    "fetched_at": fetched_at.isoformat(),
+                                    "fetched_at": wire_datetime(fetched_at) or "",
                                     "provider_symbol": symbol,
                                 }
                         ed.field_provenance = field_provenance or None
@@ -483,12 +484,12 @@ async def seed_universe(db: AsyncSession) -> dict:
                             field_provenance = dict(fd.field_provenance or {})
                             field_provenance["base_currency"] = {
                                 "source": page_provider_name,
-                                "fetched_at": fetched_at.isoformat(),
+                                "fetched_at": wire_datetime(fetched_at) or "",
                                 "provider_symbol": symbol,
                             }
                             field_provenance["quote_currency"] = {
                                 "source": page_provider_name,
-                                "fetched_at": fetched_at.isoformat(),
+                                "fetched_at": wire_datetime(fetched_at) or "",
                                 "provider_symbol": symbol,
                             }
                             fd.field_provenance = field_provenance
@@ -509,13 +510,13 @@ async def seed_universe(db: AsyncSession) -> dict:
                         if name:
                             field_provenance["underlying_name"] = {
                                 "source": page_provider_name,
-                                "fetched_at": fetched_at.isoformat(),
+                                "fetched_at": wire_datetime(fetched_at) or "",
                                 "provider_symbol": symbol,
                             }
                         if symbol.endswith("=F"):
                             field_provenance["is_continuous"] = {
                                 "source": page_provider_name,
-                                "fetched_at": fetched_at.isoformat(),
+                                "fetched_at": wire_datetime(fetched_at) or "",
                                 "provider_symbol": symbol,
                             }
                         fut.field_provenance = field_provenance or None
