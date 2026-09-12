@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import { mount as rawMount, type MountingOptions } from '@vue/test-utils'
+import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -340,6 +340,23 @@ describe('WorkstationView pop-out bindings', () => {
     releaseHydration()
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenLastCalledWith(expect.objectContaining({ symbol: 'IWM', group: 'blue' })))
     wrapper.unmount()
+  })
+
+  it('does not continue initial hydration after the workstation unmounts', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    let releaseHydration!: () => void
+    harness.workspace.loadDefault = vi.fn(() => new Promise<void>(resolve => { releaseHydration = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    expect(harness.workspace.loadDefault).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+    releaseHydration()
+    await flushPromises()
+
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
   })
 
   it('exposes an explicit loading state while canonical symbol search is pending', async () => {

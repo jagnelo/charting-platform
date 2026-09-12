@@ -314,6 +314,7 @@ const ctrlWheelHeld = ref(false)
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
 let drilldownSelectionGeneration = 0
+let componentMounted = false
 const preserveDrilldownSymbol = ref<string | null>(null)
 // SPX is a logical benchmark identity. When an official SPX series is not
 // entitled or cannot be resolved, keep the requested workflow usable through
@@ -1010,13 +1011,13 @@ function scheduleSymbolSearch(value: string) {
       queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>('/instruments/search', { q: query, canonical_only: true }),
         staleTime: 30_000,
       })
-      if (requestId !== searchRequest || symbolDraft.value.trim() !== query) return
+      if (!componentMounted || requestId !== searchRequest || symbolDraft.value.trim() !== query) return
       searchResults.value = results
       searchIndex.value = results.length ? 0 : -1
       searchLoading.value = false
       searchSettled.value = true
     } catch {
-      if (requestId === searchRequest) {
+      if (componentMounted && requestId === searchRequest) {
         searchResults.value = []
         searchIndex.value = -1
         searchLoading.value = false
@@ -1947,6 +1948,7 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 })
 
 onMounted(async () => {
+  componentMounted = true
   const mountSelectionGeneration = symbolSelectionGeneration
   // Capture before chart/uPlot gesture handlers can stop propagation. The
   // workstation-level Ctrl+wheel traversal is a shell command and must remain
@@ -1978,10 +1980,14 @@ onMounted(async () => {
   try {
     await workspaceLoadPromise
   } finally {
-    workspaceReady.value = true
-    resolveWorkspaceReady?.()
+    const resolveReady = resolveWorkspaceReady
     resolveWorkspaceReady = null
+    if (componentMounted) {
+      workspaceReady.value = true
+      resolveReady?.()
+    }
   }
+  if (!componentMounted) return
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.
@@ -2006,7 +2012,9 @@ onMounted(async () => {
     // browser popup starts. Retry the canonical read for a bounded interval so
     // a transient stale snapshot does not leave a black, empty pop-out.
     for (let attempt = 0; attempt < 5 && !popoutTool.value; attempt += 1) {
+      if (!componentMounted) return
       await new Promise(resolve => window.setTimeout(resolve, 200))
+      if (!componentMounted) return
       await workspaceStore.loadDefault()
       if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
         workspaceStore.activeTabKey = requestedTab
@@ -2014,11 +2022,13 @@ onMounted(async () => {
     }
   }
   await refreshMarketData()
+  if (!componentMounted) return
   if (isPopout.value && popoutTool.value) {
     const tool = popoutTool.value
     const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
     const linked = workspaceStore.symbolForLinkGroup(tool.link_group, configuredSymbol)
     await loadSymbolData(linked, workspaceStore.constituentETF, false)
+    if (!componentMounted) return
   } else {
     const explicitRouteSymbol = route.params.symbol ?? route.query.symbol
     // A plain /chart navigation restores the persisted workstation symbol; it
@@ -2034,10 +2044,13 @@ onMounted(async () => {
       // navigation fallback keeps the visible symbol deterministic while the
       // chart and technical tools report their honest freshness/error state.
       await selectSymbol(requested, undefined, true)
+      if (!componentMounted) return
     }
   }
   await nextTick()
+  if (!componentMounted) return
   if (!isPopout.value) await refreshMarketData()
+  if (!componentMounted) return
   if (isPopout.value) {
     // A browser pop-out is a separate top-level document. Move initial focus
     // into its named landmark so keyboard and assistive users do not land on
@@ -2049,6 +2062,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  componentMounted = false
+  symbolSelectionGeneration += 1
+  drilldownSelectionGeneration += 1
+  searchRequest += 1
   endTabDrag()
   window.removeEventListener('wheel', handleWheel, { capture: true })
   ctrlWheelHeld.value = false
