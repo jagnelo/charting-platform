@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Market Map responses use canonical wire timestamps
+
+Product commit `0ab4c169` makes Market Map period bounds, cache freshness,
+per-cell observation times, and saved snapshot lifecycle timestamps emit
+canonical UTC `Z` values through the shared serializer. Map, chart, and
+downstream source-read consumers now share one client timeline without
+changing grouping, metrics, coverage, cache, or provider semantics.
+
+Focused response-schema coverage passed `2/2`; the full backend unit suite
+passed `1498/1498` at `68.64%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker access was
+denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No backend
+integration, provider, browser, or visual stage ran. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+Checkpoint scope: `backend/app/schemas/market_map.py` and the shared
+`backend/tests/unit/services/test_response_timestamp_schemas.py`. Restore
+Docker access, rerun the pending API regressions and exact gate, then advance
+the next bounded provider/history or compatible chart/list/gauge seam. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Saved tool and Radar responses use canonical wire timestamps
 
 Product commit `3377a8b1` makes indicator presets, chart drawings, baskets,

@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Market Map responses use canonical wire timestamps
+
+Product commit `0ab4c169` closes the remaining Market Map read boundary. Map
+period bounds, cache freshness, per-cell observation times, and saved snapshot
+lifecycle timestamps now serialize through the shared UTC `Z` helper. Map,
+chart, and downstream source-read consumers therefore share one stable
+timeline without changing grouping, metrics, coverage, cache, or provider
+semantics.
+
+Focused response-schema coverage passed `2/2`; the full backend unit suite
+passed `1498/1498` at `68.64%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `0ab4c169` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker access was denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending API regressions and
+exact gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Saved tool and Radar responses use canonical wire timestamps
 
 Product commit `3377a8b1` closes the remaining saved-tool and Radar read

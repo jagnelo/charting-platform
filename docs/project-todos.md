@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-12 — Market Map responses use canonical wire timestamps
+
+- [x] Serialize Market Map period bounds, cache freshness, per-cell
+      observation times, and snapshot lifecycle timestamps as canonical UTC
+      `Z` values through the response schemas (`0ab4c169`).
+- [x] Focused response-schema coverage passed `2/2`; full backend unit
+      coverage passed `1498/1498` at `68.64%`; Ruff, formatting, and diff
+      checks passed.
+- [x] Reran the exact branch-scoped gate at `0ab4c169`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      access was denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`. No later API, provider,
+      browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Saved tool and Radar responses use canonical wire timestamps
 
 - [x] Serialize indicator presets, chart drawings, baskets, dashboards, and
