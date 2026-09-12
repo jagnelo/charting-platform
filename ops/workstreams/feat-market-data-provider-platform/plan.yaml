@@ -269,6 +269,7 @@ progress:
     - provider quota-contract limits and windows now require strict positive integers at both diagnostics and runtime admission; booleans, fractions, and numeric strings cannot be coerced into a provider quota. Marketstack EOD pagination counters likewise fail closed on non-integral or contradictory metadata, preventing malformed provider responses from widening or truncating the budgeted history read
     - the external live-usage ledger now exposes rolling 30-day operation/request/byte totals and chooses its capacity-header snapshot by observation timestamp rather than receipt file order; calendar-reset usage remains explicitly observational and requires provider-native/operator reconciliation
     - on 2026-09-11 the supplied local credentials produced passing EDGAR and Alpaca live probes (2/2), a passing MarketData.app probe after fixing its required trailing-slash candle URL, and a passing Dinari Sandbox probe (1/1) after correcting the operator-only base URL from the live host to Dinari's documented Sandbox host; no credentials or payloads were persisted
+    - on 2026-09-12 the focused refresh passed 4/4 newly enabled-provider checks: EDGAR profile plus complete directory pagination, Alpaca paper-account history, MarketData.app daily candles, and the Dinari Sandbox metadata/quote/history/news/dividend/split case; aggregate transport telemetry remained outside Git
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
