@@ -17,11 +17,14 @@ This prevents direct API callers from receiving an implicit first series.
 The indicator engine unit suite passed `29/29`; Ruff and formatting checks
 passed, and `git diff --check` passed. API regression coverage for missing,
 valid, and invalid Bollinger Band outputs is recorded but requires the
-Docker-backed integration fixture. No visual baseline, mask, threshold, skip,
-provider, fallback, or acceptance policy changed.
+Docker-backed integration fixture. The exact branch-scoped gate was then run at
+this product tip and stopped at `backend-coverage` after the 180-second Docker
+readiness window because the Docker API returned permission denied; no backend
+integration, provider, browser, or visual stage ran. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
 
-The next action is to rerun the focused API coverage and exact branch-scoped
-gate after Docker Desktop health is restored, then continue the next bounded
+The next action is to restore Docker Desktop health, rerun the focused API
+coverage and exact branch-scoped gate, then continue the next bounded
 provider/history or compatible chart/list/gauge seam. Preserve the six
 protected visual state-oracle diffs and the no-integration/no-promotion/
 no-deployment boundary.

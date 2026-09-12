@@ -10,6 +10,11 @@
       and diff checks passed. The API fixture coverage remains pending the
       Docker-backed integration environment. No visual, provider, fallback, or
       acceptance policy changed.
+- [x] Ran the exact branch-scoped gate at product tip `39562441`. Repository,
+      workstream, dependency, migration, frontend-preparation, and lint stages
+      passed; `backend-coverage` stopped after the 180-second Docker readiness
+      window because the Docker API returned permission denied. No later stage
+      ran and no product or visual failure was observed.
 - [ ] Restore Docker Desktop health, run the focused indicator-batch API
       regressions and exact branch-scoped gate, then continue provider/history
       or another compatible chart/list/gauge seam.

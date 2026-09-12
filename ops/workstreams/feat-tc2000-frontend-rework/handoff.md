@@ -12,9 +12,12 @@ value; single-output indicators and valid explicit selections remain supported.
 The indicator engine unit suite passed `29/29`; Ruff, formatting, and diff
 checks passed. API regression coverage is present for missing, valid, and
 invalid Bollinger Band outputs but awaits the Docker-backed integration
-fixture. No backend contract outside this bounded output validation, visual
-baseline, mask, threshold, skip, provider, fallback, or acceptance policy
-changed.
+fixture. The exact branch-scoped gate was run at this product tip and stopped
+at `backend-coverage` after the 180-second Docker readiness window because the
+Docker API returned permission denied; no backend integration, provider,
+browser, or visual stage ran. No backend contract outside this bounded output
+validation, visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
 
 Checkpoint scope: `backend/app/routers/analysis.py`,
 `backend/tests/integration/api/test_workspaces.py`, and these roadmap/TODO
