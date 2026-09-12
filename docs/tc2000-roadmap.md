@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Market Map Python asset lifecycle
+
+Product commit `a306e2f2` closes a bounded R6 lifecycle seam in the Market Map:
+Python asset discovery now fences its response, error, and loading cleanup by
+component generation and mounted state. A late `/code/assets` response after a
+tool closes can no longer publish stale Python options or state.
+
+The focused Market Map component suite passed `40/40`; the full frontend
+Vitest suite passed `1014/1014`; frontend type-check and `git diff --check`
+passed. Existing expected watchlist-store failure-path stderr remains confined
+to its tests. No provider, fallback, visual baseline, mask, threshold, skip,
+or acceptance policy changed. The exact branch gate remains pending behind the
+Docker socket permission failure; continue the next bounded provider/history
+or compatible R4/R2-R7 seam at this coherent tip.
+
 ## 2026-09-12 — Fence stale Market Map Python runs
 
 Product commit `95ed93ce` closes a bounded R6/R2 stale-callback seam in

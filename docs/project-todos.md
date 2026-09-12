@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Market Map Python asset lifecycle
+
+- [x] Fence Market Map Python asset discovery by component generation and
+      mounted state so late `/code/assets` responses cannot publish stale
+      options, errors, or loading cleanup (`a306e2f2`).
+- [x] Market Map component coverage passed `40/40`; full frontend Vitest passed
+      `1014/1014`; frontend type-check and `git diff --check` passed.
+- [ ] Rerun the exact branch gate when Docker is healthy, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence stale Market Map Python runs
 
 - [x] Fence queued Python breadth/area run responses and polling by the active

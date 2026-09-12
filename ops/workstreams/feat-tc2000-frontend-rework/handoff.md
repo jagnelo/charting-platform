@@ -14,6 +14,17 @@ acceptance policy changed. The exact gate remains pending behind the Docker
 socket permission failure; do not integrate, promote, deploy, or mutate another
 worktree.
 
+## 2026-09-12 — Fence Market Map Python asset lifecycle
+
+Product commit `a306e2f2` fences Market Map Python asset discovery by component
+generation and mounted state. A late `/code/assets` response after a tool
+unmount can no longer publish stale Python options, errors, or loading cleanup.
+Focused Market Map coverage passed `40/40`, full frontend Vitest passed
+`1014/1014`, and frontend type-check plus diff checks passed. No provider,
+fallback, visual, or acceptance policy changed. The exact gate remains pending
+behind the Docker socket permission failure; do not integrate, promote, deploy,
+or mutate another worktree.
+
 ## 2026-09-12 — Fence dated benchmark coverage races
 
 Product commit `6096ba0e` extends Market Map request fencing to benchmark-family

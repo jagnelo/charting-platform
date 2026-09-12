@@ -100,11 +100,11 @@
   "head": "95ed93cefc432b84c278c782ff0d60a69d90222c",
   "implementation_sha": "95ed93cefc432b84c278c782ff0d60a69d90222c",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T12:41:42+00:00",
+  "last_checkpoint": "2026-09-12T12:48:02+00:00",
   "last_human_progress_update": "2026-09-12T07:03:20.066635+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 95ed93cefc432b84c278c782ff0d60a69d90222c, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "00a9ff88b3b2ade997bce8fd2c3093b174ce163702513f82c1beb73eb998e8fd",
+  "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip a306e2f2743a7690fa09215f6588b0edf11e57ee, then continue the next bounded provider/history or compatible chart/list/gauge seam",
+  "plan_hash": "5122faa8d9b331b460504782515e1e07fd1996bcd1219c6a149e86d5d0bc07bf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product commit 95ed93ce fences queued Python breadth/area run responses and polling by the active Market Map run generation and mounted state. A slower response from an older source or refresh can no longer publish an old run ID, re-enable Python loading, or continue into a stale map request. Focused Market Map coverage passed 39/39; full frontend Vitest passed 1013/1013; frontend type-check and git diff --check passed. No provider, fallback, visual baseline, mask, threshold, skip, or acceptance policy changed. The exact branch gate remains pending behind the Docker socket permission failure; continue the next bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.",
-    "current_phase": "R6_market_map_python_run_race_and_r7_exact_tip_gate",
-    "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 95ed93cefc432b84c278c782ff0d60a69d90222c, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "current_blocker": "Product commit a306e2f2 fences Market Map Python asset discovery by component generation and mounted state. A late /code/assets response after a tool unmount can no longer publish stale Python options, errors, or loading cleanup. Market Map component coverage passed 40/40; full frontend Vitest passed 1014/1014; frontend type-check and git diff --check passed. No provider, fallback, visual baseline, mask, threshold, skip, or acceptance policy changed. The exact branch gate remains pending behind the Docker socket permission failure; continue the next bounded provider/history or compatible R4/R2-R7 seam at this coherent tip.",
+    "current_phase": "R6_market_map_python_asset_lifecycle_and_r7_exact_tip_gate",
+    "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip a306e2f2743a7690fa09215f6588b0edf11e57ee, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 11,
-    "updated_at": "2026-09-12T12:41:42.000000+00:00"
+    "updated_at": "2026-09-12T12:48:02.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
