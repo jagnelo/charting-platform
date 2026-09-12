@@ -654,3 +654,9 @@ Update this handoff at each coherent boundary.
   calls were made for this change. The complete backend unit suite passes
   `1,827/1,827`, Ruff/compile/diff and both Compose parses are clean, and source
   commit `417ce8fd` is pushed.
+- Revalidated the configured-provider adapter and governance contract surface
+  after the rotated Dinari Sandbox credentials were installed. New-provider,
+  tokenized, optional-provider, registry/quota/runtime, and secret-wiring
+  regressions pass `463/463`; Ruff, compilation, and `git diff --check` pass.
+  This run made no external provider calls and does not replace the existing
+  bounded live receipts for Alpaca, EDGAR, MarketData.app, and Dinari.

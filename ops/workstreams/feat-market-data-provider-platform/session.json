@@ -126,12 +126,12 @@
   "head": "417ce8fd7fbb87f973d5b10b06c40d01536cca8f",
   "implementation_sha": "417ce8fd7fbb87f973d5b10b06c40d01536cca8f",
   "interrupted": true,
-  "last_checkpoint": "2026-09-12T13:41:15.000000+00:00",
-  "last_human_progress_update": "2026-09-12T13:41:15+00:00",
+  "last_checkpoint": "2026-09-12T13:48:06.000000+00:00",
+  "last_human_progress_update": "2026-09-12T13:48:06+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker readiness for the required full-profile session bootstrap and execute the independent-client Redis contention test; then keep deferred-provider preflights, provider-specific quota/legal/terms reviews, venue reconciliation, secret distribution, and separately approved 30-day shadow gates open; keep MarketData.app response-dependent chain/quote routing fail-closed until a reviewed reservation bound exists. Adjustment-aware resolver and direct-adapter guards filter every currently raw-only history adapter before adjusted transport, raw exchange bars retain explicit provenance, canonical bar persistence retains series/session/adjustment/provenance metadata through migrations 8e9f0a1b2c3d and 9f0a1b2c3d4e, compatibility OHLCV reads use the durable default mapping from migration a0b1c2d3e4f5, cold/latest provider fetches attach the same deterministic series identity, bulk/risk-free persistence follows that path too, synthetic readback applies the selector, empty canonical scopes retain legacy history until matching bars exist, mixed provider scopes are partitioned into distinct series, tokenized refresh failures are redacted at the service boundary, typed rate-limit errors filter transport metadata at construction, FINRA/Tiingo/FMP published bandwidth pools use conservative decimal-byte ceilings with explicit limit_basis metadata, production provider-rate seeds are regression-guarded against generic limiter defaults, Dinari live coverage spans DAY/WEEK/MONTH/YEAR aggregate history, Alpaca and MarketData.app live coverage include five-minute history, and latest complete 44-case live evidence is recorded under run e0e58468-df1a-493b-bfc4-f20fdce5a568.",
   "parent_branch": "staging",
-  "plan_hash": "2e44fa5c56c2945e4f68dbd3a675687d935a5170a78da27d08937163a8e3ab67",
+  "plan_hash": "bf55c4816d175a80dd065d8b9c9933a7a31304a2b7e1649f74cc29763ce8aa79",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -160,7 +160,7 @@
       "current_phase": "cross_host_refresh_coordination",
       "next_action": "Restore Docker readiness and run the independent-client Redis contention test; then keep deferred-provider preflights explicit, complete provider-specific quota/legal and venue-reconciliation reviews, retain provider-native usage accounting, and do not activate MarketData.app chain/quote routing or deploy until all gates are satisfied. Keep adjusted_price_history as an explicit semantic capability rather than inferring it from price_history; verify migrations 8e9f0a1b2c3d, 9f0a1b2c3d4e, and a0b1c2d3e4f5 in the full stack before promotion. Confirm historical, latest, bulk, risk-free, and synthetic provider/read paths retain the selected series identity, verify legacy fallback when canonical scopes are empty, validate mixed provider scope partitioning against PostgreSQL constraints, retain allow-listed transport headers on typed rate-limit failures, and preserve the explicit conservative decimal-byte basis for published FINRA/Tiingo/FMP bandwidth pools.",
     "total": 15,
-      "updated_at": "2026-09-12T13:15:35.000000+00:00"
+      "updated_at": "2026-09-12T13:48:06.000000+00:00"
   },
   "remote": "417ce8fd7fbb87f973d5b10b06c40d01536cca8f",
   "remote_sha": "417ce8fd7fbb87f973d5b10b06c40d01536cca8f",

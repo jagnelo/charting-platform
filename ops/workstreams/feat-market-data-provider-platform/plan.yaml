@@ -745,6 +745,14 @@ progress:
       complete backend unit suite passes `1,814/1,814`, and Ruff, compileall,
       and diff checks pass. Source commit `e746b266` is pushed; no provider
       calls were needed.
+    - >-
+      Revalidated the configured-provider contract surface after the rotated
+      Dinari Sandbox credentials were installed: provider adapters, tokenized
+      normalization, registry/quota/runtime admission, and secret-wiring
+      regressions pass `463/463`; Ruff, compilation, and `git diff --check`
+      pass. This is non-transport evidence only; the already recorded bounded
+      live receipts remain the source of external-call evidence, and no new
+      provider calls or credential values were written.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
