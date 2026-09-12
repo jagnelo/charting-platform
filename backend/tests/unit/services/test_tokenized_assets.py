@@ -150,7 +150,7 @@ async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, ins
     await upsert_tokenized_asset(AsyncSessionAdapter(db), initial)
 
     async def fake_execute(*_args, **_kwargs):
-        raise RuntimeError("provider unavailable")
+        raise RuntimeError("provider unavailable https://api.example.test/?api_key=super-secret")
 
     monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
     result = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=10)
@@ -160,6 +160,32 @@ async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, ins
     assert result["refreshed"] == 0
     assert result["failed"] == 1
     assert result["failures"][0]["provider_asset_id"] == "rh-aapl"
+    assert "super-secret" not in result["failures"][0]["error"]
+    assert len(result["failures"][0]["error"]) <= 500
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_events_redacts_provider_failure_evidence(db, monkeypatch):
+    provider = SimpleNamespace(
+        name="xstocks", fetch_tokenized_corporate_actions=lambda **_kwargs: []
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="xstocks", provider=provider)]
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+
+    async def fake_execute(*_args, **_kwargs):
+        raise RuntimeError("provider unavailable Authorization: Bearer event-secret")
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_events(AsyncSessionAdapter(db))
+
+    assert result["status"] == "failed"
+    assert result["failed"] == 2  # xStocks history and upcoming phases
+    assert result["failures"]
+    assert all("event-secret" not in item["error"] for item in result["failures"])
+    assert all(len(item["error"]) <= 500 for item in result["failures"])
 
 
 @pytest.mark.asyncio

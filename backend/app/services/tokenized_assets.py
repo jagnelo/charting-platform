@@ -16,6 +16,7 @@ from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
+from app.providers.errors import bounded_redact_provider_message
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
@@ -468,7 +469,7 @@ async def refresh_tokenized_events(
                     {
                         "provider": resolved.provider_name,
                         "phase": phase,
-                        "error": str(exc)[:500],
+                        "error": bounded_redact_provider_message(exc, max_length=500),
                     }
                 )
         provider_results.append(
@@ -571,7 +572,7 @@ async def refresh_tokenized_prices(
                     "instrument_id": instrument.id,
                     "provider": detail.provider_name,
                     "provider_asset_id": identifier,
-                    "error": str(exc)[:500],
+                    "error": bounded_redact_provider_message(exc, max_length=500),
                 }
             )
 
