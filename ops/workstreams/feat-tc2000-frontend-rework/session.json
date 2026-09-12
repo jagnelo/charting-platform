@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3df8adff921b02c1e90a3c5fff1e00b2739bf454",
+  "head": "db4a0bf1d983e8ef37b491599b73c133d55abf0e",
   "implementation_sha": "fc0cef98999d8b0c24074e44c351ab090c06ceb3",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T06:35:33+00:00",
-  "last_human_progress_update": "2026-09-12T06:47:35.778722+00:00",
+  "last_human_progress_update": "2026-09-12T06:54:45.853044+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Restore Docker access outside the worktree, rerun the pending alert, indicator-batch, and instrument-coverage API regressions plus the exact gate at product tip fc0cef98, then continue the next bounded provider/history or compatible chart/list/gauge seam",
-  "plan_hash": "5ff9b4907cfc48380222065342cecd5b0fddbce2b97e9261808e238db726c7d8",
+  "plan_hash": "e9c3318bf336140bf06b16f1b8cf6db6b5064bc1916d4ff659afbdfbc650e899",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -117,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Exact branch-scoped gate at product tip fc0cef98 (documentation tip 3df8adff) passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
-    "current_phase": "R4_alert_history_condition_context",
-    "next_action": "Restore Docker access outside the worktree, rerun the pending alert, indicator-batch, and instrument-coverage API regressions plus the exact gate at product tip fc0cef98, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
+    "current_blocker": "Exact branch-scoped gate at product tip 1a4c1f70 (documentation tip db4a0bf1) passed repository/workstream, dependency/migration, frontend preparation, and lint/type-check setup, then stopped at backend-coverage after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock; backend integration, provider, browser, and visual stages remain pending.",
+    "current_phase": "R4_alert_history_timestamp_contract",
+    "next_action": "Restore Docker access outside the worktree, rerun the pending alert, indicator-batch, and instrument-coverage API regressions plus the exact gate at product tip 1a4c1f70, then continue the next bounded provider/history or compatible chart/list/gauge seam.",
     "total": 10,
-    "updated_at": "2026-09-12T06:47:35.777739+00:00"
+    "updated_at": "2026-09-12T06:54:45.852089+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
