@@ -82,10 +82,10 @@ def test_market_map_provenance_serializes_snapshot_timestamps_on_utc_timeline():
         {10: {"policy_evaluation_at": "2024-01-01T00:00:00+00:00"}},
     )
 
-    assert classification["observed_at"] == "2024-01-01T22:00:00+00:00"
-    assert classification["fetched_at"] == "2024-01-01T23:00:00+00:00"
-    assert area["observed_at"] == "2024-01-01T22:00:00+00:00"
-    assert area["fetched_at"] == "2024-01-01T23:00:00+00:00"
+    assert classification["observed_at"] == "2024-01-01T22:00:00Z"
+    assert classification["fetched_at"] == "2024-01-01T23:00:00Z"
+    assert area["observed_at"] == "2024-01-01T22:00:00Z"
+    assert area["fetched_at"] == "2024-01-01T23:00:00Z"
 
 
 def test_market_map_cache_key_normalizes_watermark_offsets():

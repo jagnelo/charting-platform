@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
@@ -651,7 +652,7 @@ def _as_utc(value: datetime) -> datetime:
 def _utc_iso(value: datetime | None) -> str | None:
     """Serialize an optional timestamp on the canonical UTC timeline."""
 
-    return _as_utc(value).isoformat() if value is not None else None
+    return wire_datetime(value)
 
 
 def _entitlement_revision_for(
@@ -946,7 +947,7 @@ def _cache_key(
     for field in ("start", "end", "as_of"):
         value = getattr(request, field)
         if value is not None:
-            payload[field] = _as_utc(value).isoformat()
+            payload[field] = wire_datetime(value)
     payload |= {
         "calculation_version": "market-map-v1",
         "membership_version": membership_version,
