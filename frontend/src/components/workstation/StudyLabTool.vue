@@ -856,8 +856,12 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     if (contract === 'events' && (target === 'filter' || target === 'alert')) {
       if (!run.value?.id) throw new Error('A completed event study run is required before creating a current-data filter.')
       const eventArtifacts = (run.value.artifacts ?? []).filter(artifact => artifact.artifact_type === 'events')
-      if (eventArtifacts.length !== 1) throw new Error('Select a named event artifact before creating a current-data filter.')
-      const eventArtifact = eventArtifacts[0]
+      const eventArtifact = selectedArtifact?.artifact_type === 'events'
+        ? selectedArtifact
+        : eventArtifacts.length === 1
+          ? eventArtifacts[0]
+          : null
+      if (!eventArtifact) throw new Error('Select a named event artifact before creating a current-data filter.')
       const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
         artifact_name: eventArtifact.name,
       })
