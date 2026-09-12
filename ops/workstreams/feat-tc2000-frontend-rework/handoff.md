@@ -16,9 +16,9 @@ Focused drag/drop + EasyScan coverage passed `20/20`; Chart Plot Library
 coverage passed `27/27`; full frontend Vitest passed `1001/1001` across `113`
 files; frontend type-check, Ruff/format, and diff checks passed. No backend
 contract, visual baseline, mask, threshold, skip, provider, fallback, or
-acceptance policy changed. The exact gate has not been rerun at this product
-tip; latest gate evidence remains the Docker `/v1.55/info` HTTP 500 stop at
-`backend-coverage`.
+acceptance policy changed. The exact gate was rerun at this product tip and
+again stopped at `backend-coverage` after the 180-second Docker readiness
+window because Docker `/v1.55/info` returned HTTP 500; no later stage ran.
 
 Checkpoint scope: `frontend/src/lib/workstation/plotDrag.ts`,
 `frontend/src/types/index.ts`,

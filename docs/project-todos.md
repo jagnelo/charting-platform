@@ -13,9 +13,13 @@
       coverage `27/27`, and full frontend Vitest `1001/1001` across `113` files;
       type-check, Ruff/format, and diff checks passed. No backend, visual,
       provider, fallback, or acceptance policy changed.
-- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate at
-      product tip `72bdeea2`, then continue provider/history or another
-      compatible chart/list/gauge seam.
+- [x] Reran the exact branch-scoped gate at product tip `72bdeea2`. Repository,
+      dependency, migration, frontend-preparation, and lint stages passed;
+      `backend-coverage` stopped after the 180-second Docker readiness window
+      because Docker Desktop `/v1.55/info` returned HTTP 500. No later stage
+      ran and no product or visual failure was observed.
+- [ ] Restore Docker Desktop health, rerun the exact branch-scoped gate, then
+      continue provider/history or another compatible chart/list/gauge seam.
 
 ### 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
 

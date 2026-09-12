@@ -21,8 +21,10 @@ coverage passed `27/27`; the full frontend Vitest suite passed `1001/1001`
 across `113` files; frontend type-check, repository Ruff/format checks, and
 `git diff --check` passed. No backend contract, visual baseline, mask,
 threshold, skip, provider, fallback, or acceptance policy changed. The exact
-branch-scoped gate has not yet been rerun at this product tip; its latest
-record remains the Docker readiness HTTP 500 stop at `backend-coverage`.
+branch-scoped gate was rerun at this product tip and again stopped at
+`backend-coverage` after the 180-second Docker readiness window because
+Docker Desktop `/v1.55/info` returned HTTP 500; no backend integration,
+provider, browser, or visual stage ran.
 
 The next action is to restore Docker Desktop health and rerun the exact gate,
 then continue the next bounded provider/history or compatible chart/list/gauge
