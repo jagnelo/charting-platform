@@ -393,6 +393,82 @@ class AlphaVantageProvider:
             )
         return result
 
+    def fetch_earnings_calendar(
+        self,
+        *,
+        horizon: str = "3month",
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]:
+        """Fetch Alpha Vantage's documented forward earnings calendar.
+
+        ``EARNINGS_CALENDAR`` is a separate CSV operation from
+        ``IPO_CALENDAR``. The free endpoint publishes only a bounded horizon
+        (3, 6, or 12 months); callers must choose that horizon explicitly so
+        quota accounting and coverage semantics remain visible.
+        """
+
+        normalized_horizon = str(horizon or "").strip().lower()
+        if normalized_horizon not in {"3month", "6month", "12month"}:
+            raise ProviderResponseError(
+                self.name,
+                "Alpha Vantage earnings calendar horizon must be 3month, 6month, or 12month",
+            )
+        text = self._get_text("EARNINGS_CALENDAR", horizon=normalized_horizon)
+        if not text:
+            return []
+        try:
+            reader = csv.DictReader(io.StringIO(text), strict=True)
+            if not reader.fieldnames or not {
+                "symbol",
+                "name",
+                "reportDate",
+            }.issubset(set(reader.fieldnames)):
+                raise ValueError("Alpha Vantage earnings CSV is missing required columns")
+            rows = list(reader)
+        except (csv.Error, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed earnings-calendar CSV"
+            ) from exc
+        if any(None in row or any(value is None for value in row.values()) for row in rows):
+            raise ProviderResponseError(
+                self.name, "Alpha Vantage returned malformed earnings-calendar CSV rows"
+            )
+
+        result: list[MarketEventRecord] = []
+        for row in rows:
+            symbol = str(row.get("symbol") or "").strip().upper()
+            if not symbol:
+                raise ProviderResponseError(
+                    self.name,
+                    "Alpha Vantage returned an earnings-calendar row without a symbol",
+                )
+            try:
+                event_date = date.fromisoformat(str(row.get("reportDate") or ""))
+            except ValueError as exc:
+                raise ProviderResponseError(
+                    self.name,
+                    "Alpha Vantage returned an invalid earnings-calendar date",
+                ) from exc
+            if (start and event_date < start) or (end and event_date > end):
+                continue
+            result.append(
+                MarketEventRecord(
+                    event_type="earnings",
+                    event_key=(
+                        f"alpha_vantage:earnings_calendar:{symbol}:"
+                        f"{event_date.isoformat()}"
+                    ),
+                    event_time=datetime.combine(event_date, datetime.min.time(), tzinfo=UTC),
+                    effective_date=event_date,
+                    title=str(row.get("name") or symbol),
+                    source_version=f"EARNINGS_CALENDAR:{normalized_horizon}",
+                    is_provisional=True,
+                    raw_payload=row,
+                )
+            )
+        return result
+
 
 def _csv_information_message(text: str) -> bool:
     """Recognize Alpha Vantage's quota message when returned as CSV fields."""

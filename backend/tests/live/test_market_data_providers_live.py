@@ -367,6 +367,25 @@ def test_alpha_vantage_credentialed_ipo_calendar():
     assert all(event.effective_date is not None for event in events)
 
 
+def test_alpha_vantage_credentialed_earnings_calendar():
+    """Exercise the documented bounded forward earnings-calendar CSV."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    events, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_earnings_calendar(
+            horizon="3month",
+            start=date.today(),
+            end=date.today() + timedelta(days=90),
+        ),
+        "alpha_vantage",
+    )
+    # The provider may publish no rows in a particular window; transport and
+    # schema evidence still matter, but no synthetic event is accepted.
+    assert isinstance(events, list)
+    assert all(event.event_type == "earnings" for event in events)
+    assert all(event.effective_date is not None for event in events)
+
+
 def test_alpha_vantage_credentialed_earnings_history():
     """Exercise annual/quarterly EPS normalization when the daily quota permits it."""
 

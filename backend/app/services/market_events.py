@@ -22,7 +22,7 @@ from app.models.data_source import DataSource
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.market_data_foundation import Issuer
 from app.models.provider_runtime import ProviderCapability
-from app.providers import list_provider_capabilities, supported_provider_names
+from app.providers import get_provider, list_provider_capabilities, supported_provider_names
 from app.providers.base import MarketEventRecord
 from app.providers.errors import bounded_redact_provider_message
 from app.services.market_data_persistence import persist_market_event
@@ -75,6 +75,44 @@ def market_event_provider_names(
         if "market_events" in capabilities:
             result.append(name)
     return result
+
+
+def _market_event_operations(
+    provider_name: str,
+    *,
+    start: date | None,
+    end: date | None,
+) -> list[tuple[str, Any]]:
+    """Return explicitly metered market-event operations for one provider.
+
+    Most adapters expose the protocol's ``fetch_market_events`` operation.
+    Some providers publish additional market-wide feeds without changing that
+    protocol; those methods are added only when the concrete adapter exposes
+    them, keeping each upstream request independently visible to the runtime.
+    """
+
+    provider = get_provider(provider_name)
+    operations: list[tuple[str, Any]] = [
+        (
+            "fetch_market_events",
+            lambda resolved, _provider_symbol: resolved.fetch_market_events(
+                start=start,
+                end=end,
+            ),
+        )
+    ]
+    if callable(getattr(provider, "fetch_earnings_calendar", None)):
+        operations.append(
+            (
+                "fetch_earnings_calendar",
+                lambda resolved, _provider_symbol: resolved.fetch_earnings_calendar(
+                    horizon="3month",
+                    start=start,
+                    end=end,
+                ),
+            )
+        )
+    return operations
 
 
 async def _resolve_event_targets(
@@ -146,81 +184,105 @@ async def refresh_market_events(
     total_linked = 0
     total_unlinked = 0
 
+    failures = 0
     for requested_name in names:
-        try:
-            execution = await execute_provider_call(
-                db,
-                ProviderCapability.MARKET_EVENTS,
-                "fetch_market_events",
-                provider_name=requested_name,
-                invoke=lambda provider, _provider_symbol: provider.fetch_market_events(
-                    start=start,
-                    end=end,
-                ),
-                response_items=lambda result: len(result) if isinstance(result, list) else None,
-                treat_empty_as_failure=False,
-            )
-            records = execution.result
-            if not isinstance(records, list) or any(
-                not isinstance(record, MarketEventRecord) for record in records
-            ):
-                raise TypeError("market-event provider returned malformed records")
-        except Exception as exc:  # noqa: BLE001 - retain per-provider outcome.
-            provider_results.append(
-                {
-                    "provider": requested_name,
-                    "status": "failed",
-                    "events": 0,
-                    "persisted": 0,
-                    "linked": 0,
-                    "unlinked": 0,
-                    "error_type": exc.__class__.__name__,
-                    "error": bounded_redact_provider_message(exc, max_length=500),
-                }
-            )
-            continue
-
         provider_events = 0
         provider_persisted = 0
         provider_linked = 0
         provider_unlinked = 0
         fetched_at = datetime.now(UTC)
-        for record in records:
-            payload = dict(record.raw_payload or {})
-            instrument_id, issuer_id = await _resolve_event_targets(
-                db,
-                provider_name=execution.provider_name,
-                payload=payload,
+        operation_failures: list[dict[str, Any]] = []
+        resolved_provider_name = requested_name
+        try:
+            operations = _market_event_operations(
+                requested_name,
+                start=start,
+                end=end,
             )
-            await persist_market_event(
-                db,
-                event_key=record.event_key,
-                event_type=record.event_type,
-                source=execution.provider_name,
-                instrument_id=instrument_id,
-                issuer_id=issuer_id,
-                event_time=record.event_time,
-                effective_date=record.effective_date,
-                source_version=record.source_version,
-                payload=payload,
-                is_provisional=record.is_provisional,
+        except Exception as exc:  # noqa: BLE001 - retain per-provider outcome.
+            operations = []
+            failures += 1
+            operation_failures.append(
+                {
+                    "operation": "provider_resolution",
+                    "error_type": exc.__class__.__name__,
+                    "error": bounded_redact_provider_message(exc, max_length=500),
+                }
             )
-            provider_events += 1
-            provider_persisted += 1
-            if instrument_id is None and issuer_id is None:
-                provider_unlinked += 1
-            else:
-                provider_linked += 1
+
+        for operation, invoke in operations:
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.MARKET_EVENTS,
+                    operation,
+                    provider_name=requested_name,
+                    invoke=invoke,
+                    response_items=lambda result: len(result)
+                    if isinstance(result, list)
+                    else None,
+                    treat_empty_as_failure=False,
+                )
+                resolved_provider_name = execution.provider_name
+                records = execution.result
+                if not isinstance(records, list) or any(
+                    not isinstance(record, MarketEventRecord) for record in records
+                ):
+                    raise TypeError("market-event provider returned malformed records")
+            except Exception as exc:  # noqa: BLE001 - retain per-operation outcome.
+                failures += 1
+                operation_failures.append(
+                    {
+                        "operation": operation,
+                        "error_type": exc.__class__.__name__,
+                        "error": bounded_redact_provider_message(exc, max_length=500),
+                    }
+                )
+                continue
+
+            for record in records:
+                payload = dict(record.raw_payload or {})
+                instrument_id, issuer_id = await _resolve_event_targets(
+                    db,
+                    provider_name=resolved_provider_name,
+                    payload=payload,
+                )
+                await persist_market_event(
+                    db,
+                    event_key=record.event_key,
+                    event_type=record.event_type,
+                    source=resolved_provider_name,
+                    instrument_id=instrument_id,
+                    issuer_id=issuer_id,
+                    event_time=record.event_time,
+                    effective_date=record.effective_date,
+                    source_version=record.source_version,
+                    payload=payload,
+                    is_provisional=record.is_provisional,
+                )
+                provider_events += 1
+                provider_persisted += 1
+                if instrument_id is None and issuer_id is None:
+                    provider_unlinked += 1
+                else:
+                    provider_linked += 1
 
         provider_results.append(
             {
-                "provider": execution.provider_name,
-                "status": "refreshed",
+                "provider": resolved_provider_name,
+                "status": (
+                    "refreshed"
+                    if provider_events
+                    else "failed"
+                    if operation_failures
+                    else "no_events"
+                ),
                 "events": provider_events,
                 "persisted": provider_persisted,
                 "linked": provider_linked,
                 "unlinked": provider_unlinked,
                 "fetched_at": fetched_at,
+                "failures": operation_failures,
             }
         )
         total_events += provider_events
@@ -229,7 +291,6 @@ async def refresh_market_events(
         total_unlinked += provider_unlinked
 
     await db.commit()
-    failures = sum(1 for result in provider_results if result["status"] == "failed")
     return {
         "status": "refreshed" if total_events else ("failed" if failures else "no_events"),
         "window": {

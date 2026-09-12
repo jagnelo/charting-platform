@@ -78,6 +78,38 @@ async def test_refresh_market_events_persists_and_exactly_links_provider_symbol(
 
 
 @pytest.mark.asyncio
+async def test_refresh_market_events_runs_additional_provider_calendar_operation(
+    db, monkeypatch
+):
+    operations = []
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        operations.append(operation)
+        event_type = "earnings" if operation == "fetch_earnings_calendar" else "ipo"
+        return SimpleNamespace(
+            provider_name=kwargs["provider_name"],
+            result=[
+                _record(
+                    event_key=f"alpha:{event_type}",
+                    payload={"symbol": "AAPL", "event_type": event_type},
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    result = await market_events.refresh_market_events(
+        AsyncSessionAdapter(db), provider_names=["alpha_vantage"]
+    )
+
+    assert operations == ["fetch_market_events", "fetch_earnings_calendar"]
+    assert result["status"] == "refreshed"
+    assert result["events"] == 2
+    assert result["failures"] == 0
+    assert len(db.execute(select(MarketEvent)).scalars().all()) == 2
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_events_leaves_ambiguous_symbol_unlinked(
     db, instrument, instrument_type, monkeypatch
 ):

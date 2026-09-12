@@ -11283,7 +11283,10 @@ What remains:
     as the primary free IPO backbone.
   - `alphavantage`
     - ingest `IPO_CALENDAR`
-    - later also ingest `EARNINGS_CALENDAR` into the same broader market-events system
+    - `EARNINGS_CALENDAR` is now normalized through a separate one-request
+      operation with the documented 3/6/12-month horizon choices; the worker
+      currently selects the bounded 3-month operation so its daily quota cost
+      remains explicit
     - ingest `LISTING_STATUS` into the instrument-master follow-through side so future IPO placeholders can be promoted once the listing is real
     - normalize CSV payloads into the same event schema
   - `edgar`

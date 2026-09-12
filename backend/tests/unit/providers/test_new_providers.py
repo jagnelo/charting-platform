@@ -1468,6 +1468,52 @@ class TestAlphaVantageProvider:
         assert events[0].is_provisional is True
         assert get.call_args.kwargs["params"]["function"] == "IPO_CALENDAR"
 
+    def test_earnings_calendar_becomes_bounded_market_events(self):
+        response = MagicMock()
+        response.text = (
+            "symbol,name,reportDate,fiscalDateEnding,estimate,currency\n"
+            "AAPL,Apple Inc.,2024-01-02,2023-12-30,2.10,USD\n"
+            "MSFT,Microsoft Corp.,2024-01-05,2023-12-31,2.75,USD\n"
+        )
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            events = AlphaVantageProvider().fetch_earnings_calendar(
+                horizon="3month",
+                start=date(2024, 1, 1),
+                end=date(2024, 1, 3),
+            )
+
+        assert len(events) == 1
+        assert events[0].event_type == "earnings"
+        assert events[0].event_key == "alpha_vantage:earnings_calendar:AAPL:2024-01-02"
+        assert events[0].effective_date == date(2024, 1, 2)
+        assert events[0].source_version == "EARNINGS_CALENDAR:3month"
+        assert get.call_args.kwargs["params"] == {
+            "function": "EARNINGS_CALENDAR",
+            "apikey": "key",
+            "horizon": "3month",
+        }
+
+    def test_earnings_calendar_rejects_unknown_horizon(self):
+        with pytest.raises(ProviderResponseError, match="horizon must be"):
+            AlphaVantageProvider().fetch_earnings_calendar(horizon="1year")
+
+    def test_earnings_calendar_rejects_invalid_report_date(self):
+        response = MagicMock(status_code=200)
+        response.text = "symbol,name,reportDate\nAAPL,Apple Inc.,not-a-date\n"
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError, match="earnings-calendar date"):
+                AlphaVantageProvider().fetch_earnings_calendar()
+
     def test_earnings_history_normalizes_annual_and_quarterly_rows(self):
         response = MagicMock()
         response.json.return_value = {

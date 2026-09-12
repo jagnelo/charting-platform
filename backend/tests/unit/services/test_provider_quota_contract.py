@@ -1425,6 +1425,7 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
         "fetch_rfr_ohlcv": 1,
         "discover_universe_page": 1,
         "fetch_market_events": 1,
+        "fetch_earnings_calendar": 1,
         "fetch_instrument_events": 1,
     }
 

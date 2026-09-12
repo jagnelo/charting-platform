@@ -397,7 +397,7 @@ materialization, and calendar UX remain tracked separately in
 | yfinance   | Explicit legacy/options fallback only | None (unofficial) | Free, no SLA |
 | openfigi   | Supplementary | Optional API key      | Free     |
 | massive    | Optional reference/IPO-calendar corroboration | Optional API key | Free tier / 5 requests/minute |
-| alpha_vantage | Optional daily-history corroboration | Optional API key | Free tier / quota |
+| alpha_vantage | Optional daily-history, IPO-calendar, and forward-earnings corroboration | Optional API key | Free tier / 25 requests/day |
 | tiingo / twelve_data | Optional EOD/intraday history | API key | Free/low-cost quota |
 | finnhub | Optional intraday/profile/search | API key | Free/low-cost quota |
 | marketstack / eodhd / fmp | Optional EOD/history/profile | API key | Free/low-cost quota |
@@ -948,7 +948,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Historical earnings dates    | edgar             | —               |
 | US options chains            | yfinance (explicit legacy), Tradier/MarketData.app when entitled | *(no default current-chain route)* |
 | Futures / commodities        | yfinance (explicit legacy) | IBKR generic read-only adapter (futures-specific methods not implemented) |
-| Forward earnings estimates   | Finnhub forward calendar; FMP `earnings-calendar` | Finnhub and FMP calendars are live-proven for configured keys; FMP routing remains byte-bound gated |
+| Forward earnings estimates   | Alpha Vantage `EARNINGS_CALENDAR` (bounded 3-month operation); Finnhub forward calendar; FMP `earnings-calendar` | Alpha's 3/6/12-month horizon semantics and one-request cost are explicit; Finnhub and FMP calendars are live-proven for configured keys; FMP routing remains byte-bound gated |
 | IPO calendar                 | Massive `reference/ipos`; Alpha Vantage `IPO_CALENDAR` | Massive returns cursor-paged IPO rows; each page is charged separately and date bounds are applied locally |
 | Market holidays / early closes | Massive `marketstatus/upcoming` | Forward-only exchange rows with open/close/status provenance; one request per refresh |
 | Analyst price targets        | *(excluded)*      | *(capability stub)* |
