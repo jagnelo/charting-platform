@@ -3440,6 +3440,13 @@ async def benchmark_family_ratios(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
     )
+    stale_ids = (
+        set()
+        if as_of is not None
+        else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+    )
+    for instrument_id in stale_ids:
+        bars_by_id[instrument_id] = []
 
     def ratio_result(
         *,
@@ -3452,6 +3459,32 @@ async def benchmark_family_ratios(
         benchmark = instruments[benchmark_symbol]
         primary_bars = bars_by_id.get(primary.id, [])
         benchmark_bars = bars_by_id.get(benchmark.id, [])
+        if primary.id in stale_ids or benchmark.id in stale_ids:
+            stale_id = benchmark.id if benchmark.id in stale_ids else primary.id
+            warning = AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the family ratio was withheld.",
+                instrument_id=stale_id,
+            )
+            return BenchmarkFamilyRatioOut(
+                family_key=family_key,
+                role=primary_role,
+                symbol=primary_symbol,
+                benchmark_role=benchmark_role,
+                benchmark=benchmark_symbol,
+                timeframe=timeframe.value,
+                adjustment="split_adjusted" if adjusted else "raw",
+                as_of=as_of,
+                points=[],
+                coverage=0,
+                warnings=[warning],
+                freshness="stale",
+                freshness_detail={
+                    "primary_bars": len(primary_bars),
+                    "benchmark_bars": len(benchmark_bars),
+                    "stale_instrument_id": stale_id,
+                },
+            )
         primary_by_time = {bar.ts: bar for bar in primary_bars}
         benchmark_by_time = {bar.ts: bar for bar in benchmark_bars}
         timestamps = sorted(primary_by_time.keys() & benchmark_by_time.keys())
@@ -3520,6 +3553,9 @@ async def benchmark_family_ratios(
                 )
             )
     members = _group_members_at(group, as_of)
+    freshness, freshness_detail = await _batch_freshness(
+        db, instrument_ids, timeframe, adjusted
+    )
     return BenchmarkFamilyRatiosOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -3541,8 +3577,14 @@ async def benchmark_family_ratios(
         },
         ratios=ratios,
         exclusions=exclusions,
-        freshness="available" if ratios and any(r.points for r in ratios) else "coverage_limited",
-        freshness_detail={"ratio_count": len(ratios)},
+        freshness=(
+            freshness
+            if stale_ids
+            else "available"
+            if ratios and any(r.points for r in ratios)
+            else "coverage_limited"
+        ),
+        freshness_detail={**freshness_detail, "ratio_count": len(ratios)},
     )
 
 

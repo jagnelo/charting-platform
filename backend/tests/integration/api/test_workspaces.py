@@ -1283,6 +1283,28 @@ class TestWorkspaces:
             ("cap_weight", "market"),
         }
 
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=rsp.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ratios",
+            headers=auth_headers,
+            params={"role": "equal_weight", "market_benchmark": "SPY"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        assert stale_payload["freshness"] == "stale"
+        assert all(item["points"] == [] for item in stale_payload["ratios"])
+        assert all(item["warnings"][0]["code"] == "stale_data" for item in stale_payload["ratios"])
+
     def test_benchmark_family_technicals_return_independent_role_states_without_fallback(
         self, client, auth_headers, db, instrument_type
     ):

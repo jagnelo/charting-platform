@@ -74,6 +74,10 @@
 - [x] The current `/indicator-batch` endpoint now withholds expired OHLCV
       snapshots and emits a per-symbol `stale_data` warning instead of
       calculating indicators from stale bars.
+- [x] Benchmark-family ratios now withhold a current ratio when either the
+      selected role or its benchmark has expired OHLCV freshness, expose
+      per-ratio `stale_data` warnings, and include the underlying freshness
+      summary; historical `as_of` ratios remain unchanged.
 - [ ] Extend the same coordinator-backed preflight to remaining chart routes,
       future breadth/signal engines, and refresh-job status persistence.
 
