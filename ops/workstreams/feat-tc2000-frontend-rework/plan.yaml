@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 4ab7ceb1 fences Instrument Alerts alert-bundle hydration and
+  create/update mutations by mounted state and view generation. Focused linked
+  instrument coverage passed 15/15; full frontend Vitest passed 1027/1027
+  across 115 files; type-check, production build, and git diff --check passed
+  with only the existing chunk-size warning. The exact gate was rerun at this
+  tip: all pre-Docker stages passed, then backend-coverage exited 2 after 180
+  seconds because Docker permission was denied for
+  unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+  provider, browser, or visual stage ran. No visual baseline, mask, threshold,
+  skip, provider, fallback, or acceptance policy changed. Continue the next
+  bounded provider/history or compatible R4/R2-R7 seam while preserving the
+  six visual state-oracle assertions.
   Product commit 6e54f192 fences VirtualWatchlist saved-screener, Python asset,
   and column-set hydration by mounted state and independent load generations.
   Focused VirtualWatchlist coverage passed 71/71; full frontend Vitest passed
@@ -2760,8 +2772,20 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R6_virtual_watchlist_hydration_lifecycle_and_r7_exact_tip_gate
+  current_phase: R6_instrument_alerts_lifecycle_and_r7_exact_tip_gate
   current_blocker: >-
+    Product commit 4ab7ceb1 fences Instrument Alerts alert-bundle hydration and
+    create/update mutations by mounted state and view generation. Focused
+    linked-instrument coverage passed 15/15; full frontend Vitest passed
+    1027/1027 across 115 files; type-check, production build, and git diff
+    --check passed with only the existing chunk-size warning. The exact gate
+    was rerun at this tip: all pre-Docker stages passed, then backend-coverage
+    exited 2 after 180 seconds because Docker permission was denied for
+    unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration,
+    provider, browser, or visual stage ran. No visual baseline, mask,
+    threshold, skip, provider, fallback, or acceptance policy changed.
+    Continue the next bounded provider/history or compatible R4/R2-R7 seam
+    while preserving the six visual state-oracle assertions.
     Product commit 6e54f192 fences VirtualWatchlist saved-screener, Python
     asset, and column-set hydration by mounted state and independent load
     generations. Focused VirtualWatchlist coverage passed 71/71; full frontend
@@ -3724,7 +3748,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 6e54f192ecbc6b35fec42f75ef9541407d678675; rerun the exact gate when Docker is healthy and preserve the six visual state-oracle assertions plus unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 4ab7ceb194f5bdce28b85341dbe44141de9e5236; rerun the exact gate when Docker is healthy and preserve the six visual state-oracle assertions plus unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

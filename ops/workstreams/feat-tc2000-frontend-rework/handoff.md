@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Instrument Alerts lifecycle
+
+Product commit `4ab7ceb1` fences Instrument Alerts alert-bundle hydration and
+create/update mutations by mounted state and view generation. Late responses
+cannot repopulate an unmounted or relinked tool or overwrite newer state.
+Focused linked-instrument coverage passed `15/15`; full frontend Vitest
+passed `1027/1027` across 115 files; type-check, production build, and
+`git diff --check` passed with only the existing chunk-size warning. No
+provider, fallback, visual, or acceptance policy changed. Continue
+implementation in this worktree only.
+
+## 2026-09-12 — Exact Instrument Alerts lifecycle gate rechecked
+
+At product tip `4ab7ceb194f5bdce28b85341dbe44141de9e5236`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence VirtualWatchlist hydration lifecycle
 
 Product commit `6e54f192` fences VirtualWatchlist saved-screener, Python
