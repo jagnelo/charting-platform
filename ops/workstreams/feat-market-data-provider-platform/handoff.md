@@ -1095,3 +1095,8 @@ Update this handoff at each coherent boundary.
   tickers fail closed. Focused SEC directory/service/worker coverage passes
   `50/50`; the full backend unit gate and deployment/full-stack gates remain
   to be rerun/verified after the source checkpoint is committed.
+
+- Source checkpoint `b4f1d614` propagates the SEC issuer-materialization policy
+  to both backend/worker Compose services (root and RPi), `.env.example`, the
+  deployment runbook, and the manual GitHub live workflow. All paths default to
+  `disabled`; no credential or policy value was added to Git.
