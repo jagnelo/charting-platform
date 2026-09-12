@@ -61,6 +61,8 @@ PROVIDER_CONFIGURATION_SETTINGS = {
     "FINRA_OTC_SYMBOL_DIRECTORY_URL",
     "MARKETSTACK_DISCOVERY_EXCHANGE",
     "IBKR_READ_ONLY_URL",
+    "ALLOW_PAID_PROVIDER_ROUTING",
+    "OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY",
 }
 TOKENIZED_REFRESH_SETTINGS = {
     "TOKENIZED_ASSET_REFRESH_ENABLED",
@@ -71,6 +73,17 @@ MARKET_OPERATION_SETTINGS = {
     "MARKET_DATA_SHADOW_REPORT_ENABLED",
     "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
     "MARKET_UNIVERSE_MISSING_CONFIRMATIONS",
+}
+PROVIDER_OPERATION_SETTINGS = {
+    "PROVIDER_AVAILABILITY_MONITOR_ENABLED",
+    "PROVIDER_AVAILABILITY_LIVE_ENABLED",
+    "PROVIDER_AVAILABILITY_NOTIFICATIONS_ENABLED",
+    "PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS",
+    "PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS",
+    "PROVIDER_REQUEST_LOG_RETENTION_DAYS",
+    "UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS",
+    "PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS",
+    "PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS",
 }
 
 
@@ -143,6 +156,24 @@ def test_local_and_rpi_compose_pass_market_operation_settings_to_backend_and_wor
             assert f"{name}:" not in research, (relative_path, "research-runner", name)
 
 
+def test_local_and_rpi_compose_pass_provider_operation_settings_to_backend_and_worker_only():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        for name in PROVIDER_OPERATION_SETTINGS:
+            assert f"{name}:" in backend, (relative_path, "backend", name)
+            assert f"{name}:" in worker, (relative_path, "worker", name)
+            assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
+def test_deployment_defaults_keep_new_tokenized_providers_visible():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        assert 'TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in compose
+
+
 def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
     assert "workflow_dispatch:" in workflow
@@ -196,6 +227,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
         "DINARI_API_BASE_URL",
     ):
         assert f"{name}=" in example
+    assert 'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in example
 
 
 def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host():

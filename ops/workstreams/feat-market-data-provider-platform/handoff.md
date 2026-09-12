@@ -365,3 +365,7 @@ Update this handoff at each coherent boundary.
 - The complete backend unit suite passes 1,753/1,753 in 61.91s with the
   repository’s existing 37 deprecation warnings after this wiring change; no
   services or provider calls were started.
+- Local/RPi deployment defaults now retain Dinari and Ondo in the tokenized
+  priority (while their unknown-quota/terms gates remain fail-closed), and the
+  wiring suite explicitly guards that visibility. Focused coverage passes
+  16/16; no credentials or provider payloads were used.

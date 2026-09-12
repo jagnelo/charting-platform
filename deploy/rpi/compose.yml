@@ -50,6 +50,16 @@ services:
       APP_PORT: 8000
       SECRET_KEY: ${SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      DEFAULT_MARKET_DATA_PROVIDER: ${DEFAULT_MARKET_DATA_PROVIDER:-alpaca}
+      DEFAULT_METADATA_PROVIDER: ${DEFAULT_METADATA_PROVIDER:-edgar}
+      DEFAULT_EVENT_PROVIDER: ${DEFAULT_EVENT_PROVIDER:-alpaca}
+      DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
+      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
+      IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
+      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["yfinance"]}
+      TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
+      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}}
+      ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY: ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       ALPACA_API_KEY: ${ALPACA_API_KEY:-}
@@ -124,6 +134,11 @@ services:
       PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS: ${PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS:-20}
       PROVIDER_LIVE_USAGE_LEDGER: ${PROVIDER_LIVE_USAGE_LEDGER:-}
       PROVIDER_LIVE_USAGE_SCOPE: ${PROVIDER_LIVE_USAGE_SCOPE:-}
+      PROVIDER_MAX_CONCURRENCY: ${PROVIDER_MAX_CONCURRENCY:-2}
+      PROVIDER_REQUEST_LOG_RETENTION_DAYS: ${PROVIDER_REQUEST_LOG_RETENTION_DAYS:-30}
+      UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: ${UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS:-30}
+      PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS: ${PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS:-2592000}
+      PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS: ${PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS:-604800}
       PROXY_ENABLED: "false"
     volumes:
       - research_jobs:/jobs
@@ -150,6 +165,16 @@ services:
       APP_ENV: production
       SECRET_KEY: ${SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      DEFAULT_MARKET_DATA_PROVIDER: ${DEFAULT_MARKET_DATA_PROVIDER:-alpaca}
+      DEFAULT_METADATA_PROVIDER: ${DEFAULT_METADATA_PROVIDER:-edgar}
+      DEFAULT_EVENT_PROVIDER: ${DEFAULT_EVENT_PROVIDER:-alpaca}
+      DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
+      DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
+      IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
+      OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["yfinance"]}
+      TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
+      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}}
+      ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY: ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       ALPACA_API_KEY: ${ALPACA_API_KEY:-}
@@ -222,6 +247,11 @@ services:
       PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS: ${PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS:-20}
       PROVIDER_LIVE_USAGE_LEDGER: ${PROVIDER_LIVE_USAGE_LEDGER:-}
       PROVIDER_LIVE_USAGE_SCOPE: ${PROVIDER_LIVE_USAGE_SCOPE:-}
+      PROVIDER_MAX_CONCURRENCY: ${PROVIDER_MAX_CONCURRENCY:-2}
+      PROVIDER_REQUEST_LOG_RETENTION_DAYS: ${PROVIDER_REQUEST_LOG_RETENTION_DAYS:-30}
+      UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: ${UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS:-30}
+      PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS: ${PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS:-2592000}
+      PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS: ${PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS:-604800}
     depends_on:
       backend: {condition: service_healthy}
       redis: {condition: service_healthy}

@@ -370,6 +370,11 @@ progress:
       The complete backend unit suite passes 1,753/1,753 in 61.91s with the
       repository's existing 37 deprecation warnings after this wiring change;
       no services or provider calls were started.
+    - >-
+      Local/RPi deployment defaults now retain Dinari and Ondo in the tokenized
+      priority while their unknown-quota/terms gates remain fail-closed; the
+      wiring suite explicitly guards that visibility with 16/16 focused tests,
+      and no credentials or provider payloads were used.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
