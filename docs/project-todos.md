@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Operation-scoped Marketstack discovery configuration
+
+- [x] Keep Marketstack's explicit exchange/MIC requirement limited to
+      universe discovery and reconciliation. Daily history and quote routing
+      now require only `MARKETSTACK_API_KEY`, while provider-level diagnostics
+      still expose the missing discovery scope and discovery remains
+      fail-closed without it. Registry/runtime regressions pass `48/48`, and
+      the complete backend unit suite passes `1,757/1,757` with the existing
+      37 warnings.
+
 ### 2026-09-12 — Tiingo bandwidth contract confirmation
 
 - [x] Recheck the current official Tiingo pricing page: the free Starter

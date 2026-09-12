@@ -501,10 +501,38 @@ def provider_configuration_required(name: str) -> bool:
     return name in _CONFIGURATION_SETTINGS
 
 
-def provider_required_settings(name: str) -> tuple[str, ...]:
-    """Return required environment-setting names without exposing values."""
+def _marketstack_requires_discovery_scope(operation: str | None) -> bool:
+    """Whether a Marketstack operation needs an explicit venue/MIC scope.
 
-    required = list(_CONFIGURATION_SETTINGS.get(name, ()))
+    Marketstack's ticker catalogue is venue-scoped, while EOD history and
+    quote reads use only the API key.  Keep the discovery guard narrow so a
+    missing catalogue scope cannot disable otherwise valid history routing.
+    Provider-level diagnostics pass ``None`` and therefore report the full
+    configuration requirement.
+    """
+
+    if operation is None:
+        return True
+    family = str(operation).strip().split(":", 1)[0]
+    return family in {"discover_universe_page", "reconcile_universe_page"}
+
+
+def provider_required_settings(name: str, operation: str | None = None) -> tuple[str, ...]:
+    """Return required environment-setting names without exposing values.
+
+    ``operation`` is used only for provider-specific configuration that
+    applies to one capability (currently Marketstack discovery's exchange
+    scope).  Omitting it retains the provider-level diagnostic view.
+    """
+
+    configured = _CONFIGURATION_SETTINGS.get(name, ())
+    if name == "marketstack" and not _marketstack_requires_discovery_scope(operation):
+        configured = tuple(
+            setting_name
+            for setting_name in configured
+            if setting_name != "MARKETSTACK_DISCOVERY_EXCHANGE"
+        )
+    required = list(configured)
     required.extend(_AUTH_SETTINGS.get(name, ()))
     if name == "massive":
         required.append("MARKETDATA_API_KEY")
@@ -513,7 +541,7 @@ def provider_required_settings(name: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(required))
 
 
-def provider_missing_settings(name: str) -> list[str]:
+def provider_missing_settings(name: str, operation: str | None = None) -> list[str]:
     """Return missing required setting names for operator diagnostics only."""
 
     missing = []
@@ -522,7 +550,7 @@ def provider_missing_settings(name: str) -> list[str]:
         for setting_name in ("MASSIVE_API_KEY", "MARKETDATA_API_KEY")
     ):
         return missing
-    for setting_name in provider_required_settings(name):
+    for setting_name in provider_required_settings(name, operation):
         value = str(getattr(settings, setting_name, "") or "").strip()
         if not value or (setting_name == "EDGAR_USER_AGENT" and not is_valid_edgar_user_agent(value)):
             missing.append(setting_name)
@@ -640,14 +668,16 @@ def provider_missing_routing_controls(
     )
 
 
-def provider_is_configured(name: str) -> bool:
-    """Return whether the deployment supplied required adapter inputs."""
+def provider_is_configured(name: str, operation: str | None = None) -> bool:
+    """Return whether the deployment supplied required adapter inputs.
 
-    configured = _CONFIGURATION_SETTINGS.get(name)
-    if configured is not None:
-        return all(bool(getattr(settings, key, "")) for key in configured) and all(
-            bool(getattr(settings, key, "")) for key in _AUTH_SETTINGS.get(name, ())
-        )
+    Configuration requirements may be operation-specific.  In particular,
+    Marketstack history/quote reads require only the API key; its universe
+    discovery operations additionally require an explicit exchange scope.
+    """
+
+    if name in _CONFIGURATION_SETTINGS:
+        return not provider_missing_settings(name, operation)
 
     required = _AUTH_SETTINGS.get(name)
     if required is None:

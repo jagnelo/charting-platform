@@ -136,7 +136,10 @@ scope and downstream usage/redistribution policy are explicitly reviewed.
 Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
-and remains gated on account/terms review.
+and remains gated on account/terms review. The explicit
+`MARKETSTACK_DISCOVERY_EXCHANGE` requirement is operation-scoped: ticker
+discovery/reconciliation stays disabled without a reviewed MIC, while EOD
+history and quote reads may route with the API key alone.
 
 Tradier is intentionally configured against the production market-data base URL
 in this branch, so its checked-in 120/minute contract applies only to a

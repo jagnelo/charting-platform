@@ -204,6 +204,20 @@ class TestProviderRegistry:
         )
         assert provider_missing_settings("marketstack") == []
 
+    def test_marketstack_history_does_not_require_discovery_scope(self, monkeypatch):
+        monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "demo")
+        monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+        assert provider_required_settings("marketstack", "fetch_ohlcv:D1") == (
+            "MARKETSTACK_API_KEY",
+        )
+        assert provider_missing_settings("marketstack", "fetch_ohlcv:D1") == []
+        assert provider_is_configured("marketstack", "fetch_ohlcv:D1") is True
+        assert provider_is_configured("marketstack", "bulk_fetch:D1") is True
+        assert provider_is_configured("marketstack", "discover_universe_page") is False
+        assert provider_missing_settings("marketstack", "discover_universe_page") == [
+            "MARKETSTACK_DISCOVERY_EXCHANGE",
+        ]
+
     def test_provider_missing_settings_reports_names_only(self, monkeypatch):
         monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "")
         monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")

@@ -1283,8 +1283,11 @@ async def resolve_provider_chain(
             continue
         if (
             provider_configuration_required(data_source.name)
-            and not provider_is_configured(data_source.name)
-        ) or (entitlement.authentication_required and not provider_is_configured(data_source.name)):
+            and not provider_is_configured(data_source.name, operation=operation)
+        ) or (
+            entitlement.authentication_required
+            and not provider_is_configured(data_source.name, operation=operation)
+        ):
             continue
         # Non-secret provider safety controls (reviewed byte bounds, operation
         # costs, terms/polling gates, and similar provider-specific admission
