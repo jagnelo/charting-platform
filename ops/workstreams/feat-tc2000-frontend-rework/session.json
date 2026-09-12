@@ -56,25 +56,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "ERROR: request returned 500 Internal Server Error for API route and version http://%2FUsers%2Fjagnelo%2F.docker%2Frun%2Fdocker.sock/v1.55/info, check if the server supports the requested API version\nerrors pretty printing info"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -114,7 +97,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "60b485b3ea9fb516a2ca0084ca15e9bd11824293",
+  "head": "2e2e92443fa3a9d532e2fd0e6867cf4a6deba40d",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T03:34:20.796737+00:00",
