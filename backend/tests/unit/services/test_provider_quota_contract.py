@@ -101,6 +101,22 @@ def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
         assert all(str(item.get("limit_basis", "")).startswith("decimal_bytes_") for item in byte_pools)
 
 
+def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
+    """Production seeds must not silently resurrect the retired fallback policy."""
+
+    for provider_name, seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
+        assert "cooldown_seconds" not in seed, provider_name
+        assert "max_concurrency" not in seed, provider_name
+
+    # Coinbase's burst is an explicitly documented provider-native exception,
+    # not the old global fallback.  Keep the exception tied to its contract.
+    coinbase = provider_rate_limit_seed("coinbase")
+    assert coinbase["tokens_per_minute"] == 600
+    assert coinbase["burst_capacity"] == 15
+    assert coinbase["quota_contract"]["dimensions"][0]["limit"] == 10
+    assert coinbase["quota_contract"]["dimensions"][0]["window_seconds"] == 1
+
+
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
     async_db = AsyncSessionAdapter(db)
