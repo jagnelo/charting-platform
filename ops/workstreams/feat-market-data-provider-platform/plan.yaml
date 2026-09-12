@@ -282,6 +282,7 @@ progress:
     - MarketData.app native reset parsing now drives typed retry timestamps in shared error handling and the optional REST adapter; focused provider/runtime/usage coverage passes 107/107 with authorization still excluded
     - the authoritative Docker-backed combined backend gate after native-reset propagation passed 2075/2075 with 89 warnings and 80.68% line coverage in 424.58s using isolated PostgreSQL/Redis testcontainer session 5b5c1410-eefc-4737-a7bf-bca01fc5fae1; no credentials or provider payloads were persisted
     - a runtime end-to-end MarketData.app-shaped response now proves native telemetry persistence and durable settlement to the provider-observed cumulative credit total; focused runtime/adapter/error/usage/ledger coverage passes 39/39
+    - production and ARQ-compatible alert execution now performs a grouped latest-price/indicator OHLCV preflight before evaluation; each instrument is polled once and each `(instrument, timeframe)` series/local-bar snapshot is loaded once, while failed groups remain unavailable instead of triggering per-alert provider calls. Focused preflight coverage passes 5/5; broader coordinator migration for radar, screeners, and future evaluators remains open
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

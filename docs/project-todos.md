@@ -12060,6 +12060,15 @@ Specific migration targets:
 - indicator alerts:
   - stop refreshing OHLCV separately inside each alert path
   - group by `(instrument, timeframe)` and refresh once, then evaluate all alerts from the same DB snapshot
+
+Implementation checkpoint (2026-09-12): the production APScheduler alert engine
+and the ARQ-compatible alert task now perform a grouped preflight before any
+price/indicator evaluation. Latest-price polling is once per instrument, and
+indicator OHLCV/local-bar reads are performed once per `(instrument, timeframe)`
+group. The evaluation loops consume only those immutable-in-run observations/local bars;
+provider failures leave the affected group unavailable instead of triggering
+per-alert retries. The broader coordinator migration for radar, screeners,
+and future evaluators remains open.
 - chart/instrument OHLCV routes:
   - keep read-through semantics
   - but route through the same coordinator so missing-slice and freshness policy stay consistent across the app

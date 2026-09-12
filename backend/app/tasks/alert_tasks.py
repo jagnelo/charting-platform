@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
-from app.models.ohlcv import OHLCVBar
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.services import indicators as ind_engine
 from app.services.market_data import get_current_price_async
@@ -84,6 +84,41 @@ async def _get_recent_bars(db, instrument_id, timeframe, limit=300):
         .scalars()
         .all()[::-1]
     )
+
+
+async def _preflight_latest_prices(
+    db,
+    alerts_by_instrument: dict[int, list[PriceAlert]],
+) -> dict[int, float | None]:
+    """Poll each high-alert instrument once before the evaluation phase."""
+
+    prices: dict[int, float | None] = {}
+    for instrument_id in sorted(alerts_by_instrument):
+        instrument = await db.get(Instrument, instrument_id)
+        if instrument is None:
+            prices[instrument_id] = None
+            continue
+        await db.refresh(instrument, ["listings", "provider_symbols"])
+        try:
+            prices[instrument_id] = await get_current_price_async(db, instrument)
+        except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
+            logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
+            prices[instrument_id] = None
+    return prices
+
+
+async def _preflight_recent_bars(
+    db, alerts: list[IndicatorAlert]
+) -> dict[tuple[int, Timeframe], list[OHLCVBar]]:
+    """Load one local indicator snapshot per instrument/timeframe group."""
+
+    groups = {(alert.instrument_id, alert.timeframe) for alert in alerts}
+    snapshots: dict[tuple[int, Timeframe], list[OHLCVBar]] = {}
+    for instrument_id, timeframe in sorted(groups, key=lambda item: (item[0], str(item[1]))):
+        snapshots[(instrument_id, timeframe)] = await _get_recent_bars(
+            db, instrument_id, timeframe
+        )
+    return snapshots
 
 
 async def _fire_price_alert(db, alert, current_price):
@@ -177,16 +212,12 @@ async def check_all_alerts(ctx: dict) -> dict:
             for a in price_alerts:
                 by_instrument.setdefault(a.instrument_id, []).append(a)
 
+            # High-alert latest-price polling is grouped as a preflight.  The
+            # alert evaluation loop below only consumes this snapshot, so
+            # multiple alerts cannot independently spend provider quota.
+            prices = await _preflight_latest_prices(db, by_instrument)
             for iid, alerts in by_instrument.items():
-                instrument = await db.get(Instrument, iid)
-                if instrument is None:
-                    continue
-                await db.refresh(instrument, ["listings", "provider_symbols"])
-                try:
-                    price = await get_current_price_async(db, instrument)
-                except Exception as exc:
-                    logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
-                    continue
+                price = prices.get(iid)
                 if price is None:
                     continue
 
@@ -214,8 +245,9 @@ async def check_all_alerts(ctx: dict) -> dict:
                 .all()
             )
 
+            recent_bars = await _preflight_recent_bars(db, ind_alerts)
             for alert in ind_alerts:
-                bars = await _get_recent_bars(db, alert.instrument_id, alert.timeframe)
+                bars = recent_bars.get((alert.instrument_id, alert.timeframe), [])
                 if not bars:
                     continue
 
