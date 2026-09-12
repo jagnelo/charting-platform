@@ -41,6 +41,22 @@ feed terms and quota contracts have been reviewed. These values must also be
 present for both `backend` and `worker`; the schedule is otherwise disabled
 and does not consume provider quota.
 
+The core market refresh and US venue/lifecycle reconciliation schedules are also
+disabled by default. After the corresponding provider entitlements, quota
+contracts, and reconciliation completeness have been reviewed, set
+`MARKET_DATA_REFRESH_SCHEDULE_ENABLED=true` and/or
+`MARKET_UNIVERSE_RECONCILIATION_ENABLED=true` together with a reviewed
+`MARKET_UNIVERSE_MISSING_CONFIRMATIONS` value. These controls are passed to
+both `backend` and `worker`, never to the research runner, and do not bypass
+provider fail-closed routing.
+
+Provider availability monitoring is independently controlled with
+`PROVIDER_AVAILABILITY_MONITOR_ENABLED`,
+`PROVIDER_AVAILABILITY_LIVE_ENABLED`, and the notification/cooldown/timeout
+settings. Keep live probes disabled unless the deployment has explicitly
+approved their provider usage impact; monitoring never widens a quota or
+entitlement contract.
+
 ```bash
 make rpi-preflight
 make rpi-bundle COMMIT=<full-validated-master-sha>

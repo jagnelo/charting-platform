@@ -162,7 +162,10 @@ DEFAULT_DISCOVERY_PROVIDER=alpaca
 DEFAULT_OPTIONS_PROVIDER=yfinance
 ENABLE_LEGACY_YFINANCE_FALLBACK=false
 IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]
-OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
+OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=["yfinance"]
+# Tokenized providers remain visible in the seed order; each is still
+# fail-closed until its own quota, entitlement, and redistribution review passes.
+TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 # MarketData.app option chains are priced per returned current symbol. Leave
 # zero unless an operator has reviewed the request filters and selected a
 # conservative maximum symbol count.
@@ -173,7 +176,9 @@ MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
 # widen this automatically.
 MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
-PROVIDER_CHAIN_SEEDS={}
+# Leave provider chains at the backend's reviewed defaults unless changing them
+# deliberately; yfinance is not an implicit market-data fallback.
+PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"],"tokenized_corporate_actions":["robinhood_tokens","xstocks"]}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45

@@ -372,3 +372,7 @@ Update this handoff at each coherent boundary.
 - The complete backend unit suite passes 1,755/1,755 in 62.07s with the
   repository’s existing 37 deprecation warnings after the complete deployment
   wiring pass; no provider calls or services were started.
+- README and provider documentation examples now match the actual US-first
+  chains (including the Dinari/Ondo tokenized priority) and explain the new
+  deployment control semantics. Workstream and diff validation remain green;
+  no provider calls or services were started.
