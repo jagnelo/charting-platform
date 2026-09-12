@@ -615,3 +615,8 @@ Update this handoff at each coherent boundary.
   Focused usage coverage passed `20/20`, the complete backend unit suite passed
   `1,810/1,810`, and Ruff, compileall, and diff checks passed. Source commit
   `00dad98d` is pushed; no provider calls were needed.
+- Receipt-reconciliation coverage now asserts the new fields survive merger
+  normalization and rejects impossible `failed_operations` counts. Focused
+  live-ledger/usage coverage passed `21/21`, the complete backend unit suite
+  passed `1,811/1,811`, and Ruff, compileall, and diff checks passed. Source
+  commit `4234b2f2` is pushed; no provider calls were needed.
