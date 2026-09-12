@@ -1120,3 +1120,14 @@ Update this handoff at each coherent boundary.
 - Source checkpoint `d555450b` extends the SEC directory regression to assert
   that `create_missing` is issuer-only: no `Instrument` or `InstrumentListing`
   rows are created. The focused service suite remains `10/10`.
+
+- Source checkpoint `cb7dce9f` removes the last implicit yfinance options
+  default. Settings, both environment examples, root/RPi Compose, README,
+  provider documentation, and registry tests now consistently select
+  `marketdata_app` as the API-first options candidate while preserving the
+  reviewed-plan/credit and response-priced-chain fail-closed controls.
+  yfinance remains available only through an explicit legacy override. The
+  complete backend unit suite passes `1,936/1,936` with 37 warnings; focused
+  registry/runtime coverage passes `30/30`; Ruff, compileall, Compose parsing,
+  and diff checks pass. No provider calls or credentials were used for this
+  configuration correction, and no frontend or ETF-provider files changed.
