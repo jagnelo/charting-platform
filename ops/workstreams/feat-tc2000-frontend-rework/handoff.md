@@ -2,6 +2,28 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Study Lab mutation lifecycle
+
+Product commit `e47b8fbf` fences Study Lab rerun and cancel responses by
+mounted state and mutation generation. Late responses cannot repopulate a
+closed study surface or overwrite newer run state. Focused coverage passed
+`31/31`; full frontend Vitest passed `1031/1031` across 115 files;
+type-check, production build, and `git diff --check` passed with only the
+existing chunk-size warning. No provider, fallback, visual, or acceptance
+policy changed. Continue implementation in this worktree only.
+
+## 2026-09-12 — Exact Study Lab mutation gate rechecked
+
+At product tip `e47b8fbf8dd7a217a6d600c19b82ae7828d9c914`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Fence Research Results mutation lifecycle
 
 Product commit `d9bd37c3` fences Research Results rerun and cancel responses
