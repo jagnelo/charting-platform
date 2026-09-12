@@ -248,11 +248,12 @@ intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
 response-byte telemetry was written outside Git; no credential or payload was
 persisted.
 
-The 2026-09-12 focused refresh passed 4/4 newly enabled-provider checks:
-EDGAR profile and complete directory pagination, Alpaca paper-account history,
-MarketData.app daily candles, and the Dinari Sandbox metadata, quote/history,
-news, dividend, and split case. The refresh used the operator-owned environment
-and retained only aggregate transport telemetry outside Git.
+The 2026-09-12 focused core refresh passed 4/4 checks: EDGAR profile and complete
+directory pagination, Alpaca paper-account history, and MarketData.app daily
+candles. A separate Dinari Sandbox refresh passed 1/1, covering its metadata,
+quote/history, news, dividend, and split case. Both refreshes used the
+operator-owned environment and retained only aggregate transport telemetry
+outside Git.
 
 A provider may
 have a green live probe and remain non-routable when any external constraint
