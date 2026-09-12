@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.screener import ScreenerDefinition
 from app.models.user import User
@@ -79,7 +80,7 @@ async def _refresh_run_progress(run: WatchlistHistoryRefreshRun, redis) -> dict:
         "instrument_count": len(run.instrument_ids or []),
         **counts,
         "instruments": by_instrument,
-        "updated_at": datetime.now(UTC).isoformat(),
+        "updated_at": wire_datetime(datetime.now(UTC)),
     }
     return progress
 

@@ -3,12 +3,23 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.routers import watchlists as watchlists_router
 from app.schemas.watchlist import (
     WatchlistHistoryRefreshRunOut,
     WatchlistSourceHistoryStatus,
     WatchlistSourceHistoryTimeframeStatus,
 )
 from app.services import watchlist_history as history
+
+
+@pytest.mark.asyncio
+async def test_watchlist_refresh_progress_uses_canonical_utc_z_timestamp():
+    payload = await watchlists_router._refresh_run_progress(
+        SimpleNamespace(instrument_ids=[]),
+        object(),
+    )
+
+    assert payload["updated_at"].endswith("Z")
 
 
 def test_watchlist_history_normalizers_dedupe_sources_and_timeframes():

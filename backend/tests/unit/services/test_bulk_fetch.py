@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -6,6 +7,26 @@ import pytest
 
 from app.models.ohlcv import Timeframe
 from app.services import bulk_fetch
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_progress_uses_canonical_utc_z_timestamp():
+    captured = {}
+
+    class Redis:
+        async def set(self, _key, payload, *, ex):
+            captured.update(json.loads(payload))
+            assert ex > 0
+
+    await bulk_fetch._publish_progress(
+        Redis(),
+        42,
+        "complete",
+        [Timeframe.D1],
+        {"D1": 3},
+    )
+
+    assert captured["updated_at"].endswith("Z")
 
 
 @pytest.mark.asyncio

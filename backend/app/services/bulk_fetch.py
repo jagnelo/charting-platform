@@ -25,6 +25,7 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
@@ -416,7 +417,7 @@ async def _publish_progress(
                 "status": status,  # "in_progress" | "complete"
                 "timeframes": [tf.value for tf in timeframes],
                 "results": summary,
-                "updated_at": datetime.now(UTC).isoformat(),
+                "updated_at": wire_datetime(datetime.now(UTC)),
             }
         )
         await redis.set(key, payload, ex=_REDIS_TTL_SECONDS)
