@@ -246,4 +246,29 @@ describe('SettingsView', () => {
       expect.objectContaining({ status: 'resolved' }),
     )
   })
+
+  it('does not publish a late provider response after the view unmounts', async () => {
+    let resolvePolicies!: (value: typeof providerPolicies) => void
+    const policiesPromise = new Promise<typeof providerPolicies>((resolve) => {
+      resolvePolicies = resolve
+    })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return policiesPromise
+      if (path === '/providers/usage') return Promise.resolve(providerUsage)
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [createPinia()] },
+    })
+
+    await Promise.resolve()
+    wrapper.unmount()
+    resolvePolicies(providerPolicies)
+    await flushPromises()
+
+    expect((wrapper.vm as any).providerCards).toEqual([])
+  })
 })

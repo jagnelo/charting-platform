@@ -297,7 +297,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { usePresetsStore } from '@/stores/presets'
@@ -334,6 +334,13 @@ const providerPanels = ref<Record<string, { usage: boolean; config: boolean }>>(
 const reconciliationIssues = ref<ReconciliationIssue[]>([])
 const reconciliationLoading = ref(false)
 const reconciliationError = ref<string | null>(null)
+let lifecycleGeneration = 0
+let providerLoadSequence = 0
+let reconciliationLoadSequence = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const providerCards = computed(() => {
   const groups = new Map<string, ProviderPolicyStatus[]>()
@@ -474,6 +481,7 @@ function togglePanel(provider: string, panel: 'usage' | 'config') {
 }
 
 async function initOneSignal() {
+  const generation = lifecycleGeneration
   if (!oneSignalAppId.value) { pushStatus.value = { ok: false, msg: 'Please enter an App ID' }; return }
   localStorage.setItem('onesignal_app_id', oneSignalAppId.value)
   try {
@@ -481,23 +489,30 @@ async function initOneSignal() {
     window.OneSignalDeferred = window.OneSignalDeferred || []
     // @ts-ignore
     window.OneSignalDeferred.push(async (OneSignal: any) => {
+      if (!isCurrentLifecycle(generation)) return
       await OneSignal.init({ appId: oneSignalAppId.value, notifyButton: { enable: false } })
+      if (!isCurrentLifecycle(generation)) return
       await OneSignal.Notifications.requestPermission()
+      if (!isCurrentLifecycle(generation)) return
       pushStatus.value = { ok: true, msg: 'Push notifications enabled!' }
     })
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation)) return
     pushStatus.value = { ok: false, msg: `Failed: ${e.message}` }
   }
 }
 
 async function testConnection() {
+  const generation = lifecycleGeneration
   try {
     const url = `${apiBase.value || ''}/health`
     const res = await fetch(url)
     const data = await res.json()
+    if (!isCurrentLifecycle(generation)) return
     connStatus.value = { ok: true, msg: `Connected ✓ — ${JSON.stringify(data)}` }
     if (apiBase.value) localStorage.setItem('api_base', apiBase.value)
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation)) return
     connStatus.value = { ok: false, msg: `Failed: ${e.message}` }
   }
 }
@@ -510,7 +525,9 @@ function checkboxValue(event: Event) {
   return (event.target as HTMLInputElement).checked
 }
 
-async function loadProviderPolicies() {
+async function loadProviderPolicies(generation = lifecycleGeneration) {
+  if (!isCurrentLifecycle(generation)) return
+  const sequence = ++providerLoadSequence
   providersLoading.value = true
   providerError.value = null
   try {
@@ -520,59 +537,78 @@ async function loadProviderPolicies() {
       api.get<typeof availabilityRows.value>('/providers/availability'),
       api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8'),
     ])
+    if (!isCurrentLifecycle(generation) || sequence !== providerLoadSequence) return
     providerPolicies.value = policies
     providerUsage.value = usage
     availabilityRows.value = availability
     availabilityRuns.value = runs
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation) || sequence !== providerLoadSequence) return
     providerError.value = e?.message ?? 'Failed to load providers'
   } finally {
-    providersLoading.value = false
+    if (isCurrentLifecycle(generation) && sequence === providerLoadSequence) providersLoading.value = false
   }
 }
 
 async function patchPolicy(policy: ProviderPolicyStatus, patch: Record<string, unknown>) {
+  const generation = lifecycleGeneration
   try {
     await api.patch(`/providers/policies/${encodeURIComponent(policy.provider)}/${encodeURIComponent(policy.capability)}`, patch)
-    await loadProviderPolicies()
+    if (!isCurrentLifecycle(generation)) return
+    await loadProviderPolicies(generation)
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation)) return
     providerError.value = e?.message ?? 'Failed to update provider policy'
   }
 }
 
-async function loadReconciliationIssues() {
+async function loadReconciliationIssues(generation = lifecycleGeneration) {
+  if (!isCurrentLifecycle(generation)) return
   if (!authStore.user?.is_admin) return
+  const sequence = ++reconciliationLoadSequence
   reconciliationLoading.value = true
   reconciliationError.value = null
   try {
     const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200')
+    if (!isCurrentLifecycle(generation) || sequence !== reconciliationLoadSequence) return
     reconciliationIssues.value = rows.map((row) => ({
       ...row,
       candidates: Array.isArray(row.candidates) ? row.candidates : [],
     }))
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation) || sequence !== reconciliationLoadSequence) return
     reconciliationError.value = e?.message ?? 'Failed to load reconciliation issues'
   } finally {
-    reconciliationLoading.value = false
+    if (isCurrentLifecycle(generation) && sequence === reconciliationLoadSequence) reconciliationLoading.value = false
   }
 }
 
 async function reviewIssue(issue: ReconciliationIssue, status: 'resolved' | 'ignored') {
+  const generation = lifecycleGeneration
   reconciliationError.value = null
   try {
     await api.patch(`/providers/reconciliation/issues/${issue.id}`, {
       status,
       resolution: { action: status, reviewed_from: 'legacy-settings' },
     })
-    await loadReconciliationIssues()
+    if (!isCurrentLifecycle(generation)) return
+    await loadReconciliationIssues(generation)
   } catch (e: any) {
+    if (!isCurrentLifecycle(generation)) return
     reconciliationError.value = e?.message ?? 'Failed to update reconciliation issue'
   }
 }
 
 onMounted(async () => {
   presetsStore.loadPresets()
-  await Promise.all([loadProviderPolicies(), loadReconciliationIssues()])
+  const generation = lifecycleGeneration
+  await Promise.all([loadProviderPolicies(generation), loadReconciliationIssues(generation)])
+})
+
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  providerLoadSequence += 1
+  reconciliationLoadSequence += 1
 })
 </script>
 
