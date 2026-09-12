@@ -582,3 +582,6 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     assert summary["execution_log"][-1]["event_type"] == "open_at_end"
     assert summary["portfolio_timeline"][-1]["open_position_count"] == 1
     assert summary["coverage"]["requested_status"] == "full"
+    assert summary["equity_curve"][0]["ts"] == "2026-01-01T00:00:00Z"
+    assert summary["position_timeline"]["entry_at"] == "2026-01-01T00:00:00Z"
+    assert summary["execution_log"][0]["ts"] == "2026-01-01T00:00:00Z"

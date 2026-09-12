@@ -3891,7 +3891,7 @@ async def _build_benchmark_summary(
 
     curve = [
         {
-            "ts": bar.ts.isoformat(),
+            "ts": _wire_datetime(bar.ts) or "",
             "equity": round(initial_capital * (float(bar.close) / first_close), 4),
         }
         for bar in bars
@@ -3903,9 +3903,9 @@ async def _build_benchmark_summary(
         "label": f"{benchmark_symbol} buy & hold",
         "symbol": benchmark_symbol,
         "side": "long",
-        "entry_at": bars[0].ts.isoformat(),
+        "entry_at": _wire_datetime(bars[0].ts),
         "exit_at": None,
-        "current_at": bars[-1].ts.isoformat(),
+        "current_at": _wire_datetime(bars[-1].ts),
         "entry_price": round(first_close, 4),
         "current_price": round(float(bars[-1].close), 4),
         "quantity": quantity,
@@ -3936,7 +3936,7 @@ async def _build_benchmark_summary(
     }
     execution_log = [
         {
-            "ts": bars[0].ts.isoformat(),
+            "ts": _wire_datetime(bars[0].ts),
             "event_type": "entry",
             "position_id": f"{benchmark_symbol}-buy-hold",
             "symbol": benchmark_symbol,
@@ -3950,7 +3950,7 @@ async def _build_benchmark_summary(
             "reason": "buy_and_hold_entry",
         },
         {
-            "ts": bars[-1].ts.isoformat(),
+            "ts": _wire_datetime(bars[-1].ts),
             "event_type": "open_at_end",
             "position_id": f"{benchmark_symbol}-buy-hold",
             "symbol": benchmark_symbol,
