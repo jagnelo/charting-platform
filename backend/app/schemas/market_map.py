@@ -146,7 +146,7 @@ class MarketMapOut(BaseModel):
     reference_membership_version: str | None = None
     reference_series_method: str | None = None
     membership_version: str | None = None
-    calculation_version: str = "market-map-v1"
+    calculation_version: str = "market-map-v2"
     cache_key: str
     cache_hit: bool = False
     cached_at: datetime | None = None
