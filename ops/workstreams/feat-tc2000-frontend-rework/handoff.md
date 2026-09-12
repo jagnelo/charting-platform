@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Indicator alerts require explicit multi-output selection
+
+Product commit `d3bf41e3` makes `/alerts/indicator` reject missing or invalid
+multi-output keys, normalizes single-output alerts, and preserves named output
+selection from Chart Plot Library promotion. The scheduled and service alert
+evaluators pass the explicit key to the indicator engine and skip ambiguous or
+invalid legacy alerts without implicit first-series evaluation.
+
+Focused indicator-engine coverage passed `30/30`; Chart Plot Library passed
+`29/29`; combined drag/drop/EasyScan/plot-library coverage passed `49/49`;
+frontend type-check, Ruff, formatting, and diff checks passed. The alert API
+regressions are present but pending the Docker-backed integration fixture. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. The exact integration gate must be rerun at this tip after
+Docker health is restored before advancing the next bounded seam.
+
+Checkpoint scope: `backend/app/services/indicators.py`,
+`backend/app/routers/alerts.py`, `backend/app/services/alert_engine.py`,
+`backend/app/tasks/alert_tasks.py`, `frontend/src/components/workstation/ChartPlotLibrary.vue`,
+and the focused alert/output tests.
+
 ## 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
 
 Product commit `93849ae6` carries the explicit indicator-output contract into

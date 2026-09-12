@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Indicator alerts require explicit multi-output selection
+
+Product commit `d3bf41e3` closes the alert side of the canonical indicator
+output contract. The `/alerts/indicator` API now rejects unnamed or invalid
+outputs for multi-output indicators with actionable 422 capability errors and
+normalizes single-output alerts to their canonical key. Chart Plot Library
+alert promotion carries the selected output, and both alert evaluators fail
+closed instead of selecting a first returned series. Existing single-output
+alerts remain compatible.
+
+Focused indicator-engine coverage passed `30/30`; focused Chart Plot Library
+coverage passed `29/29`; the combined drag/drop, EasyScan, and plot-library
+checks passed `49/49`; frontend type-check, Ruff, formatting, and
+`git diff --check` passed. API regressions for missing, valid, and invalid
+Bollinger Band alert outputs are recorded but require the Docker-backed
+integration fixture. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+The next action is to restore Docker Desktop health, run the pending alert and
+indicator-batch API regressions plus the exact branch-scoped gate at this tip,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam. Preserve the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
 
 Product commit `93849ae6` extends the explicit output contract into the

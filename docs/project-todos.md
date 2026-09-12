@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Indicator alerts require explicit multi-output selection
+
+- [x] Reject unnamed or invalid multi-output indicator outputs at
+      `/alerts/indicator`, normalize single-output alerts to canonical keys,
+      and preserve explicit keys in the alert payload (`d3bf41e3`).
+- [x] Carry the selected output from Chart Plot Library alert promotion and
+      make both alert evaluators fail closed instead of choosing a first
+      returned series. Indicator-engine coverage passed `30/30`, Chart Plot
+      Library coverage `29/29`, combined drag/drop/EasyScan/plot-library
+      coverage `49/49`, and type-check/Ruff/format/diff checks passed.
+- [ ] Restore Docker Desktop health, run the pending alert and indicator-batch
+      API regressions plus the exact branch-scoped gate, then continue
+      provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Screener conditions fail closed on ambiguous indicator outputs
 
 - [x] Remove synchronous screener first-output fallback for indicator-threshold,
