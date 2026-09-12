@@ -241,6 +241,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketdata.app account plan"] == "routable"
     assert statuses["marketdata.app option chain"] == "routable"
 
+    monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "1")
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app option chain"].startswith("non-routable:")
+
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "not-an-integer")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app option chain"].startswith("non-routable:")

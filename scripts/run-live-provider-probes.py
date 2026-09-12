@@ -218,8 +218,8 @@ def routing_safety_preflight() -> dict[str, str]:
         option_chain_bound = 0
     result["marketdata.app option chain"] = (
         "routable"
-        if option_chain_bound > 0
-        else "non-routable: positive reviewed MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS required"
+        if option_chain_bound >= 2
+        else "non-routable: reviewed MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS must be >= 2"
     )
 
     for provider, operations in BYTE_BOUND_OPERATIONS.items():

@@ -291,6 +291,7 @@ progress:
     - MarketData.app's operation-specific option-chain symbol bound is now wired into the manual GitHub live workflow and backend environment example, with routing-preflight coverage for unset, positive, and malformed values; no option-chain entitlement is enabled by default
     - radar coverage now uses persisted OHLCV freshness evidence (with a conservative timeframe fallback), excludes stale members from detection evaluation, persists a separate stale count, and can opt in to bounded durable repair enqueueing via `queue_repairs=true`; radar unit coverage passes 33/33 and the Docker-backed API/full gate remains blocked by Docker readiness
     - provider-policy schema creation and downgrade paths no longer declare or restore the retired generic 60/minute, 15-burst, 2-concurrency, or 30-second defaults; quota dimensions are nullable until a reviewed provider contract is recorded, and the focused quota/secret suite passes 76/76 with Ruff and diff checks clean
+    - MarketData.app option-chain routing diagnostics now require the same documented minimum bound as the adapter/runtime (at least two symbols); a bound of one is explicitly non-routable and the focused wiring suite passes 11/11
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
