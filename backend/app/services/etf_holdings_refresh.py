@@ -553,10 +553,14 @@ async def _bootstrap_from_sec_filings(
     latest = await get_latest_snapshot(
         db,
         profile.instrument_id,
-        include_holdings=False,
+        # SEC fallback eligibility must inspect materialized rows.  A raw
+        # resolved counter can describe cash, derivatives, unresolved, or
+        # placeholder rows and must not suppress the fallback when no
+        # canonical equity member is actually available.
+        include_holdings=True,
         include_controlled_fixture=False,
     )
-    if latest is not None:
+    if holdings_snapshot_is_bootstrap_ready(latest):
         probe = await probe_etf_holdings_adapter_route(db, profile)
         return ETFHoldingsBootstrapResult(
             profile=profile,
@@ -589,10 +593,10 @@ async def _bootstrap_from_sec_filings(
         latest = await get_latest_snapshot(
             db,
             profile.instrument_id,
-            include_holdings=False,
+            include_holdings=True,
             include_controlled_fixture=False,
         )
-        if latest is not None:
+        if holdings_snapshot_is_bootstrap_ready(latest):
             probe = await probe_etf_holdings_adapter_route(db, profile)
             return ETFHoldingsBootstrapResult(
                 profile=profile,

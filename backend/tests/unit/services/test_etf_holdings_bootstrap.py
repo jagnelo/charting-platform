@@ -11,6 +11,7 @@ from app.services.etf_holdings import ensure_lightweight_etf_instrument
 from app.services.etf_holdings_refresh import (
     ETFHoldingsBootstrapResult,
     _apply_known_route_metadata,
+    _bootstrap_from_sec_filings,
     _issuer_product_identifier,
     bootstrap_etf_holdings_profile,
     holdings_snapshot_is_bootstrap_ready,
@@ -162,6 +163,91 @@ def test_holdings_snapshot_readiness_requires_resolved_complete_evidence(
 ):
     snapshot = SimpleNamespace(completeness_status=status, resolved_count=resolved_count)
     assert holdings_snapshot_is_bootstrap_ready(snapshot) is expected
+
+
+@pytest.mark.asyncio
+async def test_sec_bootstrap_does_not_treat_non_equity_rows_as_ready(monkeypatch):
+    """A materialized cash-only snapshot must still allow SEC fallback."""
+
+    profile = SimpleNamespace(
+        id=7,
+        instrument_id=101,
+        instrument=SimpleNamespace(symbol="QQQ", name="Invesco QQQ Trust"),
+        sec_cik="0001067839",
+    )
+    non_equity_snapshot = SimpleNamespace(
+        completeness_status="complete",
+        resolved_count=1,
+        holdings=[
+            SimpleNamespace(
+                row_type="cash",
+                holding_type="cash",
+                is_resolved=True,
+                constituent_instrument_id=None,
+                constituent_symbol=None,
+            )
+        ],
+    )
+    ready_snapshot = SimpleNamespace(
+        completeness_status="filing_reconstructed",
+        resolved_count=1,
+        holdings=[
+            SimpleNamespace(
+                row_type="security",
+                holding_type="equity",
+                is_resolved=True,
+                constituent_instrument_id=42,
+                constituent_symbol="AAPL",
+            )
+        ],
+    )
+    latest_calls = 0
+    nport_calls = 0
+    legacy_calls = 0
+
+    async def fake_get_latest_snapshot(
+        db, instrument_id, *, include_holdings=True, include_controlled_fixture=True
+    ):
+        nonlocal latest_calls
+        assert include_holdings is True
+        assert include_controlled_fixture is False
+        latest_calls += 1
+        return non_equity_snapshot if latest_calls == 1 else ready_snapshot
+
+    async def fake_nport(db, *, profile, max_filings, requested_by_user_id):
+        nonlocal nport_calls
+        nport_calls += 1
+        assert max_filings == 3
+        assert requested_by_user_id is None
+        return {"discovered": 1, "ingested": 1, "skipped": 0, "failed": 0}
+
+    async def fake_legacy(db, *, profile, max_filings, requested_by_user_id):
+        nonlocal legacy_calls
+        legacy_calls += 1
+        return {"discovered": 0, "ingested": 0, "skipped": 0, "failed": 0}
+
+    probe = SimpleNamespace(status="ready")
+
+    async def fake_probe(db, profile):
+        return probe
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route", fake_probe
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar.backfill_sec_nport_holdings", fake_nport)
+    monkeypatch.setattr("app.services.etf_holdings_edgar.backfill_sec_legacy_holdings", fake_legacy)
+
+    result = await _bootstrap_from_sec_filings(object(), profile=profile)
+
+    assert result is not None
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is True
+    assert "SEC N-PORT" in (result.message or "")
+    assert nport_calls == 1
+    assert legacy_calls == 0
 
 
 @pytest.mark.asyncio
