@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence benchmark-family analytics teardown
+
+Product commit `45dff3ec` fences shared WorkstationToolContent
+benchmark-family readiness, analytics, overview, and benchmark-list loading
+indicators by independent request generations. Late or superseded responses
+cannot clear or repopulate detached local loading state; store/API contracts
+are unchanged. Full frontend Vitest passed `1041/1041`; type-check, production
+build, and `git diff --check` passed with only the existing chunk-size warning;
+the full backend unit suite passed `1523/1523` at `69.02%` coverage. No
+dedicated WorkstationToolContent component harness exists, so higher-level
+workstation coverage remains the regression signal. No provider, fallback,
+visual, or acceptance policy changed. Continue in this worktree only.
+
 ## 2026-09-12 — Fence workstation watchlist mutations
 
 Product commit `8b63be84` fences shared WorkstationToolContent combo and

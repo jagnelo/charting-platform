@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence benchmark-family analytics teardown
+
+Product commit `45dff3ec` closes a bounded R6 lifecycle gap in the shared
+WorkstationToolContent benchmark-family surfaces. Benchmark-family readiness,
+family analytics, overview, and benchmark-list loading indicators now use
+independent request generations and stop publishing local state after teardown
+or after a newer request supersedes them. Store/API contracts are unchanged.
+Full frontend Vitest passed `1041/1041` across 115 files; frontend type-check
+and production build passed with only the existing chunk-size warning; the
+full backend unit suite passed `1523/1523` with `69.02%` coverage; and
+`git diff --check` passed. No dedicated WorkstationToolContent component
+harness exists, so higher-level workstation coverage remains the regression
+signal. No provider, fallback, visual baseline, mask, threshold, skip, or
+acceptance policy changed.
+
+Continue provider/history, R4 fan-out, and R2-R7 evidence while preserving the
+six protected visual state-oracle assertions.
+
 ## 2026-09-12 — Fence workstation watchlist mutations
 
 Product commit `8b63be84` closes a bounded R6 lifecycle gap in the shared

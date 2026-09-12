@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence benchmark-family analytics teardown
+
+- [x] Fence benchmark-family readiness, analytics, overview, and benchmark-list
+      loading indicators by independent request generations so teardown and
+      superseded requests cannot publish stale local state (`45dff3ec`).
+- [x] Full frontend Vitest passed `1041/1041` across 115 files; type-check,
+      production build, and `git diff --check` passed with only the existing
+      chunk-size warning. Full backend unit suite passed `1523/1523` at
+      `69.02%` coverage. No dedicated shared-content harness exists.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
 ### 2026-09-12 — Fence workstation watchlist mutations
 
 - [x] Fence shared WorkstationToolContent combo and personal-watchlist
