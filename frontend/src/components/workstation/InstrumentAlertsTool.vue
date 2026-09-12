@@ -89,8 +89,8 @@
         <button v-if="alert.status !== 'active'" type="button" @click="rearmPrice(alert.id)">Rearm</button>
         <button type="button" aria-label="Delete price alert" @click="deletePrice(alert.id)"><WorkstationGlyph kind="delete" /></button>
       </li>
-      <li v-for="alert in indicatorAlerts" :key="`indicator-${alert.id}`" role="listitem" :aria-label="`Indicator alert: ${alert.indicator_a_type} ${alert.condition}, ${alert.status}`">
-        <span><b>{{ indicatorLabel(alert.indicator_a_type) }}</b> {{ alert.condition }} {{ alert.threshold_value ?? (alert.indicator_b_type ? indicatorLabel(alert.indicator_b_type) : '') }}</span>
+      <li v-for="alert in indicatorAlerts" :key="`indicator-${alert.id}`" role="listitem" :aria-label="`Indicator alert: ${indicatorAlertLabel(alert)}, ${alert.status}`">
+        <span><b>{{ indicatorAlertLabel(alert) }}</b></span>
         <small>{{ alert.status }}{{ alert.repeat ? ' · repeats' : '' }}</small>
         <button type="button" :aria-label="`${alert.repeat ? 'Disable' : 'Enable'} repeat for indicator alert`" @click="patchIndicator(alert.id, { repeat: !alert.repeat })"><WorkstationGlyph kind="repeat" /></button>
         <button v-if="alert.status === 'active'" type="button" aria-label="Pause indicator alert" @click="patchIndicator(alert.id, { status: 'paused' })"><WorkstationGlyph kind="pause" /></button>
@@ -121,13 +121,23 @@
 import { computed, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
-import { INDICATOR_CATALOG } from '@/lib/indicators/catalog'
+import { INDICATOR_CATALOG, indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
 import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
 import type { IndicatorType } from '@/types'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
 type PriceAlert = { id: number; condition: string; threshold_price: number | string; status: string; repeat: boolean }
-type IndicatorAlert = { id: number; indicator_a_type: string; condition: string; threshold_value: number | string | null; indicator_b_type: string | null; status: string; repeat: boolean }
+type IndicatorAlert = {
+  id: number
+  indicator_a_type: string
+  indicator_a_params?: Record<string, unknown> | null
+  condition: string
+  threshold_value: number | string | null
+  indicator_b_type: string | null
+  indicator_b_params?: Record<string, unknown> | null
+  status: string
+  repeat: boolean
+}
 type ScreenerAlert = { id: number; screener_id: number; screener_name?: string; trigger_type: string; status: string; repeat: boolean }
 type AlertHistory = { id: number; alert_type: string; fired_at: string; trigger_value: number | string | null; is_viewed: boolean }
 
@@ -315,8 +325,20 @@ async function mutate<T>(request: () => Promise<T>, apply: (value: T) => void) {
 }
 function conditionLabel(value: string) { return value.replace(/_/g, ' ') }
 function formatPrice(value: number | string) { return Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 }) }
-function indicatorLabel(type: string) {
-  return type.trim().toUpperCase()
+function indicatorAlertLabel(alert: IndicatorAlert): string {
+  const left = indicatorSeriesDisplayName({
+    type: alert.indicator_a_type as IndicatorType,
+    params: alert.indicator_a_params ?? {},
+  })
+  const conditionText = conditionLabel(alert.condition)
+  if (alert.indicator_b_type) {
+    const right = indicatorSeriesDisplayName({
+      type: alert.indicator_b_type as IndicatorType,
+      params: alert.indicator_b_params ?? {},
+    })
+    return `${left} ${conditionText} ${right}`
+  }
+  return `${left} ${conditionText} ${alert.threshold_value ?? ''}`.trim()
 }
 function formatFiredAt(value: string) { return new Date(value).toLocaleString() }
 

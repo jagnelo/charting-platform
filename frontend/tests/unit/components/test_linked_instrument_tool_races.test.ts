@@ -62,6 +62,30 @@ describe('linked instrument tool stale-response guards', () => {
     expect(wrapper.text()).not.toContain('No alerts for XLK.')
   })
 
+  it('discloses selected outputs in saved indicator alerts', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/indicator') {
+        return Promise.resolve([{
+          id: 8,
+          instrument_id: 1,
+          indicator_a_type: 'bb',
+          indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+          condition: 'crosses_above',
+          threshold_value: 100,
+          indicator_b_type: null,
+          indicator_b_params: null,
+          status: 'active',
+          repeat: false,
+        }])
+      }
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('BB(20,2) [bb_upper] crosses above 100'))
+    expect(wrapper.get('[role="listitem"][aria-label*="bb_upper"]').exists()).toBe(true)
+  })
+
   it('does not leave the alerts tool busy when an older mutation completes after relinking', async () => {
     const mutation = deferred<{ id: number; condition: string; threshold_price: number; status: string; repeat: boolean }>()
     apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {
