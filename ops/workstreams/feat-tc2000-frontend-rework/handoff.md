@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
+
+Product commit `ad86c37b` fixes the bounded bulk-fetch optimization that used
+newly inserted coarse-row counts as a proxy for source/cache availability. A
+persisted adjusted D1/W1/MN row through the requested end now keeps the
+requested intraday fetch eligible even when the provider response is entirely
+duplicate; a genuinely empty coarse cache still produces the existing explicit
+skip. Focused coverage passed `12/12`, the full backend unit suite passed
+`1518/1518`, and Ruff, formatting, and diff checks passed. Rerun the exact gate
+when Docker is healthy. No provider/fallback/visual/acceptance policy changed;
+do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Exact named-event target gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `033b0397` after the

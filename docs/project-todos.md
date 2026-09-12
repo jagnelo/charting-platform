@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
+
+- [x] Correct the intraday-skip decision so a zero newly inserted coarse-row
+      result does not hide persisted canonical D1/W1/MN evidence. The bounded
+      probe respects the requested end, while intraday-only requests and the
+      genuinely empty-cache skip remain unchanged (`ad86c37b`).
+- [x] Focused bulk-fetch coverage passed `12/12`; the full backend unit suite
+      passed `1518/1518` with the existing 34 deprecation warnings; Ruff,
+      formatting, and `git diff --check` passed.
+- [ ] Rerun the exact branch gate at this coherent product tip once Docker is
+      healthy, then continue provider/history, R4 fan-out, and R2-R7 evidence.
+      No provider, fallback, visual, or acceptance policy changed.
+
 ### 2026-09-12 — Exact named-event target gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `033b0397`; git-diff,

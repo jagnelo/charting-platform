@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Preserve coarse-cache evidence during bulk history refresh
+
+Product commit `ad86c37b` closes a bounded R1 history-worker correctness gap.
+Bulk-fetch summaries count newly inserted bars, but that count is not evidence
+that coarse history is absent: a repeat provider refresh can return only rows
+already present in the canonical cache. The worker now probes persisted adjusted
+D1/W1/MN rows through the requested end before applying its intraday-skip
+optimization, so cached coarse evidence still permits the requested H1/M15/etc.
+fetch. A genuinely empty coarse cache retains the existing skip optimization,
+and intraday-only requests remain explicit. Bounded historical refreshes cannot
+be satisfied by future rows.
+
+Focused bulk-fetch coverage passed `12/12`; the full backend unit suite passed
+`1518/1518` with the existing 34 deprecation warnings; Ruff, formatting, and
+`git diff --check` passed. No provider routing, fallback, visual baseline, mask,
+threshold, skip policy, or acceptance policy changed. The exact branch gate is
+still pending behind the Docker socket failure; rerun it at this coherent tip,
+then continue canonical provider/history and compatible R4/R2-R7 work.
+
 ## 2026-09-12 — Exact named-event target gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `033b0397` after the
