@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class ScreenerAlertCreate(BaseModel):
@@ -31,3 +33,7 @@ class ScreenerAlertOut(BaseModel):
     last_checked_run_id: int | None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("triggered_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

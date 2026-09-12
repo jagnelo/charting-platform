@@ -8,6 +8,7 @@ import pytest
 from app.models.price_alert import AlertStatus
 from app.schemas.alert import IndicatorAlertOut, PriceAlertOut
 from app.schemas.alert_history import AlertFiringEventOut
+from app.schemas.screener_alert import ScreenerAlertOut
 from app.services import alert_engine
 
 
@@ -151,3 +152,25 @@ def test_alert_list_schemas_serialize_timestamps_as_canonical_utc_z():
     assert indicator_payload["triggered_at"] is None
     assert indicator_payload["created_at"] == "2026-09-12T15:30:00Z"
     assert indicator_payload["updated_at"] == "2026-09-12T16:30:00Z"
+
+
+def test_screener_alert_schema_serializes_timestamps_as_canonical_utc_z():
+    alert = SimpleNamespace(
+        id=3,
+        screener_id=9,
+        screener_name="Momentum",
+        trigger_type="both",
+        status="triggered",
+        repeat=True,
+        notes=None,
+        triggered_at=datetime(2026, 9, 12, 14, 30, tzinfo=UTC),
+        last_checked_run_id=12,
+        created_at=datetime(2026, 9, 12, 15, 30),
+        updated_at=datetime(2026, 9, 12, 16, 30, tzinfo=UTC),
+    )
+
+    payload = ScreenerAlertOut.model_validate(alert).model_dump(mode="json")
+
+    assert payload["triggered_at"] == "2026-09-12T14:30:00Z"
+    assert payload["created_at"] == "2026-09-12T15:30:00Z"
+    assert payload["updated_at"] == "2026-09-12T16:30:00Z"
