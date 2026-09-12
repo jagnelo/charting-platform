@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — SEC fallback requires canonical materialized members
+
+Product tip `87cc8bd2` closes the adjacent ETF bootstrap fallback seam. The
+SEC fallback now loads materialized holdings rows and applies the shared
+canonical readiness predicate before treating the latest stored snapshot as
+sufficient. Complete cash/non-equity-only, unresolved, and placeholder-only
+materializations therefore continue to SEC N-PORT/legacy recovery; only a
+resolved, non-placeholder canonical equity/security row suppresses the retry.
+The metadata-only raw `resolved_count` compatibility path remains available
+when no row detail exists.
+
+The focused bootstrap suite passed `16/16`; Ruff, formatting, and diff checks
+passed; and the full backend unit suite passed `1,476/1,476` at `68.53%`
+isolated coverage. The exact elevated branch-scoped gate passed all
+non-visual stages, including backend integration `391/391`, frontend
+static/build/test/contracts/probes, and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity completed `99/104`; the
+five failures were the established protected scaled `workspace-floating` /
+`watchlist-column-editor-open` cases only. Teardown removed all branch-scoped
+resources and four images. No visual, provider, fallback, or acceptance policy
+changed. Continue R1 provider/family history breadth, canonical population,
+W1/MN continuity, dense-data evidence, and R2-R7; preserve the
+no-integration/no-deployment boundary.
+
 ## 2026-09-12 — Source availability requires canonical materialized members
 
 Product tip `73fa0b33` closes the shared source-catalog availability seam.

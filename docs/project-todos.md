@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-12 — SEC fallback requires canonical materialized members
+
+- [x] Keep the SEC bootstrap fallback eligible when the latest materialized
+      snapshot is complete but contains only cash/non-equity, unresolved, or
+      placeholder rows; only a canonical resolved equity/security member may
+      suppress the fallback (`87cc8bd2`).
+- [x] Add the focused regression proving a complete cash-only snapshot falls
+      through to SEC N-PORT backfill; the focused bootstrap suite passed
+      `16/16`, with Ruff, formatting, and diff checks clean.
+- [x] The full backend unit suite passed `1,476/1,476` at `68.53%` isolated
+      coverage. The exact gate passed backend integration `391/391`, frontend
+      static/build/test/contracts/probes, and functional Playwright (`165`
+      passed, `107` documented skips across `272`). Visual parity completed
+      `99/104`; the five failures were all within the established protected
+      `workspace-floating` / `watchlist-column-editor-open` scaled cases.
+      Teardown removed all branch-scoped resources and four images. No visual,
+      provider, fallback, or acceptance policy changed.
+- [ ] Continue provider/family history breadth, remaining canonical
+      population, W1/MN continuity, dense-data evidence, and R2-R7 without
+      changing protected visual policy.
+
 ### 2026-09-12 — Source availability requires canonical materialized members
 
 - [x] Align ETF and benchmark-family source descriptors with the canonical

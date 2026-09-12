@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,11 +120,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4c809c4695925ed8756e3d98c779ca28bdbfbeb3",
+  "head": "87cc8bd286e7e4d9a623d1a6f5128a58b42ab846",
   "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-12T00:27:57.228719+00:00",
-  "last_human_progress_update": "2026-09-12T00:27:22.116245+00:00",
+  "last_checkpoint": "2026-09-12T00:59:50.131349+00:00",
+  "last_human_progress_update": "2026-09-12T00:59:39.060391+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f26a8f95cc0f521fe055b195760d735e0df71996eadb7f1a398799bd30d44328",
@@ -134,11 +140,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product 73fa0b33 makes eagerly loaded snapshot rows authoritative for source availability; focused source regressions 2/2 and full watchlist integration 53/53; backend unit 1475/1475 at 68%; exact gate passed all non-visual stages and functional Playwright 165/272 with 107 skips, while visual parity remains 98/104 with six established protected diffs; teardown clean; no policy changes.",
+    "current_blocker": "Product 87cc8bd2 gates SEC fallback on materialized canonical holdings: complete cash/non-equity, unresolved, and placeholder-only snapshots no longer suppress SEC recovery; focused bootstrap 16/16, full backend unit 1476/1476 at 68.53%, exact gate non-visual and functional stages passed with 165/272 and 107 skips, visual 99/104 with five established protected diffs, clean teardown, no policy changes.",
     "current_phase": "R1_canonical_provider_history_readiness",
-    "next_action": "Continue next bounded R1 canonical population, W1/MN continuity, or provider/family history seam after source availability alignment",
+    "next_action": "Continue next bounded R1 provider/family history breadth, canonical population, or W1/MN continuity seam after SEC fallback alignment",
     "total": 10,
-    "updated_at": "2026-09-12T00:27:22.116119+00:00"
+    "updated_at": "2026-09-12T00:59:39.060262+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

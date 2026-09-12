@@ -3,7 +3,31 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-11
+Last reconciled: 2026-09-12
+
+## 2026-09-12 — SEC fallback requires canonical materialized members
+
+At product tip `87cc8bd2`, the ETF bootstrap SEC fallback now inspects
+materialized holdings rows before deciding that a stored snapshot is sufficient
+to suppress another source attempt. Complete snapshots containing only cash or
+other non-equity rows, unresolved rows, or placeholder instruments no longer
+block SEC N-PORT/legacy recovery; only a canonical resolved equity/security row
+can satisfy the fallback's ready predicate. The existing metadata-only
+`resolved_count` compatibility path remains unchanged where row detail is not
+available.
+
+The focused bootstrap regression suite passed `16/16`; Ruff, formatting, and
+diff checks passed; and the full backend unit suite passed `1,476/1,476` at
+`68.53%` isolated coverage. The exact elevated branch-scoped gate passed all
+non-visual stages, including backend integration `391/391`, frontend
+static/build/test/contracts/probes, and functional Playwright `165` passed
+with `107` documented skips across `272`. Visual parity completed `99/104`,
+with five failures all inside the established protected scaled
+`workspace-floating` / `watchlist-column-editor-open` cases; no new visual
+failure appeared. Teardown removed all branch resources and four images. No
+visual, provider, fallback, or acceptance policy changed. Continue R1 provider
+and family-history breadth, canonical population, W1/MN continuity, dense-data
+evidence, and R2-R7 without changing protected visual policy.
 
 ## 2026-09-12 — Source availability requires canonical materialized members
 
