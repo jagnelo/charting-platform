@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
+
+- [x] Make single-output chart indicator promotions declare the canonical
+      backend output key instead of the implicit `value` fallback.
+- [x] Refuse condition, Boolean-column, filter, scan, Market Gauge, alert,
+      Strategy-signal, and watchlist-column-copy actions for multi-output
+      indicators until an explicit output-selection contract is available;
+      chart rendering and chart-to-chart copying remain supported.
+- [x] Focused Chart Plot Library coverage passed `27/27`; full frontend
+      Vitest passed `998/998` across `113` files; type-check, Ruff/format, and
+      diff checks passed (`4db5cc1d`).
+- [x] Reran the exact branch-scoped gate at this product tip. Repository,
+      dependency, migration, frontend-preparation, and lint stages passed;
+      `backend-coverage` stopped after the 180-second Docker readiness window
+      because Docker Desktop `/v1.55/info` returned HTTP 500. No later gate
+      stage ran and no product or visual failure was observed.
+- [ ] Restore Docker Desktop health, rerun the exact gate, and continue the
+      next provider/history or compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
 
 - [x] Add the same explicit finite-observation threshold controls to named

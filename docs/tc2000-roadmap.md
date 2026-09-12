@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
+
+Product commit `4db5cc1d` closes a bounded R4 compatibility hole in the chart
+plot library. Single-output indicators now declare their canonical backend
+output when a condition is saved. Multi-output indicators (bands, channels,
+MACD, stochastic, ADX, Aroon, pivots, and Ichimoku) no longer create a
+condition, Boolean column, filter, scan, Market Gauge, alert, or Strategy
+signal through an implicit first-output fallback; watchlist-column copying is
+likewise refused until an explicit output-selection contract exists. Chart
+plot rendering and chart-to-chart copying remain available.
+
+Focused Chart Plot Library coverage passed `27/27`; the full frontend Vitest
+suite passed `998/998` across `113` files; frontend type-check, repository
+Ruff/format checks, and `git diff --check` passed. No backend contract, visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. The exact branch-scoped gate was rerun at this product tip and again
+stopped at `backend-coverage` after the 180-second Docker readiness window:
+Docker Desktop's API returned HTTP 500 for `/v1.55/info`; no backend
+integration, provider, browser, or visual stage ran.
+
+The next action is to restore Docker Desktop health and rerun the exact gate,
+then continue the next bounded provider/history or compatible chart/list/gauge
+seam. Preserve the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
 
 Product commit `e048db09` closes the remaining Study Lab UI gap for named

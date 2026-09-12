@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Chart plot promotion rejects ambiguous multi-output indicators
+
+Product commit `4db5cc1d` closes a bounded R4 compatibility hole in the chart
+plot library. Single-output indicators now persist their canonical backend
+output key when conditions are saved. Multi-output indicators no longer create
+conditions, Boolean columns, filters, scans, Market Gauges, alerts, or
+Strategy signals through an implicit first-output fallback; copying them into
+watchlist columns is also refused until an explicit output-selection contract
+exists. Chart rendering and chart-to-chart copying remain available.
+
+Focused Chart Plot Library coverage passed `27/27`; full frontend Vitest passed
+`998/998` across `113` files; frontend type-check, repository Ruff/format,
+and diff checks passed. The exact branch-scoped gate was rerun at this product
+tip and stopped at `backend-coverage` after the 180-second Docker readiness
+window because Docker Desktop's `/v1.55/info` API returned HTTP 500. No
+backend integration, provider, browser, or visual stage ran; no product or
+visual-policy failure was observed.
+
+Checkpoint scope: `frontend/src/components/workstation/ChartPlotLibrary.vue`,
+`frontend/tests/unit/components/test_chart_plot_library.test.ts`,
+`docs/project-todos.md`, `docs/tc2000-roadmap.md`, and this handoff. Restore
+Docker health and rerun the exact gate before advancing the next bounded
+provider/history or compatible chart/list/gauge seam.
+
 ## 2026-09-12 — Study Lab structured artifacts gain threshold fan-out
 
 Product commit `e048db09` aligns Study Lab's named multi-output artifacts with
