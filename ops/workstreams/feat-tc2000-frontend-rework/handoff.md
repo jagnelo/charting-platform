@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Preserve Research Results selection during rerun
+
+Product commit `4939c094` fixes a Research Results selection race: a slower
+rerun response can no longer steal focus from a newer user-selected run.
+Focused coverage passed `37/37`; full frontend Vitest passed `1018/1018`
+across 115 files; type-check, production build, and `git diff --check` passed
+with only the existing chunk-size warning. No provider, fallback, visual, or
+acceptance policy changed. The exact gate was rerun at this tip and remains
+pending at Docker-backed `backend-coverage` because the Docker socket returned
+permission denied; no backend integration, provider, browser, or visual stage
+ran. Continue implementation in this worktree only.
+
+## 2026-09-12 — Exact Research Results selection gate rechecked
+
+At product tip `4939c09433b52b6d055383e328adc348e9e82940`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`.
+No backend integration, provider, browser, or visual stage ran, and no
+product or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. Do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Restore live Market Map after snapshot selection
 
 Product commit `02716f1b` fixes the saved-snapshot to live-result transition:

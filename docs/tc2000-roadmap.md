@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Preserve Research Results selection during rerun
+
+Product commit `4939c094` closes a bounded R6 selection race in Research
+Results. A slower rerun response now updates the run list without stealing
+focus from a newer run selected by the user. Focused Research Results
+component coverage passed `37/37`; full frontend Vitest passed `1018/1018`
+across 115 files; frontend type-check and production build passed with only
+the existing chunk-size warning; and `git diff --check` passed. No provider,
+fallback, visual baseline, mask, threshold, skip, or acceptance policy
+changed. The exact branch gate was rerun at this tip and remains blocked only
+at Docker-backed `backend-coverage` because the Docker socket returned
+permission denied; no backend integration, provider, browser, or visual stage
+ran. Continue the next bounded provider/history or compatible R4/R2-R7 seam
+while preserving the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact Research Results selection gate rechecked
+
+At product tip `4939c09433b52b6d055383e328adc348e9e82940`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then exited
+2 after the fixed 180-second Docker readiness window because Docker returned
+permission denied at `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran; no product
+assertion or visual-policy failure was observed. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Restore live Market Map after snapshot selection
 
 Product commit `02716f1b` closes a bounded R6 snapshot state-restoration gap.

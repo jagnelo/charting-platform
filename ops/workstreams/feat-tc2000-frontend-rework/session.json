@@ -54,7 +54,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
@@ -97,11 +103,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "84e1b1acb71f807b1446cae7e912f7c2bfc7c7e9",
+  "head": "4939c09433b52b6d055383e328adc348e9e82940",
   "implementation_sha": "070f6ef83689176f6a4e6e740619c2fc16ab2695",
   "interrupted": false,
   "last_checkpoint": "2026-09-12T13:34:13+00:00",
-  "last_human_progress_update": "2026-09-12T13:44:15.148416+00:00",
+  "last_human_progress_update": "2026-09-12T13:51:48.356475+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 070f6ef83689176f6a4e6e740619c2fc16ab2695, then continue the next bounded provider/history or compatible chart/list/gauge seam",
   "plan_hash": "8370489fc5fed631a757c0418fd89d1e41b06f49871ca690a3b537cb6e4f2985",
@@ -117,11 +123,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact branch-scoped gate was rerun at product tip 02716f1b21ffc3e054a8df5409a3f47f63df001d. Git-diff, workstream validation (30 records), dependency/migration checks, frontend preparation, Ruff, formatting, and TypeScript passed; backend-coverage stopped after 180 seconds because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. Product commit 02716f1b restores the current Market Map result after leaving or deleting a loaded snapshot; focused component coverage passed 43/43, full frontend Vitest passed 1017/1017, type-check/build/diff checks passed, and no policy changed. Continue the next bounded provider/history or compatible R4/R2-R7 seam while preserving the six visual state-oracle assertions.",
-    "current_phase": "R6_market_map_snapshot_state_restoration_and_r7_exact_tip_gate",
-    "next_action": "Rerun the exact branch-scoped gate when Docker is healthy at product tip 02716f1b21ffc3e054a8df5409a3f47f63df001d, then continue the next bounded provider/history or compatible chart/list/gauge seam while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy.",
+    "current_blocker": "Product commit 4939c094 preserves a newer Research Results run selection when a slower rerun response resolves. Focused Research Results coverage passed 37/37; full frontend Vitest passed 1018/1018 across 115 files; frontend type-check and production build passed with only the existing chunk-size warning; and git diff --check passed. The exact branch-scoped gate was rerun at this tip: repository/workstream validation, dependency/migration checks, frontend preparation, Ruff, formatting, and TypeScript passed, then backend-coverage stopped after the fixed 180-second Docker readiness window because Docker returned permission denied for unix:///Users/jagnelo/.docker/run/docker.sock. No backend integration, provider, browser, or visual stage ran; no product assertion or visual-policy failure was observed. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue the next bounded provider/history or compatible R4/R2-R7 seam while preserving the six visual state-oracle assertions.",
+    "current_phase": "R6_research_results_selection_race_and_r7_exact_tip_gate",
+    "next_action": "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 4939c09433b52b6d055383e328adc348e9e82940; keep the exact gate receipt current and rerun it when Docker is healthy.",
     "total": 10,
-    "updated_at": "2026-09-12T13:44:15.148219+00:00"
+    "updated_at": "2026-09-12T13:51:48.356397+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
