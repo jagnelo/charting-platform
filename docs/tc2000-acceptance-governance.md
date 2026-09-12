@@ -12,6 +12,18 @@ The focused regression passes `27/27` and the full backend unit suite passes
 or the remaining rebalance and Version 25 acceptance gates. No provider,
 fallback, visual, migration, or acceptance policy changed.
 
+## 2026-09-12 — Exact full-stack gate rechecked at revision-aware history tip
+
+The exact branch-scoped gate passed backend unit (`1529/1529`), backend
+integration (`404/404`, `81.98%` combined coverage), functional E2E (`165
+passed`, `107 skipped`), and all dependency, migration, build, contract,
+provider, sandbox, and research-runner checks. Visual acceptance remains
+`98/104` with only the six already protected watchlist-column-editor and
+workspace-floating diffs. Stack, volumes, and built images were cleaned. No
+visual threshold, mask, skip, provider, fallback, migration, or acceptance
+rule changed; this receipt does not waive the remaining provider/history or
+V25 work.
+
 ## 2026-09-12 — Exact full-stack gate rechecked at point-in-time history tip
 
 The exact branch-scoped gate passed backend unit (`1528/1528`), backend

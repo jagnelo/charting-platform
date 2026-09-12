@@ -19,6 +19,20 @@ visual, or acceptance policy changed. This is a bounded R1 rebalance-continuity
 maintenance closure; full provider population, bar floors, and AC2–AC7/AC10
 remain open.
 
+## 2026-09-12 — Exact gate at revision-aware history tip
+
+At product tip `f54c5761a` and documentation tip `c1b502368`, the exact
+branch-scoped gate passed dependency, migration, lint/format, TypeScript,
+backend unit (`1529/1529`), backend integration (`404/404`, `81.98%`
+combined coverage), frontend build/contracts/provider and research-runner
+probes, and functional E2E (`165 passed`, `107 skipped`). Visual acceptance
+remains `98/104` with exactly the six unchanged protected diffs: the
+watchlist-column-editor states at 1080p 100/125 and workspace-floating states
+at 1080p 100/125 and 1440p 100/125. The stack, volumes, and built images were
+cleaned by the gate. No visual threshold, mask, skip, provider, fallback,
+migration, or acceptance rule changed. Continue the next bounded canonical
+provider/history or compatible R4/R2–R7 seam; AC2–AC7 and AC10 remain open.
+
 ## 2026-09-12 — Exact gate at point-in-time history tip
 
 At product tip `fdb274af4` and documentation tip `a6cba5845`, the exact
