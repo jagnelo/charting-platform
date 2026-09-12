@@ -1344,7 +1344,7 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         week52_low_time = low_row.week52_low_time
 
         async with _52w_stats_lock(instrument.id):
-            fetched_at = datetime.now(UTC).isoformat()
+            fetched_at = _wire_datetime(datetime.now(UTC))
             stats = (
                 await db.execute(
                     select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)

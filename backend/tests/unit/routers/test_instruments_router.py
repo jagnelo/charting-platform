@@ -252,6 +252,9 @@ class TestInstrument52WStats:
         assert float(refreshed.stats.week52_high) == 200.0
         assert float(refreshed.stats.week52_low) == 120.0
         assert refreshed.stats.field_provenance["week52_high"]["source"] == "internal_ohlcv_52w"
+        fetched_at = refreshed.stats.field_provenance["week52_high"]["fetched_at"]
+        assert fetched_at.endswith("Z")
+        assert "+00:00" not in fetched_at
         assert (
             refreshed.stats.field_provenance["week52_high"]["observed_at"]
             == base.date().isoformat()
