@@ -29,6 +29,7 @@ from app.services.provider_runtime import (
     provider_contract_operation_costs_configured,
     provider_rate_limit_error,
     quota_contract_missing_dimensions,
+    quota_dimensions,
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -877,6 +878,102 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert contract["dimensions"][1]["limit"] == 50
     assert contract["dimensions"][1]["unit"] == "concurrent_requests"
     assert seed.get("max_concurrency") is None
+    assert {item["quota_group"] for item in contract["dimensions"]} == {"account"}
+
+
+@pytest.mark.asyncio
+async def test_explicit_quota_group_shares_one_budget_across_capabilities(db):
+    """Provider account budgets must not be multiplied by capability."""
+
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="account-budget-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    contract = {
+        "reset": "rolling",
+        "dimensions": [
+            {
+                "name": "credits_per_day",
+                "limit": 3,
+                "window_seconds": 86400,
+                "unit": "credits",
+                "scope": "api_key",
+                "quota_group": "account",
+                "source": "https://provider.example/rate-limits",
+            }
+        ],
+    }
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_source="unit-test provider contract",
+        quota_contract=contract,
+    )
+    resolved = ResolvedProvider(
+        provider_name="account-budget-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=2,
+        now=now,
+    )
+    second = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.LATEST_PRICE.value,
+        units=2,
+        now=now,
+    )
+
+    assert first is not None and len(first) == 1
+    assert second is None
+    row = db.execute(select(ProviderQuotaWindow)).scalar_one()
+    assert row.quota_group == "account"
+    assert row.reserved_units == 2
+
+
+@pytest.mark.asyncio
+async def test_ungrouped_quota_dimensions_remain_capability_scoped(db):
+    """No provider grouping is inferred when a contract omits the marker."""
+
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="capability-budget-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    first = await reserve_provider_quota(
+        async_db,
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        dimension="requests_per_minute",
+        units=1,
+        limit_units=1,
+        now=now,
+    )
+    second = await reserve_provider_quota(
+        async_db,
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE.value,
+        dimension="requests_per_minute",
+        units=1,
+        limit_units=1,
+        now=now,
+    )
+
+    assert first is not None and second is not None
+    assert {row.quota_group for row in db.execute(select(ProviderQuotaWindow)).scalars()} == {
+        ProviderCapability.PRICE_HISTORY.value,
+        ProviderCapability.LATEST_PRICE.value,
+    }
 
 
 def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(monkeypatch):
@@ -903,6 +1000,31 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100000)
     unsupported = provider_rate_limit_seed("marketdata_app")
     assert unsupported["quota_contract"]["dimensions"][0]["limit"] == 100
+
+
+def test_blank_explicit_quota_group_fails_closed():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_source="unit-test provider contract",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 1,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "quota_group": "   ",
+                    "source": "https://provider.example/rate-limits",
+                }
+            ],
+        },
+    )
+
+    assert quota_dimensions(policy) == []
 
 
 def test_marketdata_app_option_chain_cost_requires_explicit_symbol_bound(monkeypatch):

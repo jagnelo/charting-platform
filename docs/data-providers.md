@@ -56,6 +56,16 @@ from a caller-computed estimate (for example Alpaca, Coinbase, Kraken,
 Marketstack, and Twelve Data) or remain fail-closed behind their reviewed byte
 maps; they are not represented by a misleading fixed one-request profile.
 
+Durable quota windows are keyed by provider, documented dimension, and an
+explicit `quota_group` when the vendor's allowance is shared across
+capabilities. For example, MarketData.app's daily credits and concurrent
+request ceiling use the reviewed `account` group, so history, quotes, and
+options cannot each spend an independent copy of the same account budget.
+When a contract omits the field, the compatibility key is the requested
+capability; the runtime never infers account sharing from a generic scope label.
+Existing windows are backfilled by migration `7d8e9f0a1b2c`, and admin/usage
+diagnostics expose both the request capability and bucket group.
+
 ## Provider capability and quota ledger
 
 The table below is the checked-in contract used by `ProviderPolicy` and the

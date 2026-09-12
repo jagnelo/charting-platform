@@ -23,6 +23,7 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -212,6 +213,13 @@ class ProviderQuotaWindow(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    # A provider-defined budget may be shared by several capabilities.  This
+    # is intentionally separate from the request capability so an account-wide
+    # allowance is not multiplied when different operations use the same key.
+    # Missing values are backfilled to the legacy capability key by migration.
+    quota_group: Mapped[str] = mapped_column(
+        String(80), nullable=False, index=True
+    )
     # A provider may publish independent budgets (for example requests/minute
     # and requests/month).  Each dimension is reserved independently; routing
     # must satisfy all dimensions before selecting a provider.
@@ -229,7 +237,7 @@ class ProviderQuotaWindow(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint(
             "data_source_id",
-            "capability",
+            "quota_group",
             "dimension",
             "window_started_at",
             "window_seconds",
@@ -254,6 +262,10 @@ class ProviderQuotaIdentity(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    quota_group: Mapped[str] = mapped_column(
+        String(80), nullable=False, index=True
+    )
+
     dimension: Mapped[str] = mapped_column(String(80), nullable=False)
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     window_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -264,7 +276,7 @@ class ProviderQuotaIdentity(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint(
             "data_source_id",
-            "capability",
+            "quota_group",
             "dimension",
             "window_started_at",
             "window_seconds",
@@ -274,12 +286,28 @@ class ProviderQuotaIdentity(Base, TimestampMixin):
         Index(
             "ix_provider_quota_identity_lookup",
             "data_source_id",
-            "capability",
+            "quota_group",
             "dimension",
             "window_started_at",
             "window_seconds",
         ),
     )
+
+
+@event.listens_for(ProviderQuotaWindow, "before_insert")
+def _default_provider_quota_window_group(_mapper, _connection, target) -> None:
+    """Keep direct legacy model inserts capability-scoped without a quota guess."""
+
+    if target.quota_group is None:
+        target.quota_group = str(getattr(target.capability, "value", target.capability))
+
+
+@event.listens_for(ProviderQuotaIdentity, "before_insert")
+def _default_provider_quota_identity_group(_mapper, _connection, target) -> None:
+    """Mirror the legacy capability key for direct identity inserts."""
+
+    if target.quota_group is None:
+        target.quota_group = str(getattr(target.capability, "value", target.capability))
 
 
 class ProviderWorkloadLease(Base, TimestampMixin):

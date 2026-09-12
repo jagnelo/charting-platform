@@ -331,6 +331,7 @@ async def list_provider_quota(
             "id": row.id,
             "data_source_id": row.data_source_id,
             "capability": row.capability,
+            "quota_group": row.quota_group,
             "dimension": row.dimension,
             "window_started_at": row.window_started_at,
             "window_seconds": row.window_seconds,

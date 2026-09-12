@@ -415,6 +415,7 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         .all()
     )
     policies = (await db.execute(select(ProviderPolicy))).scalars().all()
+    reset_by_source_group_dimension: dict[tuple[int, str, str], str] = {}
     reset_by_source_capability_dimension: dict[tuple[int, str, str], str] = {}
     for policy in policies:
         contract = policy.quota_contract or {}
@@ -428,9 +429,14 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             dimension_name = str(dimension.get("name") or "").strip()
             if not dimension_name:
                 continue
+            quota_group = str(dimension.get("quota_group") or capability).strip()
+            reset = str(dimension.get("reset") or contract_reset).strip()
+            reset_by_source_group_dimension[
+                (policy.data_source_id, quota_group, dimension_name)
+            ] = reset
             reset_by_source_capability_dimension[
                 (policy.data_source_id, str(capability), dimension_name)
-            ] = str(dimension.get("reset") or contract_reset).strip()
+            ] = reset
     quota_identities = (
         (
             await db.execute(
@@ -450,9 +456,10 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             logs_by_source[log.data_source_id].append(log)
 
     active_windows_by_source: dict[int, list[dict[str, Any]]] = defaultdict(list)
-    identity_counts: Counter[tuple[int, str, datetime, int]] = Counter(
+    identity_counts: Counter[tuple[int, str, str, datetime, int]] = Counter(
         (
             identity.data_source_id,
+            str(identity.quota_group or identity.capability),
             identity.dimension,
             _ensure_aware(identity.window_started_at),
             int(identity.window_seconds),
@@ -466,8 +473,12 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             continue
         window_seconds = max(1, int(window.window_seconds or 1))
         capability = getattr(window.capability, "value", window.capability)
+        quota_group = str(window.quota_group or capability)
         reset = reset_by_source_capability_dimension.get(
             (window.data_source_id, str(capability), str(window.dimension))
+        )
+        reset = reset_by_source_group_dimension.get(
+            (window.data_source_id, quota_group, str(window.dimension)), reset
         )
         ends_at = _window_end_for_reset(
             started_at,
@@ -479,6 +490,8 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         active_windows_by_source[window.data_source_id].append(
             {
                 "dimension": window.dimension,
+                "quota_group": quota_group,
+                "capability": str(capability),
                 "window_started_at": started_at,
                 "window_ends_at": ends_at,
                 "window_seconds": window_seconds,
@@ -494,6 +507,7 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "distinct_identity_count": identity_counts.get(
                     (
                         window.data_source_id,
+                        quota_group,
                         window.dimension,
                         started_at,
                         window_seconds,

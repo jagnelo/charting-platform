@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Explicit provider quota-group accounting
+
+- [x] Separate the durable quota bucket key from the requested capability. A
+      provider contract may now declare `dimension.quota_group` when one
+      account/key-wide allowance is shared by multiple capabilities; omitted
+      groups retain the capability-scoped compatibility key, and blank groups
+      fail closed.
+- [x] Apply this to MarketData.app's documented account/key-wide daily credits
+      and concurrent-request dimensions, expose the group in admin/usage
+      diagnostics, backfill existing rows through an additive migration, and
+      prove grouped and ungrouped behavior with unit coverage.
+
 ### 2026-09-12 — Strict provider credential presence checks
 
 - [x] Reject whitespace-only values in the centralized provider configuration

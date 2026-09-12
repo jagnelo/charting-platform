@@ -836,6 +836,11 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
             or not str(item.get("scope") or policy.quota_scope or "").strip()
         ):
             return []
+        # A quota group is optional for backward compatibility, but an
+        # explicitly supplied value must be non-blank.  Blank grouping would
+        # silently collapse unrelated capabilities into an ambiguous bucket.
+        if "quota_group" in item and not str(item.get("quota_group") or "").strip():
+            return []
         result.append(
             {
                 **item,

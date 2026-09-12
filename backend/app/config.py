@@ -690,6 +690,10 @@ class Settings(BaseSettings):
                         "window_seconds": 86400,
                         "unit": "credits",
                         "scope": "api_key",
+                        # Both documented limits are charged to the same
+                        # account/key. Keep one explicit bucket across all
+                        # capabilities instead of multiplying the allowance.
+                        "quota_group": "account",
                         "source": "https://www.marketdata.app/docs/api/rate-limiting/",
                     },
                     {
@@ -698,6 +702,7 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "concurrent_requests",
                         "scope": "api_key",
+                        "quota_group": "account",
                         "source": "https://www.marketdata.app/docs/api/rate-limiting/",
                         "reset": "rolling",
                     },

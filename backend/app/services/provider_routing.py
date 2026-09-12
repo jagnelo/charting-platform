@@ -36,6 +36,21 @@ _DISTINCT_IDENTITY_UNITS = {"symbol", "symbols", "unique_symbol", "unique_symbol
 _IN_FLIGHT_UNITS = {"concurrent_requests", "concurrency"}
 
 
+def quota_group_for_dimension(capability: str, dimension: dict[str, Any]) -> str:
+    """Return the explicitly reviewed bucket key for one provider dimension.
+
+    Providers sometimes publish an account/key-wide allowance used by several
+    capabilities.  Contracts must opt into that sharing with ``quota_group``;
+    otherwise the legacy capability key remains the isolated bucket.  This
+    fallback is a compatibility key, not a guessed provider limit.
+    """
+
+    configured = dimension.get("quota_group")
+    if configured is not None and str(configured).strip():
+        return str(configured).strip()
+    return str(capability).strip()
+
+
 def _window_start_for_dimension(
     dimension: dict[str, Any],
     *,
@@ -77,6 +92,7 @@ async def _claim_distinct_identity(
     *,
     data_source_id: int,
     capability: str,
+    quota_group: str,
     dimension: str,
     window_started_at: datetime,
     window_seconds: int,
@@ -89,7 +105,7 @@ async def _claim_distinct_identity(
         return False
     query = select(ProviderQuotaIdentity).where(
         ProviderQuotaIdentity.data_source_id == data_source_id,
-        ProviderQuotaIdentity.capability == capability,
+        ProviderQuotaIdentity.quota_group == quota_group,
         ProviderQuotaIdentity.dimension == dimension,
         ProviderQuotaIdentity.window_started_at == window_started_at,
         ProviderQuotaIdentity.window_seconds == window_seconds,
@@ -101,6 +117,7 @@ async def _claim_distinct_identity(
     candidate = ProviderQuotaIdentity(
         data_source_id=data_source_id,
         capability=capability,
+        quota_group=quota_group,
         dimension=dimension,
         window_started_at=window_started_at,
         window_seconds=window_seconds,
@@ -176,6 +193,7 @@ async def reserve_provider_quota(
     *,
     data_source_id: int,
     capability: str,
+    quota_group: str | None = None,
     units: int,
     limit_units: int,
     window_seconds: int = 60,
@@ -189,6 +207,7 @@ async def reserve_provider_quota(
 
     if units <= 0 or limit_units <= 0:
         return None
+    effective_quota_group = str(quota_group or capability).strip() or str(capability)
     current = now or datetime.now(UTC)
     if rolling:
         # Rolling provider limits are enforced over all second buckets that
@@ -200,7 +219,7 @@ async def reserve_provider_quota(
             select(ProviderQuotaWindow)
             .where(
                 ProviderQuotaWindow.data_source_id == data_source_id,
-                ProviderQuotaWindow.capability == capability,
+                ProviderQuotaWindow.quota_group == effective_quota_group,
                 ProviderQuotaWindow.dimension == dimension,
                 ProviderQuotaWindow.window_started_at >= cutoff,
                 ProviderQuotaWindow.window_seconds == window_seconds,
@@ -214,6 +233,7 @@ async def reserve_provider_quota(
             candidate = ProviderQuotaWindow(
                 data_source_id=data_source_id,
                 capability=capability,
+                quota_group=effective_quota_group,
                 dimension=dimension,
                 window_started_at=start,
                 window_seconds=window_seconds,
@@ -238,7 +258,7 @@ async def reserve_provider_quota(
                         select(ProviderQuotaWindow)
                         .where(
                             ProviderQuotaWindow.data_source_id == data_source_id,
-                            ProviderQuotaWindow.capability == capability,
+                            ProviderQuotaWindow.quota_group == effective_quota_group,
                             ProviderQuotaWindow.dimension == dimension,
                             ProviderQuotaWindow.window_started_at == start,
                             ProviderQuotaWindow.window_seconds == window_seconds,
@@ -265,7 +285,7 @@ async def reserve_provider_quota(
         select(ProviderQuotaWindow)
         .where(
             ProviderQuotaWindow.data_source_id == data_source_id,
-            ProviderQuotaWindow.capability == capability,
+            ProviderQuotaWindow.quota_group == effective_quota_group,
             ProviderQuotaWindow.dimension == dimension,
             ProviderQuotaWindow.window_started_at == start,
             ProviderQuotaWindow.window_seconds == window_seconds,
@@ -277,6 +297,7 @@ async def reserve_provider_quota(
         candidate = ProviderQuotaWindow(
             data_source_id=data_source_id,
             capability=capability,
+            quota_group=effective_quota_group,
             dimension=dimension,
             window_started_at=start,
             window_seconds=window_seconds,
@@ -346,6 +367,7 @@ async def reserve_provider_contract(
         dimension_unit = str(dimension.get("unit") or "").strip().lower()
         is_distinct_identity = dimension_unit in _DISTINCT_IDENTITY_UNITS
         is_in_flight = dimension_unit in _IN_FLIGHT_UNITS
+        quota_group = quota_group_for_dimension(capability, dimension)
         if is_distinct_identity and not usage_identity:
             return None
         raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
@@ -359,6 +381,7 @@ async def reserve_provider_contract(
             db,
             data_source_id=resolved.data_source.id,
             capability=capability,
+            quota_group=quota_group,
             dimension=dimension_name,
             units=reserved_units,
             limit_units=int(dimension["limit"]),
@@ -396,6 +419,7 @@ async def reserve_provider_contract(
                 db,
                 data_source_id=resolved.data_source.id,
                 capability=capability,
+                quota_group=quota_group,
                 dimension=dimension_name,
                 window_started_at=identity_start,
                 window_seconds=int(dimension["window_seconds"]),
