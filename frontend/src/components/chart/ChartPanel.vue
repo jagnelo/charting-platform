@@ -156,6 +156,12 @@ const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const linkMenuOpen = ref(false)
 const searchMessage = ref('')
+let lifecycleGeneration = 0
+let selectionGeneration = 0
+
+function isCurrent(generation: number, selection = selectionGeneration) {
+  return generation === lifecycleGeneration && selection === selectionGeneration
+}
 
 const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
 const linkColor = computed(() => panelLinks.colorFor(props.panelId))
@@ -191,8 +197,11 @@ async function onSearchInput() {
     return
   }
   searchTimer = setTimeout(async () => {
+    const generation = lifecycleGeneration
     try {
-      searchResults.value = await api.get('/instruments/search', { q: searchQuery.value })
+      const results = await api.get<SearchResult[]>('/instruments/search', { q: searchQuery.value })
+      if (!isCurrent(generation)) return
+      searchResults.value = results
       hlIdx.value = 0
     } catch { /* ignore */ }
   }, 250)
@@ -206,8 +215,10 @@ async function selectResult(r: SearchResult) {
 async function selectExpression() {
   const expr = searchQuery.value.trim()
   if (!expr) return
+  const generation = lifecycleGeneration
   try {
     const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
+    if (!isCurrent(generation)) return
     closeSearch()
     await onSymbolSelect(instr.symbol)
   } catch (e) {
@@ -228,8 +239,17 @@ function handleClickOutside(e: MouseEvent) {
   if (linkWrapRef.value && !linkWrapRef.value.contains(e.target as Node)) linkMenuOpen.value = false
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  lifecycleGeneration += 1
+  document.addEventListener('mousedown', handleClickOutside)
+})
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  selectionGeneration += 1
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = null
+  document.removeEventListener('mousedown', handleClickOutside)
+})
 
 // ── Symbol / link actions ──────────────────────────────────────────────────
 function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
@@ -238,8 +258,11 @@ function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
 }
 
 async function onSymbolSelect(symbol: string) {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
+    if (!isCurrent(generation, selection)) return
     const panel = layoutStore.panels.find(p => p.id === id)
     if (!panel) continue
     const tf = id === props.panelId ? localTf.value : panel.timeframe
@@ -247,18 +270,24 @@ async function onSymbolSelect(symbol: string) {
     layoutStore.updatePanel(id, { symbol, timeframe: tf })
     await pStore.loadBars(symbol, tf)
   }
+  if (!isCurrent(generation, selection)) return
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
+    if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
 }
 
 watch(localTf, async (tf) => {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   layoutStore.updatePanel(props.panelId, { timeframe: tf })
   if (!store.symbol) return
   await store.loadBars(store.symbol, tf)
+  if (!isCurrent(generation, selection)) return
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, tf)
+    if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
 })
@@ -275,11 +304,15 @@ watch(
 
 // Restore symbol from layout config on mount
 onMounted(async () => {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   const cfg = panelConfig.value
   if (cfg?.symbol) {
     await store.loadBars(cfg.symbol, cfg.timeframe)
+    if (!isCurrent(generation, selection)) return
     if (store.instrument) {
       await drawStore.loadDrawings(store.instrument.id, cfg.timeframe)
+      if (!isCurrent(generation, selection)) return
       await alertsStore.loadAlerts(store.instrument.id)
     }
   }
