@@ -352,3 +352,9 @@ Update this handoff at each coherent boundary.
   MarketData.app, and Dinari credentials/live evidence as complete and keeps
   Tradier/Ondo/IBKR as intentionally deferred operator decisions, avoiding an
   obsolete “missing Alpaca/MarketData key” blocker.
+- The tracked root/backend environment examples and Docker Compose defaults now
+  match the current backend provider contract: price/latest chains no longer
+  carry stale Nasdaq/crypto/macro entries, discovery uses the current US
+  directory chain, and refresh/universe/shadow controls plus Nasdaq request
+  identity are documented. Static checks and both Compose contract parses pass;
+  no services, provider calls, credentials, or payloads were used.

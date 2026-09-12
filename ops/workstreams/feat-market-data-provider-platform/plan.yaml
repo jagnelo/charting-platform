@@ -354,6 +354,13 @@ progress:
       marked complete, while intentionally deferred Tradier/Ondo/IBKR work is
       retained as an explicit operator decision rather than a stale missing-key
       requirement.
+    - >-
+      The tracked root/backend environment examples and Docker Compose defaults
+      now match the current backend provider contract: price/latest chains no
+      longer carry stale Nasdaq/crypto/macro entries, discovery uses the current
+      US directory chain, and refresh/universe/shadow controls plus Nasdaq
+      request identity are documented; static checks and both Compose contract
+      parses pass with no services or provider calls started.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
