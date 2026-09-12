@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Venue-qualified universe identity
+
+- [x] Harden legacy `seed_universe` discovery so a ticker is never treated as
+      globally unique. Existing candidates are matched by normalized ticker,
+      canonical exchange MIC, and instrument type; a sole venue-less legacy
+      listing may be enriched once, while cross-venue collisions and duplicate
+      local keys remain fail-closed for separate reconciliation. Focused
+      seed-universe coverage passes 4/4 and the complete backend unit suite
+      passes 1,886/1,886 with the known 37 warnings. Changed-file Ruff,
+      formatting, compileall, and diff checks pass. Docker-backed migration /
+      full-stack validation remains unavailable; no frontend or ETF-provider
+      adapter files changed.
+
 ### 2026-09-12 — Tokenized underlying stable-identifier retention
 
 - [x] Retain provider-published underlying FIGI, composite FIGI, ISIN, and
