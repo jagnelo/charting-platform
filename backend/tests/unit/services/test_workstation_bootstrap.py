@@ -144,7 +144,7 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
     async def fail_first_fetch(session, instrument, timeframe, start):
         calls.append(instrument.symbol)
         if len(calls) == 1:
-            raise RuntimeError("provider unavailable")
+            raise RuntimeError("GET https://provider.test/data?api_key=bootstrap-secret")
         return []
 
     monkeypatch.setattr(bootstrap, "fetch_ohlcv", fail_first_fetch)
@@ -164,6 +164,8 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
         "error",
     }
     assert result["history"][calls[0]]["status"] == "error"
+    assert "bootstrap-secret" not in result["history"][calls[0]]["message"]
+    assert "<redacted>" in result["history"][calls[0]]["message"]
 
 
 def test_core_bootstrap_retries_when_history_exists_but_is_below_technical_readiness(

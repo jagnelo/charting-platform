@@ -28,6 +28,7 @@ from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_holdings import ensure_etf_profile
 from app.services.etf_holdings_refresh import (
     USABLE_HOLDINGS_COMPLETENESS,
@@ -333,7 +334,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             history[symbol] = {
                 "status": "error",
                 "error_type": type(exc).__name__,
-                "message": str(exc)[:300],
+                "message": bounded_redact_provider_message(exc, max_length=300),
             }
 
     for symbol, _, quote_type in CORE_WORKSTATION_INSTRUMENTS:
@@ -378,7 +379,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
             holdings[symbol] = {
                 "status": "error",
                 "error_type": type(exc).__name__,
-                "message": str(exc)[:300],
+                "message": bounded_redact_provider_message(exc, max_length=300),
             }
 
     # Once the provider-backed ETF snapshots above are committed, queue the same
@@ -391,7 +392,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
     except Exception as exc:  # noqa: BLE001 - retain bounded bootstrap outcome
         family_history = {
             "status": "queue_error",
-            "message": str(exc)[:300],
+            "message": bounded_redact_provider_message(exc, max_length=300),
         }
     return {
         "skipped": False,

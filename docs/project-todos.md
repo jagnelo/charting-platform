@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-12 — Core bootstrap provider-error redaction
+
+- [x] Apply bounded credential redaction to core workstation history, ETF
+      bootstrap, and family-history queue error results. The existing bootstrap
+      regression now exercises a credential-bearing provider failure; focused
+      bootstrap/error coverage passes 14/14 and the full backend unit suite
+      passes 1743/1743 with Ruff and diff checks clean.
+
 ### 2026-09-12 — Dinari Sandbox deployment-default correction
 
 - [x] Correct Docker Compose, RPi Compose, and the manual GitHub live workflow
