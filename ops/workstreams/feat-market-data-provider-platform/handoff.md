@@ -369,3 +369,6 @@ Update this handoff at each coherent boundary.
   priority (while their unknown-quota/terms gates remain fail-closed), and the
   wiring suite explicitly guards that visibility. Focused coverage passes
   16/16; no credentials or provider payloads were used.
+- The complete backend unit suite passes 1,755/1,755 in 62.07s with the
+  repository’s existing 37 deprecation warnings after the complete deployment
+  wiring pass; no provider calls or services were started.

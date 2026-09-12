@@ -375,6 +375,10 @@ progress:
       priority while their unknown-quota/terms gates remain fail-closed; the
       wiring suite explicitly guards that visibility with 16/16 focused tests,
       and no credentials or provider payloads were used.
+    - >-
+      The complete backend unit suite passes 1,755/1,755 in 62.07s with the
+      repository's existing 37 deprecation warnings after the complete provider
+      deployment wiring pass; no provider calls or services were started.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
