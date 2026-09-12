@@ -7,6 +7,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
+from app.lib.time_utils import wire_datetime
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar
@@ -115,7 +116,7 @@ async def _fire_price_alert(db, alert, current_price):
             "condition": alert.condition.value,
             "threshold": float(alert.threshold_price),
             "current_price": current_price,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
 
@@ -150,7 +151,7 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
             "indicator": alert.indicator_a_type,
             "condition": condition,
             "current_value": current_val,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
 
