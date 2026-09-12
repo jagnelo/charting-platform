@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard chart hydration teardown
+
+Product commit `963892284` fences dashboard advanced-chart symbol resolution,
+chart-store loading, drawings, price-alert overlays, and error cleanup by
+mounted lifecycle and refresh generations. Focused coverage passed `1/1`; full
+frontend Vitest passed `1058/1058`; type-check/build/diff checks passed with
+only the existing chunk-size warning. Chart/API, provider, visual, and
+acceptance contracts are unchanged. Rerun the exact gate at the next coherent
+tip and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard hydration gate rechecked
 
 At documentation tip `82e8786c` (product tip `7c51e3b28`), the exact gate passed

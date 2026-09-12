@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard chart hydration teardown
+
+- [x] Fence dashboard advanced-chart symbol resolution, chart loading,
+      drawings, price-alert overlays, and error cleanup by mounted lifecycle
+      and refresh generations (`963892284`).
+- [x] Focused advanced-chart coverage passed `1/1`; full frontend Vitest
+      passed `1058/1058`; type-check, production build, and `git diff --check`
+      passed with only the existing chunk-size warning. No visual/acceptance
+      policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
+      tip, then continue the next bounded provider/history or compatible
+      R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence dashboard radar and instrument hydration
 
 - [x] Fence dashboard Radar list/detail flows plus quote and instrument-details

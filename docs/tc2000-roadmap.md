@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard chart hydration teardown
+
+Product commit `963892284` closes a bounded R2/R6 lifecycle gap in the
+dashboard advanced chart widget. Canonical symbol resolution, chart-store
+hydration, read-only drawings/price-alert overlays, and error cleanup now stop
+when the widget is unmounted or a newer refresh supersedes them. Chart payloads,
+overlay semantics, provider routing, linked-symbol behavior, and visual
+contracts are unchanged. Focused advanced-chart teardown coverage passed
+`1/1`; full frontend Vitest passed `1058/1058` across 118 files; frontend
+type-check and production build passed with only the existing chunk-size
+warning; and `git diff --check` passed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Continue the next
+bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard hydration gate rechecked
 
 At documentation tip `82e8786c` (product tip `7c51e3b28`), the exact
