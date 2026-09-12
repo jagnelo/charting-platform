@@ -497,9 +497,13 @@ def test_marketdata_app_credentialed_option_surface():
         (value for value in expirations if value >= date.today()), expirations[-1]
     )
     contracts, _ = _observed_read(
-        lambda: provider.fetch_option_chain("AAPL", expiration=expiration), provider.name
+        lambda: provider.fetch_option_chain(
+            "AAPL", expiration=expiration, max_symbols=20
+        ),
+        provider.name,
     )
     assert contracts
+    assert len(contracts) <= 20
     assert all(contract.underlying_symbol == "AAPL" for contract in contracts)
     assert all(contract.expiry_date == expiration for contract in contracts)
     assert all(contract.right in {"call", "put"} for contract in contracts)
