@@ -817,8 +817,19 @@ progress:
       Ruff, compileall, and diff checks pass. No frontend or ETF-provider files
       changed and no services or provider calls were started. Source commit
       `b83fac31` is pushed with the implementation and documentation.
+    - >-
+      Added a bounded EDGAR IPO-pipeline detector and persistence service for
+      explicitly supplied CIK batches. Recent `S-1`, `S-1/A`, `F-1`, `F-1/A`,
+      and `424B*` submissions become provisional `ipo_pipeline` events with
+      accession/document provenance; the service routes each CIK through the
+      existing `market_events` quota policy and records per-issuer failures
+      without enumerating SEC issuers implicitly. Focused provider/service/quota
+      coverage passes `281/281`, the complete backend unit suite passes
+      `1,850/1,850`, the EDGAR live case now includes a bounded pipeline read,
+      and Ruff, compileall, and diff checks pass. Source commit `a52e47ca` is
+      pushed; live execution remains part of the next credentialed matrix.
   total: 15
-  current_phase: market_event_calendar_api
+  current_phase: edgar_ipo_pipeline
   current_blocker: >-
     The complete matrix now collects 44 cases and remains 39/44: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
@@ -859,7 +870,9 @@ progress:
     The normalized market-event persistence/worker path is implemented and
     remains disabled by default; its authenticated database-only calendar read
     API is available, while cross-provider event reconciliation,
-    pre-listing materialization, EDGAR IPO-pipeline completion, live evidence
-    for the new Alpha forward-calendar case, and frontend calendar surfaces
-    remain open; the backend persisted-event read API is now available.
+    pre-listing materialization and global EDGAR candidate enumeration remain
+    open; live evidence for the new Alpha forward-calendar case and the EDGAR
+    IPO-pipeline read remains pending, while the backend persisted-event read
+    API and bounded CIK pipeline service are available. Frontend calendar
+    surfaces remain open.
   next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; add event reconciliation/pre-listing work only after the provider persistence path is reviewed; rerun the manifest only after deferred credentials or reviewed entitlements change

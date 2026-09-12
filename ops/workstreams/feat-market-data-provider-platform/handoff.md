@@ -720,3 +720,13 @@ Update this handoff at each coherent boundary.
   Ruff, compileall, and diff checks pass. No frontend or ETF-provider files
   changed and no services or provider calls were started. Source commit
   `b83fac31` is pushed with the implementation and documentation.
+- Added a bounded EDGAR IPO-pipeline detector and persistence service for
+  explicitly supplied CIK batches. Recent `S-1`, `S-1/A`, `F-1`, `F-1/A`, and
+  `424B*` submissions become provisional `ipo_pipeline` events with
+  accession/document provenance; each CIK is routed through the existing
+  `market_events` quota policy and per-issuer failures are retained without
+  implicit SEC-issuer enumeration. Focused provider/service/quota coverage
+  passes `281/281`, the complete backend unit suite passes `1,850/1,850`, the
+  EDGAR live case now includes a bounded pipeline read, and Ruff, compileall,
+  and diff checks pass. Source commit `a52e47ca` is pushed; live execution
+  remains part of the next credentialed matrix.
