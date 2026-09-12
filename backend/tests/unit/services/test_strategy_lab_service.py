@@ -14,6 +14,7 @@ from app.services.strategy_lab import (
     _build_universe_coverage_summary,
     _extract_risk_and_exit_config,
     _queue_python_signal_research,
+    _run_rules_paper_forward,
     _symbol_performance_snapshot,
     _trade_distributions,
 )
@@ -585,3 +586,42 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     assert summary["equity_curve"][0]["ts"] == "2026-01-01T00:00:00Z"
     assert summary["position_timeline"]["entry_at"] == "2026-01-01T00:00:00Z"
     assert summary["execution_log"][0]["ts"] == "2026-01-01T00:00:00Z"
+
+
+@pytest.mark.asyncio
+async def test_paper_forward_snapshot_uses_canonical_utc_z_timestamp(monkeypatch):
+    async def fake_backtest(*_args, **_kwargs):
+        return {
+            "equity_curve": [{"ts": "2026-01-01T00:00:00Z", "equity": 101000.0}],
+            "performance": {"trade_count": 2},
+        }
+
+    monkeypatch.setattr("app.services.strategy_lab._run_rules_backtest", fake_backtest)
+    run = SimpleNamespace(
+        strategy_id=1,
+        strategy_version_id=2,
+        requested_by_user_id=3,
+        engine_type="rules",
+        test_mode="paper_forward",
+        status="running",
+        timeframe="D1",
+        date_from=None,
+        date_to=None,
+        parameter_values={},
+        universe_config={},
+        benchmark_config={},
+        execution_assumptions={"paper_forward_bars": 5},
+        result_summary={},
+        artifact_manifest={},
+        warning_log=[],
+    )
+
+    result = await _run_rules_paper_forward(
+        object(),
+        strategy=SimpleNamespace(),
+        version=SimpleNamespace(universe_config={}),
+        run=run,
+    )
+
+    assert result["paper_forward"]["monitor_snapshots"][0]["snapshot_at"].endswith("Z")
+    assert "+00:00" not in result["paper_forward"]["monitor_snapshots"][0]["snapshot_at"]

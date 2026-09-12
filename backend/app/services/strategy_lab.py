@@ -3126,7 +3126,7 @@ async def _run_rules_paper_forward(
     recent_curve = curve[-forward_bars:] if forward_bars > 0 else curve
     latest_equity = recent_curve[-1]["equity"] if recent_curve else None
     snapshot = {
-        "snapshot_at": datetime.now(UTC).isoformat(),
+        "snapshot_at": _wire_datetime(datetime.now(UTC)),
         "latest_equity": latest_equity,
         "trade_count": base.get("performance", {}).get("trade_count"),
         "window_bars": forward_bars,
