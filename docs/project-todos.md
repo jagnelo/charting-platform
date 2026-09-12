@@ -16404,3 +16404,14 @@ The current source also passes the focused authenticated top-down browser slice 
       unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall, and
       diff checks pass. Source checkpoint `f6482ed2`; no provider calls,
       credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Massive continuation-cursor safety
+
+- [x] Require Massive ticker-discovery and IPO `next_url` values to be strings
+      containing exactly one non-empty cursor. Malformed, cursorless, or
+      ambiguous continuations now fail closed instead of replaying pages or
+      over-running the safety bound. Focused Massive coverage passes `11/11`,
+      and the complete backend unit suite passes `1,993/1,993` with 37
+      warnings; Ruff, compileall, and diff checks pass. Source checkpoint
+      `acfbfb2a`; no provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.

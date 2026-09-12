@@ -1213,3 +1213,12 @@ Update this handoff at each coherent boundary.
   backend unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall,
   and diff checks pass. No provider calls or credentials were used, and no
   frontend or ETF-provider files changed.
+
+- Source checkpoint `acfbfb2a` closes malformed-continuation edges in Massive
+  ticker discovery and IPO pages. `next_url` values must be strings containing
+  exactly one non-empty cursor; malformed, cursorless, or ambiguous metadata
+  now fails closed instead of replaying pages or over-running the safety bound.
+  Focused Massive coverage passes `11/11`, and the complete backend unit suite
+  passes `1,993/1,993` with 37 warnings; Ruff, compileall, and diff checks
+  pass. No provider calls or credentials were used, and no frontend or
+  ETF-provider files changed.
