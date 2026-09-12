@@ -332,17 +332,26 @@ function move(index: number, delta: number) { const target = index + delta; if (
 function copy(index: number, target: string) {
   const item = chartStore.indicators[index]
   if (!item) return
+  let skippedMultiOutputWatchlist = false
   for (const window of workspaceStore.activeTab?.windows ?? []) {
     if (window.instance_key === props.sourceWindowKey) continue
     if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
     if (window.tool_type === 'watchlist') {
+      const output = chartIndicatorOutput(item)
+      if (!output) {
+        skippedMultiOutputWatchlist = true
+        continue
+      }
       const columns = Array.isArray(window.configuration.indicator_columns) ? window.configuration.indicator_columns : []
       const key = `indicator:${item.type}:${JSON.stringify(item.params)}`
-      if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output: 'value' }]
+      if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output }]
     } else {
       const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []
       window.configuration.indicators = [...plots, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }]
     }
+  }
+  if (skippedMultiOutputWatchlist) {
+    promotionStatus.value = 'This multi-output indicator cannot be copied to a watchlist column until an explicit output is selected.'
   }
   workspaceStore.scheduleSnapshot()
 }
@@ -390,7 +399,9 @@ function selectPromotion(index: number) {
   promotionStatus.value = ''
 }
 function promotionCondition(item: IndicatorConfig) {
-  return { operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: item.type, params: { ...item.params }, output: 'value', op: promotionOperator.value, value: promotionThreshold.value }] }
+  const output = chartIndicatorOutput(item)
+  if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
+  return { operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: item.type, params: { ...item.params }, output, op: promotionOperator.value, value: promotionThreshold.value }] }
 }
 function promotionKey(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 72) || 'chart-plot-condition'
@@ -423,9 +434,9 @@ async function promoteSelected() {
   if (!item || !promotionName.value || !Number.isFinite(promotionThreshold.value) || promotionBusy.value) return
   promotionBusy.value = true; promotionStatus.value = ''
   try {
+    const output = chartIndicatorOutput(item)
+    if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
     if (promotionTarget.value === 'signal') {
-      const output = chartIndicatorOutput(item)
-      if (!output) throw new Error('Select a single-output indicator before creating a Strategy signal; multi-output plots need an explicit output selection.')
       const instrumentId = chartStore.instrument?.id
       if (!instrumentId) throw new Error('Select a canonical instrument before creating a Strategy signal')
       const source = chartSignalSource(item, output)

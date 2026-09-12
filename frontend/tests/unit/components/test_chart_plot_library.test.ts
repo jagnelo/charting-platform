@@ -348,7 +348,12 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('[aria-label="Plot promotion name"]').setValue('Overbought RSI')
     await wrapper.get('.chart-plots__promotion button').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
-    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI' }))
+    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/overbought-rsi', expect.objectContaining({
+      name: 'Overbought RSI',
+      condition: expect.objectContaining({
+        conditions: [expect.objectContaining({ indicator: 'rsi', output: 'rsi' })],
+      }),
+    }))
     expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI Scan', timeframe: 'D1' }))
     expect(wrapper.get('[role="status"]').text()).toContain('EasyScan')
   })
@@ -504,5 +509,42 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('.chart-plots__promotion button').trigger('click')
     await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('multi-output'))
     expect(apiMock.post).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('refuses an ambiguous multi-output chart indicator condition promotion', async () => {
+    const chart = usePanelStore('multi-output-condition-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-condition-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('scan')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('BB scan')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('explicit output'))
+    expect(apiMock.put).not.toHaveBeenCalledWith(expect.stringContaining('/workspaces/library/conditions/'), expect.anything())
+    expect(apiMock.post).not.toHaveBeenCalledWith(expect.stringContaining('/screeners/'), expect.anything())
+  })
+
+  it('does not copy an ambiguous multi-output chart indicator into a watchlist column', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: {},
+      tabs: [{ id: 1, stable_key: 'test', name: 'Test', position: 0, active_window_key: 'source', layout_config: {}, windows: [
+        { id: 1, instance_key: 'source', tool_type: 'chart', title: 'Source', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 2, instance_key: 'target-list', tool_type: 'watchlist', title: 'Momentum', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    workspace.activeTabKey = 'test'
+    const chart = usePanelStore('multi-output-copy-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-copy-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Copy plot target"]').setValue('target-list')
+    await wrapper.get('[aria-label="Copy BB(20,2) to selected chart target"]').trigger('click')
+
+    expect(workspace.activeTab?.windows[1].configuration.indicator_columns).toBeUndefined()
+    expect(wrapper.get('[role="status"]').text()).toContain('explicit output')
   })
 })
