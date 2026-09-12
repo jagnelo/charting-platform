@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize Study Lab execution timestamps
+
+Product commit `07fcfae0` closes the remaining explicit Study Lab execution
+serialization seam. Portfolio entry/exit/open/rejected events, excursion rows,
+and top-level trade/open-position records now use the shared UTC-`Z` timeline;
+position IDs, ordering semantics, P&L, and event meanings remain unchanged.
+
+Focused Study Lab service coverage passed `14/14`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Canonicalize Study Lab timeline points
 
 Product commit `40b8db13` closes the dense Study Lab timeline serialization
