@@ -16228,3 +16228,16 @@ The current source also passes the focused authenticated top-down browser slice 
       reviewed; MarketData.app remains non-routable until its exact plan/credit
       pair and response-dependent option bound are reviewed. Tradier, Ondo, and
       IBKR remain intentionally deferred per the current provider plan.
+
+### 2026-09-12 — Dinari symbol-filter lookup completeness
+
+- [x] Use Dinari's documented `symbols[]` catalogue filter for ticker-like
+      metadata lookups, so a symbol is not missed solely because it falls after
+      the first page; preserve the UUID/unfiltered compatibility path and keep
+      cursor state isolated by filter.
+- [x] Add unit coverage and re-run the credentialed Dinari Sandbox compound
+      live case. The changed case passed `1/1`; two aggregate-only receipts were
+      merged into the owner ledger (`accepted=2`, `duplicates=0`,
+      `rejected=0`) after an overlapping retry completed.
+- [ ] Dinari quota, US eligibility, fee, display/cache, redistribution, and
+      commercial routing gates remain unchanged and fail-closed.

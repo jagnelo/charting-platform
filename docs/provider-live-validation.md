@@ -997,3 +997,12 @@ while explicitly retaining a legacy list-response fallback and refusing an
 unfetched continuation. This is transport/schema evidence only: Dinari partner
 quota, US SIP/NBBO fees, redistribution approval, and MarketData.app reviewed
 plan/option bounds remain independent routing gates.
+
+On 2026-09-12, the Dinari adapter's ticker lookup was changed to use the
+provider-documented `symbols[]` filter instead of assuming the first catalogue
+page contains every symbol. The existing rotated-Sandbox compound live case
+passed `1/1` after the change (20 HTTP requests, 11 measured operations), and
+two secret-free aggregate receipts were merged into the owner-managed ledger
+(`accepted=2`, `duplicates=0`, `rejected=0`). UUID lookups retain the
+unfiltered compatibility path; provider quota, commercial terms, and routing
+admission remain independent fail-closed gates.

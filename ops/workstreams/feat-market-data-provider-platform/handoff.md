@@ -890,3 +890,11 @@ Update this handoff at each coherent boundary.
   `rejected=0`). This proves bounded transport/schema behavior only; provider
   quota, legal/redistribution, account-plan, and routing-admission gates remain
   independent and fail-closed.
+
+- Dinari ticker-like metadata lookups now send the documented `symbols[]`
+  server-side filter, preventing a valid symbol from being missed after the
+  first catalogue page. UUID lookups retain the unfiltered compatibility path,
+  and cursor state is isolated by filter. The changed compound Sandbox case
+  passed `1/1` (11 measured operations/20 HTTP requests); two aggregate-only
+  receipts were merged into the owner ledger (`accepted=2`, `duplicates=0`,
+  `rejected=0`). Dinari quota, terms, and routing admission remain fail-closed.
