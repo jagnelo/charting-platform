@@ -1078,3 +1078,9 @@ Update this handoff at each coherent boundary.
   fractional or otherwise coercible quota counters. Only provider-declared
   integers or signed digit strings are accepted, preventing silent truncation
   of a native usage value. Focused optional-provider coverage passes `82/82`.
+
+- Final unit verification for the latest source checkpoint passed
+  `1,931/1,931` in 72.67 seconds with the known 37 warnings. No provider calls
+  or credentials were used by this full suite; the Docker-backed migration and
+  full-stack gate remains the authoritative unverified check in this
+  environment.
