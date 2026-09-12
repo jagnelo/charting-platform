@@ -1073,3 +1073,8 @@ Update this handoff at each coherent boundary.
   the operator reviews the plan/credit pair and option-chain bound. The guide
   also reiterates that the account probe is quota-aware and does not widen
   routing.
+
+- Source checkpoint `fbf9bd02d` tightens the account snapshot parser to reject
+  fractional or otherwise coercible quota counters. Only provider-declared
+  integers or signed digit strings are accepted, preventing silent truncation
+  of a native usage value. Focused optional-provider coverage passes `82/82`.
