@@ -560,6 +560,12 @@ progress:
       complete backend unit suite passes `1,797/1,797` with the known 37
       warnings. Docker-backed migration/full-stack validation remains blocked
       by unavailable Docker.
+    - >-
+      The post-change bounded live regression for the provenance-bearing
+      adapters passed `4/4` (`alpaca_credentialed_history` plus
+      Binance/Coinbase/Kraken keyless history) under run
+      `canonical-persistence-provenance-20260912`; aggregate usage remains
+      outside Git and no credentials or payloads were persisted.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

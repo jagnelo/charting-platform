@@ -477,3 +477,9 @@ Update this handoff at each coherent boundary.
   backend unit suite passes `1,797/1,797` with the known 37 warnings. This
   improves AC-SERIES fidelity without adding live provider evidence; the
   Docker-backed migration/full-stack gate remains unverified.
+- The post-change bounded live regression for the provenance-bearing adapters
+  passed `4/4` (`alpaca_credentialed_history` plus Binance/Coinbase/Kraken
+  keyless history) under run
+  `canonical-persistence-provenance-20260912`; aggregate usage remains in the
+  owner-managed ledger outside Git and no credentials or payloads were
+  persisted.

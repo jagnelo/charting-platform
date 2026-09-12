@@ -916,3 +916,10 @@ serialization/migration correctness change, not new provider transport
 evidence. Focused persistence/provider tests passed `212/212`, and the
 complete backend unit suite passed `1,797/1,797`; Docker-backed migration and
 full-stack validation remains unverified while Docker is unavailable.
+
+The post-change bounded live regression for the provenance-bearing adapters
+passed `4/4` (`alpaca_credentialed_history` plus the Binance, Coinbase, and
+Kraken keyless history probes) under run
+`canonical-persistence-provenance-20260912`. Aggregate usage was written to
+the owner-managed ledger outside Git; no credentials or payloads were
+persisted.

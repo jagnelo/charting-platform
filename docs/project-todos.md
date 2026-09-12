@@ -11,6 +11,10 @@
       persistence/provider tests pass 212/212 and the complete backend unit
       suite passes 1,797/1,797 with the known 37 warnings. Docker-backed
       migration/integration validation remains blocked by unavailable Docker.
+- [x] Re-run the changed Alpaca and keyless crypto history adapters live after
+      the provenance update; the bounded regression passed 4/4 under run
+      `canonical-persistence-provenance-20260912`, with aggregate usage kept
+      outside Git.
 
 ### 2026-09-12 — Alpha Vantage earnings history capability
 
