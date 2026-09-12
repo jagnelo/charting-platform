@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
+
+- [x] Fence Options Chain instrument/chain loads and embedded ETF Holdings
+      snapshot loads by mounted lifecycle plus request generations
+      (`450c9746`); canonical payload, provider, point-in-time, and unsupported
+      row semantics are unchanged.
+- [x] Focused panel coverage passed `6/6`; full frontend Vitest passed
+      `1049/1049`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact Settings-readiness gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `4f927af3` / product tip

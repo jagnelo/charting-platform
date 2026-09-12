@@ -2,6 +2,15 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
+
+Product commit `450c9746` fences Options Chain and embedded ETF Holdings
+instrument/chain/snapshot reads by mounted lifecycle and request generations.
+Focused coverage passed `6/6`; full frontend Vitest passed `1049/1049`;
+type-check/build/diff checks passed with only the existing chunk-size warning.
+Canonical payload, provider, point-in-time, visual, and acceptance contracts
+are unchanged. Continue in this worktree only.
+
 ## 2026-09-12 — Exact Settings-readiness gate rechecked
 
 At documentation tip `4f927af3` (product tip `6df66ac3`), the exact gate

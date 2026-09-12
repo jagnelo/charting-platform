@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence Options Chain and ETF Holdings panel teardown
+
+Product commit `450c9746` closes the paired provider/history read-panel
+teardown gap. Options Chain and embedded ETF Holdings loads now combine their
+existing request sequencing with mounted lifecycle generations, so late
+instrument-resolution, chain, and holdings responses cannot publish detached
+data, availability, loading, or error state. Canonical response shapes,
+provider routing, point-in-time semantics, and unsupported-row handling are
+unchanged. Focused panel coverage passed `6/6`; full frontend Vitest passed
+`1049/1049` across 115 files; frontend type-check and production build passed
+with only the existing chunk-size warning; and `git diff --check` passed. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue the next bounded provider/history or compatible
+R4/R2-R7 seam while preserving the six protected visual state-oracle
+assertions.
+
 ## 2026-09-12 — Exact Settings-readiness gate rechecked
 
 At documentation tip `4f927af3` (product tip `6df66ac3`), the exact
