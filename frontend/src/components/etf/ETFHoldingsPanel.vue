@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
 
@@ -193,6 +193,11 @@ const sortMode = ref<'weight' | 'symbol' | 'name' | 'unresolved'>('weight')
 const collapsed = ref(false)
 const selectedHoldingId = ref<number | null>(null)
 let loadSeq = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const visible = computed(() => !!snapshot.value)
 const provenanceLabel = computed(() =>
@@ -354,6 +359,7 @@ function moveSelection(delta: number) {
 
 async function load() {
   const symbol = props.symbol?.trim()
+  const generation = lifecycleGeneration
   const seq = ++loadSeq
   filter.value = ''
   selectedHoldingId.value = null
@@ -364,11 +370,11 @@ async function load() {
   }
   try {
     const loaded = await api.get<ETFHoldingsSnapshot>(`/etf-holdings/${encodeURIComponent(symbol)}/latest`)
-    if (seq !== loadSeq) return
+    if (!isCurrentLifecycle(generation) || seq !== loadSeq) return
     snapshot.value = loaded
     emit('availability', true)
   } catch {
-    if (seq !== loadSeq) return
+    if (!isCurrentLifecycle(generation) || seq !== loadSeq) return
     snapshot.value = null
     emit('availability', false)
   }
@@ -383,6 +389,11 @@ watch(visibleHoldings, rows => {
   if (!rows.some(row => row.id === selectedHoldingId.value)) {
     selectedHoldingId.value = rows[0].id
   }
+})
+
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  loadSeq += 1
 })
 </script>
 

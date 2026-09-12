@@ -68,4 +68,24 @@ describe('OptionsChainPanel', () => {
     expect(wrapper.find('.options-table--straddle').exists()).toBe(false)
     expect(wrapper.find('.options-table').exists()).toBe(true)
   })
+
+  it('does not publish a late chain response after unmount', async () => {
+    let resolveChain!: (value: any) => void
+    const chainPromise = new Promise(resolve => {
+      resolveChain = resolve
+    })
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/instruments/NVDA') return Promise.resolve({ symbol: 'NVDA' } as any)
+      if (path === '/instruments/NVDA/options/chain') return chainPromise
+      return Promise.resolve([] as any)
+    })
+
+    const wrapper = mount(OptionsChainPanel, { props: { symbol: 'NVDA' } })
+    await Promise.resolve()
+    wrapper.unmount()
+    resolveChain({ symbol: 'NVDA', expiration: null, rows: [] })
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as any).response).toBeNull()
+  })
 })

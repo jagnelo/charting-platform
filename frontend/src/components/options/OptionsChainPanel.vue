@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol, formatInstrumentLookupError } from '@/lib/instruments'
 import type { OptionChainResponse, OptionChainRow } from '@/types'
@@ -136,6 +136,11 @@ const response = ref<OptionChainResponse | null>(null)
 const selectedExpiration = ref('')
 const viewMode = ref<'straddle' | 'list'>('straddle')
 let refreshSeq = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const rows = computed<OptionChainRow[]>(() => response.value?.rows ?? [])
 const straddleRows = computed(() => {
@@ -167,6 +172,7 @@ const titleText = computed(() => props.title || 'Options Chain')
 
 async function load(force = false) {
   const symbol = props.symbol?.trim().toUpperCase()
+  const generation = lifecycleGeneration
   const seq = ++refreshSeq
   if (!symbol) {
     response.value = null
@@ -178,7 +184,7 @@ async function load(force = false) {
   error.value = null
   try {
     const targetSymbol = await ensureKnownInstrumentSymbol(symbol)
-    if (seq !== refreshSeq) return
+    if (!isCurrentLifecycle(generation) || seq !== refreshSeq) return
     const loaded = await api.get<OptionChainResponse>(
       `/instruments/${encodeURIComponent(targetSymbol)}/options/chain`,
       {
@@ -186,13 +192,13 @@ async function load(force = false) {
         refresh: force || undefined,
       },
     )
-    if (seq !== refreshSeq) return
+    if (!isCurrentLifecycle(generation) || seq !== refreshSeq) return
     response.value = loaded
     selectedExpiration.value = loaded.expiration ?? loaded.available_expirations?.[0] ?? ''
   } catch (e: any) {
-    if (seq === refreshSeq) error.value = formatInstrumentLookupError(symbol, e, 'Options chain')
+    if (isCurrentLifecycle(generation) && seq === refreshSeq) error.value = formatInstrumentLookupError(symbol, e, 'Options chain')
   } finally {
-    if (seq === refreshSeq) loading.value = false
+    if (isCurrentLifecycle(generation) && seq === refreshSeq) loading.value = false
   }
 }
 
@@ -229,6 +235,10 @@ watch(() => props.symbol, () => {
   load(false)
 })
 onMounted(() => load(false))
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  refreshSeq += 1
+})
 </script>
 
 <style scoped>

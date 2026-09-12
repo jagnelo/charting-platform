@@ -116,4 +116,21 @@ describe('ETFHoldingsPanel', () => {
 
     expect(wrapper.html()).toBe('<!--v-if-->')
   })
+
+  it('does not publish a late holdings response after unmount', async () => {
+    let resolveSnapshot!: (value: typeof snapshot) => void
+    const snapshotPromise = new Promise<typeof snapshot>(resolve => {
+      resolveSnapshot = resolve
+    })
+    vi.mocked(api.get).mockReturnValue(snapshotPromise)
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'SPY' } })
+    await Promise.resolve()
+    wrapper.unmount()
+    resolveSnapshot(snapshot)
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.vm as any).snapshot).toBeNull()
+    expect(wrapper.emitted('availability')).toBeUndefined()
+  })
 })
