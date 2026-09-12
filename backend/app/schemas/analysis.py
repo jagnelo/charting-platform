@@ -739,10 +739,12 @@ class BenchmarkFamilyBreadthHistoryRoleOut(AnalysisContractModel):
     membership_version: int | None = None
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     member_count: int = Field(default=0, ge=0)
+    covered_member_count: int = Field(default=0, ge=0)
+    coverage_percent: float = Field(default=0.0, ge=0, le=100)
     analysis_ready_member_count: int = Field(default=0, ge=0)
     analysis_ready_percent: float = Field(default=0.0, ge=0, le=100)
     required_bar_count: int | None = Field(default=None, ge=1)
-    analysis_ready_status: str = "pending"
+    analysis_ready_status: Literal["ready", "partial", "pending", "unavailable"] = "unavailable"
     points: list[BreadthHistoryPoint] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

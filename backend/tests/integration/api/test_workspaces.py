@@ -2410,7 +2410,9 @@ class TestWorkspaces:
         assert len(roles["equal_weight"]["points"]) == 30
         assert roles["equal_weight"]["member_count"] == 1
         assert roles["equal_weight"]["analysis_ready_member_count"] == 0
-        assert roles["equal_weight"]["analysis_ready_status"] == "pending"
+        assert roles["equal_weight"]["analysis_ready_status"] == "partial"
+        assert roles["equal_weight"]["covered_member_count"] == 1
+        assert roles["equal_weight"]["coverage_percent"] == 100.0
         assert roles["equal_weight"]["required_bar_count"] == 252
         assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
             "ma20",

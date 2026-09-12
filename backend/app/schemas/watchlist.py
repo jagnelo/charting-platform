@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
@@ -200,6 +201,7 @@ class WatchlistSourceHistoryTimeframeStatus(BaseModel):
     analysis_ready_member_count: int = 0
     analysis_ready_percent: float = 0.0
     required_bar_count: int | None = Field(default=None, ge=1)
+    analysis_ready_status: Literal["ready", "partial", "pending", "unavailable"] = "unavailable"
     bar_count: int = 0
     provider_member_count: int = Field(default=0, ge=0)
     derived_member_count: int = Field(default=0, ge=0)

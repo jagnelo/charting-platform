@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentDatasetState
+from app.services.benchmark_family_coverage import classify_analysis_readiness
 from app.services.member_dispositions import MEMBER_DISPOSITION_KEYS, member_disposition_counts
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
@@ -636,6 +637,9 @@ async def build_watchlist_source_history_status(
                     else 0.0
                 ),
                 "required_bar_count": ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value),
+                "analysis_ready_status": classify_analysis_readiness(
+                    len(instrument_ids), covered_count, analysis_ready_count
+                ),
                 "bar_count": int(row.bar_count) if row is not None else 0,
                 "provider_member_count": provider_member_count,
                 "derived_member_count": derived_member_count,
@@ -683,7 +687,7 @@ async def build_watchlist_source_history_status(
     ):
         analysis_ready = True
         analysis_ready_status = "ready"
-    elif any(item["analysis_ready_member_count"] for item in timeframe_statuses):
+    elif any(item["covered_member_count"] for item in timeframe_statuses):
         analysis_ready = False
         analysis_ready_status = "partial"
     else:

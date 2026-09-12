@@ -5332,14 +5332,10 @@ async def benchmark_family_breadth_history(
             if required_bar_count is not None
             else 0
         )
-        analysis_ready_status = (
-            "ready"
-            if member_count and analysis_ready_member_count == member_count
-            else "partial"
-            if analysis_ready_member_count
-            else "pending"
-            if covered_member_count
-            else "unavailable"
+        analysis_ready_status = classify_analysis_readiness(
+            member_count,
+            covered_member_count,
+            analysis_ready_member_count,
         )
         roles.append(
             BenchmarkFamilyBreadthHistoryRoleOut(
@@ -5351,6 +5347,12 @@ async def benchmark_family_breadth_history(
                 membership_version=_generic_membership_version(membership_payload),
                 universe_provenance=universe_provenance,
                 member_count=member_count,
+                covered_member_count=covered_member_count,
+                coverage_percent=(
+                    round((covered_member_count / member_count) * 100, 2)
+                    if member_count
+                    else 0.0
+                ),
                 analysis_ready_member_count=analysis_ready_member_count,
                 analysis_ready_percent=(
                     round((analysis_ready_member_count / member_count) * 100, 2)

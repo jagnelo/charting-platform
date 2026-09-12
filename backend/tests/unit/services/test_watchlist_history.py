@@ -402,7 +402,7 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
     assert status["locked"] is True
     assert status["overall_status"] == "fetching"
     assert status["analysis_ready"] is False
-    assert status["analysis_ready_status"] == "pending"
+    assert status["analysis_ready_status"] == "partial"
     assert status["selected_instrument_count"] == 2
     assert status["excluded_count"] == 1
     assert status["member_disposition"] == {
@@ -420,6 +420,7 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
             "analysis_ready_member_count": 0,
             "analysis_ready_percent": 0.0,
             "required_bar_count": 252,
+            "analysis_ready_status": "partial",
             "bar_count": 250,
             "provider_member_count": 1,
             "derived_member_count": 0,
@@ -519,6 +520,7 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
     assert status["analysis_ready_status"] == "partial"
     d1 = next(item for item in status["timeframes"] if item["timeframe"] == "D1")
     assert d1["analysis_ready_member_count"] == 1
+    assert d1["analysis_ready_status"] == "ready"
     assert d1["provider_member_count"] == 1
     assert d1["derived_member_count"] == 1
     assert d1["provider_only_member_count"] == 0
@@ -535,6 +537,7 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
         "contract_version": 1,
     }
     w1 = next(item for item in status["timeframes"] if item["timeframe"] == "W1")
+    assert w1["analysis_ready_status"] == "partial"
     assert w1["source_lineage"] == "derived_only"
     assert w1["derived_only_member_count"] == 1
     assert w1["adjustment_provenance"]["factor_status"] == "inherited_from_canonical_d1"

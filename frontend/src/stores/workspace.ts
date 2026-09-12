@@ -280,6 +280,8 @@ export interface BenchmarkFamilyBreadthHistoryState {
     membership_version?: number | null
     universe_provenance?: Record<string, unknown>
     member_count: number
+    covered_member_count: number
+    coverage_percent: number
     analysis_ready_member_count: number
     analysis_ready_percent: number
     required_bar_count?: number | null

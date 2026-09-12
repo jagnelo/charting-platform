@@ -743,7 +743,8 @@ function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['t
   const ready = typeof history.analysis_ready_member_count === 'number'
     ? ` · analysis-ready ${history.analysis_ready_member_count}/${history.member_count}${history.required_bar_count ? ` (floor ${history.required_bar_count})` : ''}`
     : ''
-  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered${ready} · ${history.bar_count} bars${range}`
+  const status = history.analysis_ready_status ? ` · ${history.analysis_ready_status}` : ''
+  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered${ready}${status} · ${history.bar_count} bars${range}`
 }
 
 function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus): string {

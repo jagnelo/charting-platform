@@ -142,6 +142,7 @@ export interface WatchlistHistoryTimeframeStatus {
   analysis_ready_member_count?: number
   analysis_ready_percent?: number
   required_bar_count?: number | null
+  analysis_ready_status?: WatchlistHistoryStatusKind
   bar_count: number
   provider_member_count?: number
   derived_member_count?: number
