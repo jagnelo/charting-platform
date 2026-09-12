@@ -25,7 +25,7 @@ from typing import Any
 
 import httpx
 
-from app.config import settings
+from app.config import provider_positive_integer, settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentEventRecord
@@ -309,6 +309,10 @@ class AlpacaProvider:
         # served from the market-data host used by this adapter. Follow the
         # documented page token so long history cannot be silently truncated.
         page_token: str | None = None
+        page_count = 0
+        max_pages = provider_positive_integer(
+            getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+        )
         while True:
             params: dict[str, Any] = {
                 "symbols": symbol,
@@ -436,6 +440,12 @@ class AlpacaProvider:
                 break
             if not isinstance(next_token, str) or next_token == page_token:
                 raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+            page_count += 1
+            if max_pages is not None and page_count >= max_pages:
+                raise ProviderResponseError(
+                    self.name,
+                    "Alpaca corporate-actions page bound reached before pagination completed",
+                )
             page_token = next_token
 
         return events

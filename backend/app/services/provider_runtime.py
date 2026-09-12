@@ -1291,7 +1291,13 @@ async def resolve_provider_chain(
         # inputs) are part of routing eligibility. Diagnostics still expose
         # the exact missing names, but a configured credential/source alone
         # must never bypass these controls.
-        if provider_missing_routing_controls(data_source.name):
+        routing_controls = provider_missing_routing_controls(data_source.name, operation)
+        # An operation-less chain is used by capability discovery and ordering
+        # tests; it cannot claim a response-priced endpoint. Defer Alpaca's
+        # event-only page-bound gate until the named operation is resolved.
+        if operation is None and data_source.name == "alpaca":
+            routing_controls = []
+        if routing_controls:
             continue
         if (
             data_source.name == "yfinance"
@@ -1766,8 +1772,24 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             .order_by(DataSource.name, ProviderPolicy.capability)
         )
     ).all()
-    return [
-        {
+    status_rows = []
+    for policy, health, data_source, entitlement in rows:
+        # Keep operation-specific controls accurate in diagnostics as well as
+        # in resolver admission. Alpaca's page bound applies only to events;
+        # use a non-event marker for the other capability rows.
+        diagnostic_operation = (
+            "fetch_instrument_events"
+            if policy.capability == ProviderCapability.INSTRUMENT_EVENTS
+            else "__capability__"
+        )
+        routing_control_settings = provider_routing_control_settings(
+            data_source.name, diagnostic_operation
+        )
+        missing_routing_controls = provider_missing_routing_controls(
+            data_source.name, diagnostic_operation
+        )
+        status_rows.append(
+            {
             "provider": data_source.name,
             "capability": policy.capability.value,
             "supported_capabilities": data_source.supported_capabilities or [],
@@ -1793,12 +1815,8 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "credentials_configured": provider_is_configured(data_source.name),
             "required_environment_variables": list(provider_required_settings(data_source.name)),
             "missing_environment_variables": provider_missing_settings(data_source.name),
-            "required_routing_control_variables": list(
-                provider_routing_control_settings(data_source.name)
-            ),
-            "missing_routing_control_variables": provider_missing_routing_controls(
-                data_source.name
-            ),
+            "required_routing_control_variables": list(routing_control_settings),
+            "missing_routing_control_variables": missing_routing_controls,
             "entitlement_state": (
                 "reviewed"
                 if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
@@ -1809,7 +1827,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 policy.is_enabled
                 and policy_has_known_quota(policy)
                 and provider_is_configured(data_source.name)
-                and not provider_missing_routing_controls(data_source.name)
+                and not missing_routing_controls
                 and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                 and str(entitlement.live_probe_status or "not_run").strip().lower()
                 in {"passed", "not_required"}
@@ -1828,6 +1846,6 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "ewma_consistency": float(health.ewma_consistency),
             "last_error_type": health.last_error_type,
             "last_error_message": health.last_error_message,
-        }
-        for policy, health, data_source, entitlement in rows
-    ]
+            }
+        )
+    return status_rows

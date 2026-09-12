@@ -465,6 +465,11 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
 # separate from credential diagnostics so an operator can distinguish
 # "credential missing" from "credential present but quota safety incomplete".
 _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
+    # Corporate actions follow a provider cursor, so operation cost is the
+    # reviewed maximum number of pages rather than an invented one-request
+    # default. The adapter remains directly testable while routing is closed
+    # until this non-secret bound is configured.
+    "alpaca": ("ALPACA_CORPORATE_ACTIONS_MAX_PAGES",),
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
     "finra_otc_directory": (
         "FINRA_OTC_OPERATION_COSTS",
@@ -524,21 +529,48 @@ def provider_missing_settings(name: str) -> list[str]:
     return missing
 
 
-def provider_routing_control_settings(name: str) -> tuple[str, ...]:
-    """Return non-secret routing-safety setting names for operator diagnostics."""
+def provider_routing_control_settings(
+    name: str, operation: str | None = None
+) -> tuple[str, ...]:
+    """Return non-secret routing-safety setting names for operator diagnostics.
+
+    Alpaca's page bound is specific to corporate actions; it is not a
+    prerequisite for the provider's history, latest-price, or discovery
+    operations.
+    """
+
+    if name == "alpaca" and operation is not None and operation != "fetch_instrument_events":
+        return ()
 
     return _ROUTING_CONTROL_SETTINGS.get(name, ())
 
 
-def provider_missing_routing_controls(name: str) -> list[str]:
-    """Return missing provider-specific routing controls without their values."""
+def provider_missing_routing_controls(
+    name: str, operation: str | None = None
+) -> list[str]:
+    """Return missing provider-specific routing controls without their values.
 
-    required = provider_routing_control_settings(name)
+    Some controls apply to one response-priced operation rather than every
+    capability exposed by a provider. ``operation`` lets runtime routing keep
+    unrelated Alpaca surfaces (history, latest price, discovery) eligible while
+    still fail-closing corporate-actions calls without a reviewed page bound.
+    The provider-level diagnostics call omits it and therefore reports the
+    outstanding control for operator visibility.
+    """
+
+    required = provider_routing_control_settings(name, operation)
     if not required:
         return []
     if name == "finra":
         configured = provider_positive_integer(
             getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
+        )
+        return [] if configured is not None else list(required)
+    if name == "alpaca":
+        if operation is not None and operation != "fetch_instrument_events":
+            return []
+        configured = provider_positive_integer(
+            getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
         )
         return [] if configured is not None else list(required)
     if name == "finra_otc_directory":

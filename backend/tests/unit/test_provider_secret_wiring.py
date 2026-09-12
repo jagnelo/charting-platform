@@ -39,6 +39,7 @@ PROVIDER_SECRET_NAMES = {
     "IBKR_READ_ONLY_SESSION_COOKIE",
 }
 PROVIDER_SAFETY_SETTINGS = {
+    "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
     "FINRA_ASYNC_MAX_RESULT_BYTES",
     "FINRA_OTC_OPERATION_COSTS",
     "FINRA_OTC_TERMS_REVIEWED",
@@ -141,6 +142,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     for name in PROVIDER_SAFETY_SETTINGS:
         assert f"{name}:" in workflow
     assert "ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}" in workflow
+    assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}" in workflow
     assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}" in workflow
@@ -158,6 +160,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=" in example
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
+    assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_SERIES_TERMS_REVIEWED=false" in example
@@ -190,6 +193,7 @@ def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host()
 
 
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
+    monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
@@ -201,6 +205,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0")
     statuses = routing_safety_preflight()
     assert statuses["finra async result bytes"].startswith("non-routable:")
+    assert statuses["alpaca corporate actions"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("non-routable:")
@@ -217,6 +222,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "true")
     statuses = routing_safety_preflight()
     assert statuses["fred"] == "routable"
+
+    monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "4")
+    statuses = routing_safety_preflight()
+    assert statuses["alpaca corporate actions"] == "routable"
 
     monkeypatch.setenv(
         "FINRA_OTC_OPERATION_COSTS",

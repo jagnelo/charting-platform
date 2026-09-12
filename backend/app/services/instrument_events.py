@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import provider_positive_integer, settings
 from app.models.instrument import Instrument
 from app.models.instrument_event import (
     InstrumentEvent,
@@ -27,11 +28,17 @@ EVENT_FETCH_VERSION = 2
 async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
     if instrument.is_synthetic:
         return 0
+    alpaca_max_pages = provider_positive_integer(
+        getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+    )
     execution = await execute_provider_call(
         db,
         ProviderCapability.INSTRUMENT_EVENTS,
         "fetch_instrument_events",
         instrument_id=instrument.id,
+        operation_cost_overrides=(
+            {"alpaca": alpaca_max_pages} if alpaca_max_pages is not None else None
+        ),
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         invoke=lambda provider, _provider_symbol: provider.fetch_instrument_events(
             provider_symbol_for_instrument(instrument, provider.name)

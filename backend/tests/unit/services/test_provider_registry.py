@@ -209,6 +209,7 @@ class TestProviderRegistry:
         assert provider_missing_settings("massive") == []
 
     def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
+        monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         monkeypatch.setattr(settings, "FINRA_OTC_OPERATION_COSTS", {})
         monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
@@ -226,6 +227,22 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"
         ]
+        assert provider_routing_control_settings("alpaca") == (
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+        )
+        assert provider_missing_routing_controls("alpaca") == [
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
+        ]
+        assert provider_missing_routing_controls("alpaca", "fetch_ohlcv:D1") == []
+        assert provider_missing_routing_controls(
+            "alpaca", "fetch_instrument_events"
+        ) == ["ALPACA_CORPORATE_ACTIONS_MAX_PAGES"]
+        monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", True)
+        assert provider_missing_routing_controls("alpaca") == [
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
+        ]
+        monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 4)
+        assert provider_missing_routing_controls("alpaca") == []
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", True)
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"

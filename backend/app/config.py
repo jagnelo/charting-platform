@@ -795,7 +795,6 @@ class Settings(BaseSettings):
             "unit_label": "requests",
             "operation_costs": {
                 "get_current_price": 1,
-                "fetch_instrument_events": 1,
                 "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
             },
@@ -1566,6 +1565,10 @@ class Settings(BaseSettings):
     # directory. Production credentials must opt into the live host explicitly;
     # market-data history/latest endpoints continue to use data.alpaca.markets.
     ALPACA_TRADING_BASE_URL: str = "https://paper-api.alpaca.markets/v2"
+    # Corporate-actions responses are cursor-paginated and the request count
+    # depends on the provider response. Keep event routing fail-closed until
+    # operations records a positive conservative page bound for this account.
+    ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""

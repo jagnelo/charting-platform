@@ -65,7 +65,7 @@ re-reviewed when credentials or billing plans change.
 
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
-| Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12 |
+| Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count is response-dependent | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
 | Massive | US ticker search and reference universe | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | 5 requests/min, Basic Stocks | API key / minute | credentialed reference search live-proven |
 | Alpha Vantage | Daily OHLCV, symbol search, listings, IPO calendar events | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` is premium | API key / provider-defined day | compact daily history live-proven; IPO calendar path fixture-covered and awaits a fresh provider window for live evidence |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value |
@@ -435,6 +435,14 @@ or explicitly set the live host (`https://api.alpaca.markets/v2`) for live
 credentials. Historical/latest market-data calls continue to use
 `https://data.alpaca.markets/v2`.
 
+Corporate actions use the current v1 endpoint and follow its `next_page_token`
+cursor. Because the number of requests is response-dependent, the checked-in
+usage profile deliberately has no fixed event cost. Runtime event routing is
+fail-closed until a positive, conservative `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`
+bound is reviewed for the deployment; the bound is reserved as the worst-case
+request cost and the adapter raises before issuing an unreserved page. Direct
+live probes may still exercise the full cursor with the default zero control.
+
 **Capabilities**
 
 | Capability           | Detail                                              |
@@ -756,6 +764,7 @@ ALPACA_API_KEY=your_alpaca_key_id
 ALPACA_SECRET_KEY=your_alpaca_secret
 ALPACA_DATA_FEED=iex          # iex (free) | sip (paid consolidated feed)
 ALPACA_TRADING_BASE_URL=https://paper-api.alpaca.markets/v2  # live keys: https://api.alpaca.markets/v2
+ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound required before Alpaca event routing
 
 # FRED
 FRED_API_KEY=your_fred_key

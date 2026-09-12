@@ -323,6 +323,7 @@ progress:
     - current official Tiingo pricing confirms the free Starter contract as 500 unique symbols/month, 50 requests/hour, 1,000 requests/day, and 1 GB/month bandwidth; the observed 2.00 GB dashboard value is not promoted into routing, and operation-specific byte bounds remain required
     - provider usage diagnostics now derive active quota-window expiry from each policy's explicit calendar reset (including Eastern-time month/day and 09:30 ET boundaries), instead of treating every long window as a fixed 31-day duration; fixed and rolling windows retain their duration semantics across short months and daylight-saving transitions. Focused usage coverage passes 7/7 and the full backend unit suite passes 1745/1745 with Ruff, compilation, and diff checks clean
     - Alpaca asset discovery now selects an explicit documented paper/live trading host (paper is the safe default) rather than sending paper credentials to the live host; corporate actions now use the current v1 market-data endpoint, honor payable dates, and follow page tokens instead of the deprecated v2 announcements route. Focused Alpaca/SEC/Dinari live verification passed 3/3 after adding assets/corporate-actions, EDGAR filings/Company Facts, and Dinari dividend/split assertions; the Alpaca provider unit suite passed 184/184 and the full backend unit suite passed 1748/1748 with static checks clean.
+    - Alpaca corporate-actions request accounting no longer carries a guessed one-request seed: the cursor-paginated operation now requires a positive reviewed `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound, reserves that worst-case request cost, and raises before issuing an unreserved page. The bound is operation-scoped so history/latest/discovery remain eligible without it; routing diagnostics, local/RPi Compose, the manual GitHub workflow, environment examples, and live preflight all expose the control. Focused regression coverage passed 285/285, the full backend unit suite passed 1750/1750, static checks and both Compose parses passed, and the changed Alpaca live assets/corporate-actions case passed 1/1 with two observed HTTP requests and 6,460,094 response bytes recorded outside Git.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-
@@ -341,5 +342,8 @@ progress:
     FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
     Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
     deployment-owned SEC contact distribution, and the separately approved
-    30-day shadow remain open review or deployment gates.
-  next_action: complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the MarketData.app option-chain bound and redistribution terms, and keep current-chain routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
+    30-day shadow remain open review or deployment gates. Alpaca event routing is
+    additionally fail-closed until the deployment records a positive reviewed
+    `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound; direct adapter/live evidence does
+    not silently promote that control.
+  next_action: complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change

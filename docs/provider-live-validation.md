@@ -12,7 +12,8 @@ runs one bounded read per provider (including the public tokenized-security
 matrix), and returns non-zero when a credential or usage-attribution preflight
 is blocked. A missing credential is never reported as a passing skip. The
 wrapper returns exit code `2` for an incomplete credential/usage preflight.
-It also prints a routing-safety preflight for FINRA's asynchronous result-byte
+It also prints a routing-safety preflight for Alpaca's paginated corporate-actions
+page bound, FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
 poll controls, the MarketData.app reviewed account-plan/credit pair and
 operation-specific option-chain symbol bound, and the operation-level
@@ -69,7 +70,7 @@ GitHub uses the separate manually dispatched
 `provider-live-validation` environment with same-named environment secrets and
 with `EDGAR_USER_AGENT` and `FINRA_OTC_SYMBOL_DIRECTORY_URL` environment
 variables. Put the reviewed non-secret safety settings
-`FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
+`ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
 `FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
 `TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,

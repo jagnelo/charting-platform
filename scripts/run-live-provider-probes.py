@@ -112,6 +112,16 @@ def routing_safety_preflight() -> dict[str, str]:
     """
 
     result: dict[str, str] = {}
+    raw_alpaca_pages = os.getenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
+    try:
+        alpaca_pages = int(raw_alpaca_pages)
+    except ValueError:
+        alpaca_pages = 0
+    result["alpaca corporate actions"] = (
+        "routable"
+        if alpaca_pages > 0
+        else "non-routable: positive reviewed ALPACA_CORPORATE_ACTIONS_MAX_PAGES required"
+    )
     async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
     try:
         result["finra async result bytes"] = (

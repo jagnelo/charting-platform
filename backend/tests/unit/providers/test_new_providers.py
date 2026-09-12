@@ -502,6 +502,7 @@ class TestAlpacaOHLCVParsing:
         ):
             configured.ALPACA_API_KEY = "key"
             configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_CORPORATE_ACTIONS_MAX_PAGES = 0
             events = AlpacaProvider().fetch_instrument_events("AAPL")
 
         assert [event.event_type.value for event in events] == [
@@ -517,6 +518,25 @@ class TestAlpacaOHLCVParsing:
             "forward_split,reverse_split,cash_dividend"
         )
         assert get.call_args_list[1].kwargs["params"]["page_token"] == "next-page"
+
+    def test_corporate_actions_positive_page_bound_fails_before_unreserved_page(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "corporate_actions": {"cash_dividends": []},
+            "next_page_token": "next-page",
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_CORPORATE_ACTIONS_MAX_PAGES = 1
+            with pytest.raises(ProviderResponseError, match="page bound"):
+                AlpacaProvider().fetch_instrument_events("AAPL")
+
+        assert get.call_count == 1
 
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────

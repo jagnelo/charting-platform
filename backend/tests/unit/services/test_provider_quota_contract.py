@@ -1228,7 +1228,6 @@ def test_single_request_provider_profiles_are_explicit():
     expected = {
         "alpaca": {
             "get_current_price": 1,
-            "fetch_instrument_events": 1,
             "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
         },
