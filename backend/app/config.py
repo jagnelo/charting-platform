@@ -910,10 +910,11 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "bulk_fetch": 1,
                 # The provider documents one credit per expiration lookup.
-                # ``fetch_option_chain`` is intentionally absent: current
-                # chains are billed per returned contract (and historical
-                # chains per 1,000 contracts), so a fixed request cost would
-                # under-account the response-dependent charge.
+                # ``fetch_option_chain`` and ``fetch_option_quote_history`` are
+                # intentionally absent: current chains/quotes are billed per
+                # returned contract/symbol (historical responses per 1,000),
+                # so a fixed request cost would under-account the
+                # response-dependent charge.
                 "list_option_expirations": 1,
             },
         },

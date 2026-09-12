@@ -35,6 +35,7 @@ from app.providers.base import (
     ListingRecord,
     MarketEventRecord,
     OptionContractRecord,
+    OptionQuotePointRecord,
     ProviderSearchResult,
 )
 from app.providers.errors import (
@@ -514,6 +515,82 @@ def _parallel_option_rows(payload: Any, provider_name: str) -> list[dict[str, An
         strike = _checked_decimal(row["strike"], provider_name, "option strike")
         if strike is None or strike <= 0:
             raise ProviderResponseError(provider_name, "provider returned an invalid option strike")
+        rows.append(row)
+    return rows
+
+
+def _parallel_option_quote_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
+    """Expand MarketData.app option-quote arrays without truncation.
+
+    The quotes endpoint has a smaller shape than the chain endpoint: the
+    contract identity is the OCC ``optionSymbol`` and each observation is
+    timestamped by ``updated``. Historical responses legitimately return null
+    Greeks, but an observation without either identity or timestamp is not
+    usable by the quote-history persistence path and is rejected.
+    """
+
+    if not isinstance(payload, dict):
+        raise ProviderResponseError(provider_name, "provider returned an invalid option-quote object")
+    status = str(payload.get("s") or "").strip().lower()
+    if status == "no_data":
+        return []
+    if status != "ok":
+        raise ProviderResponseError(
+            provider_name,
+            f"provider returned an invalid option-quote status: {status or '<missing>'}",
+        )
+    required_fields = ("optionSymbol", "updated")
+    optional_fields = (
+        "bid",
+        "ask",
+        "mid",
+        "last",
+        "volume",
+        "openInterest",
+        "iv",
+        "delta",
+        "gamma",
+        "theta",
+        "vega",
+        "rho",
+        "underlyingPrice",
+        "inTheMoney",
+        "intrinsicValue",
+        "extrinsicValue",
+        "bidSize",
+        "askSize",
+    )
+    arrays: dict[str, list[Any]] = {}
+    for field in required_fields:
+        value = payload.get(field)
+        if not isinstance(value, list):
+            raise ProviderResponseError(
+                provider_name, f"provider returned an invalid option-quote {field} array"
+            )
+        arrays[field] = value
+    expected_length = len(arrays["optionSymbol"])
+    if len(arrays["updated"]) != expected_length:
+        raise ProviderResponseError(provider_name, "provider returned mismatched option-quote arrays")
+    for field in optional_fields:
+        value = payload.get(field)
+        if value is None:
+            arrays[field] = [None] * expected_length
+        elif not isinstance(value, list) or len(value) != expected_length:
+            raise ProviderResponseError(
+                provider_name, f"provider returned a mismatched option-quote {field} array"
+            )
+        else:
+            arrays[field] = value
+
+    rows: list[dict[str, Any]] = []
+    for index in range(expected_length):
+        row = {field: values[index] for field, values in arrays.items()}
+        if not str(row["optionSymbol"] or "").strip() or _timestamp(
+            row["updated"], timezone_name="America/New_York"
+        ) is None:
+            raise ProviderResponseError(
+                provider_name, "provider returned an option quote without symbol or timestamp"
+            )
         rows.append(row)
     return rows
 
@@ -1285,6 +1362,71 @@ class MarketDataAppProvider(_RESTProvider):
                 contract.provider_symbol,
             ),
         )
+
+    def fetch_option_quote_history(
+        self,
+        symbol: str,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> list[OptionQuotePointRecord]:
+        """Fetch current or end-of-day option quotes for one OCC contract.
+
+        MarketData.app prices historical quote series per 1,000 observations
+        and returns Greeks as null for historical requests. The provider's
+        response-dependent charge is intentionally not assigned a guessed
+        fixed operation cost; runtime routing stays fail-closed until an
+        operator-reviewed reservation bound is supplied.
+        """
+
+        bounded_start = _bounded_datetime(start)
+        bounded_end = _bounded_datetime(end)
+        if bounded_end <= bounded_start:
+            return []
+        params: dict[str, Any]
+        if bounded_start.date() == bounded_end.date():
+            params = {"date": bounded_start.date().isoformat()}
+        else:
+            params = {
+                "from": bounded_start.date().isoformat(),
+                "to": bounded_end.date().isoformat(),
+            }
+        payload = self._get(f"options/quotes/{symbol.upper()}/", params)
+        rows = _parallel_option_quote_rows(payload, self.name)
+        points: list[OptionQuotePointRecord] = []
+        for row in rows:
+            observed_at = _timestamp(
+                row["updated"], timezone_name="America/New_York"
+            )
+            if observed_at is None:
+                raise ProviderResponseError(
+                    self.name, "provider returned an option quote without a valid timestamp"
+                )
+
+            def checked(field: str) -> Decimal | None:
+                return _checked_decimal(row.get(field), self.name, f"option quote {field}")
+
+            if bounded_start <= observed_at < bounded_end:
+                points.append(
+                    OptionQuotePointRecord(
+                        provider_symbol=str(row["optionSymbol"]).strip(),
+                        observed_at=observed_at,
+                        bid=checked("bid"),
+                        ask=checked("ask"),
+                        mark=checked("mid"),
+                        last=checked("last"),
+                        volume=checked("volume"),
+                        open_interest=checked("openInterest"),
+                        implied_vol=checked("iv"),
+                        delta=checked("delta"),
+                        gamma=checked("gamma"),
+                        theta=checked("theta"),
+                        vega=checked("vega"),
+                        rho=checked("rho"),
+                        raw_payload=dict(row),
+                    )
+                )
+        return sorted(points, key=lambda point: point.observed_at)
 
 
 class FinnhubProvider(_RESTProvider):

@@ -466,6 +466,15 @@ def test_marketdata_app_credentialed_option_surface():
     assert all(contract.expiry_date == expiration for contract in contracts)
     assert all(contract.right in {"call", "put"} for contract in contracts)
     assert all(contract.strike > 0 for contract in contracts)
+    quote_points, _ = _observed_read(
+        lambda: provider.fetch_option_quote_history(
+            contracts[0].provider_symbol,
+            start=datetime.now(UTC) - timedelta(days=30),
+            end=datetime.now(UTC) + timedelta(days=1),
+        ),
+        provider.name,
+    )
+    assert isinstance(quote_points, list)
 
 
 def test_finnhub_credentialed_company_profile():

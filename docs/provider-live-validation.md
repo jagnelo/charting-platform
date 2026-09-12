@@ -256,9 +256,10 @@ operator-owned environment and retained only aggregate transport telemetry
 outside Git.
 
 The same credentialed refresh also passed the bounded Alpaca latest-price probe
-and the MarketData.app options surface probe (expirations plus a current chain),
-2/2 focused cases. The options adapter validates the provider's parallel-array
-response shape and preserves contract fields/Greeks. MarketData.app documents
+and the MarketData.app options surface probe (expirations, a current chain, and
+historical single-contract quotes), 2/2 focused cases. The options adapter
+validates the provider's parallel-array response shape and preserves contract
+fields/Greeks and quote-history observations. MarketData.app documents
 response-dependent credit charging for chain/quote reads, so the implementation
 deliberately leaves those operations outside routing until a reviewed maximum
 reservation bound is supplied; a green transport probe is not quota admission.

@@ -59,6 +59,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "market_events" in list_provider_capabilities("finnhub")
     assert "option_chain" in list_provider_capabilities("tradier")
     assert "option_chain" in list_provider_capabilities("marketdata_app")
+    assert "option_quote_history" in list_provider_capabilities("marketdata_app")
 
 
 def test_twelve_data_parses_intraday_values():
@@ -805,6 +806,65 @@ def test_marketdata_app_mismatched_option_arrays_are_typed():
         configured.MARKETDATA_APP_API_KEY = "demo"
         with pytest.raises(ProviderResponseError, match="mismatched option bid array"):
             provider.fetch_option_chain("AAPL", expiration=date(2024, 1, 19))
+
+
+def test_marketdata_app_parses_historical_option_quote_arrays():
+    provider = MarketDataAppProvider()
+    updated = int(datetime(2024, 1, 2, 21, tzinfo=UTC).timestamp())
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "updated": [updated],
+        "bid": [5.15],
+        "ask": [5.25],
+        "mid": [5.2],
+        "last": [5.25],
+        "volume": [977],
+        "openInterest": [61289],
+        # MarketData.app documents historical Greeks as null.
+        "iv": [None],
+        "delta": [None],
+        "gamma": [None],
+        "theta": [None],
+        "vega": [None],
+    }
+    with patch.object(provider, "_get", return_value=payload) as get:
+        points = provider.fetch_option_quote_history(
+            "AAPL240119C00100000",
+            start=datetime(2024, 1, 1, tzinfo=UTC),
+            end=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+
+    assert len(points) == 1
+    point = points[0]
+    assert point.provider_symbol == "AAPL240119C00100000"
+    assert point.observed_at == datetime(2024, 1, 2, 21, tzinfo=UTC)
+    assert point.bid == Decimal("5.15")
+    assert point.mark == Decimal("5.2")
+    assert point.open_interest == Decimal("61289")
+    assert point.delta is None
+    assert get.call_args.args[0] == "options/quotes/AAPL240119C00100000/"
+    assert get.call_args.args[1] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+    }
+
+
+def test_marketdata_app_mismatched_option_quote_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "optionSymbol": ["AAPL240119C00100000"],
+        "updated": [1704229200],
+        "bid": [5.15, 5.2],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="mismatched option-quote bid array"):
+            provider.fetch_option_quote_history(
+                "AAPL240119C00100000",
+                start=datetime(2024, 1, 1, tzinfo=UTC),
+                end=datetime(2024, 1, 3, tzinfo=UTC),
+            )
 
 
 def test_tradier_parses_documented_nested_history_and_singleton_quote_search_shapes():
