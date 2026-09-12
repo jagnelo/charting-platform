@@ -528,6 +528,7 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
         { artifact, target: 'scan', label: 'Promote scan' },
         { artifact, target: 'gauge', label: 'Use Gauge' },
         { artifact, target: 'alert', label: 'Promote alert' },
+        { artifact, target: 'signal', label: 'Save signal' },
       )
     } else if (artifact.artifact_type === 'events') {
       promotions.push(

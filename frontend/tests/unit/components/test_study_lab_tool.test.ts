@@ -435,6 +435,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote scan: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Use Gauge: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: qualifies')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: qualifies')).toBe(true)
     await wrapper.findAll('button').find(button => button.text() === 'Save filter: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist filter through EasyScan.'))
     await wrapper.findAll('button').find(button => button.text() === 'Promote scan: qualifies')!.trigger('click')
@@ -444,6 +445,22 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Promote alert: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.any(Object))
+    await wrapper.findAll('button').find(button => button.text() === 'Save signal: qualifies')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'qualifies',
+          target: 'signal',
+          semantics: 'study_result_promotion',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
     expect(wrapper.findAll('button').some(button => button.text() === 'Save filter: signals')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: signals')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: signals')).toBe(true)
