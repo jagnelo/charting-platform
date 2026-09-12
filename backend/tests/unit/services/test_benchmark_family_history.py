@@ -3,6 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.schemas.etf_holdings_history import (
+    BenchmarkFamilyHistoryRefreshSummary,
+    BenchmarkFamilyHoldingsRefreshRunOut,
+)
 from app.services import benchmark_family_history as history
 
 
@@ -42,6 +46,41 @@ def test_family_history_normalizers_reject_unknown_values_and_dedupe_timeframes(
         history.normalize_family_roles(["momentum"])
     with pytest.raises(ValueError, match="Unsupported history timeframe"):
         history.normalize_history_timeframes(["TICK"])
+
+
+def test_family_history_response_schemas_serialize_timestamps_as_canonical_utc_z():
+    naive = datetime(2026, 9, 12, 14, 30)
+    aware = datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
+
+    summary = BenchmarkFamilyHistoryRefreshSummary(
+        family_keys=["sp500"],
+        roles=["cap_weight"],
+        timeframes=["D1"],
+        as_of=naive,
+        max_instruments=5000,
+        available_instrument_count=500,
+        selected_instrument_count=500,
+        limited=False,
+        queued=500,
+    )
+    run = BenchmarkFamilyHoldingsRefreshRunOut(
+        id=9,
+        family_keys=["sp500"],
+        roles=["cap_weight"],
+        requested_dates=[],
+        status="completed",
+        started_at=naive,
+        finished_at=aware,
+        created_at=naive,
+        updated_at=aware,
+    )
+
+    assert summary.model_dump(mode="json")["as_of"] == "2026-09-12T14:30:00Z"
+    run_payload = run.model_dump(mode="json")
+    assert run_payload["started_at"] == "2026-09-12T14:30:00Z"
+    assert run_payload["finished_at"] == "2026-09-12T16:30:00Z"
+    assert run_payload["created_at"] == "2026-09-12T14:30:00Z"
+    assert run_payload["updated_at"] == "2026-09-12T16:30:00Z"
 
 
 @pytest.mark.asyncio

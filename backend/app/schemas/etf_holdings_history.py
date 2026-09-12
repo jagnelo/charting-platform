@@ -1,6 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class BenchmarkFamilyHistoryRefreshRequest(BaseModel):
@@ -48,6 +50,10 @@ class BenchmarkFamilyHistoryRefreshSummary(BaseModel):
     legs: list[BenchmarkFamilyHistoryRefreshLegOut] = Field(default_factory=list)
     message: str | None = None
 
+    @field_serializer("as_of")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class BenchmarkFamilyHoldingsRefreshRunRequest(BaseModel):
     """Bounded provider-backed holdings refresh submitted to the worker queue."""
@@ -81,3 +87,7 @@ class BenchmarkFamilyHoldingsRefreshRunOut(BaseModel):
     finished_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("started_at", "finished_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
