@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence ETF source bootstrap teardown
+
+Product commit `f9ae2a21` fences explicit Market Map ETF-source bootstrap
+responses by mounted, source-action generation. A late response cannot
+refresh the source catalog, select a source, or publish status on a detached
+map. Focused Market Map coverage passed `45/45`; full frontend Vitest passed
+`1035/1035` across 115 files; type-check, production build, and
+`git diff --check` passed with only the existing chunk-size warning. No
+provider, fallback, visual, or acceptance policy changed. Continue in this
+worktree only.
+
+## 2026-09-12 — Exact ETF bootstrap gate rechecked
+
+At product tip `f9ae2a2165791b4c54ec41f5f2be8bddf756773d`, git-diff,
+workstream validation (30 records), dependency/migration, frontend
+preparation, Ruff, formatting, and TypeScript passed. `backend-coverage`
+stopped after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran, and no product or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed. Do not integrate, promote, deploy,
+or mutate another worktree.
+
 ## 2026-09-12 — Fence Market Map history actions
 
 Product commit `54a306bb` fences explicit Market Map history refresh and
