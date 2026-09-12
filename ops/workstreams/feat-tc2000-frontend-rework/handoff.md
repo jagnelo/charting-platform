@@ -2,6 +2,25 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Alert lists disclose canonical indicator outputs
+
+Product commit `0554789e` updates the Alerts view and chart-side alert editor
+to display canonical indicator output selections without treating `output` as
+a numeric parameter. Full frontend Vitest passed `1004/1004` across `113`
+files; type-check, build, and diff checks passed.
+
+The exact gate at this tip passed all repository/workstream/dependency/
+migration/frontend-preparation and lint/type-check setup stages, then stopped
+at `backend-coverage` after 180 seconds because Docker `/v1.55/info` returned
+HTTP 500. No backend integration, provider, browser, or visual stage ran; no
+product or visual-policy failure was observed. The pending API fixtures remain
+Docker-dependent and no visual/provider/fallback/acceptance policy changed.
+
+Checkpoint scope: `frontend/src/views/AlertsView.vue`,
+`frontend/src/components/chart/IndicatorPanel.vue`, and these roadmap/TODO
+records. Restore Docker health, rerun the pending API regressions and exact
+gate at `0554789e`, then advance the next bounded seam.
+
 ## 2026-09-12 — Exact gate receipt at alert-form tip
 
 The exact branch-scoped gate was rerun at product tip `a557ba57` (documentation

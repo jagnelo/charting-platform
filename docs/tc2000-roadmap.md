@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Alert lists disclose canonical indicator outputs
+
+Product commit `0554789e` closes the alert-display side of the output
+contract. The Alerts view and chart-side alert editor now format indicator
+parameters through the shared catalog normalizer, omit the transport-only
+`output` field from numeric parameter lists, and append the selected canonical
+series (for example `[bb_upper]`) to the expression. This keeps normalized
+single-output alerts readable and makes multi-output alert intent visible while
+leaving layout and visual policy unchanged.
+
+The full frontend Vitest suite passed `1004/1004` across `113` files;
+type-check, production build, and `git diff --check` passed. The exact
+branch-scoped gate at `0554789e` passed git-diff, workstream validation,
+dependency/migration, frontend dependency preparation, and lint/type-check
+setup, then stopped at `backend-coverage` after the fixed 180-second Docker
+readiness window because `/v1.55/info` returned HTTP 500. No backend
+integration, provider, browser, or visual stage ran; no product or
+visual-policy failure was observed.
+
+The next action is to restore Docker Desktop health, run the pending alert and
+indicator-batch API regressions and exact gate at `0554789e`, then continue the
+next bounded provider/history or compatible chart/list/gauge seam. Preserve
+the six protected visual state-oracle diffs and the
+no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Exact gate receipt at alert-form tip
 
 The exact branch-scoped gate was rerun at product tip `a557ba57` after the

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — Alert lists disclose canonical indicator outputs
+
+- [x] Update Alerts view and chart-side alert labels to omit transport-only
+      `output` from numeric parameter text and disclose the selected canonical
+      series (`0554789e`).
+- [x] Full frontend Vitest passed `1004/1004` across `113` files;
+      type-check, build, and diff checks passed. The exact gate passed all
+      pre-Docker stages and stopped at `backend-coverage` after 180 seconds
+      because Docker `/v1.55/info` returned HTTP 500; no later stage ran and no
+      product or visual-policy failure was observed.
+- [ ] Restore Docker Desktop health, run the pending alert and
+      indicator-batch API regressions and exact gate at `0554789e`, then
+      continue provider/history or another compatible chart/list/gauge seam.
+
 ### 2026-09-12 — Exact gate receipt at alert-form tip
 
 - [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
