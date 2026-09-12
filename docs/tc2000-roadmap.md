@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard Watchlist action teardown
+
+Product commit `f12e6f910` closes a bounded R2/R6 lifecycle gap in the
+dashboard Watchlist widget. Create, copy, delete, and add-by-symbol actions
+now suppress late config patches or local-input cleanup when the widget is
+unmounted or a newer action supersedes them. Store mutation semantics,
+watchlist selection, managed/locked behavior, canonical symbol resolution,
+provider routing, and visual contracts are unchanged. Focused Watchlist
+lifecycle coverage passed `2/2`; full frontend Vitest passed `1067/1067` across
+122 files; frontend type-check and production build passed with only the
+existing chunk-size warning; and `git diff --check` passed. No visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed.
+Record the exact gate at the next documentation tip then continue the next
+bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact dashboard instrument-search gate rechecked
 
 At documentation tip `87e19058f` (product tip `d924576f4`), the exact

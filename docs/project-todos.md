@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard Watchlist action teardown
+
+- [x] Fence dashboard Watchlist create, copy, delete, and add-by-symbol
+      post-await mutations by mounted lifecycle and action generations
+      (`f12e6f910`); store, selection, provider, and visual/acceptance
+      contracts are unchanged.
+- [x] Focused Watchlist lifecycle coverage passed `2/2`; full frontend Vitest
+      passed `1067/1067` across 122 files; type-check, production build, and
+      `git diff --check` passed with only the existing chunk-size warning. No
+      visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next documentation tip, then
+      continue the next bounded provider/history or compatible R4/R2-R7 seam.
+
 ### 2026-09-12 — Exact dashboard instrument-search gate rechecked
 
 - [x] Reran the exact branch-scoped gate at docs tip `87e19058f` / product tip

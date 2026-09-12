@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard Watchlist action teardown
+
+Product commit `f12e6f910` fences dashboard Watchlist create/copy/delete and
+add-by-symbol post-await mutations by mounted lifecycle and action generations.
+Focused coverage passed `2/2`; full frontend Vitest passed `1067/1067` across
+122 files; type-check/build/diff checks passed with only the existing
+chunk-size warning. Store, selection, provider, visual, and acceptance
+contracts are unchanged. Record the exact gate at the next coherent
+documentation tip and continue in this worktree only.
+
 ## 2026-09-12 — Exact dashboard instrument-search gate rechecked
 
 At documentation tip `87e19058f` (product tip `d924576f4`), the exact gate
