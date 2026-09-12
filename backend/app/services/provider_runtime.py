@@ -482,6 +482,26 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
                 totals[name] = weight_used
             continue
         if (
+            unit in {"request", "requests"}
+            and window_seconds == 60
+            and "about-market-data-api" in source
+            and "alpaca.markets" in source
+        ):
+            # Alpaca's market-data responses expose the current request
+            # window on X-RateLimit-Limit/Remaining/Reset. Reconcile only
+            # when the response proves the exact reviewed Basic/Algo limit;
+            # Broker API correspondent limits are deliberately excluded from
+            # this market-data contract because Alpaca does not publish a
+            # fixed numeric Broker API allowance.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
+            continue
+        if (
             unit in {"credit", "credits"}
             and window_seconds == 86400
             and "marketdata.app" in source

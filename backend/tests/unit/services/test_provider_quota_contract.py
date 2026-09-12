@@ -1144,6 +1144,42 @@ def test_marketdata_app_headers_settle_actual_credit_charge_and_cumulative_total
     assert _observed_dimension_totals(policy, mismatched) == {}
 
 
+def test_alpaca_market_data_headers_reconcile_only_matching_request_window():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "reset": "provider_defined",
+            "dimensions": [
+                {
+                    "name": "historical_api_calls",
+                    "limit": 200,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "account",
+                    "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
+                }
+            ],
+        },
+    )
+    measurement = SimpleNamespace(
+        response_headers={
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+            "x-ratelimit-reset": "1789238854",
+        }
+    )
+    assert _observed_dimension_totals(policy, measurement) == {"historical_api_calls": 1}
+
+    mismatched = SimpleNamespace(
+        response_headers={
+            "x-ratelimit-limit": "100",
+            "x-ratelimit-remaining": "99",
+        }
+    )
+    assert _observed_dimension_totals(policy, mismatched) == {}
+
+
 def test_non_applicable_dimension_is_not_charged_during_runtime_settlement():
     policy = ProviderPolicy(
         data_source_id=1,
