@@ -1205,3 +1205,11 @@ Update this handoff at each coherent boundary.
   `60/60`, and the complete backend unit suite passes `1,987/1,987` with 37
   warnings; Ruff, compileall, and diff checks pass. No provider calls or
   credentials were used, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `f6482ed2` closes a third pagination-loop edge in Alpaca
+  corporate-action history. The adapter now rejects repeated pagination-token
+  cycles instead of relying only on an immediate self-repeat or an optional
+  page bound. Focused corporate-action coverage passes `7/7`, and the complete
+  backend unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall,
+  and diff checks pass. No provider calls or credentials were used, and no
+  frontend or ETF-provider files changed.

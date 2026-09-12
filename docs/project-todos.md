@@ -16395,3 +16395,12 @@ The current source also passes the focused authenticated top-down browser slice 
       materialization policy is still required before enabling the worker; this
       implementation does not infer tradability, listing dates, or redistribution
       rights from the issuer directory.
+
+### 2026-09-12 — Alpaca corporate-action cursor safety
+
+- [x] Reject repeated Alpaca corporate-action pagination-token cycles instead
+      of relying only on an immediate self-repeat or an optional page bound.
+      Focused corporate-action coverage passes `7/7`, and the complete backend
+      unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall, and
+      diff checks pass. Source checkpoint `f6482ed2`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
