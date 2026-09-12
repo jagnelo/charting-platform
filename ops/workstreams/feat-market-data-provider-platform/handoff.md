@@ -685,3 +685,16 @@ Update this handoff at each coherent boundary.
   Source commit `f32d93a4` is pushed; no provider calls or services were
   started. The independent-client Redis contention regression remains blocked
   only by unavailable Docker and is not represented as passed evidence.
+- Added the backend-only normalized market-event persistence service and an
+  opt-in daily ARQ schedule. Providers advertising `market_events` are invoked
+  through durable capability/quota routing; observations are idempotent by
+  `(source, event_key)`, exact provider-symbol and unique SEC CIK matches link
+  canonical targets, ambiguous ticker matches remain unlinked, and provider
+  failures are retained per source without discarding successful observations.
+  Focused service/worker coverage passes `33/33`; the complete backend unit
+  suite passes `1,838/1,838` with the known 37 warnings. Ruff, compileall,
+  `git diff --check`, and both Compose contract parses pass. Source commit
+  `ea105151` is pushed; no provider calls or services were started. The new
+  schedule is disabled by default and does not add frontend changes. Docker
+  full-stack validation, cross-provider reconciliation, pre-listing
+  materialization, EDGAR/Alpha feed completion, and calendar UX remain open.

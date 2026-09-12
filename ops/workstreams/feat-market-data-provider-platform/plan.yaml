@@ -782,8 +782,21 @@ progress:
       Ruff, compileall, and diff checks pass. Source commit `f32d93a4` is
       pushed; no provider calls or services were started. The independent-client
       Redis contention test remains Docker-gated.
+    - >-
+      Added the backend-only normalized market-event persistence service and
+      opt-in ARQ schedule. Provider adapters advertising `market_events` are
+      called through durable capability/quota routing; `(source, event_key)`
+      upserts are idempotent, exact provider-symbol and unique SEC CIK matches
+      link canonical targets, ambiguous ticker matches remain unlinked, and
+      one provider failure does not discard other providers' observations.
+      Focused service/worker coverage passes `33/33`; the complete backend unit
+      suite passes `1,838/1,838`; Ruff, compileall, diff checks, and both Compose
+      contract parses pass. Source commit `ea105151` is pushed; no provider
+      calls or services were started. Cross-provider reconciliation,
+      pre-listing materialization, EDGAR/Alpha feed completion, and calendar
+      UX remain open by design.
   total: 15
-  current_phase: cross_host_refresh_coordination
+  current_phase: market_event_persistence
   current_blocker: >-
     The complete matrix now collects 44 cases and remains 39/44: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
@@ -821,4 +834,8 @@ progress:
     retired generic cooldown, concurrency, and burst defaults. Latest-price
     refresh coalescing is now covered at the process and explicit Redis-client
     boundaries, but its cross-process contention proof still requires Docker.
-  next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; rerun the manifest only after deferred credentials or reviewed entitlements change
+    The normalized market-event persistence/worker path is implemented and
+    remains disabled by default; cross-provider event reconciliation,
+    pre-listing materialization, EDGAR IPO-pipeline and Alpha
+    `EARNINGS_CALENDAR` completion, and calendar-facing surfaces remain open.
+  next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; add event reconciliation/pre-listing work only after the provider persistence path is reviewed; rerun the manifest only after deferred credentials or reviewed entitlements change
