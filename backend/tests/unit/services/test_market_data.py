@@ -241,6 +241,39 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     assert result[0].market_series_id == 456
 
 
+@pytest.mark.asyncio
+async def test_provider_refresh_splits_mixed_sessions_into_distinct_series(monkeypatch):
+    regular = _semantic_bar()
+    extended = _semantic_bar()
+    extended.session = "extended"
+    extended.provenance = {"provider": "alpaca", "feed": "iex"}
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[regular, extended],
+    )
+    scopes = []
+
+    async def fake_get_or_create(_db, scope, **_kwargs):
+        scopes.append(scope)
+        return SimpleNamespace(id=100 + len(scopes))
+
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await market_data._attach_provider_series(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        True,
+        execution,
+    )
+
+    assert len(scopes) == 2
+    assert {scope.session_code for scope in scopes} == {"regular", "extended"}
+    assert {bar.market_series_id for bar in result} == {101, 102}
+
+
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):
     return SimpleNamespace(ts=ts, timeframe=timeframe)
 

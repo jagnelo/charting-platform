@@ -1104,41 +1104,50 @@ async def _attach_provider_series(
     if not bars:
         return bars
 
-    first_bar = bars[0]
-    try:
-        basis_value = getattr(first_bar.adjustment_basis, "value", first_bar.adjustment_basis)
-        adjustment_basis = AdjustmentBasis(str(basis_value))
-    except ValueError:
-        adjustment_basis = AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
-    feed_scope = str((first_bar.provenance or {}).get("feed") or "provider_native")
-    series = await get_or_create_series(
-        db,
-        SeriesScope(
-            instrument_id=instrument.id,
-            data_source_id=execution.data_source.id,
-            feed_scope=feed_scope,
-            session_code=first_bar.session,
-            timeframe=timeframe.value,
-            adjustment_basis=adjustment_basis,
-            adjustment_version=first_bar.adjustment_version,
-        ),
-        canonical=True,
-        source_series_key=(
-            f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
-            f"{first_bar.session}:{adjustment_basis.value}:{first_bar.adjustment_version}"
-        ),
-        provenance={
-            "provider": execution.provider_name,
-            "provider_symbol": provider_symbol,
-            "feed_scope": feed_scope,
-            "session": first_bar.session,
-            "timeframe": timeframe.value,
-            "adjustment_basis": adjustment_basis.value,
-            "adjustment_version": first_bar.adjustment_version,
-        },
-    )
+    grouped: dict[tuple[str, AdjustmentBasis, str, str], list[OHLCVBar]] = {}
     for bar in bars:
-        bar.market_series_id = series.id
+        try:
+            basis_value = getattr(bar.adjustment_basis, "value", bar.adjustment_basis)
+            adjustment_basis = AdjustmentBasis(str(basis_value))
+        except ValueError:
+            adjustment_basis = AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+        session_code = str(bar.session or "regular").strip() or "regular"
+        adjustment_version = str(bar.adjustment_version or "legacy")
+        feed_scope = str((bar.provenance or {}).get("feed") or "provider_native")
+        grouped.setdefault(
+            (session_code, adjustment_basis, adjustment_version, feed_scope), []
+        ).append(bar)
+
+    for (session_code, adjustment_basis, adjustment_version, feed_scope), scoped_bars in grouped.items():
+        series = await get_or_create_series(
+            db,
+            SeriesScope(
+                instrument_id=instrument.id,
+                data_source_id=execution.data_source.id,
+                feed_scope=feed_scope,
+                session_code=session_code,
+                timeframe=timeframe.value,
+                adjustment_basis=adjustment_basis,
+                adjustment_version=adjustment_version,
+            ),
+            canonical=True,
+            source_series_key=(
+                f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
+                f"{feed_scope}:{session_code}:{adjustment_basis.value}:{adjustment_version}"
+            ),
+            provenance={
+                "provider": execution.provider_name,
+                "provider_symbol": provider_symbol,
+                "feed_scope": feed_scope,
+                "session": session_code,
+                "timeframe": timeframe.value,
+                "adjustment_basis": adjustment_basis.value,
+                "adjustment_version": adjustment_version,
+                "bar_count": len(scoped_bars),
+            },
+        )
+        for bar in scoped_bars:
+            bar.market_series_id = series.id
     return bars
 
 
