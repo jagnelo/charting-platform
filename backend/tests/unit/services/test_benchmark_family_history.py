@@ -800,3 +800,79 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
     assert plan["snapshots"][0]["continuity"]["status"] == "gapped"
     assert plan["snapshots"][0]["continuity"]["gap_count"] == 1
     assert plan["snapshots"][0]["continuity"]["cadence_sample_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_snapshot_history_plan_keeps_latest_known_revision_per_effective_date(monkeypatch):
+    monkeypatch.setattr(
+        history,
+        "BENCHMARK_FAMILY_REGISTRY",
+        (
+            {
+                "logical_key": "sp500",
+                "cap_weight": {"symbol": "SPY"},
+                "equal_weight": {"symbol": None},
+                "value": {"symbol": None},
+                "growth": {"symbol": None},
+            },
+        ),
+    )
+
+    class Result:
+        def all(self):
+            # The production query orders same-date revisions by known_at/id
+            # descending.  The first row is therefore the authoritative queue
+            # candidate for that effective composition date.
+            return [
+                (
+                    103,
+                    date(2026, 7, 31),
+                    500,
+                    "SPY",
+                    date(2026, 7, 31),
+                    datetime(2026, 8, 3, tzinfo=UTC),
+                    datetime(2026, 8, 4, tzinfo=UTC),
+                    "issuer_native",
+                    "sec",
+                    "issuer-2026-07-31-corrected",
+                    "issuer_disclosed",
+                    "complete",
+                    500,
+                    0,
+                    "sec-v2",
+                    "snapshot-103",
+                ),
+                (
+                    102,
+                    date(2026, 7, 31),
+                    499,
+                    "SPY",
+                    date(2026, 7, 31),
+                    datetime(2026, 8, 1, tzinfo=UTC),
+                    datetime(2026, 8, 2, tzinfo=UTC),
+                    "issuer_native",
+                    "sec",
+                    "issuer-2026-07-31",
+                    "issuer_disclosed",
+                    "complete",
+                    499,
+                    0,
+                    "sec-v1",
+                    "snapshot-102",
+                ),
+                (101, date(2026, 6, 30), 498, "SPY"),
+            ]
+
+    class Session:
+        async def execute(self, _statement):
+            return Result()
+
+    plan = await history.plan_benchmark_family_snapshot_history_refresh(
+        Session(), family_keys=["sp500"], roles=["cap_weight"], max_snapshots=2
+    )
+
+    assert plan["available_snapshot_count"] == 2
+    assert plan["selected_snapshot_count"] == 2
+    assert plan["limited"] is False
+    assert [item["snapshot_id"] for item in plan["snapshots"]] == [103, 101]
+    assert plan["snapshots"][0]["source_identifier"] == "issuer-2026-07-31-corrected"

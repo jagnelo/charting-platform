@@ -230,6 +230,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
     ).all()
     snapshots: list[dict[str, Any]] = []
     seen_ids: set[int] = set()
+    seen_effective_dates: set[tuple[str, date]] = set()
     observed_dates_by_symbol: dict[str, set[date]] = {}
     for row in rows:
         snapshot_id, composition_date, resolved_count, symbol = row[:4]
@@ -237,9 +238,16 @@ async def plan_benchmark_family_snapshot_history_refresh(
         if isinstance(composition_date, date):
             observed_dates_by_symbol.setdefault(normalized_symbol, set()).add(composition_date)
         canonical_id = int(snapshot_id)
-        if canonical_id in seen_ids:
+        # A corrected issuer disclosure can produce multiple persisted rows for
+        # one effective composition date.  The query is ordered by
+        # known_at/id descending, so retain the latest-known revision for the
+        # maintenance plan.  The source history and audit rows remain intact;
+        # only redundant queue work and snapshot-cap consumption are removed.
+        effective_key = (normalized_symbol, composition_date)
+        if canonical_id in seen_ids or effective_key in seen_effective_dates:
             continue
         seen_ids.add(canonical_id)
+        seen_effective_dates.add(effective_key)
         snapshot = {
             "snapshot_id": canonical_id,
             "symbol": normalized_symbol,
