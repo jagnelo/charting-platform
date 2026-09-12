@@ -947,6 +947,11 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
+// Golden Layout can destroy a virtual tool while its shared column/asset
+// requests are still resolving. Keep response publication scoped to the
+// component lifetime; request generations alone do not distinguish a closed
+// tool from a newer request in the same instance.
+let disposed = false
 const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
@@ -1461,9 +1466,9 @@ watch(activeSymbol, async symbol => {
   if (!symbol || props.tool.tool_type === 'chart') return
   try {
     const loaded = await fetchCanonicalInstrument(queryClient, symbol)
-    if (sequence === instrumentRequestSequence) toolInstrument.value = loaded
+    if (!disposed && sequence === instrumentRequestSequence) toolInstrument.value = loaded
   } catch {
-    if (sequence === instrumentRequestSequence) toolInstrument.value = null
+    if (!disposed && sequence === instrumentRequestSequence) toolInstrument.value = null
   }
 }, { immediate: true })
 // Older persisted workspaces used the shorter `industries` instance key. Keep
@@ -1827,6 +1832,7 @@ watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadP
 watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
 
 onBeforeUnmount(() => {
+  disposed = true
   if (pendingWatchlistConfigurationTimer !== null) clearTimeout(pendingWatchlistConfigurationTimer)
   pendingWatchlistConfigurationTimer = null
   pendingWatchlistConfiguration = undefined
@@ -1834,6 +1840,11 @@ onBeforeUnmount(() => {
   // when its dock/pop-out closes and invalidate both chart and plot generations
   // so late research responses cannot update a destroyed uPlot surface.
   chartSelectionSequence += 1
+  instrumentRequestSequence += 1
+  comparisonRequestSequence += 1
+  conditionRequestGeneration += 1
+  indicatorRequestGeneration += 1
+  benchmarkFamilyLoadSequence += 1
   pythonPlotRequestSequence += 1
   scanPlotRequestSequence += 1
   for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
@@ -3264,7 +3275,7 @@ async function loadConditionColumns(rows: Array<{ symbol: string; instrumentId?:
       next[column.key] = Object.fromEntries(rows.map(row => [row.symbol, null]))
     }
   }))
-  if (generation === conditionRequestGeneration) conditionValues.value = next
+  if (!disposed && generation === conditionRequestGeneration) conditionValues.value = next
 }
 async function addConditionColumn(payload: TechnicalConditionDragPayload) {
   conditionDropError.value = ''
@@ -3349,7 +3360,7 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
       nextWarnings[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, 'unavailable']))
     }
   }))
-  if (generation === indicatorRequestGeneration) {
+  if (!disposed && generation === indicatorRequestGeneration) {
     indicatorValues.value = next
     indicatorWarnings.value = nextWarnings
   }
@@ -3514,6 +3525,7 @@ async function loadBreadthPythonSeriesAssets() {
   breadthPythonSeriesAssetsLoading.value = true
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (disposed) return
     breadthPythonSeriesAssets.value = assets
       .filter((asset: CodeAssetSummary) => asset.kind === 'condition')
       .flatMap((asset: CodeAssetSummary) => {
@@ -3523,9 +3535,9 @@ async function loadBreadthPythonSeriesAssets() {
           : []
       })
   } catch {
-    breadthPythonSeriesAssets.value = []
+    if (!disposed) breadthPythonSeriesAssets.value = []
   } finally {
-    breadthPythonSeriesAssetsLoading.value = false
+    if (!disposed) breadthPythonSeriesAssetsLoading.value = false
   }
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
