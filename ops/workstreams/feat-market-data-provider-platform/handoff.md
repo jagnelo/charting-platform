@@ -730,3 +730,23 @@ Update this handoff at each coherent boundary.
   EDGAR live case now includes a bounded pipeline read, and Ruff, compileall,
   and diff checks pass. Source commit `a52e47ca` is pushed; live execution
   remains part of the next credentialed matrix.
+- The owner-configured live matrix was rerun with the supplied Alpaca paper,
+  MarketData.app, rotated Dinari Sandbox, and SEC contact settings. It
+  collected 45 cases and passed 39; Alpaca, EDGAR, MarketData.app, and Dinari
+  passed their bounded reads. Alpha Vantage returned typed documented
+  25-requests/day capacity responses for IPO-calendar and both earnings reads;
+  Tradier, IBKR, and Ondo remained exact intentional credential preflights.
+  Aggregate-only receipt run `ef7c9f58-f408-4501-b25a-2dcf6ae298fe` is in the
+  owner-managed external ledger and is not acceptance evidence.
+- Added durable `market_event_consensus_v1` reconciliation. Provider event
+  rows and raw payloads remain immutable; only exact event-type plus canonical
+  target (instrument, issuer, or explicit venue MIC) plus occurrence-date
+  candidates are grouped. Single-source, corroborated, and conflicted states
+  are explicit, with field-level conflict values and ungrouped unresolved
+  observations. Refresh and EDGAR services run the bounded pass, the calendar
+  response exposes consensus metadata, and admin operators can inspect groups
+  at `/api/v1/market-data/event-consensus`. Focused coverage passes `16/16`,
+  the complete backend unit suite passes `1,857/1,857`, Ruff, compileall, and
+  diff checks pass. Source commit `84b949d8` is pushed; Docker-backed migration/full-
+  stack validation remains required. Pre-listing materialization and frontend
+  calendar surfaces remain out of scope/open, and no ETF-provider files changed.

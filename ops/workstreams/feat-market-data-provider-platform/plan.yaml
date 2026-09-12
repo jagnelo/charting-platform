@@ -108,6 +108,7 @@ remaining_gaps:
   - the post-options complete matrix rerun at 2026-09-12 collected 39 cases and passed 35. The four honest outcomes were Alpha Vantage's documented 25-requests/day IPO-calendar capacity response plus exact intentional credential preflights for Tradier, IBKR, and Ondo. xStocks returned an explicit null quote while its selected token reported a closed trading period; the test records that provider state without fabricating a price. No acceptance claim was made.
   - MarketData.app now exposes provider-native per-response credit telemetry and the runtime settles actual `X-Api-Ratelimit-Consumed` values plus cumulative remaining-credit observations when the returned limit matches the reviewed plan. Current option-chain routing still requires the explicit positive `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound; the default zero remains non-routable. Historical single-contract quote reservations are range-derived from the provider's documented end-of-day semantics. This closes accounting visibility but not the wider provider-terms, CI/deployment, reconciliation, or shadow gates.
   - The live MarketData.app key returned a native 10,000-credit daily limit, which is Starter-shaped rather than the repository's conservative Free Forever 100-credit seed. Native headers remain observational; routing now requires the exact reviewed `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` pair, with documented Free Forever/Starter/Trader values only. Quant/Prime remain outside this daily contract until their per-minute dimensions are modeled.
+  - The 2026-09-12 local credentialed matrix collected 45 cases and passed 39. Alpaca paper, EDGAR, MarketData.app, and rotated Dinari Sandbox cases passed; Alpha Vantage returned typed documented 25-requests/day capacity responses for IPO-calendar and both earnings reads, while Tradier, IBKR, and Ondo remained exact intentional credential preflights. Aggregate-only usage is recorded under run `ef7c9f58-f408-4501-b25a-2dcf6ae298fe` in the owner-managed external ledger; this is not acceptance evidence.
 progress:
   completed:
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
@@ -828,10 +829,24 @@ progress:
       `1,850/1,850`, the EDGAR live case now includes a bounded pipeline read,
       and Ruff, compileall, and diff checks pass. Source commit `a52e47ca` is
       pushed; live execution remains part of the next credentialed matrix.
+    - >-
+      Added durable `market_event_consensus_v1` reconciliation. Persisted
+      provider observations remain immutable; only exact event-type plus
+      canonical target (instrument, issuer, or explicit venue MIC) plus
+      occurrence-date candidates are grouped. Single-source groups remain
+      `single_source`, matching multi-source groups become `corroborated`, and
+      differing semantic fields become `conflicted` with per-source values;
+      unresolved observations remain ungrouped. Refresh and EDGAR pipeline
+      services run the bounded pass, the calendar read exposes consensus
+      metadata, and the admin-only `/api/v1/market-data/event-consensus` route
+      exposes review evidence. Focused service/migration/router coverage passes
+      `16/16`; the complete backend unit suite passes `1,857/1,857`, with Ruff,
+      compileall, and diff checks clean. Source commit `84b949d8` is pushed;
+      Docker-backed migration/full-stack validation remains required.
   total: 15
-  current_phase: edgar_ipo_pipeline
+  current_phase: market_event_reconciliation
   current_blocker: >-
-    The complete matrix now collects 44 cases and remains 39/44: newly supplied
+    The latest local matrix collects 45 cases and remains 39/45: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
     Sandbox probes, including the MarketData.app expirations/option-chain
     surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.
@@ -841,9 +856,10 @@ progress:
     credentialed case. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
     intentionally unconfigured. MarketData.app routing is also intentionally
     closed until the account plan/limit pair is explicitly reviewed; its live
-    key currently reports a 10,000-credit daily header. Alpha Vantage remains at its documented
-    25-requests/day capacity for IPO-calendar and earnings reads after the
-    shared key was exercised; a standalone earnings probe passed independently.
+    key currently reports a 10,000-credit daily header. Alpha Vantage remains
+    at its documented 25-requests/day capacity for IPO-calendar and both
+    earnings reads after the shared key was exercised; this run records typed
+    capacity failures rather than treating them as provider success.
     FRED,
     FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
     Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
@@ -867,12 +883,12 @@ progress:
     retired generic cooldown, concurrency, and burst defaults. Latest-price
     refresh coalescing is now covered at the process and explicit Redis-client
     boundaries, but its cross-process contention proof still requires Docker.
-    The normalized market-event persistence/worker path is implemented and
-    remains disabled by default; its authenticated database-only calendar read
-    API is available, while cross-provider event reconciliation,
-    pre-listing materialization and global EDGAR candidate enumeration remain
-    open; live evidence for the new Alpha forward-calendar case and the EDGAR
-    IPO-pipeline read remains pending, while the backend persisted-event read
-    API and bounded CIK pipeline service are available. Frontend calendar
-    surfaces remain open.
-  next_action: restore Docker readiness and run the full-profile session bootstrap, then complete provider-specific quota/legal and reconciliation reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, and keep response-dependent routing fail-closed before any activation, integration, promotion, or deployment; add event reconciliation/pre-listing work only after the provider persistence path is reviewed; rerun the manifest only after deferred credentials or reviewed entitlements change
+    The normalized market-event persistence/worker path and durable
+    cross-provider candidate reconciliation are implemented and remain
+    disabled by default; the authenticated database-only calendar and
+    admin-consensus read APIs are available. Pre-listing materialization,
+    global EDGAR candidate enumeration, and frontend calendar surfaces remain
+    open. The new Alpha forward-calendar and EDGAR IPO-pipeline live reads are
+    still pending a reset/usable quota window, while Alpaca/MarketData.app/
+    Dinari/EDGAR transport evidence is recorded above.
+  next_action: restore Docker readiness and run the full-profile session bootstrap and migration/full-stack gate; complete provider-specific quota/legal reviews, obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms, keep response-dependent routing fail-closed before any activation/integration/promotion/deployment, and implement pre-listing materialization only after the reconciled event candidate contract is reviewed; rerun the manifest after deferred credentials or reviewed entitlements change
