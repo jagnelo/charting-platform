@@ -25,6 +25,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
@@ -39,6 +40,11 @@ from app.providers.errors import bounded_redact_provider_message
 from app.providers.optional_market_data import (
     estimate_marketstack_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
+)
+from app.services.distributed_locks import (
+    DistributedLockError,
+    redis_distributed_lock,
+    shared_redis_lock_client,
 )
 from app.services.market_data import (
     _attach_provider_series,
@@ -142,6 +148,7 @@ async def bulk_fetch_instrument(
             timeframe=tf,
             adjusted=adjusted,
             end=fetch_end,
+            redis=redis,
         )
         summary[tf.value] = result
 
@@ -213,16 +220,39 @@ async def _fetch_one_timeframe(
     timeframe: Timeframe,
     adjusted: bool,
     end: datetime,
+    redis=None,
 ) -> int | str:
     try:
-        return await _do_fetch_and_store(
-            db=db,
-            instrument=instrument,
-            ticker_sym=ticker_sym,
-            timeframe=timeframe,
-            adjusted=adjusted,
-            end=end,
-        )
+        distributed_redis = None
+        if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+            distributed_redis = redis or shared_redis_lock_client()
+        if distributed_redis is None:
+            return await _do_fetch_and_store(
+                db=db,
+                instrument=instrument,
+                ticker_sym=ticker_sym,
+                timeframe=timeframe,
+                adjusted=adjusted,
+                end=end,
+            )
+        async with redis_distributed_lock(
+            distributed_redis,
+            namespace="ohlcv-bulk-refresh",
+            identity=repr((instrument.id, timeframe.value, end, adjusted)),
+            ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+            blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+            retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+        ):
+            return await _do_fetch_and_store(
+                db=db,
+                instrument=instrument,
+                ticker_sym=ticker_sym,
+                timeframe=timeframe,
+                adjusted=adjusted,
+                end=end,
+            )
+    except DistributedLockError:
+        raise
     except Exception as e:
         safe_error = bounded_redact_provider_message(e)
         logger.error("Bulk fetch failed for %s %s: %s", ticker_sym, timeframe.value, safe_error)

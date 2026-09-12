@@ -66,6 +66,10 @@ from app.providers.optional_market_data import (
     estimate_twelve_data_latest_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
 )
+from app.services.distributed_locks import (
+    redis_distributed_lock,
+    shared_redis_lock_client,
+)
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
 from app.services.market_series import SeriesScope, get_or_create_series
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
@@ -780,6 +784,7 @@ async def fetch_ohlcv(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    redis: Any = None,
 ) -> list[OHLCVBar]:
     """Read/refresh OHLCV with identical in-process requests coalesced.
 
@@ -787,7 +792,9 @@ async def fetch_ohlcv(
     transaction. A waiter therefore re-enters the implementation only after
     the first caller has committed, allowing the normal coverage check to
     return the newly persisted bars without another provider request. Local
-    only and synthetic reads remain lock-free.
+    only and synthetic reads remain lock-free. When explicitly enabled, the
+    same key is also held in Redis so deployments that do not share one
+    PostgreSQL transaction boundary still coalesce refreshes safely.
     """
 
     return await _with_ohlcv_refresh_gate(
@@ -797,6 +804,7 @@ async def fetch_ohlcv(
         end,
         adjusted,
         allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
         operation=lambda: _fetch_ohlcv_impl(
             db,
             instrument,
@@ -817,6 +825,7 @@ async def _with_ohlcv_refresh_gate(
     adjusted: bool,
     *,
     allow_provider_fetch: bool,
+    redis: Any = None,
     operation: Callable[[], Awaitable[_T]],
 ) -> _T:
     """Coalesce one provider-capable OHLCV operation in this process.
@@ -836,7 +845,20 @@ async def _with_ohlcv_refresh_gate(
     _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
     try:
         async with lock:
-            return await operation()
+            distributed_redis = None
+            if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+                distributed_redis = redis or shared_redis_lock_client()
+            if distributed_redis is None:
+                return await operation()
+            async with redis_distributed_lock(
+                distributed_redis,
+                namespace="ohlcv-refresh",
+                identity=repr(lock_key),
+                ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+                blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+                retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+            ):
+                return await operation()
     finally:
         remaining = _OHLCV_REFRESH_LOCK_USERS[lock_key] - 1
         if remaining:
@@ -1159,6 +1181,7 @@ async def fetch_ohlcv_latest(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    redis: Any = None,
 ) -> list[OHLCVBar]:
     """Return the most recent ``limit`` bars with refresh coalescing."""
     return await _with_ohlcv_refresh_gate(
@@ -1168,6 +1191,7 @@ async def fetch_ohlcv_latest(
         None,
         adjusted,
         allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
         operation=lambda: _fetch_ohlcv_latest_impl(
             db,
             instrument,
@@ -1332,6 +1356,7 @@ async def fetch_ohlcv_page_before(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    redis: Any = None,
 ) -> list[OHLCVBar]:
     """Return up to ``limit`` bars strictly before ``before`` with coalescing."""
     return await _with_ohlcv_refresh_gate(
@@ -1341,6 +1366,7 @@ async def fetch_ohlcv_page_before(
         before,
         adjusted,
         allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
         operation=lambda: _fetch_ohlcv_page_before_impl(
             db,
             instrument,

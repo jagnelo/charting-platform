@@ -87,6 +87,79 @@ async def test_bulk_fetch_failure_state_redacts_provider_credentials(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_bulk_fetch_uses_shared_redis_lock_when_cross_host_mode_enabled(monkeypatch):
+    calls = []
+
+    class _Lock:
+        async def acquire(self):
+            calls.append("acquire")
+            return True
+
+        async def release(self):
+            calls.append("release")
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    async def _fake_store(**_kwargs):
+        calls.append("store")
+        return 1
+
+    monkeypatch.setattr(bulk_fetch.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(bulk_fetch, "_do_fetch_and_store", _fake_store)
+    instrument = SimpleNamespace(id=42, symbol="SPY")
+    result = await bulk_fetch._fetch_one_timeframe(
+        db=object(),
+        instrument=instrument,
+        ticker_sym="SPY",
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        end=bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+        redis=_Redis(),
+    )
+
+    assert result == 1
+    assert calls[0][0] == "lock"
+    assert calls[1] == "acquire"
+    assert calls[0][2]["timeout"] == bulk_fetch.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+    assert calls[-2:] == ["store", "release"]
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_lock_timeout_does_not_call_provider(monkeypatch):
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("an unacquired lock must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    async def _unexpected_store(**_kwargs):
+        raise AssertionError("provider work must not start after lock timeout")
+
+    monkeypatch.setattr(bulk_fetch.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(bulk_fetch, "_do_fetch_and_store", _unexpected_store)
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await bulk_fetch._fetch_one_timeframe(
+            db=object(),
+            instrument=SimpleNamespace(id=42, symbol="SPY"),
+            ticker_sym="SPY",
+            timeframe=Timeframe.D1,
+            adjusted=True,
+            end=bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+            redis=_Redis(),
+        )
+
+
+@pytest.mark.asyncio
 async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch):
     bar = SimpleNamespace(ts=bulk_fetch.datetime(2024, 1, 1, tzinfo=bulk_fetch.UTC))
     execution = SimpleNamespace(

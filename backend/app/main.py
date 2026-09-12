@@ -39,6 +39,7 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
+from app.services.distributed_locks import close_shared_redis_lock_client
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
     logger.info("Backend ready ✓")
     yield
     scheduler.shutdown(wait=False)
+    await close_shared_redis_lock_client()
 
 
 app = FastAPI(

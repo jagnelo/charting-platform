@@ -74,6 +74,12 @@ MARKET_OPERATION_SETTINGS = {
     "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
     "MARKET_UNIVERSE_MISSING_CONFIRMATIONS",
 }
+RUNTIME_COORDINATION_SETTINGS = {
+    "OHLCV_DISTRIBUTED_LOCK_ENABLED",
+    "OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS",
+    "OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS",
+    "OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS",
+}
 PROVIDER_OPERATION_SETTINGS = {
     "PROVIDER_AVAILABILITY_MONITOR_ENABLED",
     "PROVIDER_AVAILABILITY_LIVE_ENABLED",
@@ -156,6 +162,18 @@ def test_local_and_rpi_compose_pass_market_operation_settings_to_backend_and_wor
             assert f"{name}:" not in research, (relative_path, "research-runner", name)
 
 
+def test_local_and_rpi_compose_pass_runtime_coordination_settings_to_backend_and_worker_only():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        for name in RUNTIME_COORDINATION_SETTINGS:
+            assert f"{name}:" in backend, (relative_path, "backend", name)
+            assert f"{name}:" in worker, (relative_path, "worker", name)
+            assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
 def test_local_and_rpi_compose_pass_provider_operation_settings_to_backend_and_worker_only():
     for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
         compose = (ROOT / relative_path).read_text()
@@ -228,7 +246,11 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     ):
         assert f"{name}=" in example
     assert 'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in example
-    for name in PROVIDER_CONFIGURATION_SETTINGS | PROVIDER_OPERATION_SETTINGS:
+    for name in (
+        PROVIDER_CONFIGURATION_SETTINGS
+        | PROVIDER_OPERATION_SETTINGS
+        | RUNTIME_COORDINATION_SETTINGS
+    ):
         assert f"{name}=" in example
 
 

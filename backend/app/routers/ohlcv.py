@@ -13,6 +13,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
+from app.services.distributed_locks import DistributedLockError
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
 from app.services.provider_runtime import ProviderNoDataError, ProviderRateLimitError
 
@@ -34,6 +35,19 @@ def _provider_capacity_http_error(exc: ProviderRateLimitError) -> HTTPException:
             "scope": exc.scope,
         },
         headers=headers,
+    )
+
+
+def _distributed_lock_http_error(exc: DistributedLockError) -> HTTPException:
+    """Expose cross-host refresh coordination failures as a retryable 503."""
+
+    return HTTPException(
+        status_code=503,
+        detail={
+            "code": "refresh_coordination_unavailable",
+            "message": str(exc),
+        },
+        headers={"Retry-After": "5"},
     )
 
 
@@ -145,6 +159,8 @@ async def get_ohlcv_transformed(
             )
         except ProviderRateLimitError as exc:
             raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -166,6 +182,8 @@ async def get_ohlcv_transformed(
             )
         except ProviderRateLimitError as exc:
             raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -182,6 +200,8 @@ async def get_ohlcv_transformed(
             )
         except ProviderRateLimitError as exc:
             raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -247,6 +267,8 @@ async def get_ohlcv(
             )
         except ProviderRateLimitError as exc:
             raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -271,6 +293,8 @@ async def get_ohlcv(
             )
         except ProviderRateLimitError as exc:
             raise _provider_capacity_http_error(exc) from exc
+        except DistributedLockError as exc:
+            raise _distributed_lock_http_error(exc) from exc
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -290,6 +314,8 @@ async def get_ohlcv(
         )
     except ProviderRateLimitError as exc:
         raise _provider_capacity_http_error(exc) from exc
+    except DistributedLockError as exc:
+        raise _distributed_lock_http_error(exc) from exc
     except ProviderNoDataError as exc:
         raise HTTPException(
             404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."

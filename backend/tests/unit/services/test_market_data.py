@@ -462,3 +462,109 @@ async def test_non_postgres_refresh_lock_is_a_noop():
 
     key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
     await market_data._acquire_database_refresh_lock(_Db(), key)
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_wraps_operation_and_releases_ownership(monkeypatch):
+    calls: list[tuple] = []
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=44, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        calls.append(("operation",))
+        return ["fresh"]
+
+    result = await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    )
+
+    assert result == ["fresh"]
+    assert [call[0] for call in calls] == ["lock", "acquire", "operation", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_timeout_fails_closed_without_operation(monkeypatch):
+    called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=45, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        nonlocal called
+        called = True
+        return ["unsafe"]
+
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data._with_ohlcv_refresh_gate(
+            instrument,
+            Timeframe.D1,
+            start,
+            None,
+            True,
+            allow_provider_fetch=True,
+            redis=_Redis(),
+            operation=operation,
+        )
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_is_not_used_until_explicitly_enabled(monkeypatch):
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            raise AssertionError("disabled mode must not contact Redis")
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    instrument = SimpleNamespace(id=46, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        return ["local"]
+
+    assert await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    ) == ["local"]

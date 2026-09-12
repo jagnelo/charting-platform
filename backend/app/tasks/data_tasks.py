@@ -91,7 +91,7 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
                         continue
                     # Small overlap buffer to catch any late-arriving bars
                     start = newest - timedelta(hours=1)
-                    bars = await fetch_ohlcv(db, instrument, tf, start)
+                    bars = await fetch_ohlcv(db, instrument, tf, start, redis=ctx.get("redis"))
                     total_bars += len(bars)
                 except Exception as e:
                     logger.error(
@@ -144,7 +144,14 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                     raise ValueError(f"instrument {job.instrument_id} no longer exists")
                 timeframe = Timeframe(job.timeframe)
                 start = job.start_at or (datetime.now(UTC) - timedelta(days=7))
-                await fetch_ohlcv(db, instrument, timeframe, start, end=job.end_at)
+                await fetch_ohlcv(
+                    db,
+                    instrument,
+                    timeframe,
+                    start,
+                    end=job.end_at,
+                    redis=ctx.get("redis"),
+                )
                 await complete_refresh_job(db, job)
                 completed += 1
             except RefreshLeaseLostError as exc:

@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from app.models.ohlcv import Timeframe
+from app.services.distributed_locks import DistributedLockError
 from app.services.provider_runtime import ProviderNoDataError
 
 
@@ -86,6 +87,23 @@ class TestOHLCVRouter:
 
         assert res.status_code == 404
         assert "No OHLCV data available" in res.json()["detail"]
+
+    def test_refresh_coordination_failure_returns_retryable_503(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
+        async def _raise_lock_error(*_args, **_kwargs):
+            raise DistributedLockError("Redis distributed lock acquisition timed out")
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv_latest", _raise_lock_error)
+
+        res = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.D1.value}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 503
+        assert res.headers["Retry-After"] == "5"
+        assert res.json()["detail"]["code"] == "refresh_coordination_unavailable"
 
     def test_local_only_skips_provider_hydration(
         self, client, auth_headers, instrument, monkeypatch

@@ -29,6 +29,14 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    # Optional cross-host OHLCV refresh coalescing. PostgreSQL advisory locks
+    # remain the primary path when workers share one database. Enable this only
+    # when a shared Redis coordinator is available and set the TTL above the
+    # slowest permitted refresh; failed acquisition is fail-closed.
+    OHLCV_DISTRIBUTED_LOCK_ENABLED: bool = False
+    OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS: int = 900
+    OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS: float = 30.0
+    OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS: float = 0.25
 
     # OneSignal
     ONESIGNAL_APP_ID: str = ""

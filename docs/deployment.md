@@ -26,6 +26,17 @@ backend and worker containers and set `PROVIDER_LIVE_USAGE_LEDGER` to its
 container path. Do not copy credentials or raw provider payloads into that
 mount; an unavailable ledger is safe and does not affect routing.
 
+Identical OHLCV refreshes are coordinated by PostgreSQL transaction-scoped
+advisory locks when all workers share one database. A deployment whose backend
+instances do not share that transaction boundary may opt into the Redis
+coordinator with `OHLCV_DISTRIBUTED_LOCK_ENABLED=true`; every participating
+backend and worker must point at the same `REDIS_URL`. Set
+`OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS` longer than the slowest permitted refresh,
+and keep `OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS` bounded. If Redis cannot acquire
+the lock, the refresh fails closed instead of spending provider quota twice.
+The lock is a coordination safeguard, not a provider rate limit, and its
+settings must be reviewed per deployment.
+
 Tokenized quote polling is opt-in and disabled by default. If the deployment
 has reviewed provider entitlements and quota contracts, set
 `TOKENIZED_ASSET_REFRESH_ENABLED=true` and a bounded

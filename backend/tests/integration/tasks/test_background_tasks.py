@@ -92,6 +92,52 @@ async def test_refresh_job_lease_token_blocks_stale_worker_mutation(db, instrume
     assert second_claim.status == "completed"
 
 
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_coordinates_independent_worker_clients(redis_url):
+    """Independent worker clients contend on one shared Redis lock safely."""
+
+    from redis.asyncio import Redis
+
+    from app.services.distributed_locks import DistributedLockError, redis_distributed_lock
+
+    first = Redis.from_url(redis_url, decode_responses=False)
+    second = Redis.from_url(redis_url, decode_responses=False)
+    try:
+        async with redis_distributed_lock(
+            first,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            with pytest.raises(DistributedLockError, match="timed out"):
+                async with redis_distributed_lock(
+                    second,
+                    namespace="integration-refresh",
+                    identity="same-refresh",
+                    ttl_seconds=30,
+                    blocking_timeout_seconds=0.01,
+                    retry_interval_seconds=0.005,
+                ):
+                    raise AssertionError("a contended refresh lock must not enter its operation")
+
+        # Ownership is released only by the client that acquired the token;
+        # the second independent client can acquire after the first exits.
+        async with redis_distributed_lock(
+            second,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            pass
+    finally:
+        await first.aclose()
+        await second.aclose()
+
+
 # ── Alert engine ───────────────────────────────────────────────────────────────
 
 
