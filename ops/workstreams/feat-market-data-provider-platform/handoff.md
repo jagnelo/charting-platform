@@ -1032,3 +1032,21 @@ Update this handoff at each coherent boundary.
   `1,925/1,925` in 65.61 seconds with 37 warnings. This is unit evidence only;
   the required PostgreSQL/Redis full-stack gate remains blocked by the local
   Docker API. No additional live provider calls were made.
+
+- Source checkpoint `b072b1e94` adds MarketData.app's documented authenticated
+  `/user/` account introspection surface. `ProviderAccountUsage` preserves the
+  native credit limit, remaining credits, per-request charge, reset timestamp,
+  and options-data entitlement; the unversioned endpoint's documented 404
+  no-account response returns no snapshot. The adapter never derives a plan or
+  widens routing from this observation; the reviewed plan/credit pair and
+  response-priced option-chain bound remain explicit admission controls.
+
+- Validation after this checkpoint: the optional-provider fixture suite passed
+  `80/80`, the broader provider/runtime suite passed `530/530`, and the complete
+  backend unit suite passed `1,928/1,928` with 37 warnings. Ruff, format,
+  compileall, and diff checks passed. One bounded credentialed
+  `test_marketdata_app_credentialed_account_usage_snapshot` live test passed
+  `1/1` against `https://api.marketdata.app/user/`, recording only aggregate
+  telemetry outside Git. No full live matrix rerun was made, so the shared
+  provider quotas were not needlessly consumed. Docker-backed migration and
+  full-stack validation remains blocked by the local Docker API.
