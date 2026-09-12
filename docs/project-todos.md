@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence dashboard radar and instrument hydration
+
+- [x] Fence dashboard Radar list/detail flows plus quote and instrument-details
+      metadata/OHLCV hydration by mounted lifecycle and request generations
+      (`c36c8f353`, `7c51e3b28`).
+- [x] Focused Radar widget coverage passed `5/5`; quote/details lifecycle
+      coverage passed `2/2`; full frontend Vitest passed `1057/1057`;
+      type-check, production build, and `git diff --check` passed with only the
+      existing chunk-size warning. No visual/acceptance policy changed.
+- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
+      tip, then continue the next bounded provider/history or compatible
+      R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence ChartPanel hydration teardown
 
 - [x] Fence linked-panel symbol loads, timeframe changes, layout restoration,

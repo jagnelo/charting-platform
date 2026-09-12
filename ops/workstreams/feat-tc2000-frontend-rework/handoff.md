@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence dashboard radar and instrument hydration
+
+Product commits `c36c8f353` and `7c51e3b28` fence dashboard Radar list/detail
+and quote/instrument-details metadata/OHLCV hydration by mounted lifecycle and
+request generations. Focused coverage passed `5/5` and `2/2`; full frontend
+Vitest passed `1057/1057`; type-check/build/diff checks passed with only the
+existing chunk-size warning. Dashboard/API, provider, visual, and acceptance
+contracts are unchanged. Rerun the exact gate at the next coherent tip and
+continue in this worktree only.
+
 ## 2026-09-12 — Exact ChartPanel gate rechecked
 
 At documentation tip `3a726786` (product tip `f50f1533`), the exact gate passed

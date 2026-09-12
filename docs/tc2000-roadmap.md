@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence dashboard radar and instrument hydration
+
+Product commits `c36c8f353` and `7c51e3b28` close bounded R2/R6 lifecycle
+gaps in the dashboard consumers. Dashboard Radar list/detail refreshes and
+dashboard quote/instrument-details metadata and OHLCV hydration now stop when
+the widget is unmounted or a newer request supersedes them. Setup filtering,
+canonical instrument resolution, API payloads, provider routing, chart links,
+freshness/error behavior, and visual contracts are unchanged. Focused Radar
+widget coverage passed `5/5`; focused quote/details lifecycle coverage passed
+`2/2`; full frontend Vitest passed `1057/1057` across 117 files; frontend
+type-check and production build passed with only the existing chunk-size
+warning; and `git diff --check` passed. No visual baseline, mask, threshold,
+skip, provider, fallback, or acceptance policy changed. Continue the next
+bounded provider/history or compatible R4/R2-R7 seam.
+
 ## 2026-09-12 — Exact ChartPanel gate rechecked
 
 At documentation tip `3a726786` (product tip `f50f1533`), the exact
