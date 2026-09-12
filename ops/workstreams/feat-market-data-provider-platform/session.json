@@ -71,19 +71,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
-  "dirty_paths": [
-    "ackend/app/config.py",
-    "backend/app/providers/optional_market_data.py",
-    "backend/tests/live/test_market_data_providers_live.py",
-    "backend/tests/unit/providers/test_optional_market_data.py",
-    "docs/data-providers.md",
-    "docs/project-todos.md",
-    "docs/provider-live-validation.md",
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -142,7 +130,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "621cd5cb2145aca197e006dd1e3d108fab0b7fdb",
+  "head": "802bb66f942dd5d2ef388a552a1e7aa8c98b12fe",
   "implementation_sha": "71840248a45f3b2d46880fd4b93ee21ffa349a61",
   "interrupted": true,
   "last_checkpoint": "2026-09-11T17:49:22.289367+00:00",
@@ -181,7 +169,7 @@
     "total": 15,
     "updated_at": "2026-09-12T01:10:00.742196+00:00"
   },
-  "remote": "621cd5cb2145aca197e006dd1e3d108fab0b7fdb",
+  "remote": "802bb66f942dd5d2ef388a552a1e7aa8c98b12fe",
   "remote_sha": "71840248a45f3b2d46880fd4b93ee21ffa349a61",
   "remote_synchronized": true,
   "retained_docker_resources": [],
