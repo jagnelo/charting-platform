@@ -2,6 +2,16 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Fence ChartPanel hydration teardown
+
+Product commit `f50f1533` fences ChartPanel linked-symbol, timeframe, layout
+restore, search, drawing, and alert hydration by mounted lifecycle and
+selection generations. Focused coverage passed `2/2`; full frontend Vitest
+passed `1053/1053`; type-check/build/diff checks passed with only the existing
+chunk-size warning. Chart/store/API, provider, visual, and acceptance
+contracts are unchanged. Rerun the exact gate at the next coherent tip and
+continue in this worktree only.
+
 ## 2026-09-12 — Fence Radar hydration teardown
 
 Product commit `579eaa91` fences Radar refresh/filter, detection/history,

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence ChartPanel hydration teardown
+
+- [x] Fence linked-panel symbol loads, timeframe changes, layout restoration,
+      search responses, drawings, and alerts by mounted lifecycle and selection
+      generations (`f50f1533`).
+- [x] Focused ChartPanel coverage passed `2/2`; full frontend Vitest passed
+      `1053/1053`; type-check, production build, and `git diff --check` passed
+      with only the existing chunk-size warning. No visual/acceptance policy
+      changed.
+- [ ] Rerun the exact branch-scoped gate at the next coherent documentation
+      tip, then continue the next bounded provider/history or compatible
+      R4/R2-R7 seam.
+
 ### 2026-09-12 — Fence Radar hydration teardown
 
 - [x] Fence Radar refresh/filter, detection/history, scan, basket hydration,
