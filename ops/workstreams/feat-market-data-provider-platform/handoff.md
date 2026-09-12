@@ -625,3 +625,9 @@ Update this handoff at each coherent boundary.
   merger's input boundary. Focused usage coverage passed `22/22`, the complete
   backend unit suite passed `1,812/1,812`, and Ruff, compileall, and diff checks
   passed. Source commit `b70ad8bf` is pushed; no provider calls were needed.
+- Published FINRA, Tiingo, and FMP bandwidth pools now use conservative
+  decimal-byte ceilings where the vendor's GB/MB wording does not declare
+  binary units, with an explicit `limit_basis` recorded in each quota contract.
+  The quota contract suite passed `71/71`, the complete backend unit suite
+  passed `1,813/1,813`, and Ruff, compileall, and diff checks passed. Source
+  commit `e055aab8` is pushed; no provider calls were needed.
