@@ -66,6 +66,27 @@ async def test_failed_job_uses_bounded_exponential_retry(db):
 
 
 @pytest.mark.asyncio
+async def test_failed_job_redacts_credentials_before_persisting_error(db):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    job = await enqueue_refresh_job(
+        async_db,
+        request_key="d1:redacted-error",
+        capability="price_history",
+        now=now,
+    )
+    await claim_refresh_jobs(async_db, now=now)
+    await retry_refresh_job(
+        async_db,
+        job,
+        "GET https://provider.test/data?api_key=secret-value",
+        now=now,
+    )
+    assert "secret-value" not in job.last_error
+    assert "<redacted>" in job.last_error
+
+
+@pytest.mark.asyncio
 async def test_provider_reset_defers_job_until_retry_at(db):
     async_db = AsyncSessionAdapter(db)
     now = datetime(2026, 9, 4, 12, tzinfo=UTC)

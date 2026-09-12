@@ -10,6 +10,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import MarketRefreshJob
+from app.providers.errors import redact_provider_message
 
 
 class RefreshLeaseLostError(RuntimeError):
@@ -176,6 +177,7 @@ async def retry_refresh_job(
         "defer_reason": "provider_reset" if is_quota_defer else None,
         "provider_retry_at": retry_at.isoformat() if retry_at else None,
     }
+    safe_error = redact_provider_message(error)[:2000]
     token = lease_token or job.lease_token
     if not token:
         raise RefreshLeaseLostError(f"refresh job {job.id} has no lease token")
@@ -194,7 +196,7 @@ async def retry_refresh_job(
             status="deferred" if is_quota_defer else "retry",
             leased_until=None,
             lease_token=None,
-            last_error=error[:2000],
+            last_error=safe_error,
             next_attempt_at=next_attempt_at,
             metadata_payload=metadata_payload,
         )
@@ -204,6 +206,6 @@ async def retry_refresh_job(
     job.status = "deferred" if is_quota_defer else "retry"
     job.leased_until = None
     job.lease_token = None
-    job.last_error = error[:2000]
+    job.last_error = safe_error
     job.next_attempt_at = next_attempt_at
     job.metadata_payload = metadata_payload

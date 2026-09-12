@@ -309,6 +309,7 @@ progress:
     - Dinari and Ondo authenticated tokenized adapters now fail closed before issuing HTTP when exact credential settings are absent; tokenized-provider coverage passes 51/51 and the full backend unit suite passes 1731/1731 with no credential or payload persistence.
     - refresh jobs now persist an opaque per-claim lease token; conditional completion/retry updates require matching id/status/token/expiry and raise an explicit lease-loss error for stale workers. The worker records lease loss without retrying or overwriting another worker's state. Focused queue/worker coverage passes 32/32; the full backend unit suite passes 1734/1734 with Ruff, compilation, and diff checks clean. Migration `6c7d8e9f0a1b_add_refresh_job_lease_tokens.py`.
     - the admin-only `/api/v1/market-data/refresh/queue` diagnostic now exposes bounded status counts and retry/lease-expiry/error state without returning lease tokens; its PostgreSQL-backed API contract regression is present but Docker-gated in this environment
+    - refresh-job retry errors are redacted before durable persistence and again at the admin-read boundary, covering unexpected transport exception text as well as typed provider failures; focused queue/admin coverage passes 8/8 and the full backend unit suite passes 1735/1735
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

@@ -15,6 +15,10 @@
       with status counts, lease-expiry/degradation state, retry metadata, and
       last errors while deliberately omitting lease tokens. The API contract
       regression is present; its PostgreSQL-backed execution is Docker-gated.
+- [x] Redact refresh-job errors at both persistence and admin-read boundaries,
+      covering unexpected transport exceptions as well as typed provider
+      failures. Regression coverage verifies credentials never enter the
+      durable `last_error` field.
 
 ### 2026-09-12 — Dinari Sandbox default host alignment
 

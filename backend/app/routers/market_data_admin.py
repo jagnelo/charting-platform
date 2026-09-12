@@ -31,6 +31,7 @@ from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
+from app.providers.errors import redact_provider_message
 from app.services.market_data_monitoring import build_shadow_report
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
@@ -96,7 +97,7 @@ async def get_refresh_queue_status(
                 "next_attempt_at": job.next_attempt_at,
                 "leased_until": job.leased_until,
                 "lease_expired": _refresh_lease_expired(job, now),
-                "last_error": job.last_error,
+                "last_error": redact_provider_message(job.last_error) if job.last_error else None,
                 "metadata": job.metadata_payload,
             }
             for job in rows
