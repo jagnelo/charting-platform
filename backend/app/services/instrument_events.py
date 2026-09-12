@@ -13,10 +13,15 @@ from app.models.instrument_event import (
     InstrumentEventFetchState,
     InstrumentEventType,
 )
+from app.models.ohlcv import OHLCVBar
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
-from app.services.adjustment_factors import persist_adjustment_factor_observations
+from app.providers.base import InstrumentEventRecord
+from app.services.adjustment_factors import (
+    materialize_local_provider_adjusted_view,
+    persist_adjustment_factor_observations,
+)
 from app.services.instrument_mastering import ensure_external_identifier
 from app.services.provider_runtime import execute_provider_call
 
@@ -25,6 +30,58 @@ logger = logging.getLogger(__name__)
 # Bump when the persisted provider-event shape gains fields that require a
 # refresh of previously fetched rows (currently, explicit adjustment factors).
 EVENT_FETCH_VERSION = 3
+
+
+async def _materialize_provider_adjusted_views(
+    db: AsyncSession,
+    instrument: Instrument,
+    events: list[InstrumentEventRecord],
+) -> None:
+    """Apply explicit provider factors to raw bars already in the cache.
+
+    Event and price-history refreshes are independent workflows, so either can
+    arrive first. When event data includes an explicit provider factor,
+    materialize every raw timeframe already present for this instrument. The
+    materializer remains fail-closed for missing, mixed, or incomplete
+    evidence; split-only and amount-only events do not enter this path.
+    """
+
+    if not any(
+        event.event_type in {InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND}
+        and event.adjustment_factor is not None
+        for event in events
+    ):
+        return
+
+    raw_timeframes = (
+        (
+            await db.execute(
+                select(OHLCVBar.timeframe)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.is_adjusted.is_(False),
+                    OHLCVBar.is_derived.is_(False),
+                )
+                .distinct()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for timeframe in raw_timeframes:
+        result = await materialize_local_provider_adjusted_view(
+            db,
+            instrument_id=instrument.id,
+            timeframe=timeframe,
+        )
+        if result.status not in {"applied", "not_observed"}:
+            logger.info(
+                "Provider-factor materialization for %s %s remained %s: %s",
+                instrument.symbol,
+                timeframe.value,
+                result.status,
+                result.reason,
+            )
 
 
 async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
@@ -108,6 +165,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         provider_symbol=provider_symbol_for_instrument(instrument, execution.provider_name),
         events=events,
     )
+    await _materialize_provider_adjusted_views(db, instrument, events)
 
     state_stmt = (
         pg_insert(InstrumentEventFetchState)
