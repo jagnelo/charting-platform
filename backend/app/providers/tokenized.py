@@ -891,9 +891,11 @@ class DinariTokenProvider:
         # and under-accounting the request.
         self._stock_cursors: dict[tuple[tuple[str, ...], int, int], str] = {}
         self._stock_exhausted_pages: set[tuple[tuple[str, ...], int, int]] = set()
+        self._stock_seen_cursors: dict[tuple[tuple[str, ...], int], set[str]] = {}
         self._stock_legacy_page_size: int | None = None
         self._split_cursors: dict[tuple[str, int, int], str] = {}
         self._split_exhausted_pages: set[tuple[str, int, int]] = set()
+        self._split_seen_cursors: dict[tuple[str, int], set[str]] = {}
         self._split_legacy_page_size: int | None = None
 
     def _base_url(self) -> str:
@@ -951,6 +953,15 @@ class DinariTokenProvider:
                 raise ProviderResponseError(
                     self.name, "Dinari stock symbols cannot exceed 100 values"
                 )
+        scope_key = (normalized_symbols, limit)
+        if page == 0:
+            self._stock_seen_cursors[scope_key] = set()
+            self._stock_cursors = {
+                key: value for key, value in self._stock_cursors.items() if key[:2] != scope_key
+            }
+            self._stock_exhausted_pages = {
+                key for key in self._stock_exhausted_pages if key[:2] != scope_key
+            }
         cursor_key = (normalized_symbols, limit, page)
         if self._stock_legacy_page_size is not None:
             params: dict[str, Any] = {
@@ -1005,6 +1016,12 @@ class DinariTokenProvider:
                     raise ProviderResponseError(
                         self.name, "provider repeated the stock pagination cursor"
                     )
+                seen_cursors = self._stock_seen_cursors.setdefault(scope_key, set())
+                if next_cursor in seen_cursors:
+                    raise ProviderResponseError(
+                        self.name, "provider repeated the stock pagination cursor"
+                    )
+                seen_cursors.add(next_cursor)
                 self._stock_cursors[(normalized_symbols, limit, page + 1)] = next_cursor
             else:
                 self._stock_exhausted_pages.add((normalized_symbols, limit, page + 1))
@@ -1274,6 +1291,15 @@ class DinariTokenProvider:
             raise ProviderResponseError(self.name, "Dinari split page size must be positive")
         requested_page_size = min(page_size, 100)
         limit = max(20, requested_page_size)
+        scope_key = (scope, limit)
+        if page == 1:
+            self._split_seen_cursors[scope_key] = set()
+            self._split_cursors = {
+                key: value for key, value in self._split_cursors.items() if key[:2] != scope_key
+            }
+            self._split_exhausted_pages = {
+                key for key in self._split_exhausted_pages if key[:2] != scope_key
+            }
         cursor_key = (scope, limit, page)
         if self._split_legacy_page_size is not None:
             params: dict[str, Any] = {
@@ -1322,6 +1348,12 @@ class DinariTokenProvider:
                     raise ProviderResponseError(
                         self.name, "provider repeated the split pagination cursor"
                     )
+                seen_cursors = self._split_seen_cursors.setdefault(scope_key, set())
+                if next_cursor in seen_cursors:
+                    raise ProviderResponseError(
+                        self.name, "provider repeated the split pagination cursor"
+                    )
+                seen_cursors.add(next_cursor)
                 self._split_cursors[(scope, limit, page + 1)] = next_cursor
             else:
                 self._split_exhausted_pages.add((scope, limit, page + 1))

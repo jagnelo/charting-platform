@@ -443,6 +443,41 @@ def test_dinari_stock_cursor_is_required_and_reused_for_subsequent_pages(monkeyp
     }
 
 
+def test_dinari_stock_cursor_cycle_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    provider = DinariTokenProvider()
+    responses = [
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-a"}}),
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-b"}}),
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-a"}}),
+    ]
+    with patch("app.providers.tokenized.httpx.get", side_effect=responses) as get:
+        assert provider.discover_tokenized_assets(page=0, page_size=1)
+        assert provider.discover_tokenized_assets(page=1, page_size=1)
+        with pytest.raises(ProviderResponseError, match="repeated the stock pagination cursor"):
+            provider.discover_tokenized_assets(page=2, page_size=1)
+    assert get.call_count == 3
+
+
+def test_dinari_stock_first_page_resets_cursor_chain(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    provider = DinariTokenProvider()
+    responses = [
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-a"}}),
+        _response({"data": [], "pagination_metadata": {"next": None}}),
+        _response({"data": [stock], "pagination_metadata": {"next": "cursor-a"}}),
+    ]
+    with patch("app.providers.tokenized.httpx.get", side_effect=responses) as get:
+        assert provider.discover_tokenized_assets(page=0, page_size=1)
+        assert provider.discover_tokenized_assets(page=1, page_size=1) == []
+        assert provider.discover_tokenized_assets(page=0, page_size=1)
+    assert get.call_args_list[2].kwargs["params"] == {"limit": 20, "order": "asc"}
+
+
 def test_dinari_stock_page_without_preceding_cursor_fails_closed(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
@@ -651,6 +686,29 @@ def test_dinari_global_split_cursor_continuation_is_explicitly_reused():
         "order": "desc",
         "next": "cursor-1",
     }
+
+
+def test_dinari_global_split_cursor_cycle_fails_closed():
+    provider = DinariTokenProvider()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response(
+                {"data": [{"stock_id": "stock-1"}], "pagination_metadata": {"next": "cursor-a"}}
+            ),
+            _response(
+                {"data": [{"stock_id": "stock-2"}], "pagination_metadata": {"next": "cursor-b"}}
+            ),
+            _response(
+                {"data": [{"stock_id": "stock-3"}], "pagination_metadata": {"next": "cursor-a"}}
+            ),
+        ],
+    ) as get:
+        assert provider.fetch_tokenized_corporate_actions(page=1, page_size=1)
+        assert provider.fetch_tokenized_corporate_actions(page=2, page_size=1)
+        with pytest.raises(ProviderResponseError, match="repeated the split pagination cursor"):
+            provider.fetch_tokenized_corporate_actions(page=3, page_size=1)
+    assert get.call_count == 3
 
 
 def test_dinari_symbol_action_pages_continue_splits_without_replaying_dividends():
