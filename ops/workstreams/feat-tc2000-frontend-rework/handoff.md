@@ -22,6 +22,19 @@ Checkpoint scope: `frontend/src/lib/workstation/studyArtifactCapabilities.ts`,
 Docker-backed gate remains queued behind the existing Docker API failure; run
 it at this tip when Docker is healthy before advancing the next seam.
 
+## 2026-09-12 — Capability-matrix exact gate remains Docker-blocked
+
+The exact branch-scoped gate was attempted at documentation tip `f79a79aa`
+(product tip `2523d757`). Dependency resolution, migration compatibility,
+frontend dependency preparation, and lint/format/type-check setup completed.
+The repository Docker readiness helper then waited 180 seconds and exited at
+`backend-coverage` because Docker Desktop still returned HTTP 500 and could
+not route to `192.168.65.7:2376`. Backend integration, provider, browser, and
+visual stages did not run, so no product assertion or visual-policy failure
+was observed. The active next action is to rerun the exact gate after Docker
+health is restored, then continue the next provider/history or compatible
+chart/list/gauge seam.
+
 ## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
 
 The next bounded R4 slice makes cross-sectional Study Lab results explicit

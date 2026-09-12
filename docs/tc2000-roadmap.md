@@ -22,6 +22,19 @@ threshold, skip, provider, fallback, or acceptance policy changed. The exact
 Docker-backed gate remains queued behind the existing Docker API failure; the
 next gate must run at this tip when Docker is healthy.
 
+## 2026-09-12 — Capability-matrix exact gate remains Docker-blocked
+
+The exact branch-scoped gate was attempted at documentation tip `f79a79aa`
+(product tip `2523d757`). Dependency resolution, migration compatibility,
+frontend dependency preparation, and lint/format/type-check setup completed.
+The repository Docker readiness helper then waited 180 seconds and exited at
+`backend-coverage` because Docker Desktop still returned HTTP 500 and could
+not route to `192.168.65.7:2376`. Backend integration, provider, browser, and
+visual stages did not run, so no product assertion or visual-policy failure
+was observed. The next action remains a rerun at the current tip after Docker
+health is restored, followed by the next provider/history or compatible
+chart/list/gauge seam.
+
 ## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
 
 Product tip `60b485b3` makes cross-sectional Study Lab results explicit from
