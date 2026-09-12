@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize screener alert event timestamps
+
+Product commit `8e406e36` closes the screener WebSocket notification timeline
+seam. Screener alert events now serialize `triggered_at` through the shared
+UTC-`Z` formatter, keeping browser notifications aligned with the typed alert
+contracts. Alert membership, targeting, trigger semantics, and delivery
+behavior are unchanged.
+
+Focused screener-engine coverage passed `34/34`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
 ## 2026-09-12 — Exact Nautilus timestamp gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `7df2dd5c` after the

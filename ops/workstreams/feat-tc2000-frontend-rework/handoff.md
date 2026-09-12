@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize screener alert event timestamps
+
+Product commit `8e406e36` routes screener alert WebSocket `triggered_at`
+through the shared UTC-`Z` serializer, aligning browser notifications with the
+typed alert contracts. Alert membership, targeting, trigger semantics, and
+delivery behavior are unchanged.
+
+Focused screener-engine coverage passed `34/34`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-12 — Exact Nautilus timestamp gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `7df2dd5c` after the

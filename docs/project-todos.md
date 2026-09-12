@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize screener alert event timestamps
+
+- [x] Route screener alert WebSocket `triggered_at` through the shared UTC-`Z`
+      formatter (`8e406e36`) without changing targeting or trigger semantics.
+- [x] Focused screener-engine coverage passed `34/34`; Ruff, formatting, and
+      diff checks passed.
+- [ ] Run the exact gate at this coherent product tip, then continue bounded
+      provider/history or compatible chart/list/gauge work. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Exact Nautilus timestamp gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `7df2dd5c`; repository/workstream,
