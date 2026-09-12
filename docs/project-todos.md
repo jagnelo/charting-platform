@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize combo-source exclusion timing
+
+- [x] Normalize combo point-in-time exclusion `known_at` through the shared UTC-`Z`
+      serializer (`dc1dfbcb`), preserving membership and exclusion semantics.
+- [x] Focused watchlist-source coverage passed `7/7`; full backend unit coverage passed
+      `1505/1505` at `68.81%`; Ruff, formatting, and diff checks passed.
+- [ ] Continue the next bounded provider/history or compatible chart/list/gauge seam and
+      rerun the exact gate at the next coherent tip when Docker is healthy. No policy changed.
+
 ### 2026-09-12 — Exact options-tip gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `6fb7ca7b`; repository/workstream,

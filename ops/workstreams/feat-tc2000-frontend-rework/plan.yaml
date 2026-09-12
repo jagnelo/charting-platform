@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip dc1dfbcb canonicalizes the combo-watchlist point-in-time
+  exclusion known_at timestamp through the shared UTC Z wire serializer.
+  Focused watchlist-source coverage passed 7/7; the full backend unit suite
+  passed 1505/1505 at 68.81% coverage; Ruff, formatting, and git diff --check
+  passed. The exact branch-scoped gate remains blocked at the preceding
+  options tip because Docker returned HTTP 500 for /v1.55/info after the fixed
+  180-second readiness window. No backend integration, provider, browser, or
+  visual stage ran; no product assertion or visual-policy failure was observed.
+  No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+  policy changed. Restore Docker health outside the worktree, rerun pending API
+  regressions and the exact gate at the next coherent tip, then continue the
+  next bounded provider/history or compatible chart/list/gauge seam while
+  preserving the six protected visual state-oracle diffs and the
+  no-integration/no-deployment boundary.
   Product tip 6fb7ca7b adds typed options expiration, chain, contract-summary,
   snapshot, and quote-history response contracts; focused options-schema
   coverage passed 2/2 and the full backend unit suite passed 1504/1504 at

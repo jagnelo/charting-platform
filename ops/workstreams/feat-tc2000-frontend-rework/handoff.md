@@ -7962,3 +7962,19 @@ API regressions and exact gate at this tip, then continue the next bounded
 provider/history or compatible chart/list/gauge seam while preserving the six
 protected visual state-oracle diffs and the no-integration/no-deployment
 boundary.
+## 2026-09-12 — Canonicalize combo-source exclusion timing
+
+Product commit `dc1dfbcb` closes the remaining combo-watchlist source-history
+timestamp leak: the point-in-time exclusion explaining that a combo definition
+was not known at the requested cutoff now emits `known_at` through the shared
+UTC-`Z` wire serializer. Membership selection, exclusion reasons, provider
+behavior, and frontend shape are unchanged.
+
+Focused watchlist-source coverage passed `7/7`; the full backend unit suite
+passed `1505/1505` at `68.81%` coverage; Ruff, formatting, and `git diff --check`
+passed. The exact Docker-backed gate remains recorded as blocked at the
+preceding options tip because `/v1.55/info` returned HTTP 500 after 180 seconds.
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Continue the next bounded provider/history or compatible
+chart/list/gauge seam and rerun the exact gate at the next coherent tip when
+Docker is healthy.
