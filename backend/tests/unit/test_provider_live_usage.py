@@ -89,7 +89,9 @@ def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, m
 def test_live_usage_preflight_opens_configured_ledger(tmp_path, monkeypatch):
     ledger = tmp_path / "provider-live-usage.jsonl"
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_SCOPE", "unit-test")
 
+    assert live_usage.ensure_usage_scope_configured() == "unit-test"
     assert live_usage.ensure_ledger_writable() == ledger
     assert ledger.exists()
     assert ledger.read_text() == ""
@@ -105,6 +107,14 @@ def test_live_usage_preflight_fails_before_provider_calls_when_ledger_unwritable
 
     with pytest.raises(RuntimeError, match="ledger is not writable"):
         live_usage.ensure_ledger_writable()
+
+
+@pytest.mark.parametrize("scope", ["", "x" * 129, "x\nlabel"])
+def test_live_usage_preflight_rejects_missing_or_invalid_scope(monkeypatch, scope):
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_SCOPE", scope)
+
+    with pytest.raises(RuntimeError, match="scope is missing or invalid"):
+        live_usage.ensure_usage_scope_configured()
 
 
 def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path: Path):

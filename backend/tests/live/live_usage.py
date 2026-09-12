@@ -79,6 +79,18 @@ def ensure_ledger_writable() -> Path:
     return path
 
 
+def ensure_usage_scope_configured() -> str:
+    """Require a bounded non-secret scope label for live usage attribution."""
+
+    scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip()
+    if not scope or len(scope) > 128 or not scope.isprintable():
+        raise RuntimeError(
+            "provider live usage scope is missing or invalid; set "
+            "PROVIDER_LIVE_USAGE_SCOPE before running live tests"
+        )
+    return scope
+
+
 def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
     """Keep only bounded provider-capacity headers, never auth/payload data."""
 

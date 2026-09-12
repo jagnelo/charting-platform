@@ -4,7 +4,11 @@ import os
 
 import pytest
 
-from tests.live.live_usage import ensure_ledger_writable, flush_observations
+from tests.live.live_usage import (
+    ensure_ledger_writable,
+    ensure_usage_scope_configured,
+    flush_observations,
+)
 
 
 def pytest_sessionstart(session):
@@ -14,6 +18,7 @@ def pytest_sessionstart(session):
     if os.getenv("RUN_LIVE_PROVIDER_TESTS") != "1":
         return
     try:
+        ensure_usage_scope_configured()
         ensure_ledger_writable()
     except RuntimeError as exc:
         pytest.exit(str(exc), returncode=2)

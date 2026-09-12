@@ -463,6 +463,12 @@ progress:
       permission/path failure instead of spending quota without a receipt.
       Focused ledger coverage passes 8/8 and the complete backend unit suite
       passes 1,771/1,771.
+    - >-
+      The same live-session preflight now requires a bounded printable
+      `PROVIDER_LIVE_USAGE_SCOPE`, closing the direct-pytest path that could
+      otherwise emit unattributed `unspecified` receipts. Focused ledger
+      coverage passes 11/11 and the complete backend unit suite passes
+      1,774/1,774.
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

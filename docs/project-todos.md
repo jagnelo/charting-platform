@@ -32,6 +32,13 @@
       session with code 2 before tests run; focused ledger coverage passes 8/8
       and the complete backend unit suite passes 1,771/1,771.
 
+### 2026-09-12 — Live-ledger attribution preflight
+
+- [x] Require a bounded printable `PROVIDER_LIVE_USAGE_SCOPE` in every
+      quota-consuming live pytest session, including direct invocations, so
+      new receipts cannot silently use `unspecified`. Focused ledger coverage
+      passes 11/11 and the complete backend unit suite passes 1,774/1,774.
+
 ### 2026-09-12 — Newly configured provider live revalidation
 
 - [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,
