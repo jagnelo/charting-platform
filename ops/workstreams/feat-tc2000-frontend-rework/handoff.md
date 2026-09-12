@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — OHLCV chart responses use canonical wire timestamps
+
+Product commit `4a95aa1c` makes `OHLCVBarOut` serialize `ts`, `derived_at`,
+`source_start`, and `source_end` through the shared UTC `Z` wire helper.
+Provider and derived bars therefore have one stable client timestamp format;
+persisted datetime types, ordering, and transformation semantics are unchanged.
+
+Focused OHLCV-router coverage passed `16/16`; the full backend unit suite
+passed `1489/1489` at `68.53%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate at this tip passed repository/workstream,
+dependency/migration, frontend-preparation, and lint/type-check setup, then
+stopped at `backend-coverage` after 180 seconds because Docker returned
+permission denied for `unix:///Users/jagnelo/.docker/run/docker.sock`. No
+backend integration, provider, browser, or visual stage ran. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Checkpoint scope: `backend/app/schemas/ohlcv.py` and
+`backend/tests/unit/routers/test_ohlcv_router.py`. Restore Docker access,
+rerun the pending API regressions and exact gate, then advance the next bounded
+provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Screener-alert API timestamps use the canonical wire format
 
 Product commit `8ae68865` extends the shared alert response contract to

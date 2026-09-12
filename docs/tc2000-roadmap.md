@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — OHLCV chart responses use canonical wire timestamps
+
+Product commit `4a95aa1c` closes the core chart/history response seam.
+`OHLCVBarOut` now serializes bar timestamps and derived-lineage metadata
+(`ts`, `derived_at`, `source_start`, and `source_end`) through the shared UTC
+`Z` helper. This keeps provider and derived bars on one stable client wire
+format while preserving persisted datetime types, ordering, and transformation
+semantics.
+
+Focused OHLCV-router coverage passed `16/16`; the full backend unit suite
+passed `1489/1489` at `68.53%` coverage; Ruff, formatting, and
+`git diff --check` passed. The exact branch-scoped gate at `4a95aa1c` passed
+repository/workstream, dependency/migration, frontend-preparation, and
+lint/type-check setup, then stopped at `backend-coverage` after 180 seconds
+because Docker returned permission denied for
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. Restore Docker access and rerun the pending alert,
+indicator-batch, instrument-coverage, and OHLCV API regressions plus the exact
+gate, then continue the next bounded provider/history or compatible
+chart/list/gauge seam while preserving the six protected visual state-oracle
+diffs and the no-integration/no-promotion/no-deployment boundary.
+
 ## 2026-09-12 — Screener-alert API timestamps use the canonical wire format
 
 Product commit `8ae68865` extends the alert-list response contract to

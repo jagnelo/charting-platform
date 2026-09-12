@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-12 — OHLCV chart responses use canonical wire timestamps
+
+- [x] Serialize `OHLCVBarOut` bar and derived-lineage timestamps (`ts`,
+      `derived_at`, `source_start`, `source_end`) as canonical UTC `Z` values
+      through the shared response schema (`4a95aa1c`).
+- [x] Focused OHLCV-router coverage passed `16/16`; full backend unit coverage
+      passed `1489/1489` at `68.53%`; Ruff, formatting, and diff checks passed.
+- [x] Reran the exact branch-scoped gate at `4a95aa1c`; all pre-Docker stages
+      passed and `backend-coverage` stopped after 180 seconds because Docker
+      returned permission denied for `/Users/jagnelo/.docker/run/docker.sock`.
+      No later API, provider, browser, or visual stage ran.
+- [ ] Restore Docker access, rerun the pending API regressions and exact gate,
+      then continue provider/history or compatible chart/list/gauge work.
+
 ### 2026-09-12 — Screener-alert API timestamps use the canonical wire format
 
 - [x] Serialize screener-alert list response timestamps (`triggered_at`,
