@@ -3,7 +3,15 @@ import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabili
 
 describe('study artifact promotion capabilities', () => {
   it('describes compatible scalar, boolean, series, range, and event targets', () => {
-    expect(studyArtifactCapability('scalar')?.targets).toEqual(['watchlist column'])
+    expect(studyArtifactCapability('scalar')?.targets).toEqual([
+      'watchlist column',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
+      'thresholded Strategy signal',
+    ])
     expect(studyArtifactCapability('boolean')?.targets).toEqual([
       'watchlist column',
       'watchlist filter',
@@ -15,13 +23,21 @@ describe('study artifact promotion capabilities', () => {
     expect(studyArtifactCapability('series')?.targets).toEqual([
       'chart plot',
       'latest-value watchlist column',
-      'thresholded Boolean condition',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
       'thresholded Strategy signal',
     ])
     expect(studyArtifactCapability('range')?.targets).toEqual([
       'center chart plot',
       'latest center watchlist column',
-      'thresholded Boolean condition',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
       'thresholded Strategy signal',
     ])
     expect(studyArtifactCapability('range')?.note).toContain('bounds remain source-only')

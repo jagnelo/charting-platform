@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Study capability matrix matches threshold fan-out
+
+The shared Study artifact capability matrix now matches the implemented
+promotion controls. Scalar artifacts document direct watchlist columns plus
+explicit-threshold Boolean column/filter/scan/Market Gauge/alert/Strategy
+signal targets. Series and range-center artifacts document their chart or
+latest-value paths plus the same threshold fan-out. Cross-sectional aggregate
+guards remain unchanged: aggregate scalar, Boolean, and range artifacts are
+view/export-only, and aggregate series artifacts are chart-plot-only.
+
+Focused Study Lab, Research Results, and capability coverage passed `68/68`,
+and frontend type-check passed. No backend contract, visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+Checkpoint scope: `frontend/src/lib/workstation/studyArtifactCapabilities.ts`,
+`frontend/tests/unit/lib/test_study_artifact_capabilities.test.ts`,
+`docs/project-todos.md`, `docs/tc2000-roadmap.md`, and this handoff. The exact
+Docker-backed gate remains queued behind the existing Docker API failure; run
+it at this tip when Docker is healthy before advancing the next seam.
+
 ## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
 
 The next bounded R4 slice makes cross-sectional Study Lab results explicit

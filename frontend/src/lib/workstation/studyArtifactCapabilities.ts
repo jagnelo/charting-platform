@@ -11,20 +11,46 @@ export type StudyArtifactCapability = {
  */
 export const STUDY_ARTIFACT_CAPABILITIES: Readonly<Record<string, StudyArtifactCapability>> = {
   scalar: {
-    targets: ['watchlist column'],
-    note: 'Compatible target: watchlist column.',
+    targets: [
+      'watchlist column',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
+      'thresholded Strategy signal',
+    ],
+    note: 'Compatible target: watchlist column; with a finite observation and explicit threshold, Boolean column, filter, scan, Market Gauge, alert, or Strategy signal.',
   },
   boolean: {
     targets: ['watchlist column', 'watchlist filter', 'scan', 'Market Gauge', 'alert', 'Strategy signal'],
     note: 'Compatible targets: watchlist column, filter, scan, Market Gauge, alert, and Strategy signal.',
   },
   series: {
-    targets: ['chart plot', 'latest-value watchlist column', 'thresholded Boolean condition', 'thresholded Strategy signal'],
-    note: 'Compatible targets: chart plot, latest-value watchlist column, or a thresholded Boolean condition/Strategy signal when a finite observation is present.',
+    targets: [
+      'chart plot',
+      'latest-value watchlist column',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
+      'thresholded Strategy signal',
+    ],
+    note: 'Compatible targets: chart plot or latest-value watchlist column; with a finite observation and explicit threshold, Boolean column, filter, scan, Market Gauge, alert, or Strategy signal.',
   },
   range: {
-    targets: ['center chart plot', 'latest center watchlist column', 'thresholded Boolean condition', 'thresholded Strategy signal'],
-    note: 'Compatible targets: center chart plot, latest center watchlist column, or a thresholded Boolean condition/Strategy signal when an aligned finite center series is present; bounds remain source-only.',
+    targets: [
+      'center chart plot',
+      'latest center watchlist column',
+      'thresholded Boolean column',
+      'thresholded watchlist filter',
+      'thresholded scan',
+      'thresholded Market Gauge',
+      'thresholded alert',
+      'thresholded Strategy signal',
+    ],
+    note: 'Compatible targets: center chart plot or latest center watchlist column; with an aligned finite center observation and explicit threshold, Boolean column, filter, scan, Market Gauge, alert, or Strategy signal; bounds remain source-only.',
   },
   events: {
     targets: ['watchlist filter', 'alert', 'Strategy signal'],

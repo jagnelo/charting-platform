@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Study capability matrix matches threshold fan-out
+
+The shared Study artifact capability matrix now describes the targets that the
+workstation actually exposes. Scalar outputs advertise their direct watchlist
+column plus explicit-threshold Boolean column, filter, scan, Market Gauge,
+alert, and Strategy signal targets. Series and range-center outputs likewise
+advertise their latest-value/center chart paths and threshold fan-out. The
+cross-sectional aggregate guard remains authoritative: aggregate scalar,
+Boolean, and range artifacts stay view/export-only, while aggregate series
+artifacts remain chart-plot-only.
+
+Focused Study Lab, Research Results, and capability coverage passed `68/68`,
+and frontend type-check passed. No backend contract, visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. The exact
+Docker-backed gate remains queued behind the existing Docker API failure; the
+next gate must run at this tip when Docker is healthy.
+
 ## 2026-09-12 — Aggregate Study series keep cross-sectional semantics
 
 Product tip `60b485b3` makes cross-sectional Study Lab results explicit from

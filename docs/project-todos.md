@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-12 — Study capability matrix matches threshold fan-out
+
+- [x] Align the shared Study artifact capability matrix with the implemented
+      promotion controls. Scalar artifacts now document direct watchlist
+      columns plus explicit-threshold Boolean column/filter/scan/Market Gauge/
+      alert/Strategy signal targets; series and range-center artifacts document
+      the same threshold fan-out alongside their chart/latest-value paths.
+- [x] Preserve the aggregate Study boundary: cross-sectional scalar, Boolean,
+      and range artifacts remain view/export-only, while aggregate series can
+      promote only to an aggregate chart plot. Focused Study Lab, Research
+      Results, and capability coverage passed `68/68`; frontend type-check
+      passed. No backend, visual, provider, fallback, or acceptance policy
+      changed.
+- [ ] Rerun the exact branch-scoped gate at this tip after Docker Desktop's API
+      is healthy, then continue provider/history or another compatible
+      chart/list/gauge seam.
+
 ### 2026-09-12 — Aggregate Study series keep cross-sectional semantics
 
 - [x] Mark factory breadth/ranking studies as cross-sectional, persist that
