@@ -1146,3 +1146,11 @@ Update this handoff at each coherent boundary.
   one-token allowance. Focused runtime coverage passes `11/11`; the complete
   backend unit suite passes `1,943/1,943` with 37 warnings. No provider calls or
   credentials were used, and no frontend or ETF-provider files changed.
+
+- Source checkpoint `5153fde6` extends the same fail-closed behavior to token
+  acquisition units: zero, negative, boolean, fractional, string, and null
+  values are rejected instead of coerced to one token. Focused runtime
+  coverage passes `17/17` selected tests; the complete backend unit suite
+  passes `1,949/1,949` with 37 warnings. Ruff, compileall, and diff checks pass.
+  No provider calls or credentials were used, and no frontend or ETF-provider
+  files changed.
