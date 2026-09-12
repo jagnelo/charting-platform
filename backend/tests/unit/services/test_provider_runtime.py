@@ -20,6 +20,7 @@ from app.models.provider_runtime import (
 from app.providers.registry import get_provider_usage_profile
 from app.providers.telemetry import observe_response
 from app.services.provider_runtime import (
+    ProviderQuotaUnknownError,
     ResolvedProvider,
     TokenBucket,
     _capacity_response_headers,
@@ -1142,6 +1143,26 @@ def test_token_bucket_charges_weighted_units():
     assert bucket.try_acquire(2)
     assert bucket.try_acquire(2)
     assert not bucket.try_acquire(2)
+
+
+@pytest.mark.parametrize(
+    ("rate_per_minute", "burst_capacity"),
+    [(0, 1), (1, 0), (-1, 1), (1, -1), (True, 1), (1, True)],
+)
+def test_token_bucket_rejects_invalid_provider_limits(rate_per_minute, burst_capacity):
+    with pytest.raises(ProviderQuotaUnknownError):
+        TokenBucket(rate_per_minute, burst_capacity)
+
+
+def test_get_bucket_rejects_invalid_policy_limits():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        tokens_per_minute=0,
+        burst_capacity=1,
+    )
+    with pytest.raises(ProviderQuotaUnknownError):
+        _get_bucket(policy, "invalid-policy")
 
 
 def test_semaphore_rebuilds_when_policy_concurrency_changes():

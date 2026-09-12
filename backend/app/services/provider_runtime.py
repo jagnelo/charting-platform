@@ -641,8 +641,22 @@ def provider_contract_operation_cost_known(
 
 class TokenBucket:
     def __init__(self, rate_per_minute: int, burst_capacity: int):
-        self.rate_per_second = max(rate_per_minute, 1) / 60.0
-        self.capacity = max(burst_capacity, 1)
+        # A zero/negative value is an invalid provider contract, not a signal
+        # to invent a one-token fallback.  Normal policy admission validates
+        # these fields, but this guard also protects direct/stale policy rows.
+        if (
+            isinstance(rate_per_minute, bool)
+            or not isinstance(rate_per_minute, int)
+            or rate_per_minute <= 0
+            or isinstance(burst_capacity, bool)
+            or not isinstance(burst_capacity, int)
+            or burst_capacity <= 0
+        ):
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer rate and burst limits"
+            )
+        self.rate_per_second = rate_per_minute / 60.0
+        self.capacity = burst_capacity
         self.tokens = float(self.capacity)
         self.last_refill = time.monotonic()
 
@@ -848,9 +862,16 @@ def _bucket_key(provider_name: str, policy: ProviderPolicy) -> tuple[str, str]:
 
 
 def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
-    if policy.tokens_per_minute is None or policy.burst_capacity is None:
+    if (
+        policy.tokens_per_minute is None
+        or policy.burst_capacity is None
+        or isinstance(policy.tokens_per_minute, bool)
+        or isinstance(policy.burst_capacity, bool)
+        or policy.tokens_per_minute <= 0
+        or policy.burst_capacity <= 0
+    ):
         raise ProviderQuotaUnknownError(
-            f"{provider_name}/{policy.capability.value} has no verified minute bucket"
+            f"{provider_name}/{policy.capability.value} has no verified positive minute bucket"
         )
     key = _bucket_key(provider_name, policy)
     config = (policy.tokens_per_minute, policy.burst_capacity)
