@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-12 — Fence workstation hydration lifecycle
+
+- [x] Fence WorkstationView initial hydration, pop-out retry, symbol loading,
+      and canonical search callbacks after unmount; teardown invalidates
+      in-flight selection/search generations (`d85bcc78`).
+- [x] Focused WorkstationView coverage passed `29/29`; full frontend Vitest
+      passed `1032/1032` across 115 files; frontend type-check, production
+      build, and `git diff --check` passed with only the existing chunk-size
+      warning.
+- [ ] Continue provider/history, R4 fan-out, and R2-R7 evidence. No
+      visual/acceptance policy changed.
+
+### 2026-09-12 — Exact workstation hydration gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip
+      `d85bcc78db68b6dcd0d1591ca0d0d2ef7950bf73`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and
+      TypeScript passed. The gate stopped at `backend-coverage` after 180
+      seconds because Docker returned permission denied for
+      `unix:///Users/jagnelo/.docker/run/docker.sock`; no later backend
+      integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health and rerun the exact gate, then continue
+      provider/history, R4 fan-out, and R2-R7 evidence. No visual/acceptance
+      policy changed.
+
 ### 2026-09-12 — Fence Study Lab mutation lifecycle
 
 - [x] Fence Study Lab rerun and cancel responses by mounted state and

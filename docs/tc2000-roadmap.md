@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Fence workstation hydration lifecycle
+
+Product commit `d85bcc78` closes a bounded R6 shell-resilience gap in
+WorkstationView. Initial workspace hydration, pop-out retry, symbol loading,
+and canonical search callbacks now stop publishing after the workstation
+unmounts; teardown also invalidates in-flight selection/search generations.
+Focused WorkstationView coverage passed `29/29`; full frontend Vitest passed
+`1032/1032` across 115 files; frontend type-check and production build passed
+with only the existing chunk-size warning; and `git diff --check` passed. No
+provider, fallback, visual baseline, mask, threshold, skip, or acceptance
+policy changed. Continue the next bounded provider/history or compatible
+R4/R2-R7 seam while preserving the six visual state-oracle assertions.
+
+## 2026-09-12 — Exact workstation hydration gate rechecked
+
+At product tip `d85bcc78db68b6dcd0d1591ca0d0d2ef7950bf73`, the exact
+branch-scoped gate passed git-diff, workstream validation (30 records),
+dependency resolution, migration head/compatibility, frontend dependency
+preparation, Ruff, formatting, and TypeScript. `backend-coverage` then
+exited 2 after the fixed 180-second Docker readiness window because Docker
+returned permission denied at
+`unix:///Users/jagnelo/.docker/run/docker.sock`. No backend integration,
+provider, browser, or visual stage ran; no product assertion or visual-policy
+failure was observed. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
 ## 2026-09-12 — Fence Study Lab mutation lifecycle
 
 Product commit `e47b8fbf` closes a bounded R6 lifecycle gap in Study Lab.
