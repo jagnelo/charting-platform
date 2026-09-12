@@ -2,6 +2,21 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-12 — Canonicalize ETF constituent provenance timestamps
+
+Product commit `e01d7dd1` routes ETF constituent classification enrichment and
+lightweight instrument materialization timestamps through the shared UTC-`Z`
+serializer. Flattened provider lineage now has one stable wire spelling;
+holding resolution, identity promotion, provider routing, and ETF membership
+semantics are unchanged.
+
+Focused ETF holdings resolution coverage passed `29/29`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip because Docker access remains denied. Restore Docker health, rerun
+pending API regressions and the exact gate, then advance the next bounded
+provider/history or compatible chart/list/gauge seam. Do not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-12 — Exact profile-provenance gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `e9921de8` after the

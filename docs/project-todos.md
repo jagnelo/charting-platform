@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-12 — Canonicalize ETF constituent provenance timestamps
+
+- [x] Route ETF constituent classification enrichment and lightweight
+      instrument materialization timestamps through the shared UTC-`Z`
+      serializer (`e01d7dd1`); identity, provider routing, and membership
+      semantics are unchanged.
+- [x] Focused ETF holdings resolution coverage passed `29/29`; Ruff, formatting,
+      and diff checks passed.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate at
+      this product tip, then continue bounded provider/history or compatible
+      chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Exact profile-provenance gate rechecked
 
 - [x] Reran the exact branch-scoped gate at product tip `e9921de8`; repository/workstream,

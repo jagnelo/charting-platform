@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-12
 
+## 2026-09-12 — Canonicalize ETF constituent provenance timestamps
+
+Product commit `e01d7dd1` closes the adjacent ETF holdings lineage seam.
+Constituent classification enrichment and lightweight instrument materialization
+now serialize observed/fetched provider timestamps through the shared UTC-`Z`
+formatter before they are persisted into flattened field provenance. Holding
+resolution, identity promotion, provider routing, and ETF membership semantics
+are unchanged.
+
+Focused ETF holdings resolution coverage passed `29/29`; Ruff, formatting, and
+`git diff --check` passed. The exact branch gate is pending at this coherent
+product tip because Docker access remains permission-denied. Restore Docker
+health, rerun pending API regressions and the exact gate, then continue the next
+bounded provider/history or compatible chart/list/gauge seam. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
 ## 2026-09-12 — Exact profile-provenance gate rechecked
 
 The exact branch-scoped gate was rerun at product tip `e9921de8` after the
