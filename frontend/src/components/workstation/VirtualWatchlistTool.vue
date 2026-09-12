@@ -343,6 +343,10 @@ const rowsGeneration = ref(0)
 const conditionRequestGeneration = ref(0)
 const pythonConditionRequestGeneration = ref(0)
 const pythonColumnRequestGenerations = new Map<number, number>()
+let mounted = false
+let screenersLoadGeneration = 0
+let pythonAssetsLoadGeneration = 0
+let columnSetsLoadGeneration = 0
 const timeframeOptions = [{ value: 'M15', label: '15m' }, { value: 'D1', label: 'Daily' }, { value: 'W1', label: 'Weekly' }, { value: 'MN', label: 'Monthly' }]
 const renderEpoch = ref(0)
 const resizingColumn = ref<{ key: string; startX: number; startWidth: number; width: number } | null>(null)
@@ -783,24 +787,33 @@ watch(pythonConditionMode, mode => {
 })
 
 async function loadScreeners() {
+  const generation = ++screenersLoadGeneration
   try {
-    screeners.value = await queryClient.fetchQuery<SavedScreener[]>({
+    const nextScreeners = await queryClient.fetchQuery<SavedScreener[]>({
       queryKey: ['workstation', 'screeners'],
       queryFn: async () => (await api.get<SavedScreener[]>('/screeners')) ?? [],
       staleTime: 30_000,
     })
+    if (mounted && generation === screenersLoadGeneration) screeners.value = nextScreeners
   } catch {
-    conditionFilterState.value = 'Saved condition filters are unavailable.'
+    if (mounted && generation === screenersLoadGeneration) conditionFilterState.value = 'Saved condition filters are unavailable.'
   }
 }
 
 function pythonKey(versionId: number) { return `python:${versionId}` }
 async function loadPythonAssets() {
+  const generation = ++pythonAssetsLoadGeneration
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (!mounted || generation !== pythonAssetsLoadGeneration) return
     pythonAssets.value = assets.filter(asset => asset.kind === 'column' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id != null && (asset.kind === 'column' || version.output_contract === 'scalar') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
     pythonConditionAssets.value = assets.filter(asset => asset.kind === 'condition' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id != null && (asset.kind === 'condition' || version.output_contract === 'boolean') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
-  } catch { pythonAssets.value = []; pythonConditionAssets.value = [] }
+  } catch {
+    if (mounted && generation === pythonAssetsLoadGeneration) {
+      pythonAssets.value = []
+      pythonConditionAssets.value = []
+    }
+  }
 }
 function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
 type PythonBatchResult = { status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }
@@ -1023,17 +1036,23 @@ function columnSetConfiguration() {
 }
 
 async function loadColumnSets() {
+  const generation = ++columnSetsLoadGeneration
   columnSetLoading.value = true
   columnSetError.value = ''
   try {
-    columnSets.value = await queryClient.fetchQuery<ColumnSetItem[]>({
+    const nextColumnSets = await queryClient.fetchQuery<ColumnSetItem[]>({
       queryKey: ['workstation', 'library-items', 'column_set'],
       queryFn: async () => (await api.get<ColumnSetItem[]>('/workspaces/library/items', { kind: 'column_set' })) ?? [],
       staleTime: 30_000,
     })
+    if (mounted && generation === columnSetsLoadGeneration) columnSets.value = nextColumnSets
   }
-  catch (cause: any) { columnSetError.value = cause?.message ?? 'Unable to load saved column sets' }
-  finally { columnSetLoading.value = false }
+  catch (cause: any) {
+    if (mounted && generation === columnSetsLoadGeneration) columnSetError.value = cause?.message ?? 'Unable to load saved column sets'
+  }
+  finally {
+    if (mounted && generation === columnSetsLoadGeneration) columnSetLoading.value = false
+  }
 }
 
 async function saveColumnSet() {
@@ -1163,6 +1182,7 @@ watch(rowUniverseKey, () => {
 })
 
 onMounted(() => {
+  mounted = true
   // Golden Layout can attach a virtual tool after the initial Vue mount. At
   // that moment the scroll element may still report a zero rectangle, which
   // intentionally selects the one-row detached fallback above. Re-measure on
@@ -1193,6 +1213,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  mounted = false
+  screenersLoadGeneration += 1
+  pythonAssetsLoadGeneration += 1
+  columnSetsLoadGeneration += 1
   window.removeEventListener('mousemove', handleWindowColumnMouseMove)
   window.removeEventListener('mouseup', handleWindowColumnMouseEnd)
   if (virtualizerAnimationFrame != null) window.cancelAnimationFrame(virtualizerAnimationFrame)

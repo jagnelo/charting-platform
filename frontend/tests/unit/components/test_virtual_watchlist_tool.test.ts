@@ -1,4 +1,4 @@
-import { mount as vueMount } from '@vue/test-utils'
+import { flushPromises, mount as vueMount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -192,6 +192,55 @@ describe('VirtualWatchlistTool', () => {
     expect(apiGet.mock.calls.filter(([path, params]) => path === '/workspaces/library/items' && params?.kind === 'column_set')).toHaveLength(1)
     first.unmount()
     second.unmount()
+  })
+
+  it('does not publish late saved-screener hydration after the list unmounts', async () => {
+    let resolveScreeners!: (value: any[]) => void
+    apiGet.mockImplementation((path: string) => path === '/screeners'
+      ? new Promise(resolve => { resolveScreeners = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Late screeners', rows } })
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/screeners')
+
+    wrapper.unmount()
+    resolveScreeners([{ id: 91, name: 'Late condition' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).screeners).toEqual([])
+  })
+
+  it('does not publish late Python asset hydration after the list unmounts', async () => {
+    let resolveAssets!: (value: any[]) => void
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? new Promise(resolve => { resolveAssets = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Late assets', rows } })
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+
+    wrapper.unmount()
+    resolveAssets([{ kind: 'column', name: 'Late column', versions: [{ id: 7, version_number: 1 }] }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).pythonAssets).toEqual([])
+    expect((wrapper.vm as any).pythonConditionAssets).toEqual([])
+  })
+
+  it('does not publish late column-set hydration after the list unmounts', async () => {
+    let resolveColumnSets!: (value: any[]) => void
+    apiGet.mockImplementation((path: string, params?: { kind?: string }) => path === '/workspaces/library/items' && params?.kind === 'column_set'
+      ? new Promise(resolve => { resolveColumnSets = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Late column sets', rows } })
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/items', { kind: 'column_set' })
+
+    wrapper.unmount()
+    resolveColumnSets([{ stable_key: 'late', name: 'Late set', version: 1, payload: { configuration: {} } }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).columnSets).toEqual([])
   })
 
   it('cancels an active Python batch when the canonical row universe changes', async () => {
