@@ -1,7 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+
+from app.lib.time_utils import wire_datetime
 
 
 class BasketMemberInput(BaseModel):
@@ -59,6 +61,10 @@ class BasketMemberOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
+
 
 class BasketSnapshotOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -73,6 +79,10 @@ class BasketSnapshotOut(BaseModel):
     metadata: dict | None = None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("known_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class BasketOut(BaseModel):
@@ -99,3 +109,7 @@ class BasketOut(BaseModel):
     members: list[BasketMemberOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""

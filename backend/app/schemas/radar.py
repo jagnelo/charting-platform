@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
+from app.lib.time_utils import wire_datetime
 from app.models.ohlcv import Timeframe
 from app.models.radar import RadarOutcomeStatus, RadarRunStatus, RadarSetupType, RadarState
 
@@ -53,6 +54,10 @@ class RadarRunOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("started_at", "completed_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class RadarSetupThreadOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -68,6 +73,10 @@ class RadarSetupThreadOut(BaseModel):
     started_at: datetime
     last_seen_at: datetime
     detection_count: int
+
+    @field_serializer("state_changed_at", "started_at", "last_seen_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
 
 
 class RadarDetectionSummaryOut(BaseModel):
@@ -104,6 +113,20 @@ class RadarDetectionSummaryOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer(
+        "observed_at",
+        "signal_at",
+        "context_at",
+        "fresh_until",
+        "outcome_last_evaluated_at",
+        "target_hit_at",
+        "invalidated_at",
+        "created_at",
+        "updated_at",
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class RadarThreadEventOut(BaseModel):
     id: int
@@ -130,6 +153,19 @@ class RadarThreadEventOut(BaseModel):
     invalidation_hint: str | None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer(
+        "observed_at",
+        "signal_at",
+        "context_at",
+        "outcome_last_evaluated_at",
+        "target_hit_at",
+        "invalidated_at",
+        "created_at",
+        "updated_at",
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class RadarOutcomeSummaryOut(BaseModel):
