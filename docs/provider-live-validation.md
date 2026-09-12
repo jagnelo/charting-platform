@@ -896,3 +896,14 @@ for the latest-price helper and carries `raw`/`provider-native` adjustment
 provenance. Focused Alpha coverage passed `25/25`, and the complete backend unit
 suite passed `1,781/1,781` with the existing 37 warnings; no provider call was
 needed for this correctness regression.
+
+The same raw-versus-adjusted contract is now enforced at the adapter boundary,
+not only in resolver admission. Optional REST adapters and the Binance,
+Coinbase, and Kraken exchange feeds reject adjusted-history calls before any
+HTTP request; raw exchange bars carry explicit `raw`/`provider-native`
+provenance. Focused provider coverage passed `284/284`, the complete backend
+unit suite passed `1,794/1,794` with the known 37 warnings, and the bounded
+keyless Binance/Coinbase/Kraken history probes passed `3/3` under run
+`51b1b146-7d5b-47ac-86be-5b545bad3b6d`. Aggregate usage remains in the
+owner-managed ledger outside Git; this evidence does not promote any separate
+quota, terms, or deployment gate.

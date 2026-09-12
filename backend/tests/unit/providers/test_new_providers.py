@@ -593,6 +593,7 @@ class TestBinanceSymbolHelpers:
             Timeframe.D1,
             datetime(2024, 1, 1, tzinfo=UTC),
             datetime(2024, 1, 5, tzinfo=UTC),
+            adjusted=False,
         )
         assert bars == []
 
@@ -603,6 +604,19 @@ class TestBinanceSymbolHelpers:
 
     def test_supported_discovery_types(self):
         assert BinanceProvider().supported_discovery_types() == ["CRYPTOCURRENCY"]
+
+    def test_adjusted_history_is_rejected_before_transport(self):
+        provider = BinanceProvider()
+        with patch("app.providers.binance.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="candles are raw"):
+                provider.fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    adjusted=True,
+                )
+        get.assert_not_called()
 
 
 # ── Binance OHLCV bar parsing ─────────────────────────────────────────────────
@@ -626,6 +640,7 @@ class TestBinanceOHLCVParsing:
                 Timeframe.D1,
                 datetime(2024, 1, 2, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
 
         assert len(bars) == 1
@@ -644,6 +659,7 @@ class TestBinanceOHLCVParsing:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 3, tzinfo=UTC),
+                    adjusted=False,
                 )
         assert exc_info.value.provider_name == "binance"
 
@@ -658,6 +674,7 @@ class TestBinanceOHLCVParsing:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 3, tzinfo=UTC),
+                    adjusted=False,
                 )
         assert exc_info.value.provider_name == "binance"
 
@@ -680,6 +697,7 @@ class TestBinanceOHLCVParsing:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 3, tzinfo=UTC),
+                    adjusted=False,
                 )
         assert exc_info.value.provider_name == "binance"
 
@@ -698,6 +716,7 @@ class TestBinanceOHLCVParsing:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 3, tzinfo=UTC),
+                    adjusted=False,
                 )
 
     def test_rate_limit_http_is_typed(self):
@@ -713,6 +732,7 @@ class TestBinanceOHLCVParsing:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 3, tzinfo=UTC),
+                    adjusted=False,
                 )
         assert exc_info.value.provider_name == "binance"
         assert exc_info.value.status_code == 429
@@ -754,6 +774,19 @@ class TestBinanceOHLCVParsing:
 
 
 class TestCryptoOHLCVPagination:
+    @pytest.mark.parametrize("provider", [CoinbaseProvider(), KrakenProvider()])
+    def test_adjusted_history_is_rejected_before_transport(self, provider):
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="exchange candles are raw"):
+                provider.fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    adjusted=True,
+                )
+        get.assert_not_called()
+
     @pytest.mark.parametrize("provider_name", ["coinbase", "kraken"])
     def test_http_capacity_failure_is_typed(self, provider_name):
         response = httpx.Response(
@@ -778,7 +811,9 @@ class TestCryptoOHLCVPagination:
     def test_unsupported_crypto_timeframe_is_typed(self, provider):
         start = datetime(2024, 1, 1, tzinfo=UTC)
         with pytest.raises(ProviderResponseError, match="unsupported crypto timeframe"):
-            provider.fetch_ohlcv("BTC-USD", Timeframe.MN, start, start + timedelta(days=1))
+            provider.fetch_ohlcv(
+                "BTC-USD", Timeframe.MN, start, start + timedelta(days=1), adjusted=False
+            )
 
     def test_coinbase_transport_failure_is_typed(self):
         failure = httpx.ConnectError(
@@ -820,7 +855,7 @@ class TestCryptoOHLCVPagination:
             ),
         ]
         with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
-            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end)
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end, adjusted=False)
 
         assert get.call_count == 2
         assert [bar.ts for bar in bars] == [start, second_ts]
@@ -847,7 +882,7 @@ class TestCryptoOHLCVPagination:
             ),
         ]
         with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
-            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end)
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end, adjusted=False)
 
         assert get.call_count == 2
         assert [bar.ts for bar in bars] == [start, second_ts]
@@ -864,7 +899,7 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
             with pytest.raises(ProviderResponseError) as exc_info:
                 CoinbaseProvider().fetch_ohlcv(
-                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1), adjusted=False
                 )
         assert exc_info.value.provider_name == "coinbase"
 
@@ -878,7 +913,7 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
             with pytest.raises(ProviderResponseError) as exc_info:
                 KrakenProvider().fetch_ohlcv(
-                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1), adjusted=False
                 )
         assert exc_info.value.provider_name == "kraken"
 
@@ -916,7 +951,7 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
             with pytest.raises(ProviderResponseError):
                 CoinbaseProvider().fetch_ohlcv(
-                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1), adjusted=False
                 )
 
     def test_crypto_out_of_range_candle_timestamp_is_typed(self):
@@ -929,7 +964,7 @@ class TestCryptoOHLCVPagination:
         with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
             with pytest.raises(ProviderResponseError):
                 CoinbaseProvider().fetch_ohlcv(
-                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1), adjusted=False
                 )
 
     def test_crypto_directory_rows_are_typed(self):
@@ -1008,7 +1043,7 @@ class TestCryptoOHLCVPagination:
             ]
         }
         with patch.object(provider, "_get", side_effect=[first, second]) as get:
-            bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+            bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
 
         assert get.call_count == 2
         assert [bar.ts for bar in bars] == [start, second_ts]

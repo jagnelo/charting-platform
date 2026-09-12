@@ -50,6 +50,10 @@ The registry publishes `adjusted_price_history` separately from
 `price_history`; at this revision it is advertised only for Alpaca and the
 explicit legacy yfinance compatibility path, so consumers do not infer
 adjustment semantics from the presence of an OHLCV method.
+The same guard is enforced when an adapter is called directly (including live
+probes and maintenance paths): raw-only providers reject `adjusted=True` before
+transport, and exchange bars retain explicit `raw`/`provider-native`
+provenance.
 
 The backend provider-policy diagnostics also expose the required and currently
 missing environment-variable names for each provider. These are names only;

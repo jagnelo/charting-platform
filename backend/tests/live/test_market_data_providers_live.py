@@ -227,21 +227,30 @@ def test_nasdaq_trader_full_directory_pagination_is_complete():
 def test_binance_keyless_crypto_history():
     start, end = _bounds()
     rows, _ = _observed_read(
-        lambda: BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1), "binance"
+        lambda: BinanceProvider().fetch_latest_ohlcv(
+            "BTC-USD", Timeframe.D1, 1, adjusted=False
+        ),
+        "binance",
     )
     assert rows and rows[-1].close > 0
 
 
 def test_coinbase_keyless_crypto_history():
     rows, _ = _observed_read(
-        lambda: CoinbaseProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1), "coinbase"
+        lambda: CoinbaseProvider().fetch_latest_ohlcv(
+            "BTC-USD", Timeframe.D1, 1, adjusted=False
+        ),
+        "coinbase",
     )
     assert rows and rows[-1].close > 0
 
 
 def test_kraken_keyless_crypto_history():
     rows, _ = _observed_read(
-        lambda: KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1), "kraken"
+        lambda: KrakenProvider().fetch_latest_ohlcv(
+            "BTC-USD", Timeframe.D1, 1, adjusted=False
+        ),
+        "kraken",
     )
     assert rows and rows[-1].close > 0
 
@@ -429,7 +438,10 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
     _require(*credentials)
     start, end = _bounds()
     rows, _ = _observed_read(
-        lambda: provider.fetch_ohlcv(symbol, Timeframe.D1, start, end), provider.name
+        lambda: provider.fetch_ohlcv(
+            symbol, Timeframe.D1, start, end, adjusted=False
+        ),
+        provider.name,
     )
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
@@ -445,7 +457,7 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         intraday_start = datetime.now(UTC) - timedelta(days=5)
         intraday_rows, _ = _observed_read(
             lambda: provider.fetch_ohlcv(
-                symbol, Timeframe.M5, intraday_start, datetime.now(UTC)
+                symbol, Timeframe.M5, intraday_start, datetime.now(UTC), adjusted=False
             ),
             provider.name,
         )
@@ -458,7 +470,7 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         for timeframe in (Timeframe.W1, Timeframe.MN):
             period_rows, _ = _observed_read(
                 lambda timeframe=timeframe: provider.fetch_ohlcv(
-                    symbol, timeframe, period_start, end
+                    symbol, timeframe, period_start, end, adjusted=False
                 ),
                 provider.name,
             )

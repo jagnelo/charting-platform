@@ -31,6 +31,16 @@ _TF_SECONDS = {
     Timeframe.W1: 604800,
 }
 
+
+def _require_raw_history(provider_name: str, adjusted: bool) -> None:
+    """Reject adjusted requests for exchange candles with no adjustment feed."""
+
+    if adjusted:
+        raise ProviderResponseError(
+            provider_name,
+            f"{provider_name} exchange candles are raw; request adjusted=False",
+        )
+
 _COINBASE_CANDLES_PER_REQUEST = 300
 _KRAKEN_CANDLES_PER_REQUEST = 720
 
@@ -181,6 +191,7 @@ class CoinbaseProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        _require_raw_history(self.name, adjusted)
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
             raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
@@ -324,6 +335,7 @@ class KrakenProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        _require_raw_history(self.name, adjusted)
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
             raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")

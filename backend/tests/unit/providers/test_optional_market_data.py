@@ -64,6 +64,33 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "option_quote_history" in list_provider_capabilities("marketdata_app")
 
 
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        TradierProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_raw_only_rest_adapters_reject_adjusted_history_before_transport(provider_cls):
+    provider = provider_cls()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError, match="historical bars are raw"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 2, tzinfo=UTC),
+                adjusted=True,
+            )
+    get.assert_not_called()
+
+
 def test_twelve_data_parses_intraday_values():
     provider = TwelveDataProvider()
     payload = {
@@ -92,6 +119,7 @@ def test_twelve_data_parses_intraday_values():
             Timeframe.M5,
             datetime(2024, 1, 2, 14, tzinfo=UTC),
             datetime(2024, 1, 2, 15, tzinfo=UTC),
+            adjusted=False,
         )
     assert len(bars) == 1
     assert bars[0].close == 185.5
@@ -125,6 +153,7 @@ def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
             Timeframe.D1,
             datetime(2024, 1, 2, 20, tzinfo=UTC),
             datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
         )
 
     assert len(bars) == 1
@@ -165,6 +194,7 @@ def test_optional_ohlcv_rejects_invalid_or_nonfinite_values(field, value):
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
 
 
@@ -190,6 +220,7 @@ def test_finnhub_parses_parallel_candle_arrays():
             Timeframe.D1,
             datetime(2024, 1, 1, tzinfo=UTC),
             datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
         )
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
 
@@ -211,6 +242,7 @@ def test_finnhub_invalid_candle_status_is_typed():
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
     assert exc_info.value.provider_name == "finnhub"
 
@@ -232,6 +264,7 @@ def test_marketdata_app_mismatched_candle_arrays_are_typed():
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
     assert exc_info.value.provider_name == "marketdata_app"
 
@@ -409,6 +442,7 @@ def test_daily_adapters_parse_common_rows():
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
         assert len(bars) == 1
         assert bars[0].close == 10.5
@@ -469,6 +503,7 @@ def test_eodhd_uses_documented_weekly_and_monthly_periods(timeframe, period):
             timeframe,
             datetime(2024, 1, 1, tzinfo=UTC),
             datetime(2024, 2, 1, tzinfo=UTC),
+            adjusted=False,
         )
 
     assert bars and bars[0].close == 10.5
@@ -534,7 +569,7 @@ def test_marketstack_follows_response_pagination_and_reserves_each_page():
         ],
     }
     with patch.object(provider, "_get", side_effect=[first_payload, second_payload]) as get:
-        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
 
     assert get.call_count == 2
     assert get.call_args_list[0].args[1]["offset"] == 0
@@ -557,6 +592,7 @@ def test_marketstack_invalid_pagination_is_typed_instead_of_truncating_history()
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
             )
     assert exc_info.value.provider_name == "marketstack"
 
@@ -592,6 +628,7 @@ def test_marketstack_pagination_counters_require_strict_integer_metadata(paginat
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
             )
 
 
@@ -649,6 +686,7 @@ def test_fmp_uses_current_stable_history_endpoint():
             Timeframe.D1,
             datetime(2024, 1, 1, tzinfo=UTC),
             datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
         )
 
     assert rows and rows[0].close == 10.5
@@ -682,6 +720,7 @@ def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
             Timeframe.D1,
             datetime(2024, 1, 1, tzinfo=UTC),
             datetime(2024, 1, 3, tzinfo=UTC),
+            adjusted=False,
         )
 
     assert provider.base_url == "https://api.marketdata.app/v1"
@@ -924,7 +963,7 @@ def test_tradier_parses_documented_nested_history_and_singleton_quote_search_sha
         }
     }
     with patch.object(provider, "_get", return_value=history):
-        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end, adjusted=False)
     assert len(bars) == 1
     assert bars[0].close == 101.0
 
@@ -963,6 +1002,7 @@ def test_tradier_invalid_nested_wrapper_is_typed():
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
     assert exc_info.value.provider_name == "tradier"
 
@@ -977,6 +1017,7 @@ def test_tradier_mixed_nested_rows_are_typed():
                 Timeframe.D1,
                 datetime(2024, 1, 1, tzinfo=UTC),
                 datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=False,
             )
     assert exc_info.value.provider_name == "tradier"
 
@@ -1058,6 +1099,7 @@ def test_optional_documented_row_endpoints_reject_malformed_containers():
                         Timeframe.D1,
                         datetime(2024, 1, 1, tzinfo=UTC),
                         datetime(2024, 1, 3, tzinfo=UTC),
+                        adjusted=False,
                     )
                 elif operation == "calendar":
                     provider.fetch_market_events(
@@ -1273,7 +1315,13 @@ def test_marketdata_app_rate_limit_parses_native_reset_header():
     ):
         configured.MARKETDATA_APP_API_KEY = "marketdata-secret"
         with pytest.raises(ProviderRateLimitError) as exc_info:
-            provider.fetch_ohlcv("AAPL", Timeframe.D1, datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 2, tzinfo=UTC))
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2026, 1, 1, tzinfo=UTC),
+                datetime(2026, 1, 2, tzinfo=UTC),
+                adjusted=False,
+            )
     assert exc_info.value.status_code == 429
     assert exc_info.value.retry_at == datetime.fromtimestamp(1700000000, tz=UTC)
     assert exc_info.value.headers == {

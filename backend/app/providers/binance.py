@@ -103,6 +103,11 @@ class BinanceProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        if adjusted:
+            raise ProviderResponseError(
+                self.name,
+                "Binance exchange candles are raw; request adjusted=False",
+            )
         tf_str = _TF_MAP.get(timeframe)
         binance_sym = _to_binance(symbol)
         if tf_str is None or binance_sym is None:
@@ -179,7 +184,9 @@ class BinanceProvider:
                         close=close,
                         volume=volume,
                         vwap=None,
-                        is_adjusted=True,
+                        is_adjusted=False,
+                        adjustment_basis="raw",
+                        adjustment_version="provider-native",
                     )
                 )
 

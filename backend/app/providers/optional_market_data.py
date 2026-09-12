@@ -616,6 +616,21 @@ class _RESTProvider:
     def _key(self) -> str:
         return str(getattr(settings, self.key_setting, "") or "").strip()
 
+    def _require_raw_history(self, adjusted: bool) -> None:
+        """Reject adjusted requests for adapters that expose raw bars only.
+
+        Resolver admission normally prevents this path, but provider adapters
+        are also used directly by live probes and maintenance code. Failing
+        before transport keeps those callers from persisting raw observations
+        under the adjusted dataset.
+        """
+
+        if adjusted:
+            raise ProviderResponseError(
+                self.name,
+                f"{self.name} historical bars are raw; request adjusted=False",
+            )
+
     def _auth_headers(self) -> dict[str, str]:
         if self.auth_mode == "header" and self._key():
             value = self._key()
@@ -781,7 +796,10 @@ class _RESTProvider:
         return datetime.now(UTC) - timedelta(seconds=max(1, limit) * seconds * 1.5 + 86400)
 
     def get_current_price(self, symbol: str) -> float | None:
-        bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
+        # These adapters expose raw history only. Current-price reads must use
+        # that explicit raw contract rather than inheriting the protocol's
+        # adjusted-history default and being rejected by the safety guard.
+        bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1, adjusted=False)
         return float(bars[-1].close) if bars else None
 
 
@@ -806,6 +824,7 @@ class TiingoProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         resample = self._RESAMPLE.get(timeframe)
         if not resample:
             return []
@@ -900,6 +919,7 @@ class TwelveDataProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         interval = self._INTERVAL.get(timeframe)
         if not interval or end <= start:
             return []
@@ -1069,6 +1089,7 @@ class TradierProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         if timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
             return []
         interval = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}[
@@ -1230,6 +1251,7 @@ class MarketDataAppProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         resolution = {
             Timeframe.M1: "1",
             Timeframe.M5: "5",
@@ -1485,6 +1507,7 @@ class FinnhubProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         resolution = self._RESOLUTION.get(timeframe)
         if not resolution:
             return []
@@ -1688,6 +1711,7 @@ class MarketstackProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         if timeframe is not Timeframe.D1:
             return []
         if end <= start:
@@ -1820,6 +1844,7 @@ class EODHDProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         period = self._PERIOD.get(timeframe)
         if not period:
             return []
@@ -1916,6 +1941,7 @@ class FMPProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        self._require_raw_history(adjusted)
         if timeframe is not Timeframe.D1:
             return []
         payload = self._get(
