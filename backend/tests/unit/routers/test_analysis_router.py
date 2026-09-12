@@ -8,12 +8,14 @@ from sqlalchemy import select
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
+from app.models.instrument_event import InstrumentEventFetchState
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
     _as_utc,
+    _breadth_events_by_instrument,
     _calendar_year_cells,
     _entitlement_state,
     _family_member_bar_history,
@@ -116,6 +118,97 @@ def test_role_readiness_is_ready_when_all_canonical_gates_are_supported():
 
     assert status == "ready"
     assert reasons == []
+
+
+@pytest.mark.asyncio
+async def test_breadth_event_loading_respects_historical_knowledge_cutoff_and_source():
+    class Result:
+        def __init__(self, values):
+            self.values = values
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return list(self.values)
+
+    class FakeDB:
+        def __init__(self):
+            self.results = [
+                [
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="future-provider",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+                    ),
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="other-provider",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    ),
+                ],
+                [
+                    InstrumentEventFetchState(
+                        instrument_id=1,
+                        source="future-provider",
+                        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+                    ),
+                    InstrumentEventFetchState(
+                        instrument_id=1,
+                        source="other-provider",
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    ),
+                ],
+            ]
+
+        async def execute(self, _statement):
+            return Result(self.results.pop(0))
+
+    events, provenance = await _breadth_events_by_instrument(
+        FakeDB(), [1], as_of=datetime(2024, 1, 6, tzinfo=UTC)
+    )
+
+    assert [event.source for event in events[1]] == ["other-provider"]
+    assert provenance["loaded_member_count"] == 1
+    assert provenance["event_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_breadth_event_loading_keeps_missing_fetch_state_unavailable():
+    class Result:
+        def __init__(self, values):
+            self.values = values
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return list(self.values)
+
+    class FakeDB:
+        def __init__(self):
+            self.results = [
+                [
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="provider-a",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    )
+                ],
+                [],
+            ]
+
+        async def execute(self, _statement):
+            return Result(self.results.pop(0))
+
+    events, provenance = await _breadth_events_by_instrument(FakeDB(), [1])
+
+    assert events == {1: None}
+    assert provenance["loaded_member_count"] == 0
+    assert provenance["unavailable_member_count"] == 1
 
 
 @pytest.mark.asyncio

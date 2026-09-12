@@ -6464,9 +6464,19 @@ def _generic_condition_requires_events(condition: Mapping[str, object]) -> bool:
 
 
 async def _breadth_events_by_instrument(
-    db: AsyncSession, instrument_ids: list[int]
+    db: AsyncSession,
+    instrument_ids: list[int],
+    *,
+    as_of: datetime | None = None,
 ) -> tuple[dict[int, list[InstrumentEvent] | None], dict[str, object]]:
-    """Read locally persisted event calendars without provider fan-out."""
+    """Read locally persisted event calendars without provider fan-out.
+
+    ``as_of`` is the historical knowledge boundary.  A corporate event can
+    have an old event date but still be future information if it was fetched
+    after the requested evaluation time; the same applies to its source fetch
+    state.  Keep source association explicit so one provider's loaded marker
+    cannot make another provider's events look available.
+    """
 
     if not instrument_ids:
         return {}, {
@@ -6475,35 +6485,49 @@ async def _breadth_events_by_instrument(
             "loaded_member_count": 0,
             "unavailable_member_count": 0,
         }
+    event_query = select(InstrumentEvent).where(InstrumentEvent.instrument_id.in_(instrument_ids))
+    if as_of is not None:
+        event_query = event_query.where(InstrumentEvent.fetched_at <= _as_utc(as_of))
     rows = (
         (
             await db.execute(
-                select(InstrumentEvent)
-                .where(InstrumentEvent.instrument_id.in_(instrument_ids))
-                .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+                event_query.order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
             )
         )
         .scalars()
         .all()
     )
-    states = (
-        (
-            await db.execute(
-                select(InstrumentEventFetchState.instrument_id).where(
-                    InstrumentEventFetchState.instrument_id.in_(instrument_ids)
-                )
-            )
-        )
-        .scalars()
-        .all()
+    knowledge_cutoff = _as_utc(as_of) if as_of is not None else None
+    if knowledge_cutoff is not None:
+        rows = [
+            event
+            for event in rows
+            if getattr(event, "fetched_at", None) is not None
+            and _as_utc(event.fetched_at) <= knowledge_cutoff
+        ]
+    state_query = select(InstrumentEventFetchState).where(
+        InstrumentEventFetchState.instrument_id.in_(instrument_ids)
     )
-    loaded_ids = {int(instrument_id) for instrument_id in states}
+    if as_of is not None:
+        state_query = state_query.where(InstrumentEventFetchState.fetched_at <= _as_utc(as_of))
+    states = (await db.execute(state_query)).scalars().all()
+    if knowledge_cutoff is not None:
+        states = [
+            state
+            for state in states
+            if getattr(state, "fetched_at", None) is not None
+            and _as_utc(state.fetched_at) <= knowledge_cutoff
+        ]
+    loaded_sources_by_instrument: dict[int, set[str]] = defaultdict(set)
+    for state in states:
+        loaded_sources_by_instrument[int(state.instrument_id)].add(str(state.source))
     by_id: dict[int, list[InstrumentEvent] | None] = {
-        instrument_id: [] if instrument_id in loaded_ids else None
+        instrument_id: ([] if loaded_sources_by_instrument.get(instrument_id) else None)
         for instrument_id in instrument_ids
     }
     for event in rows:
-        by_id.setdefault(event.instrument_id, []).append(event)
+        if str(event.source) in loaded_sources_by_instrument.get(int(event.instrument_id), set()):
+            by_id.setdefault(event.instrument_id, []).append(event)
     return by_id, {
         "kind": "instrument_event_calendar",
         "membership_semantics": "canonical_local_instruments",
@@ -8960,7 +8984,9 @@ async def evaluate_generic_breadth(
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
-        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
+        events_by_id, event_provenance = await _breadth_events_by_instrument(
+            db, member_ids, as_of=definition.as_of
+        )
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []
@@ -9115,7 +9141,9 @@ async def evaluate_generic_breadth_history(
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
-        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
+        events_by_id, event_provenance = await _breadth_events_by_instrument(
+            db, member_ids, as_of=definition.as_of
+        )
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []
