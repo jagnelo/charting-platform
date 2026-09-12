@@ -299,6 +299,7 @@ progress:
     - the current `/indicator-batch` endpoint now withholds expired OHLCV snapshots and emits per-symbol `stale_data` warnings instead of calculating indicators from stale bars; focused analysis/breadth coverage remains green and the database-backed regression is still Docker-readiness blocked
     - benchmark-family ratios now withhold current ratios when either role or benchmark OHLCV is stale, emit per-ratio `stale_data` warnings, and expose the underlying freshness summary; focused analysis/breadth coverage remains green and the database-backed regression is still Docker-readiness blocked
     - industry-proxy and classified-industry snapshots now withhold expired current proxy/member bars, label partial synthetic-series coverage, and emit explicit stale benchmark-relative cells; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
+    - benchmark-family breadth now excludes stale current role members, withholds stale cap benchmarks from relative participation, and includes the role/member freshness summary; focused analysis/breadth coverage remains green and database-backed validation is still Docker-readiness blocked
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: >-

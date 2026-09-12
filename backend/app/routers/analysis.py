@@ -4318,6 +4318,8 @@ async def benchmark_family_breadth(
         else None
     )
     cap_instrument = None
+    roles: list[BenchmarkFamilyBreadthRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
     if cap_symbol:
         try:
             cap_instrument = await _instrument(db, cap_symbol)
@@ -4331,15 +4333,31 @@ async def benchmark_family_breadth(
         if cap_instrument
         else []
     )
-    roles: list[BenchmarkFamilyBreadthRoleOut] = []
-    exclusions: list[AnalysisWarning] = []
-
+    freshness_ids: set[int] = {cap_instrument.id} if cap_instrument else set()
+    cap_stale_ids = (
+        set()
+        if as_of is not None or cap_instrument is None
+        else await _stale_instrument_ids(db, [cap_instrument.id], timeframe, adjusted)
+    )
+    if cap_stale_ids:
+        cap_bars = []
+        exclusions.append(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; family breadth benchmark values were withheld.",
+                instrument_id=cap_instrument.id,
+            )
+        )
     def metric(
         results: list[object],
         aggregate: dict[str, int | float],
+        stale_ids: set[int],
     ) -> BenchmarkFamilyBreadthMetricOut:
         metric_exclusions = [
-            _generic_breadth_warning(str(result.exclusion_code), result.instrument_id)
+            _generic_breadth_warning(
+                "stale_data" if result.instrument_id in stale_ids else str(result.exclusion_code),
+                result.instrument_id,
+            )
             for result in results
             if getattr(result, "exclusion_code", None)
         ]
@@ -4412,16 +4430,32 @@ async def benchmark_family_breadth(
             )
             continue
         instrument_ids = [member.instrument_id for member in members]
+        freshness_ids.update(instrument_ids)
         bars_by_id = _truncate_bars_at(
             await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
         )
+        stale_ids = (
+            set()
+            if as_of is not None
+            else await _stale_instrument_ids(db, instrument_ids, timeframe, adjusted)
+        )
+        for instrument_id in stale_ids:
+            bars_by_id[instrument_id] = []
         role_exclusions = list(universe_warnings)
+        role_exclusions.extend(
+            AnalysisWarning(
+                code="stale_data",
+                message="Persisted OHLCV freshness has expired; the member was excluded.",
+                instrument_id=instrument_id,
+            )
+            for instrument_id in sorted(stale_ids)
+        )
 
         def evaluate(condition: dict[str, object]) -> BenchmarkFamilyBreadthMetricOut:
             results, aggregate = evaluate_breadth(
                 members, bars_by_id, condition, benchmark_bars=cap_bars or None
             )
-            return metric(results, aggregate)
+            return metric(results, aggregate, stale_ids)
 
         above_ma = {
             f"ma{period}": evaluate({"kind": "above_moving_average", "params": {"period": period}})
@@ -4450,6 +4484,14 @@ async def benchmark_family_breadth(
             relative = evaluate(
                 {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}}
             )
+        elif role != "cap_weight" and cap_stale_ids:
+            role_exclusions.append(
+                AnalysisWarning(
+                    code="stale_data",
+                    message="Persisted OHLCV freshness has expired; relative strength to cap was withheld.",
+                    instrument_id=cap_instrument.id if cap_instrument else None,
+                )
+            )
         role_exclusions.extend(
             warning
             for item in [*above_ma.values(), near_high, new_high, trend_up, relative]
@@ -4476,6 +4518,9 @@ async def benchmark_family_breadth(
         )
 
     selected_members = _group_members_at(family, as_of)
+    freshness, freshness_detail = await _batch_freshness(
+        db, sorted(freshness_ids), timeframe, adjusted
+    )
     return BenchmarkFamilyBreadthOut(
         family_key=family_key,
         official_index_symbol=str(official.get("symbol") or ""),
@@ -4493,8 +4538,9 @@ async def benchmark_family_breadth(
         },
         roles=roles,
         exclusions=exclusions,
-        freshness="available" if any(role.available for role in roles) else "unavailable",
+        freshness=freshness if freshness_ids else "unavailable",
         freshness_detail={
+            **freshness_detail,
             "role_count": 4,
             "available_roles": sum(role.available for role in roles),
         },

@@ -1437,6 +1437,28 @@ class TestWorkspaces:
             "standard_role_participation_batch_over_point_in_time_holdings"
         )
 
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        db.add(
+            InstrumentDatasetState(
+                instrument_id=instrument.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+                status=DatasetStatus.STALE,
+            )
+        )
+        db.flush()
+        stale_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/breadth",
+            headers=auth_headers,
+            params={"near_threshold": "0.02", "new_high_lookback": "20"},
+        )
+        assert stale_response.status_code == 200, stale_response.text
+        stale_payload = stale_response.json()
+        stale_equal = {role["role"]: role for role in stale_payload["roles"]}["equal_weight"]
+        assert stale_equal["above_ma"]["ma20"]["eligible_count"] == 0
+        assert stale_equal["above_ma"]["ma20"]["exclusions"][0]["code"] == "stale_data"
+
     def test_benchmark_family_breadth_history_keeps_role_lineage_and_missing_roles_explicit(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):
