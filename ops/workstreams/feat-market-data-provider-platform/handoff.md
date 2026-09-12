@@ -750,3 +750,19 @@ Update this handoff at each coherent boundary.
   diff checks pass. Source commit `84b949d8` is pushed; Docker-backed migration/full-
   stack validation remains required. Pre-listing materialization and frontend
   calendar surfaces remain out of scope/open, and no ETF-provider files changed.
+- Added additive `market_event_prelisting_candidate` storage and a bounded,
+  backend-only pre-listing workflow. Future IPO/IPO-pipeline observations are
+  deduplicated by consensus, validated symbols create one inactive provisional
+  stock instrument with stable-identifier/provider provenance, and conflicted,
+  malformed, or taxonomy-missing evidence is quarantined or skipped. Promotion
+  requires a unique active FIGI/ISIN/CUSIP match or an exact provider-symbol plus
+  exchange-MIC match; ticker-only and ambiguous matches stay pending. The opt-in
+  worker schedule and admin evidence path
+  `/api/v1/market-data/prelisting-candidates` are wired through local/RPi
+  configuration. Focused coverage passes `42/42`; the complete backend unit
+  suite passes `1,868/1,868` with the known 37 warnings; Ruff, compileall,
+  diff checks, and both Compose parses pass. Source commit `fc127db6` is pushed.
+  Docker-backed migration/full-stack validation remains unavailable. Global EDGAR
+  candidate enumeration, provider governance/credential gates, production
+  reconciliation, 30-day shadow evidence, and frontend calendar surfaces remain
+  open; no ETF-provider files changed.
