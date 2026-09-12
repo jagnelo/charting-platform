@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-12 — Exact benchmark timeline gate rechecked
+
+- [x] Reran the exact branch-scoped gate at product tip `2e2d7b78`; repository/workstream,
+      dependency/migration, frontend preparation, Ruff, formatting, and TypeScript stages passed.
+- [x] Recorded the reproducible stop at `backend-coverage`: Docker returned permission denied
+      for `unix:///Users/jagnelo/.docker/run/docker.sock` after the fixed 180-second readiness
+      window. No backend integration, provider, browser, or visual stage ran.
+- [ ] Restore Docker health, rerun pending API regressions and the exact gate, then continue
+      provider/history or compatible chart/list/gauge work. No visual/acceptance policy changed.
+
 ### 2026-09-12 — Canonicalize benchmark Study Lab timeline timestamps
 
 - [x] Route benchmark buy-and-hold position, execution-log, and equity-curve
