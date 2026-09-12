@@ -64,7 +64,7 @@
             >
               Delete
             </button>
-            <button type="button" class="btn btn-secondary" @click="reload">Refresh</button>
+            <button type="button" class="btn btn-secondary" @click="handleReload">Refresh</button>
             <button
               type="button"
               class="btn btn-primary"
@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
@@ -223,6 +223,12 @@ const saveError = ref('')
 const savedMessage = ref('')
 const memberSearch = ref('')
 const showDelete = ref(false)
+let lifecycleGeneration = 0
+let reloadSequence = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const draft = reactive<BasketDraft>({
   name: '',
@@ -258,13 +264,21 @@ const canSave = computed(() => {
   return true
 })
 
-onMounted(reload)
+onMounted(() => reload())
 
-async function reload() {
+async function handleReload() {
+  await reload()
+}
+
+async function reload(generation = lifecycleGeneration) {
+  if (!isCurrentLifecycle(generation)) return
+  const sequence = ++reloadSequence
   loading.value = true
   loadError.value = ''
   try {
-    baskets.value = await api.get<Basket[]>('/baskets')
+    const loaded = await api.get<Basket[]>('/baskets')
+    if (!isCurrentLifecycle(generation) || sequence !== reloadSequence) return
+    baskets.value = loaded
     if (selectedBasket.value) {
       const refreshed = baskets.value.find(basket => basket.id === selectedBasket.value?.id) ?? null
       if (refreshed) selectBasket(refreshed)
@@ -275,9 +289,10 @@ async function reload() {
       startNew()
     }
   } catch (err: any) {
+    if (!isCurrentLifecycle(generation) || sequence !== reloadSequence) return
     loadError.value = err?.message ?? 'Failed to load baskets'
   } finally {
-    loading.value = false
+    if (isCurrentLifecycle(generation) && sequence === reloadSequence) loading.value = false
   }
 }
 
@@ -334,6 +349,7 @@ function suggestedNewWeight() {
 
 async function saveBasket() {
   if (!canSave.value) return
+  const generation = lifecycleGeneration
   saveError.value = ''
   savedMessage.value = ''
   const body = {
@@ -351,7 +367,9 @@ async function saveBasket() {
     const saved = selectedBasket.value
       ? await api.patch<Basket>(`/baskets/${selectedBasket.value.id}`, body)
       : await api.post<Basket>('/baskets', body)
-    await reload()
+    if (!isCurrentLifecycle(generation)) return
+    await reload(generation)
+    if (!isCurrentLifecycle(generation)) return
     const refreshed = baskets.value.find(basket => basket.id === saved.id) ?? saved
     selectBasket(refreshed)
     savedMessage.value = 'Basket saved.'
@@ -362,12 +380,19 @@ async function saveBasket() {
 
 async function deleteSelected() {
   if (!selectedBasket.value || selectedBasket.value.is_read_only) return
+  const generation = lifecycleGeneration
   const id = selectedBasket.value.id
   showDelete.value = false
   await api.delete(`/baskets/${id}`)
+  if (!isCurrentLifecycle(generation)) return
   selectedBasket.value = null
-  await reload()
+  await reload(generation)
 }
+
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  reloadSequence += 1
+})
 
 function openChart(symbol: string) {
   if (!symbol) return

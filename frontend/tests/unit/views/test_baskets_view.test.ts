@@ -193,4 +193,18 @@ describe('BasketsView', () => {
 
     expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A42')
   })
+
+  it('does not publish a late basket reload after the view unmounts', async () => {
+    let resolveBaskets: ((loaded: ReturnType<typeof basket>[]) => void) | undefined
+    vi.mocked(api.get).mockReturnValueOnce(new Promise(resolve => {
+      resolveBaskets = resolve
+    }) as never)
+
+    const wrapper = mountView()
+    wrapper.unmount()
+    resolveBaskets?.([basket()])
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledTimes(1)
+  })
 })
