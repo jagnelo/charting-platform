@@ -1,4 +1,6 @@
 from app.config import provider_rate_limit_seed, settings
+from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
+from app.providers.optional_market_data import FMPProvider
 from app.providers.registry import (
     get_default_discovery_provider,
     get_default_event_provider,
@@ -19,6 +21,7 @@ from app.providers.registry import (
     provider_routing_control_settings,
     provider_supports_instrument,
 )
+from app.providers.tokenized import DinariTokenProvider, OndoGlobalMarketsProvider
 
 
 def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
@@ -54,6 +57,19 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
 
 
 class TestProviderRegistry:
+    def test_descriptor_base_urls_match_concrete_adapters(self):
+        """Admin-facing descriptor URLs must not drift from transport hosts."""
+
+        assert OPTIONAL_PROVIDER_DESCRIPTORS["fmp"].base_url == FMPProvider.base_url
+        assert (
+            OPTIONAL_PROVIDER_DESCRIPTORS["dinari"].base_url
+            == DinariTokenProvider.base_url
+        )
+        assert (
+            OPTIONAL_PROVIDER_DESCRIPTORS["ondo_global_markets"].base_url
+            == OndoGlobalMarketsProvider.base_url
+        )
+
     def test_new_workstation_defaults_are_free_source_first(self):
         assert get_default_market_data_provider().name == "alpaca"
         assert get_default_metadata_provider().name == "edgar"

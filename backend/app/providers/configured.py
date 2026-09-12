@@ -44,7 +44,7 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
     ),
     "fmp": ConfiguredProvider(
         "fmp",
-        "https://financialmodelingprep.com/api/v3",
+        "https://financialmodelingprep.com/stable",
         "Optional fundamentals/calendar provider; disabled until terms are reviewed.",
     ),
     "finra": ConfiguredProvider(
@@ -100,12 +100,12 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
     ),
     "ondo_global_markets": ConfiguredProvider(
         "ondo_global_markets",
-        "https://api.ondo.finance",
+        "https://api.gm.ondo.finance",
         "Catalogue-only tokenized US stock/ETF API; onboarding is required.",
     ),
     "dinari": ConfiguredProvider(
         "dinari",
-        "https://api.dinari.com",
+        "https://api-enterprise.sandbox.dinari.com/api/v2",
         "Catalogue-only tokenized-equity infrastructure; partner access is required.",
     ),
     "alpaca_itn": ConfiguredProvider(
