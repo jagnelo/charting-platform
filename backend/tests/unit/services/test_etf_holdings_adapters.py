@@ -3315,6 +3315,7 @@ PDD HOLDINGS INC,722304102,PDD US,2.550078195600,82.660000000000,12376.0000000,1
     assert result.rows[3].cusip == "722304102"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_declared_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-24"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -11317,6 +11318,7 @@ async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
     assert result.legal_metadata["source_provider"] == "palmer_square"
     assert result.legal_metadata["composition_date"] == "2026-07-01"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -11385,6 +11387,7 @@ async def test_weitz_adapter_parses_verified_embedded_holdings_json(monkeypatch)
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
     assert result.legal_metadata["source_provider"] == "weitz"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

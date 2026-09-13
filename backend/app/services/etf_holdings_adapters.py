@@ -16935,6 +16935,7 @@ class NationalSecurityIndexHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_complete_daily_holdings_csv",
+                "completeness_status": "complete",
                 "snapshot_provenance": "nsi_holdings_native_holdings_csv",
                 "product_page_url": product_url,
             },
@@ -43469,6 +43470,7 @@ class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_full_investment_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "issuer_native_product_page_json",
             },
         )
@@ -43657,6 +43659,7 @@ class WeitzHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_full_investment_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "issuer_native_product_page_json",
             },
         )
