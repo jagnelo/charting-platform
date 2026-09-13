@@ -11,10 +11,13 @@ IWV. The complete bounded date matrix passed `17/17`, including the existing
 `issuer_public_json_api_as_of_date`, returned at least 100 holdings rows, and
 reported a composition date no later than the requested cutoff. Full backend
 unit coverage passed `1534/1534`; Ruff, formatting, and `git diff --check`
-passed. This is route evidence only and does not claim persisted snapshots,
-placeholder resolution, D1/W1/MN floors, or continuity. No provider/fallback,
-visual, migration, or acceptance policy changed. Rerun the exact branch-scoped
-gate at this coherent test tip before treating it as a gate receipt.
+passed. The exact branch-scoped gate at docs tip `d7bbc4564` completed backend
+integration `404/404`, frontend Vitest `1067/1067`, functional E2E `165 passed`
+with `107 skipped`, and visual E2E `98/104`; provider probes were skipped
+because no provider-related paths changed. This is route evidence only and
+does not claim persisted snapshots, placeholder resolution, D1/W1/MN floors,
+or continuity. The six unchanged protected visual diffs remain open. No
+provider/fallback, visual, migration, or acceptance policy changed.
 
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 

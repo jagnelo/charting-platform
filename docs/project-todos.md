@@ -10,8 +10,12 @@
       eight existing `2026-06-30` cases, and the dedicated older IWM regression.
       Full backend units passed `1534/1534`; Ruff, formatting, and
       `git diff --check` passed (`32e1ab645`).
-- [ ] Rerun the exact branch-scoped gate at this test tip. Keep the six
-      unchanged protected visual diffs open and continue family-wide canonical
+- [x] Rerun the exact branch-scoped gate at coherent docs tip `d7bbc4564`.
+      Backend unit/integration passed `1534/1534` and `404/404`, frontend
+      Vitest passed `1067/1067`, functional E2E passed `165` with `107`
+      documented skips, and visual E2E passed `98/104`. Provider probes were
+      skipped because no provider-related paths changed. The six unchanged
+      protected visual diffs remain open; continue family-wide canonical
       population, D1/W1/MN floors, continuity, and AC2–AC7/AC10.
 
 ### 2026-09-13 — Older IWM point-in-time history and exact gate

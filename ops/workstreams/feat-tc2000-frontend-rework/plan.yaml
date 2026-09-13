@@ -13,21 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At clean product tip 5caacf901, the date-aware iShares family-history matrix
-  includes IWM at both 2025-12-31 and 2026-06-30; the focused opt-in live
-  suite passed 10/10 with matching composition dates. The exact
-  branch-scoped full_stack_browser gate passed repository/workstream,
-  dependency/migration, Ruff/format, TypeScript, backend unit 1534/1534,
-  backend integration 404/404, frontend Vitest 1067/1067, compose/deployment,
-  expected research-runner probes, and functional E2E 165 passed with 107
-  documented skips. Provider probes reported not configured because
-  RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain
-  authoritative. Visual E2E passed 98/104; the six unchanged protected
-  watchlist-column-editor and workspace-floating diffs remain. Docker
-  resources were cleaned. Continue R1 canonical provider population/history
-  and D1/W1/MN floors and continuity; AC2–AC7/AC10 remain open. No visual
-  threshold, mask, skip, provider, fallback, migration, or acceptance policy
-  changed. This receipt supersedes the previous f36421f49 receipt below.
+  At product tip 32e1ab645 and docs tip d7bbc4564, the date-aware iShares
+  family-history matrix covers all eight canonical legs at both 2025-12-31 and
+  2026-06-30; the complete bounded suite passed 17/17 and full backend units
+  passed 1534/1534. The exact branch-scoped full_stack_browser gate completed
+  repository/workstream, dependency/migration, Ruff/format, TypeScript,
+  backend unit 1534/1534, backend integration 404/404, frontend Vitest
+  1067/1067, compose/deployment, expected research-runner sandbox/resource
+  probes, and functional E2E 165 passed with 107 documented skips. Provider
+  probes were skipped because no provider-related paths changed. Visual E2E
+  passed 98/104; the six unchanged protected watchlist-column-editor and
+  workspace-floating diffs remain. Docker resources were cleaned. Continue R1
+  canonical provider population/history and D1/W1/MN floors and continuity;
+  AC2–AC7/AC10 remain open. No visual threshold, mask, skip, provider,
+  fallback, migration, or acceptance policy changed. This receipt supersedes
+  the previous 5caacf901 receipt below.
   Product commit c7d84436f corrects SLYG's curated SEC series/class identity
   to S000006990/C000019043 and applies the same identity gate to legacy
   holdings documents. Exact identity searches use a bounded 400-filing window;

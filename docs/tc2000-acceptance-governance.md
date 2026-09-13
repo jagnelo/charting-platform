@@ -10,8 +10,12 @@ adapter, returned at least 100 rows, and stayed at or before the requested
 composition cutoff. Full backend units passed `1534/1534`; Ruff, formatting,
 and `git diff --check` passed. This proves route selection only; it does not
 claim persisted family population, member-bar floors, continuity, or readiness.
-No provider/fallback, visual, migration, or acceptance policy changed. The
-exact branch-scoped gate remains to be rerun at this new test tip.
+The exact branch-scoped gate at docs tip `d7bbc4564` completed backend
+integration `404/404`, frontend Vitest `1067/1067`, functional E2E `165 passed`
+with `107 skipped`, and visual E2E `98/104`; provider probes were skipped
+because no provider-related paths changed. The six unchanged protected visual
+diffs remain open. No provider/fallback, visual, migration, or acceptance
+policy changed.
 
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 

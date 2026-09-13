@@ -15,10 +15,13 @@ and reported a composition date no later than the cutoff. The complete bounded
 date matrix passed `17/17`, combining the eight new older-date cases, the eight
 existing `2026-06-30` cases, and the dedicated older IWM regression. Full
 backend units passed `1534/1534`; Ruff, formatting, and `git diff --check`
-passed. This is auditable route evidence only: it does not persist snapshots,
-resolve member placeholders, prove D1/W1/MN floors, or establish rebalance
-continuity. The exact branch-scoped gate is next at this coherent test tip;
-the six protected visual diffs and R1/R2–R7 gaps remain unchanged.
+passed. The exact branch-scoped gate at docs tip `d7bbc4564` completed all
+non-visual stages: backend integration `404/404`, frontend Vitest `1067/1067`,
+functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
+Provider probes were skipped because no provider-related paths changed. This
+is auditable route evidence only: it does not persist snapshots, resolve
+member placeholders, prove D1/W1/MN floors, or establish rebalance continuity.
+The six unchanged protected visual diffs and R1/R2–R7 gaps remain open.
 
 ## 2026-09-13 — Prove older IWM point-in-time history and rerun exact gate
 
