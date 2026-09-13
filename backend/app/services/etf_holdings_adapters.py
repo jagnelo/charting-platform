@@ -16455,6 +16455,10 @@ class NomuraHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Nomura product page did not expose complete daily holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Nomura product page did not expose dated daily holdings for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -16469,6 +16473,7 @@ class NomuraHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "nomura_product_page_daily_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
                 "snapshot_provenance": "nomura_native_product_page_daily_holdings_table",
@@ -16667,6 +16672,10 @@ class DelawareManagementNomuraHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Delaware/Macquarie successor product page did not expose complete daily holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Delaware/Macquarie successor product page did not expose dated daily holdings for {normalized_symbol}."
+            )
         legal_metadata = {
             "source_access": self.config.source_access,
             "source_provider": self.source_provider,
@@ -16675,6 +16684,7 @@ class DelawareManagementNomuraHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "route_resolution": "delaware_nomura_successor_product_page_daily_holdings_table",
             "composition_date": composition_date.isoformat() if composition_date else None,
             "as_of_date": composition_date.isoformat() if composition_date else None,
+            "completeness_status": "complete",
             "terms_note": self.config.terms_note,
             "source_quality": "issuer_reported_daily_holdings",
             "snapshot_provenance": "delaware_nomura_successor_native_daily_holdings_table",

@@ -21123,6 +21123,7 @@ async def test_nomura_adapter_parses_server_rendered_daily_holdings_table(monkey
     assert result.legal_metadata["composition_date"] == "2026-07-24"
     assert result.legal_metadata["source_provider"] == "nomura_asset_management"
     assert result.legal_metadata["route_resolution"] == ("nomura_product_page_daily_holdings_table")
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -21202,6 +21203,7 @@ async def test_delaware_adapter_parses_nomura_successor_daily_holdings_table(mon
     assert result.legal_metadata["route_resolution"] == (
         "delaware_nomura_successor_product_page_daily_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
