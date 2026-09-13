@@ -226,6 +226,7 @@ class BenchmarkFamilyConcentrationHistoryRoleOut(BaseModel):
     verification_state: str
     available: bool
     membership_semantics: str | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BenchmarkFamilyConcentrationHistoryPointOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -241,6 +242,7 @@ class BenchmarkFamilyConcentrationHistoryOut(AnalysisResponseMetadata):
     rank_period: str
     top_n: int = Field(ge=1, le=25)
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -608,6 +610,7 @@ class IndustrySnapshotOut(AnalysisResponseMetadata):
     known_at: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     rows: list[IndustrySnapshotRow]

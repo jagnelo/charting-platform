@@ -1110,6 +1110,13 @@ class TestWorkspaces:
         assert point["effective_constituents"] == 1
         assert point["coverage"] == 1
         assert {item["snapshot_id"] for item in cap["points"]} == {snapshot.id, later_snapshot.id}
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:cap_weight"
+        )
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] in {
+            "full",
+            "partial",
+        }
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_supports_derived_equal_membership(
@@ -1206,6 +1213,10 @@ class TestWorkspaces:
         assert equal["points"][-1]["weight_method"] == (
             "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule"
         )
+        assert equal["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration_history:equal_weight"
+        )
+        assert equal["coverage_preflight"]["status"] == "deferred"
 
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
@@ -4429,6 +4440,7 @@ class TestWorkspaces:
             ranked_payload["proxy_evidence"][0]["verification_state"]
             == "holdings_classification_verified"
         )
+        assert ranked_payload["coverage_preflight"]["evaluator"] == "industry_proxy_snapshot"
         assert ranked_payload["rows"][0]["symbol"] == "SMH"
         assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
         assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
@@ -4442,6 +4454,7 @@ class TestWorkspaces:
         industries_payload = industries_ranked.json()
         assert industries_payload["group_key"] == "industry:XLK"
         assert industries_payload["market_benchmark"] == instrument.symbol
+        assert industries_payload["coverage_preflight"]["evaluator"] == "industry_snapshot"
         assert industries_payload["rows"][0]["industry"] == "Semiconductors"
         assert set(industries_payload["rows"][0]["performance"]) == {
             "1D",

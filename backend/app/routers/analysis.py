@@ -2095,6 +2095,17 @@ async def industry_proxy_snapshot(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="industry_proxy_snapshot",
+        instrument_ids=freshness_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
     rows: list[IndustryProxySnapshotRow] = []
@@ -2255,6 +2266,7 @@ async def industry_proxy_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(ordered), 1),
         exclusions=exclusions,
         rows=rows,
@@ -2318,6 +2330,17 @@ async def industry_snapshot(
                     instrument_id=instrument_id,
                 )
             )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="industry_snapshot",
+        instrument_ids=sorted(all_instrument_ids),
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     benchmark_series = _normalised_bar_series(bars_by_id.get(etf.id, []))
     market_series = _normalised_bar_series(bars_by_id.get(market.id, []))
     covered = 0
@@ -2426,6 +2449,7 @@ async def industry_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(industry_members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -3137,6 +3161,9 @@ async def benchmark_family_concentration_history(
     roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     freshness_ids: list[int] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
+    rank_offset = _PERIODS.get(rank_period)
+    minimum_bars = rank_offset + 1 if rank_offset is not None else 253
 
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
@@ -3168,6 +3195,18 @@ async def benchmark_family_concentration_history(
                 for instrument_id, bars in bars_by_id.items()
                 if bars
             }
+            role_coverage_preflight = await preflight_ohlcv(
+                db,
+                evaluator=f"benchmark_family_concentration_history:{role}",
+                instrument_ids=member_ids,
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                cached_bars=bars_by_id,
+                minimum_bars=minimum_bars,
+            )
+            role_coverage_preflights[role] = role_coverage_preflight.to_dict()
             timestamps = sorted(
                 {timestamp for series in series_by_id.values() for timestamp in series}
             )[-limit:]
@@ -3264,6 +3303,7 @@ async def benchmark_family_concentration_history(
                     verification_state="derived_policy",
                     available=bool(points),
                     membership_semantics="point_in_time_group_membership",
+                    coverage_preflight=role_coverage_preflight.to_dict(),
                     points=points,
                     exclusions=role_exclusions,
                 )
@@ -3385,6 +3425,18 @@ async def benchmark_family_concentration_history(
             for instrument_id, bars in bars_by_id.items()
             if bars
         }
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_concentration_history:{role}",
+            instrument_ids=instrument_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=minimum_bars,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
         timestamps = sorted(
             {timestamp for series in series_by_id.values() for timestamp in series}
         )[-limit:]
@@ -3490,6 +3542,7 @@ async def benchmark_family_concentration_history(
                 label=label,
                 verification_state=verification_state,
                 available=bool(points),
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 points=points,
                 exclusions=role_exclusions,
             )
@@ -3509,6 +3562,7 @@ async def benchmark_family_concentration_history(
         rank_period=rank_period,
         top_n=top_n,
         limit=limit,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,
