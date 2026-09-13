@@ -16833,3 +16833,22 @@ The current source also passes the focused authenticated top-down browser slice 
       redistribution review remain open, as do the other provider/legal,
       CI/deployment, universe-reconciliation, migration-compatibility, and
       shadow gates.
+
+### 2026-09-13 — Newly configured provider matrix rerun
+
+- [x] Rerun the complete 47-case live matrix with the configured Alpaca paper,
+      MarketData.app, Dinari Sandbox, SEC EDGAR, and existing owner-managed
+      provider credentials from a network-enabled environment. `41` bounded
+      transport observations passed. The three Alpha Vantage event/earnings
+      operations returned typed documented capacity responses because the free
+      key was at its 25-requests/day / one-request-per-second capacity; the
+      intentional Tradier, IBKR, and Ondo credential preflights remained exact
+      missing-credential outcomes.
+- [x] Preserve the incomplete result as non-acceptance evidence: exit code `2`,
+      safety preflight still blocking unreviewed quota/legal/redistribution and
+      response-dependent routing controls, and aggregate-only usage in the
+      external operator ledger. No credentials or provider payloads entered
+      Git.
+- [ ] Obtain the remaining provider-specific reviews/credentials before a
+      complete matrix can be accepted; do not reinterpret a capacity response
+      or missing credential as a successful data read.

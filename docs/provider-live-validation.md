@@ -1116,3 +1116,16 @@ Nasdaq, xStocks, Bybit, Marketstack discovery, MarketData.app, Tiingo, and
 FMP. Exit code 2 is intentional for this incomplete matrix and no acceptance
 claim was made; aggregate usage remained outside Git and no credentials or
 payloads were persisted.
+
+On 2026-09-13, the same 47-case matrix was rerun with the configured Alpaca
+paper, MarketData.app, Dinari Sandbox, and other owner-managed credentials
+from an escalated network-enabled environment. It again produced `41` positive
+bounded transport observations. The only six non-passes were the three
+Alpha Vantage capacity responses (the supplied free key was already at its
+documented 25-requests/day / one-request-per-second capacity), and the exact
+intentional missing-credential preflights for Tradier, IBKR, and Ondo. The
+runner still returned exit code `2` because this is not a complete acceptance
+matrix; the safety preflight continued to keep all unreviewed quota, legal,
+redistribution, and response-dependent controls non-routable. Only aggregate
+usage was written to the operator-owned external ledger; no credentials or
+response payloads entered Git.
