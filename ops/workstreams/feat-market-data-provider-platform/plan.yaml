@@ -114,6 +114,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The authoritative Docker-backed combined backend unit/integration gate
+      after the bounded tokenized-catalog change passed `2,436/2,436` with 89
+      warnings at `81.60%` combined coverage using cleaned labeled
+      testcontainer session `05167e7e-98d4-4817-a500-a5caec09b5f6`. No provider
+      calls, credentials, frontend, or ETF-provider adapter files changed.
+    - >-
       Bounded tokenized-asset catalogue refreshes now expose explicit
       completeness evidence. If the final configured page is full, the
       provider result is marked `partial` with per-provider page counts and

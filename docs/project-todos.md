@@ -11,6 +11,12 @@
       diff checks pass. No live provider calls, frontend files, or ETF-provider
       adapter files changed.
 
+- [x] Re-run the authoritative Docker-backed backend gate after the bounded
+      tokenized-catalog change. The complete scoped suite passes 2,436/2,436
+      with 89 warnings at 81.60% combined coverage using cleaned labeled
+      testcontainer session `05167e7e-98d4-4817-a500-a5caec09b5f6`. No live
+      provider calls or credentials were used.
+
 ### 2026-09-13 — Seasonality evaluator provider boundary
 
 - [x] Make `/api/v1/instruments/{symbol}/seasonality/monthly` evaluate only
