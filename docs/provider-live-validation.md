@@ -264,7 +264,7 @@ logs, health state, capacity events, or live-probe failure output. The redactor
 removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
-Current local validation (2026-09-12) has passing EDGAR, Alpaca, MarketData.app,
+Current local validation (2026-09-13) has passing EDGAR, Alpaca, MarketData.app,
 and Dinari Sandbox probes. MarketData.app required its provider-mandated
 trailing slash. Dinari initially returned typed HTTP 401 because the
 operator-only endpoint was still the live host; after switching to the
@@ -1063,3 +1063,13 @@ options-data entitlement. The provider returned a 10,000-credit daily header;
 this is retained as observational evidence only. The reviewed
 `MARKETDATA_APP_REVIEWED_PLAN`/`MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`
 pair and response-priced option-chain bound remain required before routing.
+
+On 2026-09-13, the complete lock-protected matrix was rerun against the
+existing owner-managed environment with the external usage ledger enabled. It
+collected 47 cases and passed 41. The three Alpha Vantage event/earnings cases
+returned the provider's typed documented 25-requests/day capacity response;
+the exact intentional credential preflights for Tradier, IBKR, and Ondo also
+failed because those credentials remain absent. All other configured and
+keyless/tokenized cases produced positive bounded transport evidence. The
+runner returned exit code 2 and made no acceptance claim; the aggregate receipt
+remains outside Git and no credentials or response payloads were persisted.

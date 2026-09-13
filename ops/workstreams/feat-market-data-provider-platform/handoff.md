@@ -1343,3 +1343,12 @@ Update this handoff at each coherent boundary.
   or ETF-provider adapter files changed. Future non-Strategy evaluator
   coordination, persisted evaluator run status, provider/legal/deployment/
   shadow gates, and generic migration compatibility remain open.
+
+- The lock-protected credentialed live matrix was rerun on 2026-09-13 using the
+  existing owner-managed environment and external usage ledger. It collected
+  `47` cases and passed `41`; Alpha Vantage's IPO-calendar and two earnings
+  operations returned the typed documented 25-requests/day capacity response,
+  while Tradier, IBKR, and Ondo remained exact missing-credential preflights.
+  The other configured and keyless/tokenized probes passed with bounded
+  transport observations. The runner returned exit code `2` and made no
+  acceptance claim. No credentials or response payloads entered Git.

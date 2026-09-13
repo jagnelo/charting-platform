@@ -21,7 +21,7 @@ supplies, its priority level per capability, and where to configure its credenti
 >
 > A reviewed plan and configured credential are still not enough to route a
 > provider: its capability must carry `passed` (or genuinely `not_required`)
-> live-probe evidence. The current local validation snapshot (2026-09-12)
+> live-probe evidence. The current local validation snapshot (2026-09-13)
 > has passing EDGAR, Alpaca, MarketData.app, and Dinari Sandbox probes. The
 > Dinari probe initially used the live host and returned HTTP 401; after the
 > operator-only endpoint was corrected to the documented Sandbox host, the
