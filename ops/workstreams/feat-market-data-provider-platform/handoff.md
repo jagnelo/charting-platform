@@ -1742,3 +1742,14 @@ Update this handoff at each coherent boundary.
   reconciliation still needs its approved authoritative source and
   terms/polling/redistribution review; the branch remains ready for human
   review, not ready for integration.
+
+- Source checkpoint `236b00840` closes the adjacent universe-integrity gap:
+  duplicate listing keys are now rejected across provider pages before counts
+  or completeness are accepted. Focused universe coverage passed `24/24`;
+  Ruff, compileall, and diff checks passed; and the authoritative Docker-backed
+  combined backend gate passed `2,431/2,431` at `81.45%` coverage with 89
+  warnings using cleaned testcontainer session
+  `e2ec12b5-2754-4fb0-8398-c756ed334c8e`. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed. Complete SEC/OTC
+  reconciliation and its approved source/terms review remain open; the branch
+  is still ready for human review, not ready for integration.

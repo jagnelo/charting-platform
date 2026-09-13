@@ -16870,3 +16870,19 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Complete/global SEC and OTC reconciliation still requires an approved
       authoritative security-master source and its terms/polling/redistribution
       review; this change only closes malformed pagination metadata handling.
+
+### 2026-09-13 — Universe duplicate-listing validation
+
+- [x] Reject duplicate listing keys across the complete discovery page stream
+      (symbol, normalized exchange, and row type) before observed counts or
+      completeness can be accepted. The repeated-cursor regression remains
+      independently covered; focused universe coverage passes `24/24`, Ruff,
+      compileall, and diff checks pass, and the authoritative Docker-backed
+      backend unit/integration gate passes `2,431/2,431` at `81.45%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `e2ec12b5-2754-4fb0-8398-c756ed334c8e`. No provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this guard only prevents duplicate rows from creating a false
+      complete snapshot.
