@@ -22261,6 +22261,7 @@ async def test_mitsubishi_ufj_adapter_parses_only_mjsc_product_page_holdings(mon
         "mufg_product_page_nuxt_complete_holdings_component"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-17"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="NOT_MJSC")

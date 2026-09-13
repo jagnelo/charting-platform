@@ -18922,6 +18922,7 @@ class MitsubishiUfjHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "issuer_native_product_page_nuxt_hydration",
                 "terms_note": self.config.terms_note,
             },
