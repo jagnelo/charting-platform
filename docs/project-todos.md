@@ -16852,3 +16852,21 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Obtain the remaining provider-specific reviews/credentials before a
       complete matrix can be accepted; do not reinterpret a capacity response
       or missing credential as a successful data read.
+
+### 2026-09-13 — Universe pagination total validation
+
+- [x] Tighten the generic US-universe reconciliation boundary so authoritative
+      `total` metadata must be a real integer (booleans, numeric strings, and
+      fractional values are rejected) instead of being coerced with `int(...)`.
+      Negative totals remain rejected separately, and failed pages never mark a
+      reconciliation run complete.
+- [x] Add four malformed-total regressions. The focused universe suite passes
+      `23/23`; Ruff, compileall, and diff checks pass; and the authoritative
+      Docker-backed backend unit/integration gate passes `2,430/2,430` at
+      `81.45%` coverage with 89 warnings. Labeled testcontainer session
+      `840f0c25-0cc1-4188-aefd-6dd5c77f8467` was cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this change only closes malformed pagination metadata handling.

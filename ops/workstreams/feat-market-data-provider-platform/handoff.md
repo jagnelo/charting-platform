@@ -1729,3 +1729,16 @@ Update this handoff at each coherent boundary.
   payloads entered Git. The feature branch remains ready for human review,
   not ready for integration; the parallel ETF branch still owns ETF provider
   adapters and must reconcile only at staging.
+
+- Source checkpoint `337446aab` closes a universe-reconciliation metadata
+  strictness gap: authoritative discovery `total` values must be actual
+  integers, so booleans, numeric strings, fractions, and negatives fail closed
+  instead of being coerced into a false completeness count. Focused universe
+  coverage passed `23/23`; Ruff, compileall, and diff checks passed; and the
+  authoritative Docker-backed backend gate passed `2,430/2,430` at `81.45%`
+  coverage with 89 warnings using cleaned testcontainer session
+  `840f0c25-0cc1-4188-aefd-6dd5c77f8467`. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed. Complete SEC/OTC
+  reconciliation still needs its approved authoritative source and
+  terms/polling/redistribution review; the branch remains ready for human
+  review, not ready for integration.
