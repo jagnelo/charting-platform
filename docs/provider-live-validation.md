@@ -1071,6 +1071,9 @@ options-data entitlement. The provider returned a 10,000-credit daily header;
 this is retained as observational evidence only. The reviewed
 `MARKETDATA_APP_REVIEWED_PLAN`/`MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`
 pair and response-priced option-chain bound remain required before routing.
+Accepted reviewed plan identifiers are `free_forever`, `starter_trial`,
+`trader_trial`, `starter`, and `trader`; trial identifiers remain explicitly
+time-limited and are not silently treated as perpetual paid plans.
 
 On 2026-09-13, the complete lock-protected matrix was rerun against the
 existing owner-managed environment with the external usage ledger enabled. It

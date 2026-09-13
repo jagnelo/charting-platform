@@ -1183,6 +1183,21 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     assert dimension["account_plan"] == "starter"
     assert dimension["account_limit_reviewed"] is True
 
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    trial = provider_rate_limit_seed("marketdata_app")
+    trial_dimension = trial["quota_contract"]["dimensions"][0]
+    assert trial_dimension["limit"] == 10000
+    assert trial_dimension["account_plan"] == "starter_trial"
+    assert trial_dimension["account_limit_reviewed"] is True
+
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "trader_trial")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100000)
+    trader_trial = provider_rate_limit_seed("marketdata_app")
+    trader_trial_dimension = trader_trial["quota_contract"]["dimensions"][0]
+    assert trader_trial_dimension["limit"] == 100000
+    assert trader_trial_dimension["account_plan"] == "trader_trial"
+    assert trader_trial_dimension["account_limit_reviewed"] is True
+
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100)
     mismatched = provider_rate_limit_seed("marketdata_app")
     assert mismatched["quota_contract"]["dimensions"][0]["limit"] == 100

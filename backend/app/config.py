@@ -1845,6 +1845,11 @@ _MARKETDATA_APP_DAILY_CREDIT_LIMITS: dict[str, int] = {
     "free_forever": 100,
     "starter": 10_000,
     "trader": 100_000,
+    # The provider exposes separate 30-day trial plans whose daily credit
+    # pools match their named paid plans. Keep them distinct so an operator
+    # cannot mistake a time-limited trial for perpetual entitlement.
+    "starter_trial": 10_000,
+    "trader_trial": 100_000,
 }
 
 
@@ -1912,7 +1917,9 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     every operation exposed by its adapter; the helper then moves that
     documented pool into the normal multidimensional reservation contract.
     MarketData.app similarly requires an exact, operator-reviewed account
-    plan/limit pair before the documented Free Forever seed is widened.
+    plan/limit pair before the documented Free Forever seed is widened. The
+    Starter Trial and Trader Trial plans are accepted as separate, explicitly
+    time-limited plan identifiers with their provider-published daily pools.
     """
 
     seed = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {}))

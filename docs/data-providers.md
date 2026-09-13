@@ -878,8 +878,13 @@ receive delayed data and only one year of historical data. See the provider's
 documentation. The repository's 100-credit seed is specifically the documented
 Free Forever contract; an account that returns another native limit is not
 silently promoted. Record the reviewed account plan and exact matching daily
-limit in `MARKETDATA_APP_REVIEWED_PLAN` (`free_forever`, `starter`, or `trader`)
-and `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` (`100`, `10000`, or `100000`).
+limit in `MARKETDATA_APP_REVIEWED_PLAN` (`free_forever`, `starter_trial`,
+`trader_trial`, `starter`, or `trader`) and
+`MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` (`100`, `10000`, or `100000`).
+The two trial identifiers remain distinct from their paid-plan counterparts:
+the provider documents them as 30-day trials that fall back to Free Forever
+if no paid subscription is selected, so the review record must make the
+time-limited entitlement explicit.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 
@@ -1063,8 +1068,10 @@ MARKETSTACK_API_KEY=
 EODHD_API_KEY=
 MARKETDATA_APP_API_KEY=       # MarketData.app — US delayed stocks/options
 # Account plan/limit must be explicitly reviewed together. Supported daily
-# pairs are free_forever/100, starter/10000, and trader/100000. Leave blank/0
-# when the account entitlement is not confirmed; native headers never widen it.
+# pairs are free_forever/100, starter_trial/10000, trader_trial/100000,
+# starter/10000, and trader/100000. Trial identifiers remain time-limited.
+# Leave blank/0 when the account entitlement is not confirmed; native headers
+# never widen it.
 MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Current option chains consume one credit per returned symbol. Set this only
