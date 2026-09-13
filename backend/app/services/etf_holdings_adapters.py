@@ -22402,6 +22402,7 @@ class DistributionCognizantHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "distribution_cognizant_issuer_native_account_scoped_csv",
             },
         )

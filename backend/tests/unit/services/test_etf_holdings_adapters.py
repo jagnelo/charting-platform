@@ -17302,6 +17302,7 @@ async def test_distribution_cognizant_adapter_filters_complete_voxp_daily_csv(mo
     assert result.legal_metadata["route_resolution"] == (
         "distribution_cognizant_voxp_public_daily_holdings_csv"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 11
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].cusip == "037833100"
