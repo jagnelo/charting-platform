@@ -1465,7 +1465,7 @@ class Settings(BaseSettings):
             "quota_policy": {
                 "history_constraints": {
                     "max_lookback_years": 1,
-                    "source": "https://marketstack.com/product",
+                    "source": "https://marketstack.com/pricing",
                 }
             },
             "venue_coverage": "Provider-supported US securities",
