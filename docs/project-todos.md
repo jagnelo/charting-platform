@@ -16583,3 +16583,11 @@ The current source also passes the focused authenticated top-down browser slice 
       Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
       warnings. No provider calls, credentials, frontend files, or ETF-provider
       adapter files changed.
+- [x] Extend coverage preflight to benchmark-family and arbitrary-group
+      relative-rotation responses. The raw-bar floor is derived from
+      `(2 * lookback + 1) * sampling`; existing aligned-overlap and metric
+      warnings remain unchanged. Focused integration passes `2/2`, the complete
+      backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.

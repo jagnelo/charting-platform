@@ -1444,3 +1444,15 @@ Update this handoff at each coherent boundary.
   `b0655d21-dde0-4d8d-8f51-17b273e6a69c` was cleaned without host-wide pruning.
   No provider calls, credentials, frontend files, or ETF-provider adapter
   files changed; provider/legal/deployment/shadow gates remain open.
+
+- Source checkpoint `2a57aecd4` extends coverage preflight to benchmark-family
+  and arbitrary-group relative-rotation responses. The required raw-bar floor
+  is derived from `(2 * lookback + 1) * sampling`; existing aligned-overlap,
+  stale-data, and metric warnings remain unchanged. Focused PostgreSQL rotation
+  integration passed `2/2`, the complete backend unit suite passed `2,029/2,029`,
+  changed-file Ruff/compileall/diff checks passed, and the authoritative
+  Docker-backed gate passed `2,410/2,410` at `81.38%` coverage with 89 warnings.
+  Testcontainer session `76862148-48fb-470c-8007-9dd9aab6371d` was cleaned
+  without host-wide pruning. No provider calls, credentials, frontend files, or
+  ETF-provider adapter files changed; provider/legal/deployment/shadow gates
+  remain open.
