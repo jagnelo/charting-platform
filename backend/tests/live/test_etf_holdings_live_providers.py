@@ -2220,6 +2220,26 @@ async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbo
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("ishares")
+@pytest.mark.parametrize("symbol", ["IJR", "IWB", "IWD", "IWF", "IWM", "IWN", "IWO", "IWV"])
+async def test_live_ishares_family_legs_support_older_historical_as_of_snapshots(symbol):
+    """Prove every canonical iShares family leg has an older dated route."""
+
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    result = await adapter.fetch_for_date(symbol=symbol, requested_date=requested_date)
+
+    _assert_live_holdings_result(result, adapter_key="ishares", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == "issuer_public_json_api_as_of_date"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("ishares")
 async def test_live_ishares_iwm_supports_an_older_historical_snapshot():
     """Keep the Russell 2000 route point-in-time beyond the latest fixture date."""
 
