@@ -133,7 +133,7 @@ progress:
       raw source-row provenance, while underlying-market rows remain separate.
       Ondo operation accounting reserves the metadata plus OHLC transport pair,
       and the existing unknown quota/terms gate remains fail-closed. Focused
-      tokenized/quota coverage passed `163/163`, registry/runtime/tokenized
+      tokenized/quota coverage passed `167/167`, registry/runtime/tokenized
       service/wiring coverage passed `110/110`, Ruff/compileall/diff checks
       passed, and the authoritative Docker-backed backend gate passed
       `2,484/2,484` at `81.71%` coverage with 89 warnings in `503.83s`, using

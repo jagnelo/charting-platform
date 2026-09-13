@@ -961,6 +961,52 @@ def test_ondo_historical_prices_roll_up_daily_primary_rows_without_fabricating_v
     assert get.call_count == 2
 
 
+@pytest.mark.parametrize("timespan", ["DAY", "MONTH", "YEAR"])
+def test_ondo_historical_prices_supports_each_shared_timespan(timespan):
+    metadata = _ondo_metadata()
+    ohlc = {
+        "interval": "1day",
+        "range": "all",
+        "primaryMarket": {
+            "symbol": "AAPLon",
+            "data": [
+                {
+                    "timestamp": 1_735_689_600_000,
+                    "open": "10",
+                    "high": "13",
+                    "low": "9",
+                    "close": "12",
+                },
+                {
+                    "timestamp": 1_735_776_000_000,
+                    "open": "12",
+                    "high": "15",
+                    "low": "11",
+                    "close": "14",
+                },
+            ],
+        },
+        "underlyingMarket": {"ticker": "AAPL", "data": []},
+    }
+    with patch(
+        "app.providers.tokenized.httpx.get", side_effect=[_response([metadata]), _response(ohlc)]
+    ):
+        rows = OndoGlobalMarketsProvider().fetch_tokenized_historical_prices(
+            "AAPLon", timespan=timespan
+        )
+    assert rows
+    assert all(row["timespan"] == timespan for row in rows)
+    assert all(row["provider_asset_id"] == "AAPLon" for row in rows)
+
+
+def test_ondo_historical_prices_rejects_unknown_timespan_without_http_call():
+    provider = OndoGlobalMarketsProvider()
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderResponseError, match="timespan"):
+            provider.fetch_tokenized_historical_prices("AAPLon", timespan="QUARTER")
+    get.assert_not_called()
+
+
 @pytest.mark.parametrize(
     ("provider", "payload"),
     [

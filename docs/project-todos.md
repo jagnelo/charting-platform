@@ -5,7 +5,7 @@
 - [x] Connect Ondo's documented primary-token daily OHLC endpoint to the
       shared tokenized historical capability. DAY preserves source rows, while
       WEEK/MONTH/YEAR use deterministic local rollups with raw provenance and
-      no fabricated volume. Focused tokenized/quota coverage passed 163/163;
+      no fabricated volume. Focused tokenized/quota coverage passed 167/167;
       the authoritative Docker-backed backend gate passed 2,484/2,484 at
       81.71% combined coverage with 89 warnings. Ondo quota, caching,
       display-only, and redistribution review remains fail-closed.
@@ -170,18 +170,21 @@
       `fetch_tokenized_historical_prices` operation, routes by provider asset
       identity, reserves the provider runtime operation cost, and persists
       canonical raw `24_7` OHLC bars with provenance and no invented volume,
-      VWAP, or adjustment. Dinari `DAY`, `WEEK`, and `MONTH` are supported;
-      unsupported yearly data is rejected rather than silently remapped.
-      Configuration is wired through local and RPi compose/env examples, and
-      focused coverage passes 84/84 with compile, Ruff, YAML, and diff checks.
+      VWAP, or adjustment. Dinari exposes native aggregate windows; Ondo now
+      exposes documented daily primary-token OHLC with deterministic local
+      DAY/WEEK/MONTH/YEAR rollups. Configuration is wired through local and RPi
+      compose/env examples, and focused coverage plus the authoritative backend
+      gate are recorded in the current Ondo bridge entry above.
 
-- [ ] Keep the scheduler disabled until Dinari's account quota, terms, and
-      redistribution review are recorded. The credentialed Sandbox adapter
-      live case now passes 1/1 for metadata, price, quote, all four documented
-      aggregate windows, news, dividends, splits, and the combined action
-      surface; this is transport evidence, not commercial-production or
-      routing-entitlement evidence. The latest full current-source matrix
-      remains the separately recorded non-acceptance receipt above.
+- [ ] Keep the scheduler disabled until Dinari and Ondo account quota, terms,
+      caching, eligibility, and redistribution reviews are recorded. The
+      credentialed Dinari Sandbox adapter live case passes 1/1 for metadata,
+      price, quote, all four documented aggregate windows, news, dividends,
+      splits, and the combined action surface; Ondo remains an exact missing-
+      credential preflight. These are transport/fixture evidence, not
+      commercial-production or routing-entitlement evidence. The latest full
+      current-source matrix remains the separately recorded non-acceptance
+      receipt above.
 
 ### 2026-09-13 — Tokenized catalog discovery scheduling
 
@@ -1154,10 +1157,15 @@
       credentials remain an explicit live preflight failure, not a skip; Ondo
       remains non-routable while numeric account quotas and commercial/US
       eligibility terms are unknown.
-- [ ] Add a separate canonical OHLC/event bridge only after its storage and
-      capability contract is approved; current tokenized history/news methods
-      are intentionally adapter-level and do not silently become generic US
-      venue history or corporate-action coverage.
+- [x] Add the canonical tokenized OHLC bridge through the approved
+      `tokenized_historical_prices` storage/capability contract. Ondo's daily
+      primary-token rows now persist through the same scoped raw `24_7`
+      `OHLCVBar`/`MarketSeries` path with deterministic local rollups and raw
+      provenance; the provider remains fail-closed until its quota/terms are
+      reviewed.
+- [ ] Add a separate tokenized corporate-action bridge only after its storage
+      and capability contract is approved; tokenized history/news methods do
+      not silently become generic US venue corporate-action coverage.
 
 ### 2026-09-10 — IBKR read-only gateway adapter
 
