@@ -59432,6 +59432,7 @@ class SoundwatchHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": resolved_page_url,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -59629,6 +59630,7 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(response.url),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
             },
         )
 
@@ -59802,6 +59804,7 @@ class EighthWonderHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "issuer_native_product_page_json",
             },
         )
@@ -65285,6 +65288,7 @@ class RangeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "composition_date": composition_value,
                 "as_of_date": composition_value,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "range_native_product_page_nuxt_hydration",
                 "terms_note": self.config.terms_note,
             },

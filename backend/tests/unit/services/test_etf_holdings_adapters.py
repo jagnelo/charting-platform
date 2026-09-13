@@ -19716,6 +19716,7 @@ async def test_soundwatch_adapter_uses_matching_issuer_linked_xls_and_preserves_
     assert derivative_row.symbol is None and derivative_row.row_type == "derivative"
     assert result.legal_metadata["route_resolution"] == "soundwatch_product_page_full_holdings_xls"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -19756,6 +19757,7 @@ async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(
         result.legal_metadata["route_resolution"]
         == "wealthtrust_public_wltg_complete_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -19828,6 +19830,7 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
         "fundsmith_public_etft_complete_holdings_component"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-17"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -24503,6 +24506,7 @@ async def test_range_official_nuxt_route_parses_dated_nukz_holdings(monkeypatch)
     )
     assert result.legal_metadata["composition_date"] == "2026-08-06"
     assert result.legal_metadata["as_of_date"] == "2026-08-06"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 def test_format_template_returns_none_when_missing_fields():
