@@ -1715,3 +1715,17 @@ Update this handoff at each coherent boundary.
   CI/deployment, production reconciliation, migration, future-evaluator, and
   shadow gates remain open; the parallel ETF branch still owns ETF provider
   adapters and must reconcile only at staging.
+
+- Source checkpoint `ade1c9431` records the follow-up network-enabled live
+  matrix using the configured Alpaca paper, MarketData.app, Dinari Sandbox,
+  SEC EDGAR, and other owner-managed credentials. The matrix collected 47
+  cases and passed 41. Alpha Vantage's three event/earnings reads returned
+  typed documented capacity responses at the supplied free key's reviewed
+  25-requests/day and one-request-per-second capacity; Tradier, IBKR, and
+  Ondo remained exact intentional missing-credential preflights. The runner
+  returned exit code 2 and made no acceptance claim. Routing safety still
+  blocks unreviewed quota, legal, redistribution, and response-dependent
+  controls; aggregate usage is external-only and no credentials or provider
+  payloads entered Git. The feature branch remains ready for human review,
+  not ready for integration; the parallel ETF branch still owns ETF provider
+  adapters and must reconcile only at staging.
