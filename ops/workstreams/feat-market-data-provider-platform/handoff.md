@@ -1484,3 +1484,18 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `dfded5c9b` extends the shared coverage preflight to the
+  benchmark-family ranking response. The required local history is derived
+  from the selected rank period (`offset + 1`, with a conservative 253-bar
+  YTD floor); stale legs are removed before readiness is assessed, so a mixed
+  ready/stale ranking reports `partial` while preserving role-level data
+  withholding. Focused PostgreSQL ranking integration passed `1/1`, the
+  complete backend unit suite passed `2,029/2,029` with 37 warnings,
+  changed-file Ruff/compileall/diff checks passed, and the authoritative
+  Docker-backed combined backend gate passed `2,410/2,410` at `81.38%` coverage
+  with 89 warnings. Testcontainer session
+  `fca9455d-1b53-4136-966e-0b7fc4228bfe` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed. Provider/legal/deployment/shadow gates, future evaluator
+  coordination, and generic migration compatibility remain open.

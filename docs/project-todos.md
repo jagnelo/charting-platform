@@ -16617,3 +16617,21 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
       migration-compatibility, universe-reconciliation, and shadow gates
       remain open.
+
+### 2026-09-13 — Benchmark-family ranking coverage preflight
+
+- [x] Extend the shared coverage preflight to benchmark-family ranking. The
+      selected rank period determines the local history floor (`offset + 1`,
+      or a conservative 253 bars for YTD); stale role bars are removed before
+      readiness is assessed, while existing role-level withholding remains
+      unchanged.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
