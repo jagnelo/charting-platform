@@ -12,6 +12,11 @@ runs one bounded read per provider (including the public tokenized-security
 matrix), and returns non-zero when a credential or usage-attribution preflight
 is blocked. A missing credential is never reported as a passing skip. The
 wrapper returns exit code `2` for an incomplete credential/usage preflight.
+The provider secret-wiring suite also checks the live manifest itself: every
+registered provider must name at least one bounded live test, or carry an
+explicit exclusion rationale for an internal, legacy, or descriptor-only
+entry. This prevents a provider from being added with fixtures but no live
+acceptance surface.
 It also prints a routing-safety preflight for Alpaca's paginated corporate-actions
 page bound, FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
