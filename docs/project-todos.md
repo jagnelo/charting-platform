@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-13 — Require persisted holdings completeness for role readiness
+
+- [x] Gate benchmark-family composite readiness on the persisted holdings
+      snapshot completeness contract: only `complete` and
+      `filing_reconstructed` can promote a role to `ready`; `partial` and
+      `unknown` remain non-ready and are exposed as
+      `holdings_completeness_status` with a machine-readable reason.
+- [x] Regression coverage passed for the role-level contract, the real-Postgres
+      readiness composition (including the incomplete-snapshot mutation), full
+      backend units (`1535/1535`), frontend Vitest (`1067/1067`), frontend
+      type-check/build, Ruff, formatting, and `git diff --check`. No provider,
+      fallback, migration, visual, or acceptance policy changed.
+- [x] Exact gate at product tip `87f9a7a43` passed backend integration
+      `405/405`, frontend Vitest `1067/1067`, functional E2E `165 passed` with
+      `107 skipped`, and visual E2E `98/104`. One earlier F8u drag assertion
+      was transient; the isolated test then passed `1/1` and `5/5` repeats,
+      and the clean rerun passed all functional tests. The six unchanged
+      protected visual diffs remain open and Docker resources were cleaned.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Canonical family readiness composition contract and exact gate
 
 - [x] Add deterministic integration proof at `62d4ac8de` for a complete SPY

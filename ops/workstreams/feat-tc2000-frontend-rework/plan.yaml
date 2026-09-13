@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `87f9a7a43` closes a canonical-readiness gap: a
+  persisted holdings snapshot marked partial or unknown can no longer promote
+  a family role to composite ready merely because numeric member/bar floors are
+  present. Only complete and filing_reconstructed evidence is promotable, and
+  holdings_completeness_status is exposed in the role contract. Focused role
+  and real-Postgres regressions pass; backend units pass 1535/1535 and frontend
+  Vitest 1067/1067 with type-check/build, Ruff, format, and diff checks green.
+  The clean exact branch-scoped gate rerun passed backend integration 405/405,
+  functional E2E 165 passed with 107 skipped, and visual E2E 98/104; one
+  earlier F8u drag miss was transient and passed in one isolated rerun and
+  5/5 repeats. Six unchanged protected visual diffs remain; the private-origin
+  push transport hold remains in force. Continue R1 family-wide canonical population/history,
+  D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
   Latest coherent product tip `4d1a05db4` includes product commit `62d4ac8de`'s
   deterministic integration proof for a complete SPY cap-weight family role:
   verified SPDR entitlement for universe discovery and price history, complete

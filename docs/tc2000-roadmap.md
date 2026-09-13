@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Require persisted holdings completeness before readiness
+
+The benchmark-family coverage contract now requires the selected persisted
+holdings snapshot to be complete before its composite role can become `ready`.
+The accepted completeness statuses are `complete` and
+`filing_reconstructed`; `partial` and `unknown` remain non-ready even when
+member resolution and D1/W1/MN numeric floors are present. The API and
+frontend contracts expose `holdings_completeness_status` so the source-quality
+gate is auditable by the workstation.
+
+The role unit regression, real-Postgres composition regression (including the
+incomplete-snapshot mutation), full backend units (`1535/1535`), frontend
+Vitest (`1067/1067`), type-check/build, Ruff, formatting, and diff checks pass.
+The exact gate at product tip `87f9a7a43` then passed backend integration
+`405/405`, functional E2E `165 passed` with `107 skipped`, and visual E2E
+`98/104`; the only visual failures are the six unchanged protected baselines.
+An earlier F8u drag miss was transient: the isolated test passed once and
+`5/5` repeats, and the clean gate rerun passed all functional tests. This is
+one bounded R1 canonical-readiness seam; family-wide population/history,
+continuity, and AC2–AC7/AC10 remain open. No provider/fallback, migration,
+visual, or acceptance policy changed.
+
 ## 2026-09-13 — Canonical family readiness composition contract and exact gate
 
 Product commit `62d4ac8de` adds a deterministic real-Postgres integration

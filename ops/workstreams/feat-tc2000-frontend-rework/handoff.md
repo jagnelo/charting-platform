@@ -2,6 +2,25 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Require complete persisted holdings evidence
+
+The current product change gates benchmark-family composite readiness on the
+selected persisted snapshot's completeness. `complete` and
+`filing_reconstructed` are promotable; `partial` and `unknown` remain
+non-ready, and the API/frontend role contracts expose
+`holdings_completeness_status`. This closes a real R1 gap where numeric member
+and bar floors could otherwise promote incomplete source evidence.
+
+The focused role unit and real-Postgres integration regressions passed; full
+backend units passed `1535/1535`, frontend Vitest `1067/1067`, type-check and
+production build passed, and Ruff/format/diff checks passed. The clean exact
+branch-scoped rerun at product tip `87f9a7a43` passed backend integration
+`405/405`, functional E2E `165 passed` with `107 skipped`, and visual E2E
+`98/104`; the six unchanged protected visual diffs remain. One earlier F8u
+drag miss was transient and passed in one isolated rerun plus `5/5` repeats.
+The private-origin push transport hold remains; family-wide R1
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Canonical family readiness composition and exact gate
 
 Product commit `62d4ac8de` proves one complete SPY cap-weight role using a

@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Holdings completeness is a prerequisite for composite readiness
+
+The canonical family-role readiness rule now requires source completeness in
+addition to entitlement, point-in-time support, resolved weighted/classified
+members, and D1/W1/MN history floors. Only persisted snapshot statuses
+`complete` and `filing_reconstructed` are promotable; `partial` and `unknown`
+must remain non-ready and are returned as `holdings_completeness_status` plus a
+machine-readable reason. This prevents numeric floors from masking incomplete
+source evidence.
+
+The focused role and real-Postgres regressions, full backend units (`1535/1535`),
+frontend Vitest (`1067/1067`), type-check/build, Ruff, formatting, and diff
+checks passed. The clean exact gate at product tip `87f9a7a43` passed backend
+integration `405/405`, functional E2E `165 passed` with `107 skipped`, and
+visual E2E `98/104`; the same six protected visual diffs remain. A transient
+F8u drag miss was disproved by a passing rerun and `5/5` repeats. This receipt
+changes no visual baseline/mask/threshold/skip, provider/fallback, migration,
+or acceptance policy and does not waive the remaining R1 family
+population/history, continuity, or V25 gates.
+
 ## 2026-09-13 — Canonical family readiness composition gate receipt
 
 Commit `62d4ac8de` adds a deterministic real-Postgres proof that one SPY
