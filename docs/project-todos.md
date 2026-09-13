@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-13 — Preserve declared completeness from curated holdings routes
+
+- [x] Map only explicit curated source-quality declarations to persisted
+      holdings completeness: filing-reconstructed routes become
+      `filing_reconstructed`, and issuer-reported complete routes become
+      `complete`; ambiguous/current-only labels remain `unknown`, while an
+      explicit completeness field still takes precedence.
+- [x] Focused refresh coverage passed `7/7`; Ruff passed; full backend units
+      passed `1541/1541`.
+- [x] Exact gate at product tip `42ffb4418` passed backend units `1541/1541`,
+      backend integration `405/405`, frontend Vitest `1067/1067`, type-check,
+      production build, compose/deployment contracts, expected research-runner
+      sandbox/resource probes, and functional E2E `165 passed` with `107
+      skipped`. Visual E2E passed `98/104`; the six unchanged protected visual
+      diffs remain (watchlist-column-editor at visual-1080p-100/125 and
+      workspace-floating at visual-1080p-100/125 and visual-1440p-100/125).
+      Branch-scoped Docker resources were cleaned. No provider/fallback,
+      migration, visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote persisted holdings completeness on re-ingest
 
 - [x] Make duplicate snapshot reconciliation monotonic for holdings evidence:

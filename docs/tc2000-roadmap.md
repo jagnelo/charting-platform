@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Preserve explicit holdings completeness declarations
+
+Product commit `42ffb4418` closes the next R1 source-quality seam. Curated
+holdings routes that explicitly declare `filing_reconstructed_holdings`,
+`issuer_reported_dated_complete_holdings`,
+`issuer_reported_complete_daily_holdings_csv`, or
+`issuer_reported_full_investment_holdings` now produce the corresponding
+promotable completeness status. Explicit `completeness_status` metadata still
+wins, and ambiguous/current-only source labels remain `unknown`; no broad
+substring inference was introduced.
+
+The focused refresh regression passed `7/7`, Ruff passed, and full backend
+units passed `1541/1541`. The exact branch-scoped gate at this product tip
+passed backend integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed. R1
+family-wide population/history, D1/W1/MN floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-13 — Monotonic completeness promotion during snapshot re-ingest
 
 Product commit `0b2f03070` closes the persistence half of the holdings

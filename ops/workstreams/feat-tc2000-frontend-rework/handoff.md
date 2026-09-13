@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Declared holdings completeness bridge and exact gate
+
+Product commit `42ffb4418` maps explicit curated source-quality declarations
+to persisted holdings completeness: filing-reconstructed routes become
+`filing_reconstructed`, issuer-reported complete routes become `complete`,
+explicit completeness metadata remains authoritative, and ambiguous labels
+remain `unknown`. Focused refresh coverage passed `7/7`; full backend units
+passed `1541/1541`.
+
+The exact branch-scoped gate passed backend unit `1541/1541`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the six
+unchanged protected watchlist-column-editor/workspace-floating diffs remain.
+Docker resources were cleaned. No provider/fallback, migration, visual,
+threshold, mask, skip, or acceptance policy changed. Continue R1 family-wide
+population/history, D1/W1/MN floors, continuity, and AC2–AC7/AC10. The
+private-origin push transport hold remains; do not push without trusted exact-
+payload authorization.
+
 ## 2026-09-13 — Holdings completeness re-ingest promotion
 
 Product commit `0b2f03070` makes duplicate holdings snapshot reconciliation

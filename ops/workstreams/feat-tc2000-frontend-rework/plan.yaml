@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `42ffb4418` preserves explicit holdings completeness
+  declarations from curated routes: filing_reconstructed_holdings maps to
+  filing_reconstructed, issuer-reported complete labels map to complete,
+  explicit completeness metadata remains authoritative, and ambiguous labels
+  remain unknown. Focused refresh coverage passed 7/7; full backend units
+  passed 1541/1541. The exact branch-scoped gate passed backend unit 1541/1541,
+  integration 405/405, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment, expected research-runner probes, and functional E2E
+  165 passed with 107 skipped; visual E2E passed 98/104 with the six
+  unchanged protected watchlist-column-editor/workspace-floating diffs.
+  Docker resources were cleaned. No provider/fallback, migration, visual,
+  threshold, mask, skip, or acceptance policy changed. Continue R1 family-wide
+  canonical population/history, D1/W1/MN floors, rebalance continuity, and
+  AC2–AC7/AC10.
   Latest product commit `0b2f03070` makes duplicate holdings snapshot
   reconciliation monotonic: a later complete or filing_reconstructed fetch
   upgrades persisted evidence and adapter state, while weaker retries cannot
@@ -3007,9 +3021,16 @@ migration_impact: "Potential additive schema/index changes only if required by c
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: []
+  completed:
+    - AC1
+    - AC8
+    - AC9
   total: 10
-  current_phase: R1_family_readiness_completeness_reingest
+  current_phase: R1_declared_completeness_bridge
+  next_action: >-
+    Continue the next bounded R1 family-wide canonical population/history seam
+    while preserving fail-closed holdings completeness and the six protected
+    visual diffs; rerun the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
     Latest product tip 7df91ec76 adds 12 SEC-backed non-iShares family route
     cases at the 2026-06-30 cutoff; the focused live matrix passed 12/12 and
