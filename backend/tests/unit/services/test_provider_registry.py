@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from app.config import provider_rate_limit_seed, settings
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
 from app.providers.registry import (
@@ -432,6 +434,28 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         assert provider_missing_routing_controls("marketdata_app") == []
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+        assert provider_missing_routing_controls("marketdata_app") == [
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
+        ]
+        monkeypatch.setattr(
+            settings,
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+            datetime(2030, 1, 1, tzinfo=UTC),
+        )
+        assert provider_missing_routing_controls("marketdata_app") == []
+        monkeypatch.setattr(
+            settings,
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+            datetime(2020, 1, 1, tzinfo=UTC),
+        )
+        assert provider_missing_routing_controls("marketdata_app") == [
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
+        ]
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", True)
         assert provider_missing_routing_controls("marketdata_app") == [
             "MARKETDATA_APP_REVIEWED_PLAN",

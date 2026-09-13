@@ -13,6 +13,7 @@ import json
 import importlib.util
 import os
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -435,7 +436,13 @@ def routing_safety_preflight() -> dict[str, str]:
         else "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
     marketdata_plan = os.getenv("MARKETDATA_APP_REVIEWED_PLAN", "").strip().lower()
-    marketdata_limits = {"free_forever": 100, "starter": 10000, "trader": 100000}
+    marketdata_limits = {
+        "free_forever": 100,
+        "starter_trial": 10000,
+        "trader_trial": 100000,
+        "starter": 10000,
+        "trader": 100000,
+    }
     try:
         marketdata_limit = int(
             os.getenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0").strip() or "0"
@@ -443,11 +450,28 @@ def routing_safety_preflight() -> dict[str, str]:
     except ValueError:
         marketdata_limit = 0
     expected_marketdata_limit = marketdata_limits.get(marketdata_plan)
+    marketdata_expiry_issue = False
+    if marketdata_plan.endswith("_trial"):
+        raw_expiry = os.getenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "").strip()
+        try:
+            parsed_expiry = datetime.fromisoformat(raw_expiry.replace("Z", "+00:00"))
+        except ValueError:
+            parsed_expiry = None
+        marketdata_expiry_issue = (
+            parsed_expiry is None
+            or parsed_expiry.tzinfo is None
+            or parsed_expiry.astimezone(UTC) <= datetime.now(UTC)
+        )
     result["marketdata.app account plan"] = (
         "routable"
         if expected_marketdata_limit is not None
         and marketdata_limit == expected_marketdata_limit
-        else "non-routable: explicit reviewed plan/limit pair required"
+        and not marketdata_expiry_issue
+        else (
+            "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
+            if marketdata_expiry_issue
+            else "non-routable: explicit reviewed plan/limit pair required"
+        )
     )
     raw_option_chain_bound = (
         os.getenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0").strip() or "0"

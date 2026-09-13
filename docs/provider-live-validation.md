@@ -98,6 +98,7 @@ variables. Put the reviewed non-secret safety settings
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
 `TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
+and `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans,
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
 configuration variables. The SEC directory controls
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`,
@@ -1073,7 +1074,10 @@ this is retained as observational evidence only. The reviewed
 pair and response-priced option-chain bound remain required before routing.
 Accepted reviewed plan identifiers are `free_forever`, `starter_trial`,
 `trader_trial`, `starter`, and `trader`; trial identifiers remain explicitly
-time-limited and are not silently treated as perpetual paid plans.
+time-limited and are not silently treated as perpetual paid plans. A trial
+also requires `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` to be a future,
+timezone-aware ISO-8601 value; missing, naive, or elapsed expiries remain
+non-routable.
 
 On 2026-09-13, the complete lock-protected matrix was rerun against the
 existing owner-managed environment with the external usage ledger enabled. It

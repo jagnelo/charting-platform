@@ -55,6 +55,7 @@ PROVIDER_SAFETY_SETTINGS = {
     "FMP_OPERATION_BYTE_BOUNDS",
     "MARKETDATA_APP_REVIEWED_PLAN",
     "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+    "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
     "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS",
@@ -260,6 +261,10 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
         in workflow
     )
     assert (
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT || '' }}"
+        in workflow
+    )
+    assert (
         "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}"
         in workflow
     )
@@ -298,6 +303,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN=" in example
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
+    assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example
     assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS=50" in example
@@ -415,6 +421,22 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketstack discovery"] == "routable"
     assert statuses["marketdata.app account plan"] == "routable"
     assert statuses["marketdata.app option chain"] == "routable"
+
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
+    monkeypatch.delenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", raising=False)
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app account plan"] == (
+        "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
+    )
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2030-01-01T00:00:00+00:00")
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app account plan"] == "routable"
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2020-01-01T00:00:00+00:00")
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app account plan"] == (
+        "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
+    )
 
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "1")
     statuses = routing_safety_preflight()

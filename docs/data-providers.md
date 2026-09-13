@@ -884,7 +884,10 @@ limit in `MARKETDATA_APP_REVIEWED_PLAN` (`free_forever`, `starter_trial`,
 The two trial identifiers remain distinct from their paid-plan counterparts:
 the provider documents them as 30-day trials that fall back to Free Forever
 if no paid subscription is selected, so the review record must make the
-time-limited entitlement explicit.
+time-limited entitlement explicit. For either trial identifier,
+`MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` must also contain the operator-
+reviewed, future, timezone-aware ISO-8601 expiry; absent, naive, or elapsed
+values keep the wider trial pool fail-closed.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 

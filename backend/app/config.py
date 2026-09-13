@@ -1,6 +1,7 @@
 import json
 import os
 from copy import deepcopy
+from datetime import UTC, datetime
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -1667,6 +1668,10 @@ class Settings(BaseSettings):
     # contract and are intentionally not accepted by this daily-limit gate.
     MARKETDATA_APP_REVIEWED_PLAN: str = ""
     MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: int = 0
+    # Trial entitlements must carry an explicit timezone-aware expiry.  A
+    # missing or elapsed expiry keeps the trial fail-closed; paid plans leave
+    # this unset.
+    MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT: datetime | None = None
     # MarketData.app current option-chain responses are billed per returned
     # contract.  A chain call may therefore be admitted only when operations
     # supplies a positive, conservative maximum contract count for the exact
@@ -1884,6 +1889,12 @@ def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
     )
     if expected_limit is None or configured_limit != expected_limit:
         return None
+    if plan.endswith("_trial"):
+        expires_at = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            return None
+        if expires_at.astimezone(UTC) <= datetime.now(UTC):
+            return None
     return plan, expected_limit
 
 

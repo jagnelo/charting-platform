@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import TypeVar, cast
 
 from sqlalchemy import select
@@ -717,7 +718,18 @@ def provider_missing_routing_controls(
             missing.append("FRED_SERIES_TERMS_REVIEWED")
         return missing
     if name == "marketdata_app":
-        return [] if marketdata_app_reviewed_plan() is not None else list(required)
+        if marketdata_app_reviewed_plan() is not None:
+            return []
+        configured_plan = str(
+            getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or ""
+        ).strip().lower()
+        if configured_plan.endswith("_trial"):
+            expiry = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+            if expiry is None or getattr(expiry, "tzinfo", None) is None:
+                return ["MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"]
+            if expiry.astimezone(UTC) <= datetime.now(UTC):
+                return ["MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"]
+        return list(required)
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)
