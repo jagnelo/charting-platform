@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-13 — MarketData.app trial-expiry configuration boundary
+
+- [x] Enforce the provider's time-limited Starter/Trader Trial entitlement
+      at routing time with a future timezone-aware
+      `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT`. Empty deployment mappings are
+      normalized to unset so local/RPi Compose and the manual GitHub workflow
+      boot safely while still leaving the trial pool fail-closed. Missing,
+      naive, and elapsed values are covered by provider-policy/preflight tests;
+      the focused suite passes 128/128 and the full backend gate passes
+      2,455/2,455 at 81.68% coverage.
+
+- [ ] Keep the plan/terms and redistribution review open; this configuration
+      change does not establish a MarketData.app entitlement or promote routing.
+
 ### 2026-09-13 — MarketData.app stock-candle credit accounting
 
 - [x] Replace the previous fixed one-credit OHLCV/bulk-history charge with a
