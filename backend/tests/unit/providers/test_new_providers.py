@@ -1281,6 +1281,75 @@ class TestMassiveReferenceProvider:
                 MassiveProvider().fetch_instrument_events("AAPL")
         get.assert_not_called()
 
+    def test_corporate_actions_follow_valid_cursor_without_crossing_bound(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.side_effect = [
+            {
+                "results": [
+                    {
+                        "id": "split-1",
+                        "ticker": "AAPL",
+                        "adjustment_type": "forward_split",
+                        "execution_date": "2024-06-10",
+                        "split_from": 1,
+                        "split_to": 2,
+                    }
+                ],
+                "next_url": "https://api.massive.com/stocks/v1/splits?cursor=next",
+            },
+            {"results": []},
+            {"results": []},
+        ]
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 2
+            events = MassiveProvider().fetch_instrument_events("AAPL")
+        assert len(events) == 1
+        assert get.call_args_list[1].kwargs["params"] == {
+            "apiKey": "key",
+            "cursor": "next",
+        }
+        assert get.call_args_list[2].args[0] == "https://api.massive.com/stocks/v1/dividends"
+
+    @pytest.mark.parametrize(
+        "next_url,match",
+        [
+            ("https://evil.example/stocks/v1/splits?cursor=next", "untrusted next_url host"),
+            ("https://api.massive.com/stocks/v1/dividends?cursor=next", "unexpected next_url path"),
+            ("https://api.massive.com/stocks/v1/splits?page=2", "without one valid cursor"),
+        ],
+    )
+    def test_corporate_actions_reject_untrusted_or_malformed_cursor(self, next_url, match):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "results": [
+                {
+                    "id": "split-1",
+                    "ticker": "AAPL",
+                    "adjustment_type": "forward_split",
+                    "execution_date": "2024-06-10",
+                    "split_from": 1,
+                    "split_to": 2,
+                }
+            ],
+            "next_url": next_url,
+        }
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 1
+            with pytest.raises(ProviderResponseError, match=match):
+                MassiveProvider().fetch_instrument_events("AAPL")
+
     @pytest.mark.parametrize(
         "payload,match",
         [

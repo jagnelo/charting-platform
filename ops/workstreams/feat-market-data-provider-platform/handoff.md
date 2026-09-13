@@ -2167,3 +2167,8 @@ changed.
   `89491c39-ed3b-4f32-b66f-df9b89a3607a`. Compose, compile, workstream,
   Ruff, and diff checks passed. No frontend or ETF-provider adapter files
   changed.
+
+- The Massive corporate-action tests also cover valid cursor continuation and
+  fail-closed rejection of an untrusted host, unexpected endpoint path,
+  malformed cursor, or exhausted page bound. The focused provider/registry/
+  service/quota/wiring suite passed `369/369` with Ruff and diff checks clean.
