@@ -34,6 +34,22 @@
       resolved; a capacity response or missing credential is not a successful
       data read.
 
+### 2026-09-13 — Supplied-credential provider-specific live revalidation
+
+- [x] Re-run bounded live cases for the newly supplied Alpaca, SEC EDGAR,
+      MarketData.app, and rotated Dinari Sandbox credentials. Eleven test
+      bodies passed: EDGAR profile/filings/directory (3), Alpaca
+      daily/intraday/latest/assets/corporate actions (4), MarketData.app
+      options/account-usage/intraday (3), and Dinari metadata/price/quote/
+      DAY-WEEK-MONTH-YEAR history/news/dividends/splits/corporate actions (1).
+      The pytest process returned non-zero only because the live-only subset
+      cannot meet the repository-wide 55% coverage threshold; no provider
+      assertion failed and no credential or payload entered Git.
+
+- [ ] Keep this as transport evidence only. Provider-specific quota,
+      entitlement, legal/redistribution, and deployment-secret gates remain
+      independently required before routing or acceptance.
+
 ### 2026-09-13 — Newly configured provider revalidation and IBKR futures
 
 - [x] Revalidate the newly configured Alpaca and MarketData.app credentials in

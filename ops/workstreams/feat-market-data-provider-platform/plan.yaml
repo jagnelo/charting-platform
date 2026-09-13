@@ -114,6 +114,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Follow-up provider-specific live validation against the owner-managed
+      Alpaca, SEC EDGAR, MarketData.app, and rotated Dinari Sandbox credentials
+      exercised 11 bounded cases; all test bodies passed (EDGAR profile/
+      filings/directory 3, Alpaca 4, MarketData.app 3, Dinari 1). The live-only
+      pytest process returned non-zero solely because the repository-wide 55%
+      coverage threshold cannot be met by that subset. No credentials or
+      payloads entered Git and no routing entitlement changed.
+    - >-
       MarketData.app stock-candle accounting now honors the provider's
       response-dependent one-credit-per-1,000-candles contract. Explicit,
       latest, and bulk history reservations derive a conservative inclusive
