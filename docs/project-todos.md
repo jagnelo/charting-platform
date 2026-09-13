@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Nomura and Delaware holdings completeness
+
+- [x] Require dated holdings metadata and add explicit
+      `completeness_status: complete` only to Nomura's configured daily
+      product-page routes and Delaware/Macquarie successor routes using the
+      official Nomura table. Verify official product identity, exact
+      seven-column schema, non-empty rows, and parsed issuer date; keep generic
+      labels fail-closed with no fallback.
+- [x] Product commit `68e059423`; focused Nomura/Delaware assertions passed
+      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
+      units `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected research-runner
+      probes, and functional E2E `165 passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks, or
+      testcontainer sessions. No generic provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified IronHorse holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to IronHorse/Conductor's
