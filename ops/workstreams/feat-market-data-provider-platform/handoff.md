@@ -1485,6 +1485,19 @@ Update this handoff at each coherent boundary.
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
 
+- Source checkpoint `530c483f4` adds the shared OHLCV coverage preflight to the
+  point-in-time derived equal-weight family series after membership and
+  persisted-staleness filtering. Available members report `full`; cold or
+  stale-filtered members remain explicit deferred/partial evidence without
+  provider I/O or fabricated bars. Focused PostgreSQL integration passed `1/1`,
+  the complete backend unit suite passed `2,029/2,029`, and the authoritative
+  Docker-backed combined backend gate passed `2,410/2,410` at `81.39%` coverage
+  with 89 warnings. Testcontainer session
+  `cec94864-2b27-438f-a4b6-81995b423c2e` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed. Provider/legal/deployment/shadow gates, future evaluator
+  coordination, and generic migration compatibility remain open.
+
 - Source checkpoint `048f0a013` preserves the shared coverage preflight through
   the benchmark-family overview wrapper. Delegated cap-benchmark calls retain
   their group-snapshot report, while the no-cap path returns an explicit empty
