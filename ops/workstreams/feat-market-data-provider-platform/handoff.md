@@ -150,6 +150,16 @@ Update this handoff at each coherent boundary.
   provider-governance, migration-graph, deployment-secret, and shadow gates
   remain open.
 
+- Benchmark-family breadth now performs per-metric cached-bar preflight and a
+  separate cap-benchmark preflight. This preserves valid short-history metrics
+  while deferring only metrics whose own lookback is unavailable. The focused
+  integration case passes `1/1`; the complete Docker-backed gate passes
+  `2,398/2,398` with `81.38%` coverage and 89 warnings. Testcontainer session
+  `8cbf54f3-d84e-4730-b169-b1ab0eeb5b75` was cleaned without host-wide pruning.
+  Source checkpoint: `f9a2081e`; future non-Strategy signal engines and
+  separate evaluator run-status persistence remain open. No frontend or ETF
+  provider-adapter files changed.
+
 - Tokenized corporate-action persistence is now a separate backend-only path. xStocks history and upcoming feeds, plus Robinhood's combined feed, run through the exact durable `fetch_tokenized_corporate_actions` runtime operation and persist provisional canonical `MarketEvent` rows with raw payloads. Linkage requires an explicit provider asset ID or a unique stored token symbol; unresolved actions remain visible and later upsert can attach a newly resolved instrument. Bybit, Gate, and Kraken adapters without an action endpoint are reported as unsupported and never invoked. A disabled-by-default 15-minute worker schedule is controlled independently by `TOKENIZED_EVENT_REFRESH_ENABLED`, `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS`, and `TOKENIZED_EVENT_REFRESH_PAGE_SIZE`, propagated to local and RPi backend/worker Compose environments.
 
 - Focused tokenized service/worker tests passed `31/31`; Ruff, compilation, and diff checks passed. The authoritative Docker-backed combined backend gate initially lost its isolated PostgreSQL test container after `1739` passes and produced only connection/setup errors; after cleanup, the clean retry passed `1853/1853` with `80.37%` line coverage and 89 warnings using testcontainer session `17d83520-7442-4bf0-85fe-b51613bed5d7`, cleaned without host-wide pruning. This successful retry is the acceptance evidence; the transient failed attempt is retained in `validation.jsonl`.
