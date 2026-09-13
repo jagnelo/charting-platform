@@ -22471,6 +22471,9 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
     assert result.legal_metadata["route_resolution"] == (
         "little_harbor_product_page_linked_complete_holdings_xls"
     )
+    assert result.legal_metadata["source_quality"] == (
+        "issuer_page_declared_current_complete_holdings"
+    )
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22526,6 +22529,9 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
     assert result.legal_metadata["publisher"] == "Hoya Capital Real Estate"
     assert result.legal_metadata["route_resolution"] == (
         "pettee_hoya_product_page_linked_complete_holdings_xls"
+    )
+    assert result.legal_metadata["source_quality"] == (
+        "issuer_page_declared_current_complete_holdings"
     )
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
@@ -22590,6 +22596,9 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
     assert result.legal_metadata["route_resolution"] == (
         "sound_capital_river1_product_page_linked_complete_holdings_xls"
     )
+    assert result.legal_metadata["source_quality"] == (
+        "issuer_page_declared_current_complete_holdings"
+    )
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22644,6 +22653,9 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["route_resolution"] == (
         "sovereign_sovf_product_page_linked_complete_holdings_xls"
+    )
+    assert result.legal_metadata["source_quality"] == (
+        "issuer_page_declared_current_complete_holdings"
     )
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
