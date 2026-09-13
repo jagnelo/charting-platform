@@ -54,7 +54,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9a3000037ae8704ff94a8d4b699fa78596db7e53",
+  "head": "f3a7c7d7f52487992f8b534976681cd289265d13",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T14:07:17.080577+00:00",
-  "last_human_progress_update": "2026-09-13T14:06:58.580600+00:00",
+  "last_checkpoint": "2026-09-13T14:36:55.755090+00:00",
+  "last_human_progress_update": "2026-09-13T14:36:23.937973+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "2695fcf5408534039bfb8fd67a73b8dfccfda05f70c7ada0995e516e4dbdb702",
+  "plan_hash": "7962b96d62cdbc7c69f478441e46176a300e7c3c274195c1ded15b3e78c7922a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,10 +137,10 @@
       "AC9"
     ],
     "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass; remote push remains intentionally held.",
-    "current_phase": "R1_verified_native_holdings_completeness",
+    "current_phase": "R1_verified_vident_holdings_completeness",
     "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence and the six visual state-oracle assertions; rerun focused coverage and the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T14:06:58.580485+00:00"
+    "updated_at": "2026-09-13T14:36:23.937853+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
