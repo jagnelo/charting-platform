@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Victory, DWS/Xtrackers, and Principal holdings completeness receipt
+
+Commit `ce4937c71` requires a published composition date and adds explicit
+`completeness_status: complete` only to VictoryShares' official product API,
+DWS/Xtrackers' official PDP holdings JSON, and Principal's official holdings
+workbook routes. It verifies parseable non-empty rows and a published snapshot
+date; undated payloads fail closed and generic labels remain unchanged.
+
+Focused assertions passed `7/7`; the exact gate passed backend units
+`1554/1554`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
 ## 2026-09-13 — Verified Polen and Founder holdings completeness receipt
 
 Commit `c581637ba` requires a published composition date and adds explicit
