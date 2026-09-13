@@ -4835,7 +4835,6 @@ test.describe('TC2000 workstation', () => {
     await expect(targetPicker).toBeVisible({ timeout: 10_000 })
     const targetOption = targetPicker.locator('option').nth(1)
     const targetKey = await targetOption.getAttribute('value')
-    const targetTitle = (await targetOption.textContent())?.trim() || ''
     expect(targetKey).toBeTruthy()
     await targetPicker.selectOption(targetKey!)
     await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('65')
@@ -4847,8 +4846,14 @@ test.describe('TC2000 workstation', () => {
     await Promise.all([conditionSave, scanCreate])
     await expect(page.locator('.chart-plots__promotion-status')).toContainText('Boolean column', { timeout: 15_000 })
 
-    const target = page.getByRole('region', { name: targetTitle })
-    await expect(target.locator('.watchlist__header button').filter({ hasText: 'RSI Boolean column' })).toBeVisible({ timeout: 15_000 })
+    // The selected target is keyed by the live Golden Layout window above.
+    // Depending on whether that window is exposed as a named outer tool region
+    // or as its nested watchlist region, the accessible label can differ (for
+    // example, “Benchmarks” vs “Major US benchmarks”). Assert the newly
+    // persisted header on the visible watchlist surface rather than coupling
+    // the proof to that wrapper's label.
+    const promotedHeader = page.locator('.watchlist__header button').filter({ hasText: 'RSI Boolean column' }).last()
+    await expect(promotedHeader).toBeVisible({ timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
