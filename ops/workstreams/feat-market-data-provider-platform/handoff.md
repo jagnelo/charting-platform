@@ -1499,3 +1499,16 @@ Update this handoff at each coherent boundary.
   No provider calls, credentials, frontend files, or ETF-provider adapter
   files changed. Provider/legal/deployment/shadow gates, future evaluator
   coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `854effacc` extends the shared coverage preflight to
+  cross-family current and historical ranking responses. Both endpoints use
+  the selected rank-period floor (`offset + 1`, or a conservative 253-bar YTD
+  floor); current ranking removes stale legs before readiness is assessed.
+  Focused PostgreSQL integration passed `2/2`, the complete backend unit suite
+  passed `2,029/2,029` with 37 warnings, changed-file Ruff/compileall/diff
+  checks passed, and the authoritative Docker-backed combined backend gate
+  passed `2,410/2,410` at `81.39%` coverage with 89 warnings. Testcontainer
+  session `52efaa59-a591-4f64-aaa1-e93a11e2dd43` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.

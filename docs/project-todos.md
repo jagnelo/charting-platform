@@ -16618,6 +16618,24 @@ The current source also passes the focused authenticated top-down browser slice 
       migration-compatibility, universe-reconciliation, and shadow gates
       remain open.
 
+### 2026-09-13 — Cross-family ranking coverage preflight
+
+- [x] Extend the shared provider-neutral coverage preflight to cross-family
+      current and historical ranking responses. Both endpoints derive their
+      local history floor from the selected rank period (`offset + 1`, or 253
+      bars for YTD); current ranking removes stale legs before readiness is
+      assessed.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
 ### 2026-09-13 — Benchmark-family ranking coverage preflight
 
 - [x] Extend the shared coverage preflight to benchmark-family ranking. The
