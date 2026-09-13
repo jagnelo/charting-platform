@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Verified IronHorse holdings completeness
+
+Product commit `f2e00d61f` closes a bounded R1 source-quality seam for
+IronHorse/Conductor's CGV official product-page declared full CSV route. The
+native route verifies official product identity, declared download linkage,
+exact CSV schema, dated holdings metadata, and non-empty rows before emitting
+explicit `completeness_status: complete`; undated or empty native downloads
+still fail into the existing SEC fallback.
+
+Focused IronHorse assertions passed `2/2`; Ruff, formatting, and diff checks
+passed. The exact branch-scoped gate passed backend units `1544/1544`,
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; only the six
+unchanged protected watchlist-column-editor/workspace-floating diffs failed.
+Docker resources were cleaned with no retained containers, volumes, networks,
+or testcontainer sessions. No generic provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam while
+preserving explicit completeness evidence, fail-closed mappings, and the six
+protected visual state-oracle assertions. Do not integrate, promote, deploy,
+push, or mutate another worktree.
+
 ## 2026-09-13 — Verified Cyber Hornet holdings completeness
 
 Product commit `e0cc62996` closes a bounded R1 source-quality seam for Cyber

@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified IronHorse holdings completeness receipt
+
+Commit `f2e00d61f` adds explicit `completeness_status: complete` only to
+IronHorse/Conductor's CGV official product-page declared full CSV route. It
+verifies official product identity, declared download linkage, exact CSV
+schema, dated holdings metadata, and non-empty rows; undated or empty native
+downloads continue to fail into the existing SEC fallback and generic labels
+remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1544/1544`, integration `405/405`, frontend Vitest `1067/1067`, type-check/
+build, compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. Docker resources were cleaned
+with no retained containers, volumes, networks, or testcontainer sessions. No
+generic provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified Cyber Hornet holdings completeness receipt
 
 Commit `e0cc62996` adds explicit `completeness_status: complete` only to

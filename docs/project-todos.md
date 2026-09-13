@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified IronHorse holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to IronHorse/Conductor's
+      CGV official product-page declared full CSV route. Verify official
+      product identity, declared download linkage, exact CSV schema, dated
+      holdings metadata, and non-empty rows; retain the existing SEC fallback
+      for undated or empty native downloads.
+- [x] Product commit `f2e00d61f`; focused IronHorse assertions passed `2/2`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected research-runner
+      probes, and functional E2E `165 passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks, or
+      testcontainer sessions. No generic provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Cyber Hornet holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Cyber Hornet's
