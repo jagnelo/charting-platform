@@ -1815,3 +1815,15 @@ Update this handoff at each coherent boundary.
   CI/deployment, production reconciliation, shadow, future-evaluator, and
   staging coordinator review remain open; this branch remains ready for human
   review and is not ready for integration.
+
+- Source checkpoint `7ef9e8ec8` bounds non-daily heatmap sparkline reads with a
+  per-instrument SQL row-number window capped at the requested sparkline length.
+  This prevents an unbounded historical scan for large universes while keeping
+  the endpoint DB-first and provider-neutral. Focused heatmap integration passed
+  `1/1`; Ruff, compileall, and diff checks passed; and the authoritative
+  Docker-backed backend gate passed `2,433/2,433` at `81.52%` coverage with 89
+  warnings using cleaned session `89d870f1-e3b2-4ea5-b254-e87e1a099a98`. No
+  provider calls, credentials, frontend files, or ETF-provider adapter files
+  changed. Provider/legal, CI/deployment, production reconciliation, shadow,
+  future-evaluator, and staging coordinator review remain open; this branch
+  remains ready for human review and is not ready for integration.

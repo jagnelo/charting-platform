@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-13 — Heatmap sparkline query bound
+
+- [x] Bound non-daily heatmap sparkline reads with a per-instrument SQL window
+      instead of loading all historical rows for the requested universe. The
+      DB-first/no-provider-fanout contract remains intact. Focused heatmap
+      integration passes 1/1, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,433/2,433 at
+      81.52% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
 ### 2026-09-13 — Heatmap evaluator coverage preflight
 
 - [x] Make `/api/v1/instruments/heatmap-data` DB-first and provider-neutral.

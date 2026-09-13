@@ -123,15 +123,15 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "572f63e11",
-  "implementation_sha": "572f63e11",
+  "head": "7ef9e8ec8",
+  "implementation_sha": "7ef9e8ec8",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T11:30:00+00:00",
+  "last_checkpoint": "2026-09-13T11:22:22+00:00",
   "last_human_progress_update": "2026-09-13T02:05:00+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Obtain the operator-reviewed SEC directory submissions bound and issuer-materialization policy; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; extend coordinator-backed preflight to future non-Strategy signal engines and connect evaluator readiness to persisted refresh-job outcomes. Keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Durable MarketData.app account usage, refresh-job attempt/outcome summaries, Strategy Lab/Radar/generic breadth/benchmark-family evaluator preflight, strict quota-window diagnostics, explicit reservation windows, migration graph repair, and the green Docker-backed backend gate are implemented at source checkpoint 7b67aa9de; provider/legal/deployment/shadow and future-evaluator coordination remain open.",
   "parent_branch": "staging",
-  "plan_hash": "49ee9987dcb69bcbffe39a71cdfcc4593e364cf3535855fc0983fd8a4e3b4e73",
+  "plan_hash": "7618986d746b00543c741138e02262931518cb254ba5288fa20c08d9b32839db",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -160,7 +160,7 @@
     "current_phase": "credentialed_provider_followup",
     "next_action": "Obtain the operator-reviewed SEC directory submissions bound and issuer-materialization policy; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound and MarketData.app option-chain bound/redistribution terms; verify trusted GitHub CI/deployment secret stores and deferred credentials; extend coordinator-backed preflight to future non-Strategy signal engines beyond the now-covered direct indicator route and connect evaluator readiness to persisted refresh-job outcomes. Keep pre-listing promotion and response-dependent routing fail-closed/out of scope before activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Durable MarketData.app account usage, refresh-job attempt/outcome summaries, Strategy Lab/Radar/generic breadth/benchmark-family/indicator evaluator preflight, strict quota-window diagnostics, explicit durable reservation windows, migration graph repair, and green Docker-backed backend integration validation are implemented at source checkpoint d59731fb7; provider/legal/deployment/shadow and future-evaluator coordination remain open.",
     "total": 15,
-    "updated_at": "2026-09-13T11:30:00+00:00"
+    "updated_at": "2026-09-13T11:22:22+00:00"
   },
   "remote": "2e31f99c7",
   "remote_sha": "2e31f99c7",

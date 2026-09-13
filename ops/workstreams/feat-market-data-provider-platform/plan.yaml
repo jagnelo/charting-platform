@@ -114,6 +114,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Non-daily heatmap sparkline reads now use a per-instrument SQL row-number
+      window capped at the requested sparkline length, preventing an unbounded
+      historical scan for large universes while preserving the DB-first,
+      provider-neutral evaluator contract. Focused heatmap integration passed
+      `1/1`; Ruff, compileall, and diff checks passed; and the authoritative
+      Docker-backed combined backend gate passed `2,433/2,433` at `81.52%`
+      coverage with 89 warnings using cleaned testcontainer session
+      `89d870f1-e3b2-4ea5-b254-e87e1a099a98`. No provider calls, credentials,
+      frontend, or ETF-provider adapter files changed.
+    - >-
       `/api/v1/instruments/heatmap-data` is now DB-first and provider-neutral:
       the broad evaluator no longer performs per-instrument provider-backed
       latest-bar fetches. Daily and selected-timeframe local history use the
