@@ -38,6 +38,7 @@ class RelativeStrengthOut(AnalysisResponseMetadata):
     overlap_start: datetime | None
     overlap_end: datetime | None
     coverage: float = Field(ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -1047,6 +1048,7 @@ class TechnicalSnapshotOut(AnalysisResponseMetadata):
     sma200: float | None
     position_52w: float | None
     volume_ratio_50: float | None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 

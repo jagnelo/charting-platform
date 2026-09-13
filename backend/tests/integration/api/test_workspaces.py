@@ -2135,6 +2135,7 @@ class TestWorkspaces:
         assert len(payload["points"]) == 149
         assert payload["coverage"] < 1
         assert payload["warnings"][0]["code"] == "partial_overlap"
+        assert payload["coverage_preflight"]["evaluator"] == "relative_strength"
 
     def test_relative_strength_applies_point_in_time_cutoff(
         self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
@@ -2275,6 +2276,8 @@ class TestWorkspaces:
         assert payload["sma200"] == 251.5
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
+        assert payload["coverage_preflight"]["evaluator"] == "technical_snapshot"
+        assert payload["coverage_preflight"]["status"] == "full"
 
     def test_indicator_batch_returns_local_latest_values_and_exclusions(
         self, client, auth_headers, db, instrument, ohlcv_bars

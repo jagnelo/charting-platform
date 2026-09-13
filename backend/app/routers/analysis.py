@@ -1442,6 +1442,17 @@ async def instrument_technical_snapshot(
         if as_of is not None
         else await _stale_instrument_ids(db, [instrument.id], timeframe, adjusted)
     )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="technical_snapshot",
+        instrument_ids=[instrument.id],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={instrument.id: [] if instrument.id in stale_ids else bars},
+        minimum_bars=252,
+    )
     if instrument.id in stale_ids:
         bars = []
         warnings.append(
@@ -1491,6 +1502,7 @@ async def instrument_technical_snapshot(
             sma200=None,
             position_52w=None,
             volume_ratio_50=None,
+            coverage_preflight=coverage_preflight.to_dict(),
             warnings=warnings,
         )
 
@@ -1530,6 +1542,7 @@ async def instrument_technical_snapshot(
         sma200=averages[200],
         position_52w=position_52w,
         volume_ratio_50=volume_ratio_50,
+        coverage_preflight=coverage_preflight.to_dict(),
         warnings=warnings,
     )
 
@@ -1551,6 +1564,20 @@ async def relative_strength(
         set()
         if as_of is not None
         else await _stale_instrument_ids(db, [primary.id, comparator.id], timeframe, adjusted)
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="relative_strength",
+        instrument_ids=[primary.id, comparator.id],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={
+            instrument_id: [] if instrument_id in stale_ids else bars
+            for instrument_id, bars in grouped.items()
+        },
+        minimum_bars=1,
     )
     for instrument_id in stale_ids:
         grouped[instrument_id] = []
@@ -1604,6 +1631,7 @@ async def relative_strength(
         overlap_start=points[0].timestamp if points else None,
         overlap_end=points[-1].timestamp if points else None,
         coverage=len(points) / maximum,
+        coverage_preflight=coverage_preflight.to_dict(),
         warnings=warnings,
     )
 
