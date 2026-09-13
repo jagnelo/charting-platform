@@ -22346,6 +22346,7 @@ async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monke
     )
     assert result.legal_metadata["publisher"] == "The Nottingham Company"
     assert result.legal_metadata["composition_date"] == "2026-07-17"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22413,6 +22414,7 @@ async def test_langar_adapter_parses_only_identity_verified_lght_holdings(monkey
         "langar_nottingham_fund_scoped_complete_holdings_json"
     )
     assert result.legal_metadata["publisher"] == "The Nottingham Company"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
