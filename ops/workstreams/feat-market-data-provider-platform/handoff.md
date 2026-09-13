@@ -2080,3 +2080,19 @@ Update this handoff at each coherent boundary.
   `521.82s` using isolated testcontainer session
   `b74ce11b-1f89-4bf6-ad4e-76ac0e520cb8`. No frontend or ETF-provider adapter
   files changed.
+
+- The complete available-provider live matrix was rerun against the current
+  checkout with the owner-managed environment: `44` executable cases passed
+  `41/44`; the intentionally deferred Tradier, IBKR, and Ondo cases were
+  excluded. All configured providers and public tokenized probes passed except
+  three Alpha Vantage event/earnings operations that returned its typed
+  documented free-key capacity response after the shared daily allowance was
+  exhausted. The redacted temporary receipt contained 26 provider rows, 94
+  upstream requests, and 23,311,979 response bytes outside Git; this is quota
+  evidence and no acceptance claim for those three operations.
+
+- The redacted available-provider live receipt was merged with the repository's
+  allow-listed, deduplicating merger into the mode-0600 owner-managed
+  provider-live-usage ledger: `accepted=26`, `duplicates=0`, `rejected=0`.
+  This preserves cross-session aggregate usage evidence without copying
+  credentials or provider payloads.

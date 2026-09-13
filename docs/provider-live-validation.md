@@ -1178,3 +1178,19 @@ provider rows, 33 upstream requests, and 13,092,191 response bytes in
 `/private/tmp` only; no credentials or payloads entered Git. This confirms
 current transport/schema behavior, not provider quota, commercial,
 redistribution, or routing entitlement.
+On 2026-09-13, the complete available-provider matrix was rerun against the
+current checkout with the owner-managed environment and a temporary redacted
+usage ledger. It collected 44 executable cases (the intentionally deferred
+Tradier, IBKR, and Ondo cases were excluded from this bounded run) and passed
+`41/44`. All public
+crypto and tokenized probes, SEC EDGAR, Alpaca, Massive, CoinGecko, FRED,
+FINRA/OTC, Tiingo, Twelve Data, Marketstack, EODHD, FMP, MarketData.app, and
+Finnhub cases passed. The three non-passes were Alpha Vantage's typed provider
+capacity responses for IPO-calendar and earnings-calendar/history calls after
+the shared free key had reached its documented daily allowance. This is
+provider-quota evidence, not a transport/schema acceptance claim for those
+three operations. The temporary receipt contained 26 aggregate provider rows,
+94 upstream requests, 23,311,979 response bytes, and no credentials or
+payloads; it remained outside Git. The repository merger accepted all 26 rows
+into the mode-0600 owner-managed ledger, preserving this usage evidence across
+future sessions without copying secrets or raw responses.
