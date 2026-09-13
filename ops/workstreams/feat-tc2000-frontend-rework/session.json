@@ -116,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c35557adaeac839a2aca2122ab6dbf520edb7830",
-  "implementation_sha": "f36421f49a1c7e486ce52b6ee1f36bddfffd826c3",
+  "head": "8cabb6c9a86b2c6e6905877ac71cf4dcd043614a",
+  "implementation_sha": "5caacf901ccd6878d133ef7935a37141308a3437",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T01:55:04.889518+00:00",
+  "last_checkpoint": "2026-09-13T02:07:52.288463+00:00",
   "last_human_progress_update": "2026-09-12T22:57:05.998654+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "bb7129cb10d097d34ecf2f5a81c3998fe691ca99687e39c3dc336722baf30c01",
+  "plan_hash": "55eca6e666f6aa0a52cdf0cd3416a37f1d18a397102bba005fb2668c5017cd7c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "At clean product tip f36421f49, IWM is included in the date-aware iShares family-history matrix and the focused live suite passed 9/9, including a 2026-06-30 public JSON snapshot with 2009 rows. The exact gate passed backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and all pre-visual, compose/deployment, and expected research-runner stages. Provider probes reported not configured because RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain authoritative. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
-    "current_phase": "r1_ishares_iwm_history_guard",
+    "current_blocker": "At clean product tip 5caacf901, IWM is covered at both 2025-12-31 and 2026-06-30 by the date-aware iShares family-history matrix; the focused live suite passed 10/10. The exact gate passed backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and all pre-visual, compose, deployment, and expected research-runner stages. Provider probes reported not configured because RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain authoritative. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
+    "current_phase": "r1_ishares_iwm_older_history_guard",
     "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T01:50:13.000000+00:00"
+    "updated_at": "2026-09-13T02:03:26.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
