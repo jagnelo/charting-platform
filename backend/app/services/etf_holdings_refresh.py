@@ -66,6 +66,43 @@ SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 
+# A few mature adapters predate the explicit completeness field but already
+# declare the artifact's evidence level in their source-quality contract. Keep
+# this mapping deliberately narrow: current/daily/table labels remain unknown
+# unless the adapter explicitly reports completeness, so a route cannot gain
+# readiness merely from a generic quality string.
+_DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY = {
+    "filing_reconstructed_holdings": "filing_reconstructed",
+    "issuer_reported_dated_complete_holdings": "complete",
+    "issuer_reported_complete_daily_holdings_csv": "complete",
+    "issuer_reported_full_investment_holdings": "complete",
+}
+
+
+def _holdings_completeness_status(
+    result_metadata: dict[str, Any] | None,
+    aliases: dict[str, Any] | None,
+) -> str:
+    """Resolve explicit completeness, including narrowly declared legacy quality labels."""
+
+    metadata = result_metadata or {}
+    configured_aliases = aliases or {}
+    explicit = metadata.get("completeness_status") or configured_aliases.get(
+        "holdings_completeness_status"
+    )
+    if explicit:
+        return str(explicit)
+    source_quality = (
+        str(
+            metadata.get("source_quality")
+            or configured_aliases.get("holdings_source_quality")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
+
 
 def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -> bool:
     """Return whether a stored snapshot can suppress another provider attempt.
@@ -1090,11 +1127,7 @@ async def refresh_etf_holdings_for_date(
                 or aliases.get("holdings_source_quality")
                 or "self_snapshotted_holdings"
             ),
-            completeness_status=str(
-                result_metadata.get("completeness_status")
-                or aliases.get("holdings_completeness_status")
-                or "unknown"
-            ),
+            completeness_status=_holdings_completeness_status(result_metadata, aliases),
             parser_version=str(
                 result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
             ),
@@ -1970,11 +2003,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         source_url=fetch_result.source_url,
         source_identifier=fetch_result.source_identifier or issuer_product_id,
         source_quality=str(result_metadata.get("source_quality") or "self_snapshotted_holdings"),
-        completeness_status=str(
-            result_metadata.get("completeness_status")
-            or aliases.get("holdings_completeness_status")
-            or "unknown"
-        ),
+        completeness_status=_holdings_completeness_status(result_metadata, aliases),
         parser_version=str(
             result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
         ),

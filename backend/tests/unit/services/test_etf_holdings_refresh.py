@@ -8,6 +8,40 @@ import pytest
 from app.services import etf_holdings_refresh as refresh
 
 
+@pytest.mark.parametrize(
+    ("source_quality", "expected"),
+    [
+        ("filing_reconstructed_holdings", "filing_reconstructed"),
+        ("issuer_reported_dated_complete_holdings", "complete"),
+        ("issuer_reported_complete_daily_holdings_csv", "complete"),
+        ("issuer_reported_full_investment_holdings", "complete"),
+    ],
+)
+def test_declared_source_quality_provides_conservative_completeness_evidence(
+    source_quality, expected
+):
+    assert refresh._holdings_completeness_status({"source_quality": source_quality}, {}) == expected
+
+
+def test_ambiguous_source_quality_remains_unknown_without_explicit_status():
+    assert (
+        refresh._holdings_completeness_status(
+            {"source_quality": "issuer_reported_current_holdings"}, {}
+        )
+        == "unknown"
+    )
+    assert (
+        refresh._holdings_completeness_status(
+            {
+                "source_quality": "issuer_reported_dated_complete_holdings",
+                "completeness_status": "partial",
+            },
+            {},
+        )
+        == "partial"
+    )
+
+
 @pytest.mark.asyncio
 async def test_dated_family_refresh_preserves_declared_history_route_evidence(monkeypatch):
     class Session:
