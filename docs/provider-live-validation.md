@@ -1073,3 +1073,19 @@ failed because those credentials remain absent. All other configured and
 keyless/tokenized cases produced positive bounded transport evidence. The
 runner returned exit code 2 and made no acceptance claim; the aggregate receipt
 remains outside Git and no credentials or response payloads were persisted.
+
+On 2026-09-13, the Dinari Sandbox adapter was revalidated after isolating
+intermittent HTTP 500 responses during the compound live case. The previous
+implementation re-enumerated the full Stock catalogue for every UUID-based
+price, quote, history, news, dividend, and split read. It now retains validated
+Stock metadata only within the current provider instance, while new instances
+still perform fresh metadata resolution. Dinari reads additionally use a
+provider-specific bounded recovery of at most two short-backoff retries for
+HTTP 500; 4xx/rate-limit failures and all other providers remain typed and
+fail-fast. Tokenized unit coverage passed `71/71`, the focused
+provider/registry/quota/secret slice passed `196/196`, and the real Dinari
+Sandbox compound case passed `1/1`. The complete matrix then passed `41/47`:
+the three Alpha Vantage event/earnings operations returned typed documented
+capacity responses, while Tradier, IBKR, and Ondo remained exact credential
+preflights. The run returned exit code 2 and made no acceptance claim; no
+credentials or payloads were persisted.
