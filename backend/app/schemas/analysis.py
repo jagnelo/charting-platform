@@ -395,6 +395,7 @@ class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     mappings: list[BenchmarkFamilyMappingOut] = Field(default_factory=list)

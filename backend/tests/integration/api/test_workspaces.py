@@ -476,6 +476,8 @@ class TestWorkspaces:
         payload = response.json()
         assert payload["family_key"] == "nasdaq100"
         assert payload["official_index_symbol"] == "NDX"
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_overview"
+        assert payload["coverage_preflight"]["status"] == "empty"
         assert payload["coverage"] == 0
         assert payload["rows"] == []
         assert payload["universe_provenance"]["cap_proxy_symbol"] == "QQQ"

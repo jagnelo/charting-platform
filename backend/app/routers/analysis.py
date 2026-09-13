@@ -4206,6 +4206,7 @@ async def benchmark_family_overview(
         freshness = snapshot.freshness
         freshness_detail = snapshot.freshness_detail
         universe_provenance = snapshot.universe_provenance
+        coverage_preflight = snapshot.coverage_preflight
     else:
         membership_version = _group_membership_version(group, selected_members)
         rows = []
@@ -4214,6 +4215,18 @@ async def benchmark_family_overview(
         freshness = "unavailable"
         freshness_detail = {}
         universe_provenance = _group_provenance(group, as_of)
+        coverage_preflight = (
+            await preflight_ohlcv(
+                db,
+                evaluator="benchmark_family_overview",
+                instrument_ids=[],
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                minimum_bars=252,
+            )
+        ).to_dict()
         exclusions = [
             AnalysisWarning(
                 code="cap_proxy_unavailable",
@@ -4279,6 +4292,7 @@ async def benchmark_family_overview(
             "cap_proxy_available": cap_instrument is not None,
             "official_index_series_policy": official.get("series_policy"),
         },
+        coverage_preflight=coverage_preflight,
         coverage=coverage,
         exclusions=exclusions,
         mappings=mappings,
