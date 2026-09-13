@@ -5367,6 +5367,18 @@ async def benchmark_family_ranking(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_ranking",
+        instrument_ids=ranking_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
+    )
     role_cells: dict[str, dict[str, AnalysisCell]] = {}
     rows: list[BenchmarkFamilyRankingRoleOut] = []
     for role in ("cap_weight", "equal_weight", "value", "growth"):
@@ -5462,6 +5474,7 @@ async def benchmark_family_ranking(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
         rank_period=rank_period,
+        coverage_preflight=coverage_preflight.to_dict(),
         roles=rows,
         exclusions=warnings,
         freshness=freshness,

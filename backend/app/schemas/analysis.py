@@ -702,6 +702,7 @@ class BenchmarkFamilyRankingOut(AnalysisResponseMetadata):
     adjustment: str
     as_of: datetime | None = None
     rank_period: str
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRankingRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

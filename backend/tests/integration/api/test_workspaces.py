@@ -1599,6 +1599,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         roles = {role["role"]: role for role in payload["roles"]}
         assert roles["cap_weight"]["available"] is True
         assert roles["equal_weight"]["available"] is True
@@ -1625,7 +1627,9 @@ class TestWorkspaces:
             params={"rank_period": "1M"},
         )
         assert stale_response.status_code == 200, stale_response.text
-        stale_roles = {role["role"]: role for role in stale_response.json()["roles"]}
+        stale_payload = stale_response.json()
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
+        stale_roles = {role["role"]: role for role in stale_payload["roles"]}
         assert stale_roles["equal_weight"]["available"] is False
         assert stale_roles["equal_weight"]["warnings"][0]["code"] == "stale_data"
 
