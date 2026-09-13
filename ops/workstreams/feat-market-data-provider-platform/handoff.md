@@ -1647,3 +1647,16 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `9e8b520d2` hardens the options integration boundary:
+  expiration, current-chain, and historical quote refreshes now fallback only
+  for explicit not-configured/no-data outcomes. Provider rate-limit,
+  quota-contract, malformed-response, and transport errors remain typed and
+  observable to callers/runtime. Options data/exposure unit coverage passed
+  `37/37`, PostgreSQL options-exposure integration passed `24/24`, and the
+  authoritative Docker-backed combined gate passed `2,418/2,418` at `81.43%`
+  coverage with 89 warnings. Testcontainer session
+  `59c97157-ce31-4ce8-aabf-255b20da1344` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.
