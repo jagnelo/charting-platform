@@ -1154,3 +1154,15 @@ routing safety preflight continued to list only the provider-specific controls
 that are deliberately unreviewed. Aggregate usage was written to the operator
 ledger outside Git; this run is current transport evidence, not an acceptance
 or routing-entitlement claim.
+
+On 2026-09-13, a separate network-enabled focused run exercised only the newly
+configured providers and passed `11/11`: Alpaca daily/intraday/latest/assets
+and corporate actions; SEC EDGAR filings, Company Facts, and complete
+ticker/issuer directory pagination; MarketData.app option surface, account
+usage, and intraday history; and Dinari Sandbox metadata, price/quote,
+DAY/WEEK/MONTH/YEAR aggregates, news, dividends, splits, and corporate actions.
+The aggregate receipt was written to the owner-managed temporary ledger
+`/private/tmp/charting-provider-live-usage-new-providers-20260913.jsonl` only;
+no credentials or response payloads entered Git. This is transport/schema
+evidence and does not promote any unreviewed quota, account-plan, commercial,
+redistribution, or response-dependent routing control.

@@ -235,6 +235,17 @@ progress:
       provider payload entered Git. This is transport evidence only: reviewed
       routing controls remain required.
     - >-
+      A separate network-enabled focused live run on 2026-09-13 passed 11/11
+      for the newly configured provider surfaces: Alpaca history/intraday/latest
+      and assets/corporate actions; SEC EDGAR filings, Company Facts, and
+      complete ticker/issuer directory pagination; MarketData.app options,
+      account usage, and intraday history; and Dinari Sandbox metadata,
+      price/quote, DAY/WEEK/MONTH/YEAR aggregates, news, dividends, splits,
+      and corporate actions. Aggregate telemetry stayed in the owner-managed
+      temporary ledger outside Git; no credentials or payloads entered Git.
+      This is transport/schema evidence only and does not promote unreviewed
+      routing entitlements.
+    - >-
       IBKR futures history is now an explicit capability through the existing
       generic Client Portal Gateway conid path. The implementation follows the
       official all-instruments historical endpoint and records the expired
