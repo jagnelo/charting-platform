@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-13 — Heatmap evaluator coverage preflight
+
+- [x] Make `/api/v1/instruments/heatmap-data` DB-first and provider-neutral.
+      The broad evaluator no longer performs one provider-backed latest-bar
+      fetch per instrument; daily and selected-timeframe local history are
+      assessed through the shared OHLCV preflight, short histories are deferred,
+      and each row exposes additive daily/sparkline readiness evidence. Focused
+      PostgreSQL integration passes 7/7, Ruff/compileall/diff checks pass, and
+      the authoritative Docker-backed combined backend gate passes 2,433/2,433
+      at 81.53% coverage with 89 warnings. No provider calls, frontend files,
+      or ETF-provider adapter files changed.
+
 ### 2026-09-13 — Indicator endpoint coverage preflight
 
 - [x] Extend the shared OHLCV coverage preflight to

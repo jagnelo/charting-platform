@@ -1801,3 +1801,17 @@ Update this handoff at each coherent boundary.
   CI/deployment, production reconciliation, shadow, future-evaluator, and
   staging coordinator review remain open; this branch remains ready for human
   review and is not ready for integration.
+
+- Source checkpoint `572f63e11` makes `/api/v1/instruments/heatmap-data`
+  provider-neutral. The endpoint no longer performs one provider-backed latest
+  bar fetch per instrument while evaluating a broad heatmap; daily and selected
+  timeframe local bars are assessed through the shared preflight, short histories
+  are deferred, and rows carry additive daily/sparkline readiness evidence.
+  Focused PostgreSQL integration passed `7/7`; Ruff, compileall, and diff checks
+  passed; and the authoritative Docker-backed backend gate passed `2,433/2,433`
+  at `81.53%` coverage with 89 warnings using cleaned session
+  `1f5a3130-296c-4d2b-9610-a7cc42f8448e`. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed. Provider/legal,
+  CI/deployment, production reconciliation, shadow, future-evaluator, and
+  staging coordinator review remain open; this branch remains ready for human
+  review and is not ready for integration.
