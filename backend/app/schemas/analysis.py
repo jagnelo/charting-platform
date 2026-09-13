@@ -465,6 +465,7 @@ class BenchmarkFamilyTechnicalRoleOut(BaseModel):
     position_52w: float | None = None
     volume_ratio_50: float | None = None
     freshness: str = "unavailable"
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 

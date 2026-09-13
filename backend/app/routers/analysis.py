@@ -4360,6 +4360,7 @@ async def benchmark_family_technicals(
                 position_52w=snapshot.position_52w,
                 volume_ratio_50=snapshot.volume_ratio_50,
                 freshness=snapshot.freshness,
+                coverage_preflight=snapshot.coverage_preflight,
                 warnings=snapshot.warnings,
             )
         )

@@ -1357,6 +1357,10 @@ class TestWorkspaces:
         assert roles["cap_weight"]["last"] == 102
         assert roles["cap_weight"]["as_of"] == "2026-12-31T23:59:59Z"
         assert roles["cap_weight"]["sma200"] is None
+        assert roles["cap_weight"]["coverage_preflight"]["evaluator"] == (
+            "technical_snapshot"
+        )
+        assert roles["cap_weight"]["coverage_preflight"]["status"] == "deferred"
         assert roles["equal_weight"]["symbol"] == "RSP"
         assert roles["equal_weight"]["available"] is False
         assert roles["equal_weight"]["warnings"][0]["code"] == "benchmark_proxy_unavailable"
