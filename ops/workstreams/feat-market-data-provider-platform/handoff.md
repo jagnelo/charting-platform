@@ -1605,3 +1605,15 @@ Update this handoff at each coherent boundary.
   pruning. No frontend files, ETF provider adapters, provider calls, or
   credentials changed. Future signal engines beyond the currently covered
   paths remain an explicit follow-up.
+
+- The current source checkpoint `8f895f255` was re-audited after the supplied
+  Alpaca, SEC EDGAR, MarketData.app, and replacement Dinari Sandbox
+  credentials were present in the owner-managed environment. The revoked
+  Dinari pair is absent, no credential is tracked, and the two worktree env
+  paths remain symlinks to `~/.config/charting-platform/app.env`. Workstream
+  validation, changed-scope Ruff, and diff checks passed; the provider,
+  quota-contract, durable account-usage, and secret-wiring regression suite
+  passed `548/548` with no provider calls. This is a verification checkpoint,
+  not a closure of the still-open provider-terms, GitHub environment,
+  credential-preflight, production reconciliation, migration, or 30-day
+  shadow gates.
