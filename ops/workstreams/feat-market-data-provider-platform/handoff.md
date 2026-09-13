@@ -1841,3 +1841,11 @@ Update this handoff at each coherent boundary.
   CI/deployment, production reconciliation, shadow, future-evaluator, and
   staging coordinator review remain open; this branch remains ready for human
   review and is not ready for integration.
+
+- The authoritative Docker-backed combined backend unit/integration gate after
+  checkpoint `941863c89` passed `2,434/2,434` with 89 warnings at `81.58%`
+  coverage using cleaned labeled testcontainer session
+  `adbeabea-934e-4267-b590-717cb9a78f99`. This confirms the additive seasonality
+  response and provider-boundary change across the complete scoped backend
+  suite; no provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed.

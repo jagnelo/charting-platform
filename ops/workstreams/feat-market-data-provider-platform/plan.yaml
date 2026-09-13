@@ -114,6 +114,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The authoritative Docker-backed combined backend unit/integration gate
+      after the seasonality change passed `2,434/2,434` with 89 warnings at
+      `81.58%` coverage using cleaned labeled testcontainer session
+      `adbeabea-934e-4267-b590-717cb9a78f99`. No provider calls, credentials,
+      frontend, or ETF-provider adapter files changed.
+    - >-
       `/api/v1/instruments/{symbol}/seasonality/monthly` is now a local-only
       evaluator: it requests canonical monthly bars with provider fetches
       disabled, applies the shared OHLCV coverage preflight against the

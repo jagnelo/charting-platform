@@ -12,6 +12,10 @@
       run in isolation. No provider calls, frontend files, or ETF-provider
       adapter files changed.
 
+  The authoritative Docker-backed combined backend gate then passed
+  2,434/2,434 with 89 warnings at 81.58% coverage using cleaned labeled
+  testcontainer session `adbeabea-934e-4267-b590-717cb9a78f99`.
+
 ### 2026-09-13 — Heatmap sparkline query bound
 
 - [x] Bound non-daily heatmap sparkline reads with a per-instrument SQL window
