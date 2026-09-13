@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Concourse completeness receipt
+
+Commit `2c9444ab0` adds explicit `completeness_status: complete` only to the
+Concourse CCFE result. Its adapter verifies the official product-page
+identity, exact holdings-table headers, effective date, and at least ten
+rows. The generic `issuer_reported_current_holdings` quality label remains
+unchanged and ambiguous routes remain fail-closed.
+
+The focused adapter regression passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
 ## 2026-09-13 — Issuer-linked workbook completeness receipt
 
 Commit `6287f6900` promotes only four issuer-linked workbook adapters after
