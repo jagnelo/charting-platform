@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
 from typing import TypeVar, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
-    marketdata_app_reviewed_plan,
+    marketdata_app_reviewed_plan_pair,
+    marketdata_app_trial_expiry_is_valid,
     provider_positive_integer,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
@@ -718,18 +718,20 @@ def provider_missing_routing_controls(
             missing.append("FRED_SERIES_TERMS_REVIEWED")
         return missing
     if name == "marketdata_app":
-        if marketdata_app_reviewed_plan() is not None:
+        reviewed_pair = marketdata_app_reviewed_plan_pair()
+        if reviewed_pair is not None and marketdata_app_trial_expiry_is_valid(reviewed_pair[0]):
             return []
+        missing: list[str] = []
+        if reviewed_pair is None:
+            missing.extend(required)
         configured_plan = str(
             getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or ""
         ).strip().lower()
-        if configured_plan.endswith("_trial"):
-            expiry = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
-            if expiry is None or getattr(expiry, "tzinfo", None) is None:
-                return ["MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"]
-            if expiry.astimezone(UTC) <= datetime.now(UTC):
-                return ["MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"]
-        return list(required)
+        if configured_plan.endswith("_trial") and not marketdata_app_trial_expiry_is_valid(
+            configured_plan
+        ):
+            missing.append("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT")
+        return list(dict.fromkeys(missing or required))
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)

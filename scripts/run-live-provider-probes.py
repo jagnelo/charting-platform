@@ -470,7 +470,14 @@ def routing_safety_preflight() -> dict[str, str]:
         else (
             "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
             if marketdata_expiry_issue
-            else "non-routable: explicit reviewed plan/limit pair required"
+            and expected_marketdata_limit is not None
+            and marketdata_limit == expected_marketdata_limit
+            else (
+                "non-routable: explicit reviewed plan/limit pair and reviewed trial "
+                "plan expiry are required"
+                if marketdata_expiry_issue
+                else "non-routable: explicit reviewed plan/limit pair required"
+            )
         )
     )
     raw_option_chain_bound = (

@@ -454,6 +454,12 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("marketdata_app") == [
             "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
         ]
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100)
+        assert provider_missing_routing_controls("marketdata_app") == [
+            "MARKETDATA_APP_REVIEWED_PLAN",
+            "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        ]
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", True)

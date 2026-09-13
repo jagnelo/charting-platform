@@ -1882,6 +1882,32 @@ def provider_positive_integer(value: object) -> int | None:
     return value
 
 
+def marketdata_app_reviewed_plan_pair() -> tuple[str, int] | None:
+    """Return the exact operator-reviewed plan/limit pair, without expiry."""
+
+    plan = str(getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or "").strip().lower()
+    expected_limit = _MARKETDATA_APP_DAILY_CREDIT_LIMITS.get(plan)
+    configured_limit = provider_positive_integer(
+        getattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    )
+    if expected_limit is None or configured_limit != expected_limit:
+        return None
+    return plan, expected_limit
+
+
+def marketdata_app_trial_expiry_is_valid(plan: str) -> bool:
+    """Return whether a trial plan has a future timezone-aware expiry."""
+
+    if not plan.endswith("_trial"):
+        return True
+    expires_at = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+    return bool(
+        isinstance(expires_at, datetime)
+        and expires_at.tzinfo is not None
+        and expires_at.astimezone(UTC) > datetime.now(UTC)
+    )
+
+
 def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
     """Return a documented MarketData.app daily plan only when reviewed.
 
@@ -1892,20 +1918,11 @@ def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
     trial entitlement from widening admission by accident.
     """
 
-    plan = str(getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or "").strip().lower()
-    expected_limit = _MARKETDATA_APP_DAILY_CREDIT_LIMITS.get(plan)
-    configured_limit = provider_positive_integer(
-        getattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
-    )
-    if expected_limit is None or configured_limit != expected_limit:
+    reviewed_pair = marketdata_app_reviewed_plan_pair()
+    if reviewed_pair is None:
         return None
-    if plan.endswith("_trial"):
-        expires_at = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
-        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
-            return None
-        if expires_at.astimezone(UTC) <= datetime.now(UTC):
-            return None
-    return plan, expected_limit
+    plan, _ = reviewed_pair
+    return reviewed_pair if marketdata_app_trial_expiry_is_valid(plan) else None
 
 
 def provider_reviewed_flag(value: object) -> bool:

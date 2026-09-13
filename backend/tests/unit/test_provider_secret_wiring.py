@@ -429,6 +429,13 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketdata.app account plan"] == (
         "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
     )
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "100")
+    statuses = routing_safety_preflight()
+    assert statuses["marketdata.app account plan"] == (
+        "non-routable: explicit reviewed plan/limit pair and reviewed trial "
+        "plan expiry are required"
+    )
+    monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2030-01-01T00:00:00+00:00")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"] == "routable"
