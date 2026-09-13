@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Verified X-Square holdings completeness
+
+Product commit `538c18fbd` adds explicit `completeness_status: complete` to
+X-Square's verified ZTAX product-page/API route. The adapter verifies the
+official product page ticker and fund identity, the declared Full Holdings
+client/API route, returned fund symbol, `full` portfolio marker, dated rows,
+and non-empty holdings before emitting completeness; generic labels remain
+fail-closed.
+
+Focused assertion passed `1/1`; Ruff, formatting, and diff checks passed;
+full backend units passed `1544/1544`. The exact branch-scoped gate passed
+backend unit `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+sandbox/resource probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical population/history seam
+while preserving fail-closed mappings and the six protected visual state-
+oracle assertions. Do not integrate, promote, deploy, push, or mutate another
+worktree.
+
 ## 2026-09-13 — Verified Focus Financial holdings completeness
 
 Product commit `8d97540ec` adds explicit `completeness_status: complete` to

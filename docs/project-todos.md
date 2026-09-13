@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified X-Square holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to X-Square's
+      verified ZTAX product-page/API route. Verify product page ticker/fund
+      identity, declared Full Holdings client/API route, returned fund symbol,
+      `full` portfolio marker, dated rows, and non-empty holdings; keep generic
+      labels fail-closed with no fallback.
+- [x] Product commit `538c18fbd`; focused assertion passed `1/1`,
+      Ruff/format/diff checks passed, and full backend units passed
+      `1544/1544`.
+- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
+      `405/405`, frontend Vitest `1067/1067`, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+      `98/104`; only the six unchanged protected visual diffs remain
+      (watchlist-column-editor and workspace-floating). Docker resources were
+      cleaned. No provider/fallback, migration, visual, threshold, mask,
+      skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Focus Financial holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Focus Financial's
