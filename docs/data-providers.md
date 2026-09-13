@@ -37,6 +37,11 @@ map before the operation can be treated as quota-safe. No operation silently
 inherits a universal request cost when a provider contract declares
 operation-level accounting.
 
+Massive historical bars use a caller-supplied page estimate derived from the
+requested timeframe and the documented 50,000-base-aggregate page ceiling;
+each cursor page is therefore reserved before execution rather than charged as
+an invented single request.
+
 History adjustment is an explicit routing requirement. The market-data service
 passes the requested `adjusted` value into provider resolution before quota
 reservation and transport. Alpha Vantage's free daily endpoint and IBKR's
@@ -47,7 +52,7 @@ IBKR, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
 MarketData.app, and the Binance/Coinbase/Kraken exchange feeds. The platform
 does not silently synthesize split/dividend adjustments from a raw response.
 The registry publishes `adjusted_price_history` separately from
-`price_history`; at this revision it is advertised only for Alpaca and the
+`price_history`; at this revision it is advertised for Alpaca, Massive, and the
 explicit legacy yfinance compatibility path, so consumers do not infer
 adjustment semantics from the presence of an OHLCV method.
 The same guard is enforced when an adapter is called directly (including live
@@ -125,7 +130,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested); `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled only when the returned limit matches the reviewed contract | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
-| Massive | US ticker search and reference universe | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | 5 requests/min, Basic Stocks | API key / minute | credentialed reference search live-proven |
+| Massive | US ticker search/reference universe, split-adjusted or raw aggregate OHLCV for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates; aggregate pages accept at most 50,000 base aggregates and may continue with `next_url` | API key / provider-defined minute window; every historical page is reserved before execution | reference and adjusted daily history live-proven; remains opt-in for history because the free allowance is small |
 | Alpha Vantage | Raw daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` and adjusted daily history are premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact raw daily history and the bounded AAPL earnings normalization are live-proven; adjusted history is rejected explicitly; IPO-calendar remains subject to its documented capacity response |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
@@ -716,6 +721,33 @@ from `payable_date` and long ranges follow the provider page token.
 
 ---
 
+### Massive (`massive`)
+
+**Website**: [massive.com](https://massive.com)
+**Auth**: `MASSIVE_API_KEY` (the legacy `MARKETDATA_API_KEY` alias is also accepted)
+**Free tier**: ✓ — Stocks Basic is listed as 5 API calls/minute, two years of
+history, EOD/reference data, corporate actions, technical indicators, and
+minute aggregates. The exact plan terms and redistribution rights remain an
+operator review item.
+
+**Capabilities**
+
+| Capability | Detail |
+|---|---|
+| `instrument_search` | US ticker/reference search |
+| `universe_discovery` | Cursor-paged active US stock reference universe |
+| `price_history` | Raw or split-adjusted custom bars for M1/M5/M15/M30/H1/H2/H4/H12/D1/W1/MN |
+| `market_events` | Cursor-paged IPO calendar and forward market holidays/early closes |
+
+The aggregate adapter uses [`/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}`](https://massive.com/docs/rest/stocks/aggregates), requests the documented 50,000-base-aggregate maximum, and follows only validated `api.massive.com` continuation URLs. It records the response adjustment flag, request ID, provider row, and normalized UTC timestamp in bar provenance. Historical and latest-window reservations are calculated from the requested base-candle count, so pagination never silently falls back to one request.
+
+Massive history is intentionally not in the default `price_history` chain: the
+free five-call/minute and two-year limits are materially narrower than Alpaca's
+reviewed route. Operators may add it to an explicit chain after confirming
+their plan, history entitlement, and redistribution terms.
+
+---
+
 ### FRED — Federal Reserve Economic Data (`fred`)
 
 **Website**: [fred.stlouisfed.org](https://fred.stlouisfed.org)  
@@ -1140,6 +1172,16 @@ The same adapter also exposes the documented
 [`marketstatus/upcoming`](https://massive.com/docs/rest/indices/market-operations)
 forward holiday and early-close feed as normalized `market_holiday` events.
 
+Massive's [`custom bars`](https://massive.com/docs/rest/stocks/aggregates)
+adapter also maps the platform's M1/M5/M15/M30/H1/H2/H4/H12/D1/W1/MN
+timeframes to the provider's multiplier/timespan endpoint. It preserves the
+provider adjustment flag and payload, follows only HTTPS continuation URLs on
+`api.massive.com`, rejects conflicting duplicate timestamps and invalid OHLC
+rows, and reserves `ceil(calendar-base-aggregates / 50,000)` requests before a
+historical or latest-window call. This is deliberately not added to the
+default price-history chain: the free plan's five-call/minute and two-year
+limits require explicit operator routing review.
+
 Priority within a chain is refined at runtime by health scores (EWMA latency, success rate,
 completeness).  A provider that consistently fails for a given symbol class (e.g. Binance
 receiving equity symbols) will be naturally deprioritised by the circuit-breaker logic.
@@ -1150,7 +1192,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 
 | Data type                    | Primary provider  | Fallback        |
 |------------------------------|-------------------|-----------------|
-| US equity OHLCV              | alpaca            | alpha_vantage (quota-limited) |
+| US equity OHLCV              | alpaca            | Massive (opt-in, 5 calls/min) / alpha_vantage (quota-limited) |
 | US equity/ETF universe discovery | alpaca / SEC directory / Nasdaq NMS files | massive / FINRA OTC directory (explicit source) / alpha_vantage |
 | US splits + dividends        | alpaca            | edgar           |
 | Crypto OHLCV                 | binance / coinbase / kraken | Alpaca (where symbol coverage applies) |

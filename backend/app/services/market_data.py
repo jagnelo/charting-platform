@@ -60,6 +60,12 @@ from app.providers.ibkr import (
     estimate_ibkr_latest_ohlcv_request_count,
     estimate_ibkr_ohlcv_request_count,
 )
+from app.providers.massive import (
+    estimate_latest_ohlcv_request_count as estimate_massive_latest_ohlcv_request_count,
+)
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
 from app.providers.optional_market_data import (
     estimate_marketdata_app_latest_ohlcv_credit_count,
     estimate_marketdata_app_ohlcv_credit_count,
@@ -1099,6 +1105,7 @@ async def _fetch_provider(
     binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, start, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
+    massive_cost = estimate_massive_ohlcv_request_count(timeframe, start, end)
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
     twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
     ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
@@ -1108,6 +1115,7 @@ async def _fetch_provider(
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
@@ -1594,6 +1602,7 @@ async def _fetch_provider_latest(
     binance_cost = estimate_latest_ohlcv_request_weight(timeframe, limit)
     coinbase_cost = estimate_coinbase_latest_ohlcv_request_count(timeframe, limit)
     kraken_cost = estimate_kraken_latest_ohlcv_request_count(timeframe, limit)
+    massive_cost = estimate_massive_latest_ohlcv_request_count(timeframe, limit)
     marketstack_cost = estimate_marketstack_latest_ohlcv_request_count(timeframe, limit)
     twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
     ibkr_cost = estimate_ibkr_latest_ohlcv_request_count(timeframe, limit)
@@ -1603,6 +1612,7 @@ async def _fetch_provider_latest(
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),

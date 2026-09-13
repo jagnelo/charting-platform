@@ -1,21 +1,23 @@
-"""Massive (formerly Polygon) reference-data provider.
+"""Massive (formerly Polygon) US reference and historical-bars provider.
 
-This adapter is deliberately limited to the free-source reference role: ticker
-search, paged US ticker discovery, and one-page IPO-calendar reads.  It is
-supplementary evidence for the canonical security master, not a default
-market-data path and not a promise of consolidated real-time data.
+The free Stocks Basic plan is deliberately treated as a bounded, supplementary
+source: it exposes US reference data and split-adjustable aggregate bars, but
+only five API calls per minute and two years of history.  It is therefore not
+made a default price-history route merely because an API key is configured.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
+from math import ceil, isfinite
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 import httpx
 
 from app.config import settings
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import MarketEventRecord, ProviderSearchResult
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -32,13 +34,43 @@ _BASE = "https://api.massive.com"
 _TICKERS_PATH = "/v3/reference/tickers"
 _IPOS_PATH = "/vX/reference/ipos"
 _MARKET_HOLIDAYS_PATH = "/v1/marketstatus/upcoming"
+_AGGREGATES_PATH_TEMPLATE = "/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{start}/{end}"
 _PAGE_SIZE = 1000
+_AGGREGATE_PAGE_SIZE = 50_000
+
+_TF_MAP: dict[Timeframe, tuple[int, str]] = {
+    Timeframe.M1: (1, "minute"),
+    Timeframe.M5: (5, "minute"),
+    Timeframe.M15: (15, "minute"),
+    Timeframe.M30: (30, "minute"),
+    Timeframe.H1: (1, "hour"),
+    Timeframe.H2: (2, "hour"),
+    Timeframe.H4: (4, "hour"),
+    Timeframe.H12: (12, "hour"),
+    Timeframe.D1: (1, "day"),
+    Timeframe.W1: (1, "week"),
+    Timeframe.MN: (1, "month"),
+}
+
+_TF_SECONDS: dict[Timeframe, int] = {
+    Timeframe.M1: 60,
+    Timeframe.M5: 300,
+    Timeframe.M15: 900,
+    Timeframe.M30: 1800,
+    Timeframe.H1: 3600,
+    Timeframe.H2: 7200,
+    Timeframe.H4: 14400,
+    Timeframe.H12: 43200,
+    Timeframe.D1: 86400,
+    Timeframe.W1: 604800,
+    Timeframe.MN: 2592000,
+}
 
 
 class MassiveProvider:
     name = "massive"
     base_url = _BASE
-    description = "Massive reference tickers for US security-master corroboration"
+    description = "Massive US reference data and bounded split-adjustable aggregate bars"
 
     def __init__(self) -> None:
         self._cursor_by_page: dict[int, str] = {}
@@ -96,6 +128,192 @@ class MassiveProvider:
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "Massive ticker endpoint returned an invalid object")
         return payload
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        """Fetch and normalize one bounded Massive custom-bars range.
+
+        Massive's ``limit`` is a cap on base aggregates used to build the
+        requested bars, not merely the number of returned rows.  The adapter
+        therefore follows the provider's opaque cursor and validates its host
+        before every continuation request.  No API key is ever copied into
+        provenance or followed from a provider-supplied URL.
+        """
+
+        normalized_symbol = str(symbol or "").strip().upper()
+        mapping = _TF_MAP.get(timeframe)
+        start = _as_utc(start)
+        end = _as_utc(end)
+        if not normalized_symbol:
+            raise ProviderResponseError(self.name, "Massive aggregate request requires a symbol")
+        if mapping is None:
+            raise ProviderResponseError(self.name, f"Massive does not support timeframe {timeframe.value}")
+        if end <= start:
+            return []
+
+        multiplier, timespan = mapping
+        path = _AGGREGATES_PATH_TEMPLATE.format(
+            symbol=quote(normalized_symbol, safe="._-"),
+            multiplier=multiplier,
+            timespan=timespan,
+            start=_epoch_millis(start),
+            end=_epoch_millis(end),
+        )
+        params = {
+            "adjusted": "true" if adjusted else "false",
+            "sort": "asc",
+            "limit": _AGGREGATE_PAGE_SIZE,
+        }
+        bars: dict[datetime, OHLCVBar] = {}
+        next_path = path
+        next_params: dict[str, Any] = params
+        seen_cursors: set[str] = set()
+        while True:
+            payload = self._get_path(next_path, self._params(**next_params))
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(self.name, "Massive aggregate endpoint returned an invalid object")
+            provider_adjusted = payload.get("adjusted")
+            if provider_adjusted is not None and provider_adjusted is not adjusted:
+                raise ProviderResponseError(
+                    self.name,
+                    "Massive aggregate response adjustment flag did not match the request",
+                )
+            for row in self._rows(payload, "aggregate bars"):
+                bar = self._aggregate_bar(
+                    row,
+                    timeframe=timeframe,
+                    symbol=normalized_symbol,
+                    adjusted=adjusted,
+                    instrument_id=instrument_id,
+                    data_source_id=data_source_id,
+                    endpoint=next_path,
+                    request_id=payload.get("request_id"),
+                )
+                if bar.ts < start or bar.ts >= end:
+                    continue
+                previous = bars.get(bar.ts)
+                if previous is not None and (
+                    previous.open != bar.open
+                    or previous.high != bar.high
+                    or previous.low != bar.low
+                    or previous.close != bar.close
+                    or previous.volume != bar.volume
+                ):
+                    raise ProviderResponseError(
+                        self.name,
+                        "Massive aggregate pagination returned conflicting duplicate timestamps",
+                    )
+                bars[bar.ts] = bar
+
+            next_url = payload.get("next_url")
+            if not next_url:
+                break
+            next_path, cursor = _aggregate_next_page(next_url, self.name)
+            if cursor in seen_cursors:
+                raise ProviderResponseError(self.name, "Massive aggregate pagination repeated a cursor")
+            seen_cursors.add(cursor)
+            next_params = {"cursor": cursor}
+
+        return [bars[key] for key in sorted(bars)]
+
+    def fetch_latest_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        limit: int,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
+        bars = self.fetch_ohlcv(
+            symbol,
+            timeframe,
+            self.latest_window_start(timeframe, limit),
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+        )
+        return bars[-limit:]
+
+    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"Massive does not support timeframe {timeframe.value}")
+        return datetime.now(UTC) - timedelta(seconds=seconds * max(1, limit) * 1.4 + 86400)
+
+    @staticmethod
+    def _aggregate_bar(
+        row: dict[str, Any],
+        *,
+        timeframe: Timeframe,
+        symbol: str,
+        adjusted: bool,
+        instrument_id: int | None,
+        data_source_id: int | None,
+        endpoint: str,
+        request_id: Any,
+    ) -> OHLCVBar:
+        required = ("t", "o", "h", "l", "c")
+        if any(field not in row for field in required):
+            raise ProviderResponseError("massive", "Massive aggregate row is missing a required field")
+        try:
+            timestamp_ms = float(row["t"])
+            values = {field: float(row[field]) for field in ("o", "h", "l", "c")}
+            volume = float(row["v"]) if row.get("v") is not None else None
+            vwap = float(row["vw"]) if row.get("vw") is not None else None
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ProviderResponseError("massive", "Massive aggregate row contains a non-numeric value") from exc
+        if not isfinite(timestamp_ms) or timestamp_ms < 0 or timestamp_ms != int(timestamp_ms):
+            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid timestamp")
+        if any(not isfinite(value) for value in values.values()):
+            raise ProviderResponseError("massive", "Massive aggregate row contains a non-finite OHLC value")
+        if volume is not None and (not isfinite(volume) or volume < 0):
+            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid volume")
+        if vwap is not None and (not isfinite(vwap) or vwap < 0):
+            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid VWAP")
+        if values["h"] < max(values["o"], values["c"]) or values["l"] > min(values["o"], values["c"]):
+            raise ProviderResponseError("massive", "Massive aggregate row violates OHLC bounds")
+        try:
+            timestamp = datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise ProviderResponseError("massive", "Massive aggregate row contains an invalid timestamp") from exc
+        provenance = {
+            "provider": "massive",
+            "endpoint": endpoint,
+            "provider_symbol": symbol,
+            "adjusted": adjusted,
+            "request_id": request_id,
+            "provider_payload": dict(row),
+        }
+        return OHLCVBar(
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+            timeframe=timeframe,
+            ts=timestamp,
+            open=values["o"],
+            high=values["h"],
+            low=values["l"],
+            close=values["c"],
+            volume=volume,
+            vwap=vwap,
+            is_adjusted=adjusted,
+            adjustment_basis="provider_adjusted" if adjusted else "raw",
+            adjustment_version="massive-split-adjusted" if adjusted else "provider-native",
+            provenance=provenance,
+        )
 
     @staticmethod
     def _rows(payload: dict[str, Any], operation: str) -> list[dict[str, Any]]:
@@ -352,6 +570,67 @@ def _require_next_cursor(
             f"Massive {operation} returned a next_url without one valid cursor",
         )
     return cursor_values[0]
+
+
+def _aggregate_next_page(next_url: Any, provider_name: str) -> tuple[str, str]:
+    """Extract a safe Massive aggregate continuation path and cursor."""
+
+    if not isinstance(next_url, str):
+        raise ProviderResponseError(provider_name, "Massive aggregate returned an invalid next_url")
+    parsed = urlparse(next_url)
+    if parsed.scheme != "https" or parsed.netloc != "api.massive.com":
+        raise ProviderResponseError(provider_name, "Massive aggregate returned an untrusted next_url host")
+    if not parsed.path.startswith("/v2/aggs/ticker/"):
+        raise ProviderResponseError(provider_name, "Massive aggregate returned an invalid next_url path")
+    cursor_values = parse_qs(parsed.query).get("cursor", [])
+    if len(cursor_values) != 1 or not cursor_values[0].strip():
+        raise ProviderResponseError(
+            provider_name,
+            "Massive aggregate returned a next_url without one valid cursor",
+        )
+    return parsed.path, cursor_values[0]
+
+
+def estimate_ohlcv_request_count(
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> int | None:
+    """Reserve every possible custom-bars page before admitting a request.
+
+    Massive documents a 50,000-base-aggregate page maximum.  Calendar time is
+    intentionally used as a conservative upper bound because the endpoint
+    returns only intervals containing eligible trades.
+    """
+
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None:
+        return None
+    if end <= start:
+        return 0
+    candles = max(1, ceil((end - start).total_seconds() / seconds))
+    return max(1, ceil(candles / _AGGREGATE_PAGE_SIZE))
+
+
+def estimate_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None:
+        return None
+    if limit <= 0:
+        return 0
+    lookback_seconds = seconds * max(1, limit) * 1.4 + 86400
+    candles = max(1, ceil(lookback_seconds / seconds) + 1)
+    return max(1, ceil(candles / _AGGREGATE_PAGE_SIZE))
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _epoch_millis(value: datetime) -> int:
+    return int(value.timestamp() * 1000)
 
 
 def _parse_date(value: Any) -> date | None:

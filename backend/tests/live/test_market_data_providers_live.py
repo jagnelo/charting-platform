@@ -362,6 +362,20 @@ def test_massive_credentialed_reference():
     assert isinstance(events, list)
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
+    bars, _ = _observed_read(
+        lambda: MassiveProvider().fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime.now(UTC) - timedelta(days=30),
+            datetime.now(UTC),
+            adjusted=True,
+        ),
+        "massive",
+    )
+    assert bars
+    assert all(bar.is_adjusted for bar in bars)
+    assert all(bar.high >= max(bar.open, bar.close) for bar in bars)
+    assert all(bar.low <= min(bar.open, bar.close) for bar in bars)
     holidays, _ = _observed_read(
         lambda: MassiveProvider().fetch_market_holidays(
             start=date.today(), end=date.today() + timedelta(days=365)

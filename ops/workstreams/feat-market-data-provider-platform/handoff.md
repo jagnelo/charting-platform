@@ -1866,6 +1866,12 @@ Update this handoff at each coherent boundary.
   suite; no provider calls, credentials, frontend files, or ETF-provider
   adapter files changed.
 
+- The authoritative Docker-backed combined backend gate after the Massive
+  change passed `2,460/2,460` at `81.68%` combined coverage with 89 warnings in
+  `410.51s`, using isolated testcontainer session
+  `6fc6e49e-17de-479b-b4f2-b395fb6cabe6`, which was cleaned without host-wide
+  pruning. No frontend or ETF-provider adapter files changed.
+
 - Source checkpoint `4f59270b9` closes a tokenized-catalog completeness gap.
   `refresh_tokenized_assets` now marks a bounded provider stream `partial`
   when its final page is full, and returns per-provider
@@ -2096,3 +2102,15 @@ Update this handoff at each coherent boundary.
   provider-live-usage ledger: `accepted=26`, `duplicates=0`, `rejected=0`.
   This preserves cross-session aggregate usage evidence without copying
   credentials or provider payloads.
+
+- Massive historical bars are now implemented for M1/M5/M15/M30/H1/H2/H4/H12/
+  D1/W1/MN, with raw or split-adjusted semantics, safe provider cursor
+  pagination, strict OHLC/volume/timestamp validation, and a caller-supplied
+  50,000-base-aggregate page reservation. Focused provider coverage passed
+  `223/223`; Ruff and diff checks passed. The credentialed Massive reference,
+  IPO, holiday, and adjusted-history live case passed with four upstream
+  requests; its redacted usage receipt was merged with `accepted=1` into the
+  owner-managed mode-0600 ledger. The free Stocks Basic five-call/minute and
+  two-year history contract is documented, but Massive history remains opt-in
+  pending operator plan/redistribution review. No frontend or ETF-provider
+  adapter files changed.

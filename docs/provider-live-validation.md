@@ -1194,3 +1194,19 @@ three operations. The temporary receipt contained 26 aggregate provider rows,
 payloads; it remained outside Git. The repository merger accepted all 26 rows
 into the mode-0600 owner-managed ledger, preserving this usage evidence across
 future sessions without copying secrets or raw responses.
+
+On 2026-09-13, the configured Massive key also passed a bounded reference,
+IPO-calendar, market-holiday, and adjusted daily aggregate-bars read. The
+aggregate adapter exercised the documented custom-bars transport and returned
+validated split-adjusted OHLCV rows; the redacted receipt contained four
+upstream requests and 442,597 response bytes with no credentials or payloads.
+Focused Massive/provider coverage passed `223/223`, and the receipt merger
+accepted one provider row into the mode-0600 owner-managed ledger. This is
+transport/schema evidence only: Stocks Basic's five-call/minute, two-year
+history, and redistribution terms still keep Massive historical routing
+opt-in pending operator review.
+
+The authoritative Docker-backed combined backend gate then passed `2,460/2,460`
+at `81.68%` combined coverage with 89 warnings in 410.51 seconds. Isolated
+testcontainer session `6fc6e49e-17de-479b-b4f2-b395fb6cabe6` was cleaned without
+host-wide pruning. No frontend or ETF-provider adapter files changed.

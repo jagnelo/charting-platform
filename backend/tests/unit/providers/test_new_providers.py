@@ -47,6 +47,12 @@ from app.providers.errors import (
 )
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
+from app.providers.massive import (
+    estimate_latest_ohlcv_request_count as estimate_massive_latest_ohlcv_request_count,
+)
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
 from app.providers.optional_market_data import (
     TwelveDataProvider,
     estimate_twelve_data_latest_ohlcv_request_count,
@@ -157,9 +163,16 @@ class TestRegistryCapabilities:
 
     def test_massive_reference_capabilities(self):
         caps = set(list_provider_capabilities("massive"))
-        assert caps == {"instrument_search", "universe_discovery", "market_events"}
+        assert caps == {
+            "instrument_search",
+            "universe_discovery",
+            "market_events",
+            "price_history",
+            "adjusted_price_history",
+        }
         assert get_search_provider("massive").name == "massive"
         assert get_discovery_provider("massive").name == "massive"
+        assert get_price_history_provider("massive").name == "massive"
 
     def test_alpha_vantage_capabilities(self):
         caps = set(list_provider_capabilities("alpha_vantage"))
@@ -1195,6 +1208,100 @@ class TestMassiveReferenceProvider:
             }
             with pytest.raises(ProviderNotConfiguredError):
                 provider.fetch_market_events()
+
+    def test_custom_bars_parse_adjustment_and_follow_safe_cursor(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.side_effect = [
+            {
+                "adjusted": True,
+                "request_id": "req-1",
+                "results": [
+                    {
+                        "t": 1704067200000,
+                        "o": 10,
+                        "h": 12,
+                        "l": 9,
+                        "c": 11,
+                        "v": 100,
+                        "vw": 10.5,
+                        "n": 4,
+                    }
+                ],
+                "next_url": "https://api.massive.com/v2/aggs/ticker/AAPL/range/1/day/1704067200000/1704153600000?cursor=next",
+            },
+            {
+                "adjusted": True,
+                "request_id": "req-2",
+                "results": [
+                    {
+                        "t": 1704153600000,
+                        "o": 11,
+                        "h": 13,
+                        "l": 10,
+                        "c": 12,
+                        "v": 120,
+                    }
+                ]
+            },
+        ]
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            bars = MassiveProvider().fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+                adjusted=True,
+            )
+        assert [bar.ts for bar in bars] == [
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 2, tzinfo=UTC),
+        ]
+        assert bars[0].is_adjusted is True
+        assert bars[0].adjustment_version == "massive-split-adjusted"
+        assert bars[0].provenance["request_id"] == "req-1"
+        assert get.call_count == 2
+        assert get.call_args_list[1].args[0].startswith("https://api.massive.com/v2/aggs/ticker/AAPL/range/1/day/")
+        assert get.call_args_list[1].kwargs["params"]["cursor"] == "next"
+
+    def test_custom_bars_reject_untrusted_cursor_and_invalid_ohlc(self):
+        for payload in (
+            {
+                "results": [{"t": 1704067200000, "o": 10, "h": 8, "l": 9, "c": 11, "v": 1}],
+            },
+            {
+                "results": [{"t": 1704067200000, "o": 10, "h": 12, "l": 9, "c": 11, "v": 1}],
+                "next_url": "https://evil.example/v2/aggs/ticker/AAPL?cursor=next",
+            },
+        ):
+            response = MagicMock()
+            response.raise_for_status.return_value = None
+            response.json.return_value = payload
+            with (
+                patch("app.providers.massive.settings") as mock_settings,
+                patch("app.providers.massive.httpx.get", return_value=response),
+            ):
+                mock_settings.MASSIVE_API_KEY = "key"
+                mock_settings.MARKETDATA_API_KEY = ""
+                with pytest.raises(ProviderResponseError, match="Massive"):
+                    MassiveProvider().fetch_ohlcv(
+                        "AAPL",
+                        Timeframe.D1,
+                        datetime(2024, 1, 1, tzinfo=UTC),
+                        datetime(2024, 1, 3, tzinfo=UTC),
+                    )
+
+    def test_custom_bars_request_estimates_include_page_cap_and_latest_padding(self):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(minutes=50_001)
+        assert estimate_massive_ohlcv_request_count(Timeframe.M1, start, end) == 2
+        assert estimate_massive_latest_ohlcv_request_count(Timeframe.M1, 1) == 1
+        assert estimate_massive_ohlcv_request_count(Timeframe.M1, start, start) == 0
 
     def test_search_and_discovery_parse_reference_rows(self):
         response = MagicMock()
