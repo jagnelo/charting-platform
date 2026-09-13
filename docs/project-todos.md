@@ -16591,3 +16591,10 @@ The current source also passes the focused authenticated top-down browser slice 
       Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
       warnings. No provider calls, credentials, frontend files, or ETF-provider
       adapter files changed.
+- [x] Add shared coverage preflight to the general group snapshot and
+      current/historical group-breadth responses. Snapshot/current breadth use
+      a 252-bar floor; historical breadth uses a 200-bar MA200 floor. Focused
+      integration passes `3/3`, the complete backend unit suite passes
+      `2,029/2,029`, and the authoritative Docker-backed gate passes
+      `2,410/2,410` at `81.38%` coverage with 89 warnings. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.

@@ -1456,3 +1456,15 @@ Update this handoff at each coherent boundary.
   without host-wide pruning. No provider calls, credentials, frontend files, or
   ETF-provider adapter files changed; provider/legal/deployment/shadow gates
   remain open.
+
+- Source checkpoint `6992d1096` adds shared coverage preflight to the general
+  group snapshot and current/historical group-breadth responses. Snapshot and
+  current breadth report a 252-bar floor; historical breadth reports a 200-bar
+  MA200 floor, while existing per-metric and point-in-time behavior remains
+  unchanged. Focused PostgreSQL group integration passed `3/3`, the complete
+  backend unit suite passed `2,029/2,029`, changed-file Ruff/compileall/diff
+  checks passed, and the authoritative Docker-backed gate passed `2,410/2,410`
+  at `81.38%` coverage with 89 warnings. Testcontainer session
+  `eba83d98-8695-48ad-8dd8-544d8480a609` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed; provider/legal/deployment/shadow gates remain open.
