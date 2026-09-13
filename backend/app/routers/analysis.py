@@ -694,6 +694,13 @@ async def indicator_batch(
     bars_by_id = await _bars_by_instrument(
         db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
     )
+    stale_ids = await _stale_instrument_ids(
+        db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
+    )
+    preflight_bars_by_id = {
+        instrument_id: ([] if instrument_id in stale_ids else bars)
+        for instrument_id, bars in bars_by_id.items()
+    }
     minimum_bars = required_bars_for_indicator(body.indicator, body.params)
     coverage_preflight = await preflight_ohlcv(
         db,
@@ -703,13 +710,10 @@ async def indicator_batch(
         date_from=None,
         date_to=None,
         adjusted=body.adjusted,
-        cached_bars=bars_by_id,
+        cached_bars=preflight_bars_by_id,
         minimum_bars=minimum_bars,
     )
     preflight_ready_ids = coverage_preflight.ready_instrument_ids
-    stale_ids = await _stale_instrument_ids(
-        db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
-    )
     values: dict[str, dict[str, object]] = {}
     exclusions: list[AnalysisWarning] = []
     for symbol in symbols:

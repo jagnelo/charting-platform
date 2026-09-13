@@ -2328,6 +2328,8 @@ class TestWorkspaces:
         stale_payload = stale_response.json()
         assert stale_payload["evaluated_count"] == 0
         assert stale_payload["values"][instrument.symbol]["warning"]["code"] == "stale_data"
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
+        assert stale_payload["coverage_preflight"]["items"][0]["status"] == "missing"
         assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
 
     def test_indicator_batch_withholds_values_when_shared_preflight_lacks_history(
