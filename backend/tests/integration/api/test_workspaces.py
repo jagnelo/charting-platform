@@ -984,6 +984,11 @@ class TestWorkspaces:
         assert cap["coverage"] == 1
         assert cap["dispersion"] == 0
         assert cap["members"][0]["symbol"] == instrument.symbol
+        assert cap["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_concentration:cap_weight"
+        )
+        assert cap["coverage_preflight"]["status"] == "full"
+        assert payload["coverage_preflight"]["roles"]["cap_weight"]["status"] == "full"
         assert roles["equal_weight"]["available"] is False
 
     def test_benchmark_family_concentration_history_uses_known_at_snapshots(

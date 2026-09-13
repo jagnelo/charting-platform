@@ -167,6 +167,7 @@ class BenchmarkFamilyConcentrationRoleOut(BaseModel):
     p90_return: float | None = None
     positive_percentage: float | None = Field(default=None, ge=0, le=1)
     negative_percentage: float | None = Field(default=None, ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     members: list[BenchmarkFamilyConcentrationMemberOut] = Field(default_factory=list)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -181,6 +182,7 @@ class BenchmarkFamilyConcentrationOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     rank_period: str
     top_n: int = Field(ge=1, le=25)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyConcentrationRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

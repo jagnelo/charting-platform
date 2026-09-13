@@ -2883,6 +2883,9 @@ async def benchmark_family_concentration(
     cap_symbol = str(cap_mapping.get("symbol")).upper() if cap_mapping.get("symbol") else None
     roles: list[BenchmarkFamilyConcentrationRoleOut] = []
     exclusions: list[AnalysisWarning] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
+    rank_offset = _PERIODS.get(rank_period)
+    minimum_bars = rank_offset + 1 if rank_offset is not None else 253
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
         mapping = mapping if isinstance(mapping, Mapping) else {}
@@ -2959,6 +2962,30 @@ async def benchmark_family_concentration(
             )
             continue
 
+        member_ids = [row.instrument_id for row in snapshot.rows]
+        bars_by_id = _truncate_bars_at(
+            await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+        )
+        stale_ids = (
+            set()
+            if as_of is not None
+            else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+        )
+        for instrument_id in stale_ids:
+            bars_by_id[instrument_id] = []
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_concentration:{role}",
+            instrument_ids=member_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=minimum_bars,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
+
         performance_rows = [
             (
                 row,
@@ -3030,6 +3057,7 @@ async def benchmark_family_concentration(
                 coverage=len(returns) / max(denominator, 1),
                 members=member_outputs,
                 warnings=role_warnings,
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 **stats,
             )
         )
@@ -3055,6 +3083,7 @@ async def benchmark_family_concentration(
         as_of=as_of,
         rank_period=rank_period,
         top_n=top_n,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,
