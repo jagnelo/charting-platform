@@ -419,32 +419,51 @@ async def refresh_tokenized_assets(
         return {"status": "no_qualified_provider", "providers": [], "assets": 0}
 
     refreshed: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    successful_providers = 0
     truncated_any = False
     for resolved in chain:
         count = 0
         pages_fetched = 0
         truncated = True
+        provider_failed = False
         for page in range(max(1, max_pages)):
             pages_fetched += 1
-            execution = await execute_provider_call(
-                db,
-                ProviderCapability.TOKENIZED_ASSETS,
-                f"discover_tokenized_assets:{page}",
-                provider_name=resolved.provider_name,
-                invoke=lambda provider, _symbol, page=page: provider.discover_tokenized_assets(
-                    page=page, page_size=page_size
-                ),
-                response_items=len,
-                treat_empty_as_failure=False,
-            )
-            rows = execution.result or []
-            for row in rows:
-                await upsert_tokenized_asset(db, row)
-                count += 1
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.TOKENIZED_ASSETS,
+                    f"discover_tokenized_assets:{page}",
+                    provider_name=resolved.provider_name,
+                    invoke=lambda provider, _symbol, page=page: provider.discover_tokenized_assets(
+                        page=page, page_size=page_size
+                    ),
+                    response_items=len,
+                    treat_empty_as_failure=False,
+                )
+                rows = execution.result or []
+                for row in rows:
+                    await upsert_tokenized_asset(db, row)
+                    count += 1
+            except Exception as exc:  # noqa: BLE001 - retain per-provider evidence.
+                provider_failed = True
+                failures.append(
+                    {
+                        "provider": resolved.provider_name,
+                        "page": page,
+                        "error": bounded_redact_provider_message(exc, max_length=500),
+                    }
+                )
+                # A failed page is not evidence of completion. Continue with
+                # the next provider so one outage cannot suppress the rest of
+                # the qualified tokenized universe.
+                break
             if len(rows) < page_size:
                 truncated = False
                 break
         truncated_any = truncated_any or truncated
+        if not provider_failed:
+            successful_providers += 1
         refreshed.append(
             {
                 "provider": resolved.provider_name,
@@ -455,12 +474,21 @@ async def refresh_tokenized_assets(
             }
         )
     await db.commit()
+    status = (
+        "failed"
+        if failures and successful_providers == 0
+        else "partial"
+        if truncated_any or failures
+        else "refreshed"
+    )
     return {
-        "status": "partial" if truncated_any else "refreshed",
+        "status": status,
         "providers": refreshed,
         "assets": sum(item["assets"] for item in refreshed),
         "truncated": truncated_any,
         "complete": not truncated_any,
+        "failed": len(failures),
+        "failures": failures,
     }
 
 

@@ -395,6 +395,8 @@ async def test_refresh_tokenized_assets_reports_full_page_as_partial(
         "assets": 1,
         "truncated": True,
         "complete": False,
+        "failed": 0,
+        "failures": [],
     }
 
 
@@ -440,6 +442,74 @@ async def test_refresh_tokenized_assets_marks_short_page_complete(
             "complete": True,
         }
     ]
+    assert result["failed"] == 0
+    assert result["failures"] == []
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_assets_keeps_provider_failure_and_continues(
+    db, monkeypatch
+):
+    first_provider = SimpleNamespace(name="dinari")
+    second_provider = SimpleNamespace(name="robinhood_tokens")
+    record = TokenizedAssetRecord(
+        provider="robinhood_tokens",
+        asset_id="rh-aapl",
+        symbol="AAPLx",
+        name="Apple Stock Token",
+        raw_payload={},
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [
+            SimpleNamespace(provider_name="dinari", provider=first_provider),
+            SimpleNamespace(provider_name="robinhood_tokens", provider=second_provider),
+        ]
+
+    async def fake_execute(_db, _capability, operation, **_kwargs):
+        if operation.endswith(":0") and _kwargs.get("provider_name") == "dinari":
+            raise RuntimeError("provider unavailable https://api.example.test/?api_key=super-secret")
+        return SimpleNamespace(provider_name="robinhood_tokens", result=[record])
+
+    async def fake_upsert(_db, _record):
+        return None
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
+
+    result = await refresh_tokenized_assets(
+        AsyncSessionAdapter(db), max_pages=1, page_size=2
+    )
+
+    assert result["status"] == "partial"
+    assert result["assets"] == 1
+    assert result["failed"] == 1
+    assert result["failures"][0]["provider"] == "dinari"
+    assert result["failures"][0]["page"] == 0
+    assert "super-secret" not in result["failures"][0]["error"]
+    assert result["providers"][-1]["provider"] == "robinhood_tokens"
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_assets_reports_all_provider_failures(db, monkeypatch):
+    provider = SimpleNamespace(name="dinari")
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(*_args, **_kwargs):
+        raise RuntimeError("tokenized provider unavailable")
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    result = await refresh_tokenized_assets(AsyncSessionAdapter(db), max_pages=1, page_size=2)
+
+    assert result["status"] == "failed"
+    assert result["assets"] == 0
+    assert result["failed"] == 1
+    assert result["complete"] is False
 
 
 @pytest.mark.asyncio
