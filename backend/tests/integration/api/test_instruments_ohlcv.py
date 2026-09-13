@@ -171,6 +171,30 @@ class TestInstruments:
         assert res.status_code == 200
         provider_profile.assert_not_called()
 
+    @patch("app.routers.instruments.fetch_ohlcv_latest")
+    def test_heatmap_uses_local_coverage_and_does_not_fan_out_to_provider(
+        self, fetch_latest, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Broad heatmap evaluation must defer cold/short history to refresh workers."""
+        fetch_latest.side_effect = AssertionError(
+            "heatmap evaluation must not make provider calls"
+        )
+        response = client.post(
+            "/api/v1/instruments/heatmap-data",
+            json={
+                "instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "include_sparklines": True,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        row = response.json()[0]
+        assert row["current_price"] is None
+        assert row["coverage_preflight"]["daily"]["status"] in {"missing", "partial"}
+        assert row["coverage_preflight"]["daily"]["bar_count"] < 252
+        fetch_latest.assert_not_called()
+
     def test_get_instrument_by_id(self, client, auth_headers, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.id}", headers=auth_headers)
         assert res.status_code in (200, 404)  # depends on router implementation
