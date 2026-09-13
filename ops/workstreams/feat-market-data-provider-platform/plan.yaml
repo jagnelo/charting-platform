@@ -1122,7 +1122,7 @@ progress:
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
-    The latest local matrix collects 46 cases and remains 40/46: newly supplied
+    The latest local matrix collects 47 cases and remains 41/47: newly supplied
     local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
     Sandbox probes, including the MarketData.app expirations/option-chain
     surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.
