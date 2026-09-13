@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Correct SLYG SEC identity and legacy fallback safety
+
+Product commit `c7d84436f` corrects SLYG's SEC series/class route to
+`S000006990` / `C000019043` and applies curated identity matching to legacy
+SEC holdings as well as N-PORT. Exact identities use a bounded 400-filing
+search because SEC submissions are registrant-wide; the corrected SLYG
+2025-12-31 filing is reachable and an unrelated legacy fallback is rejected.
+Focused coverage passed `535/535`; full backend units passed `1534/1534`; Ruff,
+format, workstream, and diff checks passed; live SLYG passed `1/1` and the
+selected SPDR family passed `9/9`. No provider fallback policy was broadened,
+and no visual, migration, or acceptance policy changed. R1 provider/history
+population, D1/W1/MN floors and continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Dock activation robustness and exact gate receipt
 
 Product commit `c9e3819c4` extends the bounded Golden Layout activation wait

@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Correct SLYG SEC class route
+
+Product commit `c7d84436f` corrects SLYG's curated SEC series/class identity
+to `S000006990` / `C000019043` and makes identity-constrained SEC fallback
+reject parseable legacy filings whose fund identity does not match. The
+bounded identity search reaches 400 registrant-wide filings so the dated
+2025-12-31 SLYG N-PORT filing is reachable. Focused coverage passed `535/535`,
+full backend units passed `1534/1534`, and the corrected SLYG plus selected
+SPDR live routes passed `1/1` and `9/9`. No fallback, visual, threshold, skip,
+migration, or acceptance rule changed. This closes one R1 lineage seam only;
+provider population, history breadth, D1/W1/MN floors, continuity, and the
+remaining Version 25 gates remain required.
+
 ## 2026-09-13 — Dock activation robustness and exact gate receipt
 
 Product commit `c9e3819c4` raises the bounded Golden Layout activation wait to

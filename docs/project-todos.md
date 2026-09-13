@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-13 — Correct SLYG SEC class route
+
+- [x] Correct SLYG's curated SEC series/class identity to
+      `S000006990` / `C000019043` and apply curated identity checks to legacy
+      SEC holdings, with a bounded 400-filing search for exact identities
+      (`c7d84436f`).
+- [x] Focused adapter/taxonomy/SEC coverage passed `535/535`; full backend
+      units passed `1534/1534`; Ruff, format, workstream, and diff checks
+      passed; corrected SLYG live route passed `1/1` and selected SPDR routes
+      passed `9/9`.
+- [ ] Rerun the exact branch-scoped gate at this provider tip and continue
+      canonical provider population/history, D1/W1/MN floors/continuity, and
+      AC2–AC7/AC10.
+
 ### 2026-09-13 — Dock activation wait and exact gate
 
 - [x] Extend the bounded Golden Layout tool activation wait to cover cold

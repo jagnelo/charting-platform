@@ -13,13 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest exact-tip full_stack_browser gate at product tip d0bdba6d1 completed
-  all repository, dependency, backend, research-runner, functional browser,
-  and visual stages. It passed 165 functional cases (107 documented skips) and
-  98/104 visual assertions; the only failures are the six unchanged protected
-  watchlist-column-editor/workspace-floating baselines. Docker resources were
-  cleaned. Provider population/history, bar floors, and AC2–AC7/AC10 remain
-  open; no visual, provider, fallback, migration, or acceptance policy changed.
+  Product commit c7d84436f corrects SLYG's curated SEC series/class identity
+  to S000006990/C000019043 and applies the same identity gate to legacy
+  holdings documents. Exact identity searches use a bounded 400-filing window;
+  focused coverage passed 535/535, full backend units passed 1534/1534, and
+  corrected SLYG plus selected SPDR live routes passed 1/1 and 9/9. The last
+  exact-tip gate remains the c9e3819c4/b0581276 receipt below.
+  Latest exact-tip full_stack_browser gate at product tip c9e3819c4 and
+  documentation tip b0581276e completed all repository, dependency, backend,
+  research-runner, functional browser, and visual stages. It passed 165
+  functional cases (107 documented skips) and 98/104 visual assertions; the
+  only failures are the six unchanged protected watchlist-column-editor and
+  workspace-floating baselines. Docker resources were cleaned. Provider
+  population/history, bar floors, and AC2–AC7/AC10 remain open; no visual,
+  provider, fallback, migration, or acceptance policy changed.
   Historical receipts follow.
   Product commit 94f451e0 fences Market Map locked-source publication across
   its API write, source reload, source selection, and rerun by mounted
@@ -2922,8 +2929,19 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R6_market_map_locked_source_publication_and_r7_exact_tip_gate
+  current_phase: R1_spdr_slyg_sec_identity_guard
   current_blocker: >-
+    Product commit c7d84436f corrects SLYG's curated SEC series/class identity
+    to S000006990/C000019043 and applies the same identity gate to legacy
+    holdings documents; exact identity searches use a bounded 400-filing
+    window. Focused coverage passed 535/535, full backend units passed
+    1534/1534, and corrected SLYG plus selected SPDR live routes passed 1/1
+    and 9/9. The prior exact-tip gate remains the c9e3819c4/b0581276 receipt
+    below with 165 functional passes, 107 documented skips, and 98/104 visual
+    passes plus the six unchanged protected diffs. Provider population/history,
+    bar floors, and AC2–AC7/AC10 remain open; no visual, provider, fallback,
+    migration, or acceptance policy changed.
+    Historical receipts follow.
     Product commit 94f451e0 fences Market Map locked-source publication across
     its API write, source reload, source selection, and rerun by mounted
     publication generation; focused Market Map coverage passed 49/49 and full
@@ -4042,7 +4060,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded provider/history or compatible R4/R2-R7 seam from product tip 94f451e0; rerun the exact gate when Docker is responsive and preserve the six visual state-oracle assertions plus unchanged visual/provider fallback policy."
+  next_action: "Rerun the exact branch-scoped gate at product tip c7d84436f and continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

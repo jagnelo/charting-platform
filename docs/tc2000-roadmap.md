@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Correct SLYG SEC identity and fail closed on curated routes
+
+Product commit `c7d84436f` corrects SLYG's curated SEC identity to series
+`S000006990` / class `C000019043`, matching the SEC filing for the State
+Street SPDR S&P 600 Small Cap Growth ETF. Identity-constrained SEC searches
+now use a bounded 400-filing window and apply the same series/class/ticker
+check to legacy holdings documents, preventing an unrelated parseable filing
+from being accepted. Focused adapter/taxonomy/SEC coverage passed `535/535`,
+the full backend unit suite passed `1534/1534` with 34 dependency warnings,
+Ruff/format/workstream/diff checks passed, the corrected SLYG live route passed
+`1/1`, and the selected SPDR family live routes passed `9/9`. No fallback,
+visual, migration, or acceptance policy changed. R1 provider population,
+broader history, D1/W1/MN floors and continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Harden dock activation and rerun the exact gate
 
 Product commit `c9e3819c4` extends the bounded Golden Layout activation wait
