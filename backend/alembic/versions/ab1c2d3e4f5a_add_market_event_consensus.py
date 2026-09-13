@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "a1b2c3d4e5f6"
+revision: str = "ab1c2d3e4f5a"
 down_revision: str | None = "a0b1c2d3e4f5"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -92,4 +92,3 @@ def downgrade() -> None:
     ):
         op.drop_index(name, table_name="market_event_consensus")
     op.drop_table("market_event_consensus")
-
