@@ -38,6 +38,7 @@ def _bar(instrument_id: int, timeframe: Timeframe, ts: datetime, close: float):
         low=close,
         close=close,
         volume=1,
+        is_adjusted=True,
     )
 
 
@@ -66,6 +67,46 @@ def test_required_condition_timeframes_collects_nested_dependencies():
     )
 
     assert required == {Timeframe.H4, Timeframe.D1, Timeframe.W1}
+
+
+def test_required_condition_bars_honors_indicator_and_lookback_dependencies():
+    required = screener_engine._required_condition_bars(
+        {
+            "operator": "AND",
+            "conditions": [
+                {"type": "indicator_threshold", "indicator": "rsi", "params": {"period": 14}},
+                {"type": "price_change", "lookback_bars": 30},
+                {"type": "performance", "period": "1M"},
+            ],
+        },
+        Timeframe.H4,
+    )
+
+    assert required[Timeframe.H4] == 31
+    assert required[Timeframe.D1] == 2
+
+
+@pytest.mark.asyncio
+async def test_shared_preflight_withholds_indicator_snapshot_below_required_history():
+    screener = SimpleNamespace(
+        id=42,
+        conditions={
+            "type": "indicator_threshold",
+            "indicator": "rsi",
+            "params": {"period": 14},
+        },
+        timeframe=Timeframe.D1,
+    )
+    ts = datetime(2026, 1, 1, tzinfo=UTC)
+    raw = {1: {Timeframe.D1: [_bar(1, Timeframe.D1, ts, 10), _bar(1, Timeframe.D1, ts + timedelta(days=1), 11)]}}
+
+    coverage, summary = await screener_engine._preflight_screener_coverage(
+        object(), screener, [1], {Timeframe.D1}, raw
+    )
+
+    assert coverage[1][Timeframe.D1].status.value == "partial"
+    assert summary["D1"]["required_bars"] == 15
+    assert summary["D1"]["ready_count"] == 0
 
 
 @pytest.mark.asyncio

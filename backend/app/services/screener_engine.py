@@ -31,7 +31,13 @@ from app.models.research import CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.watchlist import Watchlist, WatchlistItem
-from app.services.indicators import OHLCVSeries, compute_indicator, normalize_indicator_params
+from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
+from app.services.indicators import (
+    OHLCVSeries,
+    compute_indicator,
+    normalize_indicator_params,
+    required_bars_for_indicator,
+)
 from app.services.research_jobs import collect_research_result, enqueue_research_run
 
 GRACE_PERIOD_DAYS = 7
@@ -97,6 +103,66 @@ def _required_condition_timeframes(
     return required
 
 
+def _required_condition_bars(
+    condition: dict | None,
+    primary_timeframe: Timeframe,
+) -> dict[Timeframe, int]:
+    """Return the readiness floor for every timeframe a condition consumes.
+
+    This mirrors the screener evaluator's actual dependency contract.  It is
+    intentionally a conservative minimum: indicator implementations still
+    decide whether their latest values are finite, while the shared preflight
+    blocks obviously under-sized snapshots before evaluation begins.
+    """
+
+    required = {primary_timeframe: 2}
+    if not isinstance(condition, dict):
+        return required
+
+    for child in condition.get("conditions", []) or []:
+        if not isinstance(child, dict):
+            continue
+        for timeframe, minimum in _required_condition_bars(child, primary_timeframe).items():
+            required[timeframe] = max(required.get(timeframe, 0), minimum)
+
+    condition_type = condition.get("type")
+    if condition_type in {"indicator_threshold", "price_indicator"}:
+        indicator_type = condition.get("indicator")
+        if isinstance(indicator_type, str):
+            required[primary_timeframe] = max(
+                required[primary_timeframe],
+                required_bars_for_indicator(indicator_type, condition.get("params", {})),
+            )
+    elif condition_type == "indicator_cross":
+        for key in ("indicator_a", "indicator_b"):
+            definition = condition.get(key)
+            if not isinstance(definition, dict) or not isinstance(definition.get("type"), str):
+                continue
+            required[primary_timeframe] = max(
+                required[primary_timeframe],
+                required_bars_for_indicator(
+                    definition["type"], definition.get("params", {})
+                ),
+            )
+    elif condition_type == "price_change":
+        try:
+            lookback = max(1, int(condition.get("lookback_bars", 1)))
+        except (TypeError, ValueError):
+            lookback = 1
+        required[primary_timeframe] = max(required[primary_timeframe], lookback + 1)
+    elif condition_type == "performance":
+        required[Timeframe.D1] = max(required.get(Timeframe.D1, 0), 2)
+    elif condition_type in {
+        "week52_new_high",
+        "week52_new_low",
+        "pct_from_52w_high",
+        "pct_from_52w_low",
+    }:
+        required[Timeframe.W1] = max(required.get(Timeframe.W1, 0), 2)
+
+    return required
+
+
 def _coverage_missing_message(
     missing_timeframes: list[Timeframe],
     primary_timeframe: Timeframe,
@@ -118,8 +184,22 @@ async def _load_bars_by_instrument(
 ) -> dict[int, dict[Timeframe, OHLCVSeries]]:
     """Load each required instrument/timeframe snapshot in one indexed query."""
 
+    grouped, _raw = await _load_bars_and_rows_by_instrument(db, instrument_ids, timeframes)
+    return grouped
+
+
+async def _load_bars_and_rows_by_instrument(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframes: set[Timeframe],
+) -> tuple[
+    dict[int, dict[Timeframe, OHLCVSeries]],
+    dict[int, dict[Timeframe, list[OHLCVBar]]],
+]:
+    """Load evaluator snapshots once, retaining raw rows for shared preflight."""
+
     if not instrument_ids or not timeframes:
-        return {}
+        return {}, {}
 
     ranked = (
         select(
@@ -153,13 +233,79 @@ async def _load_bars_by_instrument(
     grouped: dict[int, dict[Timeframe, list[OHLCVBar]]] = {}
     for row in rows:
         grouped.setdefault(row.instrument_id, {}).setdefault(row.timeframe, []).append(row)
-    return {
+    series = {
         instrument_id: {
             timeframe: OHLCVSeries.from_orm_bars(bars)
             for timeframe, bars in timeframe_rows.items()
         }
         for instrument_id, timeframe_rows in grouped.items()
     }
+    return series, grouped
+
+
+async def _preflight_screener_coverage(
+    db: AsyncSession,
+    screener: ScreenerDefinition,
+    instrument_ids: list[int],
+    required_timeframes: set[Timeframe],
+    raw_bars_by_instrument: dict[int, dict[Timeframe, list[OHLCVBar]]],
+) -> tuple[
+    dict[int, dict[Timeframe, EvaluatorCoverageItem]],
+    dict[str, dict[str, int | str]],
+]:
+    """Apply the shared local-coverage contract to one screener snapshot."""
+
+    required_bars = _required_condition_bars(screener.conditions, screener.timeframe)
+    items_by_instrument: dict[int, dict[Timeframe, EvaluatorCoverageItem]] = {
+        instrument_id: {} for instrument_id in instrument_ids
+    }
+    summary: dict[str, dict[str, int | str]] = {}
+
+    for timeframe in sorted(required_timeframes, key=lambda value: value.value):
+        preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"screener:{screener.id}",
+            instrument_ids=instrument_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=None,
+            mode="historical",
+            queue_repairs=False,
+            cached_bars={
+                instrument_id: raw_bars_by_instrument.get(instrument_id, {}).get(timeframe, [])
+                for instrument_id in instrument_ids
+            },
+            minimum_bars=required_bars.get(timeframe, 2),
+        )
+        for item in preflight.items:
+            items_by_instrument.setdefault(item.instrument_id, {})[timeframe] = item
+        summary[timeframe.value] = {
+            "status": preflight.status,
+            "required_bars": required_bars.get(timeframe, 2),
+            "ready_count": len(preflight.ready_instrument_ids),
+            "universe_count": len(instrument_ids),
+        }
+    return items_by_instrument, summary
+
+
+def _screener_coverage_message(
+    item: EvaluatorCoverageItem | None,
+    required_bars: int,
+    missing_timeframes: list[Timeframe],
+    primary_timeframe: Timeframe,
+) -> str:
+    """Preserve the legacy cold-snapshot message while exposing richer gaps."""
+
+    bar_count = int(getattr(item, "bar_count", 0))
+    if bar_count < required_bars:
+        if required_bars == 2:
+            return _coverage_missing_message(missing_timeframes, primary_timeframe)
+        return (
+            f"Only {bar_count} canonical local bars are available; at least "
+            f"{required_bars} are required by this screener."
+        )
+    explanation = getattr(item, "explanation", None)
+    return str(explanation or _coverage_missing_message(missing_timeframes, primary_timeframe))
 
 
 async def _get_cached_indicator(
@@ -959,11 +1105,19 @@ async def run_screener(
             screener.conditions,
             screener.timeframe,
         )
-        bars_by_instrument = await _load_bars_by_instrument(
+        bars_by_instrument, raw_bars_by_instrument = await _load_bars_and_rows_by_instrument(
             db,
             instrument_ids,
             required_timeframes,
         )
+        coverage_by_instrument, coverage_summary = await _preflight_screener_coverage(
+            db,
+            screener,
+            instrument_ids,
+            required_timeframes,
+            raw_bars_by_instrument,
+        )
+        required_bars = _required_condition_bars(screener.conditions, screener.timeframe)
 
         for inst_id in instrument_ids:
             inst = instruments.get(inst_id)
@@ -979,15 +1133,20 @@ async def run_screener(
                     (
                         timeframe
                         for timeframe in required_timeframes
-                        if len(series_by_timeframe.get(timeframe, OHLCVSeries.from_orm_bars([])).closes)
-                        < 2
+                        if coverage_by_instrument.get(inst_id, {}).get(timeframe) is None
+                        or coverage_by_instrument[inst_id][timeframe].status.value != "ready"
                     ),
                     key=lambda timeframe: timeframe.value,
                 )
                 if missing_timeframes:
+                    first_missing = coverage_by_instrument.get(inst_id, {}).get(
+                        missing_timeframes[0]
+                    )
                     excluded[str(inst_id)] = {
                         "code": "coverage_missing_ohlcv",
-                        "message": _coverage_missing_message(
+                        "message": _screener_coverage_message(
+                            first_missing,
+                            required_bars.get(missing_timeframes[0], 2),
                             missing_timeframes,
                             screener.timeframe,
                         ),
@@ -1012,6 +1171,7 @@ async def run_screener(
             "universe_count": len(instrument_ids),
             "evaluated_count": len(instrument_ids) - len(excluded),
             "excluded": excluded,
+            "preflight": coverage_summary,
         }
 
         # Flush cache writes
@@ -1283,11 +1443,19 @@ async def stream_screener(
         screener.conditions,
         screener.timeframe,
     )
-    bars_by_instrument = await _load_bars_by_instrument(
+    bars_by_instrument, raw_bars_by_instrument = await _load_bars_and_rows_by_instrument(
         db,
         instrument_ids,
         required_timeframes,
     )
+    coverage_by_instrument, coverage_summary = await _preflight_screener_coverage(
+        db,
+        screener,
+        instrument_ids,
+        required_timeframes,
+        raw_bars_by_instrument,
+    )
+    required_bars = _required_condition_bars(screener.conditions, screener.timeframe)
 
     evaluated = 0
     matched = 0
@@ -1311,15 +1479,18 @@ async def stream_screener(
                 (
                     timeframe
                     for timeframe in required_timeframes
-                    if len(series_by_timeframe.get(timeframe, OHLCVSeries.from_orm_bars([])).closes)
-                    < 2
+                    if coverage_by_instrument.get(inst_id, {}).get(timeframe) is None
+                    or coverage_by_instrument[inst_id][timeframe].status.value != "ready"
                 ),
                 key=lambda timeframe: timeframe.value,
             )
             if missing_timeframes:
+                first_missing = coverage_by_instrument.get(inst_id, {}).get(missing_timeframes[0])
                 excluded[str(inst_id)] = {
                     "code": "coverage_missing_ohlcv",
-                    "message": _coverage_missing_message(
+                    "message": _screener_coverage_message(
+                        first_missing,
+                        required_bars.get(missing_timeframes[0], 2),
                         missing_timeframes,
                         screener.timeframe,
                     ),
@@ -1364,6 +1535,7 @@ async def stream_screener(
         "universe_count": total,
         "evaluated_count": total - len(excluded),
         "excluded": excluded,
+        "preflight": coverage_summary,
     }
     result_data["_coverage"] = coverage
 
