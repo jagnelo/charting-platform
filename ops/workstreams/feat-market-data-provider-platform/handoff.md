@@ -2013,3 +2013,10 @@ Update this handoff at each coherent boundary.
   This is transport/schema evidence only. MarketData.app entitlement/expiry/
   option-bound review, Dinari commercial/quota/redistribution review, and the
   other provider-specific safety controls remain fail-closed.
+
+- A bounded MarketData.app account-usage read on 2026-09-13 returned the
+  non-secret native observation `limit=10000`, `remaining=10000`, `consumed=0`,
+  reset `2026-09-14T13:30:00Z`, and `OPRA data delayed 15 minutes`. The
+  response did not identify the commercial/trial plan or expiry. This is
+  observational evidence only; the conservative plan/expiry/option-chain
+  routing gates remain unchanged.
