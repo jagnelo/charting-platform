@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Cyber Hornet holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to Cyber Hornet's
+      BBB, EEE, SSS, and XXX issuer-page declared full holdings CSV routes.
+      Verify issuer download linkage, current dated holdings disclosure, exact
+      CSV schema, and non-empty rows; keep generic labels fail-closed with no
+      fallback.
+- [x] Product commit `e0cc62996`; focused Cyber Hornet assertion passed `1/1`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected research-runner
+      probes, and functional E2E `165 passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks, or
+      testcontainer sessions. No generic provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Dividend Assets holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Dividend Assets
