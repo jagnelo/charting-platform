@@ -1689,7 +1689,7 @@ progress:
       Ruff, compileall, and diff checks pass, and the authoritative
       Docker-backed backend unit/integration gate passes `2,431/2,431` at
       `81.45%` coverage with 89 warnings using cleaned testcontainer session
-      `e2c12b5-2754-4fb0-8398-c756ed334c8e`. Source checkpoint `236b00840`
+      `e2ec12b5-2754-4fb0-8398-c756ed334c8e`. Source checkpoint `236b00840`
       contains no provider calls, credentials, frontend, or ETF-provider
       adapter changes. Complete/global SEC and OTC reconciliation still needs
       its approved authoritative security-master source and terms/polling/
