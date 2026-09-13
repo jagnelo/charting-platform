@@ -5617,6 +5617,17 @@ async def group_snapshot(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_snapshot",
+        instrument_ids=all_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     benchmark_bars = (
         {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
         if benchmark_instrument
@@ -5782,6 +5793,7 @@ async def group_snapshot(
         universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -5822,6 +5834,20 @@ async def group_breadth(
         set()
         if requested_as_of is not None
         else await _stale_instrument_ids(db, member_ids, timeframe, adjusted)
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_breadth",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=requested_as_of,
+        adjusted=adjusted,
+        cached_bars={
+            instrument_id: ([] if instrument_id in stale_ids else bars)
+            for instrument_id, bars in bars_by_id.items()
+        },
+        minimum_bars=252,
     )
     missing_ids = {instrument_id for instrument_id in member_ids if not bars_by_id.get(instrument_id)}
     counts = {20: 0, 50: 0, 200: 0}
@@ -5947,6 +5973,7 @@ async def group_breadth(
         as_of=latest_as_of,
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, requested_as_of),
+        coverage_preflight=coverage_preflight.to_dict(),
         freshness=freshness,
         freshness_detail=freshness_detail,
         coverage=sum(
@@ -6024,6 +6051,17 @@ async def group_breadth_history(
         ),
         as_of,
     )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_breadth_history",
+        instrument_ids=[member.instrument_id for member in members],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=200,
+    )
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         if not bars:
@@ -6067,6 +6105,7 @@ async def group_breadth_history(
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
+        coverage_preflight=coverage_preflight.to_dict(),
         freshness=freshness,
         freshness_detail=freshness_detail,
         points=points,

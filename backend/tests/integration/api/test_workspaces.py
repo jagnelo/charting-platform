@@ -2434,6 +2434,8 @@ class TestWorkspaces:
         assert cells["2026"]["value"] == 0.1
         assert cells["2023"]["value"] is None
         assert cells["2023"]["warning"]["code"] == "no_calendar_year_bars"
+        assert response.json()["coverage_preflight"]["evaluator"] == "group_snapshot"
+        assert response.json()["coverage_preflight"]["status"] == "deferred"
 
     def test_historical_breadth_uses_only_each_constituents_available_bar_dates(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -2627,6 +2629,7 @@ class TestWorkspaces:
             "uptrend",
             "downtrend",
         } <= set(next(iter(member_metrics.values())))
+        assert breadth_payload["coverage_preflight"]["evaluator"] == "group_breadth"
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
@@ -2635,6 +2638,7 @@ class TestWorkspaces:
         )
         assert history.status_code == 200
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
+        assert history.json()["coverage_preflight"]["evaluator"] == "group_breadth_history"
 
     def test_current_breadth_excludes_expired_ohlcv_members(self, client, auth_headers, db, instrument, ohlcv_bars):
         from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
