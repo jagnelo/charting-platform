@@ -1105,3 +1105,14 @@ testcontainer session `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider
 calls, credentials, or response payloads were persisted. The live matrix and
 all provider/legal, CI/deployment, reconciliation, migration, and shadow
 gates remain unchanged and non-accepted.
+
+On 2026-09-13, the current-source lock-protected matrix was rerun after the
+Dinari host-scoped retry change. It collected 47 cases and passed 41. The
+three Alpha Vantage event/earnings cases returned typed documented capacity
+responses; Tradier, IBKR, and Ondo remained exact missing-credential
+preflights. The routing safety preflight continued to enumerate the specific
+unreviewed controls for Alpaca corporate actions, FINRA async/OTC, FRED,
+Nasdaq, xStocks, Bybit, Marketstack discovery, MarketData.app, Tiingo, and
+FMP. Exit code 2 is intentional for this incomplete matrix and no acceptance
+claim was made; aggregate usage remained outside Git and no credentials or
+payloads were persisted.

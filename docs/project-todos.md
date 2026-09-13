@@ -16800,6 +16800,19 @@ The current source also passes the focused authenticated top-down browser slice 
       CI/deployment, universe-reconciliation, migration-compatibility, and
       shadow gates.
 
+### 2026-09-13 — Current-source provider live matrix
+
+- [x] Rerun the lock-protected manifest-driven live matrix against the current
+      source and existing owner-managed credentials. It collected `47` cases
+      and passed `41`; the three Alpha Vantage event/earnings cases returned
+      typed documented capacity responses, while Tradier, IBKR, and Ondo
+      remained exact missing-credential preflights. The routing safety report
+      continued to enumerate the specific unreviewed controls for Alpaca
+      corporate actions, FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit,
+      Marketstack discovery, MarketData.app, Tiingo, and FMP. Exit code `2`
+      made no acceptance claim; aggregate usage stayed outside Git and no
+      credentials or payloads entered Git.
+
 ### 2026-09-13 — Dinari Sandbox-only retry boundary
 
 - [x] Scope Dinari's bounded HTTP 500 recovery to hosts ending in

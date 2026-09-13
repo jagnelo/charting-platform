@@ -1689,6 +1689,16 @@ Update this handoff at each coherent boundary.
   shadow gates remain open; the parallel `feat/etf-holdings-constituents`
   branch still owns ETF provider adapters and must reconcile only at staging.
 
+- The current-source lock-protected provider matrix was rerun after
+  `ac114ced3`: 47 cases collected and 41 passed. The three Alpha Vantage
+  event/earnings reads returned typed documented capacity responses; Tradier,
+  IBKR, and Ondo remained exact missing-credential preflights. Routing safety
+  continued to enumerate the specific unreviewed controls for Alpaca
+  corporate actions, FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit,
+  Marketstack discovery, MarketData.app, Tiingo, and FMP. Exit code 2 made no
+  acceptance claim; aggregate usage remained outside Git and no credentials or
+  payloads entered Git.
+
 - Source checkpoint `ac114ced3` scopes Dinari's bounded HTTP 500 recovery to
   hosts ending in `.sandbox.dinari.com`; the documented production host now
   fails fast until production-specific evidence supports another policy. The
