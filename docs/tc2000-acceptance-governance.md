@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Morgan Stanley holdings completeness receipt
+
+Commit `d50362dfe` adds explicit `completeness_status: complete` only to
+Morgan Stanley's MSLC official product-page-linked current XLSX route. It
+verifies the official product page and workbook linkage, fund identity, exact
+schema and identifiers, dated holdings metadata, and non-empty rows; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1544/1544`, integration `405/405`, frontend Vitest `1067/1067`, type-check/
+build, compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. The provider-probe stage was
+skipped because this change was not classified as provider-related. Docker
+resources were cleaned with no retained containers, volumes, networks, or
+testcontainer sessions. No generic provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified Golden Eagle holdings completeness receipt
 
 Commit `9b793f88e` adds explicit `completeness_status: complete` only to

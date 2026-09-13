@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Morgan Stanley holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to Morgan Stanley's
+      MSLC official product-page-linked current XLSX route. Verify official
+      product page/workbook linkage, expected fund identity, exact workbook
+      schema and security identifiers, dated holdings metadata, and non-empty
+      rows; keep generic labels fail-closed with no fallback.
+- [x] Product commit `d50362dfe`; focused Morgan Stanley assertions passed
+      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
+      units `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected research-runner
+      probes, and functional E2E `165 passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). The
+      provider-probe stage was skipped because this change was not classified
+      as provider-related. Docker resources were cleaned with no retained
+      containers, volumes, networks, or testcontainer sessions. No generic
+      provider/fallback, migration, visual, threshold, mask, skip, or
+      acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Golden Eagle holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Golden Eagle's HYP
