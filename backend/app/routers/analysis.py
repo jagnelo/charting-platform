@@ -3582,6 +3582,16 @@ async def benchmark_family_ratios(
                 },
             )
     if not selected_mappings and batch_requested:
+        coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator="benchmark_family_ratios",
+            instrument_ids=[],
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            minimum_bars=1,
+        )
         members = _group_members_at(group, as_of)
         return BenchmarkFamilyRatiosOut(
             family_key=family_key,
@@ -3596,6 +3606,7 @@ async def benchmark_family_ratios(
                 "market_benchmark": market_benchmark.upper() if market_benchmark else None,
                 "ratio_semantics": "aligned_close_ratio_without_forward_fill",
             },
+            coverage_preflight=coverage_preflight.to_dict(),
             ratios=[],
             exclusions=exclusions,
             freshness="unavailable",
@@ -3676,6 +3687,17 @@ async def benchmark_family_ratios(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_ratios",
+        instrument_ids=[instrument.id for instrument in instruments.values()],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=1,
+    )
 
     def ratio_result(
         *,
@@ -3804,6 +3826,7 @@ async def benchmark_family_ratios(
             "market_benchmark": market_benchmark.upper() if market_benchmark else None,
             "ratio_semantics": "aligned_close_ratio_without_forward_fill",
         },
+        coverage_preflight=coverage_preflight.to_dict(),
         ratios=ratios,
         exclusions=exclusions,
         freshness=(

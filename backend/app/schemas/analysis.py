@@ -447,6 +447,7 @@ class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     ratios: list[BenchmarkFamilyRatioOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

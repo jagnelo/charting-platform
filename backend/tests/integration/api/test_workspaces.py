@@ -1253,6 +1253,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "benchmark_family_ratios"
+        assert payload["coverage_preflight"]["status"] == "full"
         assert payload["universe_provenance"]["ratio_semantics"] == (
             "aligned_close_ratio_without_forward_fill"
         )
@@ -1302,6 +1304,7 @@ class TestWorkspaces:
         assert stale_response.status_code == 200, stale_response.text
         stale_payload = stale_response.json()
         assert stale_payload["freshness"] == "stale"
+        assert stale_payload["coverage_preflight"]["status"] == "partial"
         assert all(item["points"] == [] for item in stale_payload["ratios"])
         assert all(item["warnings"][0]["code"] == "stale_data" for item in stale_payload["ratios"])
 
