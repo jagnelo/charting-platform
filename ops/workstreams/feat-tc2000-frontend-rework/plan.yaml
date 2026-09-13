@@ -13,23 +13,41 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest product commit `2c9444ab0` adds explicit `completeness_status:
-  complete` to the Concourse CCFE result. Its adapter verifies the official
-  product-page identity, exact holdings-table schema, effective date, and at
-  least ten rows; generic current/daily/table quality labels remain
-  fail-closed as `unknown` for completeness. Focused Concourse coverage passed
-  1/1, Ruff/format/diff checks passed, and full backend units passed 1544/1544.
-  The exact branch-scoped gate passed backend unit 1544/1544, integration
-  405/405, frontend Vitest 1067/1067, type-check/build, compose/deployment
-  contracts, expected research-runner sandbox/resource probes, and functional
-  E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the six unchanged
+  Latest product commit `ba9f9a6eb` adds explicit `completeness_status:
+  complete` to the Distribution Cognizant VOXP result. Its adapter verifies
+  the account-scoped CSV, required holdings schema, symbol/account filter,
+  dated snapshot, and at least ten rows; generic current/daily/table quality
+  labels remain fail-closed as `unknown` for completeness. Focused
+  Concourse/Distribution adapter assertions passed 2/2, Ruff/format/diff
+  checks passed, and full backend units passed 1544/1544. The exact
+  branch-scoped gate passed backend unit 1544/1544, integration 405/405,
+  frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
+  expected research-runner sandbox/resource probes, and functional E2E 165
+  passed with 107 skipped. Visual E2E passed 98/104; the six unchanged
   protected diffs remain: watchlist-column-editor at visual-1080p-100/125 and
   workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. Provider
   probes were skipped because no provider-related changes were detected;
-  branch-scoped Docker resources were cleaned. No provider/fallback, migration,
-  visual, threshold, mask, skip, or acceptance policy changed. Continue R1
-  family-wide canonical population/history, D1/W1/MN floors, rebalance
-  continuity, and AC2–AC7/AC10.
+  branch-scoped Docker resources were cleaned. No provider/fallback,
+  migration, visual, threshold, mask, skip, or acceptance policy changed.
+  Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+  rebalance continuity, and AC2–AC7/AC10.
+  Previous product commit `2c9444ab0` adds explicit `completeness_status:
+  complete` to the Concourse CCFE result. Its adapter verifies the official
+  product-page identity, exact holdings-table schema, effective date, and at
+  least ten rows; generic current/daily/table quality labels remain
+  fail-closed as `unknown` for completeness. Focused Concourse coverage
+  passed 1/1, Ruff/format/diff checks passed, and full backend units passed
+  1544/1544. The exact branch-scoped gate passed backend unit 1544/1544,
+  integration 405/405, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner sandbox/resource
+  probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+  98/104; the six unchanged protected diffs remain: watchlist-column-editor at
+  visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+  visual-1440p-100/125. Provider probes were skipped because no
+  provider-related changes were detected; branch-scoped Docker resources were
+  cleaned. No provider/fallback, migration, visual, threshold, mask, skip, or
+  acceptance policy changed. Continue R1 family-wide canonical
+  population/history, D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
   Previous product commit `6287f6900` promotes the existing
   `issuer_page_declared_current_complete_holdings` evidence label for four
   issuer-linked workbook adapters: Little Harbor, Pettee/Hoya, Sound

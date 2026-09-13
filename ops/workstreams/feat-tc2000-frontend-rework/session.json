@@ -54,27 +54,18 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -114,14 +105,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ac34167b2b77bde350537a27563bffd4e680b1df",
+  "head": "ba9f9a6ebc5d524814c4f29bfdc6cbef49e6145c",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-13T09:58:32.021056+00:00",
-  "last_human_progress_update": "2026-09-13T09:57:46.112973+00:00",
+  "last_human_progress_update": "2026-09-13T10:29:32.198651+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "8f4d2d1c7a13967b7a74e03f06e68a0b023d2918be65fd36cf3096b1df3f02a2",
+  "plan_hash": "b4d8e2741a6e2261a02229f677d02f34bbe16f5c5c1d037bc220159e8476ac3b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,10 +126,10 @@
       "AC9"
     ],
     "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass; remote push remains intentionally held.",
-    "current_phase": "R1_verified_concourse_completeness",
+    "current_phase": "R1_verified_distribution_completeness",
     "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence and the six visual state-oracle assertions; rerun focused coverage and the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T09:57:46.112901+00:00"
+    "updated_at": "2026-09-13T10:29:32.197789+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

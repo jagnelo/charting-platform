@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified Distribution Cognizant completeness
+
+Product commit `ba9f9a6eb` closes a bounded R1 completeness seam for the
+Distribution Cognizant VOXP adapter. Its existing route verifies the
+account-scoped CSV, required holdings schema, symbol/account filter, dated
+snapshot, and a minimum ten-row composition before accepting the result. The
+result now carries explicit `completeness_status: complete`; the generic
+`issuer_reported_daily_holdings` quality label remains unchanged and no
+generic inference or fallback was introduced.
+
+Focused Concourse/Distribution adapter assertions passed `2/2`; Ruff/format/
+diff checks passed; full backend units passed `1544/1544`. The exact
+branch-scoped gate passed backend unit `1544/1544`, integration `405/405`,
+frontend Vitest `1067/1067`, type-check/build, compose/deployment contracts,
+expected research-runner sandbox/resource probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six
+protected watchlist-column-editor/workspace-floating diffs remain. Docker
+resources were cleaned. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain
+open.
+
 ## 2026-09-13 — Promote verified Concourse completeness
 
 Product commit `2c9444ab0` closes a narrow R1 completeness seam for the
