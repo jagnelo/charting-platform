@@ -1513,6 +1513,12 @@ class Settings(BaseSettings):
             "authentication_required": True,
             "usage_terms": "MarketData.app plan, credits, and licensing terms require explicit account review.",
             "history_depth": "Free-plan endpoint dependent",
+            "quota_policy": {
+                "history_constraints": {
+                    "max_lookback_years": 1,
+                    "source": "https://www.marketdata.app/docs/account/free-accounts/",
+                }
+            },
             "venue_coverage": "Provider-supported US equities and options",
             "freshness_semantics": "Plan-dependent delayed/current data",
         },

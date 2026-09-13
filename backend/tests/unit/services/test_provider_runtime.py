@@ -579,6 +579,7 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
     ).scalar_one()
 
     assert entitlement.configured_plan == "marketdata-starter-operator-reviewed"
+    assert entitlement.quota_policy["history_constraints"]["max_lookback_years"] == 1
     assert policy.quota_contract["dimensions"][0]["limit"] == 10000
     assert policy.quota_contract["dimensions"][0]["account_plan"] == "starter"
 

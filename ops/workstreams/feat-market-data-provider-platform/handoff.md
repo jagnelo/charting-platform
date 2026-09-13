@@ -2202,8 +2202,9 @@ changed.
   no routing entitlement was promoted.
 
 - History-depth admission is now provider-specific and machine-readable.
-  Massive (two calendar years), Marketstack (one calendar year), and EODHD
-  (one calendar year) publish structured
+  Massive (two calendar years), Marketstack (one calendar year), EODHD
+  (one calendar year), and MarketData.app Free/Trial plans (one calendar year)
+  publish structured
   `quota_policy.history_constraints` bounds. Normal bounded OHLCV fetches pass
   their requested start date through provider admission; missing, malformed,
   future, or exceeded bounds fail closed. Epoch-style bulk hydration remains
@@ -2212,4 +2213,14 @@ changed.
   checks passed, and the authoritative Docker-backed gate passed `2,482/2,482`
   at `81.71%` combined coverage with 89 warnings in isolated session
   `b440cc4a-6923-477b-9255-9af31292fc9f`. No frontend or ETF-provider adapter
+  files changed.
+
+- MarketData.app's official Free Forever and trial documentation now has a
+  structured one-calendar-year history bound in the entitlement seed. The
+  explicit reviewed-plan/expiry gate remains unchanged, so this adds
+  provider-specific date admission without promoting the currently unreviewed
+  account. Focused routing/runtime coverage remained `76/76`, and the
+  authoritative Docker-backed gate passed `2,482/2,482` at `81.71%` combined
+  coverage with 89 warnings in isolated session
+  `2308b1d1-4024-46b1-8f03-a4469ceab0b2`. No frontend or ETF-provider adapter
   files changed.
