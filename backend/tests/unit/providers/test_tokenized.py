@@ -384,6 +384,20 @@ def test_dinari_uuid_lookup_fails_closed_when_catalogue_has_more_pages():
     get.assert_called_once()
 
 
+def test_dinari_uuid_lookup_reuses_current_instance_catalogue_record(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    response = _response({"data": [stock], "pagination_metadata": {"next": None}})
+    provider = DinariTokenProvider()
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        discovered = provider.discover_tokenized_assets(page=0, page_size=25)
+        resolved = provider.get_tokenized_asset(stock["id"])
+    assert discovered[0].asset_id == stock["id"]
+    assert resolved is discovered[0]
+    get.assert_called_once()
+
+
 def test_dinari_corporate_actions_combine_symbol_scoped_dividends_and_splits(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
@@ -1004,6 +1018,33 @@ def test_tokenized_http_non_rate_status_is_typed_and_redacted():
     assert exc_info.value.provider_name == "xstocks"
     assert exc_info.value.status_code == 503
     assert "secret-token" not in str(exc_info.value)
+
+
+def test_dinari_sandbox_transient_500_uses_bounded_provider_specific_retry(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    stock = _dinari_stock()
+    failed = httpx.Response(
+        500,
+        request=httpx.Request("GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"),
+    )
+    recovered = _response({"data": [stock], "pagination_metadata": {"next": None}})
+    with patch("app.providers.tokenized.httpx.get", side_effect=[failed, recovered]) as get:
+        rows = DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert rows[0].asset_id == stock["id"]
+    assert get.call_count == 2
+
+
+def test_tokenized_http_non_rate_status_does_not_retry_other_providers():
+    response = httpx.Response(
+        500,
+        request=httpx.Request("GET", "https://api.xstocks.fi/api/v2/public/assets"),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        with pytest.raises(ProviderResponseError) as exc_info:
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.status_code == 500
+    get.assert_called_once()
 
 
 def test_tokenized_http_invalid_json_is_typed():

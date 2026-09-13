@@ -111,27 +111,40 @@ def _http_json(
     provider_name: str | None = None,
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
+    retry_server_errors: int = 0,
+    retry_delay_seconds: float = 0.25,
 ) -> Any:
-    try:
-        response = httpx.get(url, params=params, headers=headers, timeout=30)
-    except httpx.RequestError as exc:
-        raise ProviderResponseError(provider_name or url.split("/", 3)[2], str(exc)) from exc
-    observe_response(response)
-    try:
-        response.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        provider = provider_name or url.split("/", 3)[2]
-        safe_headers = _capacity_headers(response)
-        message = f"HTTP {response.status_code}: {exc}"
-        if response.status_code in {418, 429}:
-            raise ProviderRateLimitError(
-                provider,
-                message,
-                retry_at=_retry_at(safe_headers),
-                status_code=response.status_code,
-                headers=safe_headers,
-            ) from exc
-        raise ProviderResponseError(provider, message, status_code=response.status_code) from exc
+    attempts = max(0, min(int(retry_server_errors), 2))
+    for attempt in range(attempts + 1):
+        try:
+            response = httpx.get(url, params=params, headers=headers, timeout=30)
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(provider_name or url.split("/", 3)[2], str(exc)) from exc
+        observe_response(response)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Dinari's Sandbox has intermittently returned a bare 500 for
+            # otherwise valid read-only catalogue/market-data requests. The
+            # adapter opts into only two bounded retries for that provider;
+            # 4xx/rate-limit responses and all other adapters remain typed and
+            # fail immediately. Every attempt is still recorded by telemetry.
+            if response.status_code == 500 and attempt < attempts:
+                time.sleep(max(0.0, min(float(retry_delay_seconds) * (attempt + 1), 2.0)))
+                continue
+            provider = provider_name or url.split("/", 3)[2]
+            safe_headers = _capacity_headers(response)
+            message = f"HTTP {response.status_code}: {exc}"
+            if response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    provider,
+                    message,
+                    retry_at=_retry_at(safe_headers),
+                    status_code=response.status_code,
+                    headers=safe_headers,
+                ) from exc
+            raise ProviderResponseError(provider, message, status_code=response.status_code) from exc
+        break
     try:
         payload = response.json()
     except (TypeError, ValueError) as exc:
@@ -178,6 +191,24 @@ def _http_json_bounded_rate_retry(
             if delay <= 0:
                 delay = min(1.0 * (2**attempt), 5.0)
             time.sleep(min(delay, 5.0))
+
+
+def _dinari_json(
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> Any:
+    """Read Dinari with its bounded Sandbox 500 recovery policy."""
+
+    return _http_json(
+        url,
+        provider_name="dinari",
+        params=params,
+        headers=headers,
+        retry_server_errors=2,
+        retry_delay_seconds=0.25,
+    )
 
 
 def _retry_at(headers: dict[str, str]) -> datetime | None:
@@ -893,6 +924,15 @@ class DinariTokenProvider:
         self._stock_exhausted_pages: set[tuple[tuple[str, ...], int, int]] = set()
         self._stock_seen_cursors: dict[tuple[tuple[str, ...], int], set[str]] = {}
         self._stock_legacy_page_size: int | None = None
+        # UUID-based downstream reads (price, quote, history, news, and
+        # corporate actions) already receive the provider-native Stock ID in
+        # their path.  Keep only the validated records observed by this
+        # adapter instance so those reads do not re-enumerate the entire
+        # catalogue on every operation.  The cache is intentionally
+        # instance-scoped: a new provider instance still performs a fresh
+        # metadata lookup, so ticker/lifecycle changes are not hidden across
+        # runs or authenticated environments.
+        self._stock_records_by_id: dict[str, TokenizedAssetRecord] = {}
         self._split_cursors: dict[tuple[str, int, int], str] = {}
         self._split_exhausted_pages: set[tuple[str, int, int]] = set()
         self._split_seen_cursors: dict[tuple[str, int], set[str]] = {}
@@ -983,9 +1023,8 @@ class DinariTokenProvider:
                 params = {"limit": limit, "order": "asc"}
         if normalized_symbols:
             params["symbols"] = list(normalized_symbols)
-        payload = _http_json(
+        payload = _dinari_json(
             f"{self._base_url()}/market_data/stocks/",
-            provider_name=self.name,
             params=params,
             headers=self._headers(),
         )
@@ -1048,7 +1087,7 @@ class DinariTokenProvider:
         ):
             raise ProviderResponseError(self.name, "provider returned an incomplete Stock record")
         network, chain_id, address = _dinari_token_location(tokens)
-        return TokenizedAssetRecord(
+        record = TokenizedAssetRecord(
             provider=self.name,
             asset_id=asset_id,
             symbol=symbol,
@@ -1075,6 +1114,8 @@ class DinariTokenProvider:
             observed_at=_now(),
             raw_payload=payload,
         )
+        self._stock_records_by_id[asset_id.lower()] = record
+        return record
 
     def _stock_id(self, identifier: str) -> str | None:
         asset = self.get_tokenized_asset(identifier)
@@ -1105,6 +1146,9 @@ class DinariTokenProvider:
             )
         else:
             is_uuid = True
+            cached = self._stock_records_by_id.get(needle)
+            if cached is not None:
+                return cached
             rows = self._stocks(page=0, page_size=100)
         row = next(
             (
@@ -1129,9 +1173,8 @@ class DinariTokenProvider:
         if asset is None:
             return None
         payload = _required_object(
-            _http_json(
+            _dinari_json(
                 f"{self._base_url()}/market_data/stocks/{asset.asset_id}/current_price",
-                provider_name=self.name,
                 headers=self._headers(),
             ),
             self.name,
@@ -1155,9 +1198,8 @@ class DinariTokenProvider:
         if asset is None:
             return None
         payload = _required_object(
-            _http_json(
+            _dinari_json(
                 f"{self._base_url()}/market_data/stocks/{asset.asset_id}/current_quote",
-                provider_name=self.name,
                 headers=self._headers(),
             ),
             self.name,
@@ -1189,9 +1231,8 @@ class DinariTokenProvider:
         stock_id = self._stock_id(identifier)
         if stock_id is None:
             return []
-        payload = _http_json(
+        payload = _dinari_json(
             f"{self._base_url()}/market_data/stocks/{stock_id}/historical_prices/",
-            provider_name=self.name,
             params={"timespan": normalized_timespan},
             headers=self._headers(),
         )
@@ -1231,9 +1272,8 @@ class DinariTokenProvider:
         stock_id = self._stock_id(identifier)
         if stock_id is None:
             return []
-        payload = _http_json(
+        payload = _dinari_json(
             f"{self._base_url()}/market_data/stocks/{stock_id}/news",
-            provider_name=self.name,
             params={"limit": max(1, min(int(limit), 25))},
             headers=self._headers(),
         )
@@ -1253,9 +1293,8 @@ class DinariTokenProvider:
         return result
 
     def _fetch_dividends_for_stock_id(self, stock_id: str) -> list[dict[str, Any]]:
-        payload = _http_json(
+        payload = _dinari_json(
             f"{self._base_url()}/market_data/stocks/{stock_id}/dividends",
-            provider_name=self.name,
             headers=self._headers(),
         )
         if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
@@ -1317,9 +1356,8 @@ class DinariTokenProvider:
                     self.name, "Dinari split page requires the preceding page cursor"
                 )
             params = {"limit": limit, "order": "desc", "next": cursor}
-        payload = _http_json(
+        payload = _dinari_json(
             endpoint,
-            provider_name=self.name,
             params=params,
             headers=self._headers(),
         )

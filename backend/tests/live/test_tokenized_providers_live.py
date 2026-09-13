@@ -245,12 +245,14 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     priced, price_measurement = _observed_read(
         lambda: provider.get_tokenized_price(identifier), "dinari"
     )
-    assert price_measurement.http_requests >= 2
+    # The provider-native UUID is cached from the validated catalogue read;
+    # only the downstream price endpoint is required after that point.
+    assert price_measurement.http_requests >= 1
     _assert_asset(priced, require_quote=True)
     quoted, quote_measurement = _observed_read(
         lambda: provider.get_tokenized_quote(identifier), "dinari"
     )
-    assert quote_measurement.http_requests >= 2
+    assert quote_measurement.http_requests >= 1
     _assert_asset(quoted, require_quote=True)
     # Dinari documents four distinct aggregate windows. Exercise each one so
     # a transport/schema change cannot leave the adapter green while silently
@@ -262,22 +264,22 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
             ),
             "dinari",
         )
-        assert history_measurement.http_requests >= 2
+        assert history_measurement.http_requests >= 1
         assert isinstance(history, list)
     news, news_measurement = _observed_read(
         lambda: provider.fetch_tokenized_news(identifier, limit=1), "dinari"
     )
-    assert news_measurement.http_requests >= 2
+    assert news_measurement.http_requests >= 1
     assert isinstance(news, list)
     dividends, dividend_measurement = _observed_read(
         lambda: provider.fetch_tokenized_dividends(identifier), "dinari"
     )
-    assert dividend_measurement.http_requests >= 2
+    assert dividend_measurement.http_requests >= 1
     assert isinstance(dividends, list)
     splits, split_measurement = _observed_read(
         lambda: provider.fetch_tokenized_splits(identifier), "dinari"
     )
-    assert split_measurement.http_requests >= 2
+    assert split_measurement.http_requests >= 1
     assert isinstance(splits, list)
     # If the provider advertises another split page, exercise the explicit
     # same-instance cursor continuation. A terminal first page consumes no
@@ -286,7 +288,7 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
         continued, continuation_measurement = _observed_read(
             lambda: provider.fetch_tokenized_splits(identifier, page=2), "dinari"
         )
-        assert continuation_measurement.http_requests >= 2
+        assert continuation_measurement.http_requests >= 1
         assert isinstance(continued, list)
     actions, action_measurement = _observed_read(
         lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol), "dinari"
