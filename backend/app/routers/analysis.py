@@ -4828,6 +4828,7 @@ async def benchmark_family_breadth_history(
     roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     freshness_ids: list[int] = []
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
     for role in ("cap_weight", "equal_weight", "value", "growth"):
         mapping = mappings.get(role)
         mapping = mapping if isinstance(mapping, Mapping) else {}
@@ -4893,6 +4894,18 @@ async def benchmark_family_breadth_history(
         bars_by_id = _truncate_bars_at(
             await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
         )
+        role_coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator=f"benchmark_family_breadth_history:{role}",
+            instrument_ids=member_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=as_of,
+            adjusted=adjusted,
+            cached_bars=bars_by_id,
+            minimum_bars=200,
+        )
+        role_coverage_preflights[role] = role_coverage_preflight.to_dict()
         freshness_ids.extend(member_ids)
         by_timestamp: dict[datetime, dict[str, tuple[float | None, float]]] = {}
         role_exclusions = list(universe_warnings)
@@ -4940,6 +4953,7 @@ async def benchmark_family_breadth_history(
                 available=True,
                 membership_version=_generic_membership_version(membership_payload),
                 universe_provenance=universe_provenance,
+                coverage_preflight=role_coverage_preflight.to_dict(),
                 points=points,
                 exclusions=role_exclusions,
             )
@@ -4955,6 +4969,7 @@ async def benchmark_family_breadth_history(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
         limit=limit,
+        coverage_preflight={"roles": role_coverage_preflights},
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,

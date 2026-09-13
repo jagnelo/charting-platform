@@ -663,6 +663,7 @@ class BenchmarkFamilyBreadthHistoryRoleOut(BaseModel):
     available: bool
     membership_version: int | None = None
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthHistoryPoint] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -676,6 +677,7 @@ class BenchmarkFamilyBreadthHistoryOut(AnalysisResponseMetadata):
     adjustment: str
     as_of: datetime | None = None
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

@@ -1543,6 +1543,10 @@ class TestWorkspaces:
         assert roles["cap_weight"]["exclusions"][0]["code"] == "instrument_not_found"
         assert roles["equal_weight"]["available"] is True
         assert roles["equal_weight"]["membership_version"] is not None
+        assert roles["equal_weight"]["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_breadth_history:equal_weight"
+        )
+        assert roles["equal_weight"]["coverage_preflight"]["status"] == "deferred"
         assert len(roles["equal_weight"]["points"]) == 30
         assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
             "ma20",
@@ -1550,6 +1554,7 @@ class TestWorkspaces:
             "ma200",
         }
         assert payload["limit"] == 30
+        assert payload["coverage_preflight"]["roles"]["equal_weight"]["status"] == "deferred"
 
     def test_benchmark_family_ranking_preserves_cap_relative_role_performance(
         self, client, auth_headers, db, instrument_type
