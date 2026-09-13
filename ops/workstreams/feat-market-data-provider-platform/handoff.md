@@ -2179,3 +2179,14 @@ changed.
   `88a36955-4150-480c-a75b-5376c5df15d6`; cleanup removed only this
   workstream's containers and did not perform a host-wide prune. No frontend or
   ETF-provider adapter files changed.
+
+- A fresh bounded credentialed live suite passed `11/11` against the current
+  pushed checkpoint `49e8095a6`: Alpaca history/intraday/latest/assets and
+  corporate actions; SEC EDGAR filings/facts and complete ticker/issuer
+  directory pagination; MarketData.app options/account usage/intraday history;
+  and Dinari Sandbox metadata, price/quote, DAY/WEEK/MONTH/YEAR history, news,
+  dividends, splits, and corporate actions. The redacted receipt recorded four
+  provider rows, 30 upstream requests, and 12,926,846 response bytes; its
+  aggregate usage merged into the owner-managed ledger (`accepted=4`). This is
+  transport/schema evidence only and does not promote unreviewed routing
+  controls or entitlements.
