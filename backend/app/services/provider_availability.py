@@ -84,7 +84,7 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
             "page_size": 1,
         },
         ProviderCapability.TOKENIZED_HISTORICAL_PRICES: {
-            "symbol": "AAPL",
+            "identifier": "AAPL",
             "timeframe": "D1",
             "limit": 5,
         },
@@ -271,7 +271,7 @@ async def default_probe(
     if capability == ProviderCapability.TOKENIZED_ASSETS:
         args = {"page": request["page"], "page_size": request["page_size"]}
     if capability == ProviderCapability.TOKENIZED_HISTORICAL_PRICES:
-        args = {"identifier": request["symbol"], "timespan": "DAY"}
+        args = {"identifier": request["identifier"], "timespan": "DAY"}
     if capability == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS:
         args = {"symbol": request["symbol"]}
     result = method(**args)

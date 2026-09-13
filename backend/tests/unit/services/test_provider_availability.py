@@ -72,7 +72,12 @@ def test_representative_contract_covers_each_capability():
     for capability in ProviderCapability:
         request = representative_request(capability)
         assert request
-        assert "symbol" in request or "query" in request or "quote_type" in request
+        assert (
+            "symbol" in request
+            or "identifier" in request
+            or "query" in request
+            or "quote_type" in request
+        )
 
 
 def test_representative_operations_cover_probeable_capabilities():
