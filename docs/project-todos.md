@@ -126,6 +126,17 @@
       3/3. Migration `5f6a7b8c9d0e` follows the provider-account-usage
       migration; no frontend or ETF-provider files changed.
 
+### 2026-09-13 — Preserve typed options-provider failures
+
+- [x] Narrow option expiration, chain, and historical quote refresh fallbacks
+      to the explicitly safe `ProviderNotConfiguredError` and
+      `ProviderNoDataError` cases. Provider rate-limit, quota-contract,
+      malformed-response, and transport failures now remain typed and reach
+      the caller/runtime instead of being converted into empty or stale data.
+      Focused options data/exposure unit coverage passes 37/37, PostgreSQL
+      options-exposure integration passes 24/24, and the authoritative backend
+      gate passes 2,418/2,418 at 81.43% coverage.
+
 ### 2026-09-12 — Pagination cursor safety
 
 - [x] Reject repeated Alpaca history page tokens and malformed/repeated

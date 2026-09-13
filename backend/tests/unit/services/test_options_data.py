@@ -6,9 +6,12 @@ import pytest
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument, OptionDetail, OptionRight, OptionStyle
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.services.options_data import (
     _marketdata_option_quote_credit_bound,
     list_option_expirations,
+    sync_option_chain_snapshot,
+    sync_option_quote_history,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -73,3 +76,53 @@ async def test_list_option_expirations_prefers_fresh_dataset_state(db, instrumen
     expirations = await list_option_expirations(async_db, instrument)
 
     assert [item.isoformat() for item in expirations] == ["2026-06-19", "2026-09-18", "2027-01-15"]
+
+
+@pytest.mark.asyncio
+async def test_option_expirations_propagate_provider_capacity_failures(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _fail(*_args, **_kwargs):
+        raise ProviderRateLimitError("marketdata_app", "daily credits exhausted")
+
+    monkeypatch.setattr("app.services.options_data.execute_provider_call", _fail)
+
+    with pytest.raises(ProviderRateLimitError):
+        await list_option_expirations(async_db, instrument, refresh=True)
+
+
+@pytest.mark.asyncio
+async def test_option_chain_propagates_provider_response_failures(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _fail(*_args, **_kwargs):
+        raise ProviderResponseError("marketdata_app", "malformed option-chain payload")
+
+    monkeypatch.setattr("app.services.options_data.execute_provider_call", _fail)
+
+    with pytest.raises(ProviderResponseError):
+        await sync_option_chain_snapshot(
+            async_db,
+            instrument,
+            expiration=datetime(2026, 6, 19, tzinfo=UTC).date(),
+            refresh=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_option_quote_history_propagates_provider_capacity_failures(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _fail(*_args, **_kwargs):
+        raise ProviderRateLimitError("marketdata_app", "daily credits exhausted")
+
+    monkeypatch.setattr("app.services.options_data.execute_provider_call", _fail)
+
+    with pytest.raises(ProviderRateLimitError):
+        await sync_option_quote_history(
+            async_db,
+            instrument,
+            start=datetime(2026, 1, 1, tzinfo=UTC),
+            end=datetime(2026, 1, 2, tzinfo=UTC),
+            refresh=True,
+        )

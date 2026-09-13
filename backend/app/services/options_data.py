@@ -22,12 +22,13 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.providers.base import OptionContractRecord
+from app.providers.errors import ProviderNotConfiguredError
 from app.services.instrument_mastering import (
     _mark_field_provenance,
     ensure_instrument_type,
     register_provider_symbol,
 )
-from app.services.provider_runtime import execute_provider_call
+from app.services.provider_runtime import ProviderNoDataError, execute_provider_call
 from app.services.risk_free_rate import get_risk_free_rate
 
 
@@ -224,7 +225,7 @@ async def list_option_expirations(
             response_items=lambda result: len(result),
             treat_empty_as_failure=False,
         )
-    except Exception:
+    except (ProviderNotConfiguredError, ProviderNoDataError):
         return persisted_expirations
     expirations = sorted(set(execution.result))
     await _upsert_dataset_state(
@@ -408,7 +409,7 @@ async def sync_option_chain_snapshot(
             response_items=lambda result: len(result),
             treat_empty_as_failure=False,
         )
-    except Exception:
+    except (ProviderNotConfiguredError, ProviderNoDataError):
         return latest_snapshot
     contracts = execution.result
     if not contracts:
@@ -708,7 +709,7 @@ async def sync_option_quote_history(
             response_items=lambda result: len(result),
             treat_empty_as_failure=False,
         )
-    except Exception:
+    except (ProviderNotConfiguredError, ProviderNoDataError):
         return
 
     points = execution.result
