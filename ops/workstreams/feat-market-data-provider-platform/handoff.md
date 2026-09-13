@@ -1408,3 +1408,13 @@ Update this handoff at each coherent boundary.
   or ETF-provider adapter files changed. Future non-Strategy evaluator engines
   beyond the explicit indicator batch and Market Map, provider/legal/deployment/
   shadow gates, and generic migration compatibility remain open.
+
+- Source checkpoint `62787b400` corrects indicator-batch preflight ordering:
+  durable stale dataset state is applied to cached bars before the shared
+  coverage report is built, so a stale value cannot be reported as ready. The
+  focused indicator integration remains `2/2`, the complete unit suite remains
+  `2,029/2,029`, changed-file Ruff/compile/diff checks pass, and the
+  authoritative Docker-backed gate passes `2,410/2,410` at `81.37%` with 89
+  warnings. Testcontainer session `046e1490-f5ae-455d-a040-f5cb701dc5f5` was
+  cleaned without host-wide pruning. No provider calls, credentials, frontend
+  files, or ETF-provider adapter files changed.

@@ -16556,3 +16556,8 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Future non-Strategy evaluator engines beyond the explicit indicator
       batch and Market Map remain open, as do provider/legal, CI/deployment,
       migration-compatibility, universe-reconciliation, and shadow gates.
+- [x] Align stale-state handling with the preflight report: stale dataset
+      rows are removed from the cached-bar view before readiness is assessed,
+      so the endpoint cannot report a ready snapshot while withholding the
+      corresponding value. The focused integration remains `2/2` and the
+      authoritative Docker-backed gate remains `2,410/2,410` at `81.37%`.
