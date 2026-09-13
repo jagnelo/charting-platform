@@ -28,10 +28,12 @@
       focused coverage passes 84/84 with compile, Ruff, YAML, and diff checks.
 
 - [ ] Keep the scheduler disabled until Dinari's account quota, terms, and
-      redistribution review are recorded and a credentialed live historical
-      read is accepted. No live call was made for this change; the latest
-      current-source matrix remains the separately recorded non-acceptance
-      receipt above.
+      redistribution review are recorded. The credentialed Sandbox adapter
+      live case now passes 1/1 for metadata, price, quote, all four documented
+      aggregate windows, news, dividends, splits, and the combined action
+      surface; this is transport evidence, not commercial-production or
+      routing-entitlement evidence. The latest full current-source matrix
+      remains the separately recorded non-acceptance receipt above.
 
 ### 2026-09-13 — Tokenized catalog discovery scheduling
 

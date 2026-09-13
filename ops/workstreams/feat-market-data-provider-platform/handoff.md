@@ -1921,3 +1921,13 @@ Update this handoff at each coherent boundary.
   `91f879b1-f333-416b-9268-7a07f15d1c13`. No live provider call was made for
   this change. Provider quota/terms review and credentialed Dinari historical
   evidence remain required before enabling the worker.
+
+- A targeted credentialed Dinari Sandbox live case was then run against the
+  owner-managed environment and passed `1/1` in 9.63 seconds. It exercised
+  metadata, price, quote, `DAY`/`WEEK`/`MONTH`/`YEAR` aggregate history, news,
+  dividends, splits, and the combined corporate-action surface. Aggregate
+  request/byte telemetry was written only to the external usage ledger; no
+  credential or provider payload entered Git. This closes the live transport
+  evidence gap for the adapter, but does not promote Dinari routing: account
+  quota, commercial/US eligibility, caching, and redistribution terms remain
+  open and the historical worker stays disabled.

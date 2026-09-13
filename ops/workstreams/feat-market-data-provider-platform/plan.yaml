@@ -114,6 +114,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The credentialed Dinari Sandbox tokenized live case passed `1/1` in
+      9.63 seconds after loading the owner-managed environment. It exercised
+      metadata, price, quote, DAY/WEEK/MONTH/YEAR aggregate history, news,
+      dividends, splits, and combined corporate actions, and wrote only
+      aggregate request/byte telemetry outside Git. This is adapter transport
+      evidence; Dinari account quota, commercial/US eligibility, caching, and
+      redistribution review remain routing gates.
+    - >-
       Source checkpoint `86c6e04d4` adds a separate disabled-by-default daily
       tokenized historical aggregate worker. It admits only adapters exposing
       `fetch_tokenized_historical_prices`, routes by provider asset identity,
