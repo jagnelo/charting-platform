@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-13 — Final current-source provider matrix receipt
+
+- [x] Run the full lock-protected provider/tokenized matrix against pushed
+      checkpoint `aedf1943f`. It collected 47 cases and passed 41/47; the six
+      explicit non-passes were Alpha Vantage IPO-calendar,
+      earnings-calendar, and earnings-history capacity responses at the
+      supplied free key's documented allowance, plus missing credential
+      preflights for intentionally deferred Tradier, IBKR, and Ondo. The
+      redacted 26-provider receipt recorded 96 upstream requests and
+      23,334,032 response bytes and merged into the owner-managed ledger with
+      `accepted=26`. This remains transport/quota evidence only, not routing
+      or acceptance proof.
+
+- [ ] Keep the provider-specific quota, entitlement, redistribution, deferred
+      credential, deployment-secret, reconciliation, and shadow-run gates open
+      until their separate reviews and evidence are complete.
+
 ### 2026-09-13 — MarketData.app trial-expiry configuration boundary
 
 - [x] Enforce the provider's time-limited Starter/Trader Trial entitlement

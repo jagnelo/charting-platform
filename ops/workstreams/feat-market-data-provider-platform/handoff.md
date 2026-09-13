@@ -2190,3 +2190,13 @@ changed.
   aggregate usage merged into the owner-managed ledger (`accepted=4`). This is
   transport/schema evidence only and does not promote unreviewed routing
   controls or entitlements.
+
+- The full current-source lock-protected provider/tokenized matrix at checkpoint
+  `aedf1943f` collected `47` cases and passed `41/47`. The six explicit
+  non-passes were Alpha Vantage IPO-calendar, earnings-calendar, and
+  earnings-history capacity responses at the supplied free key's documented
+  allowance, plus missing credential preflights for intentionally deferred
+  Tradier, IBKR, and Ondo. Its 26-provider redacted receipt recorded 96
+  upstream requests and 23,334,032 response bytes, then merged into the
+  owner-managed ledger (`accepted=26`). This remains non-acceptance evidence;
+  no routing entitlement was promoted.
