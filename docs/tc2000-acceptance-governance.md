@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified MUFG holdings completeness receipt
+
+Commit `96b13c816` adds explicit `completeness_status: complete` only to the
+verified Mitsubishi UFJ MJSC public product-page Nuxt holdings component.
+The route verifies exact product identity, route slug, named holdings
+component, dated hydration payload, and non-empty rows; Japanese venue
+tickers remain source metadata and generic current/daily/table labels remain
+unchanged.
+
+Focused MUFG adapter assertions passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Docker resources were cleaned. No visual baseline/mask/threshold/
+skip, provider/fallback, migration, or acceptance policy changed. R1
+family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
 ## 2026-09-13 — Verified publisher fund-scoped holdings completeness receipt
 
 Commit `829ed19f2` adds explicit `completeness_status: complete` only to the
