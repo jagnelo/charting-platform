@@ -1363,3 +1363,19 @@ Update this handoff at each coherent boundary.
   passed `2,025/2,025`, and the authoritative Docker-backed gate passed
   `2,404/2,404` at `81.37%` coverage. No provider calls, credentials,
   frontend files, or ETF-provider adapter files changed.
+
+- Source checkpoint `440923ef3fe0` closes the separate evaluator-status gap for
+  isolated research runs without creating another migration head. Enqueue,
+  cancellation, and result collection now preserve a durable additive
+  `resource_usage.evaluation` record; run and batch-result APIs expose
+  `evaluation_status` while leaving `ResearchRun.status` as transport state.
+  Completed runs with datasets plus exclusions are `partial`; exclusion-only
+  runs are `deferred`. Research-job unit coverage passed `5/5`, the
+  PostgreSQL-backed research API suite passed `24/24`, the complete backend
+  unit suite passed `2,027/2,027`, and the authoritative Docker-backed gate
+  passed `2,406/2,406` at `81.38%` coverage with 89 warnings. The labeled
+  testcontainer session `8a8d4267-9ae9-4fb7-8863-1aa437fff179` was cleaned
+  without host-wide pruning. No provider calls, credentials, frontend files,
+  or ETF-provider adapter files changed. Future non-Strategy signal engines
+  beyond screeners, provider/legal/deployment/shadow gates, and generic
+  migration compatibility remain open.

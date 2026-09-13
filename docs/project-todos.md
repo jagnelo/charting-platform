@@ -41,9 +41,19 @@
       focused screener/preflight coverage passes 36/36, the database-backed
       screener integration passes 26/26, and the complete backend gate passes
       2,404/2,404. No provider call occurs inside a screener evaluation loop.
-- [ ] Extend the contract to future non-Strategy signal engines and persist
-      evaluator run status separately from the existing Strategy Lab
-      `completed` transport status.
+- [x] Persist evaluator run status separately from the existing Strategy Lab
+      `completed` transport status. Research runs now retain an additive
+      `resource_usage.evaluation` record and expose `evaluation_status` on run
+      and batch-result responses; `completed` transport with datasets plus
+      exclusions is reported as `partial`, while exclusions without datasets
+      are `deferred`. Research-job unit coverage passes 5/5, the PostgreSQL
+      research API suite passes 24/24, the complete backend unit suite passes
+      2,027/2,027, and the authoritative Docker-backed gate passes 2,406/2,406
+      at 81.38% coverage. No migration head, frontend, or ETF-provider files
+      changed.
+- [ ] Extend the same contract to future non-Strategy signal engines beyond
+      the currently covered Strategy Lab, Radar, generic breadth,
+      benchmark-family breadth, alert, and screener paths.
 
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
 
