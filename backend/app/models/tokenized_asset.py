@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import BIGINT, JSON, Boolean, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,6 +30,13 @@ class TokenizedAssetDetail(Base, TimestampMixin):
     underlying_composite_figi: Mapped[str | None] = mapped_column(String(80), nullable=True)
     underlying_isin: Mapped[str | None] = mapped_column(String(20), nullable=True)
     underlying_cusip: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # CIK identifies the economic issuer, not the token/security itself. Keep
+    # it alongside an optional existing Issuer link so token identity remains
+    # separate and new issuers are never materialized implicitly.
+    underlying_cik: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    underlying_issuer_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     backing_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     multiplier: Mapped[Decimal | None] = mapped_column(Numeric(30, 12), nullable=True)
     circulating_supply: Mapped[Decimal | None] = mapped_column(Numeric(40, 12), nullable=True)
@@ -46,3 +53,4 @@ class TokenizedAssetDetail(Base, TimestampMixin):
         foreign_keys=[instrument_id], back_populates="tokenized_asset_detail"
     )
     underlying_instrument: Mapped["Instrument | None"] = relationship(foreign_keys=[underlying_instrument_id])
+    underlying_issuer: Mapped["Issuer | None"] = relationship(foreign_keys=[underlying_issuer_id])

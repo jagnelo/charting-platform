@@ -2053,3 +2053,13 @@ Update this handoff at each coherent boundary.
   `2,456/2,456` at `81.69%` with 89 warnings using isolated session
   `df1ea6d8-502c-4ad9-9201-720b971d9f5d`. No frontend or ETF-provider adapter
   files changed.
+
+- Tokenized provider records now retain the economic underlying's SEC CIK as a
+  first-class `underlying_cik` and optionally link `underlying_issuer_id` only
+  to an already materialized unique Issuer; token instruments remain separate
+  and issuer materialization remains fail-closed. Dinari fixture/service
+  coverage passed `98/98`; migration compatibility passed from previous head
+  `cd3e4f5a6b7c`; and the authoritative Docker-backed gate passed
+  `2,457/2,457` at `81.69%` with 89 warnings using isolated session
+  `cca368fd-46e3-4651-a631-2affa3739be0`. No frontend or ETF-provider adapter
+  files changed.

@@ -317,6 +317,12 @@ Dinari's [US-customer requirements](https://docs.dinari.com/docs/us) make partne
 approval, regulatory, data-security, and redistribution review a deployment
 gate, so having a key alone does not make this provider routable.
 
+Dinari's SEC CIK is retained as the token detail's first-class
+`underlying_cik`, separate from the provider Stock UUID. When an issuer with
+that CIK is already materialized, `underlying_issuer_id` links to it; the
+refresh never creates an issuer implicitly from token metadata and records an
+unresolved issuer link otherwise.
+
 Ondo's [API overview](https://docs.ondo.finance/api-reference/overview),
 [market-data endpoint](https://docs.ondo.finance/api-reference/assets/get-market-data-for-an-asset),
 and [OpenAPI contract](https://docs.ondo.finance/openapi.json) document the

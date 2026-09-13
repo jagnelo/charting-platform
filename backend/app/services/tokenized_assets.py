@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import AdjustmentBasis
+from app.models.market_data_foundation import AdjustmentBasis, Issuer
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
@@ -61,6 +61,26 @@ def _normalized_optional_identifier(value: Any) -> str | None:
         return None
     normalized = normalize_identifier_value(str(value))
     return normalized or None
+
+
+def _normalized_optional_cik(value: Any) -> str | None:
+    """Normalize an SEC CIK without treating malformed input as identity."""
+
+    if value is None or isinstance(value, bool):
+        return None
+    digits = "".join(character for character in str(value) if character.isdigit())
+    if not digits or len(digits) > 10:
+        return None
+    return digits.zfill(10)
+
+
+async def _existing_issuer_id_for_cik(db: AsyncSession, cik: str | None) -> int | None:
+    """Link only to an already materialized, unique issuer row."""
+
+    if not cik:
+        return None
+    rows = (await db.execute(select(Issuer.id).where(Issuer.cik == cik).limit(2))).scalars().all()
+    return int(rows[0]) if len(rows) == 1 else None
 _EVENT_ID_FIELDS = (
     "eventId",
     "event_id",
@@ -324,6 +344,7 @@ async def upsert_tokenized_asset(
     underlying_composite_figi = _normalized_optional_identifier(record.underlying_composite_figi)
     underlying_isin = _normalized_optional_identifier(record.underlying_isin)
     underlying_cusip = _normalized_optional_identifier(record.underlying_cusip)
+    underlying_cik = _normalized_optional_cik(record.underlying_cik)
     underlying, underlying_link_status = await _underlying_instrument(
         db,
         symbol=record.underlying_symbol,
@@ -332,6 +353,7 @@ async def upsert_tokenized_asset(
         isin=underlying_isin,
         cusip=underlying_cusip,
     )
+    underlying_issuer_id = await _existing_issuer_id_for_cik(db, underlying_cik)
     detail = (
         await db.execute(
             select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == instrument.id)
@@ -354,6 +376,8 @@ async def upsert_tokenized_asset(
     detail.underlying_composite_figi = underlying_composite_figi
     detail.underlying_isin = underlying_isin
     detail.underlying_cusip = underlying_cusip
+    detail.underlying_cik = underlying_cik
+    detail.underlying_issuer_id = underlying_issuer_id
     detail.backing_type = record.backing_type
     detail.multiplier = record.multiplier
     detail.circulating_supply = record.circulating_supply
@@ -367,6 +391,13 @@ async def upsert_tokenized_asset(
         "provider_asset_id": record.asset_id,
         "observed_at": (record.observed_at or datetime.now(UTC)).isoformat(),
         "underlying_link_status": underlying_link_status,
+        "underlying_issuer_link_status": (
+            "linked_by_cik"
+            if underlying_issuer_id is not None
+            else "unresolved_or_not_materialized"
+            if underlying_cik
+            else "not_provided"
+        ),
     }
     detail.description = record.raw_payload.get("description") if record.raw_payload else None
 

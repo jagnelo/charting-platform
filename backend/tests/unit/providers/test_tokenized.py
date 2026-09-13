@@ -361,6 +361,7 @@ def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch
     assert record.contract_address == "0xabc"
     assert record.collateral["composite_figi"] == "BBG000B9XRY4"
     assert record.collateral["cik"] == "0000320193"
+    assert record.underlying_cik == "0000320193"
     assert get.call_args.kwargs["headers"] == {
         "X-API-Key-Id": "id-secret",
         "X-API-Secret-Key": "secret-value",

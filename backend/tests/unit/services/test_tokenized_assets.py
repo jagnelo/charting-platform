@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import MarketEvent, MarketSeries, MarketSeriesDefault
+from app.models.market_data_foundation import Issuer, MarketEvent, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
@@ -66,6 +66,40 @@ async def test_upsert_keeps_token_distinct_and_links_unambiguous_underlying(db, 
         select(LatestPriceSnapshot).where(LatestPriceSnapshot.instrument_id == token.id)
     ).scalar_one()
     assert snapshot.price == Decimal("100.25")
+
+
+@pytest.mark.asyncio
+async def test_upsert_retains_underlying_cik_and_links_existing_issuer_without_conflating_token(
+    db, instrument
+):
+    issuer = Issuer(
+        domain_key="cik:0000320193",
+        legal_name="Apple Inc.",
+        cik="0000320193",
+        country_code="US",
+    )
+    db.add(issuer)
+    db.flush()
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="dinari-aapl-cik",
+        symbol="dAAPL",
+        name="Apple dShare",
+        underlying_symbol=instrument.symbol,
+        underlying_cik="320193",
+        raw_payload={"cik": "320193"},
+    )
+
+    token = await upsert_tokenized_asset(AsyncSessionAdapter(db), record)
+
+    assert token.id != instrument.id
+    assert token.issuer_id is None
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
+    ).scalar_one()
+    assert detail.underlying_cik == "0000320193"
+    assert detail.underlying_issuer_id == issuer.id
+    assert detail.provenance["underlying_issuer_link_status"] == "linked_by_cik"
 
 
 @pytest.mark.asyncio

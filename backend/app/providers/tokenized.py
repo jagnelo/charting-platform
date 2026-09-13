@@ -349,6 +349,7 @@ class XStocksProvider:
             ),
             underlying_isin=underlying.get("isin") or payload.get("underlyingIsin") or None,
             underlying_cusip=underlying.get("cusip") or payload.get("underlyingCusip") or None,
+            underlying_cik=underlying.get("cik") or payload.get("underlyingCik") or None,
             isin=payload.get("isin") or None,
             network=network,
             chain_id=chain_id,
@@ -474,6 +475,7 @@ class RobinhoodTokenProvider:
             network=network,
             chain_id=chain_id,
             contract_address=address,
+            underlying_cik=payload.get("cik") or payload.get("underlyingCik") or None,
             price=(
                 _checked_decimal(price, RobinhoodTokenProvider.name, "price")
                 if price is not None
@@ -1100,6 +1102,7 @@ class DinariTokenProvider:
             underlying_composite_figi=payload.get("composite_figi") or None,
             underlying_isin=payload.get("isin") or payload.get("underlying_isin") or None,
             underlying_cusip=payload.get("cusip") or payload.get("underlying_cusip") or None,
+            underlying_cik=payload.get("cik") or payload.get("underlying_cik") or None,
             network=network,
             chain_id=chain_id,
             contract_address=address,

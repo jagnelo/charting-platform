@@ -198,6 +198,7 @@ class TokenizedAssetRecord:
     underlying_composite_figi: str | None = None
     underlying_isin: str | None = None
     underlying_cusip: str | None = None
+    underlying_cik: str | None = None
     isin: str | None = None
     network: str | None = None
     chain_id: int | None = None
