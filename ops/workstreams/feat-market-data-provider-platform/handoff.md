@@ -1432,3 +1432,15 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed; provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `11fc65d4d` preserves the technical-snapshot preflight in
+  benchmark-family technical responses, per mapped role. Short local histories
+  now expose the same deferred 252-bar report instead of silently losing the
+  evaluator decision at the family wrapper. Focused PostgreSQL benchmark-family
+  technical integration passed `1/1`, the complete backend unit suite passed
+  `2,029/2,029`, changed-file Ruff/compileall/diff checks passed, and the
+  authoritative Docker-backed gate passed `2,410/2,410` at `81.38%` coverage
+  with 89 warnings. Testcontainer session
+  `b0655d21-dde0-4d8d-8f51-17b273e6a69c` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed; provider/legal/deployment/shadow gates remain open.

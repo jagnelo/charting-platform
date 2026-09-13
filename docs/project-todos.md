@@ -16576,3 +16576,10 @@ The current source also passes the focused authenticated top-down browser slice 
       warnings. The labeled testcontainer session is cleaned without host-wide
       pruning. No provider calls, credentials, frontend files, or ETF-provider
       adapter files changed.
+- [x] Preserve the technical-snapshot preflight in benchmark-family technical
+      responses per mapped role. Short local histories expose the same deferred
+      252-bar report at the family wrapper. Focused integration passes `1/1`,
+      the complete backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
