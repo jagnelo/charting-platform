@@ -569,6 +569,43 @@ async def test_universe_reconciliation_rejects_invalid_next_offset(db, monkeypat
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("total", [True, "1", 1.5, -1])
+async def test_universe_reconciliation_rejects_invalid_total(db, monkeypatch, total):
+    from app.services import market_universe
+
+    source = DataSource(name="fixture-invalid-total", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="fixture-invalid-total", data_source=source)
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def malformed_total(*_args, **_kwargs):
+        return SimpleNamespace(
+            result={
+                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "total": total,
+                "complete": True,
+            },
+            data_source=source,
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", malformed_total)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-invalid-total"
+    )
+
+    assert result["status"] == "failed"
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert "invalid total" in (run.error or "") or "negative total" in (run.error or "")
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "quotes,match",
     [

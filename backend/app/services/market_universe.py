@@ -889,7 +889,9 @@ async def reconcile_us_universe(
                     rows.extend(page_rows)
                     declared_total = page.get("total")
                     if declared_total is not None:
-                        page_total = int(declared_total)
+                        if isinstance(declared_total, bool) or not isinstance(declared_total, int):
+                            raise ValueError("discovery provider returned an invalid total")
+                        page_total = declared_total
                         if page_total < 0:
                             raise ValueError("discovery provider returned a negative total")
                         if total is None:
