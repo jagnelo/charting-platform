@@ -16634,6 +16634,23 @@ The current source also passes the focused authenticated top-down browser slice 
       migration-compatibility, universe-reconciliation, and shadow gates
       remain open.
 
+### 2026-09-13 — Benchmark-family historical breadth coverage preflight
+
+- [x] Add per-role shared OHLCV coverage preflight to benchmark-family
+      historical breadth. Each role uses the exact 200-bar MA200 floor after
+      point-in-time membership resolution; short histories remain deferred
+      instead of being represented as ready.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
 ### 2026-09-13 — Benchmark-family overview coverage preflight
 
 - [x] Preserve delegated group-snapshot coverage preflight in the

@@ -1485,6 +1485,19 @@ Update this handoff at each coherent boundary.
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
 
+- Source checkpoint `eceada339` extends the shared coverage preflight to
+  benchmark-family historical breadth. Each resolved role reports its exact
+  local 200-bar floor (the MA200 requirement) after point-in-time membership
+  resolution; short histories remain explicitly deferred rather than being
+  represented as ready. Focused PostgreSQL integration passed `1/1`, the
+  complete backend unit suite passed `2,029/2,029`, and the authoritative
+  Docker-backed combined backend gate passed `2,410/2,410` at `81.39%` coverage
+  with 89 warnings. Testcontainer session
+  `0fed2d3f-4d0f-48c2-9f76-aa9774ea19b4` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed. Provider/legal/deployment/shadow gates, future evaluator
+  coordination, and generic migration compatibility remain open.
+
 - Source checkpoint `530c483f4` adds the shared OHLCV coverage preflight to the
   point-in-time derived equal-weight family series after membership and
   persisted-staleness filtering. Available members report `full`; cold or
