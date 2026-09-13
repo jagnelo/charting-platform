@@ -55,28 +55,17 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -116,14 +105,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "11c9112e46791fdc914ccd4b88f89b6b48728f21",
+  "head": "6287f6900303dcf8cb7067ee8bb636665bf22ffc",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-13T08:51:57.372003+00:00",
-  "last_human_progress_update": "2026-09-13T08:51:41.416700+00:00",
+  "last_human_progress_update": "2026-09-13T09:27:02.161063+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "2b93f8ffd0ddc26610b3965957dadd0197c43be0a457815bbb6ccf0d9226b611",
+  "plan_hash": "27cfa218d69178e4ee1022647d4532076c4469be67757cab5fb4f9ebbea3cabd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +125,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 9ef91c40d promotes the Vident/MM VAM issuer_reported_product_page_holdings_table label to explicit complete evidence; focused adapter/refresh coverage 519/519 and full backend units 1544/1544 pass. Exact gate passes backend unit 1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/build, compose/deployment, research-runner probes, and functional E2E 165 passed with 107 skipped; visual 98/104 with the six unchanged protected diffs. Provider probes skipped because no provider-related changes were detected; Docker cleaned. Continue R1 family-wide population/history, D1/W1/MN floors, continuity, and AC2\u2013AC7/AC10.",
-    "current_phase": "R1_verified_product_page_holdings",
-    "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit source-quality mappings and fail-closed completeness; rerun focused coverage and the exact branch-scoped gate at the next coherent tip.",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass; remote push remains intentionally held.",
+    "current_phase": "R1_issuer_linked_workbook_completeness",
+    "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit source-quality mappings and the six visual state-oracle assertions; rerun focused coverage and the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T08:51:41.416613+00:00"
+    "updated_at": "2026-09-13T09:27:02.160764+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

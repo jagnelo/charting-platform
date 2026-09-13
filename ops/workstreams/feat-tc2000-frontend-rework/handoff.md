@@ -2,6 +2,31 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Issuer-linked workbook completeness seam
+
+Product commit `6287f6900` promotes the existing
+`issuer_page_declared_current_complete_holdings` evidence label for four
+issuer-linked workbook adapters (Little Harbor, Pettee/Hoya, Sound Capital/
+River1, and Sovereign/SOVF). Each route verifies issuer-page identity,
+declared workbook path, required workbook identity/schema, and non-empty rows;
+generic current, daily, and table labels remain unknown.
+
+Focused adapter assertions passed `4/4`; related refresh mapping checks passed
+`7/7`; Ruff/format/diff checks passed; full backend units passed `1544/1544`.
+The exact branch-scoped gate passed backend unit `1544/1544`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; only the six
+unchanged protected watchlist-column-editor/workspace-floating diffs failed.
+Provider probes were skipped because no provider-related changes were
+detected; branch-scoped Docker resources were cleaned. No provider/fallback,
+migration, visual, threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 family-wide canonical
+population/history seam, rerun focused coverage and the exact gate at the next
+coherent tip, and preserve the six visual state-oracle assertions. Do not
+integrate, promote, deploy, push, or mutate another worktree.
+
 ## 2026-09-13 — Verified Vident product-page completeness seam
 
 Product commit `9ef91c40d` maps Vident/MM VAM's unique

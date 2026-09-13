@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote issuer-linked workbook holdings
+
+Product commit `6287f6900` closes a bounded R1 source-quality seam for four
+issuer-linked workbook adapters: Little Harbor, Pettee/Hoya, Sound Capital/
+River1, and Sovereign/SOVF. Each adapter now emits
+`issuer_page_declared_current_complete_holdings` only after verifying the
+issuer page identity, declared workbook route, required workbook
+identity/schema, and non-empty rows. Generic current, daily, and table labels
+remain unknown; no broad inference or fallback was introduced.
+
+Focused adapter assertions passed `4/4`, related refresh mapping checks passed
+`7/7`, Ruff/format/diff checks passed, and full backend units passed
+`1544/1544`. The exact branch-scoped gate passed backend unit `1544/1544`,
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner sandbox/resource
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned and provider probes were skipped
+because no provider-related changes were detected. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy
+changed. Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Vident product-page holdings
 
 Product commit `9ef91c40d` closes a narrowly verified holdings source-quality
