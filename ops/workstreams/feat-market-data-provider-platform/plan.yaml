@@ -127,6 +127,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The owner-managed external configuration preflight resolves every
+      required setting for the newly credentialed Alpaca, SEC EDGAR,
+      MarketData.app account-usage, and Dinari tokenized-history paths. No
+      values were logged, no network request was made, and no quota was
+      consumed; this verifies configuration wiring only and does not promote
+      any provider entitlement or routing control.
+    - >-
       Tokenized historical configuration comments and provider documentation
       now describe both Dinari and Ondo aggregate-history paths and all four
       supported windows (`DAY`, `WEEK`, `MONTH`, and `YEAR`). Focused tokenized,
