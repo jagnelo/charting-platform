@@ -456,7 +456,19 @@ async def _record_bar_observations(
     observed_at = observed_at or datetime.now(UTC)
     await db.execute(
         pg_insert(MarketBarObservation).on_conflict_do_update(
-            constraint="uq_market_bar_observation",
+            # Use the column conflict target instead of the constraint name so
+            # the persistence boundary remains executable on both PostgreSQL
+            # and the SQLite-backed unit/integration fixtures.  The target is
+            # the declared unique scope for observations and is equivalent to
+            # ``uq_market_bar_observation`` on PostgreSQL.
+            index_elements=[
+                "instrument_id",
+                "data_source_id",
+                "timeframe",
+                "ts",
+                "is_adjusted",
+                "scope_key",
+            ],
             set_={
                 "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
                 "market_series_id": pg_insert(MarketBarObservation).excluded.market_series_id,

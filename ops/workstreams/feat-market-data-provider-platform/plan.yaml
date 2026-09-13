@@ -122,6 +122,18 @@ progress:
       81.63% coverage. No provider calls or credentials were used by this
       source change.
     - >-
+      Tokenized historical refresh now has a real persistence-boundary test:
+      the deterministic Dinari fixture writes a raw `24_7` OHLCV bar, scoped
+      canonical `MarketSeries` and compatibility default, durable bar
+      observation, and fresh dataset state without monkeypatching the
+      persistence helpers. The observation upsert now uses its declared
+      unique columns as the conflict target, preserving PostgreSQL semantics
+      while remaining executable on SQLite test fixtures. Focused tokenized
+      coverage passed 23/23 with Ruff and compileall; the authoritative
+      Docker-backed backend gate passed 2,448/2,448 at 81.67% combined
+      coverage with 89 warnings. No live provider call or credential was used
+      for this source change.
+    - >-
       Newly configured Alpaca and MarketData.app credentials were revalidated
       in seven bounded live cases on 2026-09-13: Alpaca daily/intraday/latest
       history, assets, and corporate actions plus MarketData.app options,
@@ -1358,7 +1370,7 @@ progress:
       passed, and the authoritative Docker-backed gate passed `2,410/2,410`
       at `81.38%` coverage with 89 warnings. Source checkpoint: `6992d1096`;
       no provider, frontend, or ETF-provider files changed.
-  total: 15
+  total: 16
   current_phase: credentialed_provider_followup
   current_blocker: >-
     The latest local matrix collects 47 cases and remains 41/47: newly supplied

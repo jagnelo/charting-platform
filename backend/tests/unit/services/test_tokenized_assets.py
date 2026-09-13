@@ -5,11 +5,16 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import select
 
+from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.models.market_data_foundation import MarketEvent
+from app.models.market_data_foundation import MarketEvent, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import LatestPriceSnapshot
+from app.models.provider_observation import (
+    InstrumentDatasetState,
+    LatestPriceSnapshot,
+    MarketBarObservation,
+)
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
@@ -428,6 +433,126 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
     assert persisted[0].volume is None
     assert persisted[0].vwap is None
     assert persisted[0].provenance["feed"] == "tokenized_aggregate_history"
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_historical_prices_persists_scoped_series_and_observations(
+    db, instrument, monkeypatch
+):
+    """The tokenized path must exercise the canonical persistence boundary.
+
+    This deliberately leaves ``_attach_provider_series`` and
+    ``persist_price_history_bars`` intact.  The provider call is still a
+    deterministic fixture, but the resulting bar, observation, dataset state,
+    and compatibility default are written through the same path used in a
+    credentialed refresh.
+    """
+
+    await upsert_tokenized_asset(
+        AsyncSessionAdapter(db),
+        TokenizedAssetRecord(
+            provider="dinari",
+            asset_id="dinari-aapl-persisted",
+            symbol="dAAPL",
+            name="Apple dShare",
+            underlying_symbol=instrument.symbol,
+            raw_payload={},
+        ),
+    )
+    source = DataSource(
+        name="dinari-tokenized-history-test",
+        base_url="https://sandbox.dinari.com",
+        is_active=True,
+    )
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(
+        fetch_tokenized_historical_prices=lambda identifier, **kwargs: [
+            {
+                "timestamp": datetime(2026, 9, 2, tzinfo=UTC),
+                "open": "100.00",
+                "high": "105.00",
+                "low": "99.00",
+                "close": "104.00",
+                "raw_payload": {"stock_id": identifier},
+            }
+        ]
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.TOKENIZED_ASSETS
+        assert operation == "fetch_tokenized_historical_prices"
+        result = kwargs["invoke"](provider, kwargs["provider_symbol"])
+        return SimpleNamespace(
+            provider_name="dinari", data_source=source, result=result
+        )
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    result = await refresh_tokenized_historical_prices(
+        AsyncSessionAdapter(db), max_assets=10, timespan="DAY"
+    )
+
+    assert result["status"] == "refreshed", result
+    detail = db.execute(
+        select(TokenizedAssetDetail).where(
+            TokenizedAssetDetail.provider_asset_id == "dinari-aapl-persisted"
+        )
+    ).scalar_one()
+    bar = db.execute(
+        select(OHLCVBar).where(OHLCVBar.instrument_id == detail.instrument_id)
+    ).scalar_one()
+    assert bar.data_source_id == source.id
+    assert bar.market_series_id is not None
+    assert bar.session == "24_7"
+    assert bar.is_adjusted is False
+    assert bar.volume is None
+    assert bar.vwap is None
+    assert bar.provenance["feed"] == "tokenized_aggregate_history"
+
+    series = db.get(MarketSeries, bar.market_series_id)
+    assert series is not None
+    assert series.feed_scope == "tokenized_aggregate_history"
+    assert series.session_code == "24_7"
+    assert series.timeframe == Timeframe.D1.value
+    assert series.is_canonical is True
+
+    default = db.execute(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id == detail.instrument_id,
+            MarketSeriesDefault.timeframe == Timeframe.D1.value,
+            MarketSeriesDefault.is_adjusted.is_(False),
+        )
+    ).scalar_one()
+    assert default.market_series_id == bar.market_series_id
+
+    observation = db.execute(
+        select(MarketBarObservation).where(
+            MarketBarObservation.instrument_id == detail.instrument_id
+        )
+    ).scalar_one()
+    assert observation.data_source_id == source.id
+    assert observation.market_series_id == bar.market_series_id
+    assert observation.provider_symbol == "dinari-aapl-persisted"
+    assert observation.session == "24_7"
+    assert observation.source_payload["feed"] == "tokenized_aggregate_history"
+
+    dataset = db.execute(
+        select(InstrumentDatasetState).where(
+            InstrumentDatasetState.instrument_id == detail.instrument_id,
+            InstrumentDatasetState.data_source_id == source.id,
+            InstrumentDatasetState.dataset_type == "ohlcv",
+            InstrumentDatasetState.dataset_key == "D1:raw",
+        )
+    ).scalar_one()
+    assert dataset.status.value == "fresh"
+    assert dataset.coverage_start == bar.ts
+    assert dataset.coverage_end == bar.ts
+    assert dataset.extra_data == {"bar_count": 1, "adjusted": False}
 
 
 @pytest.mark.asyncio
