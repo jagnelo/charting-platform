@@ -6,6 +6,38 @@ from types import SimpleNamespace
 from app.services import research_jobs
 
 
+def test_manifest_evaluation_status_is_separate_from_transport_completion():
+    assert research_jobs._manifest_evaluation_status({}, transport_status="queued") == "queued"
+    assert (
+        research_jobs._manifest_evaluation_status(
+            {"datasets": [{"instrument_id": 1}], "exclusions": [{"code": "missing"}]},
+            transport_status="completed",
+        )
+        == "partial"
+    )
+    assert (
+        research_jobs._manifest_evaluation_status(
+            {"exclusions": [{"code": "missing"}]}, transport_status="completed"
+        )
+        == "deferred"
+    )
+    assert research_jobs._manifest_evaluation_status({}, transport_status="completed") == "completed"
+    assert research_jobs._manifest_evaluation_status({}, transport_status="failed") == "failed"
+
+
+def test_persist_evaluation_status_preserves_other_resource_usage():
+    run = SimpleNamespace(
+        status="completed",
+        dataset_manifest={"exclusions": [{"code": "missing"}]},
+        resource_usage={"cpu_seconds": 1.5},
+    )
+
+    assert research_jobs.persist_evaluation_status(run) == "deferred"
+    assert run.resource_usage["cpu_seconds"] == 1.5
+    assert run.resource_usage["evaluation"]["transport_status"] == "completed"
+    assert run.resource_usage["evaluation"]["status"] == "deferred"
+
+
 def test_prepare_shared_directory_is_writable_for_the_isolated_runner(tmp_path: Path):
     directory = tmp_path / "jobs"
 
@@ -35,6 +67,7 @@ def test_enqueue_prepares_both_shared_volumes_and_job_file(tmp_path, monkeypatch
     assert stat.S_IMODE(result_directory.stat().st_mode) == 0o777
     job = job_directory / "7.json"
     assert stat.S_IMODE(job.stat().st_mode) == 0o666
+    assert run.resource_usage["evaluation"]["status"] == "queued"
 
 
 def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(
@@ -79,6 +112,7 @@ def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(
     run = SimpleNamespace(id=12, artifacts=[])
 
     assert research_jobs.collect_research_result(run) is True
+    assert run.resource_usage["evaluation"]["status"] == "completed"
     artifact = run.artifacts[0]
     occurrences = artifact.payload["value"]["occurrences"]
     assert len(occurrences) == 1

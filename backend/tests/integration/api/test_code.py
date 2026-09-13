@@ -323,12 +323,14 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     )
     assert response.status_code == 202
     assert response.json()["status"] == "queued"
+    assert response.json()["evaluation_status"] == "queued"
     assert (tmp_path / "jobs" / f"{response.json()['id']}.json").exists()
     canceled = client.post(
         f"/api/v1/research/runs/{response.json()['id']}/cancel", headers=auth_headers
     )
     assert canceled.status_code == 200
     assert canceled.json()["status"] == "canceled"
+    assert canceled.json()["evaluation_status"] == "canceled"
 
 
 def test_research_run_job_preserves_json_parameters_for_isolated_runner(
@@ -526,6 +528,7 @@ def test_research_result_is_collected_as_structured_artifact(
     collected = client.get(f"/api/v1/research/runs/{run['id']}", headers=auth_headers)
     assert collected.status_code == 200
     assert collected.json()["status"] == "completed"
+    assert collected.json()["evaluation_status"] == "completed"
     assert collected.json()["reproducibility_hash"] == "abc"
 
 
@@ -862,6 +865,7 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     cells = client.get(f"/api/v1/research/runs/{payload['id']}/batch-results", headers=auth_headers)
     assert cells.status_code == 200
     assert cells.json()["output_contract"] == "scalar"
+    assert cells.json()["evaluation_status"] == "partial"
     assert cells.json()["cells"] == [
         {
             "instrument_id": instrument.id,

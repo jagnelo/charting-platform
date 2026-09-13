@@ -9,6 +9,63 @@ from app.models.research import ResearchArtifact, ResearchRun
 from app.services.breadth import detect_breadth_occurrences
 
 
+def _manifest_evaluation_status(manifest: object, *, transport_status: str) -> str:
+    """Classify local evaluator readiness without conflating transport completion."""
+
+    if transport_status in {"queued", "running", "failed", "canceled"}:
+        return transport_status
+    if transport_status != "completed":
+        return "unknown"
+    if not isinstance(manifest, dict):
+        return "completed"
+
+    exclusions = manifest.get("exclusions")
+    datasets = manifest.get("datasets")
+    exclusion_count = len(exclusions) if isinstance(exclusions, list) else 0
+    dataset_count = len(datasets) if isinstance(datasets, list) else None
+    if exclusion_count and dataset_count:
+        return "partial"
+    if exclusion_count:
+        return "deferred"
+    return "completed"
+
+
+def persist_evaluation_status(
+    run: ResearchRun,
+    *,
+    status: str | None = None,
+    details: dict | None = None,
+) -> str:
+    """Persist evaluator readiness under a distinct durable resource key.
+
+    ``ResearchRun.status`` remains the isolated runner/transport state.  The
+    nested ``resource_usage.evaluation`` record is deliberately additive so it
+    survives existing result-file reconciliation without requiring another
+    Alembic head in the repository's already-divergent migration graph.
+    """
+
+    transport_status = str(getattr(run, "status", "unknown"))
+    evaluation_status = status or _manifest_evaluation_status(
+        getattr(run, "dataset_manifest", {}), transport_status=transport_status
+    )
+    usage = getattr(run, "resource_usage", None)
+    usage = dict(usage) if isinstance(usage, dict) else {}
+    evaluation = usage.get("evaluation")
+    evaluation = dict(evaluation) if isinstance(evaluation, dict) else {}
+    evaluation.update(
+        {
+            "status": evaluation_status,
+            "transport_status": transport_status,
+            "observed_at": datetime.now(UTC).isoformat(),
+        }
+    )
+    if details:
+        evaluation["details"] = details
+    usage["evaluation"] = evaluation
+    run.resource_usage = usage
+    return evaluation_status
+
+
 def _prepare_shared_directory(path: Path, *, create: bool = True) -> None:
     """Make the backend/runner handoff directory writable by both containers.
 
@@ -26,6 +83,8 @@ def _prepare_shared_directory(path: Path, *, create: bool = True) -> None:
 
 
 def enqueue_research_run(run: ResearchRun) -> None:
+    # Persist a distinct evaluator state before writing the runner job file.
+    persist_evaluation_status(run, status="queued")
     job_directory = Path(settings.RESEARCH_JOB_DIR)
     result_directory = Path(settings.RESEARCH_RESULT_DIR)
     _prepare_shared_directory(job_directory)
@@ -114,7 +173,15 @@ def collect_research_result(run: ResearchRun) -> bool:
     result = json.loads(path.read_text())
     run.status = result["status"]
     run.diagnostics = result.get("diagnostics", [])
-    run.resource_usage = result.get("resource_usage", {})
+    incoming_usage = result.get("resource_usage", {})
+    existing_usage = (
+        getattr(run, "resource_usage", {})
+        if isinstance(getattr(run, "resource_usage", {}), dict)
+        else {}
+    )
+    run.resource_usage = dict(incoming_usage) if isinstance(incoming_usage, dict) else {}
+    if isinstance(existing_usage.get("evaluation"), dict):
+        run.resource_usage["evaluation"] = existing_usage["evaluation"]
     run.reproducibility_hash = result.get("reproducibility_hash")
     for name, artifact in result.get("artifacts", {}).items():
         persisted_artifact = artifact
@@ -139,6 +206,7 @@ def collect_research_result(run: ResearchRun) -> bool:
             )
         )
     path.rename(path.with_suffix(".collected"))
+    persist_evaluation_status(run)
     return True
 
 
@@ -164,3 +232,4 @@ def cancel_research_run(run: ResearchRun) -> None:
         # batch cells; it never asks FastAPI to execute user code.
         (Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.cancel").touch()
     run.status = "canceled"
+    persist_evaluation_status(run, status="canceled")
