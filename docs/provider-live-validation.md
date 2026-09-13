@@ -1082,8 +1082,9 @@ Stock metadata only within the current provider instance, while new instances
 still perform fresh metadata resolution. Dinari reads additionally use a
 provider-specific bounded recovery of at most two short-backoff retries for
 HTTP 500; 4xx/rate-limit failures and all other providers remain typed and
-fail-fast. Tokenized unit coverage passed `71/71`, the focused
-provider/registry/quota/secret slice passed `196/196`, and the real Dinari
+fail-fast. Tokenized unit coverage passed `72/72`, including persistent-500
+retry exhaustion; the focused provider/registry/quota/secret slice passed
+`197/197`, and the real Dinari
 Sandbox compound case passed `1/1`. The complete matrix then passed `41/47`:
 the three Alpha Vantage event/earnings operations returned typed documented
 capacity responses, while Tradier, IBKR, and Ondo remained exact credential

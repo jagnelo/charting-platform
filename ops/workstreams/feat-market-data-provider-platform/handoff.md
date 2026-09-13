@@ -1677,8 +1677,9 @@ Update this handoff at each coherent boundary.
   provider instance for downstream UUID reads, preserving fresh metadata across
   instances; Dinari alone retries a 500 at most twice with short linear
   backoff, while rate-limit and other provider failures remain typed/fail-fast.
-  Tokenized coverage passed `71/71`, the focused provider/registry/quota/secret
-  slice passed `196/196`, and the authoritative Docker-backed combined gate
+  Tokenized coverage passed `72/72`, including persistent-500 retry-exhaustion
+  coverage; the focused provider/registry/quota/secret slice passed `197/197`,
+  and the authoritative Docker-backed combined gate
   passed `2,424/2,424` at `81.44%` using cleaned testcontainer session
   `9b8d2316-064e-48a9-bee5-e3ba27cf8b88`. The refreshed live matrix passed
   `41/47`, including the Dinari compound case; Alpha Vantage capacity responses

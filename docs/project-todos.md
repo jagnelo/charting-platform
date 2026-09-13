@@ -16783,7 +16783,8 @@ The current source also passes the focused authenticated top-down browser slice 
       responses (at most two retries with short linear backoff). 4xx/rate-limit
       failures and all other providers remain typed and fail immediately; each
       attempt remains in transport telemetry. Focused tokenized coverage passes
-      `71/71`, the provider/registry/quota/secret slice passes `196/196`, and
+      `72/72`, including retry-exhaustion coverage; the provider/registry/quota/secret
+      slice passes `197/197`, and
       the real Dinari Sandbox compound read passes `1/1`.
 - [x] The authoritative Docker-backed backend gate passes `2,424/2,424` at
       `81.44%` combined coverage; labeled testcontainer session
