@@ -1395,7 +1395,7 @@ Update this handoff at each coherent boundary.
   Future non-Strategy evaluator engines beyond Market Map, provider/legal/
   deployment/shadow gates, and generic migration compatibility remain open.
 
-- The current uncommitted checkpoint extends the shared evaluator preflight to
+- Source checkpoint `3a81d0818` extends the shared evaluator preflight to
   the explicit-symbol indicator batch endpoint. The canonical indicator
   registry supplies the minimum local history floor; the endpoint assesses its
   already loaded bars once without provider I/O, withholds under-sized values,
@@ -1407,5 +1407,4 @@ Update this handoff at each coherent boundary.
   without host-wide pruning. No provider calls, credentials, frontend files,
   or ETF-provider adapter files changed. Future non-Strategy evaluator engines
   beyond the explicit indicator batch and Market Map, provider/legal/deployment/
-  shadow gates, and generic migration compatibility remain open. The source
-  checkpoint should be replaced with the commit SHA after commit/push.
+  shadow gates, and generic migration compatibility remain open.

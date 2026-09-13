@@ -1153,7 +1153,7 @@ progress:
       integration passed `2/2`, the complete backend unit suite passed
       `2,029/2,029`, and the authoritative Docker-backed gate passed
       `2,410/2,410` at `81.37%` coverage with 89 warnings. Source checkpoint:
-      pending; no provider, frontend, or ETF-provider files changed.
+      `3a81d0818`; no provider, frontend, or ETF-provider files changed.
   total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
