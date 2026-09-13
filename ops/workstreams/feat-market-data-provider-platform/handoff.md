@@ -1670,3 +1670,20 @@ Update this handoff at each coherent boundary.
   without host-wide pruning. No provider calls, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `a707fe73c` hardens the Dinari Sandbox integration after
+  current live validation reproduced intermittent HTTP 500s caused by repeated
+  catalogue enumeration. Validated Stock records are cached only within the
+  provider instance for downstream UUID reads, preserving fresh metadata across
+  instances; Dinari alone retries a 500 at most twice with short linear
+  backoff, while rate-limit and other provider failures remain typed/fail-fast.
+  Tokenized coverage passed `71/71`, the focused provider/registry/quota/secret
+  slice passed `196/196`, and the authoritative Docker-backed combined gate
+  passed `2,424/2,424` at `81.44%` using cleaned testcontainer session
+  `9b8d2316-064e-48a9-bee5-e3ba27cf8b88`. The refreshed live matrix passed
+  `41/47`, including the Dinari compound case; Alpha Vantage capacity responses
+  and intentional Tradier/IBKR/Ondo credential preflights remain honest
+  non-passes. Aggregate usage only was recorded outside Git. Provider/legal,
+  CI/deployment, production reconciliation, migration, future-evaluator, and
+  shadow gates remain open; the parallel `feat/etf-holdings-constituents`
+  branch still owns ETF provider adapters and must reconcile only at staging.

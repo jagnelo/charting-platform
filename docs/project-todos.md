@@ -16771,3 +16771,30 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
       migration-compatibility, universe-reconciliation, and shadow gates
       remain open.
+
+### 2026-09-13 — Dinari Sandbox catalogue amplification and transient 500 recovery
+
+- [x] Keep validated Dinari Stock records in an instance-scoped UUID cache so
+      downstream price, quote, aggregate-history, news, dividend, and split
+      reads do not repeatedly enumerate the full catalogue. A new adapter
+      instance still performs fresh metadata resolution, preserving lifecycle
+      visibility across runs and authenticated environments.
+- [x] Add a Dinari-only bounded recovery for intermittent Sandbox HTTP 500
+      responses (at most two retries with short linear backoff). 4xx/rate-limit
+      failures and all other providers remain typed and fail immediately; each
+      attempt remains in transport telemetry. Focused tokenized coverage passes
+      `71/71`, the provider/registry/quota/secret slice passes `196/196`, and
+      the real Dinari Sandbox compound read passes `1/1`.
+- [x] The authoritative Docker-backed backend gate passes `2,424/2,424` at
+      `81.44%` combined coverage; labeled testcontainer session
+      `9b8d2316-064e-48a9-bee5-e3ba27cf8b88` was cleaned without host-wide
+      pruning. The refreshed full live matrix passes `41/47`; the six honest
+      non-passes are Alpha Vantage's typed documented daily/one-per-second
+      capacity responses for IPO-calendar and both earnings reads, plus the
+      intentional Tradier, IBKR, and Ondo credential preflights. No routing
+      entitlement was changed and no credentials or provider payloads entered
+      Git.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.
