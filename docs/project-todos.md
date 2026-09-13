@@ -17109,3 +17109,18 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Re-run the authoritative Docker-backed backend gate: 2,438/2,438
       passed, 81.61% combined coverage, 89 warnings, cleaned testcontainer
       session `bcf70b7a-48f3-49d4-9a78-d26499a577f7`.
+
+### 2026-09-13 — Tokenized historical capability separation
+
+- [x] Give tokenized historical aggregates their own
+      `TOKENIZED_HISTORICAL_PRICES` capability, provider-chain seed, registry
+      getter/manifest entry, availability probe contract, and PostgreSQL enum
+      migration. Dinari is the only adapter advertising this capability;
+      historical refresh now resolves and charges it independently of
+      `TOKENIZED_ASSETS` catalogue/quote traffic.
+- [x] Focused provider/availability/tokenized coverage passes `172/172`; the
+      authoritative Docker-backed backend gate passes `2,454/2,454` at 81.67%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+- [ ] Dinari historical routing and the disabled worker still require reviewed
+      quota, commercial, US-eligibility, caching, and redistribution terms.

@@ -1941,3 +1941,13 @@ Update this handoff at each coherent boundary.
   evidence gap for the adapter, but does not promote Dinari routing: account
   quota, commercial/US eligibility, caching, and redistribution terms remain
   open and the historical worker stays disabled.
+
+- Source checkpoint `a4f7f8992da4` separates tokenized historical aggregates
+  into the `TOKENIZED_HISTORICAL_PRICES` capability. Registry discovery,
+  availability probes, provider-chain seeding, the Dinari historical refresh,
+  and the PostgreSQL enum migration now use this capability instead of the
+  generic tokenized-assets pool. Dinari remains the only adapter advertising
+  it and remains fail-closed/worker-disabled pending reviewed quota, commercial,
+  eligibility, caching, and redistribution terms. Focused coverage passed
+  `172/172`; the authoritative Docker-backed gate passed `2,454/2,454` at
+  `81.67%` with 89 warnings. No frontend or ETF-provider adapter files changed.
