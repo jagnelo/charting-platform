@@ -1869,6 +1869,10 @@ class TestWorkspaces:
         assert available_payload["member_count"] == 1
         assert available_payload["covered_member_count"] == 1
         assert available_payload["coverage"] == 1
+        assert available_payload["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_derived_equal_weight"
+        )
+        assert available_payload["coverage_preflight"]["status"] == "full"
         assert len(available_payload["points"]) == len(ohlcv_bars)
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
@@ -1892,6 +1896,7 @@ class TestWorkspaces:
         stale_payload = stale.json()
         assert stale_payload["covered_member_count"] == 0
         assert stale_payload["points"] == []
+        assert stale_payload["coverage_preflight"]["status"] == "deferred"
         assert stale_payload["exclusions"][-1]["code"] == "stale_data"
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",

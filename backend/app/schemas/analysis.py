@@ -414,6 +414,7 @@ class BenchmarkFamilyDerivedEqualWeightOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     method: str
     member_count: int = Field(ge=0)
     covered_member_count: int = Field(ge=0)

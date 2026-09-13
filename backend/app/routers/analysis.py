@@ -5591,6 +5591,17 @@ async def benchmark_family_derived_equal_weight(
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
     covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_derived_equal_weight",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=1,
+    )
     series = _equal_weight_series(bars_by_id, member_ids)
     exclusions: list[AnalysisWarning] = []
     if not constituent_members:
@@ -5634,6 +5645,7 @@ async def benchmark_family_derived_equal_weight(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=series[-1][0] if series else as_of,
         membership_version=membership_version,
+        coverage_preflight=coverage_preflight.to_dict(),
         universe_provenance={
             **_group_provenance(group, as_of),
             "membership_semantics": "point_in_time_constituent_derived_equal_weight",
