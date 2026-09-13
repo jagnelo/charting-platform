@@ -1567,8 +1567,11 @@ progress:
     issuer-materialization policy is now explicit and auditable as disabled or
     create_missing, with the default still disabled. Production NMS/OTC
     reconciliation, and frontend calendar surfaces remain open. The new Alpha
-    forward-calendar and EDGAR IPO-pipeline live reads are
-    still pending a reset/usable quota window, while Alpaca/MarketData.app/
+    forward-calendar and earnings-calendar reads are still pending a
+    reset/usable quota window. EDGAR's bounded per-issuer IPO-pipeline read is
+    now transport-proven in the current 11/11 credentialed suite; complete
+    issuer-directory scan activation still requires the positive submissions
+    budget and materialization-policy reviews above. Alpaca/MarketData.app/
     Dinari/EDGAR transport evidence is recorded above. Universe discovery now
     enforces venue/type-qualified identity matching and refuses local duplicate
     keys rather than silently merging them; stable FIGI/composite FIGI/ISIN/CUSIP/
