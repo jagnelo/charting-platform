@@ -171,7 +171,10 @@ class Settings(BaseSettings):
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
         "instrument_search": ["edgar", "massive", "alpha_vantage"],
-        "instrument_metadata": ["edgar"],
+        # SEC remains the default issuer/profile source; Massive's ticker
+        # overview is an explicit supplementary metadata route with stable
+        # FIGI/CIK and listing lifecycle fields.
+        "instrument_metadata": ["edgar", "massive"],
         "price_history": ["alpaca", "alpha_vantage"],
         "latest_price": ["alpaca", "alpha_vantage"],
         # Alpha Vantage's EARNINGS endpoint is a final corroborating fallback;
@@ -923,6 +926,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "search_instruments": 1,
                 "discover_universe_page": 1,
+                "get_instrument_profile": 1,
                 "fetch_market_events": 1,
                 "fetch_market_holidays": 1,
             },

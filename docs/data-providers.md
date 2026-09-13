@@ -130,7 +130,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested); `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled only when the returned limit matches the reviewed contract | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
-| Massive | US ticker search/reference universe, split-adjusted or raw aggregate OHLCV for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates; aggregate pages accept at most 50,000 base aggregates and may continue with `next_url` | API key / provider-defined minute window; every historical page is reserved before execution | reference, adjusted daily, and raw five-minute history live-proven; remains opt-in for history because the free allowance is small |
+| Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates; aggregate pages accept at most 50,000 base aggregates and may continue with `next_url` | API key / provider-defined minute window; every historical page is reserved before execution; metadata overview costs one request | reference, metadata, adjusted daily, and raw five-minute history live-proven; remains opt-in for history because the free allowance is small |
 | Alpha Vantage | Raw daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` and adjusted daily history are premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact raw daily history and the bounded AAPL earnings normalization are live-proven; adjusted history is rejected explicitly; IPO-calendar remains subject to its documented capacity response |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
@@ -541,7 +541,7 @@ decision visible in `market_event_scan_state`.
 | edgar      | Primary     | Contact User-Agent      | Free     |
 | yfinance   | Explicit legacy/options fallback only | None (unofficial) | Free, no SLA |
 | openfigi   | Supplementary | Optional API key      | Free     |
-| massive    | Optional reference/IPO-calendar corroboration | Optional API key | Free tier / 5 requests/minute |
+| massive    | Optional reference/metadata/IPO-calendar corroboration | Optional API key | Free tier / 5 requests/minute |
 | alpha_vantage | Optional daily-history, IPO-calendar, and forward-earnings corroboration | Optional API key | Free tier / 25 requests/day |
 | tiingo / twelve_data | Optional EOD/intraday history | API key | Free/low-cost quota |
 | finnhub | Optional intraday/profile/search | API key | Free/low-cost quota |
@@ -735,6 +735,7 @@ operator review item.
 | Capability | Detail |
 |---|---|
 | `instrument_search` | US ticker/reference search |
+| `instrument_metadata` | Single-ticker overview with CIK, composite/share-class FIGI, exchange, active/delisted lifecycle fields, SIC classification, description, employee/share-count fields, and branding payload when published |
 | `universe_discovery` | Cursor-paged active US stock reference universe |
 | `price_history` | Raw or split-adjusted custom bars for M1/M5/M15/M30/H1/H2/H4/H12/D1/W1/MN |
 | `market_events` | Cursor-paged IPO calendar and forward market holidays/early closes |
@@ -1151,7 +1152,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_historical_prices":["dinari"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar","massive"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_historical_prices":["dinari"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 ```
 
@@ -1182,6 +1183,15 @@ historical or latest-window call. This is deliberately not added to the
 default price-history chain: the free plan's five-call/minute and two-year
 limits require explicit operator routing review.
 
+Massive's [`ticker overview`](https://massive.com/docs/rest/stocks/tickers/ticker-overview)
+endpoint is exposed as `instrument_metadata`. It validates that the returned
+ticker matches the request, preserves CIK/composite FIGI/share-class FIGI
+identifiers, normalizes exchange/currency/type and active/delisted timestamps,
+and retains provider classification, description, share-count, employee, and
+branding fields without inventing values for omitted fields. The metadata
+operation has an explicit one-request reservation and is supplementary to the
+SEC issuer profile rather than a replacement for SEC filing facts.
+
 Priority within a chain is refined at runtime by health scores (EWMA latency, success rate,
 completeness).  A provider that consistently fails for a given symbol class (e.g. Binance
 receiving equity symbols) will be naturally deprioritised by the circuit-breaker logic.
@@ -1201,7 +1211,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Interest rates (RFR, yields) | fred              | —               |
 | Major forex daily rates      | fred              | —               |
 | Macro indicators             | fred              | —               |
-| US company profile           | edgar             | —               |
+| US company profile           | edgar             | Massive ticker overview (CIK/FIGI, exchange, lifecycle, classification) |
 | Historical earnings dates    | edgar             | —               |
 | US options chains            | MarketData.app when its reviewed plan/response bound is configured | Tradier when entitled; yfinance remains explicit legacy only |
 | Futures / commodities        | IBKR generic read-only adapter (explicit conid mapping recommended) | yfinance (explicit legacy compatibility only) |

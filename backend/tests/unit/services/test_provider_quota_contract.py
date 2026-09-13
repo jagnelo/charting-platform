@@ -1682,6 +1682,7 @@ def test_single_request_provider_profiles_are_explicit():
         "massive": {
             "search_instruments": 1,
             "discover_universe_page": 1,
+            "get_instrument_profile": 1,
             "fetch_market_events": 1,
             "fetch_market_holidays": 1,
         },

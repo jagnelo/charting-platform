@@ -18,7 +18,13 @@ import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.base import MarketEventRecord, ProviderSearchResult
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentProfile,
+    ListingRecord,
+    MarketEventRecord,
+    ProviderSearchResult,
+)
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
@@ -32,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://api.massive.com"
 _TICKERS_PATH = "/v3/reference/tickers"
+_TICKER_PROFILE_PATH_TEMPLATE = "/v3/reference/tickers/{ticker}"
 _IPOS_PATH = "/vX/reference/ipos"
 _MARKET_HOLIDAYS_PATH = "/v1/marketstatus/upcoming"
 _AGGREGATES_PATH_TEMPLATE = "/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{start}/{end}"
@@ -340,6 +347,122 @@ class MassiveProvider:
             )
         )
         return [self._result(row) for row in self._rows(payload, "search")[:limit]]
+
+    def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+        """Return Massive's documentation-backed single-ticker overview.
+
+        The overview is deliberately kept separate from the paginated ticker
+        catalogue: it carries issuer metadata and stable identifiers that are
+        not guaranteed to be present in every discovery row.  Optional fields
+        are preserved in ``extra``/``raw_payload`` without coercing missing
+        provider values into fabricated defaults.
+        """
+
+        normalized_symbol = str(symbol or "").strip().upper()
+        if not normalized_symbol:
+            return None
+        payload = self._get_path(
+            _TICKER_PROFILE_PATH_TEMPLATE.format(ticker=quote(normalized_symbol, safe="._-")),
+            self._params(),
+        )
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(
+                self.name, "Massive ticker overview returned an invalid response object"
+            )
+        row = payload.get("results")
+        if row is None:
+            return None
+        if not isinstance(row, dict):
+            raise ProviderResponseError(
+                self.name, "Massive ticker overview returned an invalid results object"
+            )
+        provider_symbol = str(row.get("ticker") or "").strip().upper()
+        if not provider_symbol:
+            raise ProviderResponseError(
+                self.name, "Massive ticker overview returned a row without a ticker"
+            )
+        if provider_symbol != normalized_symbol:
+            raise ProviderResponseError(
+                self.name,
+                "Massive ticker overview returned a different ticker than requested",
+            )
+
+        active = row.get("active")
+        if active is not None and not isinstance(active, bool):
+            raise ProviderResponseError(
+                self.name, "Massive ticker overview returned an invalid active flag"
+            )
+        type_code = _optional_text(row.get("type"))
+        exchange = _optional_text(row.get("primary_exchange"))
+        currency = _optional_text(row.get("currency_name"))
+        currency = currency.upper() if currency else None
+        known_at = _parse_datetime(row.get("last_updated_utc"))
+        delisted_at = _parse_datetime(row.get("delisted_utc"))
+
+        identifiers: list[IdentifierRecord] = []
+        for field, identifier_type in (
+            ("cik", "CIK"),
+            ("composite_figi", "COMPOSITE_FIGI"),
+            ("share_class_figi", "SHARE_CLASS_FIGI"),
+        ):
+            value = _optional_text(row.get(field))
+            if value:
+                identifiers.append(
+                    IdentifierRecord(
+                        identifier_type=identifier_type,
+                        identifier_value=value,
+                        is_primary=identifier_type == "COMPOSITE_FIGI",
+                        source=self.name,
+                    )
+                )
+
+        listing = ListingRecord(
+            provider_symbol=provider_symbol,
+            exchange_code=exchange,
+            currency=currency,
+            provider_instrument_type=type_code,
+            is_primary=True,
+            known_at=known_at,
+            delisted_at=delisted_at,
+            extra_data={"active": active},
+        )
+        extra = {
+            key: row[key]
+            for key in (
+                "market",
+                "locale",
+                "ticker_root",
+                "ticker_suffix",
+                "market_cap",
+                "sic_code",
+                "sic_description",
+                "total_employees",
+                "weighted_shares_outstanding",
+                "branding",
+            )
+            if key in row
+        }
+        extra.update(
+            {
+                "active": active,
+                "last_updated_utc": row.get("last_updated_utc"),
+                "delisted_utc": row.get("delisted_utc"),
+            }
+        )
+        return InstrumentProfile(
+            provider=self.name,
+            symbol=provider_symbol,
+            canonical_symbol=provider_symbol,
+            name=_optional_text(row.get("name")) or provider_symbol,
+            description=_optional_text(row.get("description")),
+            currency=currency,
+            quote_type=type_code,
+            exchange=exchange,
+            identifiers=identifiers,
+            listings=[listing],
+            raw_payload=dict(row),
+            extra=extra,
+        )
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
@@ -652,3 +775,10 @@ def _parse_datetime(value: Any) -> datetime | None:
     except ValueError:
         return None
     return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
+def _optional_text(value: Any) -> str | None:
+    if value is None or isinstance(value, bool):
+        return None
+    text = str(value).strip()
+    return text or None

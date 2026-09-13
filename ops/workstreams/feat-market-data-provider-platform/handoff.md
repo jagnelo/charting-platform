@@ -2132,3 +2132,22 @@ Update this handoff at each coherent boundary.
   reconciliation evidence only; Dinari commercial, quota, historical-
   aggregate, and redistribution reviews remain required before routing
   admission.
+
+- Massive now exposes the official single-ticker overview as explicit
+  `instrument_metadata`: it validates the requested ticker, preserves CIK,
+  composite FIGI and share-class FIGI identifiers, normalizes exchange,
+  currency, type, active/delisted lifecycle timestamps, and retains provider
+  classification/description/branding fields. The metadata operation has an
+  explicit one-request usage profile and is supplementary to SEC issuer
+  profiles. Focused provider/quota coverage passed `314/314`, Ruff/diff checks
+  passed, and the credentialed Massive case passed `1/1` with six upstream
+  requests and 448,964 response bytes; the redacted receipt merger accepted
+  one row. This is transport/schema evidence only; history and redistribution
+terms remain opt-in pending review. No frontend or ETF-provider adapter files
+changed.
+
+- The authoritative Docker-backed combined backend gate after the Massive
+  metadata implementation passed `2,464/2,464` at `81.68%` coverage with 89
+  warnings in `507.76s`, using isolated testcontainer session
+  `e92d7385-12e1-4379-a92f-167ce5abe08c`; cleanup removed only that
+  workstream's containers. No frontend or ETF-provider adapter files changed.

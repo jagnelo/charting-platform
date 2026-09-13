@@ -348,13 +348,25 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
 
 def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
+    provider = MassiveProvider()
     rows, _ = _observed_read(
-        lambda: MassiveProvider().search_instruments("AAPL", limit=1), "massive"
+        lambda: provider.search_instruments("AAPL", limit=1), "massive"
     )
     assert rows
     assert all("AAPL" in f"{row.symbol} {row.name}".upper() for row in rows)
+    profile, _ = _observed_read(
+        lambda: provider.get_instrument_profile("AAPL"), "massive"
+    )
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.name
+    assert profile.exchange
+    assert any(
+        identifier.identifier_type in {"CIK", "COMPOSITE_FIGI", "SHARE_CLASS_FIGI"}
+        for identifier in profile.identifiers
+    )
     events, _ = _observed_read(
-        lambda: MassiveProvider().fetch_market_events(
+        lambda: provider.fetch_market_events(
             start=date.today() - timedelta(days=7), end=date.today() + timedelta(days=90)
         ),
         "massive",
@@ -363,7 +375,7 @@ def test_massive_credentialed_reference():
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
     bars, _ = _observed_read(
-        lambda: MassiveProvider().fetch_ohlcv(
+        lambda: provider.fetch_ohlcv(
             "AAPL",
             Timeframe.D1,
             datetime.now(UTC) - timedelta(days=30),
@@ -377,7 +389,7 @@ def test_massive_credentialed_reference():
     assert all(bar.high >= max(bar.open, bar.close) for bar in bars)
     assert all(bar.low <= min(bar.open, bar.close) for bar in bars)
     intraday, _ = _observed_read(
-        lambda: MassiveProvider().fetch_ohlcv(
+        lambda: provider.fetch_ohlcv(
             "AAPL",
             Timeframe.M5,
             datetime.now(UTC) - timedelta(days=2),
@@ -390,7 +402,7 @@ def test_massive_credentialed_reference():
     assert all(bar.timeframe is Timeframe.M5 for bar in intraday)
     assert all(not bar.is_adjusted for bar in intraday)
     holidays, _ = _observed_read(
-        lambda: MassiveProvider().fetch_market_holidays(
+        lambda: provider.fetch_market_holidays(
             start=date.today(), end=date.today() + timedelta(days=365)
         ),
         "massive",

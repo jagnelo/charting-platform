@@ -165,12 +165,14 @@ class TestRegistryCapabilities:
         caps = set(list_provider_capabilities("massive"))
         assert caps == {
             "instrument_search",
+            "instrument_metadata",
             "universe_discovery",
             "market_events",
             "price_history",
             "adjusted_price_history",
         }
         assert get_search_provider("massive").name == "massive"
+        assert get_metadata_provider("massive").name == "massive"
         assert get_discovery_provider("massive").name == "massive"
         assert get_price_history_provider("massive").name == "massive"
 
@@ -1350,6 +1352,74 @@ class TestMassiveReferenceProvider:
         assert get.call_count == 3
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
+
+    def test_ticker_overview_normalizes_identifiers_listing_and_lifecycle(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "request_id": "req-profile",
+            "results": {
+                "active": True,
+                "cik": "0000320193",
+                "composite_figi": "BBG000B9XRY4",
+                "share_class_figi": "BBG001S5N8V8",
+                "currency_name": "usd",
+                "description": "Consumer technology company",
+                "last_updated_utc": "2024-01-02T00:00:00Z",
+                "locale": "us",
+                "market": "stocks",
+                "name": "Apple Inc.",
+                "primary_exchange": "XNAS",
+                "sic_code": 3571,
+                "sic_description": "Electronic computers",
+                "ticker": "AAPL",
+                "type": "CS",
+            },
+        }
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            profile = MassiveProvider().get_instrument_profile("aapl")
+        assert profile is not None
+        assert profile.symbol == "AAPL"
+        assert profile.name == "Apple Inc."
+        assert profile.description == "Consumer technology company"
+        assert profile.exchange == "XNAS"
+        assert profile.currency == "USD"
+        assert {item.identifier_type for item in profile.identifiers} == {
+            "CIK",
+            "COMPOSITE_FIGI",
+            "SHARE_CLASS_FIGI",
+        }
+        assert profile.identifiers[1].is_primary is True
+        assert profile.listings[0].known_at == datetime(2024, 1, 2, tzinfo=UTC)
+        assert profile.extra["sic_code"] == 3571
+        assert get.call_args.args[0] == "https://api.massive.com/v3/reference/tickers/AAPL"
+        assert get.call_args.kwargs["params"] == {"apiKey": "key"}
+
+    @pytest.mark.parametrize(
+        "payload,match",
+        [
+            ({"results": []}, "invalid results object"),
+            ({"results": {"ticker": "MSFT"}}, "different ticker"),
+            ({"results": {"ticker": "AAPL", "active": "yes"}}, "invalid active flag"),
+        ],
+    )
+    def test_ticker_overview_rejects_malformed_identity(self, payload, match):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = payload
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match=match):
+                MassiveProvider().get_instrument_profile("AAPL")
 
     @pytest.mark.parametrize(
         "payload",

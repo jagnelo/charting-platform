@@ -1226,3 +1226,17 @@ accepted into the owner-managed ledger with `accepted=1`, `duplicates=0`,
 `rejected=0`. This strengthens token-to-issuer reconciliation evidence only;
 Dinari commercial, quota, historical-aggregate, and redistribution reviews
 remain required before routing admission.
+
+On 2026-09-13, the Massive live case was expanded to exercise the official
+single-ticker overview in addition to search, IPO, holiday, split-adjusted D1,
+and raw M5 reads. It passed `1/1` with six upstream requests and 448,964
+response bytes; the metadata response carried a matching AAPL symbol and
+stable identifier fields. The redacted receipt merger accepted one row into
+the owner-managed ledger. This is bounded transport/schema evidence only and
+does not promote Massive history or redistribution terms.
+
+The authoritative Docker-backed combined backend gate after this metadata
+change passed `2,464/2,464` at `81.68%` coverage with 89 warnings in 507.76
+seconds, using isolated testcontainer session
+`e92d7385-12e1-4379-a92f-167ce5abe08c`. Cleanup removed only that workstream's
+containers; no frontend or ETF-provider adapter files changed.
