@@ -1162,6 +1162,161 @@ class TestWorkspaces:
         assert historical_weekly["bar_count"] == 2
         assert historical_weekly["source_lineage"] == "provider_and_derived"
 
+    def test_benchmark_family_readiness_composes_all_canonical_gates(
+        self, client, auth_headers, db, instrument_type, instrument, instrument_b
+    ):
+        """A role is ready only when entitlement, holdings, metadata, and all floors agree."""
+
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.data_source import DataSource
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail, Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(
+            instrument_id=spy.id,
+            adapter_key="spdr",
+            adapter_status="resolved",
+            adapter_confidence=Decimal("0.99"),
+        )
+        db.add(profile)
+        provider_source = DataSource(
+            name="spdr",
+            base_url="https://issuer.example/spdr",
+            description="Complete readiness fixture",
+            is_active=True,
+        )
+        db.add(provider_source)
+        db.flush()
+        db.add_all(
+            [
+                ProviderEntitlement(
+                    data_source_id=provider_source.id,
+                    capability=capability,
+                    configured_plan="free",
+                    is_free=True,
+                    authentication_required=False,
+                    live_probe_status="passed",
+                )
+                for capability in (
+                    ProviderCapability.UNIVERSE_DISCOVERY,
+                    ProviderCapability.PRICE_HISTORY,
+                )
+            ]
+        )
+        db.add_all(
+            [
+                EquityDetail(instrument_id=instrument.id, industry="Technology"),
+                EquityDetail(instrument_id=instrument_b.id, industry="Software"),
+            ]
+        )
+        snapshot_date = datetime(2025, 12, 31, tzinfo=UTC).date()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            data_source_id=provider_source.id,
+            composition_date=snapshot_date,
+            as_of_date=snapshot_date,
+            known_at=datetime(2026, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="spdr",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=2,
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="test-family-complete-readiness",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=member.id,
+                    position=position,
+                    reported_symbol=member.symbol,
+                    reported_name=member.name,
+                    weight=0.5,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash=f"complete-readiness-{position}",
+                    is_resolved=True,
+                )
+                for position, member in enumerate((instrument, instrument_b))
+            ]
+        )
+
+        base = datetime.now(UTC) - timedelta(days=800)
+        bars: list[OHLCVBar] = []
+        for member in (instrument, instrument_b):
+            for timeframe, count, spacing in (
+                (Timeframe.D1, 252, 1),
+                (Timeframe.W1, 52, 7),
+                (Timeframe.MN, 24, 31),
+            ):
+                for offset in range(count):
+                    ts = base + timedelta(days=offset * spacing)
+                    bars.append(
+                        OHLCVBar(
+                            instrument_id=member.id,
+                            timeframe=timeframe,
+                            ts=ts,
+                            open=100,
+                            high=101,
+                            low=99,
+                            close=100,
+                            volume=1_000,
+                            is_adjusted=True,
+                            data_source_id=provider_source.id,
+                        )
+                    )
+        db.add_all(bars)
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        cap = next(role for role in payload["roles"] if role["role"] == "cap_weight")
+        assert cap["entitlement_status"] == "verified"
+        assert cap["status"] == "available"
+        assert cap["weights_status"] == "ready"
+        assert cap["classification_status"] == "ready"
+        assert cap["member_bar_history"]["status"] == "ready"
+        assert all(
+            timeframe["analysis_ready_member_count"] == 2
+            for timeframe in cap["member_bar_history"]["timeframes"]
+        )
+        assert cap["composite_readiness_status"] == "ready"
+        assert cap["composite_readiness_reasons"] == []
+
+        readiness = client.get(
+            "/api/v1/analysis/benchmark-families/readiness",
+            headers=auth_headers,
+        )
+        assert readiness.status_code == 200, readiness.text
+        readiness_payload = readiness.json()
+        assert readiness_payload["ready_role_count"] >= 1
+        assert readiness_payload["readiness_status"] == "partial"
+
     def test_benchmark_family_readiness_excludes_placeholder_members_from_canonical_counts(
         self, client, auth_headers, db, instrument_type, instrument
     ):
