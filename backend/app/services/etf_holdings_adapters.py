@@ -13344,6 +13344,10 @@ class MairsPowerHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Mairs & Power product page did not contain complete portfolio rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Mairs & Power product page did not expose a dated full portfolio for {normalized_symbol}."
+            )
         for index, row in enumerate(rows):
             row.source_row_id = f"{normalized_symbol}:{index}:{row.cusip or row.name}"
             row.holding_type = "fixed_income"
@@ -13364,6 +13368,7 @@ class MairsPowerHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
                 "route_resolution": "issuer_product_page_complete_portfolio_table",
+                "completeness_status": "complete",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,

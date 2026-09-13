@@ -4703,6 +4703,7 @@ async def test_mairs_power_adapter_parses_complete_municipal_bond_portfolio(monk
         "issuer_product_page_complete_portfolio_table"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
