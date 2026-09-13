@@ -1617,3 +1617,18 @@ Update this handoff at each coherent boundary.
   not a closure of the still-open provider-terms, GitHub environment,
   credential-preflight, production reconciliation, migration, or 30-day
   shadow gates.
+
+- Source checkpoint `1c87db5c1` extends the shared provider-neutral OHLCV
+  coverage preflight to the Radar signal scan. Its exact 80-bar minimum is now
+  evaluated before `analyze_instrument`; short or otherwise incomplete local
+  histories are withheld from detection, bounded refresh jobs retain an
+  `insufficient_history` reason, and the persisted run summary includes the
+  per-instrument preflight evidence. Radar unit coverage passed `35/35`, the
+  complete PostgreSQL Radar API coverage passed `13/13`, the complete backend
+  unit suite passed `2,032/2,032` with 37 warnings, and the authoritative
+  Docker-backed combined gate passed `2,415/2,415` at `81.40%` coverage with
+  89 warnings. Testcontainer session
+  `9fbd238a-6d9a-4f03-86b7-22d1b88bf4c1` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.
