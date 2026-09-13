@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-13 — Indicator endpoint coverage preflight
+
+- [x] Extend the shared OHLCV coverage preflight to
+      `/api/v1/indicators/compute/{symbol}/{timeframe}`. Required history is
+      derived from the canonical indicator registry and normalized parameters;
+      under-sized local history is withheld with additive serialized coverage
+      evidence, while successful and unknown-indicator responses preserve their
+      existing shapes. Focused indicator endpoint integration passes 6/6,
+      Ruff/compileall/diff checks pass, and the authoritative Docker-backed
+      combined backend gate passes 2,432/2,432 at 81.45% coverage with 89
+      warnings. No provider calls, frontend files, or ETF-provider adapter files
+      changed.
+
 ### 2026-09-13 — Generic historical breadth coverage preflight
 
 - [x] Extend the provider-neutral OHLCV preflight to the generic

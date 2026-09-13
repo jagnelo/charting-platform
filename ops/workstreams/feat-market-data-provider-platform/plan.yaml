@@ -114,6 +114,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The direct `/api/v1/indicators/compute/{symbol}/{timeframe}` evaluator
+      now runs the shared OHLCV coverage preflight using canonical indicator
+      history floors and normalized parameters. Under-sized local history is
+      withheld with additive serialized readiness evidence; successful and
+      unknown-indicator response compatibility is preserved. Focused indicator
+      endpoint integration passed `6/6`; Ruff, compileall, and diff checks
+      passed; and the authoritative Docker-backed combined backend gate passed
+      `2,432/2,432` at `81.45%` coverage with 89 warnings using cleaned
+      testcontainer session `1e1f994b-6eef-4fb2-b334-8cdc7a4e6d43`. No provider
+      calls, credentials, frontend, or ETF-provider adapter files changed.
+    - >-
       Generic `/analysis/breadth/history` now runs the shared OHLCV preflight
       after truncating bars at the historical `as_of` cutoff. It uses the
       condition-derived history floor, assesses the observed historical extent

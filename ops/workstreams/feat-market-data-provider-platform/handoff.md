@@ -1787,3 +1787,17 @@ Update this handoff at each coherent boundary.
   changed. Provider/legal, CI/deployment, production reconciliation, shadow,
   and staging coordinator review remain open; the parallel ETF branch still
   owns ETF provider adapters and must reconcile only at staging.
+
+- Source checkpoint `d59731fb7` extends the same shared OHLCV preflight to the
+  direct indicator-computation endpoint. Required history is derived from the
+  canonical indicator registry and normalized parameters; incomplete local
+  history is withheld before computation and additive `coverage_preflight`
+  evidence is returned on successful, deferred, and unknown-indicator paths.
+  Focused `IndicatorsEndpoint` integration passed `6/6`; Ruff, compileall, and
+  diff checks passed; and the authoritative Docker-backed backend gate passed
+  `2,432/2,432` at `81.45%` coverage with 89 warnings using cleaned session
+  `1e1f994b-6eef-4fb2-b334-8cdc7a4e6d43`. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed. Provider/legal,
+  CI/deployment, production reconciliation, shadow, future-evaluator, and
+  staging coordinator review remain open; this branch remains ready for human
+  review and is not ready for integration.
