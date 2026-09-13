@@ -18,6 +18,14 @@ because no provider-related paths changed. This is route evidence only and
 does not claim persisted snapshots, placeholder resolution, D1/W1/MN floors,
 or continuity. The six unchanged protected visual diffs remain open. No
 provider/fallback, visual, migration, or acceptance policy changed.
+The required synchronization push was attempted once for the exact range
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b81a227d73c0bc53a16b61800f33a425adbfd44b`
+to `origin/feat/tc2000-frontend-rework` and was rejected before Git by the
+private-origin egress safeguard because trusted exact-payload authorization was
+unavailable. The local branch is healthy, clean, and committed at `b81a227d7`;
+the remote remains at `63d64bfe`. This is a transport hold, not a product
+blocker; retry only through the same elevated Git path after exact-payload
+authorization is available.
 
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 

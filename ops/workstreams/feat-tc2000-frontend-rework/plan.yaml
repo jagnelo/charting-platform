@@ -27,7 +27,11 @@ current_blocker: >-
   canonical provider population/history and D1/W1/MN floors and continuity;
   AC2–AC7/AC10 remain open. No visual threshold, mask, skip, provider,
   fallback, migration, or acceptance policy changed. This receipt supersedes
-  the previous 5caacf901 receipt below.
+  the previous 5caacf901 receipt below. The required push of
+  63d64bfe95c98bfe6e550bf69c213ae1cd64a629..b81a227d73c0bc53a16b61800f33a425adbfd44b
+  to origin/feat/tc2000-frontend-rework was rejected before Git by the
+  private-origin egress safeguard; local commit b81a227d7 is clean and the
+  remote remains at 63d64bfe. This is a transport hold, not a product blocker.
   Product commit c7d84436f corrects SLYG's curated SEC series/class identity
   to S000006990/C000019043 and applies the same identity gate to legacy
   holdings documents. Exact identity searches use a bounded 400-filing window;

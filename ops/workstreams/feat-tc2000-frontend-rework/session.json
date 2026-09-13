@@ -120,7 +120,7 @@
   "implementation_sha": "5caacf901ccd6878d133ef7935a37141308a3437",
   "interrupted": false,
   "last_checkpoint": "2026-09-13T02:38:14.819362+00:00",
-  "last_human_progress_update": "2026-09-12T22:57:05.998654+00:00",
+  "last_human_progress_update": "2026-09-13T03:22:12.583719+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
   "plan_hash": "55eca6e666f6aa0a52cdf0cd3416a37f1d18a397102bba005fb2668c5017cd7c",
@@ -136,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "At clean product tip 5caacf901, IWM is covered at both 2025-12-31 and 2026-06-30 by the date-aware iShares family-history matrix; the focused live suite passed 10/10. The exact gate passed backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and all pre-visual, compose, deployment, and expected research-runner stages. Provider probes reported not configured because RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain authoritative. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
-    "current_phase": "r1_ishares_iwm_older_history_guard",
-    "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
+    "current_blocker": "Exact gate completed with 98/104 visual assertions; six unchanged protected state-oracle diffs remain. Product/doc commits are clean locally at b81a227d7, while the required push range 63d64bfe..b81a227d7 is pending private-origin egress authorization; R1 population/history and D1/W1/MN floors and continuity remain open.",
+    "current_phase": "R1_ishares_family_older_history_matrix",
+    "next_action": "Continue the next bounded canonical provider/history seam from the clean local boundary; preserve the six visual state-oracle assertions and retry the exact push only after trusted exact-payload authorization is available.",
     "total": 10,
-    "updated_at": "2026-09-13T02:03:26.000000+00:00"
+    "updated_at": "2026-09-13T03:22:12.583383+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
