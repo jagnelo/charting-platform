@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -47,6 +48,9 @@ from app.providers.errors import (
 )
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
+from app.providers.massive import (
+    estimate_corporate_actions_request_count as estimate_massive_corporate_actions_request_count,
+)
 from app.providers.massive import (
     estimate_latest_ohlcv_request_count as estimate_massive_latest_ohlcv_request_count,
 )
@@ -170,6 +174,8 @@ class TestRegistryCapabilities:
             "market_events",
             "price_history",
             "adjusted_price_history",
+            "instrument_events",
+            "corporate_actions",
         }
         assert get_search_provider("massive").name == "massive"
         assert get_metadata_provider("massive").name == "massive"
@@ -1211,6 +1217,92 @@ class TestMassiveReferenceProvider:
             with pytest.raises(ProviderNotConfiguredError):
                 provider.fetch_market_events()
 
+    def test_corporate_actions_normalize_split_and_dividend_pages(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.side_effect = [
+            {
+                "results": [
+                    {
+                        "id": "split-1",
+                        "ticker": "AAPL",
+                        "adjustment_type": "forward_split",
+                        "execution_date": "2024-06-10",
+                        "split_from": 1,
+                        "split_to": 2,
+                    }
+                ]
+            },
+            {
+                "results": [
+                    {
+                        "id": "div-1",
+                        "ticker": "AAPL",
+                        "cash_amount": 0.25,
+                        "currency": "USD",
+                        "declaration_date": "2024-05-02",
+                        "ex_dividend_date": "2024-05-10",
+                        "record_date": "2024-05-13",
+                        "pay_date": "2024-05-16",
+                    }
+                ]
+            },
+        ]
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 1
+            events = MassiveProvider().fetch_instrument_events("aapl")
+        assert [event.event_type for event in events] == [
+            InstrumentEventType.EX_DIVIDEND,
+            InstrumentEventType.DIVIDEND,
+            InstrumentEventType.SPLIT,
+        ]
+        assert events[0].dividend_amount == Decimal("0.25")
+        assert events[2].split_ratio == Decimal("2")
+        assert events[0].raw_payload and "div-1" in events[0].raw_payload
+        assert [call.args[0] for call in get.call_args_list] == [
+            "https://api.massive.com/stocks/v1/splits",
+            "https://api.massive.com/stocks/v1/dividends",
+        ]
+
+    def test_corporate_actions_require_positive_page_bound(self):
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get") as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 0
+            with pytest.raises(ProviderNotConfiguredError, match="MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"):
+                MassiveProvider().fetch_instrument_events("AAPL")
+        get.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "payload,match",
+        [
+            ({"results": [{"ticker": "MSFT", "execution_date": "2024-01-01"}]}, "different ticker"),
+            ({"results": [{"ticker": "AAPL", "execution_date": "bad", "adjustment_type": "forward_split"}]}, "invalid execution_date"),
+            ({"results": [{"ticker": "AAPL", "execution_date": "2024-01-01", "adjustment_type": "bad"}]}, "invalid adjustment_type"),
+        ],
+    )
+    def test_corporate_actions_reject_malformed_split_rows(self, payload, match):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = payload
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 1
+            with pytest.raises(ProviderResponseError, match=match):
+                MassiveProvider().fetch_instrument_events("AAPL")
+
     def test_custom_bars_parse_adjustment_and_follow_safe_cursor(self):
         response = MagicMock()
         response.raise_for_status.return_value = None
@@ -1304,6 +1396,8 @@ class TestMassiveReferenceProvider:
         assert estimate_massive_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_massive_latest_ohlcv_request_count(Timeframe.M1, 1) == 1
         assert estimate_massive_ohlcv_request_count(Timeframe.M1, start, start) == 0
+        assert estimate_massive_corporate_actions_request_count(3) == 6
+        assert estimate_massive_corporate_actions_request_count(0) is None
 
     def test_search_and_discovery_parse_reference_rows(self):
         response = MagicMock()

@@ -130,7 +130,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
 | Alpaca | US stocks/ETFs + crypto OHLCV, latest, corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL` | 200 historical API calls/min; corporate-actions pages accept 1–1,000 records (1,000 requested); `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled only when the returned limit matches the reviewed contract | provider/account window; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound | history/latest and paper-account assets/corporate-actions live-proven 2026-09-12; event routing requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
-| Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates; aggregate pages accept at most 50,000 base aggregates and may continue with `next_url` | API key / provider-defined minute window; every historical page is reserved before execution; metadata overview costs one request | reference, metadata, adjusted daily, and raw five-minute history live-proven; remains opt-in for history because the free allowance is small |
+| Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV, historical splits and dividends for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates, and corporate actions; aggregate pages accept at most 50,000 base aggregates; splits/dividends accept at most 5,000 rows and may continue with `next_url` | API key / provider-defined minute window; every historical/corporate-action page is reserved before execution; metadata overview costs one request | reference, metadata, adjusted daily, raw five-minute history, and corporate actions live-proven; remains opt-in for history/events because the free allowance and redistribution terms require review |
 | Alpha Vantage | Raw daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` and adjusted daily history are premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact raw daily history and the bounded AAPL earnings normalization are live-proven; adjusted history is rejected explicitly; IPO-calendar remains subject to its documented capacity response |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
@@ -739,8 +739,15 @@ operator review item.
 | `universe_discovery` | Cursor-paged active US stock reference universe |
 | `price_history` | Raw or split-adjusted custom bars for M1/M5/M15/M30/H1/H2/H4/H12/D1/W1/MN |
 | `market_events` | Cursor-paged IPO calendar and forward market holidays/early closes |
+| `instrument_events` / `corporate_actions` | Split and dividend history from the independently paginated `/stocks/v1/splits` and `/stocks/v1/dividends` endpoints; ex-dividend and payable dates are preserved as separate normalized events |
 
 The aggregate adapter uses [`/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}`](https://massive.com/docs/rest/stocks/aggregates), requests the documented 50,000-base-aggregate maximum, and follows only validated `api.massive.com` continuation URLs. It records the response adjustment flag, request ID, provider row, and normalized UTC timestamp in bar provenance. Historical and latest-window reservations are calculated from the requested base-candle count, so pagination never silently falls back to one request.
+
+Corporate-action reads are two independent endpoint families. The adapter
+requires a positive `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` bound, applies it to
+each endpoint, validates every continuation URL, and reserves `2 * bound`
+requests before execution. A zero/unset bound keeps event routing fail-closed;
+it is never treated as one request.
 
 Massive history is intentionally not in the default `price_history` chain: the
 free five-call/minute and two-year limits are materially narrower than Alpaca's
@@ -1074,6 +1081,7 @@ ALPACA_SECRET_KEY=your_alpaca_secret
 ALPACA_DATA_FEED=iex          # iex (free) | sip (paid consolidated feed)
 ALPACA_TRADING_BASE_URL=https://paper-api.alpaca.markets/v2  # live keys: https://api.alpaca.markets/v2
 ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound required before Alpaca event routing
+MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound per split/dividend endpoint required before Massive event routing
 
 # FRED
 FRED_API_KEY=your_fred_key
@@ -1152,7 +1160,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar","massive"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_historical_prices":["dinari"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar","massive"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_historical_prices":["dinari"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 ```
 

@@ -10,16 +10,19 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from math import ceil, isfinite
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 import httpx
 
-from app.config import settings
+from app.config import provider_positive_integer, settings
+from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import (
     IdentifierRecord,
+    InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
     MarketEventRecord,
@@ -41,6 +44,8 @@ _TICKERS_PATH = "/v3/reference/tickers"
 _TICKER_PROFILE_PATH_TEMPLATE = "/v3/reference/tickers/{ticker}"
 _IPOS_PATH = "/vX/reference/ipos"
 _MARKET_HOLIDAYS_PATH = "/v1/marketstatus/upcoming"
+_SPLITS_PATH = "/stocks/v1/splits"
+_DIVIDENDS_PATH = "/stocks/v1/dividends"
 _AGGREGATES_PATH_TEMPLATE = "/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{start}/{end}"
 _PAGE_SIZE = 1000
 _AGGREGATE_PAGE_SIZE = 50_000
@@ -464,6 +469,207 @@ class MassiveProvider:
             extra=extra,
         )
 
+    def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
+        """Normalize Massive's documented split and dividend history.
+
+        The provider exposes two independently paginated endpoints, so one
+        platform event read can consume up to two times the reviewed page
+        bound.  A missing bound is an intentional fail-closed result; callers
+        must not turn the two HTTP requests (or an opaque continuation) into a
+        guessed one-request charge.
+        """
+
+        normalized_symbol = str(symbol or "").strip().upper()
+        if not normalized_symbol:
+            return []
+        max_pages = provider_positive_integer(
+            getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
+        )
+        if max_pages is None:
+            raise ProviderNotConfiguredError(
+                "massive corporate actions require a positive "
+                "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES bound"
+            )
+
+        fetched_at = datetime.now(UTC)
+        events: list[InstrumentEventRecord] = []
+        for row in self._fetch_corporate_action_rows(
+            _SPLITS_PATH,
+            normalized_symbol,
+            max_pages=max_pages,
+            sort="execution_date.desc",
+        ):
+            events.append(self._split_event(row, normalized_symbol, fetched_at))
+        for row in self._fetch_corporate_action_rows(
+            _DIVIDENDS_PATH,
+            normalized_symbol,
+            max_pages=max_pages,
+            sort="ex_dividend_date.desc",
+        ):
+            events.extend(self._dividend_events(row, normalized_symbol, fetched_at))
+        return sorted(events, key=lambda event: (event.event_time, event.source_event_key))
+
+    def _fetch_corporate_action_rows(
+        self,
+        path: str,
+        symbol: str,
+        *,
+        max_pages: int,
+        sort: str,
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        next_path = path
+        next_params: dict[str, Any] = self._params(
+            ticker=symbol,
+            limit=5000,
+            sort=sort,
+        )
+        seen_cursors: set[str] = set()
+        for page_index in range(max_pages):
+            payload = self._get_path(next_path, next_params)
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(
+                    self.name, "Massive corporate-actions endpoint returned an invalid object"
+                )
+            rows.extend(self._rows(payload, "corporate actions"))
+            next_url = payload.get("next_url")
+            if not next_url:
+                return rows
+            next_path, cursor = _corporate_actions_next_page(next_url, self.name, path)
+            if cursor in seen_cursors:
+                raise ProviderResponseError(
+                    self.name, "Massive corporate-actions pagination repeated a cursor"
+                )
+            seen_cursors.add(cursor)
+            if page_index + 1 >= max_pages:
+                raise ProviderResponseError(
+                    self.name,
+                    "Massive corporate-actions page bound reached before pagination completed",
+                )
+            next_params = self._params(cursor=cursor)
+        raise ProviderResponseError(self.name, "Massive corporate-actions page bound is invalid")
+
+    def _split_event(
+        self, row: dict[str, Any], symbol: str, fetched_at: datetime
+    ) -> InstrumentEventRecord:
+        provider_symbol = _optional_text(row.get("ticker"))
+        if provider_symbol and provider_symbol.upper() != symbol:
+            raise ProviderResponseError(
+                self.name, "Massive split returned a different ticker than requested"
+            )
+        execution_date = _required_action_date(row.get("execution_date"), self.name, "execution_date")
+        adjustment_type = _optional_text(row.get("adjustment_type"))
+        if adjustment_type not in {"forward_split", "reverse_split", "stock_dividend"}:
+            raise ProviderResponseError(self.name, "Massive split returned an invalid adjustment_type")
+        split_from = _optional_action_decimal(row.get("split_from"), self.name, "split_from")
+        split_to = _optional_action_decimal(row.get("split_to"), self.name, "split_to")
+        if (split_from is None) != (split_to is None):
+            raise ProviderResponseError(self.name, "Massive split returned only one ratio component")
+        if split_from is not None and (split_from <= 0 or split_to <= 0):
+            raise ProviderResponseError(self.name, "Massive split returned a non-positive ratio component")
+        split_ratio = split_to / split_from if split_from is not None and split_to is not None else None
+        source_id = _optional_text(row.get("id"))
+        source_key = source_id or (
+            f"{adjustment_type}:{execution_date.isoformat()}:{split_from}:{split_to}"
+        )
+        return InstrumentEventRecord(
+            event_type=InstrumentEventType.SPLIT,
+            event_time=datetime.combine(execution_date, datetime.min.time(), tzinfo=UTC),
+            time_hint=EventTimeHint.UNKNOWN,
+            title=f"{adjustment_type.replace('_', ' ').title()} {symbol}",
+            source_event_key=f"massive:split:{symbol}:{source_key}",
+            fetched_at=fetched_at,
+            split_ratio=split_ratio,
+            raw_payload=str(row),
+        )
+
+    def _dividend_events(
+        self, row: dict[str, Any], symbol: str, fetched_at: datetime
+    ) -> list[InstrumentEventRecord]:
+        provider_symbol = _optional_text(row.get("ticker"))
+        if provider_symbol and provider_symbol.upper() != symbol:
+            raise ProviderResponseError(
+                self.name, "Massive dividend returned a different ticker than requested"
+            )
+        dates = {
+            field: _optional_action_date(row.get(field), self.name, field)
+            for field in ("declaration_date", "ex_dividend_date", "record_date", "pay_date")
+        }
+        if all(value is None for value in dates.values()):
+            raise ProviderResponseError(self.name, "Massive dividend returned no valid date")
+        amount = _optional_action_decimal(row.get("cash_amount"), self.name, "cash_amount")
+        currency = _optional_text(row.get("currency"))
+        source_id = _optional_text(row.get("id"))
+        base_key = source_id or ":".join(
+            [str(dates[field] or "") for field in ("declaration_date", "ex_dividend_date", "pay_date")]
+        )
+        events: list[InstrumentEventRecord] = []
+        if dates["ex_dividend_date"] is not None:
+            events.append(
+                self._dividend_event(
+                    InstrumentEventType.EX_DIVIDEND,
+                    dates["ex_dividend_date"],
+                    symbol,
+                    base_key,
+                    amount,
+                    currency,
+                    row,
+                    fetched_at,
+                )
+            )
+        if dates["pay_date"] is not None:
+            events.append(
+                self._dividend_event(
+                    InstrumentEventType.DIVIDEND,
+                    dates["pay_date"],
+                    symbol,
+                    base_key,
+                    amount,
+                    currency,
+                    row,
+                    fetched_at,
+                )
+            )
+        if not events:
+            fallback_date = dates["declaration_date"] or dates["record_date"]
+            assert fallback_date is not None
+            events.append(
+                self._dividend_event(
+                    InstrumentEventType.DIVIDEND,
+                    fallback_date,
+                    symbol,
+                    base_key,
+                    amount,
+                    currency,
+                    row,
+                    fetched_at,
+                )
+            )
+        return events
+
+    def _dividend_event(
+        self,
+        event_type: InstrumentEventType,
+        event_date: date,
+        symbol: str,
+        source_key: str,
+        amount: Decimal | None,
+        currency: str | None,
+        row: dict[str, Any],
+        fetched_at: datetime,
+    ) -> InstrumentEventRecord:
+        label = "Ex-Dividend" if event_type is InstrumentEventType.EX_DIVIDEND else "Dividend"
+        return InstrumentEventRecord(
+            event_type=event_type,
+            event_time=datetime.combine(event_date, datetime.min.time(), tzinfo=UTC),
+            time_hint=EventTimeHint.UNKNOWN,
+            title=f"{label} {symbol}",
+            source_event_key=f"massive:dividend:{symbol}:{source_key}:{event_type.value}",
+            fetched_at=fetched_at,
+            dividend_amount=amount,
+            raw_payload=str(row),
+        )
+
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
             return {"total": 0, "quotes": []}
@@ -714,6 +920,31 @@ def _aggregate_next_page(next_url: Any, provider_name: str) -> tuple[str, str]:
     return parsed.path, cursor_values[0]
 
 
+def _corporate_actions_next_page(
+    next_url: Any, provider_name: str, expected_path: str
+) -> tuple[str, str]:
+    """Validate a Massive corporate-action continuation before following it."""
+
+    if not isinstance(next_url, str):
+        raise ProviderResponseError(provider_name, "Massive corporate-actions returned an invalid next_url")
+    parsed = urlparse(next_url)
+    if parsed.scheme != "https" or parsed.netloc != "api.massive.com":
+        raise ProviderResponseError(
+            provider_name, "Massive corporate-actions returned an untrusted next_url host"
+        )
+    if parsed.path != expected_path:
+        raise ProviderResponseError(
+            provider_name, "Massive corporate-actions returned an unexpected next_url path"
+        )
+    cursor_values = parse_qs(parsed.query).get("cursor", [])
+    if len(cursor_values) != 1 or not cursor_values[0].strip():
+        raise ProviderResponseError(
+            provider_name,
+            "Massive corporate-actions returned a next_url without one valid cursor",
+        )
+    return parsed.path, cursor_values[0]
+
+
 def estimate_ohlcv_request_count(
     timeframe: Timeframe,
     start: datetime,
@@ -746,6 +977,13 @@ def estimate_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int
     return max(1, ceil(candles / _AGGREGATE_PAGE_SIZE))
 
 
+def estimate_corporate_actions_request_count(max_pages: int) -> int | None:
+    """Reserve both independently paginated corporate-action endpoints."""
+
+    bound = provider_positive_integer(max_pages)
+    return bound * 2 if bound is not None else None
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
@@ -775,6 +1013,36 @@ def _parse_datetime(value: Any) -> datetime | None:
     except ValueError:
         return None
     return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
+def _optional_action_date(value: Any, provider_name: str, field: str) -> date | None:
+    if value in (None, ""):
+        return None
+    parsed = _parse_date(value)
+    if parsed is None:
+        raise ProviderResponseError(provider_name, f"Massive action returned an invalid {field}")
+    return parsed
+
+
+def _required_action_date(value: Any, provider_name: str, field: str) -> date:
+    parsed = _optional_action_date(value, provider_name, field)
+    if parsed is None:
+        raise ProviderResponseError(provider_name, f"Massive action returned no {field}")
+    return parsed
+
+
+def _optional_action_decimal(value: Any, provider_name: str, field: str) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool):
+        raise ProviderResponseError(provider_name, f"Massive action returned an invalid {field}")
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ProviderResponseError(provider_name, f"Massive action returned an invalid {field}") from exc
+    if not parsed.is_finite():
+        raise ProviderResponseError(provider_name, f"Massive action returned a non-finite {field}")
+    return parsed
 
 
 def _optional_text(value: Any) -> str | None:

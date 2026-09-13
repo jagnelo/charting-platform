@@ -17,6 +17,7 @@ from app.models.instrument_event import (
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.providers.massive import estimate_corporate_actions_request_count
 from app.services.instrument_mastering import ensure_external_identifier
 from app.services.provider_runtime import ProviderNoDataError, execute_provider_call
 
@@ -31,14 +32,21 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
     alpaca_max_pages = provider_positive_integer(
         getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
     )
+    massive_max_pages = provider_positive_integer(
+        getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
+    )
+    operation_cost_overrides: dict[str, int] = {}
+    if alpaca_max_pages is not None:
+        operation_cost_overrides["alpaca"] = alpaca_max_pages
+    massive_cost = estimate_corporate_actions_request_count(massive_max_pages or 0)
+    if massive_cost is not None:
+        operation_cost_overrides["massive"] = massive_cost
     execution = await execute_provider_call(
         db,
         ProviderCapability.INSTRUMENT_EVENTS,
         "fetch_instrument_events",
         instrument_id=instrument.id,
-        operation_cost_overrides=(
-            {"alpaca": alpaca_max_pages} if alpaca_max_pages is not None else None
-        ),
+        operation_cost_overrides=operation_cost_overrides or None,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         invoke=lambda provider, _provider_symbol: provider.fetch_instrument_events(
             provider_symbol_for_instrument(instrument, provider.name)

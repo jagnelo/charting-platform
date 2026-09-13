@@ -104,3 +104,24 @@ async def test_alpaca_corporate_actions_bound_is_passed_as_dynamic_usage_cost(
         await fetch_and_store_instrument_events(async_db, instrument)
 
     assert captured["operation_cost_overrides"] == {"alpaca": 3}
+
+
+@pytest.mark.asyncio
+async def test_massive_corporate_actions_reserve_both_paginated_endpoints(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    captured = {}
+
+    async def _no_provider(*_args, **kwargs):
+        captured.update(kwargs)
+        raise ProviderNoDataError("no reviewed provider is routable")
+
+    monkeypatch.setattr(instrument_events, "execute_provider_call", _no_provider)
+    monkeypatch.setattr(instrument_events.settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+    monkeypatch.setattr(instrument_events.settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 3)
+
+    with pytest.raises(ProviderNoDataError):
+        await fetch_and_store_instrument_events(async_db, instrument)
+
+    assert captured["operation_cost_overrides"] == {"massive": 6}

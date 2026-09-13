@@ -383,6 +383,11 @@ def test_edgar_metadata_and_events_cover_cold_ticker_directory_lookup():
     assert profile["operation_costs"]["fetch_ipo_pipeline_events"] == 1
 
 
+def test_massive_corporate_actions_reserve_two_endpoint_requests():
+    profile = get_provider_usage_profile("massive")
+    assert profile["operation_costs"]["fetch_instrument_events"] == 2
+
+
 @pytest.mark.asyncio
 async def test_quota_windows_are_isolated_by_dimension(db):
     async_db = AsyncSessionAdapter(db)
@@ -1683,6 +1688,7 @@ def test_single_request_provider_profiles_are_explicit():
             "search_instruments": 1,
             "discover_universe_page": 1,
             "get_instrument_profile": 1,
+            "fetch_instrument_events": 2,
             "fetch_market_events": 1,
             "fetch_market_holidays": 1,
         },

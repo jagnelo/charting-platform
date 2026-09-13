@@ -179,7 +179,7 @@ MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
-PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 PROVIDER_RATE_LIMIT_SEEDS={}
 PROVIDER_FRESHNESS_SEEDS={}
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
@@ -188,6 +188,7 @@ OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
 OPENFIGI_API_KEY=
 OPENFIGI_TIMEOUT_SECONDS=10
 MARKETDATA_API_KEY=
+MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound per split/dividend endpoint required before Massive event routing
 FMP_API_KEY=
 ```
 

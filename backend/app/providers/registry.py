@@ -325,7 +325,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
     if "option_chain" in capabilities:
         capabilities.append("options_current")
     if "instrument_events" in capabilities:
-        if provider_name in {"alpaca", "yfinance"}:
+        if provider_name in {"alpaca", "massive", "yfinance"}:
             capabilities.append("corporate_actions")
         if provider_name in {"alpha_vantage", "edgar", "finnhub", "yfinance"}:
             capabilities.append("earnings")
@@ -539,6 +539,7 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     # default. The adapter remains directly testable while routing is closed
     # until this non-secret bound is configured.
     "alpaca": ("ALPACA_CORPORATE_ACTIONS_MAX_PAGES",),
+    "massive": ("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",),
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
     "finra_otc_directory": (
         "FINRA_OTC_OPERATION_COSTS",
@@ -638,6 +639,8 @@ def provider_routing_control_settings(
 
     if name == "alpaca" and operation is not None and operation != "fetch_instrument_events":
         return ()
+    if name == "massive" and operation is not None and operation != "fetch_instrument_events":
+        return ()
     # Account introspection is the mechanism used to discover the operator's
     # actual MarketData.app plan/credit window. Requiring the reviewed plan
     # before this one bounded request would make the review gate circular. The
@@ -675,6 +678,11 @@ def provider_missing_routing_controls(
             return []
         configured = provider_positive_integer(
             getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+        )
+        return [] if configured is not None else list(required)
+    if name == "massive":
+        configured = provider_positive_integer(
+            getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
         )
         return [] if configured is not None else list(required)
     if name == "finra_otc_directory":

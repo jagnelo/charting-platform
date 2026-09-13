@@ -2151,3 +2151,19 @@ changed.
   warnings in `507.76s`, using isolated testcontainer session
   `e92d7385-12e1-4379-a92f-167ce5abe08c`; cleanup removed only that
   workstream's containers. No frontend or ETF-provider adapter files changed.
+
+- Massive now exposes official split and dividend corporate-action reads as
+  `instrument_events`/`corporate_actions`, with strict requested-ticker/date/
+  ratio/value validation, separate ex-dividend/payable events, trusted cursor
+  continuation, and a positive `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` bound per
+  endpoint. The runtime reserves `2 * bound` requests; unset/invalid controls
+  remain fail-closed. Focused coverage passed `365/365`; the bounded live case
+  passed `1/1` with five upstream requests and 463,329 response bytes, and its
+  redacted receipt merged into the owner-managed ledger (`accepted=1`).
+
+- The authoritative Docker-backed combined backend gate after Massive
+  corporate-action support passed `2,471/2,471` at `81.67%` coverage with 89
+  warnings in `484.43s`, using isolated testcontainer session
+  `89491c39-ed3b-4f32-b66f-df9b89a3607a`. Compose, compile, workstream,
+  Ruff, and diff checks passed. No frontend or ETF-provider adapter files
+  changed.

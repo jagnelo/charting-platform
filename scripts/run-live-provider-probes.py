@@ -343,6 +343,18 @@ def routing_safety_preflight() -> dict[str, str]:
         if alpaca_pages > 0
         else "non-routable: positive reviewed ALPACA_CORPORATE_ACTIONS_MAX_PAGES required"
     )
+    raw_massive_pages = (
+        os.getenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
+    )
+    try:
+        massive_pages = int(raw_massive_pages)
+    except ValueError:
+        massive_pages = 0
+    result["massive corporate actions"] = (
+        "routable"
+        if massive_pages > 0
+        else "non-routable: positive reviewed MASSIVE_CORPORATE_ACTIONS_MAX_PAGES required"
+    )
     async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
     try:
         result["finra async result bytes"] = (

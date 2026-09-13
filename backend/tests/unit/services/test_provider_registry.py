@@ -36,7 +36,13 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     )
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["marketdata_app"]
-    assert seeds["instrument_events"] == ["alpaca", "edgar", "finnhub", "alpha_vantage"]
+    assert seeds["instrument_events"] == [
+        "alpaca",
+        "massive",
+        "edgar",
+        "finnhub",
+        "alpha_vantage",
+    ]
     assert "finra_otc_directory" in seeds["universe_discovery"]
     assert "alpaca" not in seeds["instrument_search"]
     assert all(
@@ -240,6 +246,7 @@ class TestProviderRegistry:
 
     def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+        monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         monkeypatch.setattr(settings, "FINRA_OTC_OPERATION_COSTS", {})
         monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
@@ -267,6 +274,18 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls(
             "alpaca", "fetch_instrument_events"
         ) == ["ALPACA_CORPORATE_ACTIONS_MAX_PAGES"]
+        assert provider_routing_control_settings("massive") == (
+            "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+        )
+        assert provider_missing_routing_controls("massive") == [
+            "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
+        ]
+        assert provider_missing_routing_controls(
+            "massive", "get_instrument_profile"
+        ) == []
+        assert provider_missing_routing_controls(
+            "massive", "fetch_instrument_events"
+        ) == ["MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"]
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", True)
         assert provider_missing_routing_controls("alpaca") == [
             "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"

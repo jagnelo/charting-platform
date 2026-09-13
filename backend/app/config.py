@@ -181,7 +181,7 @@ class Settings(BaseSettings):
         # its free key is deliberately last because the allowance is only
         # 25 requests/day and the earlier providers cover richer US event
         # semantics when their reviewed entitlements are available.
-        "instrument_events": ["alpaca", "edgar", "finnhub", "alpha_vantage"],
+        "instrument_events": ["alpaca", "massive", "edgar", "finnhub", "alpha_vantage"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
         # Nasdaq covers the documented NMS files, while the explicitly
         # configured FINRA directory is the fail-closed OTC counterpart. The
@@ -927,6 +927,10 @@ class Settings(BaseSettings):
                 "search_instruments": 1,
                 "discover_universe_page": 1,
                 "get_instrument_profile": 1,
+                # One event read includes one split request and one dividend
+                # request; a positive page-bound override reserves the actual
+                # worst case before the adapter follows either cursor.
+                "fetch_instrument_events": 2,
                 "fetch_market_events": 1,
                 "fetch_market_holidays": 1,
             },
@@ -1713,6 +1717,9 @@ class Settings(BaseSettings):
     # depends on the provider response. Keep event routing fail-closed until
     # operations records a positive conservative page bound for this account.
     ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
+    # Massive's split and dividend endpoints are independently cursor-paginated;
+    # this bound applies to each endpoint and the runtime reserves twice it.
+    MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: int = 0
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""

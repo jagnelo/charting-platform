@@ -62,7 +62,7 @@ services:
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
       OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["marketdata_app"]}
       TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
-      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
+      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
       ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY: ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
@@ -71,6 +71,7 @@ services:
       ALPACA_DATA_FEED: ${ALPACA_DATA_FEED:-iex}
       ALPACA_TRADING_BASE_URL: ${ALPACA_TRADING_BASE_URL:-https://paper-api.alpaca.markets/v2}
       ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${ALPACA_CORPORATE_ACTIONS_MAX_PAGES:-0}
+      MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: ${MASSIVE_CORPORATE_ACTIONS_MAX_PAGES:-0}
       MASSIVE_API_KEY: ${MASSIVE_API_KEY:-}
       ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-}
       MARKETDATA_API_KEY: ${MARKETDATA_API_KEY:-}
@@ -203,7 +204,7 @@ services:
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
       OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: ${OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY:-["marketdata_app"]}
       TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]}
-      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
+      PROVIDER_CHAIN_SEEDS: ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}}
       ALLOW_PAID_PROVIDER_ROUTING: ${ALLOW_PAID_PROVIDER_ROUTING:-false}
       OPENFIGI_API_KEY: ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
@@ -212,6 +213,7 @@ services:
       ALPACA_DATA_FEED: ${ALPACA_DATA_FEED:-iex}
       ALPACA_TRADING_BASE_URL: ${ALPACA_TRADING_BASE_URL:-https://paper-api.alpaca.markets/v2}
       ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${ALPACA_CORPORATE_ACTIONS_MAX_PAGES:-0}
+      MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: ${MASSIVE_CORPORATE_ACTIONS_MAX_PAGES:-0}
       MASSIVE_API_KEY: ${MASSIVE_API_KEY:-}
       ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-}
       MARKETDATA_API_KEY: ${MARKETDATA_API_KEY:-}

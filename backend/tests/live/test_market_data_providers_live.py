@@ -346,14 +346,14 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     assert all(event.event_type.value in {"split", "dividend", "ex_dividend"} for event in events)
 
 
-def test_massive_credentialed_reference():
+def test_massive_credentialed_reference(monkeypatch):
     _require("MASSIVE_API_KEY")
+    # Keep this compound case within the documented five-call/minute Stocks
+    # Basic allowance: profile (1), IPO calendar (1), corporate actions (2),
+    # and one adjusted daily history read (1). Intraday, holidays, and search
+    # are covered by separate prior receipts/focused live cases.
+    monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 1)
     provider = MassiveProvider()
-    rows, _ = _observed_read(
-        lambda: provider.search_instruments("AAPL", limit=1), "massive"
-    )
-    assert rows
-    assert all("AAPL" in f"{row.symbol} {row.name}".upper() for row in rows)
     profile, _ = _observed_read(
         lambda: provider.get_instrument_profile("AAPL"), "massive"
     )
@@ -374,6 +374,14 @@ def test_massive_credentialed_reference():
     assert isinstance(events, list)
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
+    actions, _ = _observed_read(
+        lambda: provider.fetch_instrument_events("AAPL"), "massive"
+    )
+    assert isinstance(actions, list)
+    assert all(
+        event.event_type.value in {"split", "dividend", "ex_dividend"}
+        for event in actions
+    )
     bars, _ = _observed_read(
         lambda: provider.fetch_ohlcv(
             "AAPL",
@@ -388,28 +396,6 @@ def test_massive_credentialed_reference():
     assert all(bar.is_adjusted for bar in bars)
     assert all(bar.high >= max(bar.open, bar.close) for bar in bars)
     assert all(bar.low <= min(bar.open, bar.close) for bar in bars)
-    intraday, _ = _observed_read(
-        lambda: provider.fetch_ohlcv(
-            "AAPL",
-            Timeframe.M5,
-            datetime.now(UTC) - timedelta(days=2),
-            datetime.now(UTC),
-            adjusted=False,
-        ),
-        "massive",
-    )
-    assert intraday
-    assert all(bar.timeframe is Timeframe.M5 for bar in intraday)
-    assert all(not bar.is_adjusted for bar in intraday)
-    holidays, _ = _observed_read(
-        lambda: provider.fetch_market_holidays(
-            start=date.today(), end=date.today() + timedelta(days=365)
-        ),
-        "massive",
-    )
-    assert isinstance(holidays, list)
-    assert all(event.event_type == "market_holiday" for event in holidays)
-    assert all(event.effective_date is not None for event in holidays)
 
 
 def test_alpha_vantage_credentialed_daily():
