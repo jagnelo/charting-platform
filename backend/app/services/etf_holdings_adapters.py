@@ -49060,6 +49060,7 @@ class MmVamHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_product_page_holdings_table",
+                "completeness_status": "complete",
                 "snapshot_provenance": "vident_issuer_product_page",
             },
         )

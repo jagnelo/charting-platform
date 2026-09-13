@@ -12942,6 +12942,7 @@ async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, ad
     assert result.legal_metadata["source_quality"] == (
         "issuer_reported_product_page_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
