@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Harden dock activation and rerun the exact gate
+
+Product commit `c9e3819c4` extends the bounded Golden Layout activation wait
+from roughly one second to four seconds, covering cold reinstalls while still
+failing deterministically instead of waiting without a bound. The isolated
+F9g/F9h sequence and five repeated F9h runs passed, and the full functional
+E2E suite passed `165` tests with `107` intentional skips. The exact
+branch-scoped gate completed all pre-visual stages, frontend build, compose
+contracts, research-runner probes, functional E2E, and `98/104` visual
+assertions. The only six visual failures are unchanged protected baselines:
+watchlist-column-editor at 1080p 100/125 and workspace-floating at 1080p and
+1440p 100/125. No visual threshold, mask, skip, provider, fallback, migration,
+or acceptance policy changed. R1 canonical provider population/history,
+D1/W1/MN floors and continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Bulk provider lineage promotion
 
 Product commit `a4ce2447c3` aligns scheduled/bulk OHLCV maintenance with the

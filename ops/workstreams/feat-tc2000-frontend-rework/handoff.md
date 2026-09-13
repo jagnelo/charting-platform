@@ -2,6 +2,18 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Dock activation robustness and exact gate receipt
+
+Product commit `c9e3819c4` extends the bounded Golden Layout activation wait
+to four seconds for cold reinstalls. F9g/F9h passed `3/3`, repeated F9h passed
+`5/5`, and the exact branch-scoped gate completed all functional checks
+(`165 passed`, `107 skipped`) plus `98/104` visual assertions. The six
+unchanged protected visual diffs are watchlist-column-editor at 1080p 100/125
+and workspace-floating at 1080p 100/125 and 1440p 100/125. Stack resources,
+volumes, built images, and testcontainer sessions were cleaned. The next
+bounded work remains R1 provider/history population and D1/W1/MN floors and
+continuity; AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Bulk provider lineage promotion
 
 Product commit `a4ce2447c3` aligns bulk OHLCV maintenance with the canonical

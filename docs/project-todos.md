@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-13 — Dock activation wait and exact gate
+
+- [x] Extend the bounded Golden Layout tool activation wait to cover cold
+      workstation reinstalls without changing the activation contract
+      (`c9e3819c4`); TypeScript and `git diff --check` passed.
+- [x] Isolated F9g/F9h passed `3/3`; repeated F9h passed `5/5`; the exact
+      branch-scoped gate passed all functional checks (`165 passed`, `107
+      skipped`) and `98/104` visual assertions.
+- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
+      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
+      Continue R1 canonical provider/history population, D1/W1/MN floors and
+      continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Bulk provider lineage promotion
 
 - [x] Align scheduled/bulk OHLCV maintenance with the canonical provider

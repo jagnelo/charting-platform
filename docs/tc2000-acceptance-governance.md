@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Dock activation robustness and exact gate receipt
+
+Product commit `c9e3819c4` raises the bounded Golden Layout activation wait to
+four seconds so a cold component reinstall can acquire its real stack/header
+before the open action is judged complete. F9g/F9h passed as a sequence, five
+repeated F9h runs passed, and the exact branch-scoped gate completed all
+functional checks (`165 passed`, `107 skipped`) and `98/104` visual assertions.
+The six unchanged protected visual diffs remain watchlist-column-editor at
+1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p 100/125. No
+visual threshold, mask, skip, provider, fallback, migration, or acceptance
+policy changed; this receipt does not waive provider completeness, D1/W1/MN
+floors, continuity, or the remaining Version 25 acceptance work.
+
 ## 2026-09-13 — Bulk provider lineage promotion
 
 Product commit `a4ce2447c3` makes bulk OHLCV maintenance use the canonical
