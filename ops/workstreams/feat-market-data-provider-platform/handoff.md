@@ -1975,3 +1975,17 @@ Update this handoff at each coherent boundary.
   `/private/tmp/charting-provider-live-usage-new-providers-20260913.jsonl`;
   no credentials or payloads entered Git. This is transport/schema evidence
   only and does not promote unreviewed routing entitlements.
+
+- MarketData.app account-usage introspection now has a narrow pre-review path:
+  the explicit `fetch_account_usage` operation can run with the conservative
+  unreviewed seed to discover the authenticated native plan/credit window,
+  while all price/history/options operations still require the reviewed plan,
+  daily limit, trial expiry, and option-chain bound controls. Focused
+  provider registry/runtime/account-usage/API coverage passed `77/77`; the
+  authoritative Docker-backed backend gate passed `2,456/2,456` at `81.68%`
+  combined coverage with 89 warnings using cleaned testcontainer session
+  `01bc8c59-bd41-4ccd-b4e9-876b1fd7a4c5`. No credentials, provider payloads,
+  frontend files, or ETF-provider adapter files entered the branch. The
+  durable account observation still does not promote routing automatically;
+  operator review of the native plan, terms, and redistribution entitlement
+  remains required.

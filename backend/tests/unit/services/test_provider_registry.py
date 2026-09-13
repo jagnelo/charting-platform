@@ -314,6 +314,12 @@ class TestProviderRegistry:
             "MARKETDATA_APP_REVIEWED_PLAN",
             "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
         ]
+        assert provider_routing_control_settings(
+            "marketdata_app", operation="fetch_account_usage"
+        ) == ()
+        assert provider_missing_routing_controls(
+            "marketdata_app", operation="fetch_account_usage"
+        ) == []
 
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 1024)
         monkeypatch.setattr(

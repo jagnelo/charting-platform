@@ -100,7 +100,11 @@ GET  /api/v1/providers/usage/account            # admin-only, durable history
 
 The refresh is admitted through the same credential, live-probe, provider
 quota, operation-cost, and circuit-breaker checks as any other request.  The
-returned limit/remaining/consumed/reset/options values are stored verbatim as
+MarketData.app account-usage operation is the one deliberate exception to the
+plan-review gate: it may be polled with the conservative seed contract before
+the operator has recorded the plan, so the native response can inform that
+review.  It cannot admit market-data or options routing.  The returned
+limit/remaining/consumed/reset/options values are stored verbatim as
 observations; they never replace the reviewed local plan, infer a reset window,
 or widen routing. Providers without a documented native usage surface remain
 represented by durable request/byte/header telemetry and are not queried

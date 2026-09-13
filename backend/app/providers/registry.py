@@ -638,6 +638,13 @@ def provider_routing_control_settings(
 
     if name == "alpaca" and operation is not None and operation != "fetch_instrument_events":
         return ()
+    # Account introspection is the mechanism used to discover the operator's
+    # actual MarketData.app plan/credit window. Requiring the reviewed plan
+    # before this one bounded request would make the review gate circular. The
+    # account-usage capability remains separately metered and does not admit
+    # any market-data or options operation.
+    if name == "marketdata_app" and operation == "fetch_account_usage":
+        return ()
 
     return _ROUTING_CONTROL_SETTINGS.get(name, ())
 

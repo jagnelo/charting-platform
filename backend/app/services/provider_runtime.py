@@ -1425,7 +1425,11 @@ async def resolve_provider_chain(
         # ``is_free`` query predicate so a broad paid-routing switch cannot
         # bypass the operator entitlement review boundary.
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
-        if not configured_plan or configured_plan == "unreviewed":
+        account_usage_probe = (
+            capability == ProviderCapability.ACCOUNT_USAGE
+            and operation == "fetch_account_usage"
+        )
+        if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
             continue
         if str(entitlement.live_probe_status or "not_run").strip().lower() not in {
             "passed",

@@ -582,6 +582,32 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
 
 
 @pytest.mark.asyncio
+async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+
+    await seed_provider_runtime(async_db)
+
+    account_usage_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.ACCOUNT_USAGE,
+        operation="fetch_account_usage",
+    )
+    assert any(item.provider_name == "marketdata_app" for item in account_usage_chain)
+
+    price_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"marketdata_app": 1},
+    )
+    assert all(item.provider_name != "marketdata_app" for item in price_chain)
+
+
+@pytest.mark.asyncio
 async def test_marketstack_history_route_does_not_require_discovery_scope(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
