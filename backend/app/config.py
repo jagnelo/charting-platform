@@ -1797,6 +1797,16 @@ class Settings(BaseSettings):
             return json.loads(v)
         return v
 
+    @field_validator("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", mode="before")
+    @classmethod
+    def parse_optional_marketdata_trial_expiry(cls, v):
+        # Compose and GitHub environment mappings deliberately pass an empty
+        # value when no trial entitlement has been reviewed. Treat that as
+        # unset so Settings can boot and the routing layer can fail closed.
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     @field_validator(
         "OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY",
         "PROVIDER_CHAIN_SEEDS",

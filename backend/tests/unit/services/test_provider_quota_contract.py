@@ -6,7 +6,7 @@ import httpx
 import pytest
 from sqlalchemy import select
 
-from app.config import provider_rate_limit_seed, settings
+from app.config import Settings, provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
@@ -1229,6 +1229,15 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100000)
     unsupported = provider_rate_limit_seed("marketdata_app")
     assert unsupported["quota_contract"]["dimensions"][0]["limit"] == 100
+
+
+def test_blank_marketdata_trial_expiry_is_unset_for_environment_boot(monkeypatch):
+    monkeypatch.delenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", raising=False)
+    parsed = Settings(
+        _env_file=None,
+        MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT="",
+    )
+    assert parsed.MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT is None
 
 
 def test_blank_explicit_quota_group_fails_closed():
