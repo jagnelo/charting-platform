@@ -2172,3 +2172,10 @@ changed.
   fail-closed rejection of an untrusted host, unexpected endpoint path,
   malformed cursor, or exhausted page bound. The focused provider/registry/
   service/quota/wiring suite passed `369/369` with Ruff and diff checks clean.
+
+- The exact final pushed branch checkpoint `8b8c39131` passed the authoritative
+  Docker-backed combined backend gate at `2,475/2,475` with `81.70%` combined
+  coverage and 89 warnings in `502.89s`, using isolated testcontainer session
+  `88a36955-4150-480c-a75b-5376c5df15d6`; cleanup removed only this
+  workstream's containers and did not perform a host-wide prune. No frontend or
+  ETF-provider adapter files changed.
