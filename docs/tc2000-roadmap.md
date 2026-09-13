@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified Hotchkis & Wiley holdings completeness
+
+Product commit `22de7e669` requires dated holdings metadata and adds explicit
+`completeness_status: complete` to Hotchkis & Wiley's HWSM official
+literature-page linked monthly holdings PDF route. The adapter verifies HWSM
+product-page identity, issuer-declared PDF linkage, PDF fund identity,
+parseable non-empty rows, and a published composition date; undated PDFs fail
+closed and generic current/daily/table labels remain fail-closed.
+
+Focused HWSM assertions passed `2/2`; Ruff/format/diff checks passed. The exact
+branch-scoped gate passed backend units `1545/1545`, integration `405/405` with
+`81.98%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six
+protected watchlist-column-editor/workspace-floating diffs remain. Docker
+resources were cleaned. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Nomura and Delaware holdings completeness
 
 Product commit `68e059423` requires dated holdings metadata and adds explicit
