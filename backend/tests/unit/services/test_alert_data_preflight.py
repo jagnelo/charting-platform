@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -82,6 +83,51 @@ async def test_indicator_preflight_keeps_failed_group_unavailable(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_indicator_preflight_applies_shared_history_gate(monkeypatch):
+    instrument = SimpleNamespace(id=31, symbol="AMZN")
+    db = _FakeDb(instrument)
+    series = object()
+    bars = [
+        SimpleNamespace(
+            ts=datetime(2026, 9, 12, tzinfo=UTC),
+            is_adjusted=True,
+        )
+    ]
+    preflight_calls = []
+
+    async def fake_series(_db, current_instrument, timeframe):
+        return series, bars
+
+    async def fake_preflight(_db, **kwargs):
+        preflight_calls.append(kwargs)
+        return SimpleNamespace(
+            ready_instrument_ids=frozenset({31}),
+            to_dict=lambda: {"status": "full"},
+        )
+
+    monkeypatch.setattr(alert_engine, "_load_ohlcv_series", fake_series)
+    monkeypatch.setattr(alert_engine, "preflight_ohlcv", fake_preflight)
+    alerts = [
+        SimpleNamespace(
+            instrument_id=31,
+            timeframe=Timeframe.D1,
+            indicator_a_type="sma",
+            indicator_a_params={"period": 20},
+            indicator_b_type=None,
+            indicator_b_params=None,
+        )
+    ]
+
+    prepared = await alert_engine._preflight_indicator_alerts(db, alerts)
+
+    assert prepared == {(31, Timeframe.D1): series}
+    assert len(preflight_calls) == 1
+    assert preflight_calls[0]["evaluator"] == "indicator_alert:31:D1"
+    assert preflight_calls[0]["cached_bars"] == {31: bars}
+    assert preflight_calls[0]["minimum_bars"] == 21
+
+
+@pytest.mark.asyncio
 async def test_worker_alert_preflight_polls_each_instrument_once(monkeypatch):
     instrument = SimpleNamespace(id=17, symbol="TSLA")
     db = _FakeDb(instrument)
@@ -134,6 +180,13 @@ async def test_worker_indicator_preflight_coalesces_local_bar_reads(monkeypatch)
         return bars
 
     monkeypatch.setattr(alert_tasks, "_get_recent_bars", fake_recent)
+    async def fake_preflight(_db, **_kwargs):
+        return SimpleNamespace(
+            ready_instrument_ids=frozenset({23}),
+            to_dict=lambda: {"status": "full"},
+        )
+
+    monkeypatch.setattr(alert_tasks, "preflight_ohlcv", fake_preflight)
     alerts = [
         SimpleNamespace(instrument_id=23, timeframe=Timeframe.D1),
         SimpleNamespace(instrument_id=23, timeframe=Timeframe.D1),
@@ -143,3 +196,27 @@ async def test_worker_indicator_preflight_coalesces_local_bar_reads(monkeypatch)
 
     assert snapshots == {(23, Timeframe.D1): bars}
     assert calls == [(23, Timeframe.D1)]
+
+
+@pytest.mark.asyncio
+async def test_worker_indicator_preflight_withholds_insufficient_history(monkeypatch):
+    bars = [SimpleNamespace(ts=datetime(2026, 9, 12, tzinfo=UTC))]
+
+    async def fake_recent(_db, _instrument_id, _timeframe):
+        return bars
+
+    monkeypatch.setattr(alert_tasks, "_get_recent_bars", fake_recent)
+    alerts = [
+        SimpleNamespace(
+            instrument_id=24,
+            timeframe=Timeframe.D1,
+            indicator_a_type="sma",
+            indicator_a_params={"period": 20},
+            indicator_b_type=None,
+            indicator_b_params=None,
+        )
+    ]
+
+    snapshots = await alert_tasks._preflight_recent_bars(object(), alerts)
+
+    assert snapshots == {(24, Timeframe.D1): []}

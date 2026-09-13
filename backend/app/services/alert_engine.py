@@ -15,10 +15,11 @@ from app.database import AsyncSessionLocal
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.providers.errors import bounded_redact_provider_message
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.indicators import OHLCVSeries, get_latest_value, required_bars_for_indicator
 from app.services.market_data import fetch_ohlcv, get_current_price_async
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
@@ -109,14 +110,14 @@ def _indicator_condition_met(
 
 async def _load_ohlcv_series(
     db: AsyncSession, instrument: Instrument, timeframe: Timeframe
-) -> OHLCVSeries:
+) -> tuple[OHLCVSeries, list[OHLCVBar]]:
     """Fetch (and refresh if stale) the OHLCV series used for indicator evaluation."""
     bar_dur = _TF_BAR_DURATION.get(timeframe, timedelta(days=1))
     # Request enough history for the lookback window with a small buffer
     start = datetime.now(UTC) - bar_dur * INDICATOR_LOOKBACK * 2
     bars = await fetch_ohlcv(db, instrument, timeframe, start)
     bars = bars[-INDICATOR_LOOKBACK:] if len(bars) > INDICATOR_LOOKBACK else bars
-    return OHLCVSeries.from_orm_bars(bars)
+    return OHLCVSeries.from_orm_bars(bars), bars
 
 
 async def _preflight_price_alerts(
@@ -163,9 +164,13 @@ async def _preflight_indicator_alerts(
     the evaluation phase then skips them rather than evaluating stale data.
     """
 
-    groups = {(alert.instrument_id, alert.timeframe) for alert in alerts}
+    grouped_alerts: dict[tuple[int, Timeframe], list[IndicatorAlert]] = {}
+    for alert in alerts:
+        grouped_alerts.setdefault((alert.instrument_id, alert.timeframe), []).append(alert)
     prepared: dict[tuple[int, Timeframe], OHLCVSeries | None] = {}
-    for instrument_id, timeframe in sorted(groups, key=lambda item: (item[0], str(item[1]))):
+    for instrument_id, timeframe in sorted(
+        grouped_alerts, key=lambda item: (item[0], str(item[1]))
+    ):
         instrument = await db.get(Instrument, instrument_id)
         key = (instrument_id, timeframe)
         if instrument is None:
@@ -173,7 +178,54 @@ async def _preflight_indicator_alerts(
             continue
         await db.refresh(instrument, ["listings", "provider_symbols"])
         try:
-            prepared[key] = await _load_ohlcv_series(db, instrument, timeframe)
+            loaded = await _load_ohlcv_series(db, instrument, timeframe)
+            # Keep compatibility with narrow test doubles and third-party
+            # callers that still return only an OHLCVSeries. Production returns
+            # the persisted bars alongside the normalized series.
+            if isinstance(loaded, tuple) and len(loaded) == 2:
+                series, bars = loaded
+            else:
+                series, bars = loaded, []
+            if bars:
+                minimum_bars = max(
+                    max(
+                        required_bars_for_indicator(
+                            alert.indicator_a_type, alert.indicator_a_params
+                        )
+                        for alert in grouped_alerts[key]
+                    ),
+                    max(
+                        (
+                            required_bars_for_indicator(
+                                alert.indicator_b_type, alert.indicator_b_params
+                            )
+                            for alert in grouped_alerts[key]
+                            if alert.indicator_b_type
+                        ),
+                        default=2,
+                    ),
+                )
+                coverage = await preflight_ohlcv(
+                    db,
+                    evaluator=f"indicator_alert:{instrument_id}:{timeframe.value}",
+                    instrument_ids=[instrument_id],
+                    timeframe=timeframe,
+                    date_from=None,
+                    date_to=None,
+                    adjusted=True,
+                    cached_bars={instrument_id: bars},
+                    minimum_bars=minimum_bars,
+                )
+                if instrument_id not in coverage.ready_instrument_ids:
+                    logger.debug(
+                        "Indicator alert history deferred for instrument %s (%s): %s",
+                        instrument_id,
+                        timeframe,
+                        coverage.to_dict(),
+                    )
+                    prepared[key] = None
+                    continue
+            prepared[key] = series
         except Exception as exc:  # noqa: BLE001 - retain per-group preflight failure.
             logger.debug(
                 "Indicator OHLCV unavailable for instrument %s (%s): %s",

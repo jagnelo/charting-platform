@@ -13,6 +13,8 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.providers.errors import bounded_redact_provider_message
 from app.services import indicators as ind_engine
+from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.indicators import required_bars_for_indicator
 from app.services.market_data import get_current_price_async
 from app.services.onesignal import send_alert_notification
 from app.websocket.manager import ws_manager
@@ -120,14 +122,65 @@ async def _preflight_latest_prices(
 async def _preflight_recent_bars(
     db, alerts: list[IndicatorAlert]
 ) -> dict[tuple[int, Timeframe], list[OHLCVBar]]:
-    """Load one local indicator snapshot per instrument/timeframe group."""
+    """Load and gate one local indicator snapshot per instrument/timeframe group.
 
-    groups = {(alert.instrument_id, alert.timeframe) for alert in alerts}
+    This ARQ-compatible path has historically read local bars directly.  It
+    now shares the evaluator coverage gate with the scheduler-backed alert
+    engine, while still keeping provider I/O out of the evaluation loop.
+    """
+
+    grouped_alerts: dict[tuple[int, Timeframe], list[IndicatorAlert]] = {}
+    for alert in alerts:
+        grouped_alerts.setdefault((alert.instrument_id, alert.timeframe), []).append(alert)
     snapshots: dict[tuple[int, Timeframe], list[OHLCVBar]] = {}
-    for instrument_id, timeframe in sorted(groups, key=lambda item: (item[0], str(item[1]))):
-        snapshots[(instrument_id, timeframe)] = await _get_recent_bars(
-            db, instrument_id, timeframe
+    for instrument_id, timeframe in sorted(
+        grouped_alerts, key=lambda item: (item[0], str(item[1]))
+    ):
+        bars = await _get_recent_bars(db, instrument_id, timeframe)
+        if not bars:
+            snapshots[(instrument_id, timeframe)] = []
+            continue
+        minimum_bars = max(
+            max(
+                required_bars_for_indicator(
+                    getattr(alert, "indicator_a_type", ""),
+                    getattr(alert, "indicator_a_params", None),
+                )
+                for alert in grouped_alerts[(instrument_id, timeframe)]
+            ),
+            max(
+                (
+                    required_bars_for_indicator(
+                        alert.indicator_b_type,
+                        alert.indicator_b_params,
+                    )
+                    for alert in grouped_alerts[(instrument_id, timeframe)]
+                    if getattr(alert, "indicator_b_type", None)
+                ),
+                default=2,
+            ),
         )
+        coverage = await preflight_ohlcv(
+            db,
+            evaluator=f"indicator_alert_worker:{instrument_id}:{timeframe.value}",
+            instrument_ids=[instrument_id],
+            timeframe=timeframe,
+            date_from=None,
+            date_to=None,
+            adjusted=None,
+            cached_bars={instrument_id: bars},
+            minimum_bars=minimum_bars,
+        )
+        if instrument_id not in coverage.ready_instrument_ids:
+            logger.debug(
+                "Worker indicator history deferred for instrument %s (%s): %s",
+                instrument_id,
+                timeframe,
+                coverage.to_dict(),
+            )
+            snapshots[(instrument_id, timeframe)] = []
+        else:
+            snapshots[(instrument_id, timeframe)] = bars
     return snapshots
 
 

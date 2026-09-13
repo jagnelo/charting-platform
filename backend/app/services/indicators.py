@@ -978,6 +978,84 @@ for _field in ("open", "high", "low", "close"):
     )
 
 
+# Numeric indicator parameters are not all history windows.  For example,
+# ``anchor_timestamp`` and Parabolic-SAR acceleration factors must not turn
+# into absurd bar requirements merely because they are numeric.  Keep the
+# window vocabulary explicit so evaluator readiness follows the indicator
+# contract rather than guessing from arbitrary parameter values.
+_LOOKBACK_PARAMETER_NAMES = frozenset(
+    {
+        "period",
+        "fast",
+        "slow",
+        "signal",
+        "k_period",
+        "smooth_k",
+        "d_period",
+        "tenkan",
+        "kijun",
+        "senkou_b",
+        "displacement",
+        "atr_period",
+    }
+)
+
+
+def required_bars_for_indicator(indicator_type: str, params: dict | None = None) -> int:
+    """Return the minimum local bars needed for current/previous evaluation.
+
+    The result is a readiness floor, not a replacement for the indicator
+    implementation's NaN handling.  Composite indicators add their relevant
+    windows; non-window parameters are deliberately ignored.
+    """
+
+    definition = INDICATOR_REGISTRY.get(indicator_type)
+    if definition is None:
+        return 2
+    supplied = params if isinstance(params, dict) else {}
+
+    def _window(name: str) -> int:
+        value = supplied.get(name)
+        if value is None:
+            parameter = next((item for item in definition.params if item.name == name), None)
+            value = parameter.default if parameter is not None else 1
+        return max(1, int(value)) if isinstance(value, int | float) else 1
+
+    # These composite formulas mirror the actual rolling/recursive stages in
+    # the functions above, including one extra observation for a crossing's
+    # previous value.
+    if indicator_type == "macd":
+        return max(2, max(_window("fast"), _window("slow")) + _window("signal"))
+    if indicator_type == "ppo":
+        return max(2, max(_window("fast"), _window("slow")) + 1)
+    if indicator_type == "stoch":
+        return max(2, _window("k_period") + _window("smooth_k") + _window("d_period"))
+    if indicator_type == "ichimoku":
+        return max(
+            2,
+            max(_window("tenkan"), _window("kijun"), _window("senkou_b"))
+            + _window("displacement")
+            + 1,
+        )
+    if indicator_type == "keltner":
+        return max(2, max(_window("period"), _window("atr_period")) + 1)
+    if indicator_type == "hma":
+        period = _window("period")
+        return max(2, period + int(period**0.5))
+    if indicator_type == "aroon":
+        return max(2, _window("period") + 2)
+    if indicator_type in {"dema", "tema", "trix"}:
+        stages = {"dema": 2, "tema": 3, "trix": 3}[indicator_type]
+        return max(2, stages * _window("period"))
+
+    windows = [
+        _window(parameter.name)
+        for parameter in definition.params
+        if parameter.name in _LOOKBACK_PARAMETER_NAMES
+    ]
+    return max(2, (max(windows) + 1) if windows else 2)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 _PARAM_ALIASES = {
