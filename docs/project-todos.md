@@ -16886,3 +16886,17 @@ The current source also passes the focused authenticated top-down browser slice 
       authoritative security-master source and its terms/polling/redistribution
       review; this guard only prevents duplicate rows from creating a false
       complete snapshot.
+
+### 2026-09-13 — Provider migration graph repair
+
+- [x] Repair the provider-platform Alembic graph: rename the duplicate provider
+      revision to `ab1c2d3e4f5a`, make prelisting depend on both radar and event
+      consensus, and merge the remaining provider/radar heads through the
+      schema-neutral `bc2d3e4f5a6b` revision. `alembic heads` now reports one
+      head; staging-baseline migration compatibility passed with previous-release
+      `/health` 200 and 25 changed migration files; the focused migration smoke
+      test passed `1/1`; and the authoritative backend gate passed `2,431/2,431`
+      at `81.45%` coverage with 89 warnings using cleaned session
+      `8ee61c02-0fec-430c-a5c8-d68c398e4733`.
+- [ ] Coordinator review is still required before this migration boundary is
+      promoted through staging.

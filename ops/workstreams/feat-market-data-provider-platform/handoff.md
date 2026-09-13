@@ -1753,3 +1753,14 @@ Update this handoff at each coherent boundary.
   frontend files, or ETF-provider adapter files changed. Complete SEC/OTC
   reconciliation and its approved source/terms review remain open; the branch
   is still ready for human review, not ready for integration.
+
+- Source checkpoint `d3d916d87` repairs the provider-platform migration graph.
+  The duplicate provider revision was renamed to `ab1c2d3e4f5a`, the prelisting
+  migration now declares both radar and consensus parents, and the
+  schema-neutral `bc2d3e4f5a6b` merge migration restores one Alembic head.
+  `alembic heads` reports only `bc2d3e4f5a6b`. The staging-baseline migration
+  compatibility gate passed with previous-release `/health` 200 and 25 changed
+  migration files; the authoritative Docker-backed backend gate passed
+  `2,431/2,431` at `81.45%` coverage with 89 warnings using cleaned session
+  `8ee61c02-0fec-430c-a5c8-d68c398e4733`. This is ready for coordinator review;
+  it does not authorize integration or promotion.
