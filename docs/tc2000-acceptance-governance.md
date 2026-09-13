@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Vident/MM VAM holdings completeness receipt
+
+Commit `3378e533f` adds explicit `completeness_status: complete` only to the
+verified Vident/MM VAM VUSE, VIDI, VBND, and PPTY product-page holdings routes.
+They verify requested ticker/product identity, exact table headers, one dated
+composition, and at least ten non-empty rows; generic current/daily/table
+labels remain unchanged and ambiguous routes remain fail-closed.
+
+Focused Vident/MM VAM assertions passed `2/2`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner sandbox/resource probes, and functional E2E `165 passed` with
+`107 skipped`; backend units also passed `1544/1544`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified native holdings completeness receipt
 
 Commit `ce18a1b7b` adds explicit `completeness_status: complete` only to the
