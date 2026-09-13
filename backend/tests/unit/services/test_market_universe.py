@@ -507,7 +507,12 @@ async def test_universe_reconciliation_rejects_repeated_pagination_next_url(db, 
     async def repeated_cursor(*_args, **_kwargs):
         return SimpleNamespace(
             result={
-                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "quotes": [
+                    {
+                        "symbol": "AAPL" if ":0" in _args[2] else "MSFT",
+                        "exchange": "XNAS",
+                    }
+                ],
                 "next_url": "https://provider.example/page?cursor=stuck",
             },
             data_source=source,
@@ -612,6 +617,7 @@ async def test_universe_reconciliation_rejects_invalid_total(db, monkeypatch, to
         ("not-an-array", "non-array quotes page"),
         ([{"name": "Missing symbol"}], "without a symbol"),
         ([{"symbol": "AAPL"}, "malformed"], "non-object quote row"),
+        ([{"symbol": "AAPL"}, {"symbol": "AAPL"}], "duplicate listing row"),
     ],
 )
 async def test_universe_reconciliation_rejects_malformed_quote_pages(

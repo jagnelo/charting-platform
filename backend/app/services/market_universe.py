@@ -852,6 +852,7 @@ async def reconcile_us_universe(
             offset = 0
             total: int | None = None
             seen_next_urls: set[str] = set()
+            seen_listing_keys: set[tuple[str, str | None, str]] = set()
             try:
                 while True:
                     execution = await execute_provider_call(
@@ -886,6 +887,22 @@ async def reconcile_us_universe(
                     if any(not isinstance(row, dict) for row in raw_page_rows):
                         raise ValueError("discovery provider returned a non-object quote row")
                     page_rows = list(raw_page_rows)
+                    for quote in page_rows:
+                        symbol = _row_symbol(quote)
+                        if not symbol:
+                            # Let the shared row normalizer produce the more
+                            # specific missing-symbol failure below.
+                            continue
+                        listing_key = _listing_key(
+                            symbol,
+                            normalize_exchange_mic(quote.get("exchange")),
+                            _row_type(quote, quote_type),
+                        )
+                        if listing_key in seen_listing_keys:
+                            raise ValueError(
+                                "discovery provider returned a duplicate listing row"
+                            )
+                        seen_listing_keys.add(listing_key)
                     rows.extend(page_rows)
                     declared_total = page.get("total")
                     if declared_total is not None:
