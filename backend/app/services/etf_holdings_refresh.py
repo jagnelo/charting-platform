@@ -76,6 +76,7 @@ _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY = {
     "issuer_reported_dated_complete_holdings": "complete",
     "issuer_reported_complete_daily_holdings_csv": "complete",
     "issuer_reported_full_investment_holdings": "complete",
+    "issuer_page_declared_current_complete_holdings": "complete",
 }
 
 
