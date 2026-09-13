@@ -8963,6 +8963,7 @@ class ArtemisHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "ars_product_page_embedded_complete_holdings_table",
                 "product_page_url": str(response.url),
                 "snapshot_provenance": "ars_native_current_holdings_table",
+                "completeness_status": "complete",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
                 **({"as_of_date": composition_date.isoformat()} if composition_date else {}),
             },

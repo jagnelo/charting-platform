@@ -13883,6 +13883,7 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
     assert result.legal_metadata["route_resolution"] == (
         "ars_product_page_embedded_complete_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "NVDA"
