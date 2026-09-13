@@ -1964,3 +1964,14 @@ Update this handoff at each coherent boundary.
   Docker-backed gate after this refinement passed `2,454/2,454` at `81.67%`
   with 89 warnings. No provider calls, credentials, frontend, or ETF-provider
   adapter files changed.
+
+- A network-enabled focused live revalidation on `2026-09-13` passed `11/11`
+  for the newly configured providers: Alpaca history/intraday/latest/assets and
+  corporate actions; SEC EDGAR filings, Company Facts, and complete ticker/issuer
+  directory pagination; MarketData.app options, account usage, and intraday
+  history; and Dinari Sandbox metadata, price/quote, DAY/WEEK/MONTH/YEAR
+  history, news, dividends, splits, and corporate actions. Aggregate telemetry
+  was written only to the owner-managed temporary ledger
+  `/private/tmp/charting-provider-live-usage-new-providers-20260913.jsonl`;
+  no credentials or payloads entered Git. This is transport/schema evidence
+  only and does not promote unreviewed routing entitlements.
