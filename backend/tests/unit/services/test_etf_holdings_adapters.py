@@ -17260,6 +17260,29 @@ async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     assert result.rows[1].market_value == Decimal("280661759.820000000000")
     assert result.legal_metadata["route_resolution"] == "issuer_public_product_api_all_holdings"
     assert result.legal_metadata["composition_date"] == "07/07/2026"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_victory_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("victory")
+    assert adapter is not None
+    payload = [
+        {
+            "holding_name": "ADOBE INC",
+            "stock_symbol": "ADBE US",
+            "market_value": "280661759.82",
+            "portfolio_percentage": "3.49",
+            "shares": "1287026",
+        }
+    ]
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(payload), content_type="application/json")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="VFLO")
 
 
 @pytest.mark.asyncio
@@ -22105,7 +22128,7 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
     payload = {
         "tablesHeadlineText": "Fund holdings",
         "headlineText": "",
-        "asOfDate": "",
+        "asOfDate": "07/01/2026",
         "tables": [
             {
                 "values": [
@@ -22180,6 +22203,38 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
     assert result.legal_metadata["source_provider"] == "deutsche_bank"
     assert result.legal_metadata["route_resolution"] == "issuer_public_pdp_holdings_json"
     assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["composition_date"] == "2026-07-01"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_deutsche_bank_adapter_rejects_undated_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("deutsche_bank")
+    assert adapter is not None
+    payload = {
+        "asOfDate": "",
+        "tables": [
+            {
+                "values": [
+                    {
+                        "ISIN": {"ISIN_0": {"value": "NVDA.O"}},
+                        "Name": {"value": "NVIDIA Corp"},
+                        "Weighting": {"value": "13.55%"},
+                        "AssetClass": {"value": "Equity"},
+                    }
+                ]
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda url, **kwargs: FakeResponse(
+            text=json.dumps(payload), content_type="application/json", url=url
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="USSG")
 
 
 @pytest.mark.asyncio
@@ -22291,6 +22346,61 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
     assert result.legal_metadata["source_provider"] == "principal"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_xlsx"
     assert result.legal_metadata["composition_date"] == "2026-07-01"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_principal_adapter_rejects_undated_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("principal")
+    assert adapter is not None
+    headers = [
+        "% of Net Assets",
+        "Market Value",
+        "Security Type",
+        "Description",
+        "Ticker",
+        "CUSIP/Identifier",
+        "ISIN",
+        "SEDOL",
+        "Coupon Rate",
+        "Maturity Date",
+        "Par Value/Quantity/Notional",
+        "Contracts",
+        "Security Price",
+        "Issue Date",
+        "Currency",
+        "Underlying Asset Identifier",
+    ]
+    rows = [
+        ["Principal ETF Holdings"],
+        headers,
+        [
+            "0.1",
+            "100",
+            "Equity",
+            "NVIDIA CORP",
+            "NVDA",
+            "67066G104",
+            "US67066G1040",
+            "2379504",
+            "",
+            "",
+            "1",
+            "",
+            "100",
+            "",
+            "USD",
+            "",
+        ],
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.parse_xlsx_table", lambda _: rows)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda url, **kwargs: FakeResponse(content=b"workbook", url=url),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="PSC")
 
 
 @pytest.mark.asyncio

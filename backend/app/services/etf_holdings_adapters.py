@@ -18098,6 +18098,13 @@ class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_holdings_payload(payload)
+        composition_date = self._composition_date_from_payload(payload)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} holdings payload did not expose holdings rows.")
+        if _parse_issuer_date(composition_date) is None:
+            raise ValueError(
+                f"{self.adapter_key} holdings payload did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -18105,7 +18112,7 @@ class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "json",
                 "product_page_url": product_page_url,
                 "product_page_fetched": raw_product_page is not None,
-                "composition_date": self._composition_date_from_payload(payload),
+                "composition_date": composition_date,
             },
             source_url=resolved_source_url,
             source_identifier=api_symbol,
@@ -18118,7 +18125,8 @@ class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_product_api",
-                "composition_date": self._composition_date_from_payload(payload),
+                "composition_date": composition_date,
+                "completeness_status": "complete",
             },
         )
 
@@ -18316,6 +18324,13 @@ class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_holdings_payload(payload)
+        composition_date = _parse_issuer_date(payload.get("asOfDate"))
+        if not rows:
+            raise ValueError(f"{self.adapter_key} holdings payload did not expose holdings rows.")
+        if composition_date is None:
+            raise ValueError(
+                f"{self.adapter_key} holdings payload did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -18324,6 +18339,7 @@ class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "tables_headline_text": payload.get("tablesHeadlineText"),
                 "headline_text": payload.get("headlineText"),
                 "as_of_date": payload.get("asOfDate"),
+                "composition_date": composition_date.isoformat(),
             },
             source_url=resolved_source_url,
             source_identifier=issuer_product_id or symbol.upper(),
@@ -18336,6 +18352,9 @@ class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_pdp_holdings_json",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
             },
         )
 
@@ -18530,6 +18549,10 @@ class PrincipalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Principal holdings workbook did not expose holdings rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Principal holdings workbook did not publish a composition date for {symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -18547,6 +18570,7 @@ class PrincipalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_symbol_holdings_workbook",
                 "terms_note": self.config.terms_note,
+                "completeness_status": "complete",
             },
         )
 
