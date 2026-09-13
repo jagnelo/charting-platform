@@ -1370,7 +1370,7 @@ progress:
       passed, and the authoritative Docker-backed gate passed `2,410/2,410`
       at `81.38%` coverage with 89 warnings. Source checkpoint: `6992d1096`;
       no provider, frontend, or ETF-provider files changed.
-  total: 16
+  total: 15
   current_phase: credentialed_provider_followup
   current_blocker: >-
     The latest local matrix collects 47 cases and remains 41/47: newly supplied
