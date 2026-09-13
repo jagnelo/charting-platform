@@ -17421,6 +17421,7 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     assert result.legal_metadata["route_resolution"] == (
         "absolute_product_page_linked_complete_financial_statement_pdf"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 12
     assert result.rows[0].name == "Apple Inc."
     assert result.rows[-1].holding_type == "fixed_income"
@@ -17482,6 +17483,7 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
     assert result.legal_metadata["route_resolution"] == (
         "stf_product_page_linked_complete_quarterly_schedule_pdf"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 10
     assert result.rows[0].name == "Apple Inc"
     assert result.rows[0].weight == Decimal("200000") / Decimal("1010000")

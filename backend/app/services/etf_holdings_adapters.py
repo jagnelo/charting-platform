@@ -22604,6 +22604,7 @@ class AbsoluteInvestmentAdvisersHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_dated_complete_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "absolute_investment_advisers_issuer_native_periodic_holdings_pdf",
             },
         )
@@ -22814,6 +22815,7 @@ class StfManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_dated_complete_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "stf_management_issuer_native_quarterly_holdings_pdf",
             },
         )
