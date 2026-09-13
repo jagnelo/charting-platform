@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-13 — Latest-bar history admission
+
+- [x] Pass a provider-specific history-start factory through latest-price
+      routing so latest-window reads use the same structured, documented
+      lookback bounds as explicit history requests. Focused market-data,
+      runtime, routing, and risk-free coverage passed 103/103; the
+      authoritative Docker-backed backend gate passed 2,483/2,483 at 81.71%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+
 ### 2026-09-13 — Current-source credentialed provider live refresh
 
 - [x] Re-run the bounded credentialed live suite against source checkpoint

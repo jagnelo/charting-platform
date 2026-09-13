@@ -661,6 +661,31 @@ async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeyp
 
 
 @pytest.mark.asyncio
+async def test_history_route_evaluates_provider_specific_start_factory(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    await seed_provider_runtime(async_db)
+
+    now = datetime.now(UTC)
+    seen: list[str] = []
+
+    def provider_start(provider_name: str) -> datetime:
+        seen.append(provider_name)
+        return now - timedelta(days=364)
+
+    chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_latest_ohlcv:D1",
+        operation_cost_overrides={"marketstack": 1},
+        history_start=provider_start,
+    )
+
+    assert "marketstack" in seen
+    assert any(item.provider_name == "marketstack" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_paid_routing_switch_does_not_bypass_unreviewed_entitlement(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     seeds = {

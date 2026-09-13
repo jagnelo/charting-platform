@@ -67,6 +67,7 @@ from app.services.provider_support import (
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+HistoryStartSpec = datetime | Callable[[str], datetime | None]
 
 _ALPHA = Decimal("0.2")
 _token_buckets: dict[tuple[str, str], tuple[tuple[int, int], TokenBucket]] = {}
@@ -159,6 +160,8 @@ def provider_history_entitlement_matches(
 
     if history_start is None:
         return True, None
+    if not isinstance(history_start, datetime):
+        return False, "history_start_invalid"
     policy = dict(entitlement.quota_policy or {})
     constraints = policy.get("history_constraints")
     if not isinstance(constraints, dict):
@@ -1483,7 +1486,7 @@ async def resolve_provider_chain(
     operation: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
-    history_start: datetime | None = None,
+    history_start: HistoryStartSpec | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -1537,8 +1540,16 @@ async def resolve_provider_chain(
         ):
             continue
         if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:
+            try:
+                provider_history_start = (
+                    history_start(data_source.name)
+                    if callable(history_start)
+                    else history_start
+                )
+            except Exception:  # noqa: BLE001 - a failed bound must fail closed.
+                continue
             history_allowed, _history_reason = provider_history_entitlement_matches(
-                entitlement, history_start, now=now
+                entitlement, provider_history_start, now=now
             )
             if not history_allowed:
                 continue
@@ -1733,7 +1744,7 @@ async def execute_provider_call(
     provider_name: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
-    history_start: datetime | None = None,
+    history_start: HistoryStartSpec | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,

@@ -208,6 +208,7 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     captured: dict[str, object] = {}
 
     async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
         return execution
 
     async def fake_get_or_create(_db, scope, **kwargs):
@@ -222,6 +223,14 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
         return None
 
     monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    expected_history_start = datetime(2025, 12, 1, tzinfo=UTC)
+    monkeypatch.setattr(
+        market_data,
+        "get_provider",
+        lambda _provider_name: SimpleNamespace(
+            latest_window_start=lambda _timeframe, _limit: expected_history_start
+        ),
+    )
     monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
     monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
     monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
@@ -240,6 +249,7 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
     assert scope.data_source_id == 17
     assert scope.timeframe == "D1"
     assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
     assert result[0].market_series_id == 456
 
 

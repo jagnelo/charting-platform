@@ -37,6 +37,7 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability
 from app.providers import (
     ensure_data_source,
+    get_provider,
     provider_symbol_for_instrument,
 )
 from app.providers.alpaca import (
@@ -1619,6 +1620,12 @@ async def _fetch_provider_latest(
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
     }
+
+    def provider_history_start(provider_name: str) -> datetime:
+        """Return the provider's actual latest-window start for bound admission."""
+
+        return get_provider(provider_name).latest_window_start(timeframe, limit)
+
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -1627,6 +1634,7 @@ async def _fetch_provider_latest(
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
+        history_start=provider_history_start,
         invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
