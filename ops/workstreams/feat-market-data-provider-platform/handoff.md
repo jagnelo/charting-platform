@@ -1907,3 +1907,17 @@ Update this handoff at each coherent boundary.
   still reports unresolved provider-specific controls for Alpaca corporate
   actions, FINRA async/OTC, FRED, Nasdaq, tokenized providers, MarketData.app,
   Tiingo, and FMP.
+
+- Source checkpoint `86c6e04d4` adds bounded tokenized historical aggregate
+  persistence and a separate 07:00 UTC worker, disabled by default. Only
+  providers exposing `fetch_tokenized_historical_prices` are admitted; the
+  current path is Dinari DAY/WEEK/MONTH, routed by provider asset ID and
+  persisted through the canonical raw `24_7` OHLCV/MarketSeries path with
+  provider provenance and no fabricated volume, VWAP, or adjustment. Local and
+  RPi env/Compose examples carry the explicit settings. Focused tests passed
+  `84/84`; compileall, Ruff, YAML parsing, and diff checks passed. The full
+  Docker-backed backend gate passed `2,445/2,445` with 89 warnings at `81.60%`
+  coverage using cleaned testcontainer session
+  `91f879b1-f333-416b-9268-7a07f15d1c13`. No live provider call was made for
+  this change. Provider quota/terms review and credentialed Dinari historical
+  evidence remain required before enabling the worker.

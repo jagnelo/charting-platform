@@ -114,6 +114,19 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Source checkpoint `86c6e04d4` adds a separate disabled-by-default daily
+      tokenized historical aggregate worker. It admits only adapters exposing
+      `fetch_tokenized_historical_prices`, routes by provider asset identity,
+      and persists Dinari DAY/WEEK/MONTH aggregates through the canonical
+      raw `24_7` OHLCV/MarketSeries path without fabricating volume, VWAP, or
+      adjustment data. The settings are wired through local and RPi
+      env/Compose examples. Focused tests passed `84/84`; compileall, Ruff,
+      YAML parsing, and diff checks passed. The authoritative Docker-backed
+      backend gate passed `2,445/2,445` with 89 warnings at `81.60%` coverage
+      using cleaned labeled testcontainer session
+      `91f879b1-f333-416b-9268-7a07f15d1c13`. No live provider call was made
+      for this change, and no frontend or ETF-provider adapter files changed.
+    - >-
       Forced current-source live matrix on 2026-09-13 collected 47 bounded
       cases and passed 41. Alpha Vantage's three event/earnings calls returned
       typed documented free-key capacity responses; Tradier, IBKR, and Ondo
