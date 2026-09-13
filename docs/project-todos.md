@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-13 — Tokenized catalog completeness evidence
+
+- [x] Make bounded tokenized-asset catalog refreshes report whether the
+      provider page stream ended before the configured `max_pages` bound. A
+      full final page now returns `status: partial`, per-provider
+      `pages_fetched`/`truncated`/`complete` evidence, and aggregate
+      completeness flags instead of being presented as a complete universe.
+      Tokenized service/provider fixtures pass 90/90; Ruff, compileall, and
+      diff checks pass. No live provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
 ### 2026-09-13 — Seasonality evaluator provider boundary
 
 - [x] Make `/api/v1/instruments/{symbol}/seasonality/monthly` evaluate only

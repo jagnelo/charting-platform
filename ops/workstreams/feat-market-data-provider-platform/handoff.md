@@ -1849,3 +1849,13 @@ Update this handoff at each coherent boundary.
   response and provider-boundary change across the complete scoped backend
   suite; no provider calls, credentials, frontend files, or ETF-provider
   adapter files changed.
+
+- Source checkpoint `4f59270b9` closes a tokenized-catalog completeness gap.
+  `refresh_tokenized_assets` now marks a bounded provider stream `partial`
+  when its final page is full, and returns per-provider
+  `pages_fetched`/`truncated`/`complete` evidence plus aggregate completeness
+  flags. A short provider page is the only local completion signal. The full
+  tokenized service/provider fixture slice passed `90/90`; Ruff, compileall,
+  and diff checks passed. No live provider calls, credentials, frontend files,
+  or ETF-provider adapter files changed. Tokenized quota, terms, eligibility,
+  and routing admission remain external review gates.
