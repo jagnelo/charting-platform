@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
+
+Product tip `5caacf901` adds an older-date IWM history regression. The focused
+live suite passed `10/10` for the date-aware iShares cases, including
+2025-12-31 and 2026-06-30 with matching composition dates. The exact
+branch-scoped gate completed all stages: backend unit `1534/1534`, integration
+`404/404`, frontend Vitest `1067/1067`, functional browser `165 passed` with
+`107 skipped`, and visual `98/104`. Provider probes reported `not configured`
+because `RUN_LIVE_PROVIDER_TESTS` was unset. Only the six unchanged protected
+watchlist-column-editor/workspace-floating baselines failed; all Docker
+resources were cleaned. This remains a receipt rather than a waiver of R1
+population/history, D1/W1/MN floors and continuity, or AC2–AC7/AC10. No
+provider/fallback, visual threshold/mask/skip, migration, or acceptance policy
+changed.
+
 ## 2026-09-13 — IWM historical route coverage and exact gate receipt
 
 The date-aware iShares family-history route matrix now covers IWM; the opt-in

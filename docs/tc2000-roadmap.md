@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Prove older IWM point-in-time history and rerun exact gate
+
+Product commit `5caacf901` adds a focused regression for the Russell 2000
+IWM route at `2025-12-31`, alongside the existing `2026-06-30` family date.
+Both dates resolve through the public iShares JSON route with matching
+composition dates; the focused live history suite passed `10/10`. The exact
+branch-scoped `full_stack_browser` gate at this coherent tip completed all
+repository, dependency/migration, Ruff/format, TypeScript, backend unit,
+backend integration, frontend Vitest, compose/deployment, research-runner,
+functional, and four-project visual stages with the same results as the prior
+IWM receipt: unit `1534/1534`, integration `404/404`, Vitest `1067/1067`,
+functional `165 passed`/`107 skipped`, and visual `98/104`. Provider probes
+reported `not configured` because `RUN_LIVE_PROVIDER_TESTS` was unset.
+The six unchanged protected visual diffs remain; stack resources were cleaned.
+No provider/fallback, visual threshold/mask/skip, migration, or acceptance
+policy changed. R1 canonical population/history, D1/W1/MN floors and
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Exact gate at IWM historical-route coverage tip
 
 At clean product tip `f36421f49` (the focused test commit), the existing

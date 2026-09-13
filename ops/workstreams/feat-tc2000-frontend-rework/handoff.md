@@ -2,6 +2,20 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
+
+Product tip `5caacf901` proves the IWM historical route at both 2025-12-31 and
+2026-06-30; the focused live iShares suite passed `10/10` with matching
+composition dates. The exact branch-scoped gate completed all stages with
+backend unit `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+functional E2E `165 passed`/`107 skipped`, and visual `98/104`. Provider probes
+reported `not configured` because `RUN_LIVE_PROVIDER_TESTS` was unset.
+Only the six unchanged protected watchlist-column-editor/workspace-floating
+visual diffs remain; stack resources, volumes, images, and testcontainer
+sessions were cleaned. No provider/fallback, visual, migration, or acceptance
+policy changed. Continue R1 provider/history population, D1/W1/MN floors and
+continuity, and AC2–AC7/AC10.
+
 ## 2026-09-13 — IWM historical route coverage and exact gate receipt
 
 Product tip `f36421f49` adds IWM to the date-aware iShares family-history

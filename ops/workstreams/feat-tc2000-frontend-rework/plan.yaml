@@ -13,9 +13,9 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  At clean product tip f36421f49, the date-aware iShares family-history matrix
-  includes IWM and the focused opt-in live suite passed 9/9, including the
-  2026-06-30 public JSON route with 2009 constituent rows. The exact
+  At clean product tip 5caacf901, the date-aware iShares family-history matrix
+  includes IWM at both 2025-12-31 and 2026-06-30; the focused opt-in live
+  suite passed 10/10 with matching composition dates. The exact
   branch-scoped full_stack_browser gate passed repository/workstream,
   dependency/migration, Ruff/format, TypeScript, backend unit 1534/1534,
   backend integration 404/404, frontend Vitest 1067/1067, compose/deployment,
@@ -27,7 +27,7 @@ current_blocker: >-
   resources were cleaned. Continue R1 canonical provider population/history
   and D1/W1/MN floors and continuity; AC2–AC7/AC10 remain open. No visual
   threshold, mask, skip, provider, fallback, migration, or acceptance policy
-  changed. This receipt supersedes the previous c7d84436f receipt below.
+  changed. This receipt supersedes the previous f36421f49 receipt below.
   Product commit c7d84436f corrects SLYG's curated SEC series/class identity
   to S000006990/C000019043 and applies the same identity gate to legacy
   holdings documents. Exact identity searches use a bounded 400-filing window;
@@ -2944,11 +2944,11 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R1_ishares_iwm_history_guard
+  current_phase: R1_ishares_iwm_older_history_guard
   current_blocker: >-
-    At clean product tip f36421f49, IWM is included in the date-aware iShares
-    family-history matrix and the focused live suite passed 9/9, including a
-    2026-06-30 public JSON snapshot with 2009 rows. The exact branch-scoped
+    At clean product tip 5caacf901, IWM is covered at both 2025-12-31 and
+    2026-06-30 by the date-aware iShares family-history matrix; the focused
+    live suite passed 10/10. The exact branch-scoped
     full_stack_browser gate passed repository/workstream, dependency/migration,
     Ruff/format, TypeScript, backend unit 1534/1534, backend integration
     404/404, frontend Vitest 1067/1067, compose/deployment, expected
@@ -2960,7 +2960,6 @@ progress:
     resources were cleaned. R1 canonical provider/history and D1/W1/MN floors
     and continuity remain open; AC2–AC7/AC10 remain open. No visual threshold,
     mask, skip, provider, fallback, migration, or acceptance policy changed.
-    Historical receipts follow.
     Historical receipts follow.
     Product commit 94f451e0 fences Market Map locked-source publication across
     its API write, source reload, source selection, and rerun by mounted

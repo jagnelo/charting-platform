@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-13 — Older IWM point-in-time history and exact gate
+
+- [x] Add a 2025-12-31 IWM regression beside the 2026-06-30 family date; both
+      public iShares JSON snapshots preserve matching composition dates, and
+      the focused live history suite passed `10/10` (`5caacf901`).
+- [x] Rerun the exact branch-scoped gate at `5caacf901`: backend unit
+      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+      functional E2E `165 passed` with `107 skipped`, and visual `98/104`.
+      Provider probes reported `not configured` because the opt-in variable was
+      unset; deterministic contracts remain authoritative.
+- [ ] Keep the six unchanged protected visual diffs open and continue R1
+      provider/history population, D1/W1/MN floors and continuity, and
+      AC2–AC7/AC10.
+
 ### 2026-09-13 — IWM historical route coverage and exact gate
 
 - [x] Add IWM to the date-aware iShares historical family route matrix; the
