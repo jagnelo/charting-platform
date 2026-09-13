@@ -21,6 +21,7 @@ PROVIDER_SECRET_NAMES = {
     "ALPACA_API_KEY",
     "ALPACA_SECRET_KEY",
     "MASSIVE_API_KEY",
+    "MARKETDATA_API_KEY",
     "ALPHA_VANTAGE_API_KEY",
     "COINGECKO_API_KEY",
     "FRED_API_KEY",
@@ -39,6 +40,24 @@ PROVIDER_SECRET_NAMES = {
     "DINARI_API_SECRET_KEY",
     "ONDO_GLOBAL_MARKETS_API_KEY",
     "IBKR_READ_ONLY_SESSION_COOKIE",
+    "OPENFIGI_API_KEY",
+    "COINBASE_API_KEY",
+    "KRAKEN_API_KEY",
+}
+PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
+    "NASDAQ_USER_AGENT",
+    "OPENFIGI_TIMEOUT_SECONDS",
+    "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+    "FINRA_TOKEN_URL",
+    "FINRA_API_BASE_URL",
+    "FINRA_SHORT_INTEREST_URL",
+    "FINRA_OTC_DAILY_LIST_URL",
+    "MARKETSTACK_DISCOVERY_EXCHANGE",
+    "IBKR_READ_ONLY_URL",
+    "IBKR_READ_ONLY_VERIFY_TLS",
+    "IBKR_READ_ONLY_TIMEOUT_SECONDS",
+    "IBKR_CONID_MAP",
+    "DINARI_API_BASE_URL",
 }
 PROVIDER_SAFETY_SETTINGS = {
     "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
@@ -228,6 +247,8 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:
+        assert f"{name}:" in workflow
+    for name in PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS:
         assert f"{name}:" in workflow
     assert (
         "ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}"

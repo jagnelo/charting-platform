@@ -1989,3 +1989,14 @@ Update this handoff at each coherent boundary.
   durable account observation still does not promote routing automatically;
   operator review of the native plan, terms, and redistribution entitlement
   remains required.
+
+- The manual GitHub provider-live workflow now mirrors the backend provider
+  configuration surface for OpenFIGI, Nasdaq identity, FINRA endpoint
+  overrides, Massive's legacy key alias, Coinbase/Kraken credentials, and
+  the existing IBKR/Dinari settings. The provider secret-wiring suite passed
+  `19/19`; workflow and local/RPi Compose YAML parsing, compileall, and diff
+  checks passed; and the authoritative Docker-backed backend gate passed
+  `2,456/2,456` at `81.68%` with 89 warnings using cleaned testcontainer
+  session `34e6266f-f3d0-4781-8a7e-d5457d27cb8d`. This verifies source-level
+  parity only; GitHub environment secrets/variables still require operator
+  verification.

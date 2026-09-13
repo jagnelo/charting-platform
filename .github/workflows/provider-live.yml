@@ -25,7 +25,14 @@ jobs:
       PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
       PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}
       EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
+      NASDAQ_USER_AGENT: ${{ vars.NASDAQ_USER_AGENT || 'charting-platform market-data-universe' }}
+      OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      OPENFIGI_TIMEOUT_SECONDS: ${{ vars.OPENFIGI_TIMEOUT_SECONDS || '10' }}
       FINRA_OTC_SYMBOL_DIRECTORY_URL: ${{ vars.FINRA_OTC_SYMBOL_DIRECTORY_URL }}
+      FINRA_TOKEN_URL: ${{ vars.FINRA_TOKEN_URL || 'https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token' }}
+      FINRA_API_BASE_URL: ${{ vars.FINRA_API_BASE_URL || 'https://api.finra.org' }}
+      FINRA_SHORT_INTEREST_URL: ${{ vars.FINRA_SHORT_INTEREST_URL || '' }}
+      FINRA_OTC_DAILY_LIST_URL: ${{ vars.FINRA_OTC_DAILY_LIST_URL || '' }}
       FINRA_OTC_OPERATION_COSTS: ${{ vars.FINRA_OTC_OPERATION_COSTS || '{}' }}
       FINRA_OTC_TERMS_REVIEWED: ${{ vars.FINRA_OTC_TERMS_REVIEWED || 'false' }}
       FINRA_OTC_COMPLETENESS_REVIEWED: ${{ vars.FINRA_OTC_COMPLETENESS_REVIEWED || 'false' }}
@@ -38,6 +45,7 @@ jobs:
       ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}
       ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}
       MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      MARKETDATA_API_KEY: ${{ secrets.MARKETDATA_API_KEY }}
       ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
       COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
       FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
@@ -76,6 +84,8 @@ jobs:
       IBKR_READ_ONLY_TIMEOUT_SECONDS: ${{ vars.IBKR_READ_ONLY_TIMEOUT_SECONDS || '30' }}
       IBKR_CONID_MAP: ${{ vars.IBKR_CONID_MAP || '{}' }}
       XSTOCKS_API_KEY: ${{ secrets.XSTOCKS_API_KEY }}
+      COINBASE_API_KEY: ${{ secrets.COINBASE_API_KEY }}
+      KRAKEN_API_KEY: ${{ secrets.KRAKEN_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
