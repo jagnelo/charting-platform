@@ -21,6 +21,7 @@ from app.models.radar import (
     RadarSetupType,
     RadarState,
 )
+from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.indicators import OHLCVSeries, compute_indicator
 
 RADAR_LOOKBACK_BARS = 320
@@ -222,6 +223,7 @@ def _radar_coverage_summary(
     bars_by_instrument: dict[int, list[OHLCVBar]],
     timeframe: Timeframe,
     stale_instrument_ids: list[int] | None = None,
+    coverage_blocked_ids: list[int] | None = None,
 ) -> tuple[str, dict]:
     """Classify local radar coverage without contacting a provider.
 
@@ -239,8 +241,21 @@ def _radar_coverage_summary(
         for instrument_id in stale_instrument_ids or []
         if instrument_id in instrument_ids and instrument_id not in missing_set
     ]
-    evaluated_count = len(instrument_ids) - len(missing_instrument_ids) - len(stale_ids)
-    unavailable_count = len(missing_instrument_ids) + len(stale_ids)
+    stale_set = set(stale_ids)
+    blocked_ids = [
+        instrument_id
+        for instrument_id in coverage_blocked_ids or []
+        if instrument_id in instrument_ids
+        and instrument_id not in missing_set
+        and instrument_id not in stale_set
+    ]
+    evaluated_count = (
+        len(instrument_ids)
+        - len(missing_instrument_ids)
+        - len(stale_ids)
+        - len(blocked_ids)
+    )
+    unavailable_count = len(missing_instrument_ids) + len(stale_ids) + len(blocked_ids)
     if not instrument_ids:
         status = "empty"
     elif unavailable_count:
@@ -254,6 +269,9 @@ def _radar_coverage_summary(
         "stale_instrument_ids": stale_ids[:100],
         "stale_instrument_ids_truncated": len(stale_ids) > 100,
         "stale_count": len(stale_ids),
+        "coverage_blocked_instrument_ids": blocked_ids[:100],
+        "coverage_blocked_instrument_ids_truncated": len(blocked_ids) > 100,
+        "coverage_blocked_count": len(blocked_ids),
         "evaluated_count": evaluated_count,
     }
 
@@ -367,6 +385,7 @@ async def _queue_radar_repairs(
     bars_by_instrument: dict[int, list[OHLCVBar]],
     timeframe: Timeframe,
     stale_instrument_ids: list[int],
+    coverage_blocked_ids: list[int] | None = None,
     now: datetime,
 ) -> int:
     """Queue bounded local-coverage repairs without provider I/O.
@@ -380,16 +399,22 @@ async def _queue_radar_repairs(
     from app.services.market_refresh_queue import enqueue_refresh_job
 
     stale_set = set(stale_instrument_ids)
+    blocked_set = set(coverage_blocked_ids or [])
     missing_set = {
         instrument_id for instrument_id in instrument_ids if not bars_by_instrument.get(instrument_id)
     }
-    repair_ids = sorted(missing_set | stale_set)
+    repair_ids = sorted(missing_set | stale_set | blocked_set)
     if not repair_ids:
         return 0
     repair_start = _radar_repair_start(timeframe, now=now)
     queued = 0
     for instrument_id in repair_ids:
-        reason = "missing" if instrument_id in missing_set else "stale"
+        if instrument_id in missing_set:
+            reason = "missing"
+        elif instrument_id in stale_set:
+            reason = "stale"
+        else:
+            reason = "insufficient_history"
         await enqueue_refresh_job(
             db,
             request_key=f"radar:{timeframe.value}:{instrument_id}",
@@ -2598,12 +2623,31 @@ async def run_radar_scan(
             timeframe,
             now=freshness_now,
         )
+        coverage_preflight = await preflight_ohlcv(
+            db,
+            evaluator="radar",
+            instrument_ids=instrument_ids,
+            timeframe=timeframe,
+            date_from=None,
+            date_to=None,
+            mode="historical",
+            queue_repairs=False,
+            cached_bars=bars_by_instrument,
+            minimum_bars=80,
+        )
+        coverage_blocked_ids = [
+            item.instrument_id
+            for item in coverage_preflight.items
+            if item.status.value != "ready"
+        ]
         coverage_status, coverage_summary = _radar_coverage_summary(
             instrument_ids,
             bars_by_instrument,
             timeframe,
             stale_instrument_ids,
+            coverage_blocked_ids,
         )
+        coverage_summary["coverage_preflight"] = coverage_preflight.to_dict()
         evaluated = int(coverage_summary["evaluated_count"])
         if queue_repairs:
             await _queue_radar_repairs(
@@ -2612,6 +2656,7 @@ async def run_radar_scan(
                 bars_by_instrument=bars_by_instrument,
                 timeframe=timeframe,
                 stale_instrument_ids=stale_instrument_ids,
+                coverage_blocked_ids=coverage_blocked_ids,
                 now=freshness_now,
             )
         run.coverage_status = coverage_status
@@ -2646,8 +2691,9 @@ async def run_radar_scan(
 
         detections: list[RadarDetection] = []
         stale_set = set(stale_instrument_ids)
+        coverage_blocked_set = set(coverage_blocked_ids)
         for instrument in instruments:
-            if instrument.id in stale_set:
+            if instrument.id in stale_set or instrument.id in coverage_blocked_set:
                 continue
             bars = bars_by_instrument.get(instrument.id, [])
             if not bars:

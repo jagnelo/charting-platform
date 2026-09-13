@@ -132,6 +132,19 @@ class TestRadarEngine:
         assert summary["stale_instrument_ids"] == [2]
         assert summary["stale_count"] == 1
 
+    def test_radar_coverage_summary_excludes_shared_preflight_blocked_ids(self):
+        status, summary = _radar_coverage_summary(
+            [1, 2, 3],
+            {1: _make_bars([100, 101]), 2: _make_bars([100, 101]), 3: _make_bars([100, 101])},
+            Timeframe.D1,
+            coverage_blocked_ids=[2],
+        )
+
+        assert status == "partial"
+        assert summary["evaluated_count"] == 2
+        assert summary["coverage_blocked_instrument_ids"] == [2]
+        assert summary["coverage_blocked_count"] == 1
+
     def test_radar_freshness_uses_persisted_state_or_conservative_bar_fallback(self):
         now = datetime(2026, 9, 12, 12, tzinfo=UTC)
         bars = {1: _make_bars([100, 101]), 2: _make_bars([100, 101])}
@@ -177,6 +190,31 @@ class TestRadarEngine:
         assert queued[0]["metadata_payload"]["coverage_reason"] == "missing"
         assert queued[1]["metadata_payload"]["coverage_reason"] == "stale"
         assert queued[0]["start_at"] == datetime(2026, 9, 12, 12, tzinfo=UTC) - timedelta(days=320)
+
+    def test_radar_repairs_label_preflight_blocked_history(self, monkeypatch):
+        queued: list[dict] = []
+
+        async def fake_enqueue(db, **kwargs):
+            queued.append(kwargs)
+
+        import app.services.market_refresh_queue as refresh_queue
+
+        monkeypatch.setattr(refresh_queue, "enqueue_refresh_job", fake_enqueue)
+
+        queued_count = __import__("asyncio").run(
+            _queue_radar_repairs(
+                object(),
+                instrument_ids=[1],
+                bars_by_instrument={1: _make_bars([100, 101])},
+                timeframe=Timeframe.D1,
+                stale_instrument_ids=[],
+                coverage_blocked_ids=[1],
+                now=datetime(2026, 9, 12, 12, tzinfo=UTC),
+            )
+        )
+
+        assert queued_count == 1
+        assert queued[0]["metadata_payload"]["coverage_reason"] == "insufficient_history"
 
     def test_timeframe_importance_is_explicit_and_monotonic(self):
         values = [_timeframe_importance(timeframe) for timeframe in Timeframe]

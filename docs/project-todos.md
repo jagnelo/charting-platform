@@ -95,8 +95,16 @@
       the complete backend unit suite passes 2,030/2,030, and the authoritative
       Docker-backed gate passes 2,412/2,412 at 81.40% coverage. No frontend or
       ETF-provider adapter files changed.
+- [x] Extend the same contract to the Radar signal scan. Its existing indexed
+      local-bar load and freshness/repair behavior now feed the shared
+      provider-neutral preflight with the engine's 80-bar minimum; short or
+      otherwise incomplete histories are withheld from signal evaluation,
+      repair requests are labeled `insufficient_history`, and the serialized
+      run summary preserves the per-instrument preflight evidence. Focused
+      Radar unit coverage passes 35/35 and the focused PostgreSQL API coverage
+      passes 5/5; no provider, frontend, or ETF-provider adapter files changed.
 - [ ] Extend the same contract to future non-Strategy signal engines beyond
-      the currently covered Strategy Lab, Radar, generic breadth,
+      the currently covered Strategy Lab, generic breadth,
       benchmark-family breadth, alert, screener, and Market Map paths.
 
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination

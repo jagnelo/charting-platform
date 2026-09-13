@@ -130,6 +130,32 @@ class TestRadarAPI:
         assert run_data["evaluated_count"] == 1
         assert run_data["coverage_summary"]["missing_instrument_ids"] == [instrument_b.id]
 
+    def test_run_defers_short_history_before_signal_evaluation(
+        self, client, auth_headers, db, instrument
+    ):
+        _seed_radar_bars(db, instrument, [100, 101])
+
+        run_res = client.post(
+            "/api/v1/radar/run",
+            headers=auth_headers,
+            json={
+                "universe_type": "custom",
+                "universe_filter": {"instrument_ids": [instrument.id]},
+            },
+        )
+
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["status"] == "completed"
+        assert run_data["coverage_status"] == "unavailable"
+        assert run_data["evaluated_count"] == 0
+        assert run_data["detection_count"] == 0
+        assert run_data["coverage_summary"]["coverage_blocked_instrument_ids"] == [instrument.id]
+        preflight = run_data["coverage_summary"]["coverage_preflight"]
+        assert preflight["status"] == "deferred"
+        assert preflight["items"][0]["bar_count"] == 2
+        assert "at least 80" in preflight["items"][0]["explanation"]
+
     def test_run_can_enqueue_bounded_repairs_without_provider_io(
         self, client, auth_headers, db, instrument, instrument_b
     ):
