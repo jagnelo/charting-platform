@@ -2027,3 +2027,16 @@ Update this handoff at each coherent boundary.
   session `545fa0a6-0105-4d92-94fb-86f418e11b25` was cleaned without host-wide
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files entered Git.
+
+- A second fresh network-enabled verification from the current checkout on
+  2026-09-13 passed all `13/13` selected cases for the newly configured
+  providers using the owner-managed environment: Alpaca daily/intraday/latest
+  price, assets, and corporate actions; SEC EDGAR profile, filings/Company
+  Facts, and complete ticker/issuer directory pagination; MarketData.app
+  options, account usage, and intraday history; and Dinari Sandbox metadata,
+  price/quote, DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and
+  corporate actions. Aggregate request/byte telemetry remained in the
+  mode-0600 external usage ledger only; no credentials or provider payloads
+  entered Git. This confirms transport/schema behavior but does not promote
+  MarketData.app plan/expiry/option-bound or Dinari quota/commercial/
+  redistribution entitlements.
