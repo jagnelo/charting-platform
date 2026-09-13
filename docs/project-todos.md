@@ -63,9 +63,11 @@
       daily/intraday/latest/assets/corporate actions (4), MarketData.app
       options/account-usage/intraday (3), and Dinari metadata/price/quote/
       DAY-WEEK-MONTH-YEAR history/news/dividends/splits/corporate actions (1).
-      The pytest process returned non-zero only because the live-only subset
-      cannot meet the repository-wide 55% coverage threshold; no provider
-      assertion failed and no credential or payload entered Git.
+      A fresh `--no-cov` rerun passed 11/11 against the pushed checkpoint
+      `49e8095a6`; its redacted receipt recorded 30 upstream requests and
+      12,926,846 response bytes across four provider rows, and merged into the
+      owner-managed ledger with `accepted=4`. No credential or provider
+      payload entered Git.
 
 - [ ] Keep this as transport evidence only. Provider-specific quota,
       entitlement, legal/redistribution, and deployment-secret gates remain
