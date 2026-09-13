@@ -154,6 +154,7 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     captured: dict[str, object] = {}
 
     async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
         return execution
 
     async def fake_get_or_create(_db, scope, **kwargs):
@@ -178,8 +179,8 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
         object(),
         instrument,
         Timeframe.D1,
-        datetime(2026, 1, 1, tzinfo=UTC),
-        datetime(2026, 1, 3, tzinfo=UTC),
+        datetime(2020, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
         True,
     )
 
@@ -192,6 +193,7 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     assert scope.adjustment_basis.value == "provider_adjusted"
     assert scope.adjustment_version == "alpaca-all"
     assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] == 2
     assert result[0].market_series_id == 123
 
 

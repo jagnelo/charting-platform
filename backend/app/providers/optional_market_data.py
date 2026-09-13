@@ -67,6 +67,7 @@ _TF_SECONDS: dict[Timeframe, int] = {
 }
 _TWELVE_DATA_POINTS_PER_REQUEST = 5000
 _MARKETSTACK_POINTS_PER_REQUEST = 100
+_MARKETDATA_APP_CANDLES_PER_CREDIT = 1000
 
 
 def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:
@@ -260,6 +261,89 @@ def estimate_marketstack_latest_ohlcv_request_count(timeframe: Timeframe, limit:
         return 0
     calendar_days = max(1, ceil(limit * 1.5) + 1)
     return max(1, ceil(calendar_days / _MARKETSTACK_POINTS_PER_REQUEST))
+
+
+def _marketdata_app_calendar_days(start: datetime, end: datetime) -> int | None:
+    """Return the inclusive date span sent to MarketData.app candle endpoints."""
+
+    bounded_start = _bounded_datetime(start)
+    bounded_end = _bounded_datetime(end)
+    if bounded_end <= bounded_start:
+        return None
+    # The endpoint accepts calendar dates rather than timestamps.  A request
+    # for a five-minute slice therefore still admits every candle in each
+    # requested date.  Use the inclusive date span so the reservation cannot
+    # under-account that provider-defined response shape.
+    return max(1, (bounded_end.date() - bounded_start.date()).days + 1)
+
+
+def _marketdata_app_candle_upper_bound(timeframe: Timeframe, calendar_days: int) -> int | None:
+    """Return a documented-resolution upper bound for one date-span request."""
+
+    if calendar_days <= 0:
+        return None
+    if timeframe is Timeframe.D1:
+        return calendar_days
+    if timeframe is Timeframe.W1:
+        # Weekly candles are aligned to provider calendar weeks; a date span
+        # that crosses both endpoints can therefore include one extra bucket.
+        return max(1, ceil(calendar_days / 7) + 1)
+    seconds = {
+        Timeframe.M1: 60,
+        Timeframe.M5: 300,
+        Timeframe.M15: 900,
+        Timeframe.H1: 3600,
+    }.get(timeframe)
+    if seconds is None:
+        # MarketData.app's documented stock candle adapter does not map the
+        # remaining platform timeframes.  Do not invent a cost for them.
+        return None
+    # The provider query is date-granular.  A full UTC day is a conservative
+    # bound for any intraday session, including extended-hours responses.
+    return calendar_days * ceil(86400 / seconds)
+
+
+def estimate_marketdata_app_ohlcv_credit_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate MarketData.app stock-candle credits for one history request.
+
+    MarketData.app charges one credit per 1,000 returned stock candles.  The
+    endpoint takes ``from``/``to`` dates, not timestamps, so the estimate is
+    based on the inclusive requested dates and a full-day upper bound for
+    intraday resolutions.  A missing/unsupported bound returns ``None`` so
+    provider admission remains fail-closed instead of reverting to one credit.
+    """
+
+    calendar_days = _marketdata_app_calendar_days(start, end)
+    if calendar_days is None:
+        return None
+    candle_upper_bound = _marketdata_app_candle_upper_bound(timeframe, calendar_days)
+    if candle_upper_bound is None:
+        return None
+    return max(1, ceil(candle_upper_bound / _MARKETDATA_APP_CANDLES_PER_CREDIT))
+
+
+def estimate_marketdata_app_latest_ohlcv_credit_count(
+    timeframe: Timeframe, limit: int, *, now: datetime | None = None
+) -> int | None:
+    """Estimate credits for the adapter's date-granular latest-history read."""
+
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+        return None
+    seconds = {
+        Timeframe.M1: 60,
+        Timeframe.M5: 300,
+        Timeframe.M15: 900,
+        Timeframe.H1: 3600,
+        Timeframe.D1: 86400,
+        Timeframe.W1: 604800,
+    }.get(timeframe)
+    if seconds is None:
+        return None
+    bounded_end = _bounded_datetime(now or datetime.now(UTC))
+    bounded_start = bounded_end - timedelta(seconds=seconds * max(1, limit))
+    return estimate_marketdata_app_ohlcv_credit_count(timeframe, bounded_start, bounded_end)
 
 
 def _number(value: Any) -> float | None:

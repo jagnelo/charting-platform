@@ -1616,7 +1616,14 @@ def test_deep_history_profiles_charge_the_bulk_fetch_operation():
         "fmp",
         "marketdata_app",
     ):
-        assert get_provider_usage_profile(provider_name)["operation_costs"]["bulk_fetch"] == 1
+        profile = get_provider_usage_profile(provider_name)
+        if provider_name == "marketdata_app":
+            # MarketData.app bills stock candles by returned volume; bulk
+            # callers must provide a date-granular 1-credit-per-1,000 estimate
+            # instead of falling back to one request == one credit.
+            assert "bulk_fetch" not in profile["operation_costs"]
+        else:
+            assert profile["operation_costs"]["bulk_fetch"] == 1
 
 
 def test_single_request_provider_profiles_are_explicit():

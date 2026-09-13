@@ -1018,10 +1018,10 @@ class Settings(BaseSettings):
             "mode": "credit_count",
             "unit_label": "credits",
             "operation_costs": {
-                "fetch_ohlcv": 1,
-                "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
-                "bulk_fetch": 1,
+                # Stock-candle and bulk-history costs are response-dependent:
+                # callers must supply the documented one-credit-per-1,000
+                # candle estimate before the provider can be admitted.
                 # The provider documents one credit per expiration lookup.
                 # ``fetch_option_chain`` and ``fetch_option_quote_history`` are
                 # intentionally absent: current chains/quotes are billed per

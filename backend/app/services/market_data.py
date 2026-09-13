@@ -61,6 +61,8 @@ from app.providers.ibkr import (
     estimate_ibkr_ohlcv_request_count,
 )
 from app.providers.optional_market_data import (
+    estimate_marketdata_app_latest_ohlcv_credit_count,
+    estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
     estimate_twelve_data_latest_ohlcv_request_count,
@@ -1100,6 +1102,7 @@ async def _fetch_provider(
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
     twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
     ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, start, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -1108,6 +1111,7 @@ async def _fetch_provider(
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
@@ -1593,6 +1597,7 @@ async def _fetch_provider_latest(
     marketstack_cost = estimate_marketstack_latest_ohlcv_request_count(timeframe, limit)
     twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
     ibkr_cost = estimate_ibkr_latest_ohlcv_request_count(timeframe, limit)
+    marketdata_app_cost = estimate_marketdata_app_latest_ohlcv_credit_count(timeframe, limit)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
@@ -1601,6 +1606,7 @@ async def _fetch_provider_latest(
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
         **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,

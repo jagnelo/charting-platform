@@ -170,6 +170,7 @@ async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch
     calls: dict[str, object] = {}
 
     async def _fake_execute(*_args, **_kwargs):
+        calls["execute_kwargs"] = _kwargs
         return execution
 
     async def _fake_attach(_db, _instrument, timeframe, adjusted, execution_arg, **kwargs):
@@ -210,4 +211,5 @@ async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch
     assert calls["attach"][2] is execution
     assert calls["rows"] == [bar]
     assert bar.market_series_id == 123
+    assert calls["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] > 1
     assert calls["committed"] is True

@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-13 — MarketData.app stock-candle credit accounting
+
+- [x] Replace the previous fixed one-credit OHLCV/bulk-history charge with a
+      provider-specific, date-granular estimate: MarketData.app charges one
+      credit per 1,000 returned stock candles, and its `from`/`to` request is
+      calendar-date based. Intraday reservations therefore use a conservative
+      full-day candle upper bound; unsupported platform timeframes return no
+      estimate and remain fail-closed rather than reverting to one credit.
+      Explicit, latest, and bulk history paths now pass the calculated cost
+      into durable provider quota reservation. Focused provider/runtime/service
+      coverage passes 244/244; Ruff, compileall, and diff checks pass; the
+      authoritative Docker-backed gate passes 2,452/2,452 at 81.67% combined
+      coverage with 89 warnings. No external provider calls or credentials were
+      used for this source change.
+
+- [ ] Keep the MarketData.app plan/terms, response-priced options bound, and
+      account-wide usage review gates fail-closed until the operator records the
+      exact account entitlement and redistribution decision.
+
 ### 2026-09-13 — Current-source live provider matrix receipt
 
 - [x] Forced the bounded manifest-driven provider matrix against the current

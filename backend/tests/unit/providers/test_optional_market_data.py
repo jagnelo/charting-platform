@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -22,6 +22,8 @@ from app.providers.optional_market_data import (
     TiingoProvider,
     TradierProvider,
     TwelveDataProvider,
+    estimate_marketdata_app_latest_ohlcv_credit_count,
+    estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
 )
@@ -729,6 +731,44 @@ def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
     assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
     assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
+
+
+def test_marketdata_app_candle_credit_estimate_is_date_granular_and_response_bounded():
+    same_day = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+    # One M1 request is date-granular, so the conservative upper bound is a
+    # full day (1,440 candles), not merely the five minutes requested.
+    assert estimate_marketdata_app_ohlcv_credit_count(
+        Timeframe.M1,
+        same_day,
+        same_day + timedelta(minutes=5),
+    ) == 2
+    assert estimate_marketdata_app_ohlcv_credit_count(
+        Timeframe.D1,
+        datetime(2020, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
+    ) == 2
+    assert estimate_marketdata_app_ohlcv_credit_count(
+        Timeframe.W1,
+        datetime(2024, 1, 1, tzinfo=UTC),
+        datetime(2024, 1, 7, tzinfo=UTC),
+    ) == 1
+    assert estimate_marketdata_app_ohlcv_credit_count(
+        Timeframe.MN,
+        datetime(2024, 1, 1, tzinfo=UTC),
+        datetime(2024, 2, 1, tzinfo=UTC),
+    ) is None
+
+
+def test_marketdata_app_latest_credit_estimate_uses_provider_date_window():
+    now = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(
+        Timeframe.D1, 1001, now=now
+    ) == 2
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(
+        Timeframe.M1, 1, now=now
+    ) == 2
+    assert estimate_marketdata_app_latest_ohlcv_credit_count(Timeframe.MN, 1, now=now) is None
 
 
 def test_marketdata_app_inherited_current_price_uses_one_documented_credit():

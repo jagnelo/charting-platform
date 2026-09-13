@@ -38,6 +38,7 @@ from app.providers.crypto_market_data import (
 )
 from app.providers.errors import bounded_redact_provider_message
 from app.providers.optional_market_data import (
+    estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_ohlcv_request_count,
     estimate_twelve_data_ohlcv_request_count,
 )
@@ -273,6 +274,7 @@ async def _do_fetch_and_store(
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, EPOCH_START, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, EPOCH_START, end)
     marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, EPOCH_START, end)
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, EPOCH_START, end)
     twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, EPOCH_START, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
@@ -280,6 +282,7 @@ async def _do_fetch_and_store(
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
     }
     execution = await execute_provider_call(
