@@ -1468,3 +1468,19 @@ Update this handoff at each coherent boundary.
   `eba83d98-8695-48ad-8dd8-544d8480a609` was cleaned without host-wide pruning.
   No provider calls, credentials, frontend files, or ETF-provider adapter
   files changed; provider/legal/deployment/shadow gates remain open.
+
+- Source checkpoint `7baab8261` extends the shared provider-neutral coverage
+  preflight to benchmark-family ratio responses. Every resolved role,
+  cap-weighted benchmark, and explicit market benchmark is assessed from the
+  already loaded local bars with a one-bar minimum; stale legs are removed
+  before readiness is calculated, and a no-mapping batch receives an explicit
+  empty report. Existing aligned-close ratio semantics and stale-result
+  withholding remain unchanged. Focused PostgreSQL integration passed `1/1`,
+  the complete backend unit suite passed `2,029/2,029` with 37 warnings,
+  changed-file Ruff/compileall/diff checks passed, and the authoritative
+  Docker-backed combined backend gate passed `2,410/2,410` at `81.38%` coverage
+  with 89 warnings. Testcontainer session
+  `b4d575ed-ec9b-466b-92a6-1ef21d81c579` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.
