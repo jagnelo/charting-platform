@@ -121,6 +121,15 @@ progress:
       passed `2,454/2,454` at `81.67%` with 89 warnings. Source checkpoint
       `f45802e82` contains no frontend or ETF-provider adapter changes.
     - >-
+      MarketData.app's provider-native 10,000-credit observation is now
+      representable as the explicit `starter_trial` plan, alongside
+      `trader_trial` at 100,000 credits/day. These identifiers remain distinct
+      from paid plans and preserve the explicit operator-review gate. Focused
+      quota/runtime/provider coverage passed 161/161; the authoritative
+      Docker-backed backend gate passed 2,454/2,454 at 81.67% with 89 warnings.
+      Source checkpoint `7b1102017900` contains no frontend or ETF-provider
+      adapter changes.
+    - >-
       Tokenized historical aggregates now have their own
       `TOKENIZED_HISTORICAL_PRICES` capability, provider-chain seed, availability
       probe contract, registry surface, and PostgreSQL enum migration. Dinari
