@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-13 — Tokenized catalog discovery scheduling
+
+- [x] Schedule tokenized listing discovery as a separate bounded daily worker,
+      independent from quote polling and corporate-action polling. The job is
+      disabled by default until provider quota/terms are reviewed, uses
+      `TOKENIZED_CATALOG_REFRESH_MAX_PAGES` and
+      `TOKENIZED_CATALOG_REFRESH_PAGE_SIZE`, and clamps both values at the
+      service boundary. Focused scheduler/service/provider/config coverage
+      passed 153/153; Ruff, compileall, YAML parsing, and diff checks passed.
+      No live provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+
+- [x] Re-run the authoritative Docker-backed backend gate after catalog
+      scheduler/config changes. The complete scoped suite passes 2,441/2,441
+      with 89 warnings at 81.61% combined coverage using cleaned labeled
+      testcontainer session `824c0c11-8c12-4c6b-9186-ac86dcf5aeb7`. Provider
+      quota/terms, deployment, CI, shadow, and staging-coordinator gates
+      remain open.
+
 ### 2026-09-13 — Tokenized catalog completeness evidence
 
 - [x] Make bounded tokenized-asset catalog refreshes report whether the

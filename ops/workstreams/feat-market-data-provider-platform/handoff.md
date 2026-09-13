@@ -1881,3 +1881,20 @@ Update this handoff at each coherent boundary.
   `7d94ad60d` passed `2,438/2,438` with 89 warnings at `81.61%` combined
   coverage. Labeled testcontainer session
   `bcf70b7a-48f3-49d4-9a78-d26499a577f7` was cleaned without host-wide pruning.
+
+- Source checkpoint `008d2e2d3` schedules tokenized listing discovery as a
+  separate bounded daily worker at 06:30 UTC. Catalog discovery is disabled by
+  default until provider quota/terms are reviewed, has independent page and
+  page-size settings, and clamps request bounds at the service boundary;
+  quote and corporate-action schedules remain separate. Focused
+  scheduler/service/provider/config coverage passed `153/153`; Ruff,
+  compileall, YAML parsing, and diff checks passed. No live provider calls,
+  credentials, frontend files, or ETF-provider adapter files changed.
+
+- The authoritative Docker-backed combined backend unit/integration gate after
+  `008d2e2d3` passed `2,441/2,441` with 89 warnings at `81.61%` combined
+  coverage using cleaned labeled testcontainer session
+  `824c0c11-8c12-4c6b-9186-ac86dcf5aeb7`. Provider/legal, CI/deployment,
+  reconciliation, shadow, future-evaluator, and staging-coordinator gates
+  remain open; this branch remains ready for human review and is not ready for
+  integration.
