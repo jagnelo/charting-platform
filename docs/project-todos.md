@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-13 — Generic historical breadth coverage preflight
+
+- [x] Extend the provider-neutral OHLCV preflight to the generic
+      `/analysis/breadth/history` endpoint. Historical bars are truncated at
+      `as_of` as an upper cutoff, then assessed over their observed extent
+      against the condition-derived history floor; insufficient members are
+      withheld instead of producing synthetic historical points. The response
+      now exposes additive `coverage_preflight` evidence. Focused PostgreSQL
+      integration passes 3/3, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,431/2,431 at
+      81.45% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
 ### 2026-09-13 — Shared evaluator coverage preflight
 
 - [x] Extend the shared OHLCV coverage preflight to benchmark-family

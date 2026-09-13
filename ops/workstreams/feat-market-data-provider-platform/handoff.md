@@ -1774,3 +1774,16 @@ Update this handoff at each coherent boundary.
   blocks only unreviewed provider-specific quota/legal/redistribution controls.
   Aggregate usage remained external-only; no credentials or provider payloads
   entered Git. This is current evidence, not an acceptance claim.
+
+- Source checkpoint `2e31f99c7` extends the shared OHLCV preflight to generic
+  `/analysis/breadth/history`. The route truncates bars at the historical
+  `as_of` cutoff, assesses the observed local extent against the condition's
+  required history floor, withholds insufficient members, and exposes additive
+  `coverage_preflight` evidence. Focused PostgreSQL integration passed `3/3`;
+  Ruff, compileall, and diff checks passed; and the authoritative combined
+  backend gate passed `2,431/2,431` at `81.45%` coverage with 89 warnings using
+  cleaned testcontainer session `838c842f-2dc2-4f52-9d11-f0a0bbe4d306`. No
+  provider calls, credentials, frontend files, or ETF-provider adapter files
+  changed. Provider/legal, CI/deployment, production reconciliation, shadow,
+  and staging coordinator review remain open; the parallel ETF branch still
+  owns ETF provider adapters and must reconcile only at staging.

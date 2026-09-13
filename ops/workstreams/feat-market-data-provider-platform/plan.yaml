@@ -113,6 +113,17 @@ remaining_gaps:
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      Generic `/analysis/breadth/history` now runs the shared OHLCV preflight
+      after truncating bars at the historical `as_of` cutoff. It uses the
+      condition-derived history floor, assesses the observed historical extent
+      without requiring a bar exactly at the cutoff, withholds insufficient
+      members, and exposes additive `coverage_preflight` evidence. Focused
+      PostgreSQL integration passed `3/3`; Ruff, compileall, and diff checks
+      passed; and the authoritative Docker-backed combined backend gate passed
+      `2,431/2,431` at `81.45%` coverage with 89 warnings using cleaned
+      testcontainer session `838c842f-2dc2-4f52-9d11-f0a0bbe4d306`. No provider
+      calls, credentials, frontend, or ETF-provider adapter files changed.
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
     - official Nasdaq Trader equity/ETF directory ingestion; undocumented Nasdaq quote-history routes removed
     - NMS pagination now requires explicit totals/cursor completion evidence; Nasdaq Financial Status is retained without treating deficient/bankrupt listings as delisted
