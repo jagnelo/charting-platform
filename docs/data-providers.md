@@ -586,7 +586,8 @@ symbol APIs:
   instruments are withheld from evaluation. Repair enqueueing is opt-in through
   the run's `queue_coverage_repairs` assumption and always uses the durable
   refresh queue, so evaluators never call a provider directly. Benchmark-family
-  breadth and future non-Strategy signal engines remain an explicit follow-up.
+  breadth now reports per-metric readiness plus a separate cap-benchmark
+  result; future non-Strategy signal engines remain an explicit follow-up.
 - `market_coverage_snapshot`, `provider_shadow_observation`, and
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`

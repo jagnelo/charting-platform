@@ -4394,6 +4394,21 @@ async def benchmark_family_breadth(
                 instrument_id=cap_instrument.id,
             )
         )
+    cap_coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_breadth:cap_benchmark",
+        instrument_ids=[cap_instrument.id] if cap_instrument else [],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars={cap_instrument.id: cap_bars} if cap_instrument else None,
+        minimum_bars=21,
+    )
+    if cap_instrument and cap_instrument.id not in cap_coverage_preflight.ready_instrument_ids:
+        cap_bars = []
+
+    role_coverage_preflights: dict[str, dict[str, object]] = {}
     def metric(
         results: list[object],
         aggregate: dict[str, int | float],
@@ -4497,29 +4512,61 @@ async def benchmark_family_breadth(
             for instrument_id in sorted(stale_ids)
         )
 
-        def evaluate(condition: dict[str, object]) -> BenchmarkFamilyBreadthMetricOut:
-            results, aggregate = evaluate_breadth(
-                members, bars_by_id, condition, benchmark_bars=cap_bars or None
+        role_preflight = role_coverage_preflights.setdefault(role, {})
+
+        async def evaluate(
+            condition_key: str, condition: dict[str, object]
+        ) -> BenchmarkFamilyBreadthMetricOut:
+            condition_preflight = await preflight_ohlcv(
+                db,
+                evaluator=f"benchmark_family_breadth:{role}:{condition_key}",
+                instrument_ids=instrument_ids,
+                timeframe=timeframe,
+                date_from=None,
+                date_to=as_of,
+                adjusted=adjusted,
+                cached_bars=bars_by_id,
+                minimum_bars=_breadth_required_bars(condition),
             )
+            condition_bars_by_id = {
+                instrument_id: (
+                    list(bars_by_id.get(instrument_id, ()))
+                    if instrument_id in condition_preflight.ready_instrument_ids
+                    else []
+                )
+                for instrument_id in instrument_ids
+            }
+            results, aggregate = evaluate_breadth(
+                members,
+                condition_bars_by_id,
+                condition,
+                benchmark_bars=cap_bars or None,
+            )
+            role_preflight[condition_key] = condition_preflight.to_dict()
             return metric(results, aggregate, stale_ids)
 
-        above_ma = {
-            f"ma{period}": evaluate({"kind": "above_moving_average", "params": {"period": period}})
-            for period in (20, 50, 200)
-        }
-        near_high = evaluate(
+        above_ma: dict[str, BenchmarkFamilyBreadthMetricOut] = {}
+        for period in (20, 50, 200):
+            above_ma[f"ma{period}"] = await evaluate(
+                f"ma{period}",
+                {"kind": "above_moving_average", "params": {"period": period}},
+            )
+        near_high = await evaluate(
+            "near_52w_high",
             {
                 "kind": "within_52_week_high",
                 "params": {"lookback": 252, "threshold": near_threshold, "direction": "high"},
             }
         )
-        new_high = evaluate(
+        new_high = await evaluate(
+            "new_high",
             {
                 "kind": "new_high_low",
                 "params": {"lookback": new_high_lookback, "direction": "high"},
             }
         )
-        trend_up = evaluate(
+        trend_up = await evaluate(
+            "trend_up",
             {
                 "kind": "trend",
                 "params": {"fast_period": 20, "slow_period": 50, "direction": "up"},
@@ -4527,7 +4574,8 @@ async def benchmark_family_breadth(
         )
         relative = None
         if role != "cap_weight" and cap_bars:
-            relative = evaluate(
+            relative = await evaluate(
+                "relative_strength_to_cap",
                 {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}}
             )
         elif role != "cap_weight" and cap_stale_ids:
@@ -4559,6 +4607,7 @@ async def benchmark_family_breadth(
                 new_high=new_high,
                 trend_up=trend_up,
                 relative_strength_to_cap=relative,
+                coverage_preflight=role_preflight,
                 exclusions=role_exclusions,
             )
         )
@@ -4581,6 +4630,10 @@ async def benchmark_family_breadth(
             "family_key": family_key,
             "breadth_semantics": "standard_role_participation_batch_over_point_in_time_holdings",
             "requested_roles": ["cap_weight", "equal_weight", "value", "growth"],
+        },
+        coverage_preflight={
+            "benchmark": cap_coverage_preflight.to_dict(),
+            "roles": role_coverage_preflights,
         },
         roles=roles,
         exclusions=exclusions,

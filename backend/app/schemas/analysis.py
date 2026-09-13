@@ -507,6 +507,7 @@ class BenchmarkFamilyBreadthRoleOut(BaseModel):
     new_high: BenchmarkFamilyBreadthMetricOut | None = None
     trend_up: BenchmarkFamilyBreadthMetricOut | None = None
     relative_strength_to_cap: BenchmarkFamilyBreadthMetricOut | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -522,6 +523,7 @@ class BenchmarkFamilyBreadthOut(AnalysisResponseMetadata):
     new_high_lookback: int = Field(ge=2, le=252)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyBreadthRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

@@ -1432,6 +1432,16 @@ class TestWorkspaces:
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
         assert roles["equal_weight"]["near_52w_high"]["percentage"] is None
+        assert roles["equal_weight"]["coverage_preflight"]["ma20"]["status"] == "full"
+        assert (
+            roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["status"]
+            == "deferred"
+        )
+        assert (
+            roles["equal_weight"]["coverage_preflight"]["near_52w_high"]["items"][0]["status"]
+            == "partial"
+        )
+        assert payload["coverage_preflight"]["benchmark"]["status"] == "empty"
         assert payload["near_threshold"] == 0.02
         assert payload["universe_provenance"]["breadth_semantics"] == (
             "standard_role_participation_batch_over_point_in_time_holdings"

@@ -17,9 +17,15 @@
       declared condition's required history, withholds unresolved members, and
       returns the serialized per-instrument readiness report without making a
       provider call. Focused stale/current breadth regressions pass 2/2.
-- [ ] Extend the contract to benchmark-family breadth, future non-Strategy
-      signal engines, and persist evaluator run status separately from the
-      existing Strategy Lab `completed` transport status.
+- [x] Extend the same contract to benchmark-family breadth without applying a
+      single overly-conservative history gate. Each built-in metric receives
+      its own cached-bar preflight, and the cap benchmark has a separate
+      readiness result; valid shorter-history metrics remain evaluable while
+      insufficient metrics are withheld. Focused benchmark-family integration
+      coverage passes 1/1.
+- [ ] Extend the contract to future non-Strategy signal engines and persist
+      evaluator run status separately from the existing Strategy Lab
+      `completed` transport status.
 
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
 
