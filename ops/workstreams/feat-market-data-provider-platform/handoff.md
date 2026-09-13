@@ -1660,3 +1660,13 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `ee9bd01db` closes a tokenized-provider secret-safety gap:
+  Dinari API key ID/secret and the Ondo Global Markets API key are now included
+  in the central typed-provider-error redaction set. Tokenized secret/error and
+  provider-wiring coverage passed `28/28`; the authoritative Docker-backed
+  combined gate passed `2,421/2,421` at `81.43%` coverage with 89 warnings.
+  Testcontainer session `55e597be-a4cb-44b5-a12b-df058f33df61` was cleaned
+  without host-wide pruning. No provider calls, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.
