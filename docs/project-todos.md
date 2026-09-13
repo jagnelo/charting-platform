@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Liquid Strategies holdings completeness
+
+- [x] Require a published composition date and add explicit
+      `completeness_status: complete` only to Liquid Strategies' official
+      Overlay Shares holdings-table routes (OVL, OVS, OVF, OVLH, OVB, OVT,
+      OVM). Verify configured product-page identity, required holdings schema,
+      and parseable non-empty rows; keep undated tables fail-closed and generic
+      labels unchanged.
+- [x] Product commit `45ac854c3`; focused Liquid Strategies assertions passed
+      `2/2`, Ruff/format/diff checks passed, and the exact gate passed backend
+      units `1547/1547`, integration `405/405` with `81.98%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Fortuna holdings completeness
 
 - [x] Require a published composition date and add explicit

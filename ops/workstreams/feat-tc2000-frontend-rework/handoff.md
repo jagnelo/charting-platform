@@ -2,6 +2,31 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Verified Liquid Strategies holdings completeness
+
+Product commit `45ac854c3` requires a published composition date and adds
+explicit `completeness_status: complete` to Liquid Strategies' official
+Overlay Shares holdings-table routes (OVL, OVS, OVF, OVLH, OVB, OVT, OVM). The
+adapter verifies configured product-page identity, required holdings schema,
+parseable non-empty rows, and a published composition date; undated tables now
+fail closed.
+
+Focused Liquid Strategies assertions passed `2/2`; Ruff, formatting, and diff
+checks passed. The exact branch-scoped gate passed backend units `1547/1547`,
+integration `405/405` with `81.98%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned with no retained containers, volumes, networks, or testcontainer
+sessions. No generic provider/fallback, migration, visual baseline, threshold,
+mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam while
+preserving explicit completeness evidence, fail-closed mappings, and the six
+protected visual state-oracle assertions. Do not integrate, promote, deploy,
+push, or mutate another worktree.
+
 ## 2026-09-13 — Verified Fortuna holdings completeness
 
 Product commit `23ed4643c` requires a published composition date and adds
