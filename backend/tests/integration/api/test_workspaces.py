@@ -4110,6 +4110,7 @@ class TestWorkspaces:
         assert payload["source_provider"] == "issuer"
         assert payload["as_of"] == "2024-06-01T00:00:00Z"
         assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
+        assert payload["coverage_preflight"]["evaluator"] == "etf_constituent_snapshot"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1

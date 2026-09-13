@@ -2549,6 +2549,17 @@ async def etf_constituent_snapshot(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="etf_constituent_snapshot",
+        instrument_ids=freshness_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     market_bars = (
         {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])}
@@ -2758,6 +2769,7 @@ async def etf_constituent_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         coverage=covered / max(len(disclosed_rows), 1),
         exclusions=exclusions,
         rows=rows,
