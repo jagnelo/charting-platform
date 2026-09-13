@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Preserve profile source quality on the latest refresh route
+
+Product commit `9ed31ba86` closes the latest/current route-parity seam in the
+holdings persistence boundary. When a curated profile declares
+`holdings_source_quality`, the latest refresh route now carries that alias
+through persistence instead of falling back to the generic self-snapshotted
+label; the same route therefore retains the corresponding complete or filing-
+reconstructed status as the dated route. Focused bootstrap/refresh coverage
+passed `24/24`; Ruff, formatting, and diff checks passed; full backend units
+passed `1542/1542`.
+
+The exact branch-scoped gate passed backend unit `1542/1542`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build, compose/deployment
+contracts, expected research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`; the same six protected
+watchlist-column-editor/workspace-floating diffs remain. Provider probes were
+skipped because no provider-related changes were detected. Docker resources
+were cleaned. No provider/fallback, migration, visual baseline, threshold,
+mask, skip, or acceptance policy changed. R1 family-wide population/history,
+D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Preserve explicit holdings completeness declarations
 
 Product commit `42ffb4418` closes the next R1 source-quality seam. Curated

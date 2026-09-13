@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Latest refresh preserves profile source lineage
+
+Commit `9ed31ba86` keeps the profile-declared `holdings_source_quality` alias
+on the latest/current holdings persistence route, matching the dated route's
+source lineage and preserving the resulting `complete` or
+`filing_reconstructed` status. Focused bootstrap/refresh coverage passed
+`24/24`; Ruff, formatting, and `git diff --check` passed; full backend units
+passed `1542/1542`.
+
+The exact branch-scoped gate passed backend unit `1542/1542`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+expected research-runner probes, and functional E2E `165 passed` with `107
+skipped`. Visual E2E passed `98/104`; the six unchanged protected baselines
+remain the only visual failures. Provider probes were skipped because no
+provider-related changes were detected. Docker resources were cleaned. No
+visual, provider/fallback, migration, threshold, mask, skip, or acceptance
+policy changed; family-wide R1 population/history, floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Curated source-quality declarations feed readiness
 
 Commit `42ffb4418` maps only explicit curated source-quality labels to holdings

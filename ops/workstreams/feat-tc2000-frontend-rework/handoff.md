@@ -2,6 +2,26 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Latest refresh preserves profile source lineage
+
+Product commit `9ed31ba86` keeps a curated profile's declared
+`holdings_source_quality` alias on the latest/current holdings persistence
+route, matching the dated route and retaining its corresponding complete or
+filing-reconstructed status. Focused bootstrap/refresh coverage passed
+`24/24`; Ruff, formatting, and diff checks passed; full backend units passed
+`1542/1542`.
+
+The exact branch-scoped gate passed backend unit `1542/1542`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build, compose/deployment
+contracts, expected research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`; the six unchanged protected
+watchlist-column-editor/workspace-floating diffs remain. Provider probes were
+skipped because no provider-related changes were detected. Docker resources
+were cleaned. No provider/fallback, migration, visual baseline, threshold,
+mask, skip, or acceptance policy changed. Continue R1 family-wide
+population/history, D1/W1/MN floors, continuity, and AC2–AC7/AC10. The
+private-origin push transport hold remains in force.
+
 ## 2026-09-13 — Declared holdings completeness bridge and exact gate
 
 Product commit `42ffb4418` maps explicit curated source-quality declarations

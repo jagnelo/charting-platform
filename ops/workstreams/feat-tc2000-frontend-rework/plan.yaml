@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `9ed31ba86` preserves the curated profile
+  `holdings_source_quality` alias on the latest/current refresh route, so
+  dated and current persistence now carry the same declared source lineage.
+  The focused bootstrap/refresh regression suite passed 24/24; Ruff,
+  formatting, and diff checks passed; full backend units passed 1542/1542.
+  The exact branch-scoped gate passed backend unit 1542/1542, integration
+  405/405, frontend Vitest 1067/1067, type-check/build, compose/deployment,
+  expected research-runner probes, and functional E2E 165 passed with 107
+  skipped. Visual E2E passed 98/104 with the six unchanged protected
+  watchlist-column-editor/workspace-floating diffs. Docker resources were
+  cleaned. Provider probes were skipped because no provider-related changes
+  were detected. No provider/fallback, migration, visual, threshold, mask,
+  skip, or acceptance policy changed. Continue R1 family-wide canonical
+  population/history, D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
   Latest product commit `42ffb4418` preserves explicit holdings completeness
   declarations from curated routes: filing_reconstructed_holdings maps to
   filing_reconstructed, issuer-reported complete labels map to complete,
@@ -3026,12 +3040,26 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_declared_completeness_bridge
+  current_phase: R1_latest_route_source_quality
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
-    while preserving fail-closed holdings completeness and the six protected
-    visual diffs; rerun the exact branch-scoped gate at the next coherent tip.
+    while preserving route source-quality parity, fail-closed holdings
+    completeness, and the six protected visual diffs; rerun focused
+    deterministic coverage and the exact branch-scoped gate at the next
+    coherent tip.
   current_blocker: >-
+    Latest product tip 9ed31ba86 retains the profile-declared
+    holdings_source_quality alias on the latest/current refresh route and
+    proves the resulting complete status in focused bootstrap/refresh
+    coverage 24/24; full backend units passed 1542/1542. The exact gate
+    passed backend unit 1542/1542, integration 405/405, frontend Vitest
+    1067/1067, type-check/build, compose/deployment, expected
+    research-runner probes, and functional E2E 165 passed with 107 skipped.
+    Visual E2E passed 98/104; the six unchanged protected visual diffs remain
+    and Docker resources were cleaned. Provider probes were skipped because
+    no provider-related changes were detected. Continue R1 population/history,
+    D1/W1/MN floors, continuity, and AC2–AC7/AC10; no provider/fallback,
+    migration, visual, threshold, mask, skip, or acceptance policy changed.
     Latest product tip 7df91ec76 adds 12 SEC-backed non-iShares family route
     cases at the 2026-06-30 cutoff; the focused live matrix passed 12/12 and
     deterministic taxonomy/family-history/refresh contracts passed 46/46.
