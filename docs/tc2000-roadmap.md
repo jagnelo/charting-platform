@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Canonical family readiness composition contract and exact gate
+
+Product commit `62d4ac8de` adds a deterministic real-Postgres integration
+proof for a complete SPY cap-weight role: verified SPDR entitlement for
+universe discovery and price history, a complete point-in-time snapshot, two
+resolved weighted/classified members, and 252 D1, 52 W1, and 24 MN adjusted
+provider bars per member. The public role status is `available`; composite
+readiness is `ready` with no reasons. This proves one complete family-role
+composition seam, not family-wide persistence/history coverage.
+
+The focused integration passed `1/1`. At coherent tip `4d1a05db4` (including
+the test-only Golden Layout wrapper-independent F8u-boolean assertion), the
+exact branch-scoped gate passed backend units `1534/1534`, integration
+`405/405`, frontend Vitest `1067/1067`, functional E2E `165 passed` with
+`107 skipped`, and visual E2E `98/104`. Provider probes were skipped because
+no provider-related changes were present. The six unchanged protected visual
+diffs remain open and Docker resources were cleaned. No product/provider/
+fallback, migration, visual baseline, threshold, mask, skip, or acceptance
+policy changed. Continue R1 canonical persistence/population/history,
+family-wide D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
+
 ## 2026-09-13 — Extend the non-iShares family history matrix
 
 Product commit `7df91ec76` adds a bounded opt-in live regression for the 12

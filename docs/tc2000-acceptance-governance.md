@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Canonical family readiness composition gate receipt
+
+Commit `62d4ac8de` adds a deterministic real-Postgres proof that one SPY
+cap-weight role can compose verified SPDR entitlement, a complete point-in-
+time snapshot, two resolved weighted/classified members, and D1/W1/MN
+adjusted-history floors (252/52/24 bars per member). The focused integration
+passed `1/1`; this is a single-family composition proof and does not waive
+family-wide population/history, continuity, or the remaining acceptance
+criteria.
+
+The exact gate at `4d1a05db4` passed backend unit `1534/1534`, integration
+`405/405`, frontend Vitest `1067/1067`, functional E2E `165 passed` with
+`107 skipped`, and visual E2E `98/104`. Provider probes were skipped because
+no provider-related paths changed. The six known protected visual diffs are
+unchanged. The `4d1a05db4` locator change is test-only and removes an outer
+Golden Layout wrapper-label dependency. No visual baseline, mask, threshold,
+skip, provider/fallback, migration, or acceptance-policy change was made.
+
+## 2026-09-13 — Non-iShares family route matrix receipt
 ## 2026-09-13 — Non-iShares family route matrix receipt
 
 Product tip `7df91ec76` adds 12 date-aware live route cases for the canonical

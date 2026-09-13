@@ -13,6 +13,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest coherent product tip `4d1a05db4` includes product commit `62d4ac8de`'s
+  deterministic integration proof for a complete SPY cap-weight family role:
+  verified SPDR entitlement for universe discovery and price history, complete
+  point-in-time snapshot, two resolved weighted/classified members, and 252 D1,
+  52 W1, and 24 MN adjusted provider bars per member. The focused integration
+  passed 1/1. The exact branch-scoped gate passed backend unit 1534/1534,
+  integration 405/405, Vitest 1067/1067, functional 165 passed with 107
+  skipped, and visual 98/104. Provider probes were skipped because no
+  provider-related changes were present. Six unchanged protected visual diffs
+  remain; Docker resources were cleaned. The 4d1a05db4 test-only locator
+  stabilization removed an outer Golden Layout wrapper-label dependency; no
+  product/provider/fallback/visual policy changed. Continue R1 canonical
+  persistence/population/history, family-wide D1/W1/MN floors, rebalance
+  continuity, and AC2–AC7/AC10. The local-only push hold remains in force:
+  remote origin/feat/tc2000-frontend-rework is at 63d64bfe95c98bfe6e550bf69c213ae1cd64a629;
+  do not retry without trusted exact-payload authorization.
   Latest product tip 7df91ec76 adds a bounded 12-leg non-iShares family
   history matrix at 2026-06-30 (SPY, SPYV, SPYG, MDY, MDYV, MDYG, SLYV,
   SLYG, SPTM, RSP, QQQ, and QQQE). All routes reported SEC filing lineage,

@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Canonical family readiness composition and exact gate
+
+Product commit `62d4ac8de` proves one complete SPY cap-weight role using a
+deterministic real-Postgres fixture: verified SPDR entitlement for universe
+discovery and price history, complete point-in-time snapshot, two resolved
+weighted/classified members, and 252 D1, 52 W1, and 24 MN adjusted bars per
+member. Focused integration passed `1/1`; role status is `available` and
+composite readiness is `ready` with no reasons.
+
+At coherent tip `4d1a05db4`, the exact branch-scoped gate passed backend unit
+`1534/1534`, integration `405/405`, frontend Vitest `1067/1067`, functional
+E2E `165 passed` with `107 skipped`, and visual E2E `98/104`. Provider probes
+were skipped because no provider-related changes were present. Six unchanged
+protected visual diffs remain (watchlist-column-editor at 1080p 100/125 and
+workspace-floating at 1080p/1440p 100/125). Docker resources were cleaned.
+The latest test-only assertion stabilization removes the outer Golden Layout
+wrapper-label dependency; no product/provider/fallback/visual policy changed.
+Continue R1 canonical persistence/population/history, family-wide D1/W1/MN
+floors, continuity, and AC2–AC7/AC10. The prior private-origin push hold is
+unchanged: do not retry without trusted exact-payload authorization.
+
 ## 2026-09-13 — Newer non-iShares family history matrix and exact gate
 
 Product commit `7df91ec76` adds 12 bounded opt-in live route cases at the

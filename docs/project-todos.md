@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-13 — Canonical family readiness composition contract and exact gate
+
+- [x] Add deterministic integration proof at `62d4ac8de` for a complete SPY
+      cap-weight family role: verified SPDR entitlement for universe discovery
+      and price history, a complete point-in-time snapshot, two resolved
+      weighted/classified members, and 252 D1, 52 W1, and 24 MN adjusted bars
+      per member. Public role status is `available` and composite readiness is
+      `ready` with no reasons.
+- [x] The focused PostgreSQL integration passed `1/1`. The exact gate at
+      `4d1a05db4` passed backend units `1534/1534`, integration `405/405`,
+      frontend Vitest `1067/1067`, functional E2E `165 passed` with `107
+      skipped`, and visual E2E `98/104`. Provider probes were skipped because
+      no provider-related changes were present. The six unchanged protected
+      visual diffs remain open; Docker resources were cleaned. The
+      `4d1a05db4` test-only locator stabilization removes dependence on an
+      outer Golden Layout wrapper label; no product/provider/fallback/visual
+      policy changed.
+- [ ] Continue R1 canonical persistence/population/history, family-wide
+      D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Newer non-iShares family point-in-time route matrix
 
 - [x] Extend the bounded date-aware live matrix to the 12 canonical
