@@ -1333,8 +1333,9 @@ Update this handoff at each coherent boundary.
   before evaluation; the canonical indicator registry supplies explicit history
   floors for composite windows, while anchor timestamps and SAR factors are not
   misread as bar counts. Failed or insufficient-history groups are withheld
-  rather than evaluated from partial local data. Focused alert/indicator
-  coverage passes `9/9`; PostgreSQL-backed worker alert checks pass `2/2`; the
+  rather than evaluated from partial local data. Focused alert-preflight
+  coverage passes `8/8` and indicator history-floor regressions pass `2/2`
+  (`39/39` across both focused files); PostgreSQL-backed worker alert checks pass `2/2`; the
   full backend unit suite passes `2,023/2,023` with 37 warnings; and the
   authoritative Docker-backed combined gate passes `2,402/2,402` at `81.37%`
   coverage with 89 warnings. The labeled testcontainer session was cleaned

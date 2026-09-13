@@ -29,8 +29,9 @@
       history requirements are derived from the canonical registry, with
       composite windows and non-window numeric parameters handled explicitly.
       Insufficient groups are withheld rather than evaluated from partial local
-      history. Focused alert/indicator coverage passes 9/9, the PostgreSQL
-      worker alert checks pass 2/2, and the combined backend gate passes
+      history. Focused alert-preflight coverage passes 8/8 and indicator
+      history-floor regressions pass 2/2 (39/39 across the two focused files),
+      the PostgreSQL worker alert checks pass 2/2, and the combined backend gate passes
       2,402/2,402. No provider call occurs inside an alert evaluation loop.
 - [ ] Extend the contract to future non-Strategy signal engines and persist
       evaluator run status separately from the existing Strategy Lab
