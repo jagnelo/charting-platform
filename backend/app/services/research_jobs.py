@@ -19,6 +19,19 @@ def _manifest_evaluation_status(manifest: object, *, transport_status: str) -> s
     if not isinstance(manifest, dict):
         return "completed"
 
+    coverage_preflight = manifest.get("coverage_preflight")
+    if isinstance(coverage_preflight, dict):
+        coverage_status = str(coverage_preflight.get("status") or "").strip().lower()
+        has_batch_datasets = isinstance(manifest.get("datasets"), list)
+        if not has_batch_datasets and coverage_status in {
+            "partial",
+            "deferred",
+            "stale-blocked",
+            "provider-unavailable",
+            "empty",
+        }:
+            return "deferred"
+
     exclusions = manifest.get("exclusions")
     datasets = manifest.get("datasets")
     exclusion_count = len(exclusions) if isinstance(exclusions, list) else 0

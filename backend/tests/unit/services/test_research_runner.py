@@ -13,6 +13,30 @@ def test_runner_executes_only_validated_output_contract_in_its_own_process_modul
     assert result["artifacts"]["sample_size"] == {"type": "scalar", "value": 4}
 
 
+def test_runner_defers_single_dataset_when_coverage_preflight_is_not_ready():
+    result = execute_job(
+        {
+            "source": "output.scalar('should_not_run', 1)",
+            "dataset": {
+                "symbol": "SPY",
+                "coverage_preflight": {
+                    "status": "deferred",
+                    "evaluator": "research_dataset",
+                    "items": [{"instrument_id": 1, "status": "partial"}],
+                },
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["diagnostics"] == [
+        {
+            "code": "coverage_preflight_blocked",
+            "message": "Research execution deferred because local OHLCV coverage is deferred.",
+        }
+    ]
+    assert result["resource_usage"]["evaluation"]["status"] == "deferred"
+
+
 def test_runner_exposes_bounded_python_builtins_without_host_access():
     result = execute_job(
         {

@@ -14,6 +14,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.user import User
 from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, ResearchRunOut
+from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     cancel_research_run,
@@ -38,6 +39,36 @@ BATCH_HISTORY_LIMIT = 500
 MAX_HISTORY_LIMIT = 5_000
 BATCH_QUERY_SIZE = 500
 RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
+
+
+async def _research_coverage_preflight(
+    db: AsyncSession,
+    *,
+    options: dict,
+    instrument_ids: list[int],
+    cached_bars: dict[int, list[OHLCVBar]],
+    lookback: int | None,
+) -> EvaluatorPreflight:
+    """Assess research inputs before handing them to the isolated runner.
+
+    Research materialisation is intentionally database-only.  The shared
+    preflight identifies gaps/short histories and leaves any repair work to the
+    durable refresh queue rather than allowing a study to make provider calls
+    or evaluate a partial local dataset.
+    """
+
+    return await preflight_ohlcv(
+        db,
+        evaluator="research_dataset",
+        instrument_ids=instrument_ids,
+        timeframe=options["timeframe"],
+        date_from=options["start"],
+        date_to=options["end"],
+        mode="historical",
+        adjusted=options["is_adjusted"],
+        cached_bars=cached_bars,
+        minimum_bars=(lookback + 1) if lookback is not None else None,
+    )
 
 
 def _parse_dataset_bound(value: object, *, end: bool) -> datetime | None:
@@ -231,8 +262,10 @@ async def _materialize_instrument_dataset(
     options: dict,
     *,
     history_limit: int = MAX_HISTORY_LIMIT,
+    bars: list[OHLCVBar] | None = None,
 ) -> dict:
-    bars = await _load_instrument_bars(db, instrument, options, limit=history_limit)
+    if bars is None:
+        bars = await _load_instrument_bars(db, instrument, options, limit=history_limit)
     return {
         **_dataset_manifest_fields(manifest, options),
         "symbol": instrument.symbol,
@@ -457,6 +490,14 @@ async def _materialize_declared_dataset(
             )
             for bar in bars:
                 bars_by_instrument.setdefault(bar.instrument_id, []).append(bar)
+        coverage_preflight = await _research_coverage_preflight(
+            db,
+            options=options,
+            instrument_ids=instrument_ids,
+            cached_bars=bars_by_instrument,
+            lookback=lookback,
+        )
+        coverage_by_id = {item.instrument_id: item for item in coverage_preflight.items}
         datasets = []
         exclusions = []
         for symbol in requested:
@@ -465,12 +506,24 @@ async def _materialize_declared_dataset(
                 exclusions.append({"symbol": symbol, "code": "declared_instrument_not_found"})
                 continue
             bars = bars_by_instrument.get(instrument.id, [])
-            if not bars:
+            coverage_item = coverage_by_id.get(instrument.id)
+            if coverage_item is None or coverage_item.status.value != "ready":
+                code = (
+                    "declared_history_unavailable"
+                    if not bars
+                    else "declared_history_incomplete"
+                )
                 exclusions.append(
                     {
                         "symbol": symbol,
                         "instrument_id": instrument.id,
-                        "code": "declared_history_unavailable",
+                        "code": code,
+                        "coverage_status": coverage_item.status.value
+                        if coverage_item is not None
+                        else "missing",
+                        "coverage_explanation": coverage_item.explanation
+                        if coverage_item is not None
+                        else "No local coverage preflight item was produced.",
                     }
                 )
                 continue
@@ -499,6 +552,7 @@ async def _materialize_declared_dataset(
             "requested_symbols": requested,
             "batch_history_limit": history_limit,
             "exclusions": exclusions,
+            "coverage_preflight": coverage_preflight.to_dict(),
         }
         if benchmark_dataset is not None:
             result["benchmark_coverage"] = benchmark_dataset
@@ -517,10 +571,41 @@ async def _materialize_declared_dataset(
         raise HTTPException(
             status_code=422, detail={"code": "declared_instrument_not_found", "symbol": symbol}
         )
+    single_bars = await _load_instrument_bars(
+        db, instrument, options, limit=benchmark_history_limit
+    )
     result = await _materialize_instrument_dataset(
-        db, instrument, manifest, options, history_limit=benchmark_history_limit
+        db,
+        instrument,
+        manifest,
+        options,
+        history_limit=benchmark_history_limit,
+        bars=single_bars,
     )
     result.update(source_metadata)
+    coverage_preflight = await _research_coverage_preflight(
+        db,
+        options=options,
+        instrument_ids=[instrument.id],
+        cached_bars={instrument.id: single_bars},
+        lookback=lookback,
+    )
+    result["coverage_preflight"] = coverage_preflight.to_dict()
+    coverage_item = coverage_preflight.items[0] if coverage_preflight.items else None
+    if coverage_item is not None and coverage_item.status.value != "ready":
+        result["exclusions"] = [
+            {
+                "symbol": instrument.symbol,
+                "instrument_id": instrument.id,
+                "code": (
+                    "declared_history_unavailable"
+                    if not single_bars
+                    else "declared_history_incomplete"
+                ),
+                "coverage_status": coverage_item.status.value,
+                "coverage_explanation": coverage_item.explanation,
+            }
+        ]
     if benchmark_dataset is not None:
         result["benchmark_coverage"] = benchmark_dataset
         if benchmark_dataset.get("status") == "ready":

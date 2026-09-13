@@ -957,6 +957,45 @@ def test_research_materialization_expands_batch_history_for_code_lookback(
     assert response.json()["dataset_manifest"]["batch_history_limit"] == 601
 
 
+def test_research_materialization_defers_short_single_history_before_runner(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "short-history-study",
+            "name": "Short history study",
+            "kind": "study",
+            "initial_version": {
+                "source": "series = ta.sma(market.close(), 600)\noutput.scalar('value', series[-1])",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbol": instrument.symbol},
+        },
+    )
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["coverage_preflight"]["evaluator"] == "research_dataset"
+    assert manifest["coverage_preflight"]["status"] == "deferred"
+    assert manifest["coverage_preflight"]["items"][0]["status"] == "partial"
+    assert manifest["exclusions"][0]["code"] == "declared_history_incomplete"
+    assert len(manifest["closes"]) == len(ohlcv_bars)
+
+
 def test_research_materialization_rejects_unbounded_code_lookback(
     client, auth_headers, tmp_path, monkeypatch
 ):

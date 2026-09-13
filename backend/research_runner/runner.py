@@ -179,7 +179,33 @@ def execute_job(
             "status": "failed",
             "diagnostics": [item.__dict__ for item in validation.diagnostics],
         }
-    datasets = job.get("dataset", {}).get("datasets")
+    dataset = job.get("dataset", {})
+    coverage_preflight = dataset.get("coverage_preflight") if isinstance(dataset, dict) else None
+    datasets = dataset.get("datasets") if isinstance(dataset, dict) else None
+    if (
+        isinstance(coverage_preflight, dict)
+        and not isinstance(datasets, list)
+        and str(coverage_preflight.get("status") or "").lower() != "full"
+    ):
+        status = str(coverage_preflight.get("status") or "deferred")
+        return {
+            "status": "completed",
+            "diagnostics": [
+                {
+                    "code": "coverage_preflight_blocked",
+                    "message": f"Research execution deferred because local OHLCV coverage is {status}.",
+                }
+            ],
+            "resource_usage": {
+                "evaluation": {
+                    "status": "deferred",
+                    "coverage_preflight": coverage_preflight,
+                }
+            },
+            "reproducibility_hash": sha256(
+                json.dumps(job, sort_keys=True, default=str).encode()
+            ).hexdigest(),
+        }
     if isinstance(datasets, list):
         # Aggregate chart plots are series assets, but their source evaluates
         # the complete prepared universe in one isolated invocation. Routing
