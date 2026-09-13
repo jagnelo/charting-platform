@@ -2,6 +2,23 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — IWM historical route coverage and exact gate receipt
+
+Product tip `f36421f49` adds IWM to the date-aware iShares family-history
+matrix. The opt-in live suite passed `9/9`, including the 2026-06-30 IWM
+snapshot through the public iShares JSON route with `2009` rows. The exact
+branch-scoped `full_stack_browser` gate passed repository/workstream,
+dependency/migration, Ruff/format, TypeScript, backend unit `1534/1534`,
+backend integration `404/404`, frontend Vitest `1067/1067`, compose/deployment
+contracts, research-runner probes, and functional E2E `165 passed` with `107
+skipped`. Provider probes reported `not configured` because
+`RUN_LIVE_PROVIDER_TESTS` was unset; deterministic provider contracts remain
+authoritative. Visual E2E passed `98/104`; the six unchanged protected
+watchlist-column-editor/workspace-floating diffs remain. Stack resources,
+volumes, built images, and testcontainer sessions were cleaned. No visual,
+provider/fallback, migration, or acceptance policy changed. Continue R1
+provider/history population, D1/W1/MN floors/continuity, and AC2–AC7/AC10.
+
 ## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
 
 Product tip `c7d84436f` and documentation/session tip `e7f37222a` passed the

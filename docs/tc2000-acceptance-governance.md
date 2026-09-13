@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — IWM historical route coverage and exact gate receipt
+
+The date-aware iShares family-history route matrix now covers IWM; the opt-in
+focused suite passed `9/9`, including the 2026-06-30 historical route with
+`2009` rows. At product tip `f36421f49`, the exact branch-scoped gate passed
+repository/workstream, dependency/migration, Ruff/format, TypeScript, backend
+unit (`1534/1534`), backend integration (`404/404`), frontend Vitest
+(`1067/1067`), compose/deployment, research-runner, and functional browser
+checks (`165 passed`, `107 skipped`). Provider probes reported `not
+configured` because the opt-in live probe variable was unset. Visual E2E
+passed `98/104`; only the six unchanged protected watchlist-column-editor and
+workspace-floating baselines failed. Docker resources were cleaned. This is
+a receipt, not a waiver of R1 provider population/history, D1/W1/MN floors and
+continuity, or AC2–AC7/AC10; no visual, provider/fallback, migration, or
+acceptance policy changed.
+
 ## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
 
 At product tip `c7d84436f` and documentation/session tip `e7f37222a`, the

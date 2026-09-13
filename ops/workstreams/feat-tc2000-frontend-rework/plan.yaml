@@ -13,19 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact branch-scoped full_stack_browser gate at product tip c7d84436f
-  and documentation/session tip e7f37222a completed all functional stages:
-  backend unit 1534/1534, backend integration 404/404, frontend Vitest
-  1067/1067, functional E2E 165 passed with 107 documented skips, and
-  compose/deployment plus expected research-runner probes. Provider probes
-  were skipped by the gate's no-provider-path-change detector. Visual E2E
-  passed 98/104; the six unchanged protected watchlist-column-editor and
-  workspace-floating diffs remain. Docker resources were cleaned. The next
-  work remains R1 canonical provider population/history and D1/W1/MN floors
-  and continuity; AC2–AC7/AC10 remain open. No visual threshold, mask, skip,
-  provider, fallback, migration, or acceptance policy changed.
-  The exact full-stack receipt above supersedes the previous c9e3819c4/b0581276
-  receipt below.
+  At clean product tip f36421f49, the date-aware iShares family-history matrix
+  includes IWM and the focused opt-in live suite passed 9/9, including the
+  2026-06-30 public JSON route with 2009 constituent rows. The exact
+  branch-scoped full_stack_browser gate passed repository/workstream,
+  dependency/migration, Ruff/format, TypeScript, backend unit 1534/1534,
+  backend integration 404/404, frontend Vitest 1067/1067, compose/deployment,
+  expected research-runner probes, and functional E2E 165 passed with 107
+  documented skips. Provider probes reported not configured because
+  RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain
+  authoritative. Visual E2E passed 98/104; the six unchanged protected
+  watchlist-column-editor and workspace-floating diffs remain. Docker
+  resources were cleaned. Continue R1 canonical provider population/history
+  and D1/W1/MN floors and continuity; AC2–AC7/AC10 remain open. No visual
+  threshold, mask, skip, provider, fallback, migration, or acceptance policy
+  changed. This receipt supersedes the previous c7d84436f receipt below.
   Product commit c7d84436f corrects SLYG's curated SEC series/class identity
   to S000006990/C000019043 and applies the same identity gate to legacy
   holdings documents. Exact identity searches use a bounded 400-filing window;
@@ -2942,29 +2944,23 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R1_spdr_slyg_sec_identity_guard
+  current_phase: R1_ishares_iwm_history_guard
   current_blocker: >-
-    Exact gate at product tip c7d84436f and documentation/session tip
-    e7f37222a completed all functional stages: backend unit 1534/1534,
-    backend integration 404/404, frontend Vitest 1067/1067, functional E2E
-    165 passed with 107 documented skips, and compose/deployment plus
-    expected research-runner probes. Provider probes were skipped by the
-    gate's no-provider-path-change detector. Visual E2E passed 98/104; the
-    six unchanged protected watchlist-column-editor and workspace-floating
-    diffs remain. Docker resources were cleaned. R1 canonical provider/history
-    and D1/W1/MN floors and continuity remain open; AC2–AC7/AC10 remain open.
-    No visual threshold, mask, skip, provider, fallback, migration, or
-    acceptance policy changed.
-    Product commit c7d84436f corrects SLYG's curated SEC series/class identity
-    to S000006990/C000019043 and applies the same identity gate to legacy
-    holdings documents; exact identity searches use a bounded 400-filing
-    window. Focused coverage passed 535/535, full backend units passed
-    1534/1534, and corrected SLYG plus selected SPDR live routes passed 1/1
-    and 9/9. The prior exact-tip gate remains the c9e3819c4/b0581276 receipt
-    below with 165 functional passes, 107 documented skips, and 98/104 visual
-    passes plus the six unchanged protected diffs. Provider population/history,
-    bar floors, and AC2–AC7/AC10 remain open; no visual, provider, fallback,
-    migration, or acceptance policy changed.
+    At clean product tip f36421f49, IWM is included in the date-aware iShares
+    family-history matrix and the focused live suite passed 9/9, including a
+    2026-06-30 public JSON snapshot with 2009 rows. The exact branch-scoped
+    full_stack_browser gate passed repository/workstream, dependency/migration,
+    Ruff/format, TypeScript, backend unit 1534/1534, backend integration
+    404/404, frontend Vitest 1067/1067, compose/deployment, expected
+    research-runner probes, and functional E2E 165 passed with 107 documented
+    skips. Provider probes reported not configured because
+    RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain
+    authoritative. Visual E2E passed 98/104; the six unchanged protected
+    watchlist-column-editor and workspace-floating diffs remain. Docker
+    resources were cleaned. R1 canonical provider/history and D1/W1/MN floors
+    and continuity remain open; AC2–AC7/AC10 remain open. No visual threshold,
+    mask, skip, provider, fallback, migration, or acceptance policy changed.
+    Historical receipts follow.
     Historical receipts follow.
     Product commit 94f451e0 fences Market Map locked-source publication across
     its API write, source reload, source selection, and rerun by mounted

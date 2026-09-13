@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-13 — IWM historical route coverage and exact gate
+
+- [x] Add IWM to the date-aware iShares historical family route matrix; the
+      focused live suite passed `9/9`, including a 2026-06-30 public JSON
+      snapshot with `2009` rows (`f36421f49`).
+- [x] Rerun the exact branch-scoped gate at `f36421f49`: backend unit
+      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`, and
+      functional E2E `165 passed` with `107 skipped`; provider probes reported
+      `not configured` (deterministic contracts remain authoritative).
+- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
+      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
+      Continue R1 provider/history population, D1/W1/MN floors and continuity,
+      and AC2–AC7/AC10.
+
 ### 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
 
 - [x] Rerun the exact branch-scoped gate at product tip `c7d84436f`; backend

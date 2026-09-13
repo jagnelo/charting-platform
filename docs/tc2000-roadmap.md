@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Exact gate at IWM historical-route coverage tip
+
+At clean product tip `f36421f49` (the focused test commit), the existing
+date-aware iShares family route matrix now includes IWM. The opt-in focused
+live suite passed `9/9`, including an IWM 2026-06-30 historical snapshot
+resolved through the public iShares JSON route with `2009` constituent rows.
+The exact branch-scoped `full_stack_browser` gate then passed repository,
+dependency/migration, Ruff/format, TypeScript, backend unit (`1534/1534`,
+69% total coverage), backend integration (`404/404`, 81.97% combined
+coverage), frontend Vitest (`1067/1067`, 85.22%), compose/deployment
+contracts, expected research-runner sandbox/resource probes, and functional
+E2E (`165 passed`, `107 skipped`). Provider probes reported `not configured`
+because `RUN_LIVE_PROVIDER_TESTS` was unset; deterministic provider contracts
+remain authoritative. Visual E2E passed `98/104`; the six unchanged protected
+diffs remain watchlist-column-editor at 1080p 100/125 and workspace-floating at
+1080p 100/125 and 1440p 100/125. The branch-scoped stack, volumes, built
+images, and testcontainer sessions were cleaned. No provider/fallback,
+visual threshold/mask/skip, migration, or acceptance policy changed. R1
+canonical provider population/history, D1/W1/MN floors and continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
 
 At product tip `c7d84436f` and documentation/session tip `e7f37222a`, the

@@ -114,10 +114,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4972f1399a6cd6d816cda43c31b53cc2b47358c7",
-  "implementation_sha": "c7d84436f44044b221dd0b3de09925aac3eafb9e",
+  "head": "f36421f49a1c7e486ce52b6ee1f36bddfffd826c3",
+  "implementation_sha": "f36421f49a1c7e486ce52b6ee1f36bddfffd826c3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T01:18:12.467062+00:00",
+  "last_checkpoint": "2026-09-13T01:50:13.000000+00:00",
   "last_human_progress_update": "2026-09-12T22:57:05.998654+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
@@ -134,11 +134,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact gate at product tip c7d84436f and documentation/session tip e7f37222a completed all functional stages: backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and compose/deployment plus expected research-runner probes. Provider probes were skipped by the gate's no-provider-path-change detector. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
-    "current_phase": "r1_spdr_slyg_sec_identity_guard",
+    "current_blocker": "At clean product tip f36421f49, IWM is included in the date-aware iShares family-history matrix and the focused live suite passed 9/9, including a 2026-06-30 public JSON snapshot with 2009 rows. The exact gate passed backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and all pre-visual, compose/deployment, and expected research-runner stages. Provider probes reported not configured because RUN_LIVE_PROVIDER_TESTS was unset; deterministic provider contracts remain authoritative. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
+    "current_phase": "r1_ishares_iwm_history_guard",
     "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T01:17:11.300000+00:00"
+    "updated_at": "2026-09-13T01:50:13.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
