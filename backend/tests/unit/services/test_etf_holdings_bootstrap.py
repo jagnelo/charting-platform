@@ -13,6 +13,7 @@ from app.services.etf_holdings_refresh import (
     _apply_known_route_metadata,
     _bootstrap_from_sec_filings,
     _issuer_product_identifier,
+    _refresh_adapter_route,
     bootstrap_etf_holdings_profile,
     holdings_snapshot_is_bootstrap_ready,
     refresh_etf_holdings_for_date,
@@ -504,6 +505,60 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
         "published_at": "provider_reported",
     }
     assert "SEC EDGAR holdings filings" in captured["notes"]
+
+
+@pytest.mark.asyncio
+async def test_latest_refresh_preserves_profile_declared_source_quality(monkeypatch):
+    """Latest-route refreshes must retain curated profile source-quality evidence."""
+
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="SPY", name="SPDR S&P 500 ETF Trust")
+    profile = SimpleNamespace(
+        instrument=instrument,
+        adapter_key="spdr",
+        provider_aliases={"holdings_source_quality": "issuer_reported_dated_complete_holdings"},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    captured: dict = {}
+
+    class FakeAdapter:
+        adapter_key = "spdr"
+        source_provider = "spdr"
+
+        def probe(self, **_kwargs):
+            return SimpleNamespace(status="ready", reason=None, confidence=0.95)
+
+        async def fetch_latest(self, **_kwargs):
+            return SimpleNamespace(
+                rows=[SimpleNamespace(symbol="AAPL")],
+                raw_text="AAPL",
+                raw_json={"rows": ["AAPL"]},
+                source_url="https://spdr.example/spy.csv",
+                source_identifier="SPY",
+                legal_metadata={},
+            )
+
+    async def fake_ingest(_db, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(completeness_status=kwargs["completeness_status"])
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAdapter() if key == "spdr" else None,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest)
+
+    result = await _refresh_adapter_route(db, profile)
+
+    assert result.completeness_status == "complete"
+    assert captured["source_quality"] == "issuer_reported_dated_complete_holdings"
+    assert captured["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

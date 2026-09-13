@@ -2002,7 +2002,11 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         source_provider=str(source_provider),
         source_url=fetch_result.source_url,
         source_identifier=fetch_result.source_identifier or issuer_product_id,
-        source_quality=str(result_metadata.get("source_quality") or "self_snapshotted_holdings"),
+        source_quality=str(
+            result_metadata.get("source_quality")
+            or aliases.get("holdings_source_quality")
+            or "self_snapshotted_holdings"
+        ),
         completeness_status=_holdings_completeness_status(result_metadata, aliases),
         parser_version=str(
             result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
