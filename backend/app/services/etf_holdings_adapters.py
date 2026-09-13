@@ -9201,6 +9201,7 @@ class XSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "x_square_product_page_declared_complete_holdings_api",
                 "product_page_url": str(product_response.url),
                 "snapshot_provenance": "x_square_native_current_holdings_api",
+                "completeness_status": "complete",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
                 **({"as_of_date": composition_date.isoformat()} if composition_date else {}),
                 "terms_note": self.config.terms_note,

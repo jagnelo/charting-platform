@@ -13956,6 +13956,7 @@ async def test_x_square_adapter_verifies_product_page_and_parses_declared_comple
     assert result.legal_metadata["route_resolution"] == (
         "x_square_product_page_declared_complete_holdings_api"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["composition_date"] == "2026-07-20"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "AAPL"
