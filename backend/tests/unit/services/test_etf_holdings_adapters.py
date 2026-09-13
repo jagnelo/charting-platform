@@ -17352,6 +17352,7 @@ async def test_concourse_adapter_parses_complete_ccfe_product_page_holdings(monk
     assert result.legal_metadata["route_resolution"] == (
         "concourse_public_product_page_complete_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 11
     assert result.rows[0].symbol == "AAP"
     assert result.rows[0].market_value == Decimal("2500000")

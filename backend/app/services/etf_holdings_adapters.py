@@ -22236,6 +22236,7 @@ class ConcourseHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "concourse_issuer_native_product_page_table",
             },
         )
