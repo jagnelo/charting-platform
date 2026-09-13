@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified dated holdings completeness
+
+Product commit `df0952777` closes a bounded R1 completeness seam for the
+Absolute Investment Advisers ABEQ financial-statement route and STF
+Management TUG quarterly-schedule route. Both existing routes are issuer-page
+linked, select the newest dated complete PDF, and now emit explicit
+`completeness_status: complete`; ABEQ also enforces at least ten rows and at
+least 85% aggregate weight. Generic dated labels remain fail-closed and no
+generic inference or fallback was introduced.
+
+Focused ABEQ/TUG adapter assertions passed `2/2`; Ruff/format/diff checks
+passed; full backend units passed `1544/1544`. The exact branch-scoped gate
+passed backend unit `1544/1544`, integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner sandbox/resource probes, and functional E2E `165 passed` with
+`107 skipped`. Visual E2E passed `98/104`; the same six protected
+watchlist-column-editor/workspace-floating diffs remain. Docker resources were
+cleaned. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed. Family-wide R1 population/history,
+D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Distribution Cognizant completeness
 
 Product commit `ba9f9a6eb` closes a bounded R1 completeness seam for the

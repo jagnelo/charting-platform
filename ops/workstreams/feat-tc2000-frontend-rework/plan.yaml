@@ -13,7 +13,25 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest product commit `ba9f9a6eb` adds explicit `completeness_status:
+  Latest product commit `df0952777` adds explicit `completeness_status:
+  complete` to the verified Absolute Investment Advisers ABEQ
+  financial-statement result and STF Management TUG quarterly-schedule result.
+  Both issuer-page-linked routes select the newest dated complete PDF; ABEQ
+  additionally requires at least ten rows and 85% aggregate weight. Generic
+  dated labels remain fail-closed as `unknown`. Focused ABEQ/TUG adapter
+  assertions passed 2/2, Ruff/format/diff checks passed, and full backend
+  units passed 1544/1544. The exact branch-scoped gate passed backend unit
+  1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner sandbox/resource
+  probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+  98/104; the six unchanged protected diffs remain: watchlist-column-editor at
+  visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+  visual-1440p-100/125. Provider probes were skipped because no
+  provider-related changes were detected; branch-scoped Docker resources were
+  cleaned. No provider/fallback, migration, visual, threshold, mask, skip, or
+  acceptance policy changed. Continue R1 family-wide canonical
+  population/history, D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
+  Previous product commit `ba9f9a6eb` adds explicit `completeness_status:
   complete` to the Distribution Cognizant VOXP result. Its adapter verifies
   the account-scoped CSV, required holdings schema, symbol/account filter,
   dated snapshot, and at least ten rows; generic current/daily/table quality
@@ -25,9 +43,9 @@ current_blocker: >-
   expected research-runner sandbox/resource probes, and functional E2E 165
   passed with 107 skipped. Visual E2E passed 98/104; the six unchanged
   protected diffs remain: watchlist-column-editor at visual-1080p-100/125 and
-  workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. Provider
-  probes were skipped because no provider-related changes were detected;
-  branch-scoped Docker resources were cleaned. No provider/fallback,
+  workspace-floating at visual-1080p-100/125 and visual-1440p-100/125.
+  Provider probes were skipped because no provider-related changes were
+  detected; branch-scoped Docker resources were cleaned. No provider/fallback,
   migration, visual, threshold, mask, skip, or acceptance policy changed.
   Continue R1 family-wide canonical population/history, D1/W1/MN floors,
   rebalance continuity, and AC2–AC7/AC10.
@@ -3111,34 +3129,33 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_concourse_completeness
+  current_phase: R1_verified_dated_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
-    while preserving explicit source-quality mappings, fail-closed holdings
-    completeness, and the six protected visual diffs; rerun focused
-    deterministic coverage and the exact branch-scoped gate at the next
-    coherent tip.
+    while preserving explicit completeness evidence, fail-closed holdings
+    mappings, and the six protected visual diffs; rerun focused deterministic
+    coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
-    Latest product tip 2c9444ab0 adds explicit complete evidence to the
-    verified Concourse CCFE product-page table after identity, exact schema,
-    effective date, and ten-row checks. Focused adapter coverage passed 1/1,
-    Ruff/format/diff checks passed, and full backend units passed 1544/1544.
-    The exact gate passed backend unit 1544/1544, integration 405/405,
-    frontend Vitest 1067/1067, type-check/build, compose/deployment,
-    expected research-runner probes, and functional E2E 165 passed with 107
-    skipped; visual E2E passed 98/104 with the six unchanged protected
-    watchlist-column-editor/workspace-floating diffs. Provider probes were
-    skipped and Docker resources were cleaned. No provider/fallback, migration,
-    visual, threshold, mask, skip, or acceptance policy changed. Continue R1
-    family-wide canonical population/history, D1/W1/MN floors, rebalance
-    continuity, and AC2–AC7/AC10.
+    Latest product tip df0952777 adds explicit complete evidence to the
+    verified ABEQ financial-statement and TUG quarterly-schedule PDF routes
+    after issuer-page identity, dated complete selection, and parser checks;
+    ABEQ additionally requires ten rows and 85% aggregate weight. Focused
+    adapter coverage passed 2/2, Ruff/format/diff checks passed, and full
+    backend units passed 1544/1544. The exact gate passed backend unit
+    1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/
+    build, compose/deployment, expected research-runner probes, and functional
+    E2E 165 passed with 107 skipped; visual E2E passed 98/104 with the six
+    unchanged protected watchlist-column-editor/workspace-floating diffs.
+    Provider probes were skipped and Docker resources were cleaned. No
+    provider/fallback, migration, visual, threshold, mask, skip, or acceptance
+    policy changed. Continue R1 family-wide canonical population/history,
+    D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
     Previous product tip 6287f6900 promotes issuer-linked workbook routes only
     after issuer-page identity, declared workbook route, required workbook
     identity/schema, and non-empty rows are verified; generic current/daily/
-    table labels remain unknown.
-    complete holdings as explicit complete evidence for mature curated routes;
-    generic current-only and ambiguous labels remain unknown. Focused refresh
-    coverage passed 8/8; full backend units passed 1543/1543. The exact gate
+    table labels remain unknown. Focused adapter assertions passed 4/4,
+    related refresh mapping checks passed 7/7, Ruff/format/diff checks passed,
+    and full backend units passed 1544/1544. The exact gate
     passed backend unit 1543/1543, integration 405/405, frontend Vitest
     1067/1067, type-check/build, compose/deployment, expected research-runner
     probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
