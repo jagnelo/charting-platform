@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified linked workbook holdings completeness receipt
+
+Commit `ce00fa0fa` adds explicit `completeness_status: complete` only to the
+verified Little Harbor MSTB/MSTQ/RMIF, Pettee/Hoya HOMZ/RIET, Sound Capital
+RVER, and Sovereign SOVF issuer-linked workbook routes. They verify product
+identity, declared download linkage, workbook schema/identity, and non-empty
+rows; generic current/daily/table labels remain unchanged and ambiguous routes
+remain fail-closed.
+
+Focused adapter coverage passed `4/4`; full backend units passed `1544/1544`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified Indexperts holdings completeness receipt
 
 Commit `d3fa295a9` adds explicit `completeness_status: complete` only to the

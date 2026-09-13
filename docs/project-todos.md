@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified linked workbook holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to the verified
+      Little Harbor MSTB/MSTQ/RMIF, Pettee/Hoya HOMZ/RIET, Sound Capital RVER,
+      and Sovereign SOVF issuer-linked workbook routes. Verify product
+      identity, declared download linkage, workbook schema/identity, and
+      non-empty rows; keep generic labels fail-closed with no fallback.
+- [x] Product commit `ce00fa0fa`; focused adapter assertions passed `4/4`,
+      Ruff/format/diff checks passed, and full backend units passed `1544/1544`.
+- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
+      `405/405`, frontend Vitest `1067/1067`, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+      `98/104`; only the six unchanged protected visual diffs remain
+      (watchlist-column-editor and workspace-floating). Docker resources were
+      cleaned. No provider/fallback, migration, visual, threshold, mask,
+      skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Indexperts holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Indexperts'

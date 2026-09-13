@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified linked workbook holdings completeness
+
+Product commit `ce00fa0fa` closes a bounded R1 source-quality seam for four
+issuer-linked workbook groups: Little Harbor MSTB/MSTQ/RMIF, Pettee/Hoya
+HOMZ/RIET, Sound Capital RVER, and Sovereign SOVF. Each adapter verifies the
+exact public product page, fund identity, declared download linkage, workbook
+schema/identity, and non-empty rows, then emits explicit
+`completeness_status: complete`. Generic current/daily/table labels remain
+fail-closed; no generic inference or fallback was added.
+
+Focused adapter coverage passed `4/4`; Ruff/format/diff checks passed; full
+backend units passed `1544/1544`. The exact branch-scoped gate passed backend
+unit `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor and workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Indexperts holdings completeness
 
 Product commit `d3fa295a9` closes a bounded R1 source-quality seam for
