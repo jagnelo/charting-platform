@@ -1216,3 +1216,13 @@ range and a raw five-minute intraday range. It passed with five upstream
 requests and 447,607 response bytes; the redacted receipt merger accepted one
 provider row. This is still bounded transport/schema evidence and does not
 promote Massive's free-plan history or redistribution entitlement.
+
+On 2026-09-13, the rotated Dinari Sandbox credentials were revalidated with a
+focused identity assertion. The compound case passed `1/1` (12 operations,
+14 upstream requests): the provider-native Stock UUID parsed as a UUID and the
+catalogue record exposed at least one stable economic-underlying identifier
+(the live AAPL row exposed composite FIGI and CIK). The redacted receipt was
+accepted into the owner-managed ledger with `accepted=1`, `duplicates=0`,
+`rejected=0`. This strengthens token-to-issuer reconciliation evidence only;
+Dinari commercial, quota, historical-aggregate, and redistribution reviews
+remain required before routing admission.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from uuid import UUID
 
 import pytest
 
@@ -236,6 +237,20 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     assert rows
     _assert_asset(rows[0])
     identifier = rows[0].asset_id
+    # Dinari's Stock UUID is the durable provider identity; the first live
+    # catalogue row must also expose at least one stable economic-underlying
+    # identifier so downstream issuer reconciliation does not fall back to a
+    # ticker-only join.
+    UUID(identifier)
+    assert any(
+        (
+            rows[0].underlying_figi,
+            rows[0].underlying_composite_figi,
+            rows[0].underlying_isin,
+            rows[0].underlying_cusip,
+            rows[0].underlying_cik,
+        )
+    )
     resolved_by_symbol, symbol_measurement = _observed_read(
         lambda: provider.get_tokenized_asset(rows[0].symbol), "dinari"
     )

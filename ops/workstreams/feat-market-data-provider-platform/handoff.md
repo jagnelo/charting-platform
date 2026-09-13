@@ -2121,3 +2121,14 @@ Update this handoff at each coherent boundary.
   row into the owner-managed ledger. This remains bounded transport/schema
   evidence only and does not promote Massive's free-plan history or
   redistribution entitlement.
+
+- The rotated Dinari Sandbox credentials were revalidated on 2026-09-13 with
+  a focused identity assertion. The compound case passed `1/1` (12 operations,
+  14 upstream requests): the provider-native Stock UUID parsed as a UUID and
+  the first catalogue record exposed at least one stable economic-underlying
+  identifier (the live AAPL row exposed composite FIGI and CIK). The redacted
+  receipt merger accepted one row into the owner-managed ledger
+  (`accepted=1`, `duplicates=0`, `rejected=0`). This strengthens token-to-issuer
+  reconciliation evidence only; Dinari commercial, quota, historical-
+  aggregate, and redistribution reviews remain required before routing
+  admission.
