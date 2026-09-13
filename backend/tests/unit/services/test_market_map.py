@@ -3,7 +3,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.market_map import _profile_field_conflict, _return
+from app.schemas.market_map import MarketMapRequest
+from app.services.market_map import (
+    _market_map_required_bars,
+    _profile_field_conflict,
+    _return,
+)
 
 
 def _snapshot(snapshot_id: int, source_id: int, provider: str, observed_at: datetime, value: float):
@@ -103,3 +108,17 @@ def test_market_map_mtd_does_not_fall_back_to_first_in_window_bar():
     assert observed == datetime(2024, 1, 2, tzinfo=UTC)
     assert code == "insufficient_history"
     assert message == "MTD requires more aligned history."
+
+
+def test_market_map_required_bars_include_return_and_colour_dependencies():
+    request = MarketMapRequest(
+        source_id="watchlist:1",
+        period="1D",
+        color_metric="breadth",
+        condition={
+            "kind": "above_moving_average",
+            "params": {"period": 20},
+        },
+    )
+
+    assert _market_map_required_bars(request) == 20

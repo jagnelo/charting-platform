@@ -139,6 +139,7 @@ class MarketMapOut(BaseModel):
     area_field: MarketMapNumericAreaField | None = None
     color_metric: MarketMapColorMetric
     condition: dict[str, object] | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     python_run_id: int | None = None
     reference_symbol: str | None = None
     reference_source: WatchlistSourceRead | None = None

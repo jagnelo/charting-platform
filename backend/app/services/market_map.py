@@ -40,7 +40,9 @@ from app.services.breadth import (
     build_equal_reference_series,
     evaluate_breadth,
     evaluate_condition,
+    required_bars_for_condition,
 )
+from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -93,6 +95,27 @@ def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetim
     # persisted session before the requested window, never a forward-filled value.
     days = {"1D": 7, "1W": 14, "1M": 45, "3M": 120, "6M": 240, "1Y": 450}[period]
     return end - timedelta(days=days), end
+
+
+def _period_required_bars(period: str) -> int:
+    """Return the local bars required for the map's return calculation."""
+
+    return _OFFSETS.get(period.upper(), 1) + 1
+
+
+def _market_map_required_bars(request: MarketMapRequest) -> int:
+    """Derive one conservative OHLCV floor for every map calculation."""
+
+    required = _period_required_bars(request.period)
+    if request.color_metric == "breadth":
+        required = max(required, required_bars_for_condition(request.condition))
+    elif request.color_metric == "rsi_14":
+        required = max(required, 15)
+    elif request.color_metric == "relative_volume":
+        required = max(required, 51)
+    elif request.color_metric in {"distance_52w_high", "distance_52w_low"}:
+        required = max(required, 252)
+    return required
 
 
 def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: datetime):
@@ -909,6 +932,22 @@ async def build_market_map(
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
+    required_bars = _market_map_required_bars(request)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="market_map",
+        instrument_ids=[instrument_id for instrument_id in member_ids if instrument_id in instruments],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=None,
+        mode="historical",
+        now=period_end,
+        cached_bars=bars_by_id,
+        minimum_bars=required_bars,
+    )
+    coverage_items_by_id: dict[int, EvaluatorCoverageItem] = {
+        item.instrument_id: item for item in coverage_preflight.items
+    }
     profile_snapshots_by_id: dict[int, InstrumentProfileSnapshot] = {}
     profile_snapshot_watermark: datetime | None = None
     profile_snapshot_ids: list[int] = []
@@ -1260,6 +1299,7 @@ async def build_market_map(
                 "stale_data",
                 "Persisted OHLCV freshness has expired; map values were withheld.",
             )
+        coverage_item = coverage_items_by_id.get(instrument_id)
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
         if instrument_id in stale_member_ids:
@@ -1313,6 +1353,19 @@ async def build_market_map(
                 colour_code = colour_code or "unaligned_reference"
             else:
                 colour = result - ref_return
+        if (
+            coverage_item is not None
+            and coverage_item.status.value != "ready"
+            and instrument_id not in stale_member_ids
+            and request.color_metric != "python"
+            and colour is not None
+        ):
+            colour, condition_value, condition_metric, colour_code = (
+                None,
+                None,
+                None,
+                "coverage_preflight",
+            )
         if colour_code:
             message = (
                 "Persisted OHLCV freshness has expired; map colour was withheld."
@@ -1723,6 +1776,10 @@ async def build_market_map(
         area_field=request.area_field,
         color_metric=request.color_metric,
         condition=request.condition,
+        coverage_preflight={
+            **coverage_preflight.to_dict(),
+            "required_bars": required_bars,
+        },
         python_run_id=request.python_run_id,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         reference_source=reference_source,

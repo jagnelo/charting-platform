@@ -181,6 +181,95 @@ def _nested_conditions(params: Mapping[str, Any]) -> list[Mapping[str, Any]] | N
     return [item for item in raw if isinstance(item, Mapping)]
 
 
+def _safe_history_int(value: Any, default: int = 2) -> int:
+    """Return a bounded positive history value without inventing a large floor."""
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed >= 2 else default
+
+
+def _field_required_bars(field: Any, params: Mapping[str, Any]) -> int:
+    """Return the local bars needed for one scalar breadth field."""
+
+    normalized = str(field or "").lower().strip()
+    if normalized in {"close", "price", "last", "volume"}:
+        return 1
+    if normalized in {"return", "return_1"}:
+        return 2
+    if normalized in {"distance_to_52w_high", "distance_to_52_week_high", "distance_to_52w_low", "distance_to_52_week_low"}:
+        return _safe_history_int(params.get("lookback"), 252)
+    if normalized in {"moving_average_distance", "ma_distance"}:
+        return _safe_history_int(params.get("period"), 200)
+    if normalized in {"relative_strength", "relative_return"}:
+        return _safe_history_int(params.get("lookback"), 20) + 1
+    return 1
+
+
+def required_bars_for_condition(condition: Mapping[str, Any] | None) -> int:
+    """Return the minimum local bars required by a breadth condition tree.
+
+    The result mirrors the deterministic ``evaluate_condition`` branches.  It
+    is a readiness floor only: malformed or unsupported conditions still reach
+    the evaluator and produce their normal explicit exclusion.
+    """
+
+    if not isinstance(condition, Mapping):
+        return 2
+    params = condition.get("params", condition)
+    if not isinstance(params, Mapping):
+        return 2
+    kind = str(condition.get("kind", "")).lower()
+    children = _nested_conditions(params)
+    child_floor = max(
+        (required_bars_for_condition(child) for child in children or ()),
+        default=1,
+    )
+    if kind in {"all", "any", "not"}:
+        return max(2, child_floor)
+    if kind in {"comparison", "range", "cross_sectional_statistic"}:
+        return max(2, _field_required_bars(params.get("field"), params))
+    if kind == "series_comparison":
+        return max(
+            2,
+            _field_required_bars(params.get("field"), params),
+            _field_required_bars(params.get("target_field", params.get("field")), params),
+        )
+    if kind == "event":
+        return 2
+    if kind == "percentile":
+        period = _safe_history_int(params.get("period"), 252)
+        field = str(params.get("field", "")).lower().strip()
+        field_floor = _field_required_bars(field, params)
+        target_scope = str(
+            condition.get("target_scope", params.get("target_scope", "member"))
+        ).lower()
+        if target_scope == "cross_sectional":
+            # Cross-sectional percentile ranks one latest scalar per member;
+            # its ``period`` parameter is not a rolling local-history window.
+            return max(2, field_floor)
+        if field in {"return", "return_1"}:
+            field_floor = period + 1
+        elif field in {"moving_average_distance", "ma_distance"}:
+            field_floor = (2 * _safe_history_int(params.get("period"), 200)) - 1
+        return max(2, period, field_floor)
+    if kind == "above_moving_average":
+        return max(2, _safe_history_int(params.get("period"), 200))
+    if kind == "within_52_week_high":
+        return max(2, _safe_history_int(params.get("lookback"), 252))
+    if kind in {"new_high_low", "prior_high_low"}:
+        return max(2, _safe_history_int(params.get("lookback"), 20) + 1)
+    if kind == "trend":
+        return max(2, _safe_history_int(params.get("slow_period"), 50))
+    if kind in {"rsi", "volume_ratio"}:
+        return max(2, _safe_history_int(params.get("period"), 14 if kind == "rsi" else 50) + 1)
+    if kind == "relative_strength":
+        return max(2, _safe_history_int(params.get("lookback"), 20) + 1)
+    return max(2, child_floor)
+
+
 def _comparison_metric(
     bars: list[Any],
     field: str,

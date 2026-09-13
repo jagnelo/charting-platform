@@ -845,6 +845,55 @@ class TestWatchlistsCrud:
         assert body["coverage"] == 0
         assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
 
+    def test_market_map_exposes_shared_coverage_preflight_for_breadth_history(
+        self, client, auth_headers, db, watchlist, instrument
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for offset, close in enumerate((100, 101)):
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=offset),
+                    open=close,
+                    high=close + 1,
+                    low=close - 1,
+                    close=close,
+                    volume=1_000_000,
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 3, "average": "sma", "comparator": "above"},
+                },
+                "end": "2024-01-02T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["coverage_preflight"]["status"] == "deferred"
+        assert body["coverage_preflight"]["required_bars"] == 3
+        assert body["coverage_preflight"]["items"][0]["status"] == "partial"
+        assert body["cells"][0]["color_value"] is None
+        assert any(item["code"] == "insufficient_history" for item in body["cells"][0]["warnings"])
+
     def test_market_map_withholds_expired_current_bars_but_keeps_as_of_data(
         self, client, auth_headers, db, watchlist, instrument, ohlcv_bars
     ):
