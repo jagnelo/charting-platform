@@ -49302,6 +49302,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": self.kovitz_snapshot_provenance,
             },
         )
@@ -49336,6 +49337,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "longview_fund_data_native_html",
             },
         )

@@ -13103,6 +13103,7 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
     assert eqty_result.legal_metadata["route_resolution"] == (
         "focus_financial_kovitz_filepoint_complete_holdings_json"
     )
+    assert eqty_result.legal_metadata["completeness_status"] == "complete"
     assert len(ebi_result.rows) == 102
     assert ebi_result.rows[0].symbol == "A"
     assert ebi_result.rows[0].cusip == "00846U101"
@@ -13112,6 +13113,7 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
     assert ebi_result.legal_metadata["route_resolution"] == (
         "focus_financial_longview_fund_data_complete_holdings_table"
     )
+    assert ebi_result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
