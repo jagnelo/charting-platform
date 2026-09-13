@@ -1137,6 +1137,7 @@ async def test_dividend_assets_adapter_fetches_issuer_complete_holdings_table(mo
     assert result.legal_metadata["route_resolution"] == (
         "dividend_assets_product_page_complete_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://dacapitaletf.com/"
 
 

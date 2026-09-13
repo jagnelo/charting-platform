@@ -15521,6 +15521,7 @@ class DividendAssetsCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "route_resolution": "dividend_assets_product_page_complete_holdings_table",
                 "source_format": "html_table",
+                "completeness_status": "complete",
                 "composition_date": composition_date.isoformat(),
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
