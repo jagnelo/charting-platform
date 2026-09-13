@@ -97,6 +97,12 @@ class Settings(BaseSettings):
     TOKENIZED_CATALOG_REFRESH_ENABLED: bool = False
     TOKENIZED_CATALOG_REFRESH_MAX_PAGES: int = 1
     TOKENIZED_CATALOG_REFRESH_PAGE_SIZE: int = 100
+    # Historical tokenized candles are a separate, provider-specific budget
+    # from catalog and quote polling. Keep the Dinari aggregate-history path
+    # disabled until its account/terms contract is reviewed.
+    TOKENIZED_HISTORICAL_REFRESH_ENABLED: bool = False
+    TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS: int = 100
+    TOKENIZED_HISTORICAL_REFRESH_TIMESPAN: str = "DAY"
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False

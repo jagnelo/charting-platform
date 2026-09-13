@@ -388,6 +388,21 @@ before the request, records transport telemetry, and stores a separate
 `LatestPriceSnapshot` for the token instrument. The schedule is disabled by
 default and never calls a provider during evaluation.
 
+Historical tokenized aggregates use a separate durable path from quote
+polling. Set `TOKENIZED_HISTORICAL_REFRESH_ENABLED=true` only after the
+provider-specific history quota and redistribution terms are reviewed, and set
+bounded `TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS` plus
+`TOKENIZED_HISTORICAL_REFRESH_TIMESPAN` (`DAY`, `WEEK`, or `MONTH`) in both
+backend and worker environments. The daily worker currently admits only
+providers exposing `fetch_tokenized_historical_prices` (Dinari today), routes
+by the owning provider asset ID, and persists through the canonical
+`OHLCVBar`/`MarketSeries` path. It preserves provider-native raw `24_7`
+candles, stores the raw response provenance, and leaves volume, VWAP, and
+adjustment fields unset/RAW when the provider does not supply them; no yearly
+aggregate is silently mapped to an unsupported canonical timeframe. Unknown
+operation costs or entitlements remain non-routable, and the feature is
+disabled by default.
+
 Tokenized catalogue discovery is separately scheduled once daily and remains
 disabled by default. After provider quota and terms review, enable
 `TOKENIZED_CATALOG_REFRESH_ENABLED` and set bounded

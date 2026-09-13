@@ -44,6 +44,16 @@ has reviewed provider entitlements and quota contracts, set
 must reach both `backend` and `worker`. Unknown provider quotas remain
 non-routable even when this schedule is enabled.
 
+Tokenized historical aggregate persistence is a separate daily opt-in job.
+Leave `TOKENIZED_HISTORICAL_REFRESH_ENABLED=false` until the provider's
+historical endpoint quota, terms, and redistribution rights are reviewed. When
+approved, set the same `TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS` and
+`TOKENIZED_HISTORICAL_REFRESH_TIMESPAN` values in both `backend` and `worker`.
+The current adapter exposes this path for Dinari's `DAY`, `WEEK`, and `MONTH`
+aggregates; rows are stored as provider-native raw `24_7` OHLC candles with no
+fabricated volume or adjustment. The worker is scheduled at 07:00 UTC and
+remains fail-closed when the provider operation cost or entitlement is unknown.
+
 Tokenized catalogue discovery is a separate daily job, also disabled by
 default. After reviewing catalogue-provider quotas and terms, set
 `TOKENIZED_CATALOG_REFRESH_ENABLED=true` together with positive bounded

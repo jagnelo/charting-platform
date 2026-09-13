@@ -397,6 +397,20 @@ async def refresh_tokenized_asset_catalog(ctx: dict) -> dict:
         )
 
 
+async def refresh_tokenized_historical_asset_prices(ctx: dict) -> dict:
+    """Persist a bounded tokenized aggregate-history batch."""
+
+    from app.config import settings
+    from app.services.tokenized_assets import refresh_tokenized_historical_prices
+
+    async with AsyncSessionLocal() as db:
+        return await refresh_tokenized_historical_prices(
+            db,
+            max_assets=settings.TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS,
+            timespan=settings.TOKENIZED_HISTORICAL_REFRESH_TIMESPAN,
+        )
+
+
 async def refresh_tokenized_corporate_actions(ctx: dict) -> dict:
     """Persist bounded tokenized corporate-action feeds as market events."""
 

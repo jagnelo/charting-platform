@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import select
@@ -13,12 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+from app.models.market_data_foundation import AdjustmentBasis
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import bounded_redact_provider_message
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
+from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.market_data_identity import normalize_identifier_value
 from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
@@ -728,5 +732,181 @@ async def refresh_tokenized_prices(
         "refreshed": len(refreshed),
         "failed": len(failures),
         "quotes": refreshed,
+        "failures": failures,
+    }
+
+
+_TOKENIZED_HISTORY_TIMEFRAMES = {
+    "DAY": Timeframe.D1,
+    "WEEK": Timeframe.W1,
+    "MONTH": Timeframe.MN,
+}
+
+
+def _tokenized_history_bar(
+    row: dict[str, Any],
+    *,
+    instrument_id: int,
+    data_source_id: int,
+    timeframe: Timeframe,
+    provider_name: str,
+    provider_asset_id: str,
+) -> OHLCVBar:
+    """Normalize one aggregate without inventing volume or adjustment."""
+
+    timestamp = row.get("timestamp")
+    if not isinstance(timestamp, datetime):
+        raise ValueError("tokenized historical row has no normalized timestamp")
+    values: dict[str, Decimal] = {}
+    for field in ("open", "high", "low", "close"):
+        try:
+            value = Decimal(str(row.get(field)))
+        except (TypeError, ValueError):
+            raise ValueError(f"tokenized historical row has invalid {field}") from None
+        if not value.is_finite():
+            raise ValueError(f"tokenized historical row has invalid {field}")
+        values[field] = value
+    return OHLCVBar(
+        instrument_id=instrument_id,
+        data_source_id=data_source_id,
+        timeframe=timeframe,
+        ts=timestamp,
+        session="24_7",
+        open=values["open"],
+        high=values["high"],
+        low=values["low"],
+        close=values["close"],
+        volume=None,
+        vwap=None,
+        is_adjusted=False,
+        adjustment_basis=AdjustmentBasis.RAW.value,
+        adjustment_version="provider-native-tokenized",
+        provenance={
+            "provider": provider_name,
+            "provider_asset_id": provider_asset_id,
+            "feed": "tokenized_aggregate_history",
+            "session": "24_7",
+            "raw_payload": row.get("raw_payload") if isinstance(row.get("raw_payload"), dict) else row,
+        },
+    )
+
+
+async def refresh_tokenized_historical_prices(
+    db: AsyncSession,
+    *,
+    provider_name: str | None = None,
+    max_assets: int = 100,
+    timespan: str = "DAY",
+) -> dict[str, Any]:
+    """Persist bounded tokenized aggregate candles through durable routing."""
+
+    normalized_timespan = str(timespan or "").strip().upper()
+    timeframe = _TOKENIZED_HISTORY_TIMEFRAMES.get(normalized_timespan)
+    if timeframe is None:
+        return {
+            "status": "invalid_timespan",
+            "timespan": normalized_timespan,
+            "requested": 0,
+            "refreshed": 0,
+            "failed": 0,
+            "unsupported": [],
+        }
+    limit = max(1, min(int(max_assets), 1000))
+    query = (
+        select(TokenizedAssetDetail, Instrument)
+        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
+        .where(Instrument.is_active.is_(True))
+        .order_by(TokenizedAssetDetail.updated_at.asc(), TokenizedAssetDetail.id.asc())
+        .limit(limit)
+    )
+    if provider_name:
+        query = query.where(TokenizedAssetDetail.provider_name == provider_name)
+    rows = (await db.execute(query)).all()
+    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
+    resolved_by_provider = {
+        item.provider_name: item
+        for item in chain
+        if callable(getattr(item.provider, "fetch_tokenized_historical_prices", None))
+    }
+    refreshed: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    unsupported: list[str] = []
+    for detail, instrument in rows:
+        resolved = resolved_by_provider.get(detail.provider_name)
+        identifier = detail.provider_asset_id or detail.token_symbol
+        if resolved is None or not identifier:
+            unsupported.append(detail.provider_name)
+            continue
+        try:
+            execution = await execute_provider_call(
+                db,
+                ProviderCapability.TOKENIZED_ASSETS,
+                "fetch_tokenized_historical_prices",
+                instrument_id=instrument.id,
+                provider_symbol=identifier,
+                usage_identity=identifier,
+                provider_name=detail.provider_name,
+                invoke=lambda provider, _symbol, identifier=identifier: provider.fetch_tokenized_historical_prices(
+                    identifier, timespan=normalized_timespan
+                ),
+                response_items=len,
+                treat_empty_as_failure=False,
+            )
+            payload_rows = execution.result or []
+            if not isinstance(payload_rows, list) or any(
+                not isinstance(row, dict) for row in payload_rows
+            ):
+                raise TypeError("tokenized historical provider returned a non-list")
+            bars = [
+                _tokenized_history_bar(
+                    row,
+                    instrument_id=instrument.id,
+                    data_source_id=execution.data_source.id,
+                    timeframe=timeframe,
+                    provider_name=execution.provider_name,
+                    provider_asset_id=identifier,
+                )
+                for row in payload_rows
+            ]
+            bars = await _attach_provider_series(
+                db, instrument, timeframe, False, execution, bars=bars
+            )
+            await persist_price_history_bars(
+                db,
+                instrument,
+                data_source_id=execution.data_source.id,
+                provider_symbol=identifier,
+                timeframe=timeframe,
+                adjusted=False,
+                bars=bars,
+            )
+            refreshed.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": execution.provider_name,
+                    "provider_asset_id": identifier,
+                    "timespan": normalized_timespan,
+                    "bars": len(bars),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 - retain bounded provider evidence.
+            failures.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": detail.provider_name,
+                    "provider_asset_id": identifier,
+                    "timespan": normalized_timespan,
+                    "error": bounded_redact_provider_message(exc, max_length=500),
+                }
+            )
+    await db.commit()
+    return {
+        "status": "refreshed" if refreshed else ("failed" if failures else "no_assets"),
+        "timespan": normalized_timespan,
+        "requested": len(rows),
+        "refreshed": len(refreshed),
+        "failed": len(failures),
+        "unsupported": sorted(set(unsupported)),
+        "history": refreshed,
         "failures": failures,
     }

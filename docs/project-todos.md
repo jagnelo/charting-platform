@@ -15,6 +15,24 @@
       resolved; a capacity response or missing credential is not a successful
       data read.
 
+### 2026-09-13 — Tokenized historical aggregate persistence
+
+- [x] Add a separate, disabled-by-default daily worker for bounded tokenized
+      historical aggregates. It admits only adapters that expose the explicit
+      `fetch_tokenized_historical_prices` operation, routes by provider asset
+      identity, reserves the provider runtime operation cost, and persists
+      canonical raw `24_7` OHLC bars with provenance and no invented volume,
+      VWAP, or adjustment. Dinari `DAY`, `WEEK`, and `MONTH` are supported;
+      unsupported yearly data is rejected rather than silently remapped.
+      Configuration is wired through local and RPi compose/env examples, and
+      focused coverage passes 84/84 with compile, Ruff, YAML, and diff checks.
+
+- [ ] Keep the scheduler disabled until Dinari's account quota, terms, and
+      redistribution review are recorded and a credentialed live historical
+      read is accepted. No live call was made for this change; the latest
+      current-source matrix remains the separately recorded non-acceptance
+      receipt above.
+
 ### 2026-09-13 — Tokenized catalog discovery scheduling
 
 - [x] Schedule tokenized listing discovery as a separate bounded daily worker,

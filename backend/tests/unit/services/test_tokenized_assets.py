@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.market_data_foundation import MarketEvent
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
@@ -16,6 +17,7 @@ from app.services import tokenized_assets
 from app.services.tokenized_assets import (
     refresh_tokenized_assets,
     refresh_tokenized_events,
+    refresh_tokenized_historical_prices,
     refresh_tokenized_prices,
     upsert_tokenized_asset,
 )
@@ -349,6 +351,93 @@ async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists
     # quote through the token's provider symbol rather than the economic ticker.
     assert snapshot.provider_symbol == "AAPLx"
     assert snapshot.price == Decimal("123.45")
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
+    db, instrument, monkeypatch
+):
+    await upsert_tokenized_asset(
+        AsyncSessionAdapter(db),
+        TokenizedAssetRecord(
+            provider="dinari",
+            asset_id="dinari-aapl-history",
+            symbol="dAAPL",
+            name="Apple dShare",
+            underlying_symbol=instrument.symbol,
+            raw_payload={},
+        ),
+    )
+    provider = SimpleNamespace(
+        fetch_tokenized_historical_prices=lambda identifier, **kwargs: [
+            {
+                "timestamp": datetime(2026, 9, 1, tzinfo=UTC),
+                "open": Decimal("100"),
+                "high": Decimal("105"),
+                "low": Decimal("99"),
+                "close": Decimal("104"),
+                "raw_payload": {"stock_id": identifier},
+            }
+        ]
+    )
+    source = SimpleNamespace(id=77)
+    persisted: list[OHLCVBar] = []
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(_db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.TOKENIZED_ASSETS
+        assert operation == "fetch_tokenized_historical_prices"
+        assert kwargs["provider_name"] == "dinari"
+        assert kwargs["provider_symbol"] == "dinari-aapl-history"
+        result = kwargs["invoke"](provider, kwargs["provider_symbol"])
+        return SimpleNamespace(provider_name="dinari", data_source=source, result=result)
+
+    async def fake_attach(_db, _instrument, timeframe, adjusted, execution, *, bars):
+        assert timeframe is Timeframe.D1
+        assert adjusted is False
+        assert execution.data_source is source
+        return bars
+
+    async def fake_persist(_db, _instrument, **kwargs):
+        assert kwargs["data_source_id"] == 77
+        assert kwargs["provider_symbol"] == "dinari-aapl-history"
+        assert kwargs["timeframe"] is Timeframe.D1
+        assert kwargs["adjusted"] is False
+        persisted.extend(kwargs["bars"])
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "_attach_provider_series", fake_attach)
+    monkeypatch.setattr(tokenized_assets, "persist_price_history_bars", fake_persist)
+
+    result = await refresh_tokenized_historical_prices(
+        AsyncSessionAdapter(db), max_assets=10, timespan="DAY"
+    )
+
+    assert result["status"] == "refreshed", result
+    assert result["requested"] == 1
+    assert result["refreshed"] == 1
+    assert result["failed"] == 0
+    assert result["history"][0]["provider_asset_id"] == "dinari-aapl-history"
+    assert len(persisted) == 1
+    assert persisted[0].timeframe is Timeframe.D1
+    assert persisted[0].session == "24_7"
+    assert persisted[0].is_adjusted is False
+    assert persisted[0].volume is None
+    assert persisted[0].vwap is None
+    assert persisted[0].provenance["feed"] == "tokenized_aggregate_history"
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_historical_prices_rejects_unmapped_timespan(db):
+    result = await refresh_tokenized_historical_prices(
+        AsyncSessionAdapter(db), timespan="YEAR"
+    )
+
+    assert result["status"] == "invalid_timespan"
+    assert result["timespan"] == "YEAR"
 
 
 @pytest.mark.asyncio

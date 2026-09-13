@@ -486,6 +486,16 @@ async def scheduled_tokenized_catalog_refresh(ctx: dict):
     return await refresh_tokenized_asset_catalog(ctx)
 
 
+async def scheduled_tokenized_historical_refresh(ctx: dict):
+    """Refresh tokenized aggregate candles only when explicitly enabled."""
+
+    if not settings.TOKENIZED_HISTORICAL_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized historical refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_historical_asset_prices
+
+    return await refresh_tokenized_historical_asset_prices(ctx)
+
+
 async def scheduled_tokenized_event_refresh(ctx: dict):
     """Persist tokenized corporate actions only when explicitly enabled."""
 
@@ -589,6 +599,7 @@ class WorkerSettings:
         scheduled_weekly_provider_availability,
         scheduled_tokenized_asset_refresh,
         scheduled_tokenized_catalog_refresh,
+        scheduled_tokenized_historical_refresh,
         scheduled_tokenized_event_refresh,
         scheduled_market_events_refresh,
         scheduled_edgar_ipo_universe_scan,
@@ -611,6 +622,7 @@ class WorkerSettings:
             cron(scheduled_weekly_provider_availability, weekday=6, hour=3, minute=0),
             cron(scheduled_tokenized_asset_refresh, minute={0, 15, 30, 45}),
             cron(scheduled_tokenized_catalog_refresh, hour=6, minute=30),
+            cron(scheduled_tokenized_historical_refresh, hour=7, minute=0),
             cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
             cron(scheduled_market_events_refresh, hour=1, minute=30),
             cron(scheduled_edgar_ipo_universe_scan, hour=1, minute=40),
@@ -628,6 +640,7 @@ class WorkerSettings:
             or settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
             or settings.TOKENIZED_ASSET_REFRESH_ENABLED
             or settings.TOKENIZED_CATALOG_REFRESH_ENABLED
+            or settings.TOKENIZED_HISTORICAL_REFRESH_ENABLED
             or settings.TOKENIZED_EVENT_REFRESH_ENABLED
             or settings.MARKET_EVENTS_REFRESH_ENABLED
             or settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED
