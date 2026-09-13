@@ -1090,3 +1090,18 @@ the three Alpha Vantage event/earnings operations returned typed documented
 capacity responses, while Tradier, IBKR, and Ondo remained exact credential
 preflights. The run returned exit code 2 and made no acceptance claim; no
 credentials or payloads were persisted.
+
+On 2026-09-13, the Dinari recovery boundary was tightened after review of the
+observed failure surface: the two-attempt HTTP 500 recovery is now selected
+only for hosts ending in `.sandbox.dinari.com`, while the documented
+production host remains fail-fast until production evidence justifies a
+different policy. The production-host regression passed with exactly one
+request and preserved the typed 500 response. Tokenized unit coverage passed
+`73/73`; the focused provider/registry/quota/secret slice passed `198/198`;
+the complete backend unit suite passed `2,043/2,043`; the isolated PostgreSQL
+integration suite passed `383/383`; and the authoritative combined backend
+gate passed `2,426/2,426` at `81.44%` coverage with 89 warnings using cleaned
+testcontainer session `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider
+calls, credentials, or response payloads were persisted. The live matrix and
+all provider/legal, CI/deployment, reconciliation, migration, and shadow
+gates remain unchanged and non-accepted.

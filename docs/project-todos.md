@@ -16799,3 +16799,24 @@ The current source also passes the focused authenticated top-down browser slice 
       redistribution review remain open, as do the other provider/legal,
       CI/deployment, universe-reconciliation, migration-compatibility, and
       shadow gates.
+
+### 2026-09-13 — Dinari Sandbox-only retry boundary
+
+- [x] Scope Dinari's bounded HTTP 500 recovery to hosts ending in
+      `.sandbox.dinari.com`; documented production hosts now fail fast until
+      production-specific evidence supports another policy. The production
+      host regression made exactly one request and preserved the typed 500
+      response. Tokenized unit coverage passed `73/73`, including persistent
+      Sandbox-500 exhaustion and production-host no-retry coverage; the
+      provider/registry/quota/secret slice passed `198/198`.
+- [x] The complete backend unit suite passed `2,043/2,043`; the isolated
+      PostgreSQL integration suite passed `383/383`; and the authoritative
+      Docker-backed combined gate passed `2,426/2,426` at `81.44%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider calls, credentials,
+      or payloads entered Git. The live matrix remains `41/47` with the same
+      six honest non-passes and no acceptance claim.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.

@@ -1688,3 +1688,20 @@ Update this handoff at each coherent boundary.
   CI/deployment, production reconciliation, migration, future-evaluator, and
   shadow gates remain open; the parallel `feat/etf-holdings-constituents`
   branch still owns ETF provider adapters and must reconcile only at staging.
+
+- Source checkpoint `ac114ced3` scopes Dinari's bounded HTTP 500 recovery to
+  hosts ending in `.sandbox.dinari.com`; the documented production host now
+  fails fast until production-specific evidence supports another policy. The
+  production-host regression made exactly one request and preserved the typed
+  500 response. Tokenized unit coverage passed `73/73`; the focused
+  provider/registry/quota/secret slice passed `198/198`; the complete backend
+  unit suite passed `2,043/2,043`; the isolated PostgreSQL integration suite
+  passed `383/383`; and the authoritative combined backend gate passed
+  `2,426/2,426` at `81.44%` coverage with 89 warnings using cleaned
+  testcontainer session `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider
+  calls, credentials, or payloads entered Git. The live matrix remains
+  `41/47`, with Alpha Vantage capacity responses and the intentional
+  Tradier/IBKR/Ondo credential preflights still non-passes. Provider/legal,
+  CI/deployment, production reconciliation, migration, future-evaluator, and
+  shadow gates remain open; the parallel ETF branch still owns ETF provider
+  adapters and must reconcile only at staging.
