@@ -1485,6 +1485,19 @@ Update this handoff at each coherent boundary.
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
 
+- Source checkpoint `048f0a013` preserves the shared coverage preflight through
+  the benchmark-family overview wrapper. Delegated cap-benchmark calls retain
+  their group-snapshot report, while the no-cap path returns an explicit empty
+  `benchmark_family_overview` report. Focused PostgreSQL integration passed
+  `1/1`; the complete backend unit suite passed `2,029/2,029`; Ruff,
+  compileall, and diff checks passed; and the authoritative Docker-backed
+  combined backend gate passed `2,410/2,410` at `81.38%` coverage with 89
+  warnings. Testcontainer session `84c9ed3d-cbc2-4772-8cd4-4da013fb33f3` was
+  cleaned without host-wide pruning. No provider calls, credentials, frontend
+  files, or ETF-provider adapter files changed. Provider/legal/deployment/
+  shadow gates, future evaluator coordination, and generic migration
+  compatibility remain open.
+
 - Source checkpoint `dfded5c9b` extends the shared coverage preflight to the
   benchmark-family ranking response. The required local history is derived
   from the selected rank period (`offset + 1`, with a conservative 253-bar
