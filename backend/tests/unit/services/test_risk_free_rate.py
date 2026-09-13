@@ -36,6 +36,7 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
     calls: dict[str, object] = {}
 
     async def _fake_execute_provider_call(*args, **kwargs):
+        calls["execute_kwargs"] = kwargs
         return _ExecutionStub(
             provider_name="yfinance",
             data_source=type("DataSourceStub", (), {"id": 9})(),
@@ -62,3 +63,4 @@ async def test_fetch_from_provider_persists_bars_via_market_data_helper(monkeypa
     assert calls["kwargs"]["timeframe"] == Timeframe.D1
     assert calls["kwargs"]["bars"] == bars
     assert calls["attach_kwargs"] == {}
+    assert calls["execute_kwargs"]["history_start"].tzinfo == UTC

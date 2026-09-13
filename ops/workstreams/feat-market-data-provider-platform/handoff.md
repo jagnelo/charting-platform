@@ -2224,3 +2224,13 @@ changed.
   coverage with 89 warnings in isolated session
   `2308b1d1-4024-46b1-8f03-a4469ceab0b2`. No frontend or ETF-provider adapter
   files changed.
+
+- The risk-free-rate historical fallback now passes its 30-day request start
+  through the same provider-specific structured history admission as normal
+  bounded OHLCV reads. The focused risk-free/runtime/routing suite passed
+  `77/77`; Ruff, compileall, and diff checks passed. The authoritative
+  Docker-backed backend gate passed `2,482/2,482` at `81.71%` combined
+  coverage with 89 warnings in `462.80s`, using isolated testcontainer session
+  `bc60fed6-f853-40ef-a8a5-8d1bf8649263`; cleanup removed only this workstream's
+  resources and did not perform a host-wide prune. No frontend or ETF-provider
+  adapter files changed.

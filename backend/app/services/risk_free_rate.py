@@ -151,6 +151,7 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
             instrument_id=instrument.id,
             usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
             adjusted=True,
+            history_start=start,
             invoke=lambda provider, _sym: provider.fetch_ohlcv(
                 provider_symbol_for_instrument(instrument, provider.name),
                 Timeframe.D1,

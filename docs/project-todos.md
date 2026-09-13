@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-13 — Risk-free historical admission
+
+- [x] Thread the risk-free-rate provider fallback's explicit 30-day historical
+      start through provider-specific structured history admission so it cannot
+      bypass documented lookback bounds. Focused risk-free/runtime/routing
+      coverage passed 77/77; the authoritative Docker-backed backend gate
+      passed 2,482/2,482 at 81.71% combined coverage with 89 warnings. No
+      frontend or ETF-provider adapter files changed.
+
 ### 2026-09-13 — Provider-specific history-depth admission
 
 - [x] Replace descriptive-only history-depth routing with structured,
