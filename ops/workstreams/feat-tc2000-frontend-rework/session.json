@@ -54,13 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "docs/project-todos.md",
-    "docs/tc2000-acceptance-governance.md",
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -120,10 +114,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e7f37222a18881e0fb711e60f5229451c198f05b",
+  "head": "4972f1399a6cd6d816cda43c31b53cc2b47358c7",
   "implementation_sha": "c7d84436f44044b221dd0b3de09925aac3eafb9e",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T01:16:01.505792+00:00",
+  "last_checkpoint": "2026-09-13T01:18:12.467062+00:00",
   "last_human_progress_update": "2026-09-12T22:57:05.998654+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
@@ -140,7 +134,7 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact gate at product tip c7d84436f and documentation/session tip e7f37222a completed all functional stages: backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and compose/deployment plus expected research-runner probes. Provider probes were skipped by the gate's no-provider-path-change detector. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2–AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
+    "current_blocker": "The exact gate at product tip c7d84436f and documentation/session tip e7f37222a completed all functional stages: backend unit 1534/1534, backend integration 404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented skips, and compose/deployment plus expected research-runner probes. Provider probes were skipped by the gate's no-provider-path-change detector. Visual E2E passed 98/104; the six unchanged protected watchlist-column-editor and workspace-floating diffs remain. Docker resources were cleaned. R1 canonical provider population/history and D1/W1/MN floors and continuity remain open; AC2\u2013AC7/AC10 remain open. No visual threshold, mask, skip, provider, fallback, migration, or acceptance policy changed.",
     "current_phase": "r1_spdr_slyg_sec_identity_guard",
     "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
     "total": 10,
