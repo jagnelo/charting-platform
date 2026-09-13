@@ -923,6 +923,7 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     timeframe: str
     adjustment: str
     as_of: datetime | None = None
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthDefinitionHistoryPointOut] = Field(default_factory=list)
     occurrences: list[BreadthDefinitionHistoryOccurrenceOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)

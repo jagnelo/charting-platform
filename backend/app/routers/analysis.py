@@ -9015,6 +9015,25 @@ async def evaluate_generic_breadth_history(
     ) = await _resolve_generic_breadth_universe(definition, db, current_user.id)
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="generic_breadth_history",
+        instrument_ids=member_ids,
+        timeframe=timeframe,
+        date_from=None,
+        # ``as_of`` is an upper cutoff for a historical study, not a promise
+        # that a bar exists exactly at that timestamp.  The bars have already
+        # been truncated to the cutoff above, so let preflight assess the
+        # observed historical extent and its internal gaps.
+        date_to=None,
+        adjusted=definition.adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_breadth_required_bars(condition_definition.model_dump(mode="json")),
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
+    for instrument_id in member_ids:
+        if instrument_id not in preflight_ready_ids:
+            bars_by_id[instrument_id] = []
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
@@ -9142,6 +9161,7 @@ async def evaluate_generic_breadth_history(
         as_of=definition.as_of or (points[-1].timestamp if points else None),
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         points=points,
         occurrences=[
             BreadthDefinitionHistoryOccurrenceOut(**occurrence) for occurrence in occurrence_rows

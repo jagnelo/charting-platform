@@ -3391,6 +3391,27 @@ class TestWorkspaces:
         assert payload["condition_asset_key"] == "breadth-history-sma"
         assert payload["condition_library_version"] == 1
         assert payload["python_code_version_id"] == saved_python_version
+        assert payload["coverage_preflight"]["evaluator"] == "generic_breadth_history"
+        assert payload["coverage_preflight"]["status"] == "full"
+
+        insufficient = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 200, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "limit": 20,
+            },
+        )
+        assert insufficient.status_code == 200, insufficient.text
+        insufficient_payload = insufficient.json()
+        assert insufficient_payload["coverage_preflight"]["status"] == "deferred"
+        assert insufficient_payload["coverage_preflight"]["ready_instrument_count"] == 0
+        assert insufficient_payload["points"] == []
 
     def test_python_breadth_queues_isolated_current_and_history_and_promotes_to_scan(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
