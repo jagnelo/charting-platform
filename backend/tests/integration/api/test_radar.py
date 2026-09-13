@@ -175,6 +175,12 @@ class TestRadarAPI:
         run_data = run_res.json()
         assert run_data["coverage_missing_count"] == 1
         assert run_data["coverage_stale_count"] == 0
+        repair_summary = run_data["coverage_summary"]["repair_queue"]
+        assert repair_summary["requested"] is True
+        assert repair_summary["requested_count"] == 1
+        assert repair_summary["jobs"][0]["request_key"] == f"radar:D1:{instrument_b.id}"
+        assert repair_summary["jobs"][0]["status"] == "queued"
+        assert repair_summary["jobs"][0]["coverage_reason"] == "missing"
         repair = db.query(MarketRefreshJob).filter_by(
             request_key=f"radar:D1:{instrument_b.id}"
         ).one()

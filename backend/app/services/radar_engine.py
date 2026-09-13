@@ -386,6 +386,7 @@ async def _queue_radar_repairs(
     timeframe: Timeframe,
     stale_instrument_ids: list[int],
     coverage_blocked_ids: list[int] | None = None,
+    repair_records: list[dict] | None = None,
     now: datetime,
 ) -> int:
     """Queue bounded local-coverage repairs without provider I/O.
@@ -415,20 +416,39 @@ async def _queue_radar_repairs(
             reason = "stale"
         else:
             reason = "insufficient_history"
-        await enqueue_refresh_job(
+        request_key = f"radar:{timeframe.value}:{instrument_id}"
+        metadata_payload = {
+            "schedule": "radar_coverage_repair",
+            "coverage_reason": reason,
+            "requested_at": now.isoformat(),
+        }
+        job = await enqueue_refresh_job(
             db,
-            request_key=f"radar:{timeframe.value}:{instrument_id}",
+            request_key=request_key,
             capability=ProviderCapability.PRICE_HISTORY.value,
             instrument_id=instrument_id,
             timeframe=timeframe.value,
             start_at=repair_start,
             priority=50,
-            metadata_payload={
-                "schedule": "radar_coverage_repair",
-                "coverage_reason": reason,
-                "requested_at": now.isoformat(),
-            },
+            metadata_payload=metadata_payload,
         )
+        if repair_records is not None:
+            repair_records.append(
+                {
+                    "id": getattr(job, "id", None),
+                    "request_key": request_key,
+                    "instrument_id": instrument_id,
+                    "capability": ProviderCapability.PRICE_HISTORY.value,
+                    "timeframe": timeframe.value,
+                    "priority": int(getattr(job, "priority", 50) or 50),
+                    "status": str(getattr(job, "status", "queued") or "queued"),
+                    "attempts": int(getattr(job, "attempts", 0) or 0),
+                    "next_attempt_at": (
+                        getattr(job, "next_attempt_at", None) or now
+                    ).isoformat(),
+                    "coverage_reason": reason,
+                }
+            )
         queued += 1
     return queued
 
@@ -2649,16 +2669,31 @@ async def run_radar_scan(
         )
         coverage_summary["coverage_preflight"] = coverage_preflight.to_dict()
         evaluated = int(coverage_summary["evaluated_count"])
+        repair_records: list[dict] = []
         if queue_repairs:
-            await _queue_radar_repairs(
+            queued_repairs = await _queue_radar_repairs(
                 db,
                 instrument_ids=instrument_ids,
                 bars_by_instrument=bars_by_instrument,
                 timeframe=timeframe,
                 stale_instrument_ids=stale_instrument_ids,
                 coverage_blocked_ids=coverage_blocked_ids,
+                repair_records=repair_records,
                 now=freshness_now,
             )
+            coverage_summary["repair_queue"] = {
+                "requested": True,
+                "requested_count": queued_repairs,
+                "jobs": repair_records[:100],
+                "jobs_truncated": len(repair_records) > 100,
+            }
+        else:
+            coverage_summary["repair_queue"] = {
+                "requested": False,
+                "requested_count": 0,
+                "jobs": [],
+                "jobs_truncated": False,
+            }
         run.coverage_status = coverage_status
         run.coverage_total_count = len(instruments)
         run.coverage_missing_count = sum(

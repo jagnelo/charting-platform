@@ -101,8 +101,15 @@
       otherwise incomplete histories are withheld from signal evaluation,
       repair requests are labeled `insufficient_history`, and the serialized
       run summary preserves the per-instrument preflight evidence. Focused
-      Radar unit coverage passes 35/35 and the focused PostgreSQL API coverage
-      passes 5/5; no provider, frontend, or ETF-provider adapter files changed.
+      Radar unit coverage passes 35/35 and the complete PostgreSQL API coverage
+      passes 13/13; no provider, frontend, or ETF-provider adapter files changed.
+- [x] Persist the bounded Radar repair handoff alongside the coverage report.
+      Opt-in repair runs now retain each coalescing request key, observed queue
+      status, attempt count, next-attempt timestamp, capability, timeframe, and
+      coverage reason without lease tokens or provider secrets. The admin queue
+      remains authoritative for later lifecycle transitions; focused Radar
+      coverage passes 35/35 and 13/13, and the authoritative backend gate
+      passes 2,415/2,415 at 81.41% coverage.
 - [ ] Extend the same contract to future non-Strategy signal engines beyond
       the currently covered Strategy Lab, generic breadth,
       benchmark-family breadth, alert, screener, and Market Map paths.

@@ -165,6 +165,7 @@ class TestRadarEngine:
 
     def test_radar_repairs_enqueue_only_missing_and_stale_members(self, monkeypatch):
         queued: list[dict] = []
+        records: list[dict] = []
 
         async def fake_enqueue(db, **kwargs):
             queued.append(kwargs)
@@ -180,6 +181,7 @@ class TestRadarEngine:
                 bars_by_instrument={1: _make_bars([100, 101]), 3: _make_bars([99, 100])},
                 timeframe=Timeframe.D1,
                 stale_instrument_ids=[3],
+                repair_records=records,
                 now=datetime(2026, 9, 12, 12, tzinfo=UTC),
             )
         )
@@ -190,6 +192,12 @@ class TestRadarEngine:
         assert queued[0]["metadata_payload"]["coverage_reason"] == "missing"
         assert queued[1]["metadata_payload"]["coverage_reason"] == "stale"
         assert queued[0]["start_at"] == datetime(2026, 9, 12, 12, tzinfo=UTC) - timedelta(days=320)
+        assert [record["request_key"] for record in records] == [
+            "radar:D1:2",
+            "radar:D1:3",
+        ]
+        assert [record["coverage_reason"] for record in records] == ["missing", "stale"]
+        assert all(record["status"] == "queued" for record in records)
 
     def test_radar_repairs_label_preflight_blocked_history(self, monkeypatch):
         queued: list[dict] = []
