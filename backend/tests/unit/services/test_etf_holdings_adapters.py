@@ -3271,6 +3271,41 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
         "issuer_literature_page_linked_monthly_holdings_pdf"
     )
     assert result.legal_metadata["composition_date"] == "2026-05-31"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_hwcap_adapter_rejects_undated_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("hwcap")
+    assert adapter is not None
+    product_url = "https://www.hwcm.com/etfs/hw-smid-cap-diversified-value-fund/literature/"
+    holdings_url = "https://www.hwcm.com/wp-content/uploads/2025/03/SMID-ETF-Holdings-May-2026.pdf"
+    raw_text = """
+    SMID CAP DIVERSIFIED VALUE FUND (ETF)
+    ASO 164.00 Academy Sports & Outdoors Inc. 8,659.20 0.33
+    """
+
+    def fake_get(url, **kwargs):
+        if url == product_url:
+            return FakeResponse(
+                text=(
+                    "<h1>SMID Cap Diversified Value Fund (ETF) HWSM</h1>"
+                    f'<a href="{holdings_url}">Holdings</a>'
+                ),
+                content_type="text/html",
+                url=product_url,
+            )
+        return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=holdings_url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        type(adapter),
+        "_extract_pdf_text",
+        staticmethod(lambda raw_pdf: raw_text),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="HWSM")
 
 
 @pytest.mark.asyncio

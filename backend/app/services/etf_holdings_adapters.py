@@ -16783,6 +16783,10 @@ class HotchkisWileyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Hotchkis & Wiley holdings PDF returned no parseable rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Hotchkis & Wiley holdings PDF did not expose dated holdings for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_text,
@@ -16797,6 +16801,7 @@ class HotchkisWileyHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_literature_page_linked_monthly_holdings_pdf",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_monthly_holdings",
                 "snapshot_provenance": "hotchkis_wiley_hwsm_native_holdings_pdf",
