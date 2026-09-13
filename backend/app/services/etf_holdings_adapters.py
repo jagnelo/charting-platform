@@ -15743,6 +15743,7 @@ class CyberHornetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "cyber_hornet_product_page_declared_complete_holdings_csv",
                 "source_format": "csv",
                 "product_page_url": str(page_response.url),
+                "completeness_status": "complete",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,

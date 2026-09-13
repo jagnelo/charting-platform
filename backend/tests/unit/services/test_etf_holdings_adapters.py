@@ -1046,6 +1046,7 @@ async def test_cyber_hornet_adapter_fetches_issuer_declared_complete_holdings_cs
     assert result.legal_metadata["route_resolution"] == (
         "cyber_hornet_product_page_declared_complete_holdings_csv"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://www.cyberhornets.com/fund/xxx"
     assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
 
