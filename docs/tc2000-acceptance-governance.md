@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Re-ingest must preserve the strongest holdings evidence
+
+Commit `0b2f03070` makes duplicate holdings snapshot reconciliation monotonic.
+For an existing content hash, a later `complete` or
+`filing_reconstructed` fetch upgrades the persisted snapshot and adapter
+state; a weaker `partial`/`unknown` retry cannot erase stronger evidence.
+Focused resolution coverage passed `30/30`, related refresh/family suites
+passed `43/43`, and full backend units passed `1536/1536`.
+
+The exact branch-scoped gate passed backend unit, frontend, build,
+compose/deployment, research-runner, and functional stages
+(`165 passed`, `107 skipped`); visual E2E passed `98/104` with the six
+unchanged protected watchlist-column-editor/workspace-floating baselines as
+the only failures. This is a bounded R1 persistence fix and does not waive
+family-wide population/history, D1/W1/MN floors, continuity, or AC2–AC7/AC10.
+No visual, provider/fallback, migration, or acceptance policy changed.
+
 ## 2026-09-13 — Holdings completeness is a prerequisite for composite readiness
 
 The canonical family-role readiness rule now requires source completeness in

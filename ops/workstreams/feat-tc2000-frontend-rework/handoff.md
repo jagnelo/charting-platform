@@ -2,6 +2,22 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Holdings completeness re-ingest promotion
+
+Product commit `0b2f03070` makes duplicate holdings snapshot reconciliation
+monotonic. A later `complete` or `filing_reconstructed` fetch upgrades the
+existing content-hash row and adapter state; a weaker retry cannot downgrade
+stronger evidence. Focused resolution coverage passed `30/30`, related
+refresh/family suites `43/43`, and full backend units `1536/1536`.
+
+The exact branch-scoped gate passed frontend Vitest `1067/1067`, build,
+compose/deployment, research-runner, and functional E2E (`165 passed`, `107
+skipped`). Visual E2E passed `98/104`; the six unchanged protected
+watchlist-column-editor/workspace-floating baselines remain. Docker resources
+were cleaned. No provider/fallback, migration, visual, or acceptance policy
+changed. Continue R1 family-wide population/history, D1/W1/MN floors,
+continuity, and AC2–AC7/AC10. The local-only push transport hold remains.
+
 ## 2026-09-13 — Require complete persisted holdings evidence
 
 The current product change gates benchmark-family composite readiness on the

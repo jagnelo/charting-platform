@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote persisted holdings completeness on re-ingest
+
+- [x] Make duplicate snapshot reconciliation monotonic for holdings evidence:
+      re-ingesting the same content can promote `partial`/`unknown` to
+      `complete` or `filing_reconstructed`, but a weaker retry cannot
+      downgrade stronger persisted evidence. Adapter success state now records
+      the merged status as well as reconciled counters.
+- [x] Focused holdings-resolution coverage passed `30/30`; related refresh,
+      benchmark-family coverage/history suites passed `43/43`; Ruff passed;
+      full backend units passed `1536/1536`.
+- [x] Exact gate at product tip `0b2f03070` passed backend units `1536/1536`,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E
+      `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the six
+      unchanged protected visual diffs remain (watchlist-column-editor at
+      1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p
+      100/125).
+      Docker resources were cleaned. No provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Require persisted holdings completeness for role readiness
 
 - [x] Gate benchmark-family composite readiness on the persisted holdings
