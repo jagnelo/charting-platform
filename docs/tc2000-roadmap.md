@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified native holdings completeness
+
+Product commit `c8ba7a600` closes a bounded R1 source-quality seam for three
+issuer-native routes: NSI's product-page-declared CSV, Palmer Square's dated
+Full Investment Holdings payload, and Weitz's dated identity-checked payload.
+They now emit explicit `completeness_status: complete` while retaining their
+curated complete-daily/full-investment labels; generic current/daily/table
+labels remain fail-closed and no generic inference or fallback was introduced.
+
+Focused NSI/Palmer Square/Weitz adapter assertions passed `4/4`; declared-
+completeness refresh checks passed `8/8`; Ruff/format/diff checks passed; full
+backend units passed `1544/1544`. The exact branch-scoped gate passed backend
+unit `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+sandbox/resource probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected
+watchlist-column-editor/workspace-floating diffs remain. Docker resources were
+cleaned. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed. Family-wide R1 population/history,
+D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified dated holdings completeness
 
 Product commit `df0952777` closes a bounded R1 completeness seam for the

@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified native holdings completeness receipt
+
+Commit `c8ba7a600` adds explicit `completeness_status: complete` only to the
+verified NSI product-page CSV, Palmer Square dated Full Investment Holdings
+payload, and Weitz dated identity-checked payload. Their curated
+complete-daily/full-investment labels remain scoped to these routes; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused adapter assertions passed `4/4`; declared-completeness refresh checks
+passed `8/8`; full backend units passed `1544/1544`. The exact gate passed
+backend integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six
+protected baselines remain the only failures. Provider probes were skipped
+because no provider-related changes were detected; Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified dated holdings completeness receipt
 
 Commit `df0952777` adds explicit `completeness_status: complete` only to the

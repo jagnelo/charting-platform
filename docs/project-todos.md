@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified native holdings completeness
+
+- [x] Add explicit `completeness_status: complete` to the NSI product-page
+      CSV, Palmer Square dated Full Investment Holdings payload, and Weitz
+      dated identity-checked holdings payload. These are the only adapters
+      emitting the curated complete-daily/full-investment labels in this seam;
+      generic current/daily/table routes remain fail-closed.
+- [x] Product commit `c8ba7a600`; focused NSI/Palmer Square/Weitz adapter
+      assertions passed `4/4`, declared-completeness refresh checks passed
+      `8/8`, Ruff/format/diff checks passed, and the full backend unit suite
+      passed `1544/1544`.
+- [x] Exact branch-scoped gate at this tip passed backend unit `1544/1544`,
+      integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+      compose/deployment contracts, expected research-runner sandbox/resource
+      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
+      passed `98/104`; only the six unchanged protected visual diffs remain
+      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
+      at visual-1080p-100/125 and visual-1440p-100/125). Branch-scoped Docker
+      resources were cleaned. No provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified dated holdings completeness
 
 - [x] Add explicit `completeness_status: complete` to the Absolute

@@ -13,13 +13,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest product commit `df0952777` adds explicit `completeness_status:
-  complete` to the verified Absolute Investment Advisers ABEQ
-  financial-statement result and STF Management TUG quarterly-schedule result.
-  Both issuer-page-linked routes select the newest dated complete PDF; ABEQ
-  additionally requires at least ten rows and 85% aggregate weight. Generic
-  dated labels remain fail-closed as `unknown`. Focused ABEQ/TUG adapter
-  assertions passed 2/2, Ruff/format/diff checks passed, and full backend
+  Latest product commit `c8ba7a600` adds explicit `completeness_status:
+  complete` to the verified NSI product-page CSV, Palmer Square dated Full
+  Investment Holdings payload, and Weitz dated identity-checked payload. Their
+  curated complete-daily/full-investment labels remain route-scoped; generic
+  current/daily/table labels remain fail-closed as `unknown`. Focused
+  NSI/Palmer Square/Weitz adapter assertions passed 4/4, declared-completeness
+  refresh checks passed 8/8, Ruff/format/diff checks passed, and full backend
   units passed 1544/1544. The exact branch-scoped gate passed backend unit
   1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/build,
   compose/deployment contracts, expected research-runner sandbox/resource
@@ -31,6 +31,22 @@ current_blocker: >-
   cleaned. No provider/fallback, migration, visual, threshold, mask, skip, or
   acceptance policy changed. Continue R1 family-wide canonical
   population/history, D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
+  Previous product commit `df0952777` adds explicit `completeness_status:
+  complete` to the verified Absolute Investment Advisers ABEQ
+  financial-statement result and STF Management TUG quarterly-schedule result.
+  Both issuer-page-linked routes select the newest dated complete PDF; ABEQ
+  additionally requires at least ten rows and 85% aggregate weight. Generic
+  dated labels remain fail-closed as `unknown`. Focused ABEQ/TUG adapter
+  assertions passed 2/2, Ruff/format/diff checks passed, and full backend
+  units passed 1544/1544. The exact branch-scoped gate passed backend unit
+  1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner sandbox/resource
+  probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+  98/104; the six unchanged protected diffs remain. Provider probes were
+  skipped; Docker resources were cleaned. No provider/fallback, migration,
+  visual, threshold, mask, skip, or acceptance policy changed. Continue R1
+  family-wide canonical population/history, D1/W1/MN floors, rebalance
+  continuity, and AC2–AC7/AC10.
   Previous product commit `ba9f9a6eb` adds explicit `completeness_status:
   complete` to the Distribution Cognizant VOXP result. Its adapter verifies
   the account-scoped CSV, required holdings schema, symbol/account filter,
@@ -3129,27 +3145,27 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_dated_holdings_completeness
+  current_phase: R1_verified_native_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
     mappings, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
-    Latest product tip df0952777 adds explicit complete evidence to the
-    verified ABEQ financial-statement and TUG quarterly-schedule PDF routes
-    after issuer-page identity, dated complete selection, and parser checks;
-    ABEQ additionally requires ten rows and 85% aggregate weight. Focused
-    adapter coverage passed 2/2, Ruff/format/diff checks passed, and full
-    backend units passed 1544/1544. The exact gate passed backend unit
-    1544/1544, integration 405/405, frontend Vitest 1067/1067, type-check/
-    build, compose/deployment, expected research-runner probes, and functional
-    E2E 165 passed with 107 skipped; visual E2E passed 98/104 with the six
-    unchanged protected watchlist-column-editor/workspace-floating diffs.
-    Provider probes were skipped and Docker resources were cleaned. No
-    provider/fallback, migration, visual, threshold, mask, skip, or acceptance
-    policy changed. Continue R1 family-wide canonical population/history,
-    D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
+    Latest product tip c8ba7a600 adds explicit complete evidence to the
+    verified NSI product-page CSV, Palmer Square dated Full Investment
+    Holdings payload, and Weitz dated identity-checked payloads. Focused
+    adapter coverage passed 4/4, declared-completeness refresh checks passed
+    8/8, Ruff/format/diff checks passed, and full backend units passed
+    1544/1544. The exact gate passed backend unit 1544/1544, integration
+    405/405, frontend Vitest 1067/1067, type-check/build, compose/deployment,
+    expected research-runner probes, and functional E2E 165 passed with 107
+    skipped; visual E2E passed 98/104 with the six unchanged protected
+    watchlist-column-editor/workspace-floating diffs. Provider probes were
+    skipped and Docker resources were cleaned. No provider/fallback,
+    migration, visual, threshold, mask, skip, or acceptance policy changed.
+    Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+    rebalance continuity, and AC2–AC7/AC10.
     Previous product tip 6287f6900 promotes issuer-linked workbook routes only
     after issuer-page identity, declared workbook route, required workbook
     identity/schema, and non-empty rows are verified; generic current/daily/
