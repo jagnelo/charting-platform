@@ -2,6 +2,16 @@
 
 ### 2026-09-13 — Shared evaluator coverage preflight
 
+- [x] Extend the shared OHLCV coverage preflight to benchmark-family
+      concentration. Each delegated role is checked after membership and
+      persisted stale-ID filtering using the selected rank-period floor
+      (`offset + 1`, or a conservative 253-bar YTD/unknown-period floor),
+      with short/cold histories reported as partial/deferred. Focused
+      PostgreSQL integration passes 1/1, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.39% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
+
 - [x] Add a provider-neutral OHLCV preflight coordinator for broad Strategy Lab
       rules and Radar signal replay. It loads the requested local bars once per
       instrument/timeframe, uses the exact missing-slice/freshness planner,

@@ -1551,3 +1551,17 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `8d0ed6aa0` extends the shared OHLCV coverage preflight to
+  benchmark-family concentration. Each delegated role is assessed after
+  membership and persisted stale-ID filtering with the selected rank-period
+  floor (`offset + 1`, or a conservative 253-bar YTD/unknown-period floor),
+  so cold or short histories are explicitly partial/deferred rather than
+  treated as ready. Focused PostgreSQL integration passed `1/1`, the complete
+  backend unit suite passed `2,029/2,029`, and the authoritative Docker-backed
+  combined backend gate passed `2,410/2,410` at `81.39%` coverage with 89
+  warnings. Testcontainer session
+  `a6b0769b-8234-4ac8-9212-edec1ebee61b` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed. Provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.
