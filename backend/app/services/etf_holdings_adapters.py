@@ -17548,6 +17548,10 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Hedgeye product page did not contain complete daily holdings rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Hedgeye product page did not expose dated holdings for {normalized_symbol}."
+            )
         for index, row in enumerate(rows):
             row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
             row.extra_data = {
@@ -17568,6 +17572,7 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_product_page_complete_daily_holdings_payload",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )

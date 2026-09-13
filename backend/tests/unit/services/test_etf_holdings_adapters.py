@@ -4574,6 +4574,7 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
         "issuer_product_page_complete_daily_holdings_payload"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "MSFT"
     assert result.rows[0].cusip == "594918104"
@@ -4622,6 +4623,7 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
         "scm_edge_hedgeye_product_page_complete_daily_holdings_payload"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["issuer_relationship"] == (
         "S.C.M. Edge issuer / Hedgeye public product-page publisher"
     )
@@ -4633,6 +4635,29 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
         "scm_edge_hedgeye_product_page_daily_holdings_payload"
     )
     assert result.rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+    product_url = "https://www.hedgeyeam.com/heca"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text="<script>Hedgeye HECA</script>", url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_product_page",
+        classmethod(
+            lambda cls, payload, *, symbol: (
+                [CanonicalHoldingRow(symbol="MSFT", name="Microsoft")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="HECA")
 
 
 @pytest.mark.asyncio
