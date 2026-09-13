@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified native holdings completeness receipt
+
+Commit `ce18a1b7b` adds explicit `completeness_status: complete` only to the
+verified Soundwatch SHDG issuer-linked XLS, WealthTrust WLTG public complete
+holdings table, Eighth Wonder/Fundsmith ETFT product-page payload, and Range
+COAL/NUKZ official Nuxt fund-page routes. Each route verifies official product
+identity, its route-specific source contract, and non-empty holdings; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused native adapter assertions passed `4/4`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner sandbox/resource probes, and functional E2E `165 passed` with
+`107 skipped`; backend units also passed `1544/1544`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified linked workbook holdings completeness receipt
 
 Commit `ce00fa0fa` adds explicit `completeness_status: complete` only to the
