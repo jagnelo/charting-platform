@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Vident product-page holdings
+
+- [x] Map the unique `issuer_reported_product_page_holdings_table` label to
+      `complete` holdings evidence. The Vident/MM VAM adapter verifies the
+      issuer page, requires a dated holdings table, and rejects undersized
+      results before this status can be emitted; broader generic table labels
+      remain conservative.
+- [x] Focused adapter/refresh coverage passed `519/519`; Ruff, formatting, and
+      `git diff --check` passed; full backend units passed `1544/1544`.
+- [x] Exact gate at product tip `9ef91c40d` passed backend units `1544/1544`,
+      integration `405/405`, frontend Vitest `1067/1067`, type-check, build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+      `98/104`; the six unchanged protected visual diffs remain
+      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
+      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
+      skipped because no provider-related changes were detected. Branch-scoped
+      Docker resources were cleaned. No provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Recognize issuer-page declared current completeness
 
 - [x] Map the curated adapter label

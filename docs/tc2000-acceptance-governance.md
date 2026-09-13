@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified product-page holdings receipt
+
+Commit `9ef91c40d` promotes only the unique Vident/MM VAM
+`issuer_reported_product_page_holdings_table` source label. Its adapter
+verifies the issuer page, date, schema, and minimum row count before emitting
+the label; generic product-page/table labels remain fail-closed as unknown.
+
+Focused adapter/refresh coverage passed `519/519`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-13 — Issuer-page declared current completeness receipt
 
 Commit `d0598946f` maps the explicit curated source-quality label
