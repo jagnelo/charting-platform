@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified Polen and Founder holdings completeness
+
+Product commit `c581637ba` requires a published composition date and adds
+explicit `completeness_status: complete` to Polen's configured official
+holdings export and Founder's official holdings PDF route. Each adapter
+verifies issuer/product identity, parseable non-empty rows, and a published
+snapshot date; undated payloads fail closed and generic current/daily/table
+labels remain fail-closed.
+
+Focused Polen/Founder assertions passed `5/5`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1551/1551`, integration
+`405/405` with `81.98%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Hedgeye holdings completeness
 
 Product commit `a3f07cb79` requires a published composition date and adds
