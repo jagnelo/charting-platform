@@ -41,6 +41,15 @@
       focused screener/preflight coverage passes 36/36, the database-backed
       screener integration passes 26/26, and the complete backend gate passes
       2,404/2,404. No provider call occurs inside a screener evaluation loop.
+- [x] Extend the shared coverage contract to Market Map evaluation. Breadth
+      conditions now derive exact local history floors (including nested and
+      cross-sectional semantics), while return/RSI/volume/52-week map metrics
+      use their own deterministic floors. Market Map exposes the serialized
+      `coverage_preflight` report and withholds non-Python colours when the
+      required local snapshot is not ready. Focused breadth/Market Map unit
+      coverage passes 34/34, the complete watchlist integration suite passes
+      49/49, and the authoritative Docker-backed gate passes 2,409/2,409 at
+      81.37% coverage. No provider, frontend, or ETF-provider files changed.
 - [x] Persist evaluator run status separately from the existing Strategy Lab
       `completed` transport status. Research runs now retain an additive
       `resource_usage.evaluation` record and expose `evaluation_status` on run
@@ -53,7 +62,7 @@
       changed.
 - [ ] Extend the same contract to future non-Strategy signal engines beyond
       the currently covered Strategy Lab, Radar, generic breadth,
-      benchmark-family breadth, alert, and screener paths.
+      benchmark-family breadth, alert, screener, and Market Map paths.
 
 ### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
 

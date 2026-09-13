@@ -1379,3 +1379,18 @@ Update this handoff at each coherent boundary.
   or ETF-provider adapter files changed. Future non-Strategy signal engines
   beyond screeners, provider/legal/deployment/shadow gates, and generic
   migration compatibility remain open.
+
+- Source checkpoint `e1101d4801a2` extends the shared evaluator preflight into
+  Market Map. Breadth history floors mirror the deterministic member and
+  cross-sectional condition branches; return, RSI, relative-volume, and
+  52-week map metrics have explicit local-bar floors. The response now exposes
+  `coverage_preflight`, and non-Python colours are withheld when the required
+  snapshot is not ready. Focused breadth/Market Map unit coverage passed
+  `34/34`, the complete watchlist integration suite passed `49/49`, the
+  complete backend unit suite passed `2,029/2,029`, and the authoritative
+  Docker-backed gate passed `2,409/2,409` at `81.37%` coverage with 89
+  warnings. The labeled testcontainer session
+  `e25fae5d-dc9b-464c-a087-eb5b21c28f5a` was cleaned without host-wide
+  pruning. No provider, frontend, or ETF-provider adapter files changed.
+  Future non-Strategy evaluator engines beyond Market Map, provider/legal/
+  deployment/shadow gates, and generic migration compatibility remain open.
