@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `d3fa295a9` adds explicit `completeness_status:
+  complete` only to Indexperts' RILA/QIDX/YFFI holdings routes after verifying
+  the exact public ETF product page, `Portfolio Holdings` marker, payload
+  ticker/fund identity, dated holding metadata, and non-empty rows. Focused
+  Indexperts adapter coverage passed 1/1; Ruff, formatting, and diff checks
+  passed; full backend units passed 1544/1544. The exact branch-scoped gate
+  passed backend unit 1544/1544, integration 405/405, frontend Vitest
+  1067/1067, type-check/build, compose/deployment contracts, expected
+  research-runner sandbox/resource probes, and functional E2E 165 passed with
+  107 skipped. Visual E2E passed 98/104; the six unchanged protected
+  watchlist-column-editor/workspace-floating diffs remain. Branch-scoped Docker
+  resources were cleaned. No provider/fallback, migration, visual, threshold,
+  mask, skip, or acceptance policy changed. Generic current, daily, and table
+  labels remain fail-closed as `unknown`. Continue R1 family-wide canonical
+  population/history, D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
   Latest product commit `96b13c816` adds explicit `completeness_status:
   complete` to the verified Mitsubishi UFJ MJSC public product-page Nuxt
   holdings component. The adapter verifies the exact public product name,
@@ -3179,13 +3194,24 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_mufg_holdings_completeness
+  current_phase: R1_verified_indexperts_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
     mappings, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest product tip d3fa295a9 adds explicit complete evidence only to the
+    verified Indexperts RILA/QIDX/YFFI product-page plus fund-scoped holdings
+    routes. Focused adapter coverage passed 1/1, Ruff, format, and diff checks
+    passed, and full backend units passed 1544/1544. The exact gate passed
+    backend unit 1544/1544, integration 405/405, frontend Vitest 1067/1067,
+    type-check/build, compose/deployment, expected research-runner probes, and
+    functional E2E 165 passed with 107 skipped; visual E2E passed 98/104 with
+    the six unchanged protected watchlist-column-editor/workspace-floating
+    diffs. Docker resources were cleaned. Generic current/daily/table labels
+    remain unknown. Continue R1 family-wide canonical population/history,
+    D1/W1/MN floors, rebalance continuity, and AC2–AC7/AC10.
     Latest product tip 96b13c816 adds explicit complete evidence only to the
     verified Mitsubishi UFJ MJSC public product-page Nuxt holdings component;
     source Japanese venue tickers remain metadata. Focused adapter coverage

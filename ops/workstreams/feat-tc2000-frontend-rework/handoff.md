@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Verified Indexperts holdings completeness
+
+Product commit `d3fa295a9` adds explicit `completeness_status: complete` to
+Indexperts' RILA/QIDX/YFFI holdings routes. The adapter verifies the exact
+public ETF product page and `Portfolio Holdings` marker, payload ticker/fund
+identity, dated holding metadata, and non-empty rows; no generic inference or
+fallback is added.
+
+Focused Indexperts adapter coverage passed `1/1`; Ruff, formatting, and diff
+checks passed; full backend units passed `1544/1544`. The exact branch-scoped
+gate passed backend unit `1544/1544`, integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical population/history seam
+while preserving fail-closed mappings and the six protected visual state-oracle
+assertions. Do not integrate, promote, deploy, push, or mutate another
+worktree.
+
 ## 2026-09-13 — Verified MUFG holdings completeness
 
 Product commit `96b13c816` adds explicit `completeness_status: complete` to
