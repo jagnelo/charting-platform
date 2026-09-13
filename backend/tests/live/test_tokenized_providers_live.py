@@ -352,4 +352,17 @@ def test_ondo_credentialed_metadata_price_market_summary_and_ohlc():
     )
     assert ohlc_measurement.http_requests >= 2
     assert isinstance(candles, list)
+    historical, historical_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_historical_prices(rows[0].symbol, timespan="DAY"),
+        "ondo_global_markets",
+    )
+    assert historical_measurement.http_requests >= 2
+    assert isinstance(historical, list)
+    for row in historical:
+        assert row["provider_asset_id"] == rows[0].symbol
+        assert row["timespan"] == "DAY"
+        assert row["timestamp"].tzinfo is not None
+        assert row["high"] >= max(row["open"], row["close"])
+        assert row["low"] <= min(row["open"], row["close"])
+        assert isinstance(row["raw_payload"], dict)
     assert measurement.http_requests == 1

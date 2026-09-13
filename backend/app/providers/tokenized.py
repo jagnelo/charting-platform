@@ -1874,6 +1874,78 @@ class OndoGlobalMarketsProvider:
                 )
         return result
 
+    def fetch_tokenized_historical_prices(
+        self, identifier: str, *, timespan: str = "DAY"
+    ) -> list[dict[str, Any]]:
+        """Expose Ondo's documented daily OHLC history through the shared contract.
+
+        Ondo publishes token-primary OHLC at a one-day interval with an ``all``
+        range.  The shared tokenized-history contract also accepts WEEK,
+        MONTH, and YEAR, so those windows are deterministic local rollups of
+        the provider's daily rows.  No volume, VWAP, or adjustment values are
+        fabricated, and the underlying-market rows are deliberately excluded
+        from the token-primary canonical series.
+        """
+
+        normalized_timespan = str(timespan or "").strip().upper()
+        if normalized_timespan not in {"DAY", "WEEK", "MONTH", "YEAR"}:
+            raise ProviderResponseError(
+                self.name, "unsupported Ondo historical price timespan"
+            )
+        rows = self.fetch_tokenized_ohlc(
+            identifier,
+            interval="1day",
+            range_="all",
+            market="primary",
+        )
+        daily = sorted(
+            (row for row in rows if row.get("market") == "primary"),
+            key=lambda row: row["timestamp"],
+        )
+        if normalized_timespan == "DAY":
+            return [
+                {
+                    **row,
+                    "timespan": normalized_timespan,
+                    "provider_asset_id": identifier,
+                }
+                for row in daily
+            ]
+
+        grouped: dict[datetime, list[dict[str, Any]]] = {}
+        for row in daily:
+            timestamp = row["timestamp"]
+            if normalized_timespan == "WEEK":
+                bucket_date = timestamp.date() - timedelta(days=timestamp.weekday())
+            elif normalized_timespan == "MONTH":
+                bucket_date = timestamp.date().replace(day=1)
+            else:
+                bucket_date = timestamp.date().replace(month=1, day=1)
+            bucket = datetime.combine(bucket_date, datetime.min.time(), tzinfo=UTC)
+            grouped.setdefault(bucket, []).append(row)
+
+        result: list[dict[str, Any]] = []
+        for bucket, bucket_rows in sorted(grouped.items()):
+            first = bucket_rows[0]
+            last = bucket_rows[-1]
+            result.append(
+                {
+                    "provider_asset_id": identifier,
+                    "timespan": normalized_timespan,
+                    "timestamp": bucket,
+                    "open": first["open"],
+                    "high": max(row["high"] for row in bucket_rows),
+                    "low": min(row["low"] for row in bucket_rows),
+                    "close": last["close"],
+                    "raw_payload": {
+                        "provider": self.name,
+                        "aggregation": normalized_timespan,
+                        "source_rows": [row.get("raw_payload", row) for row in bucket_rows],
+                    },
+                }
+            )
+        return result
+
 
 TOKENIZED_PROVIDERS = (
     XStocksProvider,

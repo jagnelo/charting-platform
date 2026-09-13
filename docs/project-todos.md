@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-13 — Ondo tokenized historical bridge
+
+- [x] Connect Ondo's documented primary-token daily OHLC endpoint to the
+      shared tokenized historical capability. DAY preserves source rows, while
+      WEEK/MONTH/YEAR use deterministic local rollups with raw provenance and
+      no fabricated volume. Focused tokenized/quota coverage passed 163/163;
+      the authoritative Docker-backed backend gate passed 2,484/2,484 at
+      81.71% combined coverage with 89 warnings. Ondo quota, caching,
+      display-only, and redistribution review remains fail-closed.
+
 ### 2026-09-13 — Latest-bar history admission
 
 - [x] Pass a provider-specific history-start factory through latest-price

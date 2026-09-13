@@ -205,10 +205,11 @@ class Settings(BaseSettings):
             "ondo_global_markets",
         ],
         # Historical tokenized aggregates are a distinct quota/terms surface
-        # from catalogue and indicative-quote traffic. Dinari is the only
-        # adapter exposing it today; its unknown partner contract keeps this
-        # chain fail-closed until operations approve the entitlement.
-        "tokenized_historical_prices": ["dinari"],
+        # from catalogue and indicative-quote traffic. Dinari exposes native
+        # windows; Ondo exposes documented daily OHLC and deterministic local
+        # rollups. Their unknown partner/onboarding contracts keep this chain
+        # fail-closed until operations approve each entitlement.
+        "tokenized_historical_prices": ["dinari", "ondo_global_markets"],
         # Dinari exposes global splits and per-stock dividends/splits. Keep it
         # in the capability chain so reviewed quota/terms can admit it later;
         # its currently unknown partner quota still makes runtime resolution
@@ -1288,6 +1289,9 @@ class Settings(BaseSettings):
                 "get_tokenized_price": 2,
                 "fetch_tokenized_market_data": 2,
                 "fetch_tokenized_ohlc": 2,
+                # Metadata resolution plus the provider's daily OHLC read;
+                # quota/terms admission remains fail-closed until reviewed.
+                "fetch_tokenized_historical_prices": 2,
             },
         },
     }

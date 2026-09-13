@@ -133,13 +133,13 @@ def test_only_action_capable_tokenized_adapters_expose_corporate_action_capabili
 
 def test_only_history_capable_tokenized_adapter_exposes_historical_capability():
     assert "tokenized_historical_prices" in list_provider_capabilities("dinari")
+    assert "tokenized_historical_prices" in list_provider_capabilities("ondo_global_markets")
     for provider in (
         "xstocks",
         "robinhood_tokens",
         "bybit_xstocks",
         "gate_tradfi",
         "kraken_xstocks",
-        "ondo_global_markets",
     ):
         assert "tokenized_historical_prices" not in list_provider_capabilities(provider)
 
@@ -912,6 +912,53 @@ def test_ondo_ohlc_requires_documented_interval_range_and_validates_both_markets
     assert rows[0]["close"] == Decimal("2")
     with pytest.raises(ProviderResponseError, match="interval/range"):
         OndoGlobalMarketsProvider().fetch_tokenized_ohlc("AAPLon", interval="1min", range_="1month")
+
+
+def test_ondo_historical_prices_roll_up_daily_primary_rows_without_fabricating_volume():
+    metadata = _ondo_metadata()
+    ohlc = {
+        "interval": "1day",
+        "range": "all",
+        "primaryMarket": {
+            "symbol": "AAPLon",
+            "data": [
+                {
+                    "timestamp": 1_735_689_600_000,
+                    "open": "10",
+                    "high": "13",
+                    "low": "9",
+                    "close": "12",
+                },
+                {
+                    "timestamp": 1_735_776_000_000,
+                    "open": "12",
+                    "high": "15",
+                    "low": "11",
+                    "close": "14",
+                },
+            ],
+        },
+        "underlyingMarket": {
+            "ticker": "AAPL",
+            "data": [],
+        },
+    }
+    with patch(
+        "app.providers.tokenized.httpx.get", side_effect=[_response([metadata]), _response(ohlc)]
+    ) as get:
+        rows = OndoGlobalMarketsProvider().fetch_tokenized_historical_prices(
+            "AAPLon", timespan="WEEK"
+        )
+    assert len(rows) == 1
+    assert rows[0]["provider_asset_id"] == "AAPLon"
+    assert rows[0]["timespan"] == "WEEK"
+    assert rows[0]["open"] == Decimal("10")
+    assert rows[0]["high"] == Decimal("15")
+    assert rows[0]["low"] == Decimal("9")
+    assert rows[0]["close"] == Decimal("14")
+    assert rows[0]["raw_payload"]["aggregation"] == "WEEK"
+    assert len(rows[0]["raw_payload"]["source_rows"]) == 2
+    assert get.call_count == 2
 
 
 @pytest.mark.parametrize(

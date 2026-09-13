@@ -1617,6 +1617,7 @@ def test_tokenized_history_operations_charge_the_metadata_resolution_and_data_re
         "get_tokenized_price": 2,
         "fetch_tokenized_market_data": 2,
         "fetch_tokenized_ohlc": 2,
+        "fetch_tokenized_historical_prices": 2,
     }
 
 
