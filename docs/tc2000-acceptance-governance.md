@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Mairs & Power holdings completeness receipt
+
+Commit `4e71fd4f5` adds explicit `completeness_status: complete` only to
+Mairs & Power's MINN official product-page portfolio route. The adapter
+verifies exact product identity, dated `FULL PORTFOLIO AS OF` marker, the
+normalized issuer table schema, and non-empty rows; generic current/daily/table
+labels remain unchanged and ambiguous routes remain fail-closed.
+
+Focused Mairs & Power assertion passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`;
+backend units also passed `1544/1544`. Visual E2E passed `98/104`; the same
+six protected baselines remain the only failures. Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified Retireful holdings completeness receipt
 
 Commit `afcdebe3d` adds explicit `completeness_status: complete` only to
