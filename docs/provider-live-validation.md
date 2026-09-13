@@ -1166,3 +1166,15 @@ The aggregate receipt was written to the owner-managed temporary ledger
 no credentials or response payloads entered Git. This is transport/schema
 evidence and does not promote any unreviewed quota, account-plan, commercial,
 redistribution, or response-dependent routing control.
+
+On 2026-09-13, the current tokenized-issuer-identity checkpoint was revalidated
+with network access and the owner-managed credentials. The bounded selection
+passed `13/13`: SEC EDGAR profile, filings/Company Facts, and complete
+ticker/issuer directory pagination; Alpaca daily/intraday/latest/assets and
+corporate actions; MarketData.app options, account usage, and intraday history;
+and Dinari Sandbox metadata, price/quote, DAY/WEEK/MONTH/YEAR history, news,
+dividends, splits, and corporate actions. The redacted receipt contained 8
+provider rows, 33 upstream requests, and 13,092,191 response bytes in
+`/private/tmp` only; no credentials or payloads entered Git. This confirms
+current transport/schema behavior, not provider quota, commercial,
+redistribution, or routing entitlement.
