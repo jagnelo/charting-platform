@@ -16460,6 +16460,7 @@ async def test_retireful_adapter_follows_official_pagination_and_preserves_cash(
     assert result.legal_metadata["route_resolution"] == (
         "retireful_mohr_product_page_complete_paginated_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

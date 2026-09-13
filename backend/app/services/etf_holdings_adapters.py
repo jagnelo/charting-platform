@@ -11079,6 +11079,7 @@ class RetirefulHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "html_paginated_table",
                 "route_resolution": "retireful_mohr_product_page_complete_paginated_holdings_table",
                 "product_page_url": product_url,
+                "completeness_status": "complete",
                 "snapshot_provenance": "retireful_native_current_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
