@@ -120,6 +120,23 @@ def test_role_readiness_is_ready_when_all_canonical_gates_are_supported():
     assert reasons == []
 
 
+def test_role_readiness_requires_complete_holdings_evidence():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        holdings_completeness_status="partial",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=True,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "partial"
+    assert reasons == ["holdings_completeness_partial"]
+
+
 @pytest.mark.asyncio
 async def test_breadth_event_loading_respects_historical_knowledge_cutoff_and_source():
     class Result:

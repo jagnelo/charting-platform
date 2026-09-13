@@ -65,6 +65,7 @@ export interface BenchmarkFamilyCoverageRole {
   adapter_confidence?: string | null
   available: boolean
   status: string
+  holdings_completeness_status?: string | null
   snapshots?: BenchmarkFamilyCoverageSnapshot[]
   continuity_status?: string | null
   continuity_gap_count?: number

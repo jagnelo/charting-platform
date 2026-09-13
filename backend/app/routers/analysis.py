@@ -183,6 +183,7 @@ _FAMILY_MEMBER_BAR_REQUIREMENTS = {
     Timeframe.W1: 52,
     Timeframe.MN: 24,
 }
+_USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 
 _HOLDING_EXCLUSION_MESSAGES = {
     "cash_holding": "Cash, collateral, or currency exposure is excluded from equity analysis.",
@@ -687,6 +688,7 @@ def _role_readiness(
     point_in_time_supported: bool,
     weights_status: str,
     classification_status: str,
+    holdings_completeness_status: str | None = None,
 ) -> tuple[str, list[str]]:
     """Return conservative composite readiness and machine-readable reasons."""
 
@@ -701,6 +703,11 @@ def _role_readiness(
         reasons.append(f"entitlement_{entitlement_status}")
     if holdings_status != "available":
         reasons.append(f"holdings_{holdings_status}")
+    if (
+        holdings_completeness_status is not None
+        and holdings_completeness_status not in _USABLE_HOLDINGS_COMPLETENESS
+    ):
+        reasons.append(f"holdings_completeness_{holdings_completeness_status}")
     if not point_in_time_supported:
         reasons.append("point_in_time_unavailable")
     if member_bar_status != "ready":
@@ -717,6 +724,10 @@ def _role_readiness(
         return "blocked", reasons
     if (
         holdings_status == "available"
+        and (
+            holdings_completeness_status is None
+            or holdings_completeness_status in _USABLE_HOLDINGS_COMPLETENESS
+        )
         and member_bar_status == "ready"
         and entitlement_status == "verified"
         and point_in_time_supported
@@ -4370,6 +4381,9 @@ async def benchmark_family_coverage(
             point_in_time_supported=point_in_time_supported,
             weights_status=weights_status,
             classification_status=classification_status,
+            holdings_completeness_status=(
+                selected_snapshot.completeness_status if selected_snapshot is not None else None
+            ),
         )
         roles.append(
             BenchmarkFamilyCoverageRoleOut(
@@ -4398,6 +4412,9 @@ async def benchmark_family_coverage(
                 ),
                 available=instrument is not None,
                 status=status,
+                holdings_completeness_status=(
+                    selected_snapshot.completeness_status if selected_snapshot is not None else None
+                ),
                 snapshots=snapshots,
                 continuity_status=continuity_status,
                 continuity_gap_count=len(continuity_gaps),

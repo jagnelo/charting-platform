@@ -1317,6 +1317,23 @@ class TestWorkspaces:
         assert readiness_payload["ready_role_count"] >= 1
         assert readiness_payload["readiness_status"] == "partial"
 
+        # Numeric floors cannot promote a provider disclosure whose persisted
+        # completeness evidence is partial.  The same canonical members and
+        # bars remain present; only the source completeness gate changes.
+        snapshot.completeness_status = "partial"
+        db.flush()
+        incomplete = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert incomplete.status_code == 200, incomplete.text
+        incomplete_cap = next(
+            role for role in incomplete.json()["roles"] if role["role"] == "cap_weight"
+        )
+        assert incomplete_cap["holdings_completeness_status"] == "partial"
+        assert incomplete_cap["composite_readiness_status"] == "partial"
+        assert "holdings_completeness_partial" in incomplete_cap["composite_readiness_reasons"]
+
     def test_benchmark_family_readiness_excludes_placeholder_members_from_canonical_counts(
         self, client, auth_headers, db, instrument_type, instrument
     ):
@@ -1423,6 +1440,8 @@ class TestWorkspaces:
         assert response.status_code == 200, response.text
         cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
         assert cap["member_count"] == 1
+        assert cap["holdings_completeness_status"] == "partial"
+        assert "holdings_completeness_partial" in cap["composite_readiness_reasons"]
         assert cap["placeholder_member_count"] == 1
         assert cap["weighted_member_count"] == 1
         assert cap["weights_status"] == "ready"

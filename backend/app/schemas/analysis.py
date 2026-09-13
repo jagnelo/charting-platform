@@ -398,6 +398,7 @@ class BenchmarkFamilyCoverageRoleOut(AnalysisContractModel):
     history_route_source_url: str | None = None
     available: bool = False
     status: str
+    holdings_completeness_status: str | None = None
     snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)
     continuity_status: str = "no_snapshot"
     continuity_gap_count: int = Field(default=0, ge=0)

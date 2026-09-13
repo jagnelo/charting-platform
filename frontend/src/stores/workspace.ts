@@ -588,6 +588,7 @@ export interface BenchmarkFamilyCoverageRoleState {
   adapter_confidence?: number | string | null
   available: boolean
   status: string
+  holdings_completeness_status?: string | null
   holdings_route_adapter_key?: string | null
   holdings_route_provider?: string | null
   holdings_route_status?: string
