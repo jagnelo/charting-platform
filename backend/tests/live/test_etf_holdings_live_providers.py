@@ -2219,6 +2219,28 @@ async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbo
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("ishares")
+async def test_live_ishares_iwm_supports_an_older_historical_snapshot():
+    """Keep the Russell 2000 route point-in-time beyond the latest fixture date."""
+
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    result = await adapter.fetch_for_date(
+        symbol="IWM",
+        requested_date=requested_date,
+        identifiers=known_etf_route_metadata("IWM")["provider_aliases"],
+    )
+
+    _assert_live_holdings_result(result, adapter_key="ishares", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "issuer_public_json_api_as_of_date"
+    assert result.legal_metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert result.legal_metadata["composition_date"] == requested_date.isoformat()
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("spdr")
 async def test_live_spdr_spyv_historical_route_is_sec_labelled():
     """Prove curated SPYV identity reaches a dated SEC filing."""
