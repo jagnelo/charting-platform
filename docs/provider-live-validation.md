@@ -1129,3 +1129,13 @@ matrix; the safety preflight continued to keep all unreviewed quota, legal,
 redistribution, and response-dependent controls non-routable. Only aggregate
 usage was written to the operator-owned external ledger; no credentials or
 response payloads entered Git.
+
+On 2026-09-13, after the provider-platform migration graph repair, the current
+source checkpoint `db3c0eda5` was exercised again under the external live-use
+lock. The manifest collected 47 cases and passed 41. Alpha Vantage's IPO and
+earnings reads returned its typed documented free-key capacity response; the
+intentional Tradier, IBKR, and Ondo credential preflights remained exact. The
+routing safety preflight continued to list only the provider-specific controls
+that are deliberately unreviewed. Aggregate usage was written to the operator
+ledger outside Git; this run is current transport evidence, not an acceptance
+or routing-entitlement claim.

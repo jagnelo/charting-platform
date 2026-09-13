@@ -1764,3 +1764,12 @@ Update this handoff at each coherent boundary.
   `2,431/2,431` at `81.45%` coverage with 89 warnings using cleaned session
   `8ee61c02-0fec-430c-a5c8-d68c398e4733`. This is ready for coordinator review;
   it does not authorize integration or promotion.
+
+- Source checkpoint `db3c0eda5` refreshes the current-source live evidence after
+  the migration repair. The lock-protected manifest collected 47 cases and
+  passed 41; Alpha Vantage's three event/earnings cases returned typed,
+  documented free-key capacity responses, while Tradier, IBKR, and Ondo
+  remained exact missing-credential preflights. The routing safety report still
+  blocks only unreviewed provider-specific quota/legal/redistribution controls.
+  Aggregate usage remained external-only; no credentials or provider payloads
+  entered Git. This is current evidence, not an acceptance claim.

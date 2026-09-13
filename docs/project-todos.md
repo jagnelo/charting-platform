@@ -16900,3 +16900,15 @@ The current source also passes the focused authenticated top-down browser slice 
       `8ee61c02-0fec-430c-a5c8-d68c398e4733`.
 - [ ] Coordinator review is still required before this migration boundary is
       promoted through staging.
+
+### 2026-09-13 — Current-source live matrix after migration repair
+
+- [x] Refresh the lock-protected manifest at source checkpoint `db3c0eda5`.
+      It collected 47 cases and passed 41. The six honest non-passes were
+      Alpha Vantage's typed 25-requests/day and one-request-per-second capacity
+      responses, plus exact missing-credential preflights for Tradier, IBKR, and
+      Ondo. Aggregate usage stayed outside Git; no credentials or payloads were
+      persisted, and exit code `2` made no acceptance claim.
+- [ ] Provider-specific quota/legal/redistribution controls and deferred
+      credentials remain explicit review gates; do not reinterpret this live
+      receipt as routing or production approval.
