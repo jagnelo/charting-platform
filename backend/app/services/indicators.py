@@ -1012,7 +1012,7 @@ def required_bars_for_indicator(indicator_type: str, params: dict | None = None)
     definition = INDICATOR_REGISTRY.get(indicator_type)
     if definition is None:
         return 2
-    supplied = params if isinstance(params, dict) else {}
+    supplied = normalize_indicator_params(indicator_type, params) if params else {}
 
     def _window(name: str) -> int:
         value = supplied.get(name)

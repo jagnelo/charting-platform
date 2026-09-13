@@ -173,6 +173,7 @@ class TestIndicatorHistoryRequirements:
     def test_window_parameters_drive_history_floor(self):
         assert required_bars_for_indicator("sma", {"period": 20}) == 21
         assert required_bars_for_indicator("macd", {"slow": 26, "signal": 9}) == 35
+        assert required_bars_for_indicator("stoch", {"period": 21, "smoothK": 5}) == 29
 
     def test_non_window_numeric_parameters_do_not_expand_history(self):
         assert required_bars_for_indicator("avwap", {"anchor_timestamp": 2_000_000_000}) == 2
