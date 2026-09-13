@@ -1160,7 +1160,12 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // by the restore selecting the previous tab. Keep applying the same real tab
   // interaction until the DOM confirms the requested tab is active; this is
   // bounded and exits immediately once the user-visible state is correct.
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  // A cold Golden Layout reinstall can take longer than a single second when
+  // the browser is already carrying the workstation's chart/watchlist work.
+  // Keep the activation bounded, but give the newly installed component enough
+  // time to acquire its real stack/header before treating the open action as
+  // complete.
+  for (let attempt = 0; attempt < 160; attempt += 1) {
     if (!componentMounted) return
     const toolRoot = [...document.querySelectorAll<HTMLElement>('[data-tool-key]')]
       .find(candidate => candidate.dataset.toolKey === opened.instance_key)
