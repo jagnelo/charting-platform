@@ -16960,6 +16960,10 @@ class NationalSecurityIndexHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"NSI Holdings CSV returned no parseable rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"NSI Holdings CSV did not publish a composition date for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_csv,

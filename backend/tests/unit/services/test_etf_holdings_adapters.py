@@ -3389,6 +3389,35 @@ PDD HOLDINGS INC,722304102,PDD US,2.550078195600,82.660000000000,12376.0000000,1
 
 
 @pytest.mark.asyncio
+async def test_nsi_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_url = "https://www.nationalsecurityindex.com/"
+    holdings_url = "https://www.nationalsecurityindex.com/f/holdings.csv"
+    raw_csv = """National Security Emerging Markets Index ETF
+Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %
+FABRINET,G3323L100,FN US,0.894731214000,476.040000000000,754.0000000,358934.16,0.894779747900
+"""
+
+    def fake_get(url, **kwargs):
+        if url == product_url:
+            return FakeResponse(
+                text=(
+                    "<h1>National Security Emerging Markets Index ETF</h1>"
+                    '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
+                ),
+                content_type="text/html",
+                url=product_url,
+            )
+        return FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="NSI")
+
+
+@pytest.mark.asyncio
 async def test_fortuna_adapter_parses_complete_product_table_and_classifies_options_and_cash(
     monkeypatch,
 ):
