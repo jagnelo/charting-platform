@@ -1210,3 +1210,9 @@ The authoritative Docker-backed combined backend gate then passed `2,460/2,460`
 at `81.68%` combined coverage with 89 warnings in 410.51 seconds. Isolated
 testcontainer session `6fc6e49e-17de-479b-b4f2-b395fb6cabe6` was cleaned without
 host-wide pruning. No frontend or ETF-provider adapter files changed.
+
+The Massive live case was then expanded to cover both a split-adjusted daily
+range and a raw five-minute intraday range. It passed with five upstream
+requests and 447,607 response bytes; the redacted receipt merger accepted one
+provider row. This is still bounded transport/schema evidence and does not
+promote Massive's free-plan history or redistribution entitlement.

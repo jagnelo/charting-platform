@@ -2114,3 +2114,10 @@ Update this handoff at each coherent boundary.
   two-year history contract is documented, but Massive history remains opt-in
   pending operator plan/redistribution review. No frontend or ETF-provider
   adapter files changed.
+
+- The Massive live case was expanded to exercise both split-adjusted D1 and raw
+  M5 intraday aggregate bars. It passed with five upstream requests and
+  447,607 response bytes; the redacted receipt merger accepted one provider
+  row into the owner-managed ledger. This remains bounded transport/schema
+  evidence only and does not promote Massive's free-plan history or
+  redistribution entitlement.

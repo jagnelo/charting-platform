@@ -376,6 +376,19 @@ def test_massive_credentialed_reference():
     assert all(bar.is_adjusted for bar in bars)
     assert all(bar.high >= max(bar.open, bar.close) for bar in bars)
     assert all(bar.low <= min(bar.open, bar.close) for bar in bars)
+    intraday, _ = _observed_read(
+        lambda: MassiveProvider().fetch_ohlcv(
+            "AAPL",
+            Timeframe.M5,
+            datetime.now(UTC) - timedelta(days=2),
+            datetime.now(UTC),
+            adjusted=False,
+        ),
+        "massive",
+    )
+    assert intraday
+    assert all(bar.timeframe is Timeframe.M5 for bar in intraday)
+    assert all(not bar.is_adjusted for bar in intraday)
     holidays, _ = _observed_read(
         lambda: MassiveProvider().fetch_market_holidays(
             start=date.today(), end=date.today() + timedelta(days=365)
