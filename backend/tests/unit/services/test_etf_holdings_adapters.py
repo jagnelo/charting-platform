@@ -3121,6 +3121,35 @@ async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_ho
 
 
 @pytest.mark.asyncio
+async def test_fortuna_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("fortuna")
+    assert adapter is not None
+    product_url = "https://hbtc.fortunafunds.com/hbtc-fund/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<h1>Fortuna Hedged Bitcoin ETF, HBTC</h1>",
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_product_page",
+        staticmethod(
+            lambda raw_html, *, symbol: (
+                [CanonicalHoldingRow(symbol="BTC", name="Bitcoin")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="HBTC")
+
+
+@pytest.mark.asyncio
 async def test_ironhorse_adapter_follows_declared_full_holdings_csv_and_keeps_foreign_codes_raw(
     monkeypatch,
 ):
@@ -3397,6 +3426,7 @@ async def test_fortuna_adapter_parses_complete_product_table_and_classifies_opti
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio
