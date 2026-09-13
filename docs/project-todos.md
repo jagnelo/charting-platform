@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Recognize issuer-page declared current completeness
+
+- [x] Map the curated adapter label
+      `issuer_page_declared_current_complete_holdings` to persisted
+      `complete` holdings evidence. This covers mature issuer-page routes that
+      explicitly declare current, complete holdings without broad inference;
+      generic current-only and ambiguous labels remain `unknown`.
+- [x] Focused refresh coverage passed `8/8`; Ruff, formatting, and
+      `git diff --check` passed; full backend units passed `1543/1543`.
+- [x] Exact gate at product tip `d0598946f` passed backend units `1543/1543`,
+      integration `405/405`, frontend Vitest `1067/1067`, type-check, build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+      `98/104`; the six unchanged protected visual diffs remain
+      (watchlist-column-editor at visual-1080p-100/125 and workspace-floating
+      at visual-1080p-100/125 and visual-1440p-100/125). Provider probes were
+      skipped because no provider-related changes were detected. Branch-scoped
+      Docker resources were cleaned. No provider/fallback, migration, visual,
+      threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Preserve profile source quality on the latest refresh route
 
 - [x] Keep the profile-declared `holdings_source_quality` alias when the

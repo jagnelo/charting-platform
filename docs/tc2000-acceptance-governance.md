@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Issuer-page declared current completeness receipt
+
+Commit `d0598946f` maps the explicit curated source-quality label
+`issuer_page_declared_current_complete_holdings` to persisted `complete`
+holdings evidence. This is limited to a declared-current-complete adapter
+contract; generic current-only or ambiguous labels remain fail-closed as
+`unknown`.
+
+Focused refresh coverage passed `8/8`; full backend units passed `1543/1543`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Provider
+probes were skipped because no provider-related changes were detected; Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Latest refresh preserves profile source lineage
 
 Commit `9ed31ba86` keeps the profile-declared `holdings_source_quality` alias

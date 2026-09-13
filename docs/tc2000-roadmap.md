@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Recognize issuer-page declared current completeness
+
+Product commit `d0598946f` closes the next explicit source-quality seam in
+the holdings persistence boundary. The curated adapter label
+`issuer_page_declared_current_complete_holdings` now maps to `complete`
+holdings evidence, so mature issuer-page routes that declare current,
+complete holdings can participate in fail-closed readiness. Generic
+current-only and ambiguous labels remain `unknown`; no substring inference or
+fallback was introduced.
+
+Focused refresh coverage passed `8/8`; Ruff, formatting, and diff checks
+passed; full backend units passed `1543/1543`. The exact branch-scoped gate
+passed backend unit `1543/1543`, integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the six unchanged protected
+watchlist-column-editor/workspace-floating diffs remain. Docker resources
+were cleaned; provider probes were skipped because no provider-related changes
+were detected. No provider/fallback, migration, visual baseline, threshold,
+mask, skip, or acceptance policy changed. Family-wide R1 population/history,
+D1/W1/MN floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Preserve profile source quality on the latest refresh route
 
 Product commit `9ed31ba86` closes the latest/current route-parity seam in the
