@@ -21,7 +21,9 @@ from dotenv import load_dotenv
 _LOCK_SPEC = importlib.util.spec_from_file_location(
     "provider_live_lock", Path(__file__).with_name("provider_live_lock.py")
 )
-if _LOCK_SPEC is None or _LOCK_SPEC.loader is None:  # pragma: no cover - packaging failure
+if (
+    _LOCK_SPEC is None or _LOCK_SPEC.loader is None
+):  # pragma: no cover - packaging failure
     raise ImportError("provider_live_lock.py is unavailable")
 _LOCK_MODULE = importlib.util.module_from_spec(_LOCK_SPEC)
 _LOCK_SPEC.loader.exec_module(_LOCK_MODULE)
@@ -52,6 +54,221 @@ CREDENTIALS = {
     "ibkr": ("IBKR_READ_ONLY_URL", "IBKR_READ_ONLY_SESSION_COOKIE"),
     "dinari": ("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY"),
     "ondo_global_markets": ("ONDO_GLOBAL_MARKETS_API_KEY",),
+}
+
+# Keep the live acceptance surface explicit.  This is intentionally a
+# provider-to-test-function manifest rather than a broad "module was imported"
+# check: adding a provider to the registry must also add at least one bounded
+# external read, or record a concrete reason why a live read is not applicable
+# to that descriptor.  The unit wiring suite validates that every referenced
+# function still exists in the checked-in live test files.
+LIVE_PROVIDER_CASES = {
+    "openfigi": (
+        ("test_market_data_providers_live.py", "test_openfigi_keyless_mapping"),
+    ),
+    "edgar": (
+        ("test_market_data_providers_live.py", "test_sec_edgar_keyless_profile"),
+        (
+            "test_market_data_providers_live.py",
+            "test_sec_edgar_credentialed_filings_and_company_facts",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete",
+        ),
+    ),
+    "nasdaq": (
+        ("test_market_data_providers_live.py", "test_nasdaq_trader_keyless_directory"),
+        (
+            "test_market_data_providers_live.py",
+            "test_nasdaq_trader_full_directory_pagination_is_complete",
+        ),
+    ),
+    "binance": (
+        ("test_market_data_providers_live.py", "test_binance_keyless_crypto_history"),
+    ),
+    "coinbase": (
+        ("test_market_data_providers_live.py", "test_coinbase_keyless_crypto_history"),
+    ),
+    "kraken": (
+        ("test_market_data_providers_live.py", "test_kraken_keyless_crypto_history"),
+    ),
+    "alpaca": (
+        ("test_market_data_providers_live.py", "test_alpaca_credentialed_history"),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpaca_credentialed_intraday_history",
+        ),
+        ("test_market_data_providers_live.py", "test_alpaca_credentialed_latest_price"),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpaca_credentialed_assets_and_corporate_actions",
+        ),
+    ),
+    "massive": (
+        ("test_market_data_providers_live.py", "test_massive_credentialed_reference"),
+    ),
+    "alpha_vantage": (
+        ("test_market_data_providers_live.py", "test_alpha_vantage_credentialed_daily"),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpha_vantage_credentialed_ipo_calendar",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpha_vantage_credentialed_earnings_calendar",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpha_vantage_credentialed_earnings_history",
+        ),
+    ),
+    "coingecko": (
+        ("test_market_data_providers_live.py", "test_coingecko_credentialed_search"),
+        (
+            "test_market_data_providers_live.py",
+            "test_coingecko_credentialed_profile_observes_id_resolution_request",
+        ),
+    ),
+    "fred": (("test_market_data_providers_live.py", "test_fred_credentialed_series"),),
+    "finra": (
+        (
+            "test_market_data_providers_live.py",
+            "test_finra_credentialed_short_interest",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_finra_credentialed_otc_daily_list",
+        ),
+    ),
+    "finra_otc_directory": (
+        (
+            "test_market_data_providers_live.py",
+            "test_finra_otc_directory_credentialed_source",
+        ),
+    ),
+    "tiingo": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+    ),
+    "twelve_data": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+    ),
+    "finnhub": (
+        (
+            "test_market_data_providers_live.py",
+            "test_finnhub_credentialed_company_profile",
+        ),
+    ),
+    "marketstack": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+    ),
+    "eodhd": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_eodhd_free_plan_profile_entitlement_is_explicit",
+        ),
+    ),
+    "fmp": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+    ),
+    "tradier": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+    ),
+    "marketdata_app": (
+        (
+            "test_market_data_providers_live.py",
+            "test_optional_credentialed_provider_small_read",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_marketdata_app_credentialed_option_surface",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_marketdata_app_credentialed_account_usage_snapshot",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_marketdata_app_credentialed_intraday_history",
+        ),
+    ),
+    "ibkr": (
+        (
+            "test_market_data_providers_live.py",
+            "test_ibkr_read_only_gateway_profile_history_and_snapshot",
+        ),
+    ),
+    "xstocks": (
+        ("test_tokenized_providers_live.py", "test_xstocks_public_asset_and_price"),
+        ("test_tokenized_providers_live.py", "test_xstocks_public_corporate_actions"),
+    ),
+    "robinhood_tokens": (
+        ("test_tokenized_providers_live.py", "test_robinhood_public_asset_and_price"),
+        ("test_tokenized_providers_live.py", "test_robinhood_public_corporate_actions"),
+    ),
+    "bybit_xstocks": (
+        (
+            "test_tokenized_providers_live.py",
+            "test_bybit_public_xstocks_asset_and_price",
+        ),
+    ),
+    "gate_tradfi": (
+        (
+            "test_tokenized_providers_live.py",
+            "test_gate_public_tradfi_asset_and_orderbook",
+        ),
+    ),
+    "kraken_xstocks": (
+        (
+            "test_tokenized_providers_live.py",
+            "test_kraken_public_xstocks_asset_and_ticker",
+        ),
+    ),
+    "dinari": (
+        (
+            "test_tokenized_providers_live.py",
+            "test_dinari_credentialed_stock_metadata_price_quote_history_and_news",
+        ),
+    ),
+    "ondo_global_markets": (
+        (
+            "test_tokenized_providers_live.py",
+            "test_ondo_credentialed_metadata_price_market_summary_and_ohlc",
+        ),
+    ),
+}
+
+# These registry entries are deliberately visible to administrators but do
+# not represent an external market-data read that this provider-platform live
+# runner can safely execute.  Each exclusion is explicit so it cannot become
+# an accidental "forgot to add a test" escape hatch.
+LIVE_PROVIDER_EXCLUSIONS = {
+    "etf_holdings_internal": "internal issuer/SEC holdings ingestion; live adapter coverage is owned by the ETF workstream",
+    "yfinance": "legacy unofficial compatibility provider; disabled by default and excluded from API-first acceptance",
+    "alpaca_itn": "descriptor-only authorized-participant tokenization network; no concrete adapter or public read entitlement",
 }
 
 BYTE_BOUND_OPERATIONS = {
@@ -89,7 +306,8 @@ def setting_is_configured(name: str) -> bool:
     if not value:
         return False
     if name == "EDGAR_USER_AGENT" and any(
-        marker in value.lower() for marker in ("example.com", "myemail@", "your.email", "<", ">")
+        marker in value.lower()
+        for marker in ("example.com", "myemail@", "your.email", "<", ">")
     ):
         return False
     return True
@@ -112,7 +330,9 @@ def routing_safety_preflight() -> dict[str, str]:
     """
 
     result: dict[str, str] = {}
-    raw_alpaca_pages = os.getenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
+    raw_alpaca_pages = (
+        os.getenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
+    )
     try:
         alpaca_pages = int(raw_alpaca_pages)
     except ValueError:
@@ -155,7 +375,9 @@ def routing_safety_preflight() -> dict[str, str]:
         if os.getenv(variable, "").strip().lower() not in {"1", "true", "yes"}:
             finra_otc_missing.append(variable)
     try:
-        finra_otc_poll = int(os.getenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "0").strip() or "0")
+        finra_otc_poll = int(
+            os.getenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "0").strip() or "0"
+        )
     except ValueError:
         finra_otc_poll = 0
     if finra_otc_poll <= 0:
@@ -163,7 +385,8 @@ def routing_safety_preflight() -> dict[str, str]:
     result["finra otc directory"] = (
         "routable"
         if not finra_otc_missing
-        else "non-routable: missing/invalid " + ", ".join(dict.fromkeys(finra_otc_missing))
+        else "non-routable: missing/invalid "
+        + ", ".join(dict.fromkeys(finra_otc_missing))
     )
 
     # These providers have a useful live read but still lack one or more
@@ -172,10 +395,14 @@ def routing_safety_preflight() -> dict[str, str]:
     # routing.
     fred_scope = os.getenv("FRED_REVIEWED_LIMIT_SCOPE", "").strip()
     try:
-        fred_limit = int(os.getenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0").strip() or "0")
+        fred_limit = int(
+            os.getenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0").strip() or "0"
+        )
     except ValueError:
         fred_limit = 0
-    fred_terms_reviewed = os.getenv("FRED_SERIES_TERMS_REVIEWED", "").strip().lower() in {
+    fred_terms_reviewed = os.getenv(
+        "FRED_SERIES_TERMS_REVIEWED", ""
+    ).strip().lower() in {
         "1",
         "true",
         "yes",
@@ -192,7 +419,9 @@ def routing_safety_preflight() -> dict[str, str]:
         if not fred_missing
         else "non-routable: missing/invalid " + ", ".join(fred_missing)
     )
-    result["nasdaq"] = "non-routable: official public polling allowance is not published"
+    result["nasdaq"] = (
+        "non-routable: official public polling allowance is not published"
+    )
     result["xstocks"] = (
         "non-routable: numeric public quota is not published; official US-person, "
         "jurisdiction, and redistribution eligibility must be reviewed"
@@ -216,7 +445,8 @@ def routing_safety_preflight() -> dict[str, str]:
     expected_marketdata_limit = marketdata_limits.get(marketdata_plan)
     result["marketdata.app account plan"] = (
         "routable"
-        if expected_marketdata_limit is not None and marketdata_limit == expected_marketdata_limit
+        if expected_marketdata_limit is not None
+        and marketdata_limit == expected_marketdata_limit
         else "non-routable: explicit reviewed plan/limit pair required"
     )
     raw_option_chain_bound = (
@@ -265,7 +495,9 @@ def routing_safety_preflight() -> dict[str, str]:
 def changed_provider_code() -> bool:
     if os.getenv("FORCE_LIVE_PROVIDER_PROBES") == "1":
         return True
-    status = subprocess.run(["git", "status", "--short"], cwd=ROOT, text=True, capture_output=True)
+    status = subprocess.run(
+        ["git", "status", "--short"], cwd=ROOT, text=True, capture_output=True
+    )
     provider_paths = (
         "backend/app/config.py",
         "backend/app/providers/",
@@ -321,7 +553,9 @@ def main() -> int:
         print("live provider probes: not applicable (no provider-related changes)")
         return 0
     if os.getenv("RUN_LIVE_PROVIDER_TESTS") != "1":
-        print("live provider probes: disabled; set RUN_LIVE_PROVIDER_TESTS=1 for external calls")
+        print(
+            "live provider probes: disabled; set RUN_LIVE_PROVIDER_TESTS=1 for external calls"
+        )
         return 0
     missing: dict[str, list[str]] = {}
     for provider, names in {"keyless/config": KEYLESS, **CREDENTIALS}.items():
@@ -365,11 +599,15 @@ def main() -> int:
         return 3
     if result.returncode:
         if missing:
-            print("live provider probes: credential preflight incomplete; no acceptance claim")
+            print(
+                "live provider probes: credential preflight incomplete; no acceptance claim"
+            )
             return 2
         return result.returncode
     if missing:
-        print("live provider probes: credential preflight incomplete; no acceptance claim")
+        print(
+            "live provider probes: credential preflight incomplete; no acceptance claim"
+        )
         return 2
     return 0
 

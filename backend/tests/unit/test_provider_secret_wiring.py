@@ -1,8 +1,10 @@
+import ast
 import importlib.util
 import re
 from pathlib import Path
 
 from app.config import provider_required_operation_byte_bounds
+from app.providers.registry import _PROVIDERS
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -200,7 +202,10 @@ def test_local_and_rpi_compose_pass_provider_operation_settings_to_backend_and_w
 def test_deployment_defaults_keep_new_tokenized_providers_visible():
     for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
         compose = (ROOT / relative_path).read_text()
-        assert 'TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in compose
+        assert (
+            'TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]'
+            in compose
+        )
 
 
 def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
@@ -210,7 +215,10 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "pull_request_target" not in workflow
     assert "schedule:" not in workflow
     assert "PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl" in workflow
-    assert "PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}" in workflow
+    assert (
+        "PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}"
+        in workflow
+    )
     assert "uses: actions/upload-artifact@v4" in workflow
     assert "name: provider-live-usage-${{ github.run_id }}" in workflow
     assert "if: always()" in workflow
@@ -220,23 +228,61 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:
         assert f"{name}:" in workflow
-    assert "ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}" in workflow
+    assert (
+        "ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}"
+        in workflow
+    )
     assert "ALPACA_DATA_FEED: ${{ vars.ALPACA_DATA_FEED || 'iex' }}" in workflow
-    assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}" in workflow
-    assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
+    assert (
+        "ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}"
+        in workflow
+    )
+    assert (
+        "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
+    )
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
-    assert "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}" in workflow
-    assert "FRED_SERIES_TERMS_REVIEWED: ${{ vars.FRED_SERIES_TERMS_REVIEWED || 'false' }}" in workflow
-    assert "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    assert (
+        "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}"
+        in workflow
+    )
+    assert (
+        "FRED_SERIES_TERMS_REVIEWED: ${{ vars.FRED_SERIES_TERMS_REVIEWED || 'false' }}" in workflow
+    )
+    assert (
+        "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    )
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
-    assert "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
-    assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: ${{ vars.MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT || '0' }}" in workflow
-    assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}" in workflow
-    assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED || 'false' }}" in workflow
-    assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS || '50' }}" in workflow
-    assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER || '100' }}" in workflow
-    assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS || '0' }}" in workflow
-    assert "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}" in workflow
+    assert (
+        "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
+    )
+    assert (
+        "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: ${{ vars.MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT || '0' }}"
+        in workflow
+    )
+    assert (
+        "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}"
+        in workflow
+    )
+    assert (
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED || 'false' }}"
+        in workflow
+    )
+    assert (
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS || '50' }}"
+        in workflow
+    )
+    assert (
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER || '100' }}"
+        in workflow
+    )
+    assert (
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS || '0' }}"
+        in workflow
+    )
+    assert (
+        "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}"
+        in workflow
+    )
 
 
 def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
@@ -265,7 +311,10 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
         "DINARI_API_BASE_URL",
     ):
         assert f"{name}=" in example
-    assert 'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]' in example
+    assert (
+        'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]'
+        in example
+    )
     for name in (
         PROVIDER_CONFIGURATION_SETTINGS
         | PROVIDER_OPERATION_SETTINGS
@@ -307,10 +356,15 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["nasdaq"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
     assert statuses["bybit_xstocks"].startswith("non-routable:")
-    assert statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
+    assert (
+        statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
+    )
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
-    assert statuses["marketdata.app account plan"] == "non-routable: explicit reviewed plan/limit pair required"
+    assert (
+        statuses["marketdata.app account plan"]
+        == "non-routable: explicit reviewed plan/limit pair required"
+    )
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
 
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
@@ -414,3 +468,30 @@ def test_live_runner_treats_provider_configuration_changes_as_provider_changes(m
     monkeypatch.setattr(_LIVE_SCRIPT.subprocess, "run", lambda *args, **kwargs: _Status())
 
     assert _LIVE_SCRIPT.changed_provider_code() is True
+
+
+def test_every_registered_provider_has_live_case_or_explicit_exclusion():
+    """Keep the external acceptance matrix synchronized with the registry."""
+
+    declared = set(_LIVE_SCRIPT.LIVE_PROVIDER_CASES) | set(_LIVE_SCRIPT.LIVE_PROVIDER_EXCLUSIONS)
+    assert declared == set(_PROVIDERS), sorted(set(_PROVIDERS) - declared)
+    assert not (set(_LIVE_SCRIPT.LIVE_PROVIDER_CASES) & set(_LIVE_SCRIPT.LIVE_PROVIDER_EXCLUSIONS))
+
+    function_cache: dict[str, set[str]] = {}
+    for provider, cases in _LIVE_SCRIPT.LIVE_PROVIDER_CASES.items():
+        assert cases, provider
+        for relative_path, function_name in cases:
+            path = ROOT / "backend" / "tests" / "live" / relative_path
+            assert path.is_file(), (provider, relative_path)
+            functions = function_cache.setdefault(
+                relative_path,
+                {
+                    node.name
+                    for node in ast.walk(ast.parse(path.read_text()))
+                    if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+                },
+            )
+            assert function_name in functions, (provider, relative_path, function_name)
+
+    for provider, reason in _LIVE_SCRIPT.LIVE_PROVIDER_EXCLUSIONS.items():
+        assert reason.strip(), provider
