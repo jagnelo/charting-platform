@@ -27,6 +27,14 @@
       declared condition's required history, withholds unresolved members, and
       returns the serialized per-instrument readiness report without making a
       provider call. Focused stale/current breadth regressions pass 2/2.
+- [x] Extend the same contract to historical benchmark-family concentration
+      and industry proxy/classified-industry snapshots. Historical roles report
+      point-in-time local readiness; industry routes use the 252-bar technical
+      floor and remain read-only with respect to provider I/O. Focused
+      PostgreSQL integration passes 2/2, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
 - [x] Extend the same contract to benchmark-family breadth without applying a
       single overly-conservative history gate. Each built-in metric receives
       its own cached-bar preflight, and the cap benchmark has a separate

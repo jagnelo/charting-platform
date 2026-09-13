@@ -1565,3 +1565,16 @@ Update this handoff at each coherent boundary.
   pruning. No provider calls, credentials, frontend files, or ETF-provider
   adapter files changed. Provider/legal/deployment/shadow gates, future
   evaluator coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `d5e4ab814` extends the shared OHLCV coverage contract to
+  historical benchmark-family concentration and the industry proxy/classified
+  industry snapshot evaluators. Historical concentration reports role-local and
+  aggregate readiness after point-in-time membership resolution; industry
+  routes use the exact 252-bar technical floor. Focused PostgreSQL integration
+  passed `2/2`, the complete backend unit suite passed `2,029/2,029`, and the
+  authoritative Docker-backed combined backend gate passed `2,410/2,410` at
+  `81.40%` coverage with 89 warnings. Testcontainer session
+  `dfc48281-bcbf-4170-a93c-3d8a43ae855e` was cleaned without host-wide pruning.
+  No provider calls, credentials, frontend files, or ETF-provider adapter
+  files changed. Provider/legal/deployment/shadow gates, future evaluator
+  coordination, and generic migration compatibility remain open.
