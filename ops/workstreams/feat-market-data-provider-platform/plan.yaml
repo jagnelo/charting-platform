@@ -142,6 +142,13 @@ progress:
       actions. Aggregate usage stayed in the external ledger only; this is
       transport evidence and does not promote any unreviewed routing control.
     - >-
+      The Dinari credentialed live case now validates each returned aggregate
+      row's provider UUID, requested timespan, timezone-aware timestamp,
+      positive OHLC values, high/low relationships, and raw payload
+      provenance instead of accepting an arbitrary list. The tightened case
+      passed 1/1 against the Sandbox credentials; Ruff passed and no provider
+      payload or credential entered Git.
+    - >-
       Newly configured Alpaca and MarketData.app credentials were revalidated
       in seven bounded live cases on 2026-09-13: Alpaca daily/intraday/latest
       history, assets, and corporate actions plus MarketData.app options,

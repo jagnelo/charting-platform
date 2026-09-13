@@ -266,6 +266,15 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
         )
         assert history_measurement.http_requests >= 1
         assert isinstance(history, list)
+        for row in history:
+            assert row["stock_id"] == identifier
+            assert row["timespan"] == timespan
+            assert row["timestamp"].tzinfo is not None
+            assert row["open"] > 0
+            assert row["high"] >= max(row["open"], row["close"])
+            assert row["low"] <= min(row["open"], row["close"])
+            assert row["close"] > 0
+            assert isinstance(row["raw_payload"], dict)
     news, news_measurement = _observed_read(
         lambda: provider.fetch_tokenized_news(identifier, limit=1), "dinari"
     )
