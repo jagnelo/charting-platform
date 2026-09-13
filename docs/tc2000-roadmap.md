@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified publisher fund-scoped holdings completeness
+
+Product commit `829ed19f2` closes a bounded R1 source-quality seam for
+McIvy/Genter's GENT/GEND/GENM/GENW routes and Langar's LGHT route. The
+adapters verify public issuer-settings fund identity, fund-scoped publisher
+JSON ticker/fund/name identity, dated `pricing.effdate`, and non-empty
+holdings; live probes require at least 30 rows with CUSIPs. They now emit
+explicit `completeness_status: complete`. Generic current/daily/table labels
+remain fail-closed as `unknown`; no generic inference or fallback was added.
+
+Focused adapter assertions passed `2/2`; Ruff/format/diff checks passed; full
+backend units passed `1544/1544`. The exact branch-scoped gate passed backend
+unit `1544/1544`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified native holdings completeness
 
 Product commit `c8ba7a600` closes a bounded R1 source-quality seam for three

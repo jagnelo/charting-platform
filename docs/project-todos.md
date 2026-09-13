@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified publisher fund-scoped holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to the verified
+      McIvy/Genter GENT/GEND/GENM/GENW and Langar LGHT fund-scoped publisher
+      routes. Each route verifies issuer-settings fund identity, payload
+      ticker/fund/name identity, dated `pricing.effdate`, and non-empty rows;
+      live probes require at least 30 rows with CUSIPs. Generic current/daily/
+      table labels remain fail-closed.
+- [x] Product commit `829ed19f2`; focused McIvy/Langar adapter assertions
+      passed `2/2`, Ruff/format/diff checks passed, and full backend units
+      passed `1544/1544`.
+- [x] Exact branch-scoped gate passed backend unit `1544/1544`, integration
+      `405/405`, frontend Vitest `1067/1067`, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+      `98/104`; only the six unchanged protected visual diffs remain
+      (watchlist-column-editor and workspace-floating). Docker resources were
+      cleaned. No provider/fallback, migration, visual, threshold, mask,
+      skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified native holdings completeness
 
 - [x] Add explicit `completeness_status: complete` to the NSI product-page
