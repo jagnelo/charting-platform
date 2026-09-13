@@ -14,6 +14,13 @@
 - [ ] Keep the plan/terms and redistribution review open; this configuration
       change does not establish a MarketData.app entitlement or promote routing.
 
+- [x] Make provider diagnostics report the complete invalid control set when a
+      trial has both a mismatched plan/limit pair and an invalid expiry. The
+      runtime and live preflight now distinguish a valid pair with a missing
+      expiry from a trial with multiple invalid controls, without weakening
+      fail-closed admission. Focused provider-policy coverage remains green;
+      the authoritative backend gate passes 2,455/2,455 at 81.68% coverage.
+
 ### 2026-09-13 — MarketData.app stock-candle credit accounting
 
 - [x] Replace the previous fixed one-credit OHLCV/bulk-history charge with a
