@@ -17964,9 +17964,28 @@ async def test_aot_adapter_parses_issuer_product_page_holdings_and_scales_millio
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "aot_invest_public_product_page_holdings_table"
     )
+
+
+@pytest.mark.asyncio
+async def test_aot_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("aot")
+    assert adapter is not None
+    raw_html = """
+    <h2>AOTG</h2>
+    <table>
+      <tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th><th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td>51,886.00</td><td>202.78</td><td>10.52</td><td>10.11</td><td></td></tr>
+    </table>
+    """
+    FakeAsyncClient.queue = [FakeResponse(text=raw_html, content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="AOTG")
 
 
 @pytest.mark.asyncio
@@ -18006,9 +18025,28 @@ async def test_3fourteen_adapter_parses_current_product_page_holdings_table(monk
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "smi_3fourteen_public_product_page_holdings_table"
     )
+
+
+@pytest.mark.asyncio
+async def test_3fourteen_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("3fourteen")
+    assert adapter is not None
+    raw_html = """
+    <h1>FCTE</h1>
+    <table>
+      <tr><th>Description</th><th>Ticker</th><th>Weight (%)**</th><th>Market Value ($)</th><th>FIGI</th><th>Shares Held</th></tr>
+      <tr><td>META PLATFORMS INC</td><td>META</td><td>5.63</td><td>13686700</td><td>BBG000MM2P62</td><td>21674</td></tr>
+    </table>
+    """
+    FakeAsyncClient.queue = [FakeResponse(text=raw_html, content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="FCTE")
 
 
 @pytest.mark.asyncio
@@ -18058,9 +18096,36 @@ async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkey
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert result.legal_metadata["route_resolution"] == (
         "abacus_fcf_product_page_linked_daily_holdings_csv"
     )
+
+
+@pytest.mark.asyncio
+async def test_abacus_global_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("abacus_global")
+    assert adapter is not None
+    raw_html = """
+    <h1>Abacus FCF International Leaders ETF (ABLG)</h1>
+    <a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv">
+      DOWNLOAD FULL HOLDINGS
+    </a>
+    """
+    raw_csv = "\n".join(
+        [
+            "Ticker,CUSIP,Security Description,Shares,Market Value,% of Net Assets",
+            'ASML,N07059210,ASML Holding NV,487,"$878,669.75",5.25%',
+        ]
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=raw_html, content_type="text/html"),
+        FakeResponse(text=raw_csv, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="ABLG")
 
 
 @pytest.mark.asyncio

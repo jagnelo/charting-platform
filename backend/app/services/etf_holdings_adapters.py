@@ -20637,6 +20637,10 @@ class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_product_page(response.text, symbol=symbol)
         if not rows:
             raise ValueError(f"AOT Invest page did not expose holdings rows for {symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"AOT Invest holdings did not publish a composition date for {symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -20656,6 +20660,7 @@ class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "snapshot_provenance": "issuer_native_product_page_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -20840,6 +20845,10 @@ class ThreeFourteenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_product_page(response.text, symbol=symbol)
         if not rows:
             raise ValueError(f"SMI 3Fourteen page did not expose holdings rows for {symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"SMI 3Fourteen holdings did not publish a composition date for {symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -20859,6 +20868,7 @@ class ThreeFourteenHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "snapshot_provenance": "issuer_native_product_page_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -21047,6 +21057,10 @@ class AbacusGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows = self._parse_holdings_csv(csv_response.text, symbol=normalized_symbol)
         if not rows:
             raise ValueError(f"Abacus FCF holdings CSV returned no rows for {normalized_symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"Abacus FCF holdings did not publish a composition date for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=csv_response.text,
@@ -21066,6 +21080,7 @@ class AbacusGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(product_response.url),
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
