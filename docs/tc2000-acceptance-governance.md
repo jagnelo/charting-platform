@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Verified Golden Eagle holdings completeness receipt
+
+Commit `9b793f88e` adds explicit `completeness_status: complete` only to
+Golden Eagle's HYP official product-page holdings route. It verifies official
+product identity/ticker, the exact holdings-table schema, issuer-declared
+holding count against parsed security rows, dated `As of` metadata, and
+non-empty holdings; generic current/daily/table labels remain unchanged and
+ambiguous routes remain fail-closed.
+
+Focused assertions passed `2/2`; full backend units passed `1544/1544` and
+integration passed `405/405` with `81.98%` combined coverage. The exact gate
+passed frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+expected research-runner probes, and functional E2E `165 passed` with `107
+skipped`; visual E2E passed `98/104`, with the same six protected baselines
+remaining the only failures. Docker resources were cleaned with no retained
+containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Verified Mairs & Power holdings completeness receipt
 
 Commit `4e71fd4f5` adds explicit `completeness_status: complete` only to

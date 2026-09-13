@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Promote verified Golden Eagle holdings completeness
+
+Product commit `9b793f88e` closes a bounded R1 source-quality seam for Golden
+Eagle's HYP official product-page holdings route. The adapter verifies the
+official product identity and ticker, exact holdings table schema, issuer-
+declared holding count against parsed security rows, dated `As of` metadata,
+and non-empty holdings before emitting explicit
+`completeness_status: complete`; generic current/daily/table labels remain
+fail-closed and no fallback was added.
+
+Focused Golden Eagle assertions passed `2/2`; Ruff/format/diff checks passed;
+full backend units passed `1544/1544`; integration passed `405/405` with
+`81.98%` combined coverage. The exact branch-scoped gate passed frontend
+Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected watchlist-column-editor/
+workspace-floating diffs remain. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, migration, visual baseline, threshold, mask, skip, or
+acceptance policy changed. Family-wide R1 population/history, D1/W1/MN floors,
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Promote verified Mairs & Power holdings completeness
 
 Product commit `4e71fd4f5` closes a bounded R1 source-quality seam for Mairs &

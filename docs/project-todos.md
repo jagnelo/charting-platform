@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-13 — Promote verified Golden Eagle holdings completeness
+
+- [x] Add explicit `completeness_status: complete` only to Golden Eagle's HYP
+      official product-page holdings route. Verify official product identity
+      and ticker, exact holdings-table schema, issuer-declared count against
+      parsed security rows, dated `As of` metadata, and non-empty holdings;
+      keep generic labels fail-closed with no fallback.
+- [x] Product commit `9b793f88e`; focused Golden Eagle assertions passed
+      `2/2`, Ruff/format/diff checks passed, and full backend units passed
+      `1544/1544`; integration passed `405/405` with `81.98%` combined
+      coverage.
+- [x] Exact branch-scoped gate passed frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected research-runner
+      probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E
+      passed `98/104`; only the six unchanged protected visual diffs remain
+      (watchlist-column-editor and workspace-floating). Docker resources were
+      cleaned with no retained containers, volumes, networks, or testcontainer
+      sessions. No generic provider/fallback, migration, visual, threshold,
+      mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Promote verified Mairs & Power holdings completeness
 
 - [x] Add explicit `completeness_status: complete` only to Mairs & Power's
