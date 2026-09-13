@@ -114,6 +114,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The new tokenized historical availability probe now uses an explicit
+      provider `identifier` field instead of a generic ticker-shaped `symbol`
+      field, preserving provider-asset identity semantics. Focused availability
+      coverage passed `11/11`; the final authoritative Docker-backed gate
+      passed `2,454/2,454` at `81.67%` with 89 warnings. Source checkpoint
+      `addc29f4b1e` contains no frontend or ETF-provider adapter changes.
+    - >-
       Tokenized historical aggregates now have their own
       `TOKENIZED_HISTORICAL_PRICES` capability, provider-chain seed, availability
       probe contract, registry surface, and PostgreSQL enum migration. Dinari
