@@ -377,6 +377,23 @@ class TestIndicatorsEndpoint:
         assert "values" in data
         assert "sma" in data["values"]
         assert len(data["timestamps"]) == len(ohlcv_bars)
+        assert data["coverage_preflight"]["evaluator"] == "indicator_compute"
+        assert data["coverage_preflight"]["status"] == "full"
+
+    def test_compute_indicator_withholds_insufficient_history(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        res = client.get(
+            f"/api/v1/indicators/compute/{instrument.symbol}/D1",
+            params={"indicator": "sma", "params": '{"period": 200}'},
+            headers=auth_headers,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["timestamps"] == []
+        assert data["values"] == {}
+        assert data["coverage_preflight"]["status"] == "deferred"
+        assert data["coverage_preflight"]["ready_instrument_count"] == 0
 
     def test_compute_unknown_indicator_returns_error(
         self, client, auth_headers, instrument, ohlcv_bars
