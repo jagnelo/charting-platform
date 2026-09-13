@@ -134,6 +134,14 @@ progress:
       coverage with 89 warnings. No live provider call or credential was used
       for this source change.
     - >-
+      A fresh bounded credentialed revalidation using the existing owner-managed
+      environment passed 9/9: SEC EDGAR filings/Company Facts, Alpaca daily,
+      intraday, latest, assets/corporate actions, MarketData.app options,
+      account usage, intraday history, and Dinari Sandbox metadata/price/quote,
+      DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and corporate
+      actions. Aggregate usage stayed in the external ledger only; this is
+      transport evidence and does not promote any unreviewed routing control.
+    - >-
       Newly configured Alpaca and MarketData.app credentials were revalidated
       in seven bounded live cases on 2026-09-13: Alpaca daily/intraday/latest
       history, assets, and corporate actions plus MarketData.app options,
