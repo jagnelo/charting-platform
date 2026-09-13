@@ -114,7 +114,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f32a19a5398b039849c7194b5420c7be1b78aeb8",
+  "head": "326c2418085046882ee6fa530c821bdc33ae707c",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-13T15:41:29.085277+00:00",
