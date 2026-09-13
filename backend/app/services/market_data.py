@@ -1129,6 +1129,7 @@ async def _fetch_provider(
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
+        history_start=start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,

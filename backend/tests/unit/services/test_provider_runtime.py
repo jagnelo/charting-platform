@@ -634,6 +634,32 @@ async def test_marketstack_history_route_does_not_require_discovery_scope(db, mo
 
 
 @pytest.mark.asyncio
+async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    await seed_provider_runtime(async_db)
+
+    now = datetime.now(UTC)
+    within_bound = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"marketstack": 1},
+        history_start=now - timedelta(days=364),
+    )
+    beyond_bound = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"marketstack": 1},
+        history_start=now - timedelta(days=367),
+    )
+
+    assert any(item.provider_name == "marketstack" for item in within_bound)
+    assert all(item.provider_name != "marketstack" for item in beyond_bound)
+
+
+@pytest.mark.asyncio
 async def test_paid_routing_switch_does_not_bypass_unreviewed_entitlement(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     seeds = {

@@ -1,12 +1,83 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaWindow, ProviderWorkloadLease
-from app.services.provider_routing import reserve_provider_quota, settle_workload_lease
-from app.services.provider_runtime import ProviderQuotaUnknownError
+from app.models.provider_runtime import ProviderCapability
+from app.services.provider_routing import (
+    ProviderRequirements,
+    _entitlement_matches,
+    reserve_provider_quota,
+    settle_workload_lease,
+)
+from app.services.provider_runtime import (
+    ProviderQuotaUnknownError,
+    provider_history_entitlement_matches,
+)
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _history_entitlement(**quota_policy):
+    return SimpleNamespace(
+        history_depth="documented provider history",
+        quota_policy=quota_policy,
+    )
+
+
+def test_history_entitlement_enforces_calendar_year_bound():
+    now = datetime(2026, 9, 13, tzinfo=UTC)
+    entitlement = _history_entitlement(
+        history_constraints={"max_lookback_years": 2, "source": "reviewed"}
+    )
+
+    assert provider_history_entitlement_matches(
+        entitlement, datetime(2024, 9, 13, tzinfo=UTC), now=now
+    ) == (True, None)
+    assert provider_history_entitlement_matches(
+        entitlement, datetime(2024, 9, 12, tzinfo=UTC), now=now
+    ) == (False, "history_depth_exceeded")
+
+
+@pytest.mark.parametrize(
+    ("quota_policy", "expected_reason"),
+    [
+        ({}, "history_depth_unknown"),
+        ({"history_constraints": {}}, "history_depth_invalid"),
+        ({"history_constraints": {"max_lookback_years": True}}, "history_depth_invalid"),
+        (
+            {"history_constraints": {"max_lookback_years": 2, "max_lookback_days": 730}},
+            "history_depth_invalid",
+        ),
+    ],
+)
+def test_history_entitlement_fails_closed_without_one_valid_bound(
+    quota_policy, expected_reason
+):
+    entitlement = _history_entitlement(**quota_policy)
+    allowed, reason = provider_history_entitlement_matches(
+        entitlement,
+        datetime(2025, 1, 1, tzinfo=UTC),
+        now=datetime(2026, 9, 13, tzinfo=UTC),
+    )
+    assert not allowed
+    assert reason == expected_reason
+
+
+def test_routing_history_requirement_uses_structured_entitlement_bound():
+    entitlement = _history_entitlement(
+        history_constraints={"max_lookback_years": 1, "source": "reviewed"}
+    )
+    requirement = ProviderRequirements(
+        capability=ProviderCapability.PRICE_HISTORY,
+        history_start=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+
+    allowed, reason = _entitlement_matches(entitlement, requirement)
+
+    assert not allowed
+    assert reason == "history_depth_exceeded"
 
 
 @pytest.mark.asyncio

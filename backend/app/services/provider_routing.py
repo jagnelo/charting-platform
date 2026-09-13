@@ -29,6 +29,7 @@ from app.services.provider_runtime import (
     ResolvedProvider,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
+    provider_history_entitlement_matches,
     quota_dimensions,
     resolve_provider_chain,
 )
@@ -182,6 +183,11 @@ def _entitlement_matches(
         raw_depth = entitlement.history_depth or policy.get("history_depth")
         if not raw_depth:
             return False, "history_depth_unknown"
+        history_allowed, history_reason = provider_history_entitlement_matches(
+            entitlement, requirements.history_start
+        )
+        if not history_allowed:
+            return False, history_reason or "history_depth_unknown"
     if requirements.terms:
         declared_terms = {str(value) for value in (policy.get("terms") or [])}
         missing = requirements.terms - declared_terms

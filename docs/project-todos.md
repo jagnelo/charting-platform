@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-13 — Provider-specific history-depth admission
+
+- [x] Replace descriptive-only history-depth routing with structured,
+      provider-specific `quota_policy.history_constraints` bounds. Massive's
+      two-year, Marketstack's one-year, and EODHD's one-year documented
+      lookbacks are enforced for normal bounded OHLCV fetches; missing,
+      malformed, future, or exceeded bounds fail closed. Epoch-style bulk
+      hydration remains adaptive and persists only validated provider rows.
+      Focused routing/runtime coverage passed 76/76, and the authoritative
+      Docker-backed backend gate passed 2,482/2,482 at 81.71% combined
+      coverage. No frontend or ETF-provider adapter files changed.
+
+- [ ] Keep all other provider history limits without machine-readable,
+      documentation-backed bounds non-routable until their exact plan and
+      endpoint semantics are reviewed; do not convert prose such as
+      "plan-dependent" or "latest N points" into guessed calendar windows.
+
 ### 2026-09-13 — Final current-source provider matrix receipt
 
 - [x] Run the full lock-protected provider/tokenized matrix against pushed

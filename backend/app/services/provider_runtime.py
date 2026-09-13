@@ -140,6 +140,58 @@ def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
+def provider_history_entitlement_matches(
+    entitlement: ProviderEntitlement,
+    history_start: datetime | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[bool, str | None]:
+    """Check a provider's explicit historical lookback contract.
+
+    ``history_depth`` is intentionally descriptive and cannot safely answer a
+    routing question. A provider that wants to admit a bounded historical
+    request must therefore publish a machine-readable ``history_constraints``
+    object in its entitlement ``quota_policy``. The supported bounds are
+    calendar years (for plans documented as "N years") and calendar days.
+    Missing, ambiguous, or malformed constraints remain non-routable rather
+    than becoming an invented allowance.
+    """
+
+    if history_start is None:
+        return True, None
+    policy = dict(entitlement.quota_policy or {})
+    constraints = policy.get("history_constraints")
+    if not isinstance(constraints, dict):
+        return False, "history_depth_unknown"
+
+    raw_years = constraints.get("max_lookback_years")
+    raw_days = constraints.get("max_lookback_days")
+    has_years = raw_years is not None
+    has_days = raw_days is not None
+    if has_years == has_days:
+        return False, "history_depth_invalid"
+    raw_value = raw_years if has_years else raw_days
+    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
+        return False, "history_depth_invalid"
+
+    current = _as_utc(now or datetime.now(UTC))
+    requested = _as_utc(history_start)
+    if requested > current:
+        return False, "history_start_invalid"
+    if has_years:
+        try:
+            earliest = current.replace(year=current.year - raw_value)
+        except ValueError:
+            # A leap-day request has no same-day representation in the target
+            # year; the last valid day of February is the conservative bound.
+            earliest = current.replace(year=current.year - raw_value, month=2, day=28)
+    else:
+        earliest = current - timedelta(days=raw_value)
+    if requested < earliest:
+        return False, "history_depth_exceeded"
+    return True, None
+
+
 @dataclass(slots=True)
 class ResolvedProvider:
     provider_name: str
@@ -1334,6 +1386,15 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 quota_policy = dict(entitlement.quota_policy or {})
                 quota_policy.setdefault("contract", dict(rate_seed["quota_contract"]))
                 entitlement.quota_policy = quota_policy
+            seed_quota_policy = entitlement_seed.get("quota_policy")
+            if isinstance(seed_quota_policy, dict):
+                quota_policy = dict(entitlement.quota_policy or {})
+                for key, value in seed_quota_policy.items():
+                    # Code-owned structured constraints fill rows created by
+                    # older builds, but never overwrite an operator-reviewed
+                    # entitlement or quota contract.
+                    quota_policy.setdefault(key, value)
+                entitlement.quota_policy = quota_policy
             repository_seed_plans = {
                 "unreviewed",
                 "free-forever",
@@ -1422,6 +1483,7 @@ async def resolve_provider_chain(
     operation: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
+    history_start: datetime | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -1474,6 +1536,12 @@ async def resolve_provider_chain(
             data_source.name, adjusted
         ):
             continue
+        if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:
+            history_allowed, _history_reason = provider_history_entitlement_matches(
+                entitlement, history_start, now=now
+            )
+            if not history_allowed:
+                continue
         # ``ALLOW_PAID_PROVIDER_ROUTING`` only controls whether a *reviewed*
         # paid plan may participate.  It must never turn an unreviewed
         # descriptor (the default for optional adapters) into a usable route.
@@ -1665,6 +1733,7 @@ async def execute_provider_call(
     provider_name: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
+    history_start: datetime | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
@@ -1676,6 +1745,7 @@ async def execute_provider_call(
         operation=operation,
         operation_cost_overrides=operation_cost_overrides,
         adjusted=adjusted,
+        history_start=history_start,
     )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]

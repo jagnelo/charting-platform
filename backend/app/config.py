@@ -1320,6 +1320,12 @@ class Settings(BaseSettings):
             "authentication_required": True,
             "usage_terms": "Stocks Basic is listed as 5 API calls/minute and two years of historical data; confirm plan licensing and redistribution terms before production use.",
             "history_depth": "Two years on Stocks Basic; plan-dependent beyond that",
+            "quota_policy": {
+                "history_constraints": {
+                    "max_lookback_years": 2,
+                    "source": "https://massive.com/stocks",
+                }
+            },
             "venue_coverage": "Provider-supported US reference universe",
             "freshness_semantics": "Plan-dependent delayed/EOD",
         },
@@ -1456,6 +1462,12 @@ class Settings(BaseSettings):
             "authentication_required": True,
             "usage_terms": "Marketstack free plan; 100 monthly requests and provider licensing terms apply.",
             "history_depth": "Plan dependent",
+            "quota_policy": {
+                "history_constraints": {
+                    "max_lookback_years": 1,
+                    "source": "https://marketstack.com/product",
+                }
+            },
             "venue_coverage": "Provider-supported US securities",
             "freshness_semantics": "EOD/delayed on the free plan",
         },
@@ -1465,6 +1477,12 @@ class Settings(BaseSettings):
             "authentication_required": True,
             "usage_terms": "EODHD free plan; daily and minute request ceilings and provider terms apply.",
             "history_depth": "Plan and endpoint dependent",
+            "quota_policy": {
+                "history_constraints": {
+                    "max_lookback_years": 1,
+                    "source": "https://eodhd.com/pricing",
+                }
+            },
             "venue_coverage": "Provider-supported US securities",
             "freshness_semantics": "Historical/EOD",
         },

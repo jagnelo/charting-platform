@@ -2200,3 +2200,16 @@ changed.
   upstream requests and 23,334,032 response bytes, then merged into the
   owner-managed ledger (`accepted=26`). This remains non-acceptance evidence;
   no routing entitlement was promoted.
+
+- History-depth admission is now provider-specific and machine-readable.
+  Massive (two calendar years), Marketstack (one calendar year), and EODHD
+  (one calendar year) publish structured
+  `quota_policy.history_constraints` bounds. Normal bounded OHLCV fetches pass
+  their requested start date through provider admission; missing, malformed,
+  future, or exceeded bounds fail closed. Epoch-style bulk hydration remains
+  adaptive so it can persist the maximum validated range a provider exposes.
+  Focused routing/runtime coverage passed `76/76`, Ruff, compileall, and diff
+  checks passed, and the authoritative Docker-backed gate passed `2,482/2,482`
+  at `81.71%` combined coverage with 89 warnings in isolated session
+  `b440cc4a-6923-477b-9255-9af31292fc9f`. No frontend or ETF-provider adapter
+  files changed.

@@ -122,6 +122,17 @@ durable `ProviderQuotaWindow` counters. “Unknown” is deliberate; it is not a
 placeholder estimate. Limits are for the named plan/scope only and must be
 re-reviewed when credentials or billing plans change.
 
+Historical routing also requires a machine-readable lookback contract in the
+provider entitlement. The descriptive `history_depth` field remains useful for
+operator diagnostics, but it cannot admit a date-bounded request by itself.
+Providers with a documented finite lookback publish
+`quota_policy.history_constraints.max_lookback_years` (or the equivalent
+`max_lookback_days`); malformed, missing, or ambiguous bounds fail closed.
+Normal bounded OHLCV fetches pass their requested start date through this gate.
+Epoch-style bulk hydration intentionally omits that admission bound so each
+provider can return the maximum history it actually exposes, with the result
+still bounded and validated by the adapter.
+
 Published bandwidth pools expressed by vendors as GB/MB are represented as
 conservative decimal-byte ceilings when the provider does not explicitly state
 binary units. This prevents the local guard from permitting more bytes than a
