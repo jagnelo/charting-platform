@@ -165,6 +165,8 @@ async def list_tokenized_assets(
             "underlying_composite_figi": detail.underlying_composite_figi,
             "underlying_isin": detail.underlying_isin,
             "underlying_cusip": detail.underlying_cusip,
+            "underlying_cik": detail.underlying_cik,
+            "underlying_issuer_id": detail.underlying_issuer_id,
             "backing_type": detail.backing_type,
             "multiplier": detail.multiplier,
             "circulating_supply": detail.circulating_supply,

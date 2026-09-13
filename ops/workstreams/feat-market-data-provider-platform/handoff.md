@@ -2071,3 +2071,12 @@ Update this handoff at each coherent boundary.
   13,092,191 response bytes in `/private/tmp` only; no credentials or provider
   payloads entered Git. This is transport/schema evidence only and does not
   promote quota, commercial, redistribution, or routing entitlement.
+
+- Tokenized admin diagnostics now expose the persisted economic `underlying_cik`
+  and optional `underlying_issuer_id` without conflating the token instrument
+  with its underlying issuer. The targeted Docker-backed admin integration test
+  passed `1/1`; Ruff and diff checks passed; and the authoritative Docker-backed
+  combined backend gate passed `2,457/2,457` at `81.69%` with 89 warnings in
+  `521.82s` using isolated testcontainer session
+  `b74ce11b-1f89-4bf6-ad4e-76ac0e520cb8`. No frontend or ETF-provider adapter
+  files changed.

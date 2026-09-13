@@ -81,6 +81,7 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
             underlying_composite_figi="BBG000B9XRY4",
             underlying_isin="US0378331005",
             underlying_cusip="037833100",
+            underlying_cik="0000320193",
             backing_type="fully_backed",
             deployments=[{"network": "solana", "address": "So111"}],
             provenance={"provider": "xstocks"},
@@ -114,6 +115,8 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
     assert row["underlying_composite_figi"] == "BBG000B9XRY4"
     assert row["underlying_isin"] == "US0378331005"
     assert row["underlying_cusip"] == "037833100"
+    assert row["underlying_cik"] == "0000320193"
+    assert row["underlying_issuer_id"] is None
     assert row["deployments"][0]["address"] == "So111"
     assert row["latest_price"] == 123.45
     assert row["latest_price_provider_symbol"] == "xAAPL"
