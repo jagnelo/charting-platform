@@ -48,6 +48,19 @@ def _response_bytes(log: ProviderRequestLog) -> int:
     return max(0, int(log.response_bytes or 0))
 
 
+def _settled_units(log: ProviderRequestLog) -> float:
+    """Return provider-settled units without inventing values for unknown rows."""
+
+    value = log.settled_usage_units
+    return _to_float(value)
+
+
+def _settlement_observed(log: ProviderRequestLog) -> int:
+    """Return one only when this request has an explicit settled amount."""
+
+    return 1 if log.settled_usage_units is not None else 0
+
+
 def _percent(numerator: int, denominator: int) -> float:
     if denominator <= 0:
         return 0.0
@@ -628,6 +641,8 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     "operation_family": log.operation_family,
                     "requests": 0,
                     "units": 0.0,
+                    "settled_units": 0.0,
+                    "settled_unit_observations": 0,
                     "response_bytes": 0,
                     "failures": 0,
                     "successes": 0,
@@ -635,6 +650,8 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             )
             row["requests"] += 1
             row["units"] += _to_float(log.usage_units)
+            row["settled_units"] += _settled_units(log)
+            row["settled_unit_observations"] += _settlement_observed(log)
             row["response_bytes"] += _response_bytes(log)
             row["successes"] += 1 if log.success else 0
             row["failures"] += 0 if log.success else 1
@@ -647,12 +664,16 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     "capability": log.capability.value,
                     "requests": 0,
                     "units": 0.0,
+                    "settled_units": 0.0,
+                    "settled_unit_observations": 0,
                     "response_bytes": 0,
                     "failures": 0,
                 },
             )
             row["requests"] += 1
             row["units"] += _to_float(log.usage_units)
+            row["settled_units"] += _settled_units(log)
+            row["settled_unit_observations"] += _settlement_observed(log)
             row["response_bytes"] += _response_bytes(log)
             row["failures"] += 0 if log.success else 1
 
@@ -661,7 +682,14 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         )
 
         hourly_map: dict[datetime, dict[str, Any]] = {
-            bucket: {"bucket_start": bucket, "requests": 0, "units": 0.0, "failures": 0}
+            bucket: {
+                "bucket_start": bucket,
+                "requests": 0,
+                "units": 0.0,
+                "settled_units": 0.0,
+                "settled_unit_observations": 0,
+                "failures": 0,
+            }
             for bucket in hourly_starts
         }
         for log in last_24h_logs:
@@ -672,10 +700,19 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             if bucket in hourly_map:
                 hourly_map[bucket]["requests"] += 1
                 hourly_map[bucket]["units"] += _to_float(log.usage_units)
+                hourly_map[bucket]["settled_units"] += _settled_units(log)
+                hourly_map[bucket]["settled_unit_observations"] += _settlement_observed(log)
                 hourly_map[bucket]["failures"] += 0 if log.success else 1
 
         daily_map: dict[datetime, dict[str, Any]] = {
-            bucket: {"bucket_start": bucket, "requests": 0, "units": 0.0, "failures": 0}
+            bucket: {
+                "bucket_start": bucket,
+                "requests": 0,
+                "units": 0.0,
+                "settled_units": 0.0,
+                "settled_unit_observations": 0,
+                "failures": 0,
+            }
             for bucket in daily_starts
         }
         for log in last_7d_logs:
@@ -686,6 +723,8 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             if bucket in daily_map:
                 daily_map[bucket]["requests"] += 1
                 daily_map[bucket]["units"] += _to_float(log.usage_units)
+                daily_map[bucket]["settled_units"] += _settled_units(log)
+                daily_map[bucket]["settled_unit_observations"] += _settlement_observed(log)
                 daily_map[bucket]["failures"] += 0 if log.success else 1
 
         summaries.append(
@@ -709,12 +748,24 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 ),
                 "retained_requests": len(provider_logs),
                 "retained_units": sum(_to_float(log.usage_units) for log in provider_logs),
+                "retained_settled_units": sum(_settled_units(log) for log in provider_logs),
+                "retained_settled_unit_observations": sum(
+                    _settlement_observed(log) for log in provider_logs
+                ),
                 "retained_response_bytes": sum(_response_bytes(log) for log in provider_logs),
                 "requests_24h": len(last_24h_logs),
                 "units_24h": sum(_to_float(log.usage_units) for log in last_24h_logs),
+                "settled_units_24h": sum(_settled_units(log) for log in last_24h_logs),
+                "settled_unit_observations_24h": sum(
+                    _settlement_observed(log) for log in last_24h_logs
+                ),
                 "response_bytes_24h": sum(_response_bytes(log) for log in last_24h_logs),
                 "requests_7d": len(last_7d_logs),
                 "units_7d": sum(_to_float(log.usage_units) for log in last_7d_logs),
+                "settled_units_7d": sum(_settled_units(log) for log in last_7d_logs),
+                "settled_unit_observations_7d": sum(
+                    _settlement_observed(log) for log in last_7d_logs
+                ),
                 "response_bytes_7d": sum(_response_bytes(log) for log in last_7d_logs),
                 "success_rate_24h": _percent(
                     len(last_24h_logs) - len(failures_24h), len(last_24h_logs)

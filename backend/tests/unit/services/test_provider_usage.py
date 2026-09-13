@@ -192,6 +192,7 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
                 usage_mode="call_count",
                 usage_unit_label="requests",
                 usage_units=Decimal("1"),
+                settled_usage_units=Decimal("1"),
                 http_requests=1,
                 response_bytes=1200,
                 latency_ms=120,
@@ -207,6 +208,7 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
                 usage_mode="call_count",
                 usage_unit_label="requests",
                 usage_units=Decimal("1"),
+                settled_usage_units=Decimal("0"),
                 http_requests=1,
                 response_bytes=800,
                 response_headers={"x-ratelimit-remaining": "17"},
@@ -259,8 +261,10 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db, monkeypa
     assert summary["usage_unit_label"] == "requests"
     assert summary["requests_24h"] == 2
     assert summary["units_24h"] == pytest.approx(2.0)
+    assert summary["settled_units_24h"] == pytest.approx(1.0)
     assert summary["response_bytes_24h"] == 2000
     assert summary["top_operations"][0]["response_bytes"] == 2000
+    assert summary["top_operations"][0]["settled_units"] == pytest.approx(1.0)
     assert summary["failure_rate_24h"] == pytest.approx(50.0)
     assert summary["timeout_rate_24h"] == pytest.approx(50.0)
     assert summary["top_operations"][0]["operation_family"] == "search_instruments"

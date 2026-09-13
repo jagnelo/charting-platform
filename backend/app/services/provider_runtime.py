@@ -446,6 +446,62 @@ def _consumed_dimension_costs(
     return consumed
 
 
+def _usage_unit_kind(value: Any) -> str:
+    """Normalize a profile label or quota unit for settlement matching."""
+
+    normalized = "".join(
+        character for character in str(value or "").strip().lower() if character.isalnum()
+    )
+    if normalized in {"request", "requests", "call", "calls"}:
+        return "requests"
+    if normalized in {"weight", "weights", "requestweight"}:
+        return "weight"
+    if normalized in {"credit", "credits"}:
+        return "credits"
+    if normalized in {"byte", "bytes"}:
+        return "bytes"
+    if normalized in {"symbol", "symbols", "uniquesymbol", "uniquesymbols"}:
+        return "symbols"
+    return normalized
+
+
+def _settled_usage_units(
+    policy: ProviderPolicy,
+    *,
+    usage_unit_label: str,
+    reserved_dimension_units: dict[str, int],
+    consumed_dimension_units: dict[str, int],
+) -> Decimal | None:
+    """Return the settled amount for the profile's primary usage unit.
+
+    A provider may expose several simultaneous dimensions (for example a
+    minute and daily credit pool, or request plus byte budgets). Only a
+    dimension whose reviewed unit matches the profile label and participated
+    in this operation is eligible. If matching dimensions disagree, the
+    primary amount is ambiguous and remains NULL rather than being guessed.
+    """
+
+    target = _usage_unit_kind(usage_unit_label)
+    if not target:
+        return None
+    values: set[int] = set()
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        if _usage_unit_kind(dimension.get("unit")) != target:
+            continue
+        reserved = reserved_dimension_units.get(name, 0)
+        consumed = consumed_dimension_units.get(name, 0)
+        if isinstance(reserved, bool) or not isinstance(reserved, int) or reserved <= 0:
+            if isinstance(consumed, bool) or not isinstance(consumed, int) or consumed <= 0:
+                continue
+        if isinstance(consumed, bool) or not isinstance(consumed, int) or consumed < 0:
+            return None
+        values.add(consumed)
+    if len(values) != 1:
+        return None
+    return Decimal(str(values.pop()))
+
+
 def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict[str, int]:
     """Translate provider-native cumulative credit headers into safe totals.
 
@@ -1753,6 +1809,15 @@ async def execute_provider_call(
                     f"{resolved.provider_name} returned no usable data for {operation}"
                 )
             latency_ms = int((time.perf_counter() - started) * 1000)
+            consumed_dimension_units = _consumed_dimension_costs(
+                resolved.policy, measurement, dimension_units
+            )
+            log_row.settled_usage_units = _settled_usage_units(
+                resolved.policy,
+                usage_unit_label=usage_unit_label,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=consumed_dimension_units,
+            )
             await _record_result(
                 db,
                 resolved=resolved,
@@ -1766,9 +1831,7 @@ async def execute_provider_call(
                 units=operation_units,
                 success=True,
                 reserved_dimension_units=dimension_units,
-                consumed_dimension_units=_consumed_dimension_costs(
-                    resolved.policy, measurement, dimension_units
-                ),
+                consumed_dimension_units=consumed_dimension_units,
                 consume_on_failure_dimensions=distinct_dimensions,
                 observed_dimension_totals=_observed_dimension_totals(
                     resolved.policy, measurement
@@ -1830,14 +1893,25 @@ async def execute_provider_call(
                         else None
                     )
             last_error = exc
+            consumed_dimension_units = _consumed_dimension_costs(
+                resolved.policy, measurement, dimension_units
+            )
+            settled_dimension_units = {
+                name: (value if name in distinct_dimensions else 0)
+                for name, value in consumed_dimension_units.items()
+            }
+            log_row.settled_usage_units = _settled_usage_units(
+                resolved.policy,
+                usage_unit_label=usage_unit_label,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=settled_dimension_units,
+            )
             settle_provider_contract(
                 reservations,
                 units=operation_units,
                 success=False,
                 reserved_dimension_units=dimension_units,
-                consumed_dimension_units=_consumed_dimension_costs(
-                    resolved.policy, measurement, dimension_units
-                ),
+                consumed_dimension_units=consumed_dimension_units,
                 consume_on_failure_dimensions=distinct_dimensions,
                 release_only_dimensions=release_only_dimensions,
             )

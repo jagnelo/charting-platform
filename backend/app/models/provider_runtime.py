@@ -271,6 +271,16 @@ class ProviderRequestLog(Base, TimestampMixin):
     usage_units: Mapped[Decimal] = mapped_column(
         Numeric(12, 4), nullable=False, default=Decimal("1")
     )
+    # ``usage_units`` is the reviewed pre-call reservation used for admission.
+    # Provider-native settlement can differ (for example a response-priced
+    # MarketData.app request can consume zero or several credits, while FINRA
+    # settles its byte dimension to measured transport). Keep that observed
+    # primary-unit amount separately so operator reports never confuse a
+    # reservation with actual settled usage. Historical rows remain NULL and
+    # are handled as legacy reservations by the reporting layer.
+    settled_usage_units: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 4), nullable=True
+    )
     http_requests: Mapped[int | None] = mapped_column(Integer, nullable=True)
     response_bytes: Mapped[int | None] = mapped_column(BIGINT, nullable=True)
     response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

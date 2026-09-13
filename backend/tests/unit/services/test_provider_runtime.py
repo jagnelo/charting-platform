@@ -273,6 +273,8 @@ async def test_execute_provider_call_settles_marketdata_app_native_credit_charge
         "x-api-ratelimit-reset": "1700000000",
         "x-api-ratelimit-consumed": "4",
     }
+    assert row.usage_units == Decimal("12")
+    assert row.settled_usage_units == Decimal("4")
     window = db.execute(select(ProviderQuotaWindow)).scalar_one()
     assert window.consumed_units == 13
     assert window.reserved_units == 0

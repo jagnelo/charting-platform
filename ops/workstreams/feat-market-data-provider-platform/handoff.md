@@ -2040,3 +2040,16 @@ Update this handoff at each coherent boundary.
   entered Git. This confirms transport/schema behavior but does not promote
   MarketData.app plan/expiry/option-bound or Dinari quota/commercial/
   redistribution entitlements.
+
+- Provider request logs now persist nullable `settled_usage_units` separately
+  from the reviewed pre-call `usage_units` reservation. Runtime settlement
+  derives a primary amount only from an explicitly matching provider quota
+  dimension; ambiguous or unavailable dimensions remain unknown rather than
+  falling back to one request. Provider-admin usage summaries expose reserved
+  and settled totals plus observation counts for retained, 24-hour, 7-day,
+  operation, capability, hourly, and daily views. Focused runtime/usage
+  coverage passed `58/58`; migration compatibility passed from previous head
+  `cd3e4f5a6b7c`; and the authoritative Docker-backed gate passed
+  `2,456/2,456` at `81.69%` with 89 warnings using isolated session
+  `df1ea6d8-502c-4ad9-9201-720b971d9f5d`. No frontend or ETF-provider adapter
+  files changed.
