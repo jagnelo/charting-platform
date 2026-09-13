@@ -114,6 +114,20 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Source checkpoint `7d94ad60d` isolates tokenized catalog provider
+      failures: each failed provider/page is retained as redacted evidence,
+      later qualified providers continue, and all-provider failure is distinct
+      from mixed-provider `partial` degradation. Tokenized service/provider
+      fixtures passed `92/92`; Ruff, compileall, and diff checks passed. No
+      live provider calls, credentials, frontend, or ETF-provider adapter files
+      changed.
+    - >-
+      The authoritative Docker-backed combined backend unit/integration gate
+      after `7d94ad60d` passed `2,438/2,438` with 89 warnings at `81.61%`
+      combined coverage using cleaned labeled testcontainer session
+      `bcf70b7a-48f3-49d4-9a78-d26499a577f7`. No provider calls, credentials,
+      frontend, or ETF-provider adapter files changed.
+    - >-
       The authoritative Docker-backed combined backend unit/integration gate
       after the bounded tokenized-catalog change passed `2,436/2,436` with 89
       warnings at `81.60%` combined coverage using cleaned labeled
@@ -1320,8 +1334,9 @@ progress:
     exchange or optional-provider raw response as adjusted data. Series-scoped
     conflict identity is now covered by migration `9f0a1b2c3d4e`; the new
     persistence semantics now include the default-series compatibility mapping
-    in migration `a0b1c2d3e4f5`; they still require the blocked
-    PostgreSQL/full-stack gate before promotion. Provider live-ledger receipts
+    in migration `a0b1c2d3e4f5`; the latest authoritative PostgreSQL/full-stack
+    gate now validates these semantics, while coordinator review remains
+    required before promotion. Provider live-ledger receipts
     now preserve provider-scoped failures separately from the process-wide
     matrix status, so historical usage diagnostics no longer overstate failed
     providers when unrelated matrix cases fail. Published bandwidth pools for
@@ -1329,16 +1344,18 @@ progress:
     with an explicit contract basis rather than an assumed binary conversion.
     Production provider-rate seeds are also regression-guarded against the
     retired generic cooldown, concurrency, and burst defaults. Latest-price
-    refresh coalescing is now covered at the process and explicit Redis-client
-    boundaries, but its cross-process contention proof still requires Docker.
+    refresh coalescing is now covered at the process, explicit Redis-client,
+    and independent-worker-client boundaries by the authoritative Docker-backed
+    gate.
     Provider-native account-usage observations are now durable and exposed by
     admin history/refresh endpoints; only MarketData.app currently supplies the
     native account snapshot contract. The direct credentialed account probe
     passed 1/1, but routing remains fail-closed until the reviewed plan/credit
-    pair and response-priced option bound are recorded. The new migration is
-    blocked from generic compatibility validation by the pre-existing duplicate
-    Alembic revision and multiple heads; this branch does not reconcile unrelated
-    migration history.
+    pair and response-priced option bound are recorded. The provider-platform
+    migration graph now reports one deterministic head (`bc2d3e4f5a6b`) and
+    staging compatibility has passed. Tokenized catalog refreshes now preserve
+    redacted provider/page failures and continue to later qualified providers;
+    all-provider failure is distinct from mixed-provider partial degradation.
     Refresh jobs now retain durable attempt timestamps and redacted result
     summaries, including observed versus empty outcomes and retry/defer evidence;
     this improves evaluator coordination but does not itself complete the open

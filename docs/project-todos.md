@@ -16993,3 +16993,15 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Provider-specific quota/legal/redistribution controls and deferred
       credentials remain explicit review gates; do not reinterpret this live
       receipt as routing or production approval.
+
+### 2026-09-13 — Tokenized catalog provider-failure isolation
+
+- [x] Keep one tokenized provider outage or malformed page from aborting the
+      qualified-provider refresh. Catalog refresh now records redacted
+      provider/page failure evidence, continues with the remaining providers,
+      and distinguishes all-provider `failed` from mixed-provider `partial`
+      outcomes. Tokenized service/provider fixtures pass 92/92; no live
+      provider calls or credentials were used.
+- [x] Re-run the authoritative Docker-backed backend gate: 2,438/2,438
+      passed, 81.61% combined coverage, 89 warnings, cleaned testcontainer
+      session `bcf70b7a-48f3-49d4-9a78-d26499a577f7`.

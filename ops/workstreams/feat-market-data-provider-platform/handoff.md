@@ -1867,3 +1867,17 @@ Update this handoff at each coherent boundary.
   This validates the tokenized completeness contract across the scoped backend
   suite; no provider calls, credentials, frontend files, or ETF-provider
   adapter files changed.
+
+- Source checkpoint `7d94ad60d` hardens tokenized catalog refresh isolation.
+  A provider exception or malformed page is now retained as redacted
+  provider/page evidence while qualified providers after it continue; an
+  all-provider failure is reported as `failed`, while mixed success/failure or
+  bounded truncation is reported as `partial`. Tokenized service/provider
+  fixtures passed `92/92`; Ruff, compileall, and diff checks passed. No live
+  provider calls, credentials, frontend files, or ETF-provider adapter files
+  changed.
+
+- The authoritative Docker-backed combined backend unit/integration gate after
+  `7d94ad60d` passed `2,438/2,438` with 89 warnings at `81.61%` combined
+  coverage. Labeled testcontainer session
+  `bcf70b7a-48f3-49d4-9a78-d26499a577f7` was cleaned without host-wide pruning.
