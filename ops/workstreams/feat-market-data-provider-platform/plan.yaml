@@ -127,6 +127,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Deployment defaults now preserve the tokenized historical capability:
+      `.env.example`, `backend/.env.example`, local Compose, and RPi Compose
+      explicitly seed `tokenized_historical_prices` with Dinari and Ondo
+      instead of silently dropping the capability when an explicit
+      `PROVIDER_CHAIN_SEEDS` override is used. Provider secret/wiring,
+      registry, and tokenized-service coverage passed `65/65`; Ruff,
+      compileall, Compose YAML parsing, and diff checks passed. This is a
+      configuration/test-only correction; the previously verified source gate
+      remains `2,484/2,484` at `81.71%`. No frontend or ETF-provider adapter
+      files changed.
+    - >-
       Ondo's documented primary-token daily OHLC endpoint is now bridged into
       the shared `tokenized_historical_prices` capability. DAY preserves the
       provider rows; WEEK, MONTH, and YEAR are deterministic local rollups with

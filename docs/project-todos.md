@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-13 — Tokenized historical deployment-chain parity
+
+- [x] Add `tokenized_historical_prices` with Dinari and Ondo to the explicit
+      provider-chain defaults in both env examples and local/RPi Compose. This
+      prevents deployment overrides from silently dropping the canonical
+      tokenized history capability. Wiring/registry/tokenized-service tests
+      passed 65/65; Compose YAML parsing and static checks passed.
+
 ### 2026-09-13 — Ondo tokenized historical bridge
 
 - [x] Connect Ondo's documented primary-token daily OHLC endpoint to the

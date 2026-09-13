@@ -227,6 +227,10 @@ def test_deployment_defaults_keep_new_tokenized_providers_visible():
             'TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]'
             in compose
         )
+        assert (
+            '"tokenized_historical_prices":["dinari","ondo_global_markets"]'
+            in compose
+        )
 
 
 def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
@@ -348,6 +352,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
         'TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]'
         in example
     )
+    assert '"tokenized_historical_prices":["dinari","ondo_global_markets"]' in example
     for name in (
         PROVIDER_CONFIGURATION_SETTINGS
         | PROVIDER_OPERATION_SETTINGS
