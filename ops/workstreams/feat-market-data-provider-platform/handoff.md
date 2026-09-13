@@ -1578,3 +1578,16 @@ Update this handoff at each coherent boundary.
   No provider calls, credentials, frontend files, or ETF-provider adapter
   files changed. Provider/legal/deployment/shadow gates, future evaluator
   coordination, and generic migration compatibility remain open.
+
+- Source checkpoint `251e45378` adds the shared OHLCV coverage preflight to the
+  direct ETF constituent analysis consumer after point-in-time membership
+  selection and stale filtering. The benchmark-family constituent wrapper
+  inherits the same report. Focused PostgreSQL ETF/relative-rotation
+  integration passed `4/4`, the complete backend unit suite passed
+  `2,029/2,029`, and the authoritative Docker-backed combined backend gate
+  passed `2,410/2,410` at `81.40%` coverage with 89 warnings. Testcontainer
+  session `2f7f31f1-e6bb-42ab-acf8-90db917c0e9b` was cleaned without host-wide
+  pruning. No ETF provider adapters, frontend files, credentials, or provider
+  payloads changed. The parallel `feat/etf-holdings-constituents` branch still
+  owns adapter/provider changes; reconcile this response-field contract at
+  staging.

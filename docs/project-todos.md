@@ -35,6 +35,14 @@
       2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
       at 81.40% coverage. No provider, frontend, or ETF-provider adapter files
       changed.
+- [x] Extend the same contract to the direct ETF constituent analysis consumer.
+      The point-in-time holding snapshot now exposes its shared 252-bar OHLCV
+      preflight, and benchmark-family constituent wrappers preserve it. Focused
+      PostgreSQL integration passes 4/4, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No ETF provider-adapter or frontend files changed;
+      reconcile the response-field contract with
+      feat/etf-holdings-constituents at staging.
 - [x] Extend the same contract to benchmark-family breadth without applying a
       single overly-conservative history gate. Each built-in metric receives
       its own cached-bar preflight, and the cap benchmark has a separate
