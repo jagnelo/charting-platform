@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-13 — Current-source live provider matrix receipt
+
+- [x] Forced the bounded manifest-driven provider matrix against the current
+      source using the existing operator-owned environment. It collected 47
+      cases and passed 41. The three Alpha Vantage event/earnings operations
+      returned typed documented free-key capacity responses; Tradier, IBKR,
+      and Ondo remained exact missing-credential preflights. The run exited
+      2, consumed no credentials into Git, and made no routing-entitlement
+      changes.
+
+- [ ] Keep this as non-acceptance evidence until the provider-specific
+      quota/legal/redistribution controls and deferred credentials are
+      resolved; a capacity response or missing credential is not a successful
+      data read.
+
 ### 2026-09-13 — Tokenized catalog discovery scheduling
 
 - [x] Schedule tokenized listing discovery as a separate bounded daily worker,

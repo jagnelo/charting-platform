@@ -1898,3 +1898,12 @@ Update this handoff at each coherent boundary.
   reconciliation, shadow, future-evaluator, and staging-coordinator gates
   remain open; this branch remains ready for human review and is not ready for
   integration.
+
+- A forced current-source live matrix on `2026-09-13T12:42:40Z` collected
+  `47` cases and passed `41`. Alpha Vantage's three event/earnings calls
+  returned typed documented free-key capacity responses; Tradier, IBKR, and
+  Ondo remained exact missing-credential preflights. The run exited `2` and
+  made no acceptance claim or routing-entitlement change. Safety preflight
+  still reports unresolved provider-specific controls for Alpaca corporate
+  actions, FINRA async/OTC, FRED, Nasdaq, tokenized providers, MarketData.app,
+  Tiingo, and FMP.

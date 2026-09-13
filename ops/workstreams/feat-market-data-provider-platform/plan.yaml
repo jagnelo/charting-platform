@@ -114,6 +114,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Forced current-source live matrix on 2026-09-13 collected 47 bounded
+      cases and passed 41. Alpha Vantage's three event/earnings calls returned
+      typed documented free-key capacity responses; Tradier, IBKR, and Ondo
+      remained exact missing-credential preflights. The run exited 2 and made
+      no acceptance claim or routing-entitlement change; no credentials or
+      payloads entered Git.
+    - >-
       Source checkpoint `7d94ad60d` isolates tokenized catalog provider
       failures: each failed provider/page is retained as redacted evidence,
       later qualified providers continue, and all-provider failure is distinct
