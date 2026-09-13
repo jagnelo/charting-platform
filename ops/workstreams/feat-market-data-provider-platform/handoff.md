@@ -1418,3 +1418,17 @@ Update this handoff at each coherent boundary.
   warnings. Testcontainer session `046e1490-f5ae-455d-a040-f5cb701dc5f5` was
   cleaned without host-wide pruning. No provider calls, credentials, frontend
   files, or ETF-provider adapter files changed.
+
+- Source checkpoint `84fee9ff3` extends the shared coverage-preflight contract
+  to the local technical snapshot and relative-strength endpoints. Technical
+  snapshots report their exact 252-bar full-history requirement while retaining
+  metric-specific insufficiency warnings; relative strength reports per-leg
+  local coverage while preserving its separate aligned-timestamp overlap
+  warning. Focused PostgreSQL point-in-time analysis integration passed `3/3`,
+  the complete backend unit suite passed `2,029/2,029`, changed-file Ruff,
+  compileall, and diff checks passed, and the authoritative Docker-backed gate
+  passed `2,410/2,410` at `81.38%` coverage with 89 warnings. Testcontainer
+  session `80f7facd-b2fc-4374-b9a2-94230bca35ab` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files changed; provider/legal/deployment/shadow gates, future
+  evaluator coordination, and generic migration compatibility remain open.

@@ -16561,3 +16561,18 @@ The current source also passes the focused authenticated top-down browser slice 
       so the endpoint cannot report a ready snapshot while withholding the
       corresponding value. The focused integration remains `2/2` and the
       authoritative Docker-backed gate remains `2,410/2,410` at `81.37%`.
+
+### 2026-09-13 — Point-in-time analysis coverage preflight
+
+- [x] Extend the shared provider-neutral coverage report to technical snapshots
+      and relative-strength analysis. Technical snapshots expose the exact
+      252-bar requirement while preserving per-metric warnings; relative
+      strength exposes per-leg local coverage while retaining explicit
+      aligned-timestamp overlap diagnostics.
+- [x] Focused PostgreSQL point-in-time analysis integration passes `3/3`; the
+      complete backend unit suite passes `2,029/2,029`; changed-file Ruff,
+      compileall, and diff checks pass; and the authoritative Docker-backed
+      backend gate passes `2,410/2,410` at `81.38%` combined coverage with 89
+      warnings. The labeled testcontainer session is cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
