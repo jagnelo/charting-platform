@@ -1327,7 +1327,7 @@ Update this handoff at each coherent boundary.
   files changed. The future breadth/signal preflight migration and generic
   Alembic compatibility graph remain open.
 
-- The current source checkpoint extends the shared OHLCV coverage gate to both
+- Source checkpoint `629e310c8` extends the shared OHLCV coverage gate to both
   production and ARQ-compatible indicator-alert execution. Grouped latest-price
   polling and grouped `(instrument, timeframe)` indicator snapshots happen
   before evaluation; the canonical indicator registry supplies explicit history
