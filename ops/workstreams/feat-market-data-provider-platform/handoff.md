@@ -2020,3 +2020,10 @@ Update this handoff at each coherent boundary.
   response did not identify the commercial/trial plan or expiry. This is
   observational evidence only; the conservative plan/expiry/option-chain
   routing gates remain unchanged.
+
+- The authoritative Docker-backed combined backend unit/integration gate was
+  rerun against the current checkout on 2026-09-13 and passed `2,456/2,456`
+  at `81.68%` coverage with 89 warnings in `565.31s`. Isolated testcontainer
+  session `545fa0a6-0105-4d92-94fb-86f418e11b25` was cleaned without host-wide
+  pruning. No provider calls, credentials, frontend files, or ETF-provider
+  adapter files entered Git.
