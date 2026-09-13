@@ -2234,3 +2234,16 @@ changed.
   `bc60fed6-f853-40ef-a8a5-8d1bf8649263`; cleanup removed only this workstream's
   resources and did not perform a host-wide prune. No frontend or ETF-provider
   adapter files changed.
+
+- A fresh bounded credentialed live suite passed `11/11` against current source
+  checkpoint `750f02d57` for Alpaca history/intraday/latest/assets/corporate
+  actions, SEC EDGAR filings/facts and complete ticker/issuer directory
+  pagination, MarketData.app options/account usage/intraday history, and
+  Dinari Sandbox metadata/price/quote/DAY-WEEK-MONTH-YEAR history/news/
+  dividends/splits/corporate actions. The redacted receipt recorded 5 Alpaca
+  requests/6,487,828 bytes, 6 EDGAR requests/6,236,111 bytes, 5 MarketData.app
+  requests/20,561 bytes, and 14 Dinari requests/182,346 bytes, all successful;
+  its aggregate usage merged into the mode-0600 owner-managed ledger with
+  `accepted=4`. This remains transport/schema evidence only and does not
+  promote unreviewed routing entitlements. No frontend or ETF-provider adapter
+  files changed.

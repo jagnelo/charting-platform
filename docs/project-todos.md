@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-13 — Current-source credentialed provider live refresh
+
+- [x] Re-run the bounded credentialed live suite against source checkpoint
+      `750f02d57`. Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox passed
+      all 11 selected test bodies. The redacted receipt recorded 5 Alpaca
+      requests/6,487,828 bytes, 6 EDGAR requests/6,236,111 bytes, 5
+      MarketData.app requests/20,561 bytes, and 14 Dinari requests/182,346
+      bytes; aggregate usage was merged into the owner-managed ledger with
+      `accepted=4`. This is transport/schema evidence only; no credentials or
+      provider payloads entered Git and no routing entitlements were promoted.
+
 ### 2026-09-13 — Risk-free historical admission
 
 - [x] Thread the risk-free-rate provider fallback's explicit 30-day historical
