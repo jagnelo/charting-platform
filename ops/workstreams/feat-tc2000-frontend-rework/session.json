@@ -54,7 +54,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3ece4b6a3003c9f84da888a9f33d00e25cd2f50c",
+  "head": "a70ce99211332b58a8a1ad5c53cde803ad3cd2ea",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-13T18:31:52.909967+00:00",
+  "last_checkpoint": "2026-09-13T19:01:00.101440+00:00",
   "last_human_progress_update": "2026-09-13T19:00:41.351282+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "49076751ad3645d92cb18a0caed577b9ecdffff404b1cfd5674d8c7b01835f67",
+  "plan_hash": "9cabf151e95db121b61789ed204d051cf2539436da258fa060652c201d14833d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
