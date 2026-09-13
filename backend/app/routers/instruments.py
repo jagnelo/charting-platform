@@ -633,13 +633,27 @@ async def get_heatmap_data(
         if body.timeframe == Timeframe.D1:
             raw_sparkline_bars_by_id.update(bars_by_id)
         else:
-            sparkline_result = await db.execute(
-                select(OHLCVBar)
+            sparkline_ranked = (
+                select(
+                    OHLCVBar.id.label("bar_id"),
+                    func.row_number()
+                    .over(
+                        partition_by=OHLCVBar.instrument_id,
+                        order_by=OHLCVBar.ts.desc(),
+                    )
+                    .label("row_number"),
+                )
                 .where(
                     OHLCVBar.instrument_id.in_(instrument_ids),
                     OHLCVBar.timeframe == body.timeframe,
                     OHLCVBar.is_adjusted.is_(True),
                 )
+                .subquery()
+            )
+            sparkline_result = await db.execute(
+                select(OHLCVBar)
+                .join(sparkline_ranked, OHLCVBar.id == sparkline_ranked.c.bar_id)
+                .where(sparkline_ranked.c.row_number <= body.sparkline_bars)
                 .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
             )
             for bar in sparkline_result.scalars().all():
