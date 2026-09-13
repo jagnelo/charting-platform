@@ -131,6 +131,19 @@ def test_only_action_capable_tokenized_adapters_expose_corporate_action_capabili
         assert "tokenized_corporate_actions" not in list_provider_capabilities(provider)
 
 
+def test_only_history_capable_tokenized_adapter_exposes_historical_capability():
+    assert "tokenized_historical_prices" in list_provider_capabilities("dinari")
+    for provider in (
+        "xstocks",
+        "robinhood_tokens",
+        "bybit_xstocks",
+        "gate_tradfi",
+        "kraken_xstocks",
+        "ondo_global_markets",
+    ):
+        assert "tokenized_historical_prices" not in list_provider_capabilities(provider)
+
+
 def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings():
     gate = GateTradfiProvider._record({"symbol": "AAPLx", "underlying_symbol": "AAPL"})
     kraken = KrakenXStocksProvider._record({"symbol": "AAPLx", "base": "AAPL", "quote": "USD"})

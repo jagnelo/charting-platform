@@ -34,6 +34,7 @@ from app.providers.base import (
     ShortInterestProvider,
     TokenizedAssetProvider,
     TokenizedCorporateActionProvider,
+    TokenizedHistoricalPriceProvider,
 )
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
@@ -286,6 +287,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
         (("fetch_option_quote_history",), "option_quote_history"),
         (("discover_tokenized_assets", "get_tokenized_asset", "get_tokenized_price"), "tokenized_assets"),
+        (("fetch_tokenized_historical_prices",), "tokenized_historical_prices"),
         (("fetch_tokenized_corporate_actions",), "tokenized_corporate_actions"),
     ]
     capabilities = [
@@ -416,6 +418,14 @@ def get_tokenized_corporate_action_provider(name: str) -> TokenizedCorporateActi
         name,
         ("fetch_tokenized_corporate_actions",),
         "tokenized corporate actions",
+    )
+
+
+def get_tokenized_historical_price_provider(name: str) -> TokenizedHistoricalPriceProvider:
+    return _require_capability(
+        name,
+        ("fetch_tokenized_historical_prices",),
+        "tokenized historical prices",
     )
 
 

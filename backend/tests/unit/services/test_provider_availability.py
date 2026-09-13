@@ -45,6 +45,29 @@ async def test_raw_only_history_availability_probe_requests_unadjusted_bars(monk
     assert calls and calls[0]["adjusted"] is False
 
 
+@pytest.mark.asyncio
+async def test_tokenized_history_availability_probe_uses_distinct_operation(monkeypatch):
+    calls = []
+
+    class DinariProvider:
+        name = "dinari"
+
+        def fetch_tokenized_historical_prices(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: DinariProvider(),
+    )
+
+    capability = ProviderCapability.TOKENIZED_HISTORICAL_PRICES
+    result = await default_probe("dinari", capability, representative_request(capability))
+
+    assert result == []
+    assert calls == [{"identifier": "AAPL", "timespan": "DAY"}]
+
+
 def test_representative_contract_covers_each_capability():
     for capability in ProviderCapability:
         request = representative_request(capability)

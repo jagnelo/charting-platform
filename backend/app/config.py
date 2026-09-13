@@ -200,6 +200,11 @@ class Settings(BaseSettings):
             "dinari",
             "ondo_global_markets",
         ],
+        # Historical tokenized aggregates are a distinct quota/terms surface
+        # from catalogue and indicative-quote traffic. Dinari is the only
+        # adapter exposing it today; its unknown partner contract keeps this
+        # chain fail-closed until operations approve the entitlement.
+        "tokenized_historical_prices": ["dinari"],
         # Dinari exposes global splits and per-stock dividends/splits. Keep it
         # in the capability chain so reviewed quota/terms can admit it later;
         # its currently unknown partner quota still makes runtime resolution

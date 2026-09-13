@@ -729,6 +729,9 @@ def _capability_seed_order() -> dict[ProviderCapability, list[str]]:
         )
         or [settings.DEFAULT_OPTIONS_PROVIDER],
         ProviderCapability.TOKENIZED_ASSETS: list(settings.TOKENIZED_PROVIDER_PRIORITY),
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: list(
+            settings.PROVIDER_CHAIN_SEEDS.get("tokenized_historical_prices", [])
+        ),
     }
     for key, providers in settings.PROVIDER_CHAIN_SEEDS.items():
         try:

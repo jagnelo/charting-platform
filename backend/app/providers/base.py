@@ -344,6 +344,15 @@ class TokenizedAssetProvider(ProviderDescriptor, Protocol):
 
 
 @runtime_checkable
+class TokenizedHistoricalPriceProvider(ProviderDescriptor, Protocol):
+    """Provider-specific aggregate history for tokenized instruments."""
+
+    def fetch_tokenized_historical_prices(
+        self, identifier: str, *, timespan: str = "DAY"
+    ) -> list[dict[str, Any]]: ...
+
+
+@runtime_checkable
 class TokenizedCorporateActionProvider(ProviderDescriptor, Protocol):
     """Provider-specific corporate-action feed for tokenized instruments."""
 

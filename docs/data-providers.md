@@ -403,6 +403,13 @@ aggregate is silently mapped to an unsupported canonical timeframe. Unknown
 operation costs or entitlements remain non-routable, and the feature is
 disabled by default.
 
+Historical aggregates are routed through the dedicated
+`tokenized_historical_prices` capability (currently Dinari only), rather than
+being charged or admitted as generic `tokenized_assets` traffic. This keeps
+catalogue/quote entitlements independent from historical-series entitlements;
+providers without the explicit `fetch_tokenized_historical_prices` adapter
+surface cannot be selected for the worker.
+
 Tokenized catalogue discovery is separately scheduled once daily and remains
 disabled by default. After provider quota and terms review, enable
 `TOKENIZED_CATALOG_REFRESH_ENABLED` and set bounded
@@ -1092,7 +1099,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar","finnhub"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"tokenized_historical_prices":["dinari"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]
 ```
 

@@ -83,6 +83,11 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
             "page": 0,
             "page_size": 1,
         },
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: {
+            "symbol": "AAPL",
+            "timeframe": "D1",
+            "limit": 5,
+        },
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: {
             "symbol": "AAPL",
         },
@@ -122,6 +127,7 @@ def representative_operation(capability: ProviderCapability) -> str | None:
         ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
         ProviderCapability.MARKET_EVENTS: "fetch_market_events",
         ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
     }.get(capability)
 
@@ -204,6 +210,7 @@ async def default_probe(
         ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
         ProviderCapability.MARKET_EVENTS: "fetch_market_events",
         ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
+        ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
     }.get(capability)
     if method_name is None:
@@ -263,6 +270,8 @@ async def default_probe(
         }
     if capability == ProviderCapability.TOKENIZED_ASSETS:
         args = {"page": request["page"], "page_size": request["page_size"]}
+    if capability == ProviderCapability.TOKENIZED_HISTORICAL_PRICES:
+        args = {"identifier": request["symbol"], "timespan": "DAY"}
     if capability == ProviderCapability.TOKENIZED_CORPORATE_ACTIONS:
         args = {"symbol": request["symbol"]}
     result = method(**args)

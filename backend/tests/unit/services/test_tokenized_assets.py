@@ -392,7 +392,7 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
         return [SimpleNamespace(provider_name="dinari", provider=provider)]
 
     async def fake_execute(_db, capability, operation, **kwargs):
-        assert capability is ProviderCapability.TOKENIZED_ASSETS
+        assert capability is ProviderCapability.TOKENIZED_HISTORICAL_PRICES
         assert operation == "fetch_tokenized_historical_prices"
         assert kwargs["provider_name"] == "dinari"
         assert kwargs["provider_symbol"] == "dinari-aapl-history"
@@ -483,7 +483,7 @@ async def test_refresh_tokenized_historical_prices_persists_scoped_series_and_ob
         return [SimpleNamespace(provider_name="dinari", provider=provider)]
 
     async def fake_execute(_db, capability, operation, **kwargs):
-        assert capability is ProviderCapability.TOKENIZED_ASSETS
+        assert capability is ProviderCapability.TOKENIZED_HISTORICAL_PRICES
         assert operation == "fetch_tokenized_historical_prices"
         result = kwargs["invoke"](provider, kwargs["provider_symbol"])
         return SimpleNamespace(

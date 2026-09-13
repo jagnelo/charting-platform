@@ -822,7 +822,7 @@ async def refresh_tokenized_historical_prices(
     if provider_name:
         query = query.where(TokenizedAssetDetail.provider_name == provider_name)
     rows = (await db.execute(query)).all()
-    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
+    chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_HISTORICAL_PRICES)
     resolved_by_provider = {
         item.provider_name: item
         for item in chain
@@ -840,7 +840,7 @@ async def refresh_tokenized_historical_prices(
         try:
             execution = await execute_provider_call(
                 db,
-                ProviderCapability.TOKENIZED_ASSETS,
+                ProviderCapability.TOKENIZED_HISTORICAL_PRICES,
                 "fetch_tokenized_historical_prices",
                 instrument_id=instrument.id,
                 provider_symbol=identifier,
