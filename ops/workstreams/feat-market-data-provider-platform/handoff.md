@@ -2000,3 +2000,16 @@ Update this handoff at each coherent boundary.
   session `34e6266f-f3d0-4781-8a7e-d5457d27cb8d`. This verifies source-level
   parity only; GitHub environment secrets/variables still require operator
   verification.
+
+- A fresh network-enabled credentialed verification on 2026-09-13 passed all
+  13 selected cases using the owner-managed `~/.config/charting-platform/app.env`:
+  Alpaca daily/intraday/latest/assets/corporate actions; SEC EDGAR profile,
+  filings/Company Facts, and complete ticker/issuer directory paging;
+  MarketData.app options/account usage/intraday history; and Dinari Sandbox
+  metadata, price/quote, DAY/WEEK/MONTH/YEAR history, news, dividends, splits,
+  and corporate actions. The rotated Dinari pair matched the supplied
+  replacement values. Aggregate telemetry was appended only to the durable
+  mode-0600 owner ledger; no credentials or provider payloads entered Git.
+  This is transport/schema evidence only. MarketData.app entitlement/expiry/
+  option-bound review, Dinari commercial/quota/redistribution review, and the
+  other provider-specific safety controls remain fail-closed.
