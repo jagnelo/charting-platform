@@ -883,6 +883,7 @@ async def test_morgan_stanley_adapter_discovers_and_fetches_current_issuer_workb
     assert result.legal_metadata["route_resolution"] == (
         "morgan_stanley_product_page_linked_current_holdings_xlsx"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 def test_morgan_stanley_adapter_accepts_current_public_download_path():

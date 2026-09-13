@@ -15126,6 +15126,10 @@ class MorganStanleyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Morgan Stanley holdings workbook returned no complete rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Morgan Stanley holdings workbook did not expose dated holdings for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -15142,6 +15146,7 @@ class MorganStanleyHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "xlsx",
                 "route_resolution": "morgan_stanley_product_page_linked_current_holdings_xlsx",
+                "completeness_status": "complete",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "expected_fund_name": expected_fund_name,
                 "cadence": "daily",
