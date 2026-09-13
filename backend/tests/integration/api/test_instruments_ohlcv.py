@@ -195,6 +195,23 @@ class TestInstruments:
         assert row["coverage_preflight"]["daily"]["bar_count"] < 252
         fetch_latest.assert_not_called()
 
+    @patch("app.services.market_data._fetch_provider")
+    def test_seasonality_uses_local_monthly_history_and_reports_coverage(
+        self, fetch_provider, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Seasonality evaluation must not synchronously refresh providers."""
+        response = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/seasonality/monthly",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "instrument_seasonality"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "missing"
+        assert all(month["sample_count"] == 0 for month in payload["months"])
+        fetch_provider.assert_not_called()
+
     def test_get_instrument_by_id(self, client, auth_headers, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.id}", headers=auth_headers)
         assert res.status_code in (200, 404)  # depends on router implementation

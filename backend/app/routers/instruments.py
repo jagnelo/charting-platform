@@ -400,6 +400,7 @@ class SeasonalityMonth(BaseModel):
 class SeasonalityResponse(BaseModel):
     symbol: str
     months: list[SeasonalityMonth]
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
 
 
 class ResolveExpressionBody(BaseModel):
@@ -857,7 +858,30 @@ async def get_monthly_seasonality(
         raise HTTPException(404, f"Instrument '{symbol}' not found")
     await db.refresh(instrument, ["listings"])
 
-    bars = await fetch_ohlcv_latest(db, instrument, Timeframe.MN, limit, True)
+    # Seasonality is an evaluator, so it must never turn a user request into
+    # a provider fan-out.  A refresh worker can populate the canonical monthly
+    # series; this request only evaluates what is already local and reports
+    # whether the requested sample is complete.
+    bars = await fetch_ohlcv_latest(
+        db,
+        instrument,
+        Timeframe.MN,
+        limit,
+        True,
+        allow_provider_fetch=False,
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="instrument_seasonality",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.MN,
+        date_from=None,
+        date_to=None,
+        mode="historical",
+        adjusted=True,
+        cached_bars={instrument.id: bars},
+        minimum_bars=limit,
+    )
     records_by_month: dict[int, list[SeasonalityRecord]] = {m: [] for m in range(1, 13)}
 
     previous_volume: float | None = None
@@ -920,7 +944,11 @@ async def get_monthly_seasonality(
             )
         )
 
-    return SeasonalityResponse(symbol=instrument.symbol, months=months)
+    return SeasonalityResponse(
+        symbol=instrument.symbol,
+        months=months,
+        coverage_preflight=coverage_preflight.to_dict(),
+    )
 
 
 @router.get("/{instrument_id}/membership", response_model=InstrumentMembership)
