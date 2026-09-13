@@ -1240,3 +1240,18 @@ change passed `2,464/2,464` at `81.68%` coverage with 89 warnings in 507.76
 seconds, using isolated testcontainer session
 `e92d7385-12e1-4379-a92f-167ce5abe08c`. Cleanup removed only that workstream's
 containers; no frontend or ETF-provider adapter files changed.
+
+On 2026-09-13, the bounded credentialed live suite was refreshed against
+current source checkpoint `750f02d57` for the newly configured providers. All
+`11/11` selected test bodies passed: Alpaca history/intraday/latest/assets and
+corporate actions; SEC EDGAR filings, Company Facts, and complete
+ticker/issuer directory pagination; MarketData.app options, account usage,
+and intraday history; and Dinari Sandbox metadata, price/quote,
+DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and corporate actions.
+The redacted receipt recorded 5 Alpaca HTTP requests and 6,487,828 bytes, 6
+EDGAR requests and 6,236,111 bytes, 5 MarketData.app requests and 20,561
+bytes, and 14 Dinari requests and 182,346 bytes. The aggregate receipt was
+accepted into the mode-0600 owner-managed ledger with `accepted=4`; no
+credentials or provider payloads entered Git. This remains transport/schema
+evidence only and does not promote any unreviewed quota, account-plan,
+commercial, redistribution, or response-dependent routing control.
