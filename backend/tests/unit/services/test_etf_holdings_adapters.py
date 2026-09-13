@@ -22485,6 +22485,7 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
     assert result.legal_metadata["source_quality"] == (
         "issuer_page_declared_current_complete_holdings"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22544,6 +22545,7 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
     assert result.legal_metadata["source_quality"] == (
         "issuer_page_declared_current_complete_holdings"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22610,6 +22612,7 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
     assert result.legal_metadata["source_quality"] == (
         "issuer_page_declared_current_complete_holdings"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -22668,6 +22671,7 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
     assert result.legal_metadata["source_quality"] == (
         "issuer_page_declared_current_complete_holdings"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
