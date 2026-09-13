@@ -2,6 +2,12 @@
 
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 
+The final captured gate output confirms the receipt below rather than a
+partial or interrupted run: all non-visual stages completed, functional E2E
+was `165 passed` with `107 skipped`, visual E2E was `98/104`, and provider
+probes were `not configured`. The six protected baseline diffs are unchanged;
+all branch-scoped Docker resources were cleaned.
+
 Product tip `5caacf901` adds an older-date IWM history regression. The focused
 live suite passed `10/10` for the date-aware iShares cases, including
 2025-12-31 and 2026-06-30 with matching composition dates. The exact

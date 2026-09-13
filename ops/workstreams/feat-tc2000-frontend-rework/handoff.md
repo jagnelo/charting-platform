@@ -4,6 +4,12 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 
+Final captured gate output matches the recorded receipt: unit `1534/1534`,
+integration `404/404`, frontend Vitest `1067/1067`, functional `165 passed` /
+`107 skipped`, visual `98/104`, provider probes `not configured`, and only the
+six unchanged protected visual diffs. Branch-scoped Docker resources were
+cleaned after the run.
+
 Product tip `5caacf901` proves the IWM historical route at both 2025-12-31 and
 2026-06-30; the focused live iShares suite passed `10/10` with matching
 composition dates. The exact branch-scoped gate completed all stages with

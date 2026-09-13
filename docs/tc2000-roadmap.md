@@ -7,6 +7,17 @@ Last reconciled: 2026-09-13
 
 ## 2026-09-13 — Prove older IWM point-in-time history and rerun exact gate
 
+### Captured final gate receipt
+
+The final captured PTY run at product commit `5caacf901` completed with the
+same expected result: backend unit `1534/1534`, integration `404/404`,
+frontend Vitest `1067/1067`, functional E2E `165 passed`/`107 skipped`, and
+visual E2E `98/104`. Provider probes were `not configured` because
+`RUN_LIVE_PROVIDER_TESTS` was unset. The six unchanged protected visual diffs
+remain the only failures; the branch-scoped stack, volumes, images, and
+testcontainer sessions were cleaned. This receipt does not close R1 or the
+remaining acceptance criteria.
+
 Product commit `5caacf901` adds a focused regression for the Russell 2000
 IWM route at `2025-12-31`, alongside the existing `2026-06-30` family date.
 Both dates resolve through the public iShares JSON route with matching

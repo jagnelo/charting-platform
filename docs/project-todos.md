@@ -2,6 +2,12 @@
 
 ### 2026-09-13 — Older IWM point-in-time history and exact gate
 
+Captured final gate receipt: the complete run reached backend unit `1534/1534`,
+integration `404/404`, frontend Vitest `1067/1067`, functional E2E `165 passed`
+with `107 skipped`, and visual E2E `98/104`; provider probes were
+`not configured`, and only the six unchanged protected visual diffs failed.
+Branch-scoped Docker resources were cleaned.
+
 - [x] Add a 2025-12-31 IWM regression beside the 2026-06-30 family date; both
       public iShares JSON snapshots preserve matching composition dates, and
       the focused live history suite passed `10/10` (`5caacf901`).
