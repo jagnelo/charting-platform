@@ -730,6 +730,7 @@ class CrossFamilyRankingOut(AnalysisResponseMetadata):
     as_of: datetime | None = None
     benchmark: str | None = None
     rank_period: str
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[CrossFamilyRankingRowOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
@@ -766,6 +767,7 @@ class CrossFamilyRankingHistoryOut(AnalysisResponseMetadata):
     benchmark: str | None = None
     rank_period: str
     limit: int = Field(ge=1, le=5_000)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[CrossFamilyRankingHistoryRowOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

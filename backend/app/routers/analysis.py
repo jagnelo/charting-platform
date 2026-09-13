@@ -5010,6 +5010,18 @@ async def cross_family_ranking_history(
         await _bars_by_instrument(db, instrument_ids, timeframe, adjusted),
         as_of,
     )
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="cross_family_ranking_history",
+        instrument_ids=instrument_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
+    )
     benchmark_series = (
         _historical_return_series(bars_by_id.get(benchmark_instrument.id, []))
         if benchmark_instrument
@@ -5103,6 +5115,7 @@ async def cross_family_ranking_history(
         benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
         rank_period=rank_period,
         limit=limit,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
         exclusions=exclusions,
         freshness=freshness,
@@ -5189,6 +5202,18 @@ async def cross_family_ranking(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    rank_offset = _PERIODS.get(rank_period)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="cross_family_ranking",
+        instrument_ids=ranking_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=(rank_offset + 1) if rank_offset is not None else 253,
+    )
     if benchmark_instrument and benchmark_instrument.id in stale_ids:
         exclusions.append(
             AnalysisWarning(
@@ -5291,6 +5316,7 @@ async def cross_family_ranking(
         as_of=as_of,
         benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
         rank_period=rank_period,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
         exclusions=exclusions,
         freshness=freshness,

@@ -1678,6 +1678,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert rows["sp500"]["available"] is True
         assert rows["sp500"]["rank"] == 1
@@ -1744,6 +1746,8 @@ class TestWorkspaces:
         )
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "cross_family_ranking_history"
+        assert payload["coverage_preflight"]["status"] == "full"
         rows = {row["family_key"]: row for row in payload["rows"]}
         assert payload["limit"] == 8
         assert payload["benchmark"] == "SPY"
