@@ -470,6 +470,33 @@ def test_live_runner_treats_provider_configuration_changes_as_provider_changes(m
     assert _LIVE_SCRIPT.changed_provider_code() is True
 
 
+def test_live_runner_uses_staging_merge_base_after_metadata_commit(monkeypatch):
+    """A trailing workstream commit must not suppress provider probes."""
+
+    monkeypatch.delenv("FORCE_LIVE_PROVIDER_PROBES", raising=False)
+    monkeypatch.delenv("INTEGRATION_BASE_SHA", raising=False)
+
+    class _Status:
+        def __init__(self, *, stdout: str = "", returncode: int = 0):
+            self.returncode = returncode
+            self.stdout = stdout
+
+    def fake_run(args, **kwargs):
+        del kwargs
+        if args[:2] == ["git", "status"]:
+            return _Status()
+        if args[:2] == ["git", "merge-base"]:
+            return _Status(stdout="staging-base\n")
+        if args[:2] == ["git", "diff"]:
+            assert args == ["git", "diff", "--name-only", "staging-base..HEAD"]
+            return _Status(stdout="backend/app/providers/alpaca.py\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(_LIVE_SCRIPT.subprocess, "run", fake_run)
+
+    assert _LIVE_SCRIPT.changed_provider_code() is True
+
+
 def test_every_registered_provider_has_live_case_or_explicit_exclusion():
     """Keep the external acceptance matrix synchronized with the registry."""
 

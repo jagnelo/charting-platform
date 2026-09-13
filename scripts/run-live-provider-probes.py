@@ -514,6 +514,23 @@ def changed_provider_code() -> bool:
         return True
     base = os.getenv("INTEGRATION_BASE_SHA")
     if not base:
+        # Workstream metadata and documentation commits commonly follow the
+        # provider source commit. Comparing only HEAD^1 would then make a
+        # fresh checkout incorrectly skip the required live matrix. Prefer
+        # the feature branch's staging merge-base, which remains stable across
+        # those follow-up commits, and retain the narrow parent fallback for
+        # detached/minimal repositories that do not have a staging ref.
+        for candidate in ("staging", "origin/staging"):
+            result = subprocess.run(
+                ["git", "merge-base", "HEAD", candidate],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                base = result.stdout.strip()
+                break
+    if not base:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD^1"], cwd=ROOT, text=True, capture_output=True
         )
