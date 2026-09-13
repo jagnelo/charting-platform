@@ -3113,6 +3113,7 @@ async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_ho
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

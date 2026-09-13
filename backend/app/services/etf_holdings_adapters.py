@@ -15931,6 +15931,7 @@ class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "indexperts_etfpages_native_holdings_json",
             },
         )
