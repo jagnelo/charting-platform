@@ -3172,6 +3172,7 @@ async def test_ironhorse_adapter_follows_declared_full_holdings_csv_and_keeps_fo
     assert result.rows[3].symbol is None
     assert result.rows[3].extra_data["Symbol"] == "NESN SW"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

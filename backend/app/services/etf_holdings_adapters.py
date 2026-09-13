@@ -16182,6 +16182,10 @@ class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 raise ValueError(
                     f"IronHorse holdings CSV did not expose complete current rows for {normalized_symbol}."
                 )
+            if composition_date is None:
+                raise ValueError(
+                    f"IronHorse holdings CSV did not expose dated holdings for {normalized_symbol}."
+                )
         except (httpx.HTTPError, ValueError) as route_error:
             # The Conductor page can remain available while its download worker
             # returns an empty 200 response. Treat that as a failed native route
@@ -16208,6 +16212,7 @@ class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_product_page_declared_complete_holdings_csv",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "ironhorse_conductor_native_holdings_csv",
