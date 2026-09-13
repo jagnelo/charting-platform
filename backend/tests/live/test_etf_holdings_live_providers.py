@@ -2535,6 +2535,93 @@ async def test_live_spdr_mdy_historical_route_is_sec_labelled():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("spdr")
+@pytest.mark.parametrize(
+    "symbol",
+    ["SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM"],
+)
+async def test_live_spdr_family_legs_support_newer_historical_as_of_snapshots(symbol):
+    """Prove every mapped SPDR leg remains bounded at a newer cutoff."""
+
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+
+    requested_date = date(2026, 6, 30)
+    result = await adapter.fetch_for_date(
+        symbol=symbol,
+        requested_date=requested_date,
+        identifiers=known_etf_route_metadata(symbol)["provider_aliases"],
+    )
+
+    _assert_live_holdings_result(result, adapter_key="spdr", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert metadata["filing_identity_status"] == "verified"
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("invesco")
+@pytest.mark.parametrize("symbol", ["RSP", "QQQ"])
+async def test_live_invesco_family_legs_support_newer_historical_as_of_snapshots(symbol):
+    """Prove mapped Invesco legs use bounded SEC reconstruction."""
+
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+
+    requested_date = date(2026, 6, 30)
+    result = await adapter.fetch_for_date(
+        symbol=symbol,
+        requested_date=requested_date,
+        identifiers=known_etf_route_metadata(symbol)["provider_aliases"],
+    )
+
+    _assert_live_holdings_result(result, adapter_key="invesco", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("direxion")
+async def test_live_direxion_qqqe_supports_newer_historical_as_of_snapshot():
+    """Prove the mapped Nasdaq-100 equal-weight leg stays cutoff-bounded."""
+
+    adapter = get_holdings_adapter("direxion")
+    assert adapter is not None
+
+    requested_date = date(2026, 6, 30)
+    result = await adapter.fetch_for_date(
+        symbol="QQQE",
+        requested_date=requested_date,
+        identifiers=known_etf_route_metadata("QQQE")["provider_aliases"],
+    )
+
+    _assert_live_holdings_result(result, adapter_key="direxion", min_rows=80)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "identifiers", "expected_route_resolution"),
     [
