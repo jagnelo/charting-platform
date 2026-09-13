@@ -954,7 +954,10 @@ complete-universe interpretation, redistribution, and a positive
 `FINRA_OTC_POLL_INTERVAL_SECONDS`; these controls record review decisions but
 do not claim FINRA has published a minimum polling interval. The Daily List
 adapter remains the lifecycle-delta path and is not substituted for this
-current security master.
+current security master. Generic universe reconciliation also requires each
+provider's authoritative `total` metadata to be an actual integer; boolean,
+numeric-string, fractional, negative, or otherwise malformed totals fail the
+run closed instead of being coerced into a false completeness claim.
 
 FINRA's asynchronous Query API result payloads are documented as unbounded.
 The adapter therefore requires a positive `FINRA_ASYNC_MAX_RESULT_BYTES` (or
