@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Non-iShares family route matrix receipt
+
+Product tip `7df91ec76` adds 12 date-aware live route cases for the canonical
+non-iShares family legs `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`,
+`SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE` at `2026-06-30`. Each route used its
+curated SEC-backed adapter, reported `sec_filing`/`sec` lineage, verified
+filing identity, echoed the requested cutoff, and returned composition no
+later than that cutoff. The focused live matrix passed `12/12`; the focused
+deterministic taxonomy/family-history/refresh matrix passed `46/46`.
+
+The exact branch-scoped `full_stack_browser` gate at this product tip passed
+backend units `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
+Provider probes were `not configured` because `RUN_LIVE_PROVIDER_TESTS` was
+unset. The six unchanged protected visual diffs remain; branch-scoped Docker
+resources were cleaned. This is route evidence only, not proof of persisted
+snapshots/member bars, complete family readiness, D1/W1/MN floors, or
+rebalance continuity. No visual threshold/mask/skip, provider/fallback,
+migration, or acceptance policy changed; R1 and AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Older iShares family route matrix
 
 Product tip `32e1ab645` adds older-date coverage for every canonical iShares

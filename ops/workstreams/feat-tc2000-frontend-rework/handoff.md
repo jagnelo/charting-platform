@@ -2,6 +2,27 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Newer non-iShares family history matrix and exact gate
+
+Product commit `7df91ec76` adds 12 bounded opt-in live route cases at the
+`2026-06-30` cutoff for `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`,
+`SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE`. All routes used curated SEC-backed
+adapters, reported `sec_filing`/`sec` lineage, verified filing identity,
+echoed the requested cutoff, and returned composition no later than it; the
+focused live matrix passed `12/12` (minimum 80 rows for QQQE, 100 otherwise).
+The deterministic taxonomy/family-history/refresh matrix passed `46/46`.
+
+The exact branch-scoped `full_stack_browser` gate at this product tip passed
+backend unit `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
+Provider probes were `not configured` because `RUN_LIVE_PROVIDER_TESTS` was
+unset. The six unchanged protected visual diffs remain; the branch-scoped
+Docker stack, images, volumes, and testcontainer sessions were cleaned. This
+is route evidence only and does not prove persisted snapshots/member bars,
+family D1/W1/MN floors, or continuity. R1 population/history and AC2–AC7/AC10
+remain open. No visual, provider/fallback, migration, or acceptance policy
+changed.
+
 ## 2026-09-13 — Older iShares family history matrix
 
 Product commit `32e1ab645` extends the opt-in live history matrix to all eight

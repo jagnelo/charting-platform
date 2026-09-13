@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Extend the non-iShares family history matrix
+
+Product commit `7df91ec76` adds a bounded opt-in live regression for the 12
+canonical non-iShares family legs with curated SEC-backed routes at the
+`2026-06-30` cutoff: `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`,
+`SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE`. All 12 routes reported
+`sec_filing`/`sec` lineage, verified filing identity, echoed the requested
+date, and returned composition no later than the cutoff; QQQE required 80
+rows and every other case required 100. The focused live suite passed `12/12`.
+The deterministic taxonomy/family-history/refresh matrix passed `46/46`.
+
+The exact branch-scoped `full_stack_browser` gate was rerun at this product
+tip and completed backend unit `1534/1534`, backend integration `404/404`,
+frontend Vitest `1067/1067`, functional E2E `165 passed` with `107 skipped`,
+and visual E2E `98/104`. Provider probes were `not configured` because
+`RUN_LIVE_PROVIDER_TESTS` was unset. The six unchanged protected visual
+diffs remain the only visual failures; branch-scoped Docker resources were
+cleaned. This evidence is route-level only and does not establish persisted
+family snapshots/member bars, D1/W1/MN floors, or continuity. R1 population,
+history, floors, continuity, and AC2–AC7/AC10 remain open. No visual,
+provider/fallback, migration, or acceptance policy changed.
+
 ## 2026-09-13 — Extend the iShares family history matrix to an older cutoff
 
 Product commit `32e1ab645` adds a parametrized opt-in live regression for all

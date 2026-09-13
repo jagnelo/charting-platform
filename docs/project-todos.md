@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-13 — Newer non-iShares family point-in-time route matrix
+
+- [x] Extend the bounded date-aware live matrix to the 12 canonical
+      non-iShares family legs that have curated SEC-backed routes at the
+      `2026-06-30` cutoff: `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`,
+      `SLYV`, `SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE`. Every route reported
+      `sec_filing`/`sec`, verified filing identity, echoed the requested date,
+      and returned composition no later than the cutoff (minimum 80 rows for
+      QQQE and 100 for the other cases).
+- [x] The focused live matrix passed `12/12`; the deterministic taxonomy,
+      family-history, and refresh contracts passed `46/46` (`7df91ec76`).
+      The exact branch-scoped gate at this product tip passed backend units
+      `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+      functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
+      Provider probes were `not configured` because `RUN_LIVE_PROVIDER_TESTS`
+      was unset. The six unchanged protected visual diffs remain open; Docker
+      resources were cleaned. This is route evidence only: it does not prove
+      persisted snapshots/member bars, family-wide D1/W1/MN floors, or
+      rebalance continuity.
+- [ ] Continue R1 canonical population/history, family-wide floors and
+      continuity, and AC2–AC7/AC10. No visual baseline, mask, threshold, skip,
+      provider/fallback, migration, or acceptance policy changed.
+
 ### 2026-09-13 — Older iShares family point-in-time route matrix
 
 - [x] Extend the date-aware iShares live matrix to all eight canonical family

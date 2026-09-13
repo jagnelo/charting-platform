@@ -13,6 +13,25 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product tip 7df91ec76 adds a bounded 12-leg non-iShares family
+  history matrix at 2026-06-30 (SPY, SPYV, SPYG, MDY, MDYV, MDYG, SLYV,
+  SLYG, SPTM, RSP, QQQ, and QQQE). All routes reported SEC filing lineage,
+  verified identity, echoed the cutoff, and returned composition no later than
+  it; the focused live matrix passed 12/12 and deterministic taxonomy,
+  family-history, and refresh contracts passed 46/46. The exact branch-scoped
+  gate at this product tip passed backend unit 1534/1534, integration 404/404,
+  frontend Vitest 1067/1067, functional E2E 165 passed with 107 documented
+  skips, and visual E2E 98/104. Provider probes were not configured because
+  RUN_LIVE_PROVIDER_TESTS was unset; the six unchanged protected visual diffs
+  remain and Docker resources were cleaned. This is route evidence only, not
+  persisted family readiness, member bars, D1/W1/MN floors, or continuity.
+  Continue R1 population/history/floors/continuity and AC2–AC7/AC10. No
+  visual threshold/mask/skip, provider/fallback, migration, or acceptance
+  policy changed. The pending local-only transport range now starts at
+  63d64bfe95c98bfe6e550bf69c213ae1cd64a629 and ends at the eventual docs
+  receipt commit after 7df91ec76; do not retry the rejected private-origin
+  push without trusted exact-payload authorization. Historical receipts
+  follow.
   At product tip 32e1ab645 and docs tip d7bbc4564, the date-aware iShares
   family-history matrix covers all eight canonical legs at both 2025-12-31 and
   2026-06-30; the complete bounded suite passed 17/17 and full backend units
@@ -2950,6 +2969,21 @@ progress:
   total: 10
   current_phase: R1_ishares_family_older_history_matrix
   current_blocker: >-
+    Latest product tip 7df91ec76 adds 12 SEC-backed non-iShares family route
+    cases at the 2026-06-30 cutoff; the focused live matrix passed 12/12 and
+    deterministic taxonomy/family-history/refresh contracts passed 46/46.
+    The exact branch-scoped gate passed backend unit 1534/1534, integration
+    404/404, frontend Vitest 1067/1067, functional E2E 165 passed with 107
+    documented skips, and visual E2E 98/104. Provider probes were not
+    configured because RUN_LIVE_PROVIDER_TESTS was unset; the six unchanged
+    protected visual diffs remain and Docker resources were cleaned. Route
+    evidence does not prove persisted family readiness, member bars, D1/W1/MN
+    floors, or continuity. Continue R1 population/history/floors/continuity
+    and AC2–AC7/AC10. No visual threshold/mask/skip, provider/fallback,
+    migration, or acceptance policy changed. The pending local-only transport
+    range starts at 63d64bfe and extends through the docs receipt after
+    7df91ec76; do not retry the rejected private-origin push without trusted
+    exact-payload authorization.
     At clean product tip 32e1ab645, all eight canonical iShares family legs
     (IJR, IWB, IWD, IWF, IWM, IWN, IWO, and IWV) are covered at the older
     2025-12-31 cutoff as well as the existing 2026-06-30 date; the complete
