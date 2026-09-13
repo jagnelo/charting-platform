@@ -215,5 +215,37 @@ def test_ibkr_snapshot_accepts_documented_previous_close_prefix(monkeypatch):
 def test_ibkr_registry_exposes_only_implemented_capabilities():
     capabilities = set(list_provider_capabilities("ibkr"))
     assert {"instrument_search", "instrument_metadata", "price_history", "latest_price"} <= capabilities
-    assert "futures_history" not in capabilities
+    assert "futures_history" in capabilities
     assert "option_chain" not in capabilities
+
+
+def test_ibkr_futures_history_uses_explicit_provider_conid(monkeypatch):
+    _configure(monkeypatch, conid_map={"ES=F": 123456})
+    start = datetime(2026, 1, 2, tzinfo=UTC)
+    end = start + timedelta(days=1)
+    calls = []
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        return FakeResponse(
+            {
+                "data": [
+                    {
+                        "t": int(start.timestamp() * 1000),
+                        "o": 6000,
+                        "h": 6010,
+                        "l": 5990,
+                        "c": 6005,
+                        "v": 100,
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr("app.providers.ibkr.httpx.request", fake_request)
+    bars = IBKRProvider().fetch_ohlcv(
+        "ES=F", Timeframe.D1, start, end, adjusted=False
+    )
+    assert len(bars) == 1
+    assert bars[0].provenance["conid"] == 123456
+    assert calls[0][2]["params"]["conid"] == 123456

@@ -155,9 +155,15 @@ def _snapshot_price(value: Any) -> float | None:
 class IBKRProvider:
     name = "ibkr"
     base_url = "https://api.ibkr.com"
+    # IBKR's documented historical-market-data endpoint accepts futures
+    # contracts through their provider conid.  The generic OHLCV path below
+    # already enforces the endpoint's raw-bar, pagination, and 15-year request
+    # bounds; callers should supply an explicit conid mapping for a futures
+    # contract when symbol search is ambiguous.
+    supports_futures_history = True
     description = (
-        "Interactive Brokers Client Portal Gateway read-only history, security "
-        "metadata, and latest-price snapshots"
+        "Interactive Brokers Client Portal Gateway read-only equity/futures "
+        "history, security metadata, and latest-price snapshots"
     )
 
     def _configured(self) -> tuple[str, str]:

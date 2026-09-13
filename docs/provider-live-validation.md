@@ -377,10 +377,13 @@ until the deployment supplies the explicit reviewed controls
 conservative decision observable without pretending the provider's adjustable
 scope is fixed. Nasdaq Trader's polling allowance remains unpublished. IBKR
 now has a concrete read-only Client Portal Gateway adapter for security search,
-raw historical bars, and latest-price snapshots. The gateway login remains
-interactive and session-bound; no options/futures capability is claimed, and
-raw bars are never labeled as adjusted. Live evidence still requires an
-operator-owned `IBKR_READ_ONLY_URL` and `IBKR_READ_ONLY_SESSION_COOKIE`.
+raw historical equity/futures bars, and latest-price snapshots. The gateway
+login remains interactive and session-bound; no options capability is claimed,
+and raw bars are never labeled as adjusted. The generic futures path uses the
+provider `conid`; configure `IBKR_CONID_MAP` when symbol search is ambiguous,
+and observe IBKR's two-year post-expiry futures-history limit. Live evidence
+still requires an operator-owned `IBKR_READ_ONLY_URL` and
+`IBKR_READ_ONLY_SESSION_COOKIE`.
 
 The public and credentialed tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood

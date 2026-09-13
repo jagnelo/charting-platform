@@ -15,6 +15,21 @@
       resolved; a capacity response or missing credential is not a successful
       data read.
 
+### 2026-09-13 — Newly configured provider revalidation and IBKR futures
+
+- [x] Revalidate the newly configured Alpaca and MarketData.app credentials in
+      seven bounded live cases: Alpaca daily/intraday/latest history, assets,
+      and corporate actions plus MarketData.app options, account usage, and
+      intraday history. All seven passed; only aggregate usage telemetry was
+      written to the owner-managed external ledger.
+
+- [x] Promote IBKR's existing generic Client Portal Gateway historical path to
+      an explicit futures-history capability based on the official all-
+      instruments endpoint. Document the 1,000-bar response cap and expired-
+      futures two-year availability limit; recommend `IBKR_CONID_MAP` when
+      symbol search is ambiguous. Options-specific methods and live gateway
+      evidence remain open.
+
 ### 2026-09-13 — Tokenized historical aggregate persistence
 
 - [x] Add a separate, disabled-by-default daily worker for bounded tokenized
