@@ -91,6 +91,12 @@ class Settings(BaseSettings):
     # policy is selected. ``create_missing`` creates only CIK/name issuer rows;
     # it never creates instruments/listings or mutates existing legal names.
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE: str = "disabled"
+    # Tokenized catalogue discovery is separate from quote polling so a
+    # deployment can budget metadata requests independently. It is disabled
+    # until provider quotas/terms are reviewed and bounded values are set.
+    TOKENIZED_CATALOG_REFRESH_ENABLED: bool = False
+    TOKENIZED_CATALOG_REFRESH_MAX_PAGES: int = 1
+    TOKENIZED_CATALOG_REFRESH_PAGE_SIZE: int = 100
     TOKENIZED_ASSET_REFRESH_ENABLED: bool = False
     TOKENIZED_ASSET_REFRESH_MAX_ASSETS: int = 100
     TOKENIZED_EVENT_REFRESH_ENABLED: bool = False

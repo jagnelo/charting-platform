@@ -44,6 +44,15 @@ has reviewed provider entitlements and quota contracts, set
 must reach both `backend` and `worker`. Unknown provider quotas remain
 non-routable even when this schedule is enabled.
 
+Tokenized catalogue discovery is a separate daily job, also disabled by
+default. After reviewing catalogue-provider quotas and terms, set
+`TOKENIZED_CATALOG_REFRESH_ENABLED=true` together with positive bounded
+`TOKENIZED_CATALOG_REFRESH_MAX_PAGES` and `TOKENIZED_CATALOG_REFRESH_PAGE_SIZE`
+values in the shared `app.env`; pass them to both `backend` and `worker`. A
+full final page is reported as partial rather than silently treated as a
+complete universe, and provider/page failures are retained while other
+qualified providers continue.
+
 Tokenized corporate-action persistence is separately opt-in. Set
 `TOKENIZED_EVENT_REFRESH_ENABLED=true`,
 `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS`, and

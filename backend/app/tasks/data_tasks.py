@@ -383,6 +383,20 @@ async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
         )
 
 
+async def refresh_tokenized_asset_catalog(ctx: dict) -> dict:
+    """Discover a bounded tokenized catalogue through durable provider routing."""
+
+    from app.config import settings
+    from app.services.tokenized_assets import refresh_tokenized_assets
+
+    async with AsyncSessionLocal() as db:
+        return await refresh_tokenized_assets(
+            db,
+            max_pages=settings.TOKENIZED_CATALOG_REFRESH_MAX_PAGES,
+            page_size=settings.TOKENIZED_CATALOG_REFRESH_PAGE_SIZE,
+        )
+
+
 async def refresh_tokenized_corporate_actions(ctx: dict) -> dict:
     """Persist bounded tokenized corporate-action feeds as market events."""
 

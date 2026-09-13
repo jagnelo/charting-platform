@@ -412,6 +412,8 @@ async def refresh_tokenized_assets(
 ) -> dict[str, Any]:
     """Refresh bounded tokenized metadata through the provider runtime."""
 
+    bounded_max_pages = max(1, min(int(max_pages), 1000))
+    bounded_page_size = max(1, min(int(page_size), 1000))
     chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
     if provider_name:
         chain = [item for item in chain if item.provider_name == provider_name]
@@ -427,7 +429,7 @@ async def refresh_tokenized_assets(
         pages_fetched = 0
         truncated = True
         provider_failed = False
-        for page in range(max(1, max_pages)):
+        for page in range(bounded_max_pages):
             pages_fetched += 1
             try:
                 execution = await execute_provider_call(
@@ -436,7 +438,7 @@ async def refresh_tokenized_assets(
                     f"discover_tokenized_assets:{page}",
                     provider_name=resolved.provider_name,
                     invoke=lambda provider, _symbol, page=page: provider.discover_tokenized_assets(
-                        page=page, page_size=page_size
+                        page=page, page_size=bounded_page_size
                     ),
                     response_items=len,
                     treat_empty_as_failure=False,
@@ -458,7 +460,7 @@ async def refresh_tokenized_assets(
                 # the next provider so one outage cannot suppress the rest of
                 # the qualified tokenized universe.
                 break
-            if len(rows) < page_size:
+            if len(rows) < bounded_page_size:
                 truncated = False
                 break
         truncated_any = truncated_any or truncated

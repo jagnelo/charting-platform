@@ -388,6 +388,15 @@ before the request, records transport telemetry, and stores a separate
 `LatestPriceSnapshot` for the token instrument. The schedule is disabled by
 default and never calls a provider during evaluation.
 
+Tokenized catalogue discovery is separately scheduled once daily and remains
+disabled by default. After provider quota and terms review, enable
+`TOKENIZED_CATALOG_REFRESH_ENABLED` and set bounded
+`TOKENIZED_CATALOG_REFRESH_MAX_PAGES` /
+`TOKENIZED_CATALOG_REFRESH_PAGE_SIZE` in both backend and worker environments.
+The refresh uses the provider runtime for every page, reports a full final
+page as `partial`, and preserves redacted provider/page failures while later
+qualified providers continue.
+
 Corporate actions use a dedicated `tokenized_corporate_actions` capability and
 a separate opt-in schedule so an operator can budget event-feed quota
 independently from quote polling. Set

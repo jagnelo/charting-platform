@@ -513,6 +513,36 @@ async def test_refresh_tokenized_assets_reports_all_provider_failures(db, monkey
 
 
 @pytest.mark.asyncio
+async def test_refresh_tokenized_assets_clamps_catalog_request_bounds(db, monkeypatch):
+    provider = SimpleNamespace(name="dinari")
+    requested: list[tuple[int, int]] = []
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        result = kwargs["invoke"](provider, None)
+        if hasattr(result, "__await__"):
+            result = await result
+        return SimpleNamespace(provider_name="dinari", result=[])
+
+    def discover(*, page: int, page_size: int):
+        requested.append((page, page_size))
+        return []
+
+    provider.discover_tokenized_assets = discover
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+
+    result = await refresh_tokenized_assets(
+        AsyncSessionAdapter(db), max_pages=5000, page_size=5000
+    )
+
+    assert result["status"] == "refreshed"
+    assert requested == [(0, 1000)]
+
+
+@pytest.mark.asyncio
 async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, instrument, monkeypatch):
     initial = TokenizedAssetRecord(
         provider="robinhood_tokens",

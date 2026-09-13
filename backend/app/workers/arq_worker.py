@@ -476,6 +476,16 @@ async def scheduled_tokenized_asset_refresh(ctx: dict):
     return await refresh_tokenized_asset_prices(ctx)
 
 
+async def scheduled_tokenized_catalog_refresh(ctx: dict):
+    """Discover tokenized listings only when the bounded catalog job is enabled."""
+
+    if not settings.TOKENIZED_CATALOG_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "tokenized catalog refresh disabled"}
+    from app.tasks.data_tasks import refresh_tokenized_asset_catalog
+
+    return await refresh_tokenized_asset_catalog(ctx)
+
+
 async def scheduled_tokenized_event_refresh(ctx: dict):
     """Persist tokenized corporate actions only when explicitly enabled."""
 
@@ -578,6 +588,7 @@ class WorkerSettings:
         scheduled_daily_provider_availability,
         scheduled_weekly_provider_availability,
         scheduled_tokenized_asset_refresh,
+        scheduled_tokenized_catalog_refresh,
         scheduled_tokenized_event_refresh,
         scheduled_market_events_refresh,
         scheduled_edgar_ipo_universe_scan,
@@ -599,6 +610,7 @@ class WorkerSettings:
             cron(scheduled_daily_provider_availability, hour=2, minute=0),
             cron(scheduled_weekly_provider_availability, weekday=6, hour=3, minute=0),
             cron(scheduled_tokenized_asset_refresh, minute={0, 15, 30, 45}),
+            cron(scheduled_tokenized_catalog_refresh, hour=6, minute=30),
             cron(scheduled_tokenized_event_refresh, minute={5, 20, 35, 50}),
             cron(scheduled_market_events_refresh, hour=1, minute=30),
             cron(scheduled_edgar_ipo_universe_scan, hour=1, minute=40),
@@ -615,6 +627,7 @@ class WorkerSettings:
             or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
             or settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
             or settings.TOKENIZED_ASSET_REFRESH_ENABLED
+            or settings.TOKENIZED_CATALOG_REFRESH_ENABLED
             or settings.TOKENIZED_EVENT_REFRESH_ENABLED
             or settings.MARKET_EVENTS_REFRESH_ENABLED
             or settings.MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED
