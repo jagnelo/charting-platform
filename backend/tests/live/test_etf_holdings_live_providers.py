@@ -2336,8 +2336,8 @@ async def test_live_spdr_slyg_historical_route_is_sec_labelled():
     )
     assert metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
     assert metadata["filing_identity_status"] == "verified"
-    assert metadata["filing_identity"]["series_id"] == "S000006984"
-    assert metadata["filing_identity"]["class_id"] == "C000019037"
+    assert metadata["filing_identity"]["series_id"] == "S000006990"
+    assert metadata["filing_identity"]["class_id"] == "C000019043"
     assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
 
 

@@ -21307,6 +21307,86 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     assert len(FakeAsyncClient.requested) == 2
 
 
+@pytest.mark.asyncio
+async def test_sec_fallback_skips_parseable_legacy_for_wrong_curated_class(monkeypatch):
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+    observed_discovery_limits: list[int] = []
+
+    async def fake_discover_holdings_filings(**kwargs):
+        observed_discovery_limits.append(kwargs["max_filings"])
+        if kwargs["forms"] == {"NPORT-P", "N-PORT", "NPORT-EX"}:
+            return []
+        return [
+            SimpleNamespace(
+                accession_number="legacy-wrong",
+                filing_url="https://www.sec.gov/Archives/legacy-wrong.xml",
+                form="N-CSRS",
+                report_date=date(2026, 5, 31),
+            ),
+            SimpleNamespace(
+                accession_number="legacy-right",
+                filing_url="https://www.sec.gov/Archives/legacy-right.xml",
+                form="N-CSRS",
+                report_date=date(2026, 5, 31),
+            ),
+        ]
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        fake_discover_holdings_filings,
+    )
+
+    def fixture(series_id: str, class_id: str, symbol: str) -> str:
+        return f"""
+        <edgarSubmission>
+          <formData>
+            <genInfo>
+              <seriesId>{series_id}</seriesId>
+              <classId>{class_id}</classId>
+              <classTicker>{symbol}</classTicker>
+              <seriesName>State Street SPDR S&amp;P 600 Small Cap Growth ETF</seriesName>
+              <reportDate>2026-05-31</reportDate>
+            </genInfo>
+            <holdings>
+              <holding>
+                <name>Apple Inc.</name>
+                <ticker>AAPL</ticker>
+                <value>1000</value>
+              </holding>
+            </holdings>
+          </formData>
+        </edgarSubmission>
+        """
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=fixture("S000006984", "C000019037", "SPYG")),
+        FakeResponse(text=fixture("S000006990", "C000019043", "SLYG")),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter._fetch_latest_sec_filing_holdings(
+        symbol="SLYG",
+        issuer_product_id=None,
+        identifiers={
+            "sec_cik": "0001064642",
+            "sec_series_id": "S000006990",
+            "sec_class_id": "C000019043",
+            "sec_fund_tickers_symbol": "SLYG",
+        },
+        end_date=date(2026, 5, 31),
+        max_filings=50,
+    )
+
+    assert result is not None
+    assert result.source_identifier == "legacy-right"
+    assert result.legal_metadata["filing_identity_status"] == "verified"
+    assert result.legal_metadata["filing_identity"]["class_id"] == "C000019043"
+    assert observed_discovery_limits == [400, 400]
+    assert len(FakeAsyncClient.requested) == 2
+
+
 def test_registered_holdings_adapters_are_provider_specific():
     assert "configured_csv_url" not in registered_adapter_keys()
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():

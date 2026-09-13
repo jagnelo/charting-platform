@@ -359,6 +359,27 @@ def _sec_nport_identity_match(
     return True, observed, "verified"
 
 
+def _sec_identity_constrained(identifiers: dict[str, str]) -> bool:
+    """Return whether a curated fund-class identity must gate SEC results.
+
+    A registrant CIK can contain many unrelated funds.  Registrant-name-only
+    routes such as SPY intentionally retain their historical compatibility,
+    while a curated series/class/ticker identity must be checked for every SEC
+    filing format, including legacy holdings documents.
+    """
+
+    return any(
+        _identifier(identifiers, key)
+        for key in (
+            "sec_series_id",
+            "sec_series_name",
+            "sec_series_name_contains",
+            "sec_class_id",
+            "sec_fund_tickers_symbol",
+        )
+    )
+
+
 def _looks_like_cusip(value: str | None) -> bool:
     text = _clean(value)
     if text is None:
@@ -2997,13 +3018,21 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             ),
         ]
         failures: list[str] = []
+        identity_constrained = _sec_identity_constrained(identifiers)
+        # SEC submissions are registrant-wide.  A fund's exact class filing can
+        # therefore sit well beyond the newest handful of submissions (the
+        # curated SLYG 2025-12-31 filing is the 291st N-PORT candidate).  Keep
+        # the normal bound for routes without a class identity, but allow a
+        # bounded identity search to reach the requested series when one is
+        # explicitly curated.
+        discovery_max_filings = max(max_filings, 400) if identity_constrained else max_filings
         for label, forms, parser, parser_version, source_format in attempts:
             try:
                 filings = await discover_holdings_filings(
                     cik=sec_cik,
                     forms=forms,
                     end_date=end_date,
-                    max_filings=max_filings,
+                    max_filings=discovery_max_filings,
                 )
             except Exception as exc:  # noqa: BLE001 - collect all fallback attempts.
                 failures.append(f"{label} discovery failed: {exc}")
@@ -3022,7 +3051,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                         response.raise_for_status()
                         filing_identity: dict[str, str] = {}
                         identity_status = "not_applicable"
-                        if source_format == "nport_xml":
+                        if source_format == "nport_xml" or identity_constrained:
                             identity_matches, filing_identity, identity_status = (
                                 _sec_nport_identity_match(
                                     response.text,
@@ -3391,8 +3420,8 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
         "provider_aliases": {
             "holdings_adapter": "spdr",
             "sec_cik": "0001064642",
-            "sec_series_id": "S000006984",
-            "sec_class_id": "C000019037",
+            "sec_series_id": "S000006990",
+            "sec_class_id": "C000019043",
             "sec_fund_tickers_symbol": "SLYG",
         },
     },
