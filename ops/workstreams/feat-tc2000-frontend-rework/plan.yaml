@@ -28,8 +28,8 @@ current_blocker: >-
   Continue R1 population/history/floors/continuity and AC2–AC7/AC10. No
   visual threshold/mask/skip, provider/fallback, migration, or acceptance
   policy changed. The pending local-only transport range now starts at
-  63d64bfe95c98bfe6e550bf69c213ae1cd64a629 and ends at the eventual docs
-  receipt commit after 7df91ec76; do not retry the rejected private-origin
+  63d64bfe95c98bfe6e550bf69c213ae1cd64a629 and ends at docs receipt
+  48c95f627 after 7df91ec76; do not retry the rejected private-origin
   push without trusted exact-payload authorization. Historical receipts
   follow.
   At product tip 32e1ab645 and docs tip d7bbc4564, the date-aware iShares
@@ -2981,7 +2981,7 @@ progress:
     floors, or continuity. Continue R1 population/history/floors/continuity
     and AC2–AC7/AC10. No visual threshold/mask/skip, provider/fallback,
     migration, or acceptance policy changed. The pending local-only transport
-    range starts at 63d64bfe and extends through the docs receipt after
+    range starts at 63d64bfe and extends through docs receipt 48c95f627 after
     7df91ec76; do not retry the rejected private-origin push without trusted
     exact-payload authorization.
     At clean product tip 32e1ab645, all eight canonical iShares family legs
