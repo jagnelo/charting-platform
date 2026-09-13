@@ -16,6 +16,7 @@ from app.services import etf_holdings_refresh as refresh
         ("issuer_reported_complete_daily_holdings_csv", "complete"),
         ("issuer_reported_full_investment_holdings", "complete"),
         ("issuer_page_declared_current_complete_holdings", "complete"),
+        ("issuer_reported_product_page_holdings_table", "complete"),
     ],
 )
 def test_declared_source_quality_provides_conservative_completeness_evidence(
