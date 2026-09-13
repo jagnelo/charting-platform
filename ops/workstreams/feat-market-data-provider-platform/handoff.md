@@ -1952,7 +1952,7 @@ Update this handoff at each coherent boundary.
   `172/172`; the authoritative Docker-backed gate passed `2,454/2,454` at
   `81.67%` with 89 warnings. No frontend or ETF-provider adapter files changed.
 
-- Source checkpoint `addc29f4b1e` refines the historical availability probe to
+- Source checkpoint `f45802e82` refines the historical availability probe to
   pass an explicit provider `identifier` rather than a generic ticker-shaped
   `symbol`. Focused availability coverage passed `11/11`, and the final
   Docker-backed gate after this refinement passed `2,454/2,454` at `81.67%`
