@@ -1827,3 +1827,17 @@ Update this handoff at each coherent boundary.
   changed. Provider/legal, CI/deployment, production reconciliation, shadow,
   future-evaluator, and staging coordinator review remain open; this branch
   remains ready for human review and is not ready for integration.
+
+- Source checkpoint `941863c89` closes the remaining request-triggered OHLCV
+  evaluator path in the instruments router. Monthly seasonality now asks the
+  canonical local series for bars with provider fetching disabled, applies the
+  shared OHLCV preflight against the requested sample length, and returns
+  additive readiness evidence while preserving the existing monthly records.
+  Focused PostgreSQL integration passed `21/21` with `--no-cov`; the same run
+  passed all 21 tests with coverage collection but exits when isolated because
+  the repository-wide threshold is not meaningful for a single module. Ruff,
+  compileall, and diff checks passed. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed. Provider/legal,
+  CI/deployment, production reconciliation, shadow, future-evaluator, and
+  staging coordinator review remain open; this branch remains ready for human
+  review and is not ready for integration.

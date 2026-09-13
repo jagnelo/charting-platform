@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-13 — Seasonality evaluator provider boundary
+
+- [x] Make `/api/v1/instruments/{symbol}/seasonality/monthly` evaluate only
+      local canonical monthly history, with additive shared OHLCV coverage
+      evidence. Refresh workers remain responsible for provider I/O, so a
+      seasonality request cannot fan out synchronously into an external API.
+      Focused PostgreSQL integration passes 21/21 without coverage collection;
+      Ruff, compileall, and diff checks pass. The coverage-enabled focused run
+      also passed all 21 tests but exits on the repository-wide threshold when
+      run in isolation. No provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
 ### 2026-09-13 — Heatmap sparkline query bound
 
 - [x] Bound non-daily heatmap sparkline reads with a per-instrument SQL window

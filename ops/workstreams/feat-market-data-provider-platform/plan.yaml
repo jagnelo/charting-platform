@@ -114,6 +114,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      `/api/v1/instruments/{symbol}/seasonality/monthly` is now a local-only
+      evaluator: it requests canonical monthly bars with provider fetches
+      disabled, applies the shared OHLCV coverage preflight against the
+      requested sample length, and returns additive serialized readiness
+      evidence while preserving the existing monthly records. Focused
+      PostgreSQL integration passed `21/21` with `--no-cov`; Ruff, compileall,
+      and diff checks passed. The isolated coverage-enabled run also passed
+      all 21 tests but exited on the repository-wide threshold, so no isolated
+      coverage percentage is claimed. No provider calls, credentials,
+      frontend, or ETF-provider adapter files changed.
+    - >-
       Non-daily heatmap sparkline reads now use a per-instrument SQL row-number
       window capped at the requested sparkline length, preventing an unbounded
       historical scan for large universes while preserving the DB-first,
