@@ -14,6 +14,7 @@ from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
 from app.services import tokenized_assets
 from app.services.tokenized_assets import (
+    refresh_tokenized_assets,
     refresh_tokenized_events,
     refresh_tokenized_prices,
     upsert_tokenized_asset,
@@ -348,6 +349,97 @@ async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists
     # quote through the token's provider symbol rather than the economic ticker.
     assert snapshot.provider_symbol == "AAPLx"
     assert snapshot.price == Decimal("123.45")
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_assets_reports_full_page_as_partial(
+    db, monkeypatch
+):
+    provider = SimpleNamespace(name="dinari")
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="dinari-aapl",
+        symbol="dAAPL",
+        name="Apple dShare",
+        raw_payload={},
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(provider_name="dinari", result=[record])
+
+    async def fake_upsert(_db, _record):
+        return None
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
+
+    result = await refresh_tokenized_assets(
+        AsyncSessionAdapter(db), max_pages=1, page_size=1
+    )
+
+    assert result == {
+        "status": "partial",
+        "providers": [
+            {
+                "provider": "dinari",
+                "assets": 1,
+                "pages_fetched": 1,
+                "truncated": True,
+                "complete": False,
+            }
+        ],
+        "assets": 1,
+        "truncated": True,
+        "complete": False,
+    }
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_assets_marks_short_page_complete(
+    db, monkeypatch
+):
+    provider = SimpleNamespace(name="dinari")
+    record = TokenizedAssetRecord(
+        provider="dinari",
+        asset_id="dinari-aapl",
+        symbol="dAAPL",
+        name="Apple dShare",
+        raw_payload={},
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [SimpleNamespace(provider_name="dinari", provider=provider)]
+
+    async def fake_execute(_db, _capability, _operation, **kwargs):
+        return SimpleNamespace(provider_name="dinari", result=[record])
+
+    async def fake_upsert(_db, _record):
+        return None
+
+    monkeypatch.setattr(tokenized_assets, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(tokenized_assets, "upsert_tokenized_asset", fake_upsert)
+
+    result = await refresh_tokenized_assets(
+        AsyncSessionAdapter(db), max_pages=3, page_size=2
+    )
+
+    assert result["status"] == "refreshed"
+    assert result["truncated"] is False
+    assert result["complete"] is True
+    assert result["providers"] == [
+        {
+            "provider": "dinari",
+            "assets": 1,
+            "pages_fetched": 1,
+            "truncated": False,
+            "complete": True,
+        }
+    ]
 
 
 @pytest.mark.asyncio

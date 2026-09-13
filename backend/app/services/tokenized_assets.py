@@ -419,9 +419,13 @@ async def refresh_tokenized_assets(
         return {"status": "no_qualified_provider", "providers": [], "assets": 0}
 
     refreshed: list[dict[str, Any]] = []
+    truncated_any = False
     for resolved in chain:
         count = 0
+        pages_fetched = 0
+        truncated = True
         for page in range(max(1, max_pages)):
+            pages_fetched += 1
             execution = await execute_provider_call(
                 db,
                 ProviderCapability.TOKENIZED_ASSETS,
@@ -438,10 +442,26 @@ async def refresh_tokenized_assets(
                 await upsert_tokenized_asset(db, row)
                 count += 1
             if len(rows) < page_size:
+                truncated = False
                 break
-        refreshed.append({"provider": resolved.provider_name, "assets": count})
+        truncated_any = truncated_any or truncated
+        refreshed.append(
+            {
+                "provider": resolved.provider_name,
+                "assets": count,
+                "pages_fetched": pages_fetched,
+                "truncated": truncated,
+                "complete": not truncated,
+            }
+        )
     await db.commit()
-    return {"status": "refreshed", "providers": refreshed, "assets": sum(item["assets"] for item in refreshed)}
+    return {
+        "status": "partial" if truncated_any else "refreshed",
+        "providers": refreshed,
+        "assets": sum(item["assets"] for item in refreshed),
+        "truncated": truncated_any,
+        "complete": not truncated_any,
+    }
 
 
 async def refresh_tokenized_events(
