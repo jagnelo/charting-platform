@@ -199,14 +199,17 @@ def _dinari_json(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
 ) -> Any:
-    """Read Dinari with its bounded Sandbox 500 recovery policy."""
+    """Read Dinari with a bounded recovery only on the observed Sandbox host."""
+
+    host = url.split("/", 3)[2].lower() if "://" in url else ""
+    sandbox_retry_attempts = 2 if host.endswith(".sandbox.dinari.com") else 0
 
     return _http_json(
         url,
         provider_name="dinari",
         params=params,
         headers=headers,
-        retry_server_errors=2,
+        retry_server_errors=sandbox_retry_attempts,
         retry_delay_seconds=0.25,
     )
 
