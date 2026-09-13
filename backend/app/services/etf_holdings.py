@@ -70,6 +70,38 @@ from app.services.provider_observations import store_search_snapshot
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
 
+# Completeness is source-quality evidence, not merely a parser label.  Keep the
+# ordering explicit so an idempotent re-ingest can promote a snapshot when a
+# later observation provides stronger evidence without allowing a transient
+# partial/unknown retry to downgrade an already-promotable snapshot.
+HOLDINGS_COMPLETENESS_RANK = {
+    "unknown": 0,
+    "partial": 1,
+    "filing_reconstructed": 2,
+    "complete": 3,
+}
+
+
+def normalize_holdings_completeness_status(value: str | None) -> str:
+    """Return one of the canonical persisted completeness states."""
+
+    normalized = str(value or "unknown").strip().casefold()
+    return normalized if normalized in HOLDINGS_COMPLETENESS_RANK else "unknown"
+
+
+def merge_holdings_completeness_status(
+    existing: str | None,
+    incoming: str | None,
+) -> str:
+    """Keep the strongest completeness evidence seen for one snapshot."""
+
+    existing_status = normalize_holdings_completeness_status(existing)
+    incoming_status = normalize_holdings_completeness_status(incoming)
+    if HOLDINGS_COMPLETENESS_RANK[incoming_status] > HOLDINGS_COMPLETENESS_RANK[existing_status]:
+        return incoming_status
+    return existing_status
+
+
 # Issuer feeds do not share one spelling for ordinary equity holdings. Keep
 # the persisted raw label for auditability, but normalize eligibility checks at
 # the read/queue boundary (for example, Invesco reports ``common stock`` while
@@ -1272,6 +1304,7 @@ async def ingest_holdings_snapshot(
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
+    completeness_status = normalize_holdings_completeness_status(completeness_status)
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -1357,13 +1390,39 @@ async def ingest_holdings_snapshot(
         )
     ).scalar_one_or_none()
     if existing is not None:
-        return await _reconcile_existing_snapshot_rows(
+        reconciled = await _reconcile_existing_snapshot_rows(
             db,
             snapshot=existing,
             canonical_rows=canonical_rows,
             source_provider=source_provider,
             allow_provider_enrichment=allow_provider_enrichment,
         )
+        # The snapshot hash identifies row content, not source quality. A
+        # later re-fetch can therefore carry stronger completeness evidence
+        # while resolving to the same content-addressed snapshot. Promote that
+        # evidence in place so readiness does not remain stale; weaker retries
+        # never erase a previously promotable state.
+        reconciled.completeness_status = merge_holdings_completeness_status(
+            reconciled.completeness_status,
+            completeness_status,
+        )
+        await _record_adapter_success(
+            db,
+            profile=profile,
+            data_source_id=data_source.id,
+            adapter_key=profile.adapter_key or source_provider,
+            source_url=source_url,
+            source_identifier=source_identifier,
+            parser_version=parser_version,
+            row_count=len(canonical_rows),
+            resolved_count=reconciled.resolved_count,
+            unresolved_count=reconciled.unresolved_count,
+            composition_date=composition_date,
+            published_at=published_at,
+            completeness_status=reconciled.completeness_status,
+        )
+        await db.flush()
+        return reconciled
 
     snapshot = ETFHoldingsSnapshot(
         etf_profile_id=profile.id,

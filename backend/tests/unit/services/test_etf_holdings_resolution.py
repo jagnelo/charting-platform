@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
-from app.models.etf_holdings import ETFHolding
+from app.models.etf_holdings import ETFHolding, ETFHoldingsAdapterState
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.provider_observation import InstrumentSearchSnapshot
@@ -1517,6 +1517,86 @@ async def test_reingesting_same_snapshot_reconciles_existing_placeholder_rows(db
     ).scalar_one()
     assert refreshed.symbol == "TXN"
     assert refreshed.name == "Texas Instruments Incorporated"
+
+
+@pytest.mark.asyncio
+async def test_reingesting_same_snapshot_promotes_completeness_without_downgrade(db, monkeypatch):
+    """A stronger retry must unlock readiness for an unchanged content hash."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: FakeMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument_type_id = await ensure_instrument_type(async_db, "ETF", "ETF")
+    etf = Instrument(
+        instrument_type_id=instrument_type_id,
+        symbol="QQQ",
+        name="Invesco QQQ Trust",
+        currency="USD",
+        is_active=True,
+    )
+    db.add(etf)
+    db.flush()
+
+    row = CanonicalHoldingRow(
+        symbol="MSFT",
+        name="Microsoft Corporation",
+        weight=Decimal("0.10"),
+        holding_type="equity",
+        row_type="security",
+    )
+    first = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[row],
+        composition_date=date(2026, 6, 7),
+        provenance="issuer_current_holdings",
+        source_provider="invesco",
+        completeness_status="partial",
+    )
+    db.flush()
+    assert first.completeness_status == "partial"
+
+    promoted = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[row],
+        composition_date=date(2026, 6, 7),
+        provenance="issuer_current_holdings",
+        source_provider="invesco",
+        completeness_status="complete",
+    )
+    db.flush()
+    assert promoted.id == first.id
+    assert promoted.completeness_status == "complete"
+
+    downgraded_retry = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[row],
+        composition_date=date(2026, 6, 7),
+        provenance="issuer_current_holdings",
+        source_provider="invesco",
+        completeness_status="partial",
+    )
+    db.flush()
+    assert downgraded_retry.id == first.id
+    assert downgraded_retry.completeness_status == "complete"
+
+    state = db.execute(
+        select(ETFHoldingsAdapterState).where(
+            ETFHoldingsAdapterState.etf_profile_id == first.etf_profile_id,
+            ETFHoldingsAdapterState.adapter_key == "invesco",
+        )
+    ).scalar_one()
+    assert state.completeness_status == "complete"
 
 
 @pytest.mark.asyncio
