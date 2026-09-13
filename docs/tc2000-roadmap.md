@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Extend the iShares family history matrix to an older cutoff
+
+Product commit `32e1ab645` adds a parametrized opt-in live regression for all
+eight canonical iShares family legs (`IJR`, `IWB`, `IWD`, `IWF`, `IWM`, `IWN`,
+`IWO`, and `IWV`) at `2025-12-31`. Each route returned at least 100 holdings
+rows through `issuer_public_json_api_as_of_date`, echoed the requested date,
+and reported a composition date no later than the cutoff. The complete bounded
+date matrix passed `17/17`, combining the eight new older-date cases, the eight
+existing `2026-06-30` cases, and the dedicated older IWM regression. Full
+backend units passed `1534/1534`; Ruff, formatting, and `git diff --check`
+passed. This is auditable route evidence only: it does not persist snapshots,
+resolve member placeholders, prove D1/W1/MN floors, or establish rebalance
+continuity. The exact branch-scoped gate is next at this coherent test tip;
+the six protected visual diffs and R1/R2–R7 gaps remain unchanged.
+
 ## 2026-09-13 — Prove older IWM point-in-time history and rerun exact gate
 
 ### Captured final gate receipt

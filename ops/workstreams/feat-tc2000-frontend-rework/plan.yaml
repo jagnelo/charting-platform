@@ -2944,12 +2944,19 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R1_ishares_iwm_older_history_guard
+  current_phase: R1_ishares_family_older_history_matrix
   current_blocker: >-
-    At clean product tip 5caacf901, IWM is covered at both 2025-12-31 and
-    2026-06-30 by the date-aware iShares family-history matrix; the focused
-    live suite passed 10/10. The exact branch-scoped
-    full_stack_browser gate passed repository/workstream, dependency/migration,
+    At clean product tip 32e1ab645, all eight canonical iShares family legs
+    (IJR, IWB, IWD, IWF, IWM, IWN, IWO, and IWV) are covered at the older
+    2025-12-31 cutoff as well as the existing 2026-06-30 date; the complete
+    bounded date matrix passed 17/17, including the dedicated older IWM case.
+    Every older route used issuer_public_json_api_as_of_date, returned at least
+    100 rows, and reported a composition date no later than the requested
+    cutoff. Full backend units passed 1534/1534; Ruff, formatting, and
+    git diff --check passed. The exact branch-scoped gate has not yet been
+    rerun at this test tip; its last captured receipt at 5caacf901 completed
+    the exact branch-scoped full_stack_browser gate and passed repository/workstream,
+    dependency/migration,
     Ruff/format, TypeScript, backend unit 1534/1534, backend integration
     404/404, frontend Vitest 1067/1067, compose/deployment, expected
     research-runner probes, and functional E2E 165 passed with 107 documented

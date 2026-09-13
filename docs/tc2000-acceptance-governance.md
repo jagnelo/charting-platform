@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-13 — Older iShares family route matrix
+
+Product tip `32e1ab645` adds older-date coverage for every canonical iShares
+family leg at `2025-12-31`. The complete bounded date matrix passed `17/17`
+(eight new older-date routes, eight existing `2026-06-30` routes, and the
+dedicated older IWM case). Every route used the issuer public JSON as-of
+adapter, returned at least 100 rows, and stayed at or before the requested
+composition cutoff. Full backend units passed `1534/1534`; Ruff, formatting,
+and `git diff --check` passed. This proves route selection only; it does not
+claim persisted family population, member-bar floors, continuity, or readiness.
+No provider/fallback, visual, migration, or acceptance policy changed. The
+exact branch-scoped gate remains to be rerun at this new test tip.
+
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 
 The final captured gate output confirms the receipt below rather than a

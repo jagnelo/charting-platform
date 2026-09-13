@@ -2,6 +2,20 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Older iShares family history matrix
+
+Product commit `32e1ab645` extends the opt-in live history matrix to all eight
+canonical iShares legs at `2025-12-31`: IJR, IWB, IWD, IWF, IWM, IWN, IWO, and
+IWV. The complete bounded date matrix passed `17/17`, including the existing
+2026-06-30 matrix and dedicated older IWM regression. Every older route used
+`issuer_public_json_api_as_of_date`, returned at least 100 holdings rows, and
+reported a composition date no later than the requested cutoff. Full backend
+unit coverage passed `1534/1534`; Ruff, formatting, and `git diff --check`
+passed. This is route evidence only and does not claim persisted snapshots,
+placeholder resolution, D1/W1/MN floors, or continuity. No provider/fallback,
+visual, migration, or acceptance policy changed. Rerun the exact branch-scoped
+gate at this coherent test tip before treating it as a gate receipt.
+
 ## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
 
 Final captured gate output matches the recorded receipt: unit `1534/1534`,

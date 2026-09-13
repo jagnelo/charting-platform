@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-13 — Older iShares family point-in-time route matrix
+
+- [x] Extend the date-aware iShares live matrix to all eight canonical family
+      legs (`IJR`, `IWB`, `IWD`, `IWF`, `IWM`, `IWN`, `IWO`, and `IWV`) at the
+      older `2025-12-31` cutoff, requiring the issuer public JSON as-of route,
+      at least 100 rows, and a composition date no later than the request.
+- [x] The complete bounded date matrix passed `17/17`: eight older-date cases,
+      eight existing `2026-06-30` cases, and the dedicated older IWM regression.
+      Full backend units passed `1534/1534`; Ruff, formatting, and
+      `git diff --check` passed (`32e1ab645`).
+- [ ] Rerun the exact branch-scoped gate at this test tip. Keep the six
+      unchanged protected visual diffs open and continue family-wide canonical
+      population, D1/W1/MN floors, continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Older IWM point-in-time history and exact gate
 
 Captured final gate receipt: the complete run reached backend unit `1534/1534`,
