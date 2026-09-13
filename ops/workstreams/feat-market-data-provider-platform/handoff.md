@@ -1591,3 +1591,17 @@ Update this handoff at each coherent boundary.
   payloads changed. The parallel `feat/etf-holdings-constituents` branch still
   owns adapter/provider changes; reconcile this response-field contract at
   staging.
+
+- Source checkpoint `740fa0168` extends the same shared preflight to
+  Study Lab/research dataset materialization. Historical gaps and code
+  lookback shortfalls are retained as explicit coverage/exclusion evidence;
+  ready batch members proceed, incomplete members are withheld, and a
+  single-instrument study is deferred before isolated user code executes.
+  Focused PostgreSQL research integration passed `4/4`, research-runner/job
+  unit coverage passed `110/110`, the complete backend unit suite passed
+  `2,030/2,030`, and the authoritative Docker-backed combined gate passed
+  `2,412/2,412` at `81.40%` coverage with 89 warnings. Testcontainer session
+  `6c87efb7-5bb9-457c-a155-1bb8d47e5d67` was cleaned without host-wide
+  pruning. No frontend files, ETF provider adapters, provider calls, or
+  credentials changed. Future signal engines beyond the currently covered
+  paths remain an explicit follow-up.

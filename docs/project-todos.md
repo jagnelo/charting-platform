@@ -86,6 +86,15 @@
       2,027/2,027, and the authoritative Docker-backed gate passes 2,406/2,406
       at 81.38% coverage. No migration head, frontend, or ETF-provider files
       changed.
+- [x] Extend the shared OHLCV preflight to Study Lab/research dataset
+      materialization. Historical gaps and code lookback shortfalls now remain
+      explicit coverage/exclusion evidence; ready batch members continue while
+      incomplete members are withheld, and single-instrument studies are
+      deferred before isolated user code executes. Focused PostgreSQL
+      integration passes 4/4, research-runner/job unit coverage passes 110/110,
+      the complete backend unit suite passes 2,030/2,030, and the authoritative
+      Docker-backed gate passes 2,412/2,412 at 81.40% coverage. No frontend or
+      ETF-provider adapter files changed.
 - [ ] Extend the same contract to future non-Strategy signal engines beyond
       the currently covered Strategy Lab, Radar, generic breadth,
       benchmark-family breadth, alert, screener, and Market Map paths.
