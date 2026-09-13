@@ -3468,6 +3468,36 @@ async def test_liquid_strategies_adapter_parses_complete_table_and_classifies_ro
     assert result.rows[2].weight == Decimal("0.9985")
     assert result.rows[3].row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_liquid_strategies_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("liquid_strategies")
+    assert adapter is not None
+    product_url = "https://lsfunds.com/etfs/ovl"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<h1><span class="etf-hero__ticker">OVL</span></h1>',
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_product_page",
+        classmethod(
+            lambda cls, raw_html, *, symbol: (
+                [CanonicalHoldingRow(symbol="VOO", name="Vanguard S&P 500 ETF")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="OVL")
 
 
 @pytest.mark.asyncio
