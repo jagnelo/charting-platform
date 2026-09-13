@@ -78,6 +78,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     history_length: int = Field(default=0, ge=0, le=1000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     rows: list[RelativeRotationRow]
 
 
@@ -119,6 +120,7 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     history_length: int = Field(default=0, ge=0, le=1000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRotationRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

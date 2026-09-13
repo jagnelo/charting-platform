@@ -1812,6 +1812,10 @@ class TestWorkspaces:
         assert len(roles["equal_weight"]["history"]) == 7
         assert roles["equal_weight"]["trend"] > 0
         assert roles["equal_weight"]["state"] in {"leading", "weakening"}
+        assert payload["coverage_preflight"]["evaluator"] == (
+            "benchmark_family_relative_rotation"
+        )
+        assert payload["coverage_preflight"]["status"] == "full"
         assert roles["value"]["available"] is False
         assert roles["value"]["warnings"][0]["code"] == "role_mapping_unavailable"
 
@@ -2479,6 +2483,9 @@ class TestWorkspaces:
         assert rotation.json()["history_length"] == 8
         assert len(row["history"]) == 8
         assert row["coverage"] == 1
+        assert rotation.json()["coverage_preflight"]["evaluator"] == (
+            "group_relative_rotation"
+        )
 
     def test_relative_rotation_respects_point_in_time_membership_and_bars(
         self, client, auth_headers, db, instrument, ohlcv_bars

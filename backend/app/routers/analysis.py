@@ -923,6 +923,11 @@ def _rotation_state(trend: float, momentum: float) -> str:
     return "lagging"
 
 
+def _rotation_required_bars(sampling: int, lookback: int) -> int:
+    """Return the raw-bar floor for two lookback windows after sampling."""
+    return (lookback * 2 + 1) * sampling
+
+
 def _rotation_metrics(
     aligned: list[tuple[datetime, float]],
     sampling: int,
@@ -1720,6 +1725,17 @@ async def benchmark_family_relative_rotation(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="benchmark_family_relative_rotation",
+        instrument_ids=instrument_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_rotation_required_bars(sampling, lookback),
+    )
     benchmark_bars = bars_by_id.get(cap_instrument.id, [])
     benchmark_by_timestamp = {bar.ts: bar for bar in benchmark_bars}
     roles: list[BenchmarkFamilyRotationRoleOut] = []
@@ -1855,6 +1871,7 @@ async def benchmark_family_relative_rotation(
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         roles=roles,
+        coverage_preflight=coverage_preflight.to_dict(),
         exclusions=exclusions,
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -1910,6 +1927,17 @@ async def group_relative_rotation(
     )
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="group_relative_rotation",
+        instrument_ids=rotation_ids,
+        timeframe=timeframe,
+        date_from=None,
+        date_to=as_of,
+        adjusted=adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=_rotation_required_bars(sampling, lookback),
+    )
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     rows: list[RelativeRotationRow] = []
     for member in sorted(members, key=lambda item: item.position):
@@ -2017,6 +2045,7 @@ async def group_relative_rotation(
         as_of=as_of,
         freshness=freshness,
         freshness_detail=freshness_detail,
+        coverage_preflight=coverage_preflight.to_dict(),
         rows=rows,
     )
 
