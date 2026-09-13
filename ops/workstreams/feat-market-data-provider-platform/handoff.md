@@ -2,6 +2,15 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+- Tokenized historical comments and documentation are now consistent with the
+  implemented Dinari/Ondo bridge and its four supported windows (`DAY`,
+  `WEEK`, `MONTH`, `YEAR`). Focused tokenized/asset-service/secret-wiring
+  coverage passed `122/122`; the authoritative Docker-backed backend gate
+  passed `2,488/2,488` at `81.72%` coverage with 89 warnings in `492.85s`,
+  using isolated testcontainer session
+  `b7dd6e85-27f9-49e0-8747-5220aa720254`. No frontend or ETF-provider adapter
+  files changed.
+
 ## Human authorization
 
 - Recorded at: 2026-09-04T16:12:23.412849+00:00

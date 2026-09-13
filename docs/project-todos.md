@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-13 — Tokenized historical documentation parity
+
+- [x] Align the provider configuration comment and data-provider guide with
+      the implemented Dinari/Ondo tokenized historical bridge and its `DAY`,
+      `WEEK`, `MONTH`, and `YEAR` windows. Focused tokenized/asset-service/
+      secret-wiring coverage passed 122/122; the authoritative Docker-backed
+      backend gate passed 2,488/2,488 at 81.72% combined coverage with 89
+      warnings. Provider/legal/quota review remains fail-closed.
+
 ### 2026-09-13 — Tokenized historical deployment-chain parity
 
 - [x] Add `tokenized_historical_prices` with Dinari and Ondo to the explicit

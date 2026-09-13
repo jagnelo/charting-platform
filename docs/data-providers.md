@@ -423,14 +423,15 @@ Historical tokenized aggregates use a separate durable path from quote
 polling. Set `TOKENIZED_HISTORICAL_REFRESH_ENABLED=true` only after the
 provider-specific history quota and redistribution terms are reviewed, and set
 bounded `TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS` plus
-`TOKENIZED_HISTORICAL_REFRESH_TIMESPAN` (`DAY`, `WEEK`, or `MONTH`) in both
+`TOKENIZED_HISTORICAL_REFRESH_TIMESPAN` (`DAY`, `WEEK`, `MONTH`, or `YEAR`) in both
 backend and worker environments. The daily worker currently admits only
 providers exposing `fetch_tokenized_historical_prices` (Dinari and Ondo), routes
 by the owning provider asset ID, and persists through the canonical
 `OHLCVBar`/`MarketSeries` path. It preserves provider-native raw `24_7`
 candles, stores the raw response provenance, and leaves volume, VWAP, and
-adjustment fields unset/RAW when the provider does not supply them; no yearly
-aggregate is silently mapped to an unsupported canonical timeframe. Unknown
+adjustment fields unset/RAW when the provider does not supply them; yearly
+aggregates are admitted only when the selected adapter explicitly supports
+them. Unknown
 operation costs or entitlements remain non-routable, and the feature is
 disabled by default.
 

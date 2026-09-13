@@ -127,6 +127,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Tokenized historical configuration comments and provider documentation
+      now describe both Dinari and Ondo aggregate-history paths and all four
+      supported windows (`DAY`, `WEEK`, `MONTH`, and `YEAR`). Focused tokenized,
+      asset-service, and secret-wiring coverage passed `122/122`; Ruff,
+      compileall, and diff checks passed. The authoritative Docker-backed
+      combined backend gate passed `2,488/2,488` at `81.72%` coverage with 89
+      warnings in `492.85s`, using isolated testcontainer session
+      `b7dd6e85-27f9-49e0-8747-5220aa720254`; cleanup removed only this
+      workstream's resources without host-wide pruning. No frontend or
+      ETF-provider adapter files changed.
+    - >-
       Deployment defaults now preserve the tokenized historical capability:
       `.env.example`, `backend/.env.example`, local Compose, and RPi Compose
       explicitly seed `tokenized_historical_prices` with Dinari and Ondo
