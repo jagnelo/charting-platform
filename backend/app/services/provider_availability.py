@@ -29,7 +29,11 @@ from app.models.provider_runtime import (
     ProviderHealthState,
     ProviderPolicy,
 )
-from app.providers import get_provider, provider_is_configured
+from app.providers import (
+    get_provider,
+    provider_is_configured,
+    provider_supports_adjustment,
+)
 from app.providers.errors import bounded_redact_provider_message
 from app.services.onesignal import send_provider_availability_notification
 
@@ -240,6 +244,16 @@ async def default_probe(
             "timeframe": Timeframe.D1,
             "limit": request["limit"],
         }
+    if capability in {
+        ProviderCapability.PRICE_HISTORY,
+        ProviderCapability.FUTURES_HISTORY,
+        ProviderCapability.CRYPTO_HISTORY,
+    } and not provider_supports_adjustment(getattr(provider, "name", provider_name), True):
+        # Availability probes must exercise the provider's documented raw
+        # surface rather than failing before transport because the common
+        # adapter default is ``adjusted=True``. This matters for IBKR futures,
+        # whose generic historical endpoint is raw-only.
+        args["adjusted"] = False
     if capability == ProviderCapability.OPTION_QUOTE_HISTORY:
         now = datetime.now(UTC)
         args = {

@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
+import pytest
+
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
 from app.providers.registry import provider_is_configured
@@ -8,12 +10,39 @@ from app.services.provider_availability import (
     availability_error_message,
     classify_exception,
     classify_response,
+    default_probe,
     notification_due,
     provider_configured,
     representative_operation,
     representative_request,
     response_shape,
 )
+
+
+@pytest.mark.asyncio
+async def test_raw_only_history_availability_probe_requests_unadjusted_bars(monkeypatch):
+    calls = []
+
+    class RawOnlyProvider:
+        name = "ibkr"
+
+        def fetch_latest_ohlcv(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: RawOnlyProvider(),
+    )
+
+    result = await default_probe(
+        "ibkr",
+        ProviderCapability.FUTURES_HISTORY,
+        representative_request(ProviderCapability.FUTURES_HISTORY),
+    )
+
+    assert result == []
+    assert calls and calls[0]["adjusted"] is False
 
 
 def test_representative_contract_covers_each_capability():

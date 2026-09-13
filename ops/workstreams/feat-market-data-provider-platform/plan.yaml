@@ -114,6 +114,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Provider availability probes now honor the registry's raw-history
+      contract: raw-only providers (including IBKR futures) are called with
+      `adjusted=False` instead of failing locally on the common adjusted
+      default. Focused availability/IBKR/registry coverage passed 45/45, and
+      the authoritative Docker-backed backend gate passed 2,447/2,447 at
+      81.63% coverage. No provider calls or credentials were used by this
+      source change.
+    - >-
       Newly configured Alpaca and MarketData.app credentials were revalidated
       in seven bounded live cases on 2026-09-13: Alpaca daily/intraday/latest
       history, assets, and corporate actions plus MarketData.app options,
