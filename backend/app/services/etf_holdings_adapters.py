@@ -15319,6 +15319,10 @@ class GoldenEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Golden Eagle product page did not expose holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Golden Eagle product page did not expose dated holdings for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -15331,6 +15335,7 @@ class GoldenEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "route_resolution": "golden_eagle_product_page_complete_holdings_table",
                 "source_format": "html_table",
+                "completeness_status": "complete",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,

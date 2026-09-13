@@ -977,6 +977,7 @@ async def test_golden_eagle_adapter_reads_its_complete_issuer_portfolio(monkeypa
     assert result.legal_metadata["route_resolution"] == (
         "golden_eagle_product_page_complete_holdings_table"
     )
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert FakeAsyncClient.requested[0][0] == "https://hypergrowthetf.com/hyp-etf/"
 
 
