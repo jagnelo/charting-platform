@@ -23,6 +23,15 @@
       readiness result; valid shorter-history metrics remain evaluable while
       insufficient metrics are withheld. Focused benchmark-family integration
       coverage passes 1/1.
+- [x] Extend the same preflight contract to both production and ARQ-compatible
+      indicator-alert execution. Grouped high-alert price polling and grouped
+      indicator OHLCV snapshots remain outside the evaluation loops; indicator
+      history requirements are derived from the canonical registry, with
+      composite windows and non-window numeric parameters handled explicitly.
+      Insufficient groups are withheld rather than evaluated from partial local
+      history. Focused alert/indicator coverage passes 9/9, the PostgreSQL
+      worker alert checks pass 2/2, and the combined backend gate passes
+      2,402/2,402. No provider call occurs inside an alert evaluation loop.
 - [ ] Extend the contract to future non-Strategy signal engines and persist
       evaluator run status separately from the existing Strategy Lab
       `completed` transport status.

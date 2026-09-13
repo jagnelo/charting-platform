@@ -579,15 +579,21 @@ symbol APIs:
   `/api/v1/market-data/refresh/queue` response exposes these fields so broad
   evaluators and operators can distinguish completed, empty, retry, deferred,
   and still-leased work without making a provider call inside evaluation.
-- Strategy Lab rules, Radar signal replay, and the current reusable `/breadth`
-  snapshot now run a shared local OHLCV coverage preflight before evaluation.
+- Strategy Lab rules, Radar signal replay, the current reusable `/breadth`
+  snapshot, and both production/ARQ-compatible indicator-alert paths now run a
+  shared local OHLCV coverage preflight before evaluation. Grouped high-alert
+  price polling and grouped indicator snapshots occur before evaluation; alert
+  history requirements come from the canonical indicator registry, including
+  explicit composite-window handling and exclusion of numeric parameters that
+  are not history windows.
   The preflight reports exact required ranges, bounded missing slices, freshness
   state, minimum-history readiness, and per-timeframe readiness; unresolved
   instruments are withheld from evaluation. Repair enqueueing is opt-in through
   the run's `queue_coverage_repairs` assumption and always uses the durable
   refresh queue, so evaluators never call a provider directly. Benchmark-family
   breadth now reports per-metric readiness plus a separate cap-benchmark
-  result; future non-Strategy signal engines remain an explicit follow-up.
+  result; future non-Strategy signal engines and persisted evaluator run-status
+  separation remain explicit follow-ups.
 - `market_coverage_snapshot`, `provider_shadow_observation`, and
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`

@@ -1326,3 +1326,19 @@ Update this handoff at each coherent boundary.
   with 89 warnings and cleaned labeled resources. No frontend or ETF-provider
   files changed. The future breadth/signal preflight migration and generic
   Alembic compatibility graph remain open.
+
+- The current source checkpoint extends the shared OHLCV coverage gate to both
+  production and ARQ-compatible indicator-alert execution. Grouped latest-price
+  polling and grouped `(instrument, timeframe)` indicator snapshots happen
+  before evaluation; the canonical indicator registry supplies explicit history
+  floors for composite windows, while anchor timestamps and SAR factors are not
+  misread as bar counts. Failed or insufficient-history groups are withheld
+  rather than evaluated from partial local data. Focused alert/indicator
+  coverage passes `9/9`; PostgreSQL-backed worker alert checks pass `2/2`; the
+  full backend unit suite passes `2,023/2,023` with 37 warnings; and the
+  authoritative Docker-backed combined gate passes `2,402/2,402` at `81.37%`
+  coverage with 89 warnings. The labeled testcontainer session was cleaned
+  without host-wide pruning. No provider calls, credentials, frontend files,
+  or ETF-provider adapter files changed. Future non-Strategy evaluator
+  coordination, persisted evaluator run status, provider/legal/deployment/
+  shadow gates, and generic migration compatibility remain open.
