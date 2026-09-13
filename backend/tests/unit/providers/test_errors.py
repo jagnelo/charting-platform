@@ -21,6 +21,22 @@ def test_provider_errors_redact_configured_secret_values(monkeypatch):
     assert "alpha-live-secret" not in str(ProviderResponseError("alpha", message))
 
 
+@pytest.mark.parametrize(
+    ("setting_name", "secret"),
+    [
+        ("DINARI_API_KEY_ID", "dinari-live-id"),
+        ("DINARI_API_SECRET_KEY", "dinari-live-secret"),
+        ("ONDO_GLOBAL_MARKETS_API_KEY", "ondo-live-secret"),
+    ],
+)
+def test_provider_errors_redact_tokenized_provider_secrets(monkeypatch, setting_name, secret):
+    monkeypatch.setattr(settings, setting_name, secret)
+
+    message = f"provider echoed credential {secret} while processing the request"
+    assert secret not in str(ProviderRateLimitError("tokenized", message))
+    assert secret not in str(ProviderResponseError("tokenized", message))
+
+
 def test_provider_message_redacts_unknown_credential_bearing_url_and_header_values():
     message = (
         "https://example.test/query?apikey=unknown-secret&symbol=AAPL "

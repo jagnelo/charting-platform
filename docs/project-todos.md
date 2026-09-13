@@ -137,6 +137,14 @@
       options-exposure integration passes 24/24, and the authoritative backend
       gate passes 2,418/2,418 at 81.43% coverage.
 
+### 2026-09-13 — Close tokenized-provider secret redaction coverage
+
+- [x] Add Dinari key ID/secret and Ondo API key to the central provider-error
+      redaction allow-list. Regression coverage now proves tokenized credentials
+      are removed from typed rate-limit and response errors, complementing the
+      existing secret-wiring checks; focused coverage passes 28/28 and the
+      authoritative backend gate passes 2,421/2,421 at 81.43% coverage.
+
 ### 2026-09-12 — Pagination cursor safety
 
 - [x] Reject repeated Alpaca history page tokens and malformed/repeated
