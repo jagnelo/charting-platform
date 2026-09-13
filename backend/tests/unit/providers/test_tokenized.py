@@ -1035,6 +1035,21 @@ def test_dinari_sandbox_transient_500_uses_bounded_provider_specific_retry(monke
     assert get.call_count == 2
 
 
+def test_dinari_sandbox_persistent_500_remains_typed_after_retry_bound(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    response = httpx.Response(
+        500,
+        request=httpx.Request("GET", "https://api-enterprise.sandbox.dinari.com/api/v2/market_data/stocks/"),
+    )
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        with pytest.raises(ProviderResponseError) as exc_info:
+            DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert exc_info.value.provider_name == "dinari"
+    assert exc_info.value.status_code == 500
+    assert get.call_count == 3
+
+
 def test_tokenized_http_non_rate_status_does_not_retry_other_providers():
     response = httpx.Response(
         500,
