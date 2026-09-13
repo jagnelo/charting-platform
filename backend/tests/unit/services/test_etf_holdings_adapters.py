@@ -4732,11 +4732,81 @@ async def test_polen_adapter_filters_issuer_multi_fund_export(monkeypatch):
     )
     assert result.legal_metadata["route_resolution"] == "issuer_multi_fund_daily_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["completeness_status"] == "complete"
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "MSFT"
     assert result.rows[0].weight == Decimal("0.25")
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_polen_adapter_rejects_undated_holdings_export(monkeypatch):
+    adapter = get_holdings_adapter("polen")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text="dated export", url=adapter.HOLDINGS_URL)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_export",
+        staticmethod(
+            lambda raw_csv, *, basket_name: (
+                [CanonicalHoldingRow(symbol="MSFT", name="Microsoft")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="PCLG")
+
+
+@pytest.mark.asyncio
+async def test_founder_adapter_fetches_complete_dated_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("founder")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(content=b"pdf", content_type="application/pdf", url=adapter.HOLDINGS_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_pdf",
+        staticmethod(
+            lambda raw_pdf: (
+                [CanonicalHoldingRow(symbol="META", name="Meta Platforms")],
+                date(2026, 7, 10),
+            )
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="FFF")
+
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_founder_adapter_rejects_undated_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("founder")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(content=b"pdf", content_type="application/pdf", url=adapter.HOLDINGS_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_pdf",
+        staticmethod(
+            lambda raw_pdf: ([CanonicalHoldingRow(symbol="META", name="Meta Platforms")], None)
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not expose dated holdings"):
+        await adapter.fetch_latest(symbol="FFF")
 
 
 @pytest.mark.asyncio

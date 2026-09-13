@@ -17746,6 +17746,10 @@ class PolenHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Polen daily holdings export contained no rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Polen daily holdings export did not expose dated holdings for {normalized_symbol}."
+            )
         for index, row in enumerate(rows):
             row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
             row.extra_data = {
@@ -17766,6 +17770,7 @@ class PolenHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_multi_fund_daily_holdings_csv",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -17865,6 +17870,8 @@ class FounderHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_holdings_pdf(response.content)
         if not rows:
             raise ValueError("Founder ETF full holdings PDF did not contain parseable positions.")
+        if composition_date is None:
+            raise ValueError("Founder ETF full holdings PDF did not expose dated holdings.")
         for index, row in enumerate(rows):
             row.source_row_id = f"FFF:{composition_date or 'unknown'}:{index}"
             row.extra_data = {**row.extra_data, "source": "founder_full_holdings_pdf"}
@@ -17882,6 +17889,7 @@ class FounderHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_current_full_holdings_pdf",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
