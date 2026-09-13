@@ -1031,6 +1031,7 @@ class IndicatorBatchOut(AnalysisResponseMetadata):
     requested_count: int = Field(ge=0)
     evaluated_count: int = Field(ge=0)
     coverage: float = Field(ge=0, le=1)
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 

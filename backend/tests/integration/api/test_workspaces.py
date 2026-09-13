@@ -2330,6 +2330,51 @@ class TestWorkspaces:
         assert stale_payload["values"][instrument.symbol]["warning"]["code"] == "stale_data"
         assert any(item["code"] == "stale_data" for item in stale_payload["exclusions"])
 
+    def test_indicator_batch_withholds_values_when_shared_preflight_lacks_history(
+        self, client, auth_headers, db, instrument
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 2, tzinfo=UTC),
+                open=Decimal("100"),
+                high=Decimal("101"),
+                low=Decimal("99"),
+                close=Decimal("100"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
+            )
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol],
+                "indicator": "sma",
+                "params": {"period": 3},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["coverage_preflight"]["evaluator"] == "indicator_batch"
+        assert payload["coverage_preflight"]["status"] == "deferred"
+        assert payload["coverage_preflight"]["items"][0]["status"] == "partial"
+        assert payload["values"][instrument.symbol]["value"] is None
+        assert payload["values"][instrument.symbol]["warning"]["code"] == (
+            "insufficient_history"
+        )
+
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

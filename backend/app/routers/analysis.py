@@ -131,7 +131,11 @@ from app.services.breadth import (
     evaluate_breadth_history,
 )
 from app.services.evaluator_preflight import preflight_ohlcv
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.indicators import (
+    OHLCVSeries,
+    get_latest_value,
+    required_bars_for_indicator,
+)
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
@@ -690,6 +694,19 @@ async def indicator_batch(
     bars_by_id = await _bars_by_instrument(
         db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
     )
+    minimum_bars = required_bars_for_indicator(body.indicator, body.params)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="indicator_batch",
+        instrument_ids=[item.id for item in instruments.values()],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=None,
+        adjusted=body.adjusted,
+        cached_bars=bars_by_id,
+        minimum_bars=minimum_bars,
+    )
+    preflight_ready_ids = coverage_preflight.ready_instrument_ids
     stale_ids = await _stale_instrument_ids(
         db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
     )
@@ -737,6 +754,31 @@ async def indicator_batch(
             }
             exclusions.append(warning)
             continue
+        if instrument.id not in preflight_ready_ids:
+            item = next(
+                (
+                    coverage_item
+                    for coverage_item in coverage_preflight.items
+                    if coverage_item.instrument_id == instrument.id
+                ),
+                None,
+            )
+            warning = AnalysisWarning(
+                code="insufficient_history",
+                message=(
+                    item.explanation
+                    if item is not None
+                    else f"This indicator requires at least {minimum_bars} local bars."
+                ),
+                instrument_id=instrument.id,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": bars[-1].ts,
+                "warning": warning.model_dump(),
+            }
+            exclusions.append(warning)
+            continue
         try:
             value = get_latest_value(
                 body.indicator,
@@ -779,6 +821,7 @@ async def indicator_batch(
         requested_count=len(symbols),
         evaluated_count=evaluated_count,
         coverage=evaluated_count / max(len(symbols), 1),
+        coverage_preflight=coverage_preflight.to_dict(),
         exclusions=exclusions,
     )
 

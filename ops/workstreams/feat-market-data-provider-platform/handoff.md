@@ -1394,3 +1394,18 @@ Update this handoff at each coherent boundary.
   pruning. No provider, frontend, or ETF-provider adapter files changed.
   Future non-Strategy evaluator engines beyond Market Map, provider/legal/
   deployment/shadow gates, and generic migration compatibility remain open.
+
+- The current uncommitted checkpoint extends the shared evaluator preflight to
+  the explicit-symbol indicator batch endpoint. The canonical indicator
+  registry supplies the minimum local history floor; the endpoint assesses its
+  already loaded bars once without provider I/O, withholds under-sized values,
+  and returns an additive serialized `coverage_preflight` report. Focused
+  PostgreSQL indicator integration passed `2/2`; the complete backend unit suite
+  passed `2,029/2,029`; and the authoritative Docker-backed gate passed
+  `2,410/2,410` at `81.37%` combined coverage with 89 warnings. The labeled
+  testcontainer session `64de1fe7-1993-4f05-8f8b-6030574fc8b8` was cleaned
+  without host-wide pruning. No provider calls, credentials, frontend files,
+  or ETF-provider adapter files changed. Future non-Strategy evaluator engines
+  beyond the explicit indicator batch and Market Map, provider/legal/deployment/
+  shadow gates, and generic migration compatibility remain open. The source
+  checkpoint should be replaced with the commit SHA after commit/push.

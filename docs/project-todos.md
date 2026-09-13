@@ -16538,3 +16538,21 @@ The current source also passes the focused authenticated top-down browser slice 
       coverage and 89 warnings; labeled test resources were cleaned. Source
       checkpoint `a8ee8573`; no provider calls, credentials, frontend files,
       or ETF-provider adapter files changed.
+
+### 2026-09-13 — Explicit indicator-batch coverage preflight
+
+- [x] Extend the provider-neutral evaluator preflight to the explicit-symbol
+      `/analysis/indicator-batch` endpoint. Required history is derived from
+      the canonical indicator registry; already loaded local bars are assessed
+      once without provider I/O; under-sized values are withheld with an
+      explicit `insufficient_history` warning; and the additive response
+      exposes the serialized `coverage_preflight` report.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; Ruff, compileall, and diff checks pass; and
+      the authoritative Docker-backed backend gate passes `2,410/2,410` at
+      `81.37%` combined coverage with 89 warnings. The labeled testcontainer
+      session is cleaned without host-wide pruning. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+- [ ] Future non-Strategy evaluator engines beyond the explicit indicator
+      batch and Market Map remain open, as do provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates.
