@@ -1352,3 +1352,14 @@ Update this handoff at each coherent boundary.
   The other configured and keyless/tokenized probes passed with bounded
   transport observations. The runner returned exit code `2` and made no
   acceptance claim. No credentials or response payloads entered Git.
+
+- Source checkpoint `becb57299` extends the shared OHLCV coverage preflight to
+  synchronous and streaming screeners. Existing grouped local snapshots retain
+  raw rows for one preflight per required timeframe; indicator and price-change
+  history floors are derived from the condition tree, and insufficient
+  primary/D1/W1 coverage is withheld with explicit exclusions and an additive
+  preflight summary. Focused screener/preflight coverage passed `36/36`, the
+  database-backed screener integration passed `26/26`, the complete unit suite
+  passed `2,025/2,025`, and the authoritative Docker-backed gate passed
+  `2,404/2,404` at `81.37%` coverage. No provider calls, credentials,
+  frontend files, or ETF-provider adapter files changed.

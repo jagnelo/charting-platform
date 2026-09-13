@@ -33,6 +33,14 @@
       history-floor regressions pass 2/2 (39/39 across the two focused files),
       the PostgreSQL worker alert checks pass 2/2, and the combined backend gate passes
       2,402/2,402. No provider call occurs inside an alert evaluation loop.
+- [x] Extend the same contract to synchronous and streaming screeners. Their
+      existing grouped local snapshot is retained, raw rows are assessed by the
+      shared preflight, and indicator/price-change history floors are derived
+      from the actual condition tree. Insufficient primary/D1/W1 coverage is
+      withheld with an explicit exclusion and an additive preflight summary;
+      focused screener/preflight coverage passes 36/36, the database-backed
+      screener integration passes 26/26, and the complete backend gate passes
+      2,404/2,404. No provider call occurs inside a screener evaluation loop.
 - [ ] Extend the contract to future non-Strategy signal engines and persist
       evaluator run status separately from the existing Strategy Lab
       `completed` transport status.
