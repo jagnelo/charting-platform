@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
+
+- [x] Rerun the exact branch-scoped gate at product tip `c7d84436f`; backend
+      integration passed `404/404`, frontend Vitest passed `1067/1067`, and
+      functional E2E passed `165` with `107` documented skips.
+- [x] Research-runner sandbox/resource probes, compose/deployment contracts,
+      and all pre-visual checks passed. Provider probes were correctly skipped
+      because no provider-related path changes were detected by the gate.
+- [ ] Keep the six unchanged protected visual diffs open: watchlist-column-
+      editor at 1080p 100/125 and workspace-floating at 1080p/1440p 100/125.
+      Continue R1 canonical provider/history population, D1/W1/MN floors and
+      continuity, and AC2–AC7/AC10.
+
 ### 2026-09-13 — Correct SLYG SEC class route
 
 - [x] Correct SLYG's curated SEC series/class identity to

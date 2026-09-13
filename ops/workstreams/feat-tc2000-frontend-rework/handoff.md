@@ -2,6 +2,19 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
+
+Product tip `c7d84436f` and documentation/session tip `e7f37222a` passed the
+exact branch-scoped `full_stack_browser` gate through all functional stages:
+backend unit `1534/1534`, backend integration `404/404`, frontend Vitest
+`1067/1067`, functional E2E `165 passed` with `107 skipped`, plus the
+compose/deployment and research-runner probes. The gate's provider stage was
+skipped because its detector found no provider-related path changes. Visual
+E2E passed `98/104`; the same six protected watchlist-column-editor and
+workspace-floating diffs remain unchanged. The stack, volumes, images, and
+testcontainer sessions were cleaned. Continue R1 population/history and
+D1/W1/MN floors/continuity; AC2–AC7/AC10 remain open.
+
 ## 2026-09-13 — Correct SLYG SEC identity and legacy fallback safety
 
 Product commit `c7d84436f` corrects SLYG's SEC series/class route to
@@ -3680,6 +3693,7 @@ Checkpoint bookkeeping for this in-progress context currently owns these dirty
 paths; they must be committed together with the session checkpoint:
 
 - `docs/project-todos.md`
+- `docs/tc2000-acceptance-governance.md`
 - `docs/tc2000-roadmap.md`
 - `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`
 - `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`

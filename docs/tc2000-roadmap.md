@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
+
+At product tip `c7d84436f` and documentation/session tip `e7f37222a`, the
+exact branch-scoped `full_stack_browser` gate passed repository/workstream
+validation, locked dependencies and migration checks, Ruff check/format,
+TypeScript, backend unit (`1534/1534`, 69% total coverage), backend
+integration (`404/404`, 81.97% combined coverage), frontend Vitest
+(`1067/1067`, 85.22% coverage), compose/deployment contracts,
+research-runner sandbox/resource probes, and functional E2E (`165 passed`,
+`107 skipped`). Provider probes were correctly skipped because the gate's
+provider-change detector found no provider-related path changes. Visual E2E
+passed `98/104`; the six unchanged protected diffs remain
+watchlist-column-editor at 1080p 100/125 and workspace-floating at 1080p
+100/125 and 1440p 100/125. The branch-scoped stack, volumes, built images,
+and testcontainer sessions were cleaned. No visual threshold, mask, skip,
+provider, fallback, migration, or acceptance policy changed. R1 canonical
+provider population/history, D1/W1/MN floors and continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-13 — Correct SLYG SEC identity and fail closed on curated routes
 
 Product commit `c7d84436f` corrects SLYG's curated SEC identity to series
