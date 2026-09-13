@@ -2204,7 +2204,7 @@ async def test_live_invesco_rsp_historical_route_is_sec_labelled():
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("ishares")
-@pytest.mark.parametrize("symbol", ["IJR", "IWB", "IWD", "IWF", "IWN", "IWO", "IWV"])
+@pytest.mark.parametrize("symbol", ["IJR", "IWB", "IWD", "IWF", "IWM", "IWN", "IWO", "IWV"])
 async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbol):
     adapter = get_holdings_adapter("ishares")
     assert adapter is not None
