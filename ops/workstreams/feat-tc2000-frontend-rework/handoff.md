@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 — Verified Allspring holdings completeness
+
+Product commit `1c9ee96ed` requires and records the published composition date
+for Allspring's issuer symbol-specific total-holdings CSV route. The adapter
+verifies non-empty native rows, fails closed for undated snapshots, records
+composition/as-of and row-count metadata, marks the native route complete,
+and date-scopes row IDs.
+
+Focused Allspring assertions passed `8/8`; Ruff, formatting, and diff checks
+passed. The exact branch-scoped gate passed backend units `1584/1584`,
+integration `405/405` with `82.09%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources
+were cleaned with no retained containers, volumes, networks, or testcontainer
+sessions. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam
+while preserving explicit completeness evidence and the unchanged visual and
+provider policy.
+
 ## 2026-09-14 — Verified Tremblant holdings completeness
 
 Product commit `27b7b24dc` requires and records the published composition date

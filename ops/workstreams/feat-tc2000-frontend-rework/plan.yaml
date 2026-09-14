@@ -3826,13 +3826,20 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_tremblant_holdings_completeness
+  current_phase: R1_verified_allspring_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
     mappings, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest Allspring holdings completeness seam is verified at branch tip
+    `1c9ee96ed`: focused assertions passed 8/8; full gate passed backend units
+    1584/1584, integration 405/405 at 82.09% combined coverage, frontend
+    Vitest 1067/1067, functional E2E 165 passed with 107 skipped, and visual
+    E2E 98/104 with only the six unchanged protected diffs. Docker is clean;
+    remote push remains intentionally held. Continue the next bounded R1
+    canonical provider/history seam and preserve fail-closed evidence.
     Latest Tremblant holdings completeness seam is verified at branch tip
     `27b7b24dc`: focused assertions passed 6/6; full gate passed backend units
     1583/1583, integration 405/405 at 82.09% combined coverage, frontend
