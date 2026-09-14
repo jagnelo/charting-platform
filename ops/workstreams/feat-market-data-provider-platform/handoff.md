@@ -2357,3 +2357,12 @@ changed.
   ingestion, and descriptor-only Alpaca ITN. The quota-contract and provider
   secret-wiring suites passed `110/110`; no provider calls or credentials were
   used.
+
+- Focused coverage for the newly credentialed Alpaca/MarketData.app/Dinari
+  adapters, optional-provider transports, tokenized-asset persistence,
+  provider-native account-usage observations, and live-manifest secret wiring
+  passed `448/448` in `2.58s` on source checkpoint `91b0386ed`. This was a
+  local fixture/unit run only; it made no provider calls and did not consume
+  any configured external quota. The latest credentialed live evidence remains
+  the bounded matrix recorded above, with provider-specific routing/legal and
+  deployment-secret gates still intentionally open.
