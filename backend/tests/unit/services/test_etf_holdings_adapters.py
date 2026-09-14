@@ -1387,10 +1387,31 @@ async def test_optimize_adapter_verifies_optz_page_and_parses_issuer_xls(monkeyp
     assert result.legal_metadata["route_resolution"] == (
         "issuer_product_page_verified_fund_scoped_full_holdings_xls"
     )
+    assert result.legal_metadata["as_of_date"] == "2026-07-14"
+    assert result.legal_metadata["row_count"] == 1
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert (
+        result.legal_metadata["snapshot_provenance"] == "optimize_native_fund_scoped_holdings_xls"
+    )
+    assert result.rows[0].source_row_id == "OPTZ:2026-07-14:1"
+    assert result.raw_json["composition_date"] == "2026-07-14"
     assert [url for url, _kwargs in FakeAsyncClient.requested] == [
         "https://www.optzfund.com/optz",
         "https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",
     ]
+
+
+def test_optimize_requires_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("optimize")
+    assert adapter is not None
+    assert adapter._extract_composition_date("<p>Data as of 07/14/2026.</p>") == date(2026, 7, 14)
+    for page in (
+        "<p>Data as of not-a-date.</p>",
+        "<p>Data as of 07/14/2026.</p><p>Data as of 07/15/2026.</p>",
+        "<p>Optimize Strategy Index ETF (OPTZ)</p>",
+    ):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._extract_composition_date(page)
 
 
 @pytest.mark.asyncio

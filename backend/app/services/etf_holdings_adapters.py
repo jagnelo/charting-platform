@@ -57521,6 +57521,13 @@ class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"Optimize holdings export returned no parseable complete rows for {normalized_symbol}."
             )
         composition_date = self._extract_composition_date(page_response.text)
+        composition_date_text = composition_date.isoformat()
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"{normalized_symbol}:{composition_date_text}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "optimize_product_page_verified_fund_scoped_full_holdings_xls",
+            }
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -57528,6 +57535,9 @@ class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "xls",
                 "product_page_url": str(page_response.url),
                 "workbook_rows": workbook_rows,
+                "row_count": len(rows),
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
             },
             source_url=str(workbook_response.url),
             source_identifier=normalized_symbol,
@@ -57538,9 +57548,14 @@ class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "xls",
                 "route_resolution": "issuer_product_page_verified_fund_scoped_full_holdings_xls",
                 "product_page_url": str(page_response.url),
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+                "refresh_frequency": "issuer_product_page",
                 "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_dated_complete_holdings",
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "optimize_native_fund_scoped_holdings_xls",
             },
         )
 
@@ -57567,18 +57582,32 @@ class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
 
     @staticmethod
-    def _extract_composition_date(raw_html: str) -> date | None:
-        match = re.search(
-            r"Data\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
-            html.unescape(raw_html),
+    def _extract_composition_date(raw_html: str) -> date:
+        normalized_html = html.unescape(raw_html)
+        holdings_date_texts = re.findall(
+            r"Data\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})\.\s*"
+            r"Holdings\s+are\s+subject\s+to\s+change",
+            normalized_html,
             re.IGNORECASE,
         )
-        if not match:
-            return None
-        try:
-            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
-        except ValueError:
-            return None
+        date_texts = holdings_date_texts or re.findall(
+            r"Data\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
+            normalized_html,
+            re.IGNORECASE,
+        )
+        parsed_dates: set[date] = set()
+        for date_text in date_texts:
+            try:
+                parsed_dates.add(datetime.strptime(date_text, "%m/%d/%Y").date())
+            except ValueError as exc:
+                raise ValueError(
+                    "Optimize product page did not publish exactly one parseable composition date."
+                ) from exc
+        if len(parsed_dates) != 1:
+            raise ValueError(
+                "Optimize product page did not publish exactly one parseable composition date."
+            )
+        return next(iter(parsed_dates))
 
 
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):

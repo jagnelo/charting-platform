@@ -2177,6 +2177,18 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "water_island_native_periodic_complete_portfolio_report_pdf"
         )
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "optimize":
+        metadata = result.legal_metadata or {}
+        assert (
+            metadata["route_resolution"]
+            == "issuer_product_page_verified_fund_scoped_full_holdings_xls"
+        )
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == "optimize_native_fund_scoped_holdings_xls"
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
     if adapter_key == "cultivar":
         metadata = result.legal_metadata or {}
         assert metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"
