@@ -342,7 +342,12 @@ class AlpacaProvider:
         if not normalized_symbol:
             return None
         self._require_configured()
-        url = f"{_trading_base_url()}/assets/{quote(normalized_symbol, safe='._-')}"
+        lookup_symbol = (
+            _to_alpaca_crypto(normalized_symbol)
+            if _is_crypto(normalized_symbol)
+            else normalized_symbol
+        )
+        url = f"{_trading_base_url()}/assets/{quote(lookup_symbol, safe='._-')}"
         try:
             response = httpx.get(url, headers=self._headers(), timeout=20)
             observe_response(response)
@@ -362,7 +367,7 @@ class AlpacaProvider:
         provider_symbol = str(payload.get("symbol") or "").strip().upper()
         if not provider_symbol:
             raise ProviderResponseError(self.name, "Alpaca asset response omitted symbol")
-        if provider_symbol != normalized_symbol:
+        if provider_symbol != lookup_symbol.upper():
             raise ProviderResponseError(
                 self.name,
                 "Alpaca asset response returned a different symbol than requested",
@@ -428,8 +433,8 @@ class AlpacaProvider:
         }
         return InstrumentProfile(
             provider=self.name,
-            symbol=provider_symbol,
-            canonical_symbol=provider_symbol,
+            symbol=normalized_symbol,
+            canonical_symbol=normalized_symbol,
             name=name,
             currency=currency,
             quote_type=quote_type,

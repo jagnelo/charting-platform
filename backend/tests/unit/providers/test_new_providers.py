@@ -408,6 +408,35 @@ class TestAlpacaCredentialWarning:
             configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
             assert AlpacaProvider().get_instrument_profile("UNKNOWN") is None
 
+    def test_get_instrument_profile_normalizes_alpaca_crypto_symbol(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {
+            "id": "crypto-asset-uuid",
+            "class": "crypto",
+            "exchange": "CRYPTO",
+            "symbol": "BTC/USD",
+            "name": "Bitcoin / US Dollar",
+            "status": "active",
+            "tradable": True,
+            "fractionable": True,
+            "currency": "USD",
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            profile = AlpacaProvider().get_instrument_profile("BTC-USD")
+        assert profile is not None
+        assert profile.symbol == "BTC-USD"
+        assert profile.quote_type == "CRYPTOCURRENCY"
+        assert profile.listings[0].provider_symbol == "BTC/USD"
+        assert get.call_args.args[0] == "https://paper-api.alpaca.markets/v2/assets/BTC%2FUSD"
+
     def test_get_instrument_profile_rejects_malformed_success_payload(self):
         response = MagicMock()
         response.status_code = 200
