@@ -16,6 +16,16 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
   Provider/legal, trusted-secret-store, deferred-credential, NMS/OTC
   reconciliation, and separately approved shadow-run gates remain open.
 
+- Current-HEAD live revalidation on 2026-09-14 collected 47 manifest cases and
+  passed 41/47. Alpha Vantage's IPO-calendar and both earnings operations
+  returned its typed documented free-key capacity response; Tradier, IBKR, and
+  Ondo remained exact missing-credential preflights. The redacted receipt
+  `2a14d59d-49fa-4794-b67a-ec8d2c5e1028` recorded 26 provider rows, 96 HTTP
+  requests, 77 operations, and 23,167,868 response bytes in the owner-managed
+  mode-0600 ledger. Routing safety remained fail-closed for the explicitly
+  unreviewed provider controls. This is transport/quota observation only, not
+  acceptance or routing-promotion evidence.
+
 - Tokenized historical comments and documentation are now consistent with the
   implemented Dinari/Ondo bridge and its four supported windows (`DAY`,
   `WEEK`, `MONTH`, `YEAR`). Focused tokenized/asset-service/secret-wiring

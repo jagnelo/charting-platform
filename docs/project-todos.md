@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-14 — Current-head complete live provider matrix
+
+- [x] Re-run the lock-protected manifest matrix against source checkpoint
+      `b6fce15e5` using the existing owner-managed keys. The 47-case run passed
+      41/47: Alpha Vantage returned its documented free-key daily-capacity
+      response for IPO-calendar and both earnings operations, while Tradier,
+      IBKR, and Ondo remained exact missing-credential preflights. The
+      aggregate-only receipt recorded 26 providers, 96 HTTP requests, 77
+      operations, and 23,167,868 response bytes in the external ledger. No
+      credentials or payloads entered Git; unresolved routing-safety controls
+      remain fail-closed and this is not acceptance evidence.
+
 ### 2026-09-14 — Typed unsupported history timeframes across adapters
 
 - [x] Make direct history requests fail closed with typed provider errors when

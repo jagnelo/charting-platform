@@ -98,6 +98,18 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: ready_for_human_review
 remaining_gaps:
   - >-
+    The current-HEAD lock-protected live matrix on 2026-09-14 collected 47
+    cases and passed 41/47. The three Alpha Vantage IPO-calendar/earnings
+    operations returned the typed documented free-key capacity response; the
+    remaining three outcomes were exact missing-credential preflights for
+    intentionally deferred Tradier, IBKR, and Ondo. The 26-provider redacted
+    receipt under run `2a14d59d-49fa-4794-b67a-ec8d2c5e1028` recorded 96 HTTP
+    requests, 77 operations, 23,167,868 response bytes, and four failed
+    operations in the owner-managed external ledger. Routing safety remained
+    fail-closed for the explicitly unreviewed quota, entitlement, legal, and
+    byte-bound controls; this is transport evidence only and makes no
+    acceptance or routing-promotion claim.
+  - >-
     Massive historical bars are now implemented and live-validated, but remain
     deliberately opt-in: the free Stocks Basic five-call/minute and two-year
     history/redistribution terms still require operator review before adding
