@@ -2350,3 +2350,10 @@ changed.
   smoke-tested `/health` with HTTP 200. The temporary PostgreSQL container and
   detached worktree were cleaned by the gate; no provider calls or credentials
   were used.
+
+- A current registry/live-manifest audit found 32 registered providers: 29 have
+  explicit bounded live-manifest entries, while the three remaining entries
+  have explicit exclusion rationales for legacy yfinance, internal ETF holdings
+  ingestion, and descriptor-only Alpaca ITN. The quota-contract and provider
+  secret-wiring suites passed `110/110`; no provider calls or credentials were
+  used.
