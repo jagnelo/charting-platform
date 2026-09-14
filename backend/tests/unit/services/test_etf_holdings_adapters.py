@@ -23729,6 +23729,34 @@ async def test_adaptive_investments_adapter_parses_variable_embedded_holdings_pa
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
     assert result.legal_metadata["composition_date"] == "2026-07-07"
+    assert result.legal_metadata["as_of_date"] == "2026-07-07"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["composition_date"] == "2026-07-07"
+    assert result.rows[0].source_row_id == "adaptive-investments-2026-07-07-1"
+
+
+@pytest.mark.asyncio
+async def test_adaptive_investments_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("adaptive_investments")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><script>window.__NUXT__="
+                '(function(){pl.componentId="adpvetf-adpv-holdings-1";'
+                'pl.finData=[{ticker:"SNDK",description:"SANDISK CORP"}];'
+                "return {}}());</script></html>"
+            ),
+            content_type="text/html",
+            url="https://adpvetf.com/adpv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="ADPV")
 
 
 @pytest.mark.asyncio

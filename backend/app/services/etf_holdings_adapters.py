@@ -27380,6 +27380,11 @@ class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Adaptive Investments page did not expose holdings rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Adaptive Investments page did not publish a composition date for {symbol}."
+            )
+        rows = self._date_rows(rows, composition_date)
 
         legal_metadata: dict[str, Any] = {
             "source_access": self.config.source_access,
@@ -27389,15 +27394,21 @@ class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "route_resolution": "issuer_public_fund_page_embedded_holdings",
             "source_quality": "issuer_reported_current_holdings",
             "snapshot_provenance": "issuer_native_fund_page_payload",
+            "composition_date": composition_date.isoformat(),
+            "as_of_date": composition_date.isoformat(),
+            "completeness_status": "complete",
             "terms_note": self.config.terms_note,
         }
-        if composition_date is not None:
-            legal_metadata["composition_date"] = composition_date.isoformat()
 
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            raw_json={
+                "source_format": "nuxt_payload",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+            },
             source_url=str(response.url),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata=legal_metadata,
@@ -27490,6 +27501,14 @@ class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, cls._parse_component_date(
             body, variable_name=variable_name, value_map=value_map
         )
+
+    @staticmethod
+    def _date_rows(
+        rows: list[CanonicalHoldingRow], composition_date: date
+    ) -> list[CanonicalHoldingRow]:
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"adaptive-investments-{composition_date.isoformat()}-{index}"
+        return rows
 
     @staticmethod
     def _extract_nuxt_payload(raw_html: str) -> str | None:
