@@ -42311,13 +42311,28 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"GraniteShares product page did not expose a complete native holdings workbook for {normalized_symbol}."
             )
-        return await self._fetch_explicit_issuer_csv(
+        composition_date = self._composition_date_from_url(holdings_url)
+        if composition_date is None:
+            raise ValueError(
+                f"GraniteShares official holdings workbook did not publish a composition date for {normalized_symbol}."
+            )
+        result = await self._fetch_explicit_issuer_csv(
             symbol=normalized_symbol,
             issuer_product_id=issuer_product_id or normalized_symbol,
             source_url=holdings_url,
             identifiers=identifiers,
             route_resolution="graniteshares_product_page_declared_holdings_workbook",
         )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "composition_date": composition_date.isoformat(),
+            "as_of_date": composition_date.isoformat(),
+            "source_quality": "issuer_page_declared_current_complete_holdings",
+            "snapshot_provenance": "issuer_native_product_page_linked_workbook",
+            "completeness_status": "complete",
+            "terms_note": self.config.terms_note,
+        }
+        return result
 
     async def _fetch_public_holdings_api(
         self,
@@ -42442,6 +42457,22 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if "holding" in path and symbol.lower() in path:
                 candidates.append(candidate)
         return sorted(candidates)[0] if candidates else None
+
+    @staticmethod
+    def _composition_date_from_url(value: str) -> date | None:
+        """Read GraniteShares' YYYYMMDD snapshot date from the workbook name."""
+        path = urlparse(value).path
+        match = re.search(r"(?<!\d)(20\d{2})[-_]?([01]\d)[-_]?([0-3]\d)(?!\d)", path)
+        if match is None:
+            return None
+        try:
+            return date(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)),
+            )
+        except ValueError:
+            return None
 
     @staticmethod
     def _product_id_from_page(raw_html: str) -> str | None:

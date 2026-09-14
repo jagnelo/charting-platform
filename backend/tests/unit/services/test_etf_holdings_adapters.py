@@ -15273,6 +15273,34 @@ async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     )
     assert result.legal_metadata["source_provider"] == "graniteshares"
     assert result.legal_metadata["source_format"] == "xls"
+    assert result.legal_metadata["composition_date"] == "2026-06-11"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_graniteshares_adapter_rejects_undated_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("graniteshares")
+    assert adapter is not None
+    holdings_url = "https://graniteshares.com/media/nwnlfyi3/nvd_holdings_file.xls"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=b"legacy-xls",
+            content_type="application/vnd.ms-excel",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_holdings_xls",
+        lambda raw_workbook: (
+            [CanonicalHoldingRow(symbol="NVDA", name="NVIDIA CORP")],
+            [["Ticker", "Name"], ["NVDA", "NVIDIA CORP"]],
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="NVD", source_url=holdings_url)
 
 
 @pytest.mark.asyncio
