@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-13
 
+## 2026-09-14 — Promote verified Indexperts holdings completeness
+
+Product commit `81d551a48` requires a published composition date for
+Indexperts' official QIDX/RILA/YFFI holdings JSON feed. The adapter verifies
+parseable non-empty rows and dated `holdingdates.medata`; undated payloads fail
+closed while explicit `completeness_status: complete` remains scoped to the
+native route; generic current/daily/table labels remain fail-closed.
+
+Focused Indexperts assertions passed `2/2`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1565/1565`, integration
+`405/405` with `82.04%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified Soundwatch holdings completeness
 
 Product commit `7f8c1abe5` requires a published composition date for

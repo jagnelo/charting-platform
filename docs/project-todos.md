@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Indexperts holdings completeness
+
+- [x] Require a published composition date for Indexperts' official
+      QIDX/RILA/YFFI holdings JSON feed. Verify parseable non-empty rows; keep
+      undated payloads fail-closed and generic labels unchanged.
+- [x] Product commit `81d551a48`; focused Indexperts assertions passed `2/2`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1565/1565`, integration `405/405` with `82.04%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified Soundwatch holdings completeness
 
 - [x] Require a published composition date for Soundwatch SHDG's official
