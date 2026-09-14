@@ -43592,6 +43592,10 @@ class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Palmer Square product page did not expose holdings rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Palmer Square product page did not publish a composition date for {symbol}."
+            )
 
         return HoldingsFetchResult(
             rows=rows,

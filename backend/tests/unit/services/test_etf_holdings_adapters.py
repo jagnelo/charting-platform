@@ -11579,6 +11579,42 @@ async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_palmer_square_adapter_rejects_undated_holdings_page(monkeypatch):
+    adapter = get_holdings_adapter("palmer_square")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <script>
+          var holdingsData = [
+            {
+              "cusip": "64755YAJ7",
+              "name": "NEW MOUNTAIN FLT 04/39",
+              "asset_type": "CDO/COLLATERALIZED DEBT OBLIGATION",
+              "shares_par": "1,000,000.00000000",
+              "market_value": "997,441.09",
+              "weight_percent": "0.38"
+            }
+          ];
+        </script>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://etf.palmersquarefunds.com/funds/us-etfs/palmer-square-credit-opportunities-etf",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="PSQO", identifiers={})
+
+
+@pytest.mark.asyncio
 async def test_weitz_adapter_parses_verified_embedded_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("weitz")
     assert adapter is not None
