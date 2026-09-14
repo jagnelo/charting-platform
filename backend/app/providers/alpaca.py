@@ -269,7 +269,11 @@ class AlpacaProvider:
         return bars[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        seconds = _TF_SECONDS.get(timeframe, 86400)
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(
+                self.name, f"Alpaca does not support timeframe {timeframe.value}"
+            )
         lookback = timedelta(seconds=seconds * limit * 1.4 + 86400)
         return datetime.now(UTC) - lookback
 

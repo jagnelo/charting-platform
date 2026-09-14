@@ -86,6 +86,22 @@ def test_yfinance_rejects_calendar_year_without_network_fallback():
     with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
         provider.latest_window_start(Timeframe.Y1, 1)
 
+
+@pytest.mark.parametrize("provider_cls", [AlpacaProvider, BinanceProvider])
+def test_crypto_and_equity_adapters_reject_calendar_year_latest_windows(provider_cls):
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        provider_cls().latest_window_start(Timeframe.Y1, 1)
+
+
+def test_alpha_vantage_rejects_calendar_year_latest_windows():
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        AlphaVantageProvider().latest_window_start(Timeframe.Y1, 1)
+
+
+def test_fred_rejects_calendar_year_latest_windows():
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        FREDProvider().latest_window_start(Timeframe.Y1, 1)
+
 # ── Registry capability detection ────────────────────────────────────────────
 
 

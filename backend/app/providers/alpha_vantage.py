@@ -240,6 +240,10 @@ class AlphaVantageProvider:
         )[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        if timeframe is not Timeframe.D1:
+            raise ProviderResponseError(
+                self.name, f"Alpha Vantage does not support timeframe {timeframe.value}"
+            )
         return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))
 
     def get_current_price(self, symbol: str) -> float | None:

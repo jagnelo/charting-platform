@@ -242,6 +242,10 @@ class FREDProvider:
         return bars[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        if timeframe not in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
+            raise ProviderResponseError(
+                self.name, f"FRED does not support timeframe {timeframe.value}"
+            )
         # FRED is daily at finest; look back generously to handle weekends/holidays
         return datetime.now(UTC) - timedelta(days=limit * 2 + 30)
 

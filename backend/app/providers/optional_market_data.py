@@ -986,7 +986,11 @@ class _RESTProvider:
         )[-max(0, limit) :]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        seconds = _TF_SECONDS.get(timeframe, 86400)
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         return datetime.now(UTC) - timedelta(seconds=max(1, limit) * seconds * 1.5 + 86400)
 
     def get_current_price(self, symbol: str) -> float | None:
@@ -1582,9 +1586,12 @@ class MarketDataAppProvider(_RESTProvider):
         )
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        return datetime.now(UTC) - timedelta(
-            seconds=_TF_SECONDS.get(timeframe, 86400) * max(1, limit)
-        )
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
+        return datetime.now(UTC) - timedelta(seconds=seconds * max(1, limit))
 
     def list_option_expirations(self, symbol: str) -> list[date]:
         """Return the documented expiration dates for one US option root."""

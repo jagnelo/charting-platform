@@ -93,6 +93,23 @@ def test_raw_only_rest_adapters_reject_adjusted_history_before_transport(provide
     get.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_optional_history_adapters_reject_calendar_year_latest_windows(provider_cls):
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        provider_cls().latest_window_start(Timeframe.Y1, 1)
+
+
 def test_twelve_data_parses_intraday_values():
     provider = TwelveDataProvider()
     payload = {
