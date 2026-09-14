@@ -25851,7 +25851,7 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
 
 
 @pytest.mark.asyncio
-async def test_oakmark_official_symbol_csv_route_filters_fund_and_preserves_date(monkeypatch):
+async def test_oakmark_official_symbol_csv_route_filters_fund_and_requires_date(monkeypatch):
     adapter = get_holdings_adapter("oakmark")
     assert adapter is not None
     csv_text = (
@@ -25877,9 +25877,37 @@ async def test_oakmark_official_symbol_csv_route_filters_fund_and_preserves_date
     assert result.rows[1].symbol == "ACN"
     assert result.rows[1].weight == Decimal("0.0171345579")
     assert result.rows[1].cusip == "G1151C101"
+    assert result.rows[0].source_row_id == "OAKM:2026-08-07:1:NET OTHER ASSETS"
+    assert result.rows[1].source_row_id == "OAKM:2026-08-07:2:G1151C101"
     assert result.legal_metadata["route_resolution"] == "oakmark_issuer_symbol_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-08-07"
     assert result.legal_metadata["as_of_date"] == "2026-08-07"
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_oakmark_symbol_holdings_csv"
+    )
+    assert result.raw_json["row_count"] == 2
+    assert result.raw_json["composition_date"] == "2026-08-07"
+
+
+@pytest.mark.asyncio
+async def test_oakmark_official_symbol_csv_route_rejects_undated_rows(monkeypatch):
+    adapter = get_holdings_adapter("oakmark")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "etf_fund,as_of_date,ticker,cusip,sedol,isin,issue_name,weight,shares_held,base_market_value\n"
+                "OAKM,,ACN,G1151C101,B4BNMY3,IE00B4BNMY34,ACCENTURE PLC,1.7,113701,19455378.11\n"
+            ),
+            url="https://oakmark.com/wp-content/uploads/etf_data/oakm_holdings.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish one composition date"):
+        await adapter.fetch_latest(symbol="OAKM")
 
 
 @pytest.mark.asyncio

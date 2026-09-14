@@ -65793,18 +65793,43 @@ class OakmarkHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"Oakmark returned no parseable rows for {normalized_symbol}.")
         result.rows = rows
-        if len(dated_values) == 1:
-            composition_date = next(iter(dated_values)).isoformat()
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "composition_date": composition_date,
-                "as_of_date": composition_date,
+        if len(dated_values) != 1:
+            raise ValueError(
+                f"Oakmark's holdings export did not publish one composition date for {normalized_symbol}."
+            )
+        composition_date = next(iter(dated_values))
+        date_text = composition_date.isoformat()
+        result.rows = [
+            replace(
+                row,
+                source_row_id=(
+                    f"{normalized_symbol}:{date_text}:{index}:"
+                    f"{row.cusip or row.isin or row.symbol or row.name or row.extra_data.get('issue_name') or 'holding'}"
+                ),
+            )
+            for index, row in enumerate(result.rows, start=1)
+        ]
+        raw_json = dict(result.raw_json or {})
+        raw_json.update(
+            {
+                "row_count": len(result.rows),
+                "composition_date": date_text,
+                "as_of_date": date_text,
             }
-        elif len(dated_values) > 1:
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "composition_date_warning": "issuer_csv_contains_multiple_dates",
-            }
+        )
+        result.raw_json = raw_json
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "oakmark_issuer_symbol_holdings_csv",
+            "composition_date": date_text,
+            "as_of_date": date_text,
+            "row_count": len(result.rows),
+            "completeness_status": "complete",
+            "snapshot_provenance": "issuer_native_oakmark_symbol_holdings_csv",
+        }
         return result
 
 
