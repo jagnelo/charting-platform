@@ -337,6 +337,17 @@ def test_alpaca_credentialed_profile():
     assert profile.listings and profile.listings[0].provider_symbol == "AAPL"
 
 
+def test_alpaca_credentialed_crypto_profile():
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    profile, _ = _observed_read(
+        lambda: AlpacaProvider().get_instrument_profile("BTC-USD"), "alpaca"
+    )
+    assert profile is not None
+    assert profile.symbol == "BTC-USD"
+    assert profile.quote_type == "CRYPTOCURRENCY"
+    assert profile.listings and profile.listings[0].provider_symbol == "BTC/USD"
+
+
 def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     """Exercise the non-price Alpaca surfaces used by universe/event refreshes."""
 

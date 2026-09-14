@@ -106,6 +106,7 @@ LIVE_PROVIDER_CASES = {
         ),
         ("test_market_data_providers_live.py", "test_alpaca_credentialed_latest_price"),
         ("test_market_data_providers_live.py", "test_alpaca_credentialed_profile"),
+        ("test_market_data_providers_live.py", "test_alpaca_credentialed_crypto_profile"),
         (
             "test_market_data_providers_live.py",
             "test_alpaca_credentialed_assets_and_corporate_actions",
