@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-14 — Alpaca instrument metadata and current-head live validation
+
+- [x] Add Alpaca's authenticated asset metadata endpoint to the common
+      `InstrumentProfile` contract. Preserve the provider UUID as
+      `ALPACA_ASSET_ID`, retain exchange/class/status/tradability fields and
+      the raw payload, add an explicit one-request quota cost, and place Alpaca
+      after EDGAR/Massive in the metadata chain. Focused unit/registry/quota
+      checks passed; the bounded paper-account `AAPL` profile probe passed;
+      the authoritative Docker-backed backend gate passed 2,523/2,523 at
+      81.74% coverage with 89 warnings. Source checkpoint `a49c5b9f1` is
+      pushed and no frontend or ETF-provider adapter files changed.
+- [x] Re-run the complete lock-protected live matrix at that source head. It
+      collected 48 cases and passed 42/48: Alpha Vantage's three calendar/
+      earnings reads returned the typed documented free-key capacity response,
+      while Tradier, IBKR, and Ondo remained exact missing-credential
+      preflights. The owner-only redacted receipt recorded 26 provider rows,
+      97 HTTP requests, 78 operations, 23,169,232 response bytes, and four
+      failed operations. This is transport evidence only; provider-specific
+      quota/legal/entitlement, deployment-secret, reconciliation, and shadow
+      gates remain fail-closed.
+
 ### 2026-09-14 — Current-head complete live provider matrix
 
 - [x] Re-run the lock-protected manifest matrix against source checkpoint

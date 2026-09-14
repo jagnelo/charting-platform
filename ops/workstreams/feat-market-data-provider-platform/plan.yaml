@@ -98,6 +98,21 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: ready_for_human_review
 remaining_gaps:
   - >-
+    The current-head lock-protected live matrix at source `a49c5b9f1` collected
+    48 manifest cases and passed 42/48. The new Alpaca authenticated asset
+    metadata probe passed; the three Alpha Vantage IPO-calendar/earnings
+    operations returned typed documented free-key capacity responses, while
+    Tradier, IBKR, and Ondo remained exact missing-credential preflights. The
+    owner-managed redacted receipt under run
+    `b22ca35b-b3ea-4d20-8c0c-eeb77b30cca8` recorded 26 provider rows, 97 HTTP
+    requests, 78 operations, 23,169,232 response bytes, and four failed
+    operations (the expected Alpha Vantage capacity responses plus one
+    documented EODHD non-entitlement observation). Routing safety remains
+    fail-closed for the explicitly unreviewed quota, entitlement, legal,
+    byte-bound, deployment, reconciliation, and shadow controls; this is
+    transport evidence only and makes no acceptance or routing-promotion
+    claim.
+  - >-
     The current-HEAD lock-protected live matrix on 2026-09-14 collected 47
     cases and passed 41/47. The three Alpha Vantage IPO-calendar/earnings
     operations returned the typed documented free-key capacity response; the
@@ -138,6 +153,23 @@ remaining_gaps:
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      Alpaca now exposes the authenticated trading-API asset profile through
+      the common `InstrumentProfile` contract. The adapter preserves the
+      provider UUID as an explicit `ALPACA_ASSET_ID`, records exchange,
+      provider instrument class, currency, lifecycle/tradability flags, and
+      the complete raw payload, while leaving FIGI/CIK canonical identity
+      enrichment to the existing identity providers. Alpaca is the final
+      `instrument_metadata` fallback after EDGAR and Massive, with an explicit
+      one-request usage cost and a bounded live `AAPL` profile probe. Focused
+      Alpaca/registry/quota coverage passed; the authoritative Docker-backed
+      backend gate passed `2,523/2,523` at `81.74%` combined coverage with 89
+      warnings in `521.07s`, using isolated testcontainer session
+      `76f2c666-31bc-4618-8e86-681c69785352`, cleaned without host-wide
+      pruning. The complete current-head live matrix collected 48 cases and
+      passed 42/48 with the exact documented capacity and credential
+      preflight outcomes recorded above. Source checkpoint `a49c5b9f1` is
+      pushed; no frontend or ETF-provider adapter files changed.
     - >-
       Direct history adapters now fail closed with typed
       `ProviderResponseError` values when a requested timeframe is not

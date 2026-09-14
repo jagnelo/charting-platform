@@ -2,6 +2,31 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+- Latest backend source checkpoint: `a49c5b9f1` (`feat(provider): add Alpaca
+  instrument metadata`). Alpaca's authenticated `/v2/assets/{symbol}` surface
+  now maps into the common `InstrumentProfile` contract, retains the provider
+  asset UUID as `ALPACA_ASSET_ID` without claiming canonical FIGI/CIK identity,
+  records listing/exchange/status/tradability metadata and raw payload, and is
+  an explicit final fallback in the instrument-metadata chain. The focused
+  unit/registry/quota checks passed; its bounded live `AAPL` profile read
+  passed against the supplied paper account. The authoritative Docker-backed
+  gate passed `2,523/2,523` at `81.74%` combined coverage with 89 warnings in
+  `521.07s`, using isolated testcontainer session
+  `76f2c666-31bc-4618-8e86-681c69785352`, cleaned without host-wide pruning.
+  No frontend or ETF-provider adapter files changed.
+
+- Current-head complete live matrix at `a49c5b9f1` collected 48 manifest cases
+  and passed 42/48. The new Alpaca profile case passed; Alpha Vantage's three
+  calendar/earnings operations returned typed documented free-key capacity
+  responses; Tradier, IBKR, and Ondo remained exact missing-credential
+  preflights. Owner-managed receipt run
+  `b22ca35b-b3ea-4d20-8c0c-eeb77b30cca8` recorded 26 provider rows, 97 HTTP
+  requests, 78 operations, 23,169,232 response bytes, and four failed
+  operations (three Alpha Vantage capacity responses and one expected EODHD
+  non-entitlement observation). The runner returned exit code 2 and makes no
+  acceptance or routing-promotion claim; unresolved provider/legal,
+  deployment-secret, reconciliation, and shadow gates remain open.
+
 - Latest backend source checkpoint: `d0662d139` (`fix(provider): type
   unsupported history timeframes`). The required Docker-backed gate passed
   `2,520/2,520` at `81.75%` combined coverage with 89 warnings in `523.12s`
