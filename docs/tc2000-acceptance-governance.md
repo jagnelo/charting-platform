@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified Retireful/Mohr holdings completeness receipt
+
+Commit `697b51d00` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Retireful/Mohr's official
+paginated holdings tables for RULE, SNAV, MFUL, and CNAV. It verifies
+non-empty rows, declared-count reconciliation, and the published `As of`
+snapshot date; undated tables fail closed and generic labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1566/1566`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-14 — Verified Indexperts holdings completeness receipt
 
 Commit `81d551a48` requires a published composition date and preserves
