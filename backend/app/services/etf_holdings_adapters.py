@@ -4741,6 +4741,9 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
                 "holding_types": ["pcf"],
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "convergence_native_product_page_linked_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -25590,6 +25593,9 @@ class ConvergenceHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(page_response.url),
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "convergence_native_product_page_linked_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -25616,30 +25622,32 @@ class ConvergenceHoldingsAdapter(IssuerCsvHoldingsAdapter):
         raw_csv: str, *, symbol: str
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        undated_rows = 0
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
             ticker = _clean(raw.get("Ticker"))
             name = _clean(raw.get("Name"))
             cusip = _clean(raw.get("Cusip"))
+            if not any([ticker, name, cusip, raw.get("MarketValue")]):
+                continue
             row_date = _clean(raw.get("Date"))
             if row_date:
                 try:
-                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
-                    if composition_date is None or parsed > composition_date:
-                        composition_date = parsed
+                    composition_dates.add(datetime.strptime(row_date, "%m/%d/%Y").date())
                 except ValueError:
-                    pass
+                    undated_rows += 1
+            else:
+                undated_rows += 1
             haystack = " ".join(part.lower() for part in (ticker, name) if part)
             is_cash = any(marker in haystack for marker in ("cash", "other assets", "liabilities"))
-            is_short = _decimal(raw.get("Percent")) is not None and _decimal(raw.get("Percent")) < 0
-            if not any([ticker, name, cusip, raw.get("MarketValue")]):
-                continue
+            percent = _decimal(raw.get("Percent"))
+            is_short = percent is not None and percent < 0
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash else (ticker.upper() if ticker else None),
                     name=name,
                     cusip=cusip if _looks_like_cusip(cusip) else None,
-                    weight=_decimal(raw.get("Percent")),
+                    weight=percent,
                     shares=_decimal(raw.get("Units")),
                     market_value=_decimal(raw.get("MarketValue")),
                     currency="USD" if is_cash else None,
@@ -25651,6 +25659,16 @@ class ConvergenceHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         "position_side": "short" if is_short else "long",
                     },
                 )
+            )
+        if undated_rows or len(composition_dates) != 1:
+            raise ValueError(
+                f"Convergence holdings CSV did not publish exactly one composition date for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        composition_date_text = composition_date.isoformat()
+        for row in rows:
+            row.source_row_id = (
+                f"{symbol}:{composition_date_text}:{row.source_row_id.split(':', 1)[1]}"
             )
         return rows, composition_date
 

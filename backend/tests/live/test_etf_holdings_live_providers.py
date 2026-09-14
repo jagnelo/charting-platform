@@ -2146,6 +2146,17 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert metadata["completeness_status"] == "complete"
         assert metadata["snapshot_provenance"] == "corgi_native_fund_holdings_api"
         assert result.rows[0].source_row_id.startswith("FDRS:")
+    if adapter_key == "convergence":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "convergence_product_page_linked_holdings_csv"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == (
+            "convergence_native_product_page_linked_holdings_csv"
+        )
+        assert result.rows[0].source_row_id.startswith("CLSE:")
 
 
 @pytest.mark.asyncio

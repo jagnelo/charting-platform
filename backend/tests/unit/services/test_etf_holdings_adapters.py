@@ -19544,6 +19544,42 @@ async def test_convergence_adapter_fetches_page_linked_current_holdings_csv(monk
     assert (
         result.legal_metadata["route_resolution"] == "convergence_product_page_linked_holdings_csv"
     )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["as_of_date"] == "2026-07-13"
+    assert result.legal_metadata["row_count"] == 3
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "convergence_native_product_page_linked_holdings_csv"
+    )
+    assert [row.source_row_id for row in result.rows] == [
+        "CLSE:2026-07-13:1:Cash&Other",
+        "CLSE:2026-07-13:2:67066G104",
+        "CLSE:2026-07-13:3:999999999",
+    ]
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        ["07/13/2026", ""],
+        ["07/13/2026", "not-a-date"],
+        ["07/13/2026", "07/14/2026"],
+    ],
+)
+def test_convergence_parser_rejects_undated_invalid_or_mixed_snapshots(dates):
+    adapter = get_holdings_adapter("convergence")
+    assert adapter is not None
+    raw_csv = "\n".join(
+        [
+            "Date,Ticker,Cusip,Name,Units,MarketValue,Percent",
+            *[
+                f"{row_date},T{index},12345678{index},Holding {index},10,100,1%"
+                for index, row_date in enumerate(dates, start=1)
+            ],
+        ]
+    )
+    with pytest.raises(ValueError, match="exactly one composition date"):
+        adapter._parse_holdings_csv(raw_csv, symbol="CLSE")
 
 
 def test_dhandho_adapter_parses_issuer_complete_holdings_pdf_text():
