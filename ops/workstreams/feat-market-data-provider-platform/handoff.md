@@ -2341,3 +2341,12 @@ changed.
   of an explicit `{}` empty override, matching the root and backend environment
   examples. Provider secret-wiring coverage passed `21/21`; Ruff, diff checks,
   and workstream validation passed. No provider call or credential was used.
+
+- The staging-to-feature migration compatibility gate was rerun against
+  `staging` after the earlier Docker API failure and passed for 28 changed
+  migration files. The previous-release schema reached `fe4f5a6b7c8d`, the
+  checked-out schema reached branch HEAD
+  `8890d5d880742fb01ee40f175151116c61622bb7`, and the previous application
+  smoke-tested `/health` with HTTP 200. The temporary PostgreSQL container and
+  detached worktree were cleaned by the gate; no provider calls or credentials
+  were used.
