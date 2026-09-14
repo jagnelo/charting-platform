@@ -116,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c095af4aa08a4f7e2ff4d848da06af2059b9c481",
+  "head": "0031e3a9b99bbe96a4b56797e00e4118268db8b7",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-13T23:56:09.783867+00:00",
-  "last_human_progress_update": "2026-09-13T23:55:54.229016+00:00",
+  "last_human_progress_update": "2026-09-14T00:23:18.856229+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "258783957dd86d94f4efeb630aa99e89baec49832de352d9c374a2e335b0fdbe",
+  "plan_hash": "5f311488705d94b8c2f5fe62b13f0792c8fd95fd48692880931fd704cac337fb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -137,10 +137,10 @@
       "AC9"
     ],
     "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass; remote push remains intentionally held.",
-    "current_phase": "R1_verified_aot_3fourteen_abacus_holdings_completeness",
+    "current_phase": "R1_verified_nsi_holdings_completeness",
     "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence and the six visual state-oracle assertions; rerun focused coverage and the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-13T23:55:54.228889+00:00"
+    "updated_at": "2026-09-14T00:23:18.855761+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
