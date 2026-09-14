@@ -2314,3 +2314,13 @@ changed.
   at `81.72%` combined coverage with 89 warnings in `494.95s`, using isolated
   session `c96a4b01-3fbc-495b-a704-954c6207c66b`. No frontend or ETF-provider
   adapter files changed.
+
+- Reviewed provider policy seeds are now wired through both standard and RPi
+  Compose backend/worker services: `PROVIDER_RATE_LIMIT_SEEDS`,
+  `PROVIDER_FRESHNESS_SEEDS`, and `PROVIDER_USAGE_PROFILE_SEEDS` match the
+  backend environment example, so deployment overrides for provider-specific
+  limits and usage accounting are not silently dropped. Focused coverage passed
+  `20/20`; the authoritative Docker-backed backend gate passed `2,489/2,489`
+  at `81.72%` combined coverage with 89 warnings in `557.73s`, using isolated
+  session `16d8b47d-f8c9-4d3f-a767-71a1f30f0753`. No frontend or ETF-provider
+  adapter files changed.
