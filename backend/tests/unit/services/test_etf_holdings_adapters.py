@@ -17622,8 +17622,38 @@ async def test_sterling_capital_adapter_validates_fund_scoped_holdings_pdf(monke
     assert result.rows[0].market_value == Decimal("14481711.09")
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].holding_type == "cash"
+    assert result.rows[0].source_row_id == "SCEP:2026-07-13:1:037833100"
     assert result.legal_metadata["route_resolution"] == "issuer_fund_scoped_current_holdings_pdf"
     assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
+async def test_sterling_capital_adapter_rejects_undated_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("sterling_capital")
+    assert adapter is not None
+
+    raw_text = """
+    Sterling Capital Hedged Equity Premium Income ETF Holdings
+    CUSIP Description Quantity Price Portfolio Weight
+    037833100 APPLE INC 45,639 $317.31 6.19%
+    """
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *args, **kwargs: FakeResponse(
+            content=b"mock-pdf", content_type="application/pdf", url=args[0]
+        ),
+    )
+    monkeypatch.setattr(
+        type(adapter),
+        "_extract_pdf_text",
+        staticmethod(lambda raw_pdf: raw_text),
+    )
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="SCEP", identifiers={})
 
 
 @pytest.mark.asyncio

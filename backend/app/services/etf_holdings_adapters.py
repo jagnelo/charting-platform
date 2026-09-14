@@ -31502,10 +31502,25 @@ class SterlingCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Sterling Capital's {normalized_symbol} holdings PDF returned no parseable positions."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Sterling Capital's {normalized_symbol} holdings PDF did not expose a dated snapshot."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.name}"
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_text,
-            raw_json={"source_format": "pdf", "fund_slug": slug, "row_count": len(rows)},
+            raw_json={
+                "source_format": "pdf",
+                "fund_slug": slug,
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(response, "url", holdings_url)),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -31518,6 +31533,7 @@ class SterlingCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "sterling_capital_issuer_native_holdings_pdf",
             },
         )
