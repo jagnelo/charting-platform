@@ -14121,6 +14121,30 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
 
 
 @pytest.mark.asyncio
+async def test_artemis_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("artemis")
+    assert adapter is not None
+
+    async def fake_fetch_product_page(url):
+        return FakeResponse(text="ARS Core Equity Portfolio ETF Fund Holdings", url=url)
+
+    monkeypatch.setattr(type(adapter), "_fetch_product_page", staticmethod(fake_fetch_product_page))
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_html",
+        classmethod(
+            lambda cls, raw_html, *, symbol, expected_fund_name: (
+                [CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corp")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="ACEP")
+
+
+@pytest.mark.asyncio
 async def test_x_square_adapter_verifies_product_page_and_parses_declared_complete_holdings_api(
     monkeypatch,
 ):
@@ -14191,6 +14215,49 @@ async def test_x_square_adapter_verifies_product_page_and_parses_declared_comple
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "fixed_income"
     assert result.rows[1].cusip == "74529JPX7"
+
+
+@pytest.mark.asyncio
+async def test_x_square_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("x_square")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="product page",
+            content_type="text/html",
+            url="https://www.x2etfs.com/holdings/x-square-municipal",
+        ),
+        FakeResponse(
+            text="token script",
+            content_type="application/javascript",
+            url="https://www.x2etfs.com/site-template/assets/javascript/api_key.php?v=2",
+        ),
+        FakeResponse(
+            text="{}",
+            content_type="application/json",
+            url="https://secure.alpsinc.com/MarketingAPI/api/v1/holding/ZTAX/full",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_validate_product_page",
+        classmethod(lambda cls, raw_html, *, symbol, expected_fund_name: None),
+    )
+    monkeypatch.setattr(type(adapter), "_extract_bearer_token", staticmethod(lambda text: "token"))
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_payload",
+        classmethod(
+            lambda cls, payload, *, symbol: (
+                [CanonicalHoldingRow(symbol="AAPL", name="Apple Inc.")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="ZTAX", identifiers={})
 
 
 @pytest.mark.asyncio

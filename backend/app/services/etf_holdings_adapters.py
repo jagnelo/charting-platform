@@ -8950,6 +8950,10 @@ class ArtemisHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"ARS product page did not expose holdings rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"ARS product page did not publish a composition date for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -9187,6 +9191,10 @@ class XSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(
                 f"X-Square's complete holdings API returned no rows for {normalized_symbol}."
+            )
+        if composition_date is None:
+            raise ValueError(
+                f"X-Square's complete holdings API did not publish a composition date for {normalized_symbol}."
             )
         return HoldingsFetchResult(
             rows=rows,
