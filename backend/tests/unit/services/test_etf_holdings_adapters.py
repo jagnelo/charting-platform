@@ -25820,7 +25820,7 @@ async def test_ishares_adapter_fetches_explicit_historical_as_of_snapshot(monkey
 
 
 @pytest.mark.asyncio
-async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(monkeypatch):
+async def test_acsi_funds_official_daily_csv_route_is_native_and_requires_date(monkeypatch):
     adapter = get_holdings_adapter("acsi_funds")
     assert adapter is not None
     csv_text = (
@@ -25843,11 +25843,41 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
     assert FakeAsyncClient.requested[0][0].startswith("https://acsietf.com/")
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].weight == Decimal("0.0712")
+    assert result.rows[0].source_row_id == "ACSI:2026-08-10:1:037833100"
     assert result.rows[1].row_type == "cash"
-    assert result.legal_metadata["route_resolution"] == "acsi_issuer_daily_holdings_csv"
-    assert result.legal_metadata["composition_date"] == "2026-08-10"
+    assert result.rows[1].source_row_id == "ACSI:2026-08-10:2:Cash&Other"
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == "acsi_issuer_daily_holdings_csv"
+    assert metadata["composition_date"] == "2026-08-10"
+    assert metadata["as_of_date"] == "2026-08-10"
+    assert metadata["row_count"] == 2
+    assert metadata["completeness_status"] == "complete"
+    assert metadata["snapshot_provenance"] == "issuer_native_acsi_daily_holdings_csv"
+    assert result.raw_json["row_count"] == 2
     with pytest.raises(ValueError, match="only available for ACSI"):
         await adapter.fetch_latest(symbol="SPY")
+
+
+@pytest.mark.asyncio
+async def test_acsi_funds_official_daily_csv_route_rejects_undated_rows(monkeypatch):
+    adapter = get_holdings_adapter("acsi_funds")
+    assert adapter is not None
+    csv_text = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+        "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag\n"
+        "08/10/2026,ACSI,AAPL,037833100,Apple Inc,26935,313.06,8432271.10,7.12%,118467642.50,1525000,61,\n"
+        ",ACSI,MSFT,594918104,Microsoft Corp,100,400,40000,0.03%,118467642.50,1525000,61,\n"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=csv_text,
+            url="https://acsietf.com/wp-content/uploads/files/TidalETF_Services.40ZZ.VA_Holdings_.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish one composition date"):
+        await adapter.fetch_latest(symbol="ACSI")
 
 
 @pytest.mark.asyncio

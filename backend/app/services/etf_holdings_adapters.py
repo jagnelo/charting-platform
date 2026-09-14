@@ -65657,7 +65657,7 @@ class ConductorFundReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class AcsiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch ACSI Funds' official daily ACSI holdings CSV."""
+    """Fetch ACSI Funds' official dated ACSI holdings CSV."""
 
     HOLDINGS_URL = (
         "https://acsietf.com/wp-content/uploads/files/" "TidalETF_Services.40ZZ.VA_Holdings_.csv"
@@ -65688,35 +65688,63 @@ class AcsiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             identifiers=identifiers,
             route_resolution="acsi_issuer_daily_holdings_csv",
         )
-        # ACSI publishes the effective holdings date in every CSV row. Preserve
-        # that issuer-provided value as provenance rather than treating the
-        # fetch timestamp as the composition date.
+        if not result.raw_text or not result.rows:
+            raise ValueError(f"ACSI Funds returned no holdings data for {normalized_symbol}.")
+
+        reader = csv.DictReader(StringIO(result.raw_text))
+        records = list(reader)
+        date_key = next(
+            (field for field in (reader.fieldnames or []) if field.strip().casefold() == "date"),
+            None,
+        )
         dated_values: set[date] = set()
-        if result.raw_text:
-            for row in csv.DictReader(StringIO(result.raw_text)):
-                raw_date = next(
-                    (
-                        value
-                        for key, value in row.items()
-                        if key and key.strip().casefold() == "date"
-                    ),
-                    None,
-                )
-                parsed_date = _parse_issuer_date(raw_date)
-                if parsed_date is not None:
-                    dated_values.add(parsed_date)
-        if len(dated_values) == 1:
-            composition_date = next(iter(dated_values)).isoformat()
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "composition_date": composition_date,
-                "as_of_date": composition_date,
+        has_undated_record = False
+        for record in records:
+            if not any(str(value or "").strip() for value in record.values()):
+                continue
+            parsed_date = _parse_issuer_date(record.get(date_key)) if date_key else None
+            if parsed_date is None:
+                has_undated_record = True
+            else:
+                dated_values.add(parsed_date)
+        if has_undated_record or len(dated_values) != 1:
+            raise ValueError(
+                f"ACSI Funds' holdings export did not publish one composition date for {normalized_symbol}."
+            )
+
+        composition_date = next(iter(dated_values))
+        date_text = composition_date.isoformat()
+        result.rows = [
+            replace(
+                row,
+                source_row_id=(
+                    f"{normalized_symbol}:{date_text}:{index}:"
+                    f"{row.cusip or row.isin or row.symbol or row.name or row.extra_data.get('SecurityName') or 'holding'}"
+                ),
+            )
+            for index, row in enumerate(result.rows, start=1)
+        ]
+        raw_json = dict(result.raw_json or {})
+        raw_json.update(
+            {
+                "row_count": len(result.rows),
+                "composition_date": date_text,
+                "as_of_date": date_text,
             }
-        elif len(dated_values) > 1:
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "composition_date_warning": "issuer_csv_contains_multiple_dates",
-            }
+        )
+        result.raw_json = raw_json
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "acsi_issuer_daily_holdings_csv",
+            "composition_date": date_text,
+            "as_of_date": date_text,
+            "row_count": len(result.rows),
+            "completeness_status": "complete",
+            "snapshot_provenance": "issuer_native_acsi_daily_holdings_csv",
+        }
         return result
 
 

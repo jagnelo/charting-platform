@@ -2168,6 +2168,26 @@ async def test_live_wellington_vanguard_publisher_route():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("acsi_funds")
+async def test_live_acsi_dated_daily_csv_route():
+    adapter = get_holdings_adapter("acsi_funds")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ACSI")
+
+    _assert_live_holdings_result(result, adapter_key="acsi_funds", min_rows=20)
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == "acsi_issuer_daily_holdings_csv"
+    assert metadata["composition_date"]
+    assert metadata["as_of_date"] == metadata["composition_date"]
+    assert metadata["row_count"] == len(result.rows)
+    assert metadata["completeness_status"] == "complete"
+    assert metadata["snapshot_provenance"] == "issuer_native_acsi_daily_holdings_csv"
+    assert result.rows[0].source_row_id.startswith("ACSI:")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("oakmark")
 async def test_live_oakmark_symbol_scoped_csv_route():
     adapter = get_holdings_adapter("oakmark")
