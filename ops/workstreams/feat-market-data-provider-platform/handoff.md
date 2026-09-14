@@ -27,6 +27,12 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
   workstream's resources without host-wide pruning. No frontend or ETF-provider
   adapter files changed.
 
+- MarketData.app's current option-chain/rate-limit documentation confirms
+  response-priced current chains, historical billing per 1,000 returned
+  symbols, and a 50-request concurrency ceiling. The adapter/runtime therefore
+  retain response-dependent settlement and the explicit reviewed symbol bound;
+  no account plan, OPRA entitlement, or redistribution permission is inferred.
+
 ## Human authorization
 
 - Recorded at: 2026-09-04T16:12:23.412849+00:00

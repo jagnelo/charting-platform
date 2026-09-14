@@ -127,6 +127,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      MarketData.app's current primary documentation was rechecked for option
+      admission: current chains are billed per returned option symbol,
+      historical chains per 1,000 returned symbols, and the platform exposes
+      a 50-request concurrency ceiling (see the provider's option-chain and
+      rate-limit guides). The existing response-dependent accounting and
+      explicit `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound remain correct;
+      account-plan, OPRA/entitlement, and redistribution review still gate
+      routing.
+    - >-
       The authoritative Docker-backed combined backend gate was rerun against
       current HEAD `23c706c3b` and passed `2,488/2,488` at `81.72%` combined
       coverage with 89 warnings in `488.89s`. Isolated testcontainer session
