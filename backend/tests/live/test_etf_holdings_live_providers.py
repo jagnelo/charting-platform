@@ -2177,6 +2177,17 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "water_island_native_periodic_complete_portfolio_report_pdf"
         )
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "canary":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "canary_product_page_current_holdings_table"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert (
+            metadata["snapshot_provenance"] == "canary_native_product_page_current_holdings_table"
+        )
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
 
 
 @pytest.mark.asyncio

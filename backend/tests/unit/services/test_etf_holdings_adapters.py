@@ -1251,6 +1251,21 @@ def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     assert rows[0].market_value == Decimal("45723656.19")
     assert rows[1].row_type == "cash"
 
+    for row_dates in (("", ""), ("not-a-date", "07/14/2026"), ("07/14/2026", "07/15/2026")):
+        with pytest.raises(ValueError, match="exactly one composition date"):
+            adapter._parse_product_page(
+                f"""
+                <table>
+                  <thead><tr><th>Date</th><th>Account</th><th>Name</th><th>Ticker</th><th>CUSIP</th><th>Quantity</th><th>Market Value</th><th>Weightings</th></tr></thead>
+                  <tbody>
+                    <tr><td>{row_dates[0]}</td><td>HBR</td><td>HEDERA</td><td>HBARUSD</td><td>HBARUSD</td><td>1</td><td>1</td><td>100.00%</td></tr>
+                    <tr><td>{row_dates[1]}</td><td>HBR</td><td>Cash &amp; Other</td><td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>1</td><td>0</td><td>0.00%</td></tr>
+                  </tbody>
+                </table>
+                """,
+                symbol="HBR",
+            )
+
 
 def test_cultivar_current_holdings_table_is_canonicalized():
     rows = parse_html_holdings_table_by_headers(

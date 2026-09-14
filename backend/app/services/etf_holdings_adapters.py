@@ -26066,8 +26066,13 @@ class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Canary product page contained no current holdings rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Canary product page did not expose a dated snapshot for {normalized_symbol}."
+            )
+        composition_date_text = composition_date.isoformat()
         for index, row in enumerate(rows, start=1):
-            row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
+            row.source_row_id = f"{normalized_symbol}:{composition_date_text}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": "canary_product_page_current_holdings_table",
@@ -26075,7 +26080,12 @@ class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_html,
-            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            raw_json={
+                "source_format": "html_table",
+                "row_count": len(rows),
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+            },
             source_url=resolved_url,
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -26084,10 +26094,14 @@ class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "html_table",
                 "route_resolution": "canary_product_page_current_holdings_table",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
                 "refresh_frequency": "issuer_current_product_page",
                 "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_dated_complete_holdings",
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "canary_native_product_page_current_holdings_table",
             },
         )
 
@@ -26126,15 +26140,22 @@ class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 [header, *[[record.get(column, "") for column in header] for record in matched]]
             )
             composition_dates: list[date] = []
+            undated_rows = 0
+            invalid_dates = 0
             for record in matched:
                 raw_date = _clean(_first(record, ["date"]))
                 if raw_date is None:
+                    undated_rows += 1
                     continue
                 try:
                     composition_dates.append(datetime.strptime(raw_date, "%m/%d/%Y").date())
                 except ValueError:
-                    continue
-            return rows, max(composition_dates, default=None)
+                    invalid_dates += 1
+            if not rows or undated_rows or invalid_dates or len(set(composition_dates)) != 1:
+                raise ValueError(
+                    "Canary product page did not publish exactly one composition date for its retained holdings rows."
+                )
+            return rows, composition_dates[0]
         return [], None
 
 
