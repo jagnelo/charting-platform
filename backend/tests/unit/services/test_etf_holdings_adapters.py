@@ -556,7 +556,44 @@ async def test_calvert_daily_json_route_preserves_issuer_source_metadata(monkeyp
         "calvert_public_symbol_scoped_daily_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-08-13"
+    assert result.legal_metadata["as_of_date"] == "2026-08-13"
+    assert result.legal_metadata["row_count"] == 1
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == "calvert_native_issuer_json"
     assert result.legal_metadata["freshness_semantics"] == "issuer_disclosed_holdings_date"
+
+
+@pytest.mark.asyncio
+async def test_calvert_daily_json_route_rejects_undated_holdings(monkeypatch):
+    adapter = get_holdings_adapter("calvert")
+    assert adapter is not None
+    source_url = adapter.resolve_source_url(symbol="CVLC")
+    assert source_url is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "en": {
+                        "fundTicker": "CVLC",
+                        "effectiveDate": None,
+                        "holdings": [
+                            {
+                                "ticker": "NVDA",
+                                "securityDescription": "NVIDIA CORP COMMON STOCK",
+                                "pctOfNetValue": "7.33",
+                            }
+                        ],
+                    }
+                }
+            ),
+            content_type="application/json",
+            url=source_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish one composition date"):
+        await adapter.fetch_latest(symbol="CVLC")
 
 
 def test_altshares_brand_alias_uses_the_verified_water_island_route():

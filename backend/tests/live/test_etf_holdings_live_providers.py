@@ -2208,6 +2208,26 @@ async def test_live_alerian_dated_public_proxy_route():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("calvert")
+async def test_live_calvert_dated_daily_json_route():
+    adapter = get_holdings_adapter("calvert")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="CVLC")
+
+    _assert_live_holdings_result(result, adapter_key="calvert", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == ("calvert_public_symbol_scoped_daily_holdings_json")
+    assert metadata["composition_date"]
+    assert metadata["as_of_date"] == metadata["composition_date"]
+    assert metadata["row_count"] == len(result.rows)
+    assert metadata["completeness_status"] == "complete"
+    assert metadata["snapshot_provenance"] == "calvert_native_issuer_json"
+    assert result.rows[0].source_row_id.startswith("CVLC:")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("oakmark")
 async def test_live_oakmark_symbol_scoped_csv_route():
     adapter = get_holdings_adapter("oakmark")

@@ -65086,6 +65086,10 @@ class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"Calvert holdings response identity did not match {normalized_symbol}."
             )
         composition_date = _parse_issuer_date(language_payload.get("effectiveDate"))
+        if composition_date is None:
+            raise ValueError(
+                f"Calvert holdings response did not publish one composition date for {normalized_symbol}."
+            )
         raw_rows = language_payload.get("holdings")
         if not isinstance(raw_rows, list) or not raw_rows:
             raise ValueError(
@@ -65098,6 +65102,7 @@ class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Calvert holdings response contained no parseable positions for {normalized_symbol}."
             )
+        date_text = composition_date.isoformat()
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -65111,8 +65116,11 @@ class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "calvert_public_symbol_scoped_daily_holdings_json",
                 "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
                 "source_format": "json",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": date_text,
+                "as_of_date": date_text,
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "calvert_native_issuer_json",
                 "refresh_frequency": "daily_issuer_export",
                 "freshness_semantics": "issuer_disclosed_holdings_date",
                 "terms_note": self.config.terms_note,
