@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Require dated AllianceBernstein holdings
+
+Product commit 851d1f2af requires AllianceBernstein's issuer-native model
+workbook route to publish a composition date before acceptance. The shared
+AllianceBernstein route used by Equitable now fails closed for undated
+workbooks, date-scopes source IDs, and records complete composition/as-of,
+row-count, and issuer-native model-workbook provenance metadata. The reviewed
+live FWD workbook published 128 rows with composition date 2026-07-31.
+
+Focused AllianceBernstein/Equitable assertions passed 3/3, the opt-in live
+AllianceBernstein provider assertion passed 2/2, and the direct live adapter
+probe returned 128 complete rows. Ruff, formatting, and diff checks passed.
+The exact branch-scoped Docker-backed gate passed backend units 1590/1590,
+integration 405/405 with 82.13% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker teardown removed all four generated images, containers,
+volumes, network, and testcontainer sessions. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Require dated Aptus holdings
 
 Product commit `c481193f4` requires Aptus's issuer-native WordPress holdings
