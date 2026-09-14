@@ -26187,8 +26187,46 @@ class CultivarHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
             )
         response.raise_for_status()
+        rows, composition_date = self._parse_fund_page(response.text)
+        composition_date_text = composition_date.isoformat()
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"CVAR:{composition_date_text}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "cultivar_current_fund_page_holdings_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html_table",
+                "row_count": len(rows),
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+            },
+            source_url=str(response.url),
+            source_identifier="CVAR",
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "cultivar_current_fund_page_holdings_table",
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+                "refresh_frequency": "issuer_current_fund_page",
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_dated_complete_holdings",
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "cultivar_native_current_fund_page_holdings_table",
+            },
+        )
+
+    @staticmethod
+    def _parse_fund_page(raw_html: str) -> tuple[list[CanonicalHoldingRow], date]:
         rows = parse_html_holdings_table_by_headers(
-            response.text,
+            raw_html,
             required_headers={
                 "ticker",
                 "security description",
@@ -26198,35 +26236,24 @@ class CultivarHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "market value",
             },
         )
-        if not rows:
-            raise ValueError("Cultivar fund page contained no parseable current holdings rows.")
-        date_match = re.search(
+        date_texts = re.findall(
             r"Fund Holdings as of\s+(\d{2}/\d{2}/\d{4})",
-            response.text,
+            raw_html,
             re.IGNORECASE,
         )
-        composition_date = (
-            datetime.strptime(date_match.group(1), "%m/%d/%Y").date() if date_match else None
-        )
-        for index, row in enumerate(rows, start=1):
-            row.source_row_id = f"CVAR:{composition_date or 'unknown'}:{index}"
-        return HoldingsFetchResult(
-            rows=rows,
-            raw_text=response.text,
-            raw_json={"source_format": "html_table", "row_count": len(rows)},
-            source_url=str(response.url),
-            source_identifier="CVAR",
-            legal_metadata={
-                "source_access": self.config.source_access,
-                "source_provider": self.source_provider,
-                "adapter_key": self.adapter_key,
-                "source_format": "html_table",
-                "route_resolution": "cultivar_current_fund_page_holdings_table",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
-                "terms_note": self.config.terms_note,
-            },
-        )
+        parsed_dates: set[date] = set()
+        for date_text in date_texts:
+            try:
+                parsed_dates.add(datetime.strptime(date_text, "%m/%d/%Y").date())
+            except ValueError as exc:
+                raise ValueError(
+                    "Cultivar fund page did not publish exactly one parseable composition date."
+                ) from exc
+        if not rows or len(parsed_dates) != 1:
+            raise ValueError(
+                "Cultivar fund page did not publish exactly one parseable composition date for its retained holdings rows."
+            )
+        return rows, next(iter(parsed_dates))
 
     @staticmethod
     async def _get_with_timeout_retry(

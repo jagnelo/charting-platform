@@ -1286,6 +1286,27 @@ def test_cultivar_current_holdings_table_is_canonicalized():
     assert rows[0].cusip == "57060D108"
 
 
+def test_cultivar_requires_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("cultivar")
+    assert adapter is not None
+    table = """
+    <table><tr><th>Ticker</th><th>Security Description</th><th>% of Fund</th><th>CUSIP</th><th>Shares</th><th>Market Value</th></tr>
+    <tr><td>MKTX</td><td>MarketAxess Holdings Inc.</td><td>3.11%</td><td>57060D108</td><td>11,005</td><td>$1,269,646.85</td></tr></table>
+    """
+    rows, composition_date = adapter._parse_fund_page(
+        "<p>Fund Holdings as of 07/20/2026</p>" + table
+    )
+    assert len(rows) == 1
+    assert composition_date == date(2026, 7, 20)
+    for page in (
+        table,
+        "<p>Fund Holdings as of 13/40/2026</p>" + table,
+        "<p>Fund Holdings as of 07/20/2026</p><p>Fund Holdings as of 07/21/2026</p>" + table,
+    ):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_fund_page(page)
+
+
 @pytest.mark.asyncio
 async def test_cultivar_adapter_retries_timeout_without_accepting_unverified_source(monkeypatch):
     adapter = get_holdings_adapter("cultivar")

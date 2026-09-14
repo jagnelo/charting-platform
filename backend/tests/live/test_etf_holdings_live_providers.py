@@ -2177,6 +2177,17 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "water_island_native_periodic_complete_portfolio_report_pdf"
         )
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "cultivar":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == (
+            "cultivar_native_current_fund_page_holdings_table"
+        )
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
     if adapter_key == "canary":
         metadata = result.legal_metadata or {}
         assert metadata["route_resolution"] == "canary_product_page_current_holdings_table"
@@ -3572,6 +3583,13 @@ async def test_live_cultivar_current_fund_page_holdings_table():
     _assert_live_holdings_result(result, adapter_key="cultivar", min_rows=50)
     assert result.legal_metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"
     assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["as_of_date"] == result.legal_metadata["composition_date"]
+    assert result.legal_metadata["row_count"] == len(result.rows)
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "cultivar_native_current_fund_page_holdings_table"
+    )
+    assert result.rows[0].source_row_id.startswith("CVAR:")
 
 
 @pytest.mark.asyncio
