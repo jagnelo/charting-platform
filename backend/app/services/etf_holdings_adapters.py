@@ -26591,7 +26591,12 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "csv", "row_count": len(rows)},
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(response.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -26600,8 +26605,11 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
                 "route_resolution": "advent_capital_public_daily_holdings_csv",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "advent_capital_native_daily_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -26611,16 +26619,12 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         raw_csv: str, *, symbol: str
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = False
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
             if _clean(raw.get("Account")) != symbol:
                 continue
             row_date = _clean(raw.get("Date"))
-            if row_date:
-                try:
-                    composition_date = datetime.strptime(row_date, "%m/%d/%Y").date()
-                except ValueError:
-                    pass
             ticker = _clean(raw.get("StockTicker"))
             cusip = _clean(raw.get("CUSIP"))
             name = _clean(raw.get("SecurityName"))
@@ -26629,6 +26633,11 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             is_fixed_income = "bond" in haystack or "convertible" in haystack
             if not any([ticker, cusip, name, raw.get("MarketValue")]):
                 continue
+            parsed_date = _parse_issuer_date(row_date)
+            if parsed_date is None:
+                invalid_or_missing_dates = True
+            else:
+                composition_dates.add(parsed_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None
@@ -26644,11 +26653,21 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     if is_cash
                     else ("fixed_income" if is_fixed_income else "equity"),
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    source_row_id=f"{symbol}:{row_date or 'undated'}:{index}",
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "Advent Capital holdings CSV must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        for row in rows:
+            row.source_row_id = row.source_row_id.replace(
+                f":{row.source_row_id.split(':')[1]}:", f":{composition_date.isoformat()}:"
             )
         return rows, composition_date
 
