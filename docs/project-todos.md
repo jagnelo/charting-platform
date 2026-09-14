@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Soundwatch holdings completeness
+
+- [x] Require a published composition date for Soundwatch SHDG's official
+      issuer-linked XLS workbook. Verify parseable non-empty rows; keep
+      undated workbooks fail-closed and generic labels unchanged.
+- [x] Product commit `7f8c1abe5`; focused Soundwatch assertions passed `2/2`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1564/1564`, integration `405/405` with `82.03%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified Artemis and X-Square holdings completeness
 
 - [x] Require a published composition date for Artemis Capital's official

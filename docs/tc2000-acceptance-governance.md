@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified Soundwatch holdings completeness receipt
+
+Commit `7f8c1abe5` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Soundwatch SHDG's official
+issuer-linked XLS workbook. It verifies parseable non-empty rows and the
+product-page `Data as of` snapshot date; undated workbooks fail closed and
+generic labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1564/1564`, integration `405/405` with `82.03%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-14 — Verified Artemis and X-Square holdings completeness receipt
 
 Commit `05971d070` requires a published composition date and preserves
