@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Require dated Aptus holdings
+
+Product commit `c481193f4` requires Aptus's issuer-native WordPress holdings
+table to publish a composition date before acceptance. Undated pages now fail
+closed; accepted rows receive date-scoped source IDs and complete native-route
+metadata, including composition/as-of dates, row count, and provenance. The
+reviewed current DRSK page published 33 rows with composition date 2026-09-11.
+
+Focused Aptus assertions passed 2/2, including the undated-page regression;
+the opt-in live provider assertion passed 1/1, and the direct live adapter
+probe returned 33/33 rows with `complete` metadata. Ruff, formatting, and diff
+checks passed. The exact branch-scoped Docker-backed gate passed backend units
+1589/1589, integration 405/405 with 82.12% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, expected
+research-runner sandbox/resource probes, and functional E2E 165 passed with
+107 skipped. Visual E2E passed 98/104; the same six protected
+watchlist-column-editor/workspace-floating diffs remain. Docker teardown was
+clean: all four generated images, containers, volumes, network, and
+testcontainer sessions were removed. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+remain open.
+
 ## 2026-09-14 - Require dated ALPS/SS&C holdings
 
 Product commit f607797cd requires ALPS/SS&C's native holdings JSON routes to

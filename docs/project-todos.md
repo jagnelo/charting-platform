@@ -1,3 +1,24 @@
+### 2026-09-14 - Require dated Aptus holdings
+
+- [x] Require a publisher-declared composition date for Aptus's issuer-native
+      WordPress holdings table; fail closed for undated pages, date-scope row
+      IDs, and record complete native-route provenance/row-count metadata
+      (c481193f4). The reviewed DRSK page published 33 rows dated 2026-09-11.
+- [x] Focused Aptus assertions passed 2/2 including the undated regression;
+      the opt-in live provider assertion passed 1/1 and the direct live adapter
+      probe returned 33 complete rows. Ruff/format/diff checks passed. The
+      exact gate passed backend units 1589/1589, integration 405/405 at 82.12%
+      combined coverage, frontend Vitest 1067/1067, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker teardown removed all branch-scoped containers,
+      volumes, network, four images, and testcontainer sessions. No provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ### 2026-09-14 - Require dated ALPS/SS&C holdings
 
 - [x] Require a publisher-declared composition date for ALPS/SS&C native

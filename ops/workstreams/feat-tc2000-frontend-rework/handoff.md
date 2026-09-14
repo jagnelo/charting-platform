@@ -2,6 +2,31 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 - Verified Aptus dated holdings
+
+Product commit `c481193f4` requires Aptus's issuer-native WordPress holdings
+table to publish a composition date, fails closed for undated pages,
+date-scopes row IDs, and records complete native-route composition/as-of,
+row-count, and provenance metadata. The current DRSK page published 33 rows
+dated 2026-09-11. Focused assertions passed 2/2, the opt-in live provider
+assertion passed 1/1, and the direct live adapter probe returned 33 complete
+rows. Ruff, formatting, and diff checks passed.
+
+The exact gate passed backend units 1589/1589, integration 405/405 at 82.12%
+combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with exactly the
+six established protected watchlist-column-editor/workspace-floating diffs.
+Docker teardown removed all containers, volumes, network, four generated
+images, and testcontainer sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 family-wide canonical
+population/history seam while preserving explicit dated completeness evidence,
+fail-closed holdings mappings, the undated-backfill guard, and the unchanged
+visual/provider policy.
+
+
 ## 2026-09-14 - Verified undated history-backfill guard
 
 Product commit `75a6c7e45` makes benchmark-family snapshot-history backfill fail closed for legacy holdings snapshots without a publisher-declared composition date. They remain available to audit/readiness paths but are excluded from queue planning and counted as `undated_snapshot_count`, and the task propagates the count.

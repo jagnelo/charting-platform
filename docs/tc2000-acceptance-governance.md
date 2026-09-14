@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified dated Aptus holdings
+
+Commit `c481193f4` requires Aptus's issuer-native WordPress holdings table to
+publish a composition date before acceptance. Undated pages fail closed;
+accepted rows receive date-scoped IDs and complete native-route
+composition/as-of, row-count, and provenance metadata. The reviewed DRSK page
+published 33 rows dated 2026-09-11.
+
+Focused Aptus assertions passed 2/2, including the undated regression; the
+opt-in live provider assertion passed 1/1 and the direct live adapter probe
+returned 33 complete rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1589/1589, integration 405/405
+with 82.12% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the same six
+protected baselines remain the only failures. Docker teardown removed all four
+generated images, containers, volumes, network, and testcontainer sessions. No
+provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Verified dated ALPS/SS&C holdings
 
 Commit f607797cd requires ALPS/SS&C native holdings JSON to publish a
