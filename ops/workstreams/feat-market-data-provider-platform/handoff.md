@@ -2296,3 +2296,8 @@ changed.
   `WEEK`, `MONTH`, and `YEAR`). `git diff --check` and `make branch-validate`
   passed (`30` workstream records); no provider calls or credentials were
   used.
+
+- README provider-chain documentation was corrected to include the dedicated
+  `tokenized_historical_prices` seed for Dinari and Ondo, matching both
+  environment examples. `git diff --check` and `make branch-validate` passed;
+  no provider calls or credentials were used.
