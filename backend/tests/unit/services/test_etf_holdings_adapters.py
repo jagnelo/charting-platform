@@ -15038,6 +15038,54 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     assert result.legal_metadata["source_format"] == "html"
     assert result.legal_metadata["route_resolution"] == "issuer_wordpress_api_holdings_table"
     assert result.legal_metadata["composition_date"] == "2026-06-25"
+    assert result.legal_metadata["as_of_date"] == "2026-06-25"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_aptus_wordpress_holdings_table"
+    )
+    assert result.rows[0].source_row_id == "DRSK:2026-06-25:1:46138J460"
+    assert result.raw_json["row_count"] == 1
+    assert result.raw_json["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
+async def test_aptus_adapter_rejects_undated_holdings_page(monkeypatch):
+    adapter = get_holdings_adapter("aptus")
+    assert adapter is not None
+
+    html = """
+    <table class="custom_tables fund_holdings_table">
+      <thead>
+        <tr>
+          <th>Stock Ticker</th>
+          <th>Cusip</th>
+          <th>Security Desc</th>
+          <th>Shares</th>
+          <th>Price</th>
+          <th>Market Value</th>
+          <th>Weightings</th>
+          <th>Effective Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BSCU</td>
+          <td>46138J460</td>
+          <td>Invesco BulletShares 2030 Corporate Bond ETF</td>
+          <td>9,353,234.00</td>
+          <td>16.65</td>
+          <td>155,731,346.10</td>
+          <td>10.23%</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    FakeAsyncClient.queue = [FakeResponse(text=json.dumps({"content": {"rendered": html}}))]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="DRSK")
 
 
 @pytest.mark.asyncio

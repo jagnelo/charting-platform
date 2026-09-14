@@ -28968,20 +28968,39 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_product_page(raw_html)
         if not rows:
             raise ValueError(f"Aptus holdings API did not expose parseable holdings for {symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"Aptus holdings page did not publish a composition date for {symbol}."
+            )
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.symbol or row.name or 'holding'}"
+            )
+        raw_json = {
+            **page,
+            "source_format": "issuer_wordpress_api_holdings_table",
+            "row_count": len(rows),
+            "composition_date": composition_date.isoformat(),
+            "as_of_date": composition_date.isoformat(),
+        }
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_html,
-            raw_json=page,
+            raw_json=raw_json,
             source_url=str(response.url),
-            source_identifier=issuer_product_id or symbol.strip().upper(),
+            source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
                 "route_resolution": "issuer_wordpress_api_holdings_table",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
+                "snapshot_provenance": "issuer_native_aptus_wordpress_holdings_table",
                 "product_page_url": product_page_url,
                 "terms_note": self.config.terms_note,
             },
