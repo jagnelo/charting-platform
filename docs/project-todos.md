@@ -1,5 +1,43 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Adaptive Investments holdings completeness
+
+- [x] Require and record Adaptive Investments ADPV's published composition
+      date for the official Nuxt holdings payload; verify non-empty native rows,
+      fail closed for undated pages, mark the native route complete, and
+      date-scope row IDs.
+- [x] Product commit `71ea4f76c`; focused assertions passed `2/2`,
+      Ruff/format/diff checks passed, and the exact branch-tip gate passed
+      backend units `1576/1576`, integration `405/405` with `82.06%` combined
+      coverage, frontend Vitest `1067/1067`, type-check/build, compose/
+      deployment contracts, expected research-runner probes, and functional
+      E2E `165 passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
+### 2026-09-14 — Promote verified ETC/Bluemonte holdings completeness
+
+- [x] Require and record ETC/Bluemonte's published composition date for the
+      official embedded holdings payloads; verify non-empty native rows, fail
+      closed for undated pages, mark native routes complete, and date-scope
+      row IDs (product commit `6dd0521df`).
+- [x] Branch-tip gate at `71ea4f76c` passed backend units `1576/1576`,
+      integration `405/405` with `82.06%` combined coverage, frontend Vitest
+      `1067/1067`, type-check/build, compose/deployment contracts, expected
+      research-runner probes, and functional E2E `165 passed` with `107
+      skipped`; focused ETC/Bluemonte assertions passed `2/2`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain. Docker resources were cleaned with no retained containers,
+      volumes, networks, or testcontainer sessions. No provider/fallback,
+      migration, visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified WealthTrust holdings completeness
 
 - [x] Require and record WealthTrust WLTG's published `Current as of`/

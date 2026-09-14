@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "fddbb9fab7f6afa2058922b0ea65afcbcb358fe8",
+  "head": "71ea4f76ca13cb5313e027f721eb1cb772fa5619",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T05:26:10.718295+00:00",
-  "last_human_progress_update": "2026-09-14T05:25:28.733067+00:00",
+  "last_human_progress_update": "2026-09-14T06:16:18.252996+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "a31d48e995e1c0964cd4ff2f681de5b4ffc8a5eb18ebfa4b29b58f081c9e4670",
+  "plan_hash": "b86523ff605290c37aae2caa6f583104aad1298fb7663e5c6fa829b464ea11a9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. The WealthTrust holdings completeness seam is verified; continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence and the six protected visual state-oracle assertions.",
-    "current_phase": "R1_verified_wealthtrust_holdings_completeness",
-    "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed mappings, and the six protected visual state-oracle assertions; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. Adaptive Investments plus ETC/Bluemonte holdings completeness seams are verified at branch tip 71ea4f76c; continue the next bounded R1 canonical provider/history seam.",
+    "current_phase": "R1_verified_adaptive_investments_holdings_completeness",
+    "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed holdings mappings, and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T05:25:28.732411+00:00"
+    "updated_at": "2026-09-14T06:16:18.252179+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

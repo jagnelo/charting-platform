@@ -5,6 +5,46 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 — Promote verified Adaptive Investments holdings completeness
+
+Product commit `71ea4f76c` requires and records the published composition date
+for Adaptive Investments' official ADPV Nuxt holdings payload. The adapter
+verifies non-empty issuer-native rows, fails closed for undated pages, records
+both `composition_date` and `as_of_date`, scopes
+`completeness_status: complete` to the native route, and date-scopes row IDs.
+
+Focused Adaptive Investments assertions passed `2/2`; Ruff/format/diff checks
+passed. The exact branch-scoped gate at `71ea4f76c` passed backend units
+`1576/1576`, integration `405/405` with `82.06%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected watchlist-column-editor/
+workspace-floating diffs remain. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No
+provider/fallback, migration, visual baseline, threshold, mask, skip, or
+acceptance policy changed. Family-wide R1 population/history, D1/W1/MN floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Promote verified ETC/Bluemonte holdings completeness
+
+Product commit `6dd0521df` requires and records the published composition date
+for Exchange Traded Concepts and Bluemonte's official embedded holdings
+payloads. The adapters verify non-empty issuer-native rows, fail closed for
+undated pages, record both `composition_date` and `as_of_date`, scope
+`completeness_status: complete` to the native routes, and date-scope row IDs.
+The branch-tip gate at `71ea4f76c` includes this product commit.
+
+Focused ETC/Bluemonte assertions passed `2/2`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1576/1576`, integration
+`405/405` with `82.06%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified WealthTrust holdings completeness
 
 Product commit `481d60892` requires and records the published holdings
