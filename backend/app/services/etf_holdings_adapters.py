@@ -18781,13 +18781,21 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
         response.raise_for_status()
-        rows = self._parse_embedded_holdings(response.text, symbol=symbol)
+        rows, composition_date = self._parse_embedded_holdings(response.text, symbol=symbol)
         if not rows:
             raise ValueError(f"Miller Value page did not expose holdings rows for {symbol}.")
+        if composition_date is None:
+            raise ValueError(f"Miller Value page did not publish a composition date for {symbol}.")
+        rows = self._date_rows(rows, composition_date)
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            raw_json={
+                "source_format": "nuxt_payload",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+            },
             source_url=str(response.url),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata={
@@ -18798,14 +18806,22 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_public_fund_page_embedded_holdings",
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_fund_page_payload",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
 
     @classmethod
-    def _parse_embedded_holdings(cls, raw_html: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+    def _parse_embedded_holdings(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
         component_id = f"milleretf-{symbol.strip().lower()}-holdings-1"
-        hydrated_rows, _ = _extract_nuxt_hydration_holdings(
+        hydrated_rows, hydrated_date = _extract_nuxt_hydration_holdings(
             raw_html,
             component_id=component_id,
         )
@@ -18813,7 +18829,7 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return _canonical_nuxt_holdings_rows(
                 hydrated_rows,
                 source_row_prefix="miller-value",
-            )
+            ), hydrated_date
 
         component_match = re.search(
             rf'(?P<var>[A-Za-z_$][\w$]*)\.componentId="{re.escape(component_id)}";'
@@ -18822,17 +18838,18 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
             flags=re.DOTALL,
         )
         if component_match is None:
-            return []
+            return [], None
 
         variable_name = component_match.group("var")
         body = component_match.group("body")
+        composition_date = cls._parse_component_date(body, raw_html, variable_name=variable_name)
         data_match = re.search(
             rf"{re.escape(variable_name)}\.finData=\[(?P<rows>.*?)\];",
             body,
             flags=re.DOTALL,
         )
         if data_match is None:
-            return []
+            return [], composition_date
 
         rows: list[CanonicalHoldingRow] = []
         for position, raw_object in enumerate(
@@ -18868,7 +18885,44 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        return rows, composition_date
+
+    @staticmethod
+    def _date_rows(
+        rows: list[CanonicalHoldingRow], composition_date: date
+    ) -> list[CanonicalHoldingRow]:
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"miller-value-{composition_date.isoformat()}-{index}"
         return rows
+
+    @staticmethod
+    def _parse_component_date(
+        body: str,
+        raw_html: str,
+        *,
+        variable_name: str,
+    ) -> date | None:
+        date_match = re.search(
+            rf'{re.escape(variable_name)}\.date=(?P<value>"[^"]*"|[A-Za-z_$][\w$]*);',
+            body,
+        )
+        if date_match is not None:
+            value = date_match.group("value")
+            if value.startswith('"'):
+                parsed = _parse_issuer_date(value[1:-1])
+            else:
+                reference_match = re.search(rf'{re.escape(value)}="(?P<date>[^"]+)"', raw_html)
+                parsed = (
+                    _parse_issuer_date(reference_match.group("date")) if reference_match else None
+                )
+            if parsed is not None:
+                return parsed
+        as_of_match = re.search(
+            r"(?:holdings\s+)?as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
+            body,
+            flags=re.IGNORECASE,
+        )
+        return _parse_issuer_date(as_of_match.group(1)) if as_of_match else None
 
     @staticmethod
     def _split_js_objects(raw_rows: str) -> list[str]:

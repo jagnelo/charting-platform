@@ -22842,7 +22842,7 @@ async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch
             text=(
                 "<html><script>var a={};"
                 'dg.id=261;dg.componentId="milleretf-mvpa-holdings-1";'
-                'dg.titleText="Holdings";'
+                'dg.titleText="Holdings";dg.date="07/09/2026";'
                 "dg.finData=["
                 '{figi:"BBG002VZ68Y2",ticker:"BLMN",quantity:416324,'
                 'description:"BLOOMIN BRANDS INC",market_value:"3,805,201.36",'
@@ -22878,6 +22878,36 @@ async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch
     assert result.legal_metadata["source_provider"] == "miller_value"
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.legal_metadata["as_of_date"] == "2026-07-09"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["composition_date"] == "2026-07-09"
+    assert result.rows[0].source_row_id == "miller-value-2026-07-09-1"
+
+
+@pytest.mark.asyncio
+async def test_miller_value_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("miller_value")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><script>var dg={};"
+                'dg.componentId="milleretf-mvpa-holdings-1";'
+                'dg.titleText="Holdings";'
+                'dg.finData=[{ticker:"BLMN",description:"BLOOMIN BRANDS INC"}];'
+                "dg.btnLink=null;</script></html>"
+            ),
+            content_type="text/html",
+            url="https://etf.millervaluefunds.com/mvpa",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="MVPA")
 
 
 @pytest.mark.asyncio
