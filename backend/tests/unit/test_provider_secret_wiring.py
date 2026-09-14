@@ -1,5 +1,6 @@
 import ast
 import importlib.util
+import json
 import re
 from pathlib import Path
 
@@ -231,6 +232,21 @@ def test_deployment_defaults_keep_new_tokenized_providers_visible():
             '"tokenized_historical_prices":["dinari","ondo_global_markets"]'
             in compose
         )
+
+
+def test_provider_chain_examples_match_backend_tokenized_history_contract():
+    """Keep public configuration examples aligned with backend defaults."""
+
+    def chain_seed(relative_path: str) -> dict:
+        text = (ROOT / relative_path).read_text()
+        match = re.search(r"^PROVIDER_CHAIN_SEEDS=(.*)$", text, re.MULTILINE)
+        assert match, relative_path
+        return json.loads(match.group(1))
+
+    expected = chain_seed("backend/.env.example")
+    assert expected["tokenized_historical_prices"] == ["dinari", "ondo_global_markets"]
+    for relative_path in (".env.example", "README.md"):
+        assert chain_seed(relative_path) == expected, relative_path
 
 
 def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
