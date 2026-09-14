@@ -2,6 +2,20 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+- Direct live-provider receipts now retain validated per-operation transport
+  breakdowns instead of only provider totals. The merger and application
+  reader reject nested operation totals above their provider aggregate,
+  preserve legacy rows, and expose `operation_breakdown` in admin usage
+  diagnostics. All 49 market-data/tokenized live probes now pass explicit
+  operation labels. Focused usage tests passed `32/32`; the final matrix
+  collected `49` cases and passed `43/49`, with three typed Alpha Vantage
+  capacity responses and the intentionally missing Tradier, IBKR, and Ondo
+  credentials as the six honest outcomes. The owner receipt is run
+  `5e42d113-3e2a-4b81-a055-35109f365d73` (26 provider rows, 96 HTTP requests,
+  78 operations, 23,159,806 bytes, four failed operations). This is transport
+  and usage evidence only; provider/legal/deployment/reconciliation/shadow
+  gates remain open.
+
 - Final backend source checkpoint: `2735f038f` (`test(provider): live-verify
   Alpaca crypto metadata`). Alpaca metadata translates platform `BTC-USD` to
   Alpaca's `BTC/USD` asset route, preserves the provider-native listing symbol,

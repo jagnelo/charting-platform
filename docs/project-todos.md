@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-14 — Operation-attributed live-provider usage receipts
+
+- [x] Extend the owner-managed live usage receipt and merger with a bounded
+      per-operation breakdown containing only operation count, HTTP requests,
+      response bytes, and failures. Older receipts remain readable; nested
+      totals above provider aggregates are rejected; admin usage diagnostics
+      expose `live_test_usage.operation_breakdown`.
+- [x] Require explicit operation labels across all 49 market-data and
+      tokenized live probes, including Alpaca, SEC EDGAR, MarketData.app, and
+      Dinari. Focused usage coverage passed 32/32; the final current-head live
+      matrix collected 49 cases and passed 43/49, with only the documented
+      Alpha Vantage capacity responses and missing Tradier/IBKR/Ondo
+      credentials remaining. Routing, legal, deployment, reconciliation, and
+      shadow gates remain fail-closed.
+
 ### 2026-09-14 — Final Alpaca crypto metadata live validation
 
 - [x] Normalize Alpaca crypto asset metadata requests from the platform's

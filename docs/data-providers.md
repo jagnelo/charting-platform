@@ -115,6 +115,14 @@ or widen routing. Providers without a documented native usage surface remain
 represented by durable request/byte/header telemetry and are not queried
 through a guessed endpoint.
 
+Direct credentialed live probes are accounted separately in the owner-managed
+cross-session ledger. Each receipt retains a bounded operation breakdown with
+the measured operation count, HTTP-request count, response bytes, and failures;
+the admin usage diagnostics expose it as
+`live_test_usage.operation_breakdown`. This preserves endpoint-specific
+attribution for shared provider accounts without converting observations into
+quota reservations or inventing provider-native units, resets, or limits.
+
 ## Provider capability and quota ledger
 
 The table below is the checked-in contract used by `ProviderPolicy` and the

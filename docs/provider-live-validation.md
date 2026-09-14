@@ -42,6 +42,14 @@ request, and response-byte totals to the external
 application database's durable runtime quota windows; it makes direct live-test
 consumption visible across local sessions without storing credentials or
 payloads.
+Each receipt row also contains a bounded `operation_usage` map keyed by the
+explicit adapter operation (for example `get_instrument_profile` or
+`fetch_tokenized_historical_prices`). Each entry contains only operation count,
+HTTP-request count, response bytes, and failed-operation count. Older receipts
+without this map remain valid and are reported with an empty operation
+breakdown. The admin usage response exposes the normalized breakdown under
+`live_test_usage.operation_breakdown`; these observations remain separate from
+runtime reservations and never infer a provider quota or reset window.
 When `RUN_LIVE_PROVIDER_TESTS=1`, the live pytest session first opens the
 configured ledger for a zero-byte append and exits with code `2` before any
 provider test runs if that path is not writable. This prevents a filesystem
@@ -153,6 +161,19 @@ Provider usage is account- and/or IP-scoped by the vendor, not branch-scoped.
 Receipt scopes are operator labels for reconciliation, not provider-native
 identity proofs; they must be assigned consistently with the actual account or
 IP boundary.
+
+On 2026-09-14, the operation-attributed current-head matrix collected 49 cases
+and passed 43/49. The six honest outcomes were Alpha Vantage's three typed
+free-key capacity responses plus missing `TRADIER_API_KEY`,
+`IBKR_READ_ONLY_URL`/`IBKR_READ_ONLY_SESSION_COOKIE`, and
+`ONDO_GLOBAL_MARKETS_API_KEY`. The owner-managed receipt run
+`5e42d113-3e2a-4b81-a055-35109f365d73` recorded 26 provider rows, 97 HTTP
+requests, 78 measured operations, and 23,159,806 response bytes; every row now
+contains explicit operation keys (including the newly credentialed Alpaca,
+EDGAR, MarketData.app, and Dinari reads). This remains transport and usage
+evidence only; no provider entitlement, quota, legal, deployment, or routing
+promotion is implied.
+
 The durable request log and quota windows preserve usage across application
 restarts and workers that share the same database, but a separate worktree,
 CI database, deployment, or unrelated client using the same credential is not

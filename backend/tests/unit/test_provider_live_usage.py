@@ -27,6 +27,7 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
     live_usage._reset_for_test()
     live_usage.record_observation(
         "fred",
+        operation="fetch_series",
         http_requests=2,
         response_bytes=100,
         response_headers={
@@ -36,8 +37,12 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "Authorization": "secret",
         },
     )
-    live_usage.record_observation("fred", http_requests=1, response_bytes=50)
-    live_usage.record_observation("coinbase", http_requests=1, response_bytes=25)
+    live_usage.record_observation(
+        "fred", operation="fetch_series", http_requests=1, response_bytes=50
+    )
+    live_usage.record_observation(
+        "coinbase", operation="get_current_price", http_requests=1, response_bytes=25
+    )
 
     assert live_usage.flush_observations(0) == ledger
     rows = [json.loads(line) for line in ledger.read_text().splitlines()]
@@ -53,6 +58,14 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "response_bytes": 25,
             "run_id": "run-test",
             "response_headers": {},
+            "operation_usage": {
+                "get_current_price": {
+                    "failed_operations": 0,
+                    "http_requests": 1,
+                    "operations": 1,
+                    "response_bytes": 25,
+                }
+            },
             "usage_scope": "unspecified",
         },
         {
@@ -70,6 +83,14 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
                 "x-ratelimit-remaining": "17",
                 "total-records-on-page": "2",
             },
+            "operation_usage": {
+                "fetch_series": {
+                    "failed_operations": 0,
+                    "http_requests": 3,
+                    "operations": 2,
+                    "response_bytes": 150,
+                }
+            },
             "usage_scope": "unspecified",
         },
     ]
@@ -81,9 +102,19 @@ def test_live_usage_tracks_provider_status_separately_from_process_exit(tmp_path
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "mixed-run")
     live_usage._reset_for_test()
-    live_usage.record_observation("alpaca", http_requests=1, response_bytes=10, success=True)
     live_usage.record_observation(
-        "alpha_vantage", http_requests=1, response_bytes=20, success=False
+        "alpaca",
+        operation="get_current_price",
+        http_requests=1,
+        response_bytes=10,
+        success=True,
+    )
+    live_usage.record_observation(
+        "alpha_vantage",
+        operation="fetch_ohlcv",
+        http_requests=1,
+        response_bytes=20,
+        success=False,
     )
 
     assert live_usage.flush_observations(1) == ledger
@@ -101,7 +132,9 @@ def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, m
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.delenv("PROVIDER_LIVE_RUN_ID", raising=False)
     live_usage._reset_for_test()
-    live_usage.record_observation("fred", http_requests=1, response_bytes=10)
+    live_usage.record_observation(
+        "fred", operation="fetch_series", http_requests=1, response_bytes=10
+    )
 
     assert live_usage.flush_observations(0) == ledger
     row = json.loads(ledger.read_text())
@@ -173,6 +206,14 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
                     "x-api-ratelimit-reset": "1700000000",
                     "x-api-ratelimit-consumed": "4",
                 },
+                "operation_usage": {
+                    "fetch_series": {
+                        "operations": 1,
+                        "http_requests": 2,
+                        "response_bytes": 100,
+                        "failed_operations": 0,
+                    }
+                },
                 "payload": "must-not-be-copied",
             }
         )
@@ -236,6 +277,7 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
         "x-api-ratelimit-remaining": "96",
         "x-api-ratelimit-reset": "1700000000",
     }
+    assert fred_row["operation_usage"]["fetch_series"]["http_requests"] == 2
     assert destination.stat().st_mode & 0o077 == 0
 
 
@@ -334,6 +376,40 @@ def test_merge_provider_live_usage_rejects_failed_operations_above_operation_cou
                 "response_bytes": 10,
                 "exit_status": 1,
                 "process_exit_status": 1,
+            }
+        )
+        + "\n"
+    )
+
+    result = _MERGER.merge_receipts([source], destination)
+
+    assert result["accepted"] == 0
+    assert result["rejected"] == 1
+    assert not destination.read_text()
+
+
+def test_merge_provider_live_usage_rejects_operation_totals_above_provider_totals(
+    tmp_path: Path,
+):
+    source = tmp_path / "receipt.jsonl"
+    destination = tmp_path / "provider-live-usage.jsonl"
+    source.write_text(
+        json.dumps(
+            {
+                "at": "2026-09-10T05:00:00+00:00",
+                "provider": "fred",
+                "operations": 1,
+                "http_requests": 1,
+                "response_bytes": 10,
+                "exit_status": 0,
+                "operation_usage": {
+                    "fetch_series": {
+                        "operations": 2,
+                        "http_requests": 2,
+                        "response_bytes": 20,
+                        "failed_operations": 0,
+                    }
+                },
             }
         )
         + "\n"

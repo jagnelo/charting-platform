@@ -73,7 +73,7 @@ def _require(*names: str) -> None:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 
 
-def _observed_read(call, provider_name: str):
+def _observed_read(call, provider_name: str, operation: str):
     """Require every live adapter operation to report a real HTTP response."""
 
     measurement, token = activate_provider_telemetry()
@@ -82,6 +82,7 @@ def _observed_read(call, provider_name: str):
     except BaseException:
         record_observation(
             provider_name,
+            operation=operation,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
@@ -94,6 +95,7 @@ def _observed_read(call, provider_name: str):
         deactivate_provider_telemetry(token)
     record_observation(
         provider_name,
+        operation=operation,
         http_requests=measurement.http_requests,
         response_bytes=measurement.response_bytes,
         response_headers=measurement.response_headers,
@@ -106,7 +108,9 @@ def _observed_read(call, provider_name: str):
 
 def test_openfigi_keyless_mapping():
     rows, _ = _observed_read(
-        lambda: OpenFigiProvider().fetch_stable_identifiers("SPY", exchange_code="US"), "openfigi"
+        lambda: OpenFigiProvider().fetch_stable_identifiers("SPY", exchange_code="US"),
+        "openfigi",
+        "fetch_stable_identifiers",
     )
     assert rows and any(row.identifier_type == "COMPOSITE_FIGI" for row in rows)
 
@@ -119,7 +123,9 @@ def test_sec_edgar_keyless_profile():
     edgar_module._ticker_map_ts = 0.0
     edgar_module._profile_cache = {}
     profile, measurement = _observed_read(
-        lambda: EdgarProvider().get_instrument_profile("AAPL"), "edgar"
+        lambda: EdgarProvider().get_instrument_profile("AAPL"),
+        "edgar",
+        "get_instrument_profile",
     )
     assert profile is not None and profile.name and profile.extra.get("cik")
     assert measurement.http_requests >= 2
@@ -130,11 +136,15 @@ def test_sec_edgar_credentialed_filings_and_company_facts():
 
     _require("EDGAR_USER_AGENT")
     provider = EdgarProvider()
-    events, _ = _observed_read(lambda: provider.fetch_instrument_events("AAPL"), "edgar")
+    events, _ = _observed_read(
+        lambda: provider.fetch_instrument_events("AAPL"), "edgar", "fetch_instrument_events"
+    )
     assert events
     assert all(event.event_type.value == "earnings" for event in events)
     assert all(event.event_time.tzinfo is not None for event in events)
-    facts, _ = _observed_read(lambda: provider.fetch_fundamental_facts("320193"), "edgar")
+    facts, _ = _observed_read(
+        lambda: provider.fetch_fundamental_facts("320193"), "edgar", "fetch_fundamental_facts"
+    )
     assert facts
     assert any(fact.namespace and fact.key and fact.unit for fact in facts)
     pipeline_events, _ = _observed_read(
@@ -144,6 +154,7 @@ def test_sec_edgar_credentialed_filings_and_company_facts():
             end=date.today(),
         ),
         "edgar",
+        "fetch_ipo_pipeline_events",
     )
     assert all(event.event_type == "ipo_pipeline" for event in pipeline_events)
 
@@ -160,7 +171,9 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
     while True:
         if first_page:
             page, _ = _observed_read(
-                lambda: provider.discover_universe_page("EQUITY", offset), "edgar"
+                lambda: provider.discover_universe_page("EQUITY", offset),
+                "edgar",
+                "discover_universe_page",
             )
             first_page = False
         else:
@@ -202,7 +215,9 @@ def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete(m
     while True:
         if first_page:
             page, _ = _observed_read(
-                lambda: provider.discover_issuer_ciks_page(offset, limit=250), "edgar"
+                lambda: provider.discover_issuer_ciks_page(offset, limit=250),
+                "edgar",
+                "discover_issuer_ciks_page",
             )
             first_page = False
         else:
@@ -225,7 +240,11 @@ def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete(m
 
 def test_nasdaq_trader_keyless_directory():
     provider = NasdaqProvider()
-    equities, _ = _observed_read(lambda: provider.discover_universe_page("EQUITY", 0), "nasdaq")
+    equities, _ = _observed_read(
+        lambda: provider.discover_universe_page("EQUITY", 0),
+        "nasdaq",
+        "discover_universe_page",
+    )
     # The first EQUITY read above populates the shared directory cache. The
     # ETF read is therefore a local projection of that same observed source.
     etfs = provider.discover_universe_page("ETF", 0)
@@ -276,6 +295,7 @@ def test_binance_keyless_crypto_history():
     rows, _ = _observed_read(
         lambda: BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "binance",
+        "fetch_latest_ohlcv",
     )
     assert rows and rows[-1].close > 0
 
@@ -284,6 +304,7 @@ def test_coinbase_keyless_crypto_history():
     rows, _ = _observed_read(
         lambda: CoinbaseProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "coinbase",
+        "fetch_latest_ohlcv",
     )
     assert rows and rows[-1].close > 0
 
@@ -292,6 +313,7 @@ def test_kraken_keyless_crypto_history():
     rows, _ = _observed_read(
         lambda: KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "kraken",
+        "fetch_latest_ohlcv",
     )
     assert rows and rows[-1].close > 0
 
@@ -300,7 +322,9 @@ def test_alpaca_credentialed_history():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     start, end = _bounds()
     rows, _ = _observed_read(
-        lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end), "alpaca"
+        lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end),
+        "alpaca",
+        "fetch_ohlcv",
     )
     assert rows and rows[-1].close > 0
 
@@ -314,6 +338,7 @@ def test_alpaca_credentialed_intraday_history():
     rows, measurement = _observed_read(
         lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.M5, start, end, adjusted=False),
         "alpaca",
+        "fetch_ohlcv",
     )
     assert measurement.http_requests > 0
     assert rows and rows[-1].close > 0
@@ -322,14 +347,18 @@ def test_alpaca_credentialed_intraday_history():
 
 def test_alpaca_credentialed_latest_price():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
-    price, _ = _observed_read(lambda: AlpacaProvider().get_current_price("AAPL"), "alpaca")
+    price, _ = _observed_read(
+        lambda: AlpacaProvider().get_current_price("AAPL"), "alpaca", "get_current_price"
+    )
     assert price is not None and price > 0
 
 
 def test_alpaca_credentialed_profile():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     profile, _ = _observed_read(
-        lambda: AlpacaProvider().get_instrument_profile("AAPL"), "alpaca"
+        lambda: AlpacaProvider().get_instrument_profile("AAPL"),
+        "alpaca",
+        "get_instrument_profile",
     )
     assert profile is not None
     assert profile.symbol == "AAPL"
@@ -340,7 +369,9 @@ def test_alpaca_credentialed_profile():
 def test_alpaca_credentialed_crypto_profile():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     profile, _ = _observed_read(
-        lambda: AlpacaProvider().get_instrument_profile("BTC-USD"), "alpaca"
+        lambda: AlpacaProvider().get_instrument_profile("BTC-USD"),
+        "alpaca",
+        "get_instrument_profile",
     )
     assert profile is not None
     assert profile.symbol == "BTC-USD"
@@ -357,11 +388,17 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     # own operator-reviewed positive bound and remains fail-closed by default.
     monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 2)
     provider = AlpacaProvider()
-    page, _ = _observed_read(lambda: provider.discover_universe_page("EQUITY", 0), "alpaca")
+    page, _ = _observed_read(
+        lambda: provider.discover_universe_page("EQUITY", 0),
+        "alpaca",
+        "discover_universe_page",
+    )
     assert page["quotes"]
     assert page["total"] >= len(page["quotes"])
     assert all(row["quoteType"] == "EQUITY" for row in page["quotes"])
-    events, _ = _observed_read(lambda: provider.fetch_instrument_events("AAPL"), "alpaca")
+    events, _ = _observed_read(
+        lambda: provider.fetch_instrument_events("AAPL"), "alpaca", "fetch_instrument_events"
+    )
     # A symbol can legitimately have no actions in the bounded lookback. The
     # transport and normalized event container must still be valid.
     assert isinstance(events, list)
@@ -377,7 +414,7 @@ def test_massive_credentialed_reference(monkeypatch):
     monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 1)
     provider = MassiveProvider()
     profile, _ = _observed_read(
-        lambda: provider.get_instrument_profile("AAPL"), "massive"
+        lambda: provider.get_instrument_profile("AAPL"), "massive", "get_instrument_profile"
     )
     assert profile is not None
     assert profile.symbol == "AAPL"
@@ -392,12 +429,13 @@ def test_massive_credentialed_reference(monkeypatch):
             start=date.today() - timedelta(days=7), end=date.today() + timedelta(days=90)
         ),
         "massive",
+        "fetch_market_events",
     )
     assert isinstance(events, list)
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
     actions, _ = _observed_read(
-        lambda: provider.fetch_instrument_events("AAPL"), "massive"
+        lambda: provider.fetch_instrument_events("AAPL"), "massive", "fetch_instrument_events"
     )
     assert isinstance(actions, list)
     assert all(
@@ -413,6 +451,7 @@ def test_massive_credentialed_reference(monkeypatch):
             adjusted=True,
         ),
         "massive",
+        "fetch_ohlcv",
     )
     assert bars
     assert all(bar.is_adjusted for bar in bars)
@@ -428,6 +467,7 @@ def test_alpha_vantage_credentialed_daily():
             "AAPL", Timeframe.D1, start, end, adjusted=False
         ),
         "alpha_vantage",
+        "fetch_ohlcv",
     )
     assert rows and rows[-1].close > 0
 
@@ -437,7 +477,9 @@ def test_alpha_vantage_credentialed_ipo_calendar():
 
     _require("ALPHA_VANTAGE_API_KEY")
     events, _ = _observed_read(
-        lambda: AlphaVantageProvider().fetch_market_events(), "alpha_vantage"
+        lambda: AlphaVantageProvider().fetch_market_events(),
+        "alpha_vantage",
+        "fetch_market_events",
     )
     # Alpha Vantage may legitimately return only the CSV header when no IPO
     # rows are currently published. Transport and schema evidence still matter;
@@ -458,6 +500,7 @@ def test_alpha_vantage_credentialed_earnings_calendar():
             end=date.today() + timedelta(days=90),
         ),
         "alpha_vantage",
+        "fetch_earnings_calendar",
     )
     # The provider may publish no rows in a particular window; transport and
     # schema evidence still matter, but no synthetic event is accepted.
@@ -471,7 +514,9 @@ def test_alpha_vantage_credentialed_earnings_history():
 
     _require("ALPHA_VANTAGE_API_KEY")
     events, _ = _observed_read(
-        lambda: AlphaVantageProvider().fetch_instrument_events("AAPL"), "alpha_vantage"
+        lambda: AlphaVantageProvider().fetch_instrument_events("AAPL"),
+        "alpha_vantage",
+        "fetch_instrument_events",
     )
     assert events
     assert all(event.event_type.value in {"earnings", "earnings_estimate"} for event in events)
@@ -482,7 +527,9 @@ def test_alpha_vantage_credentialed_earnings_history():
 def test_coingecko_credentialed_search():
     _require("COINGECKO_API_KEY")
     rows, _ = _observed_read(
-        lambda: CoinGeckoProvider().search_instruments("bitcoin", limit=1), "coingecko"
+        lambda: CoinGeckoProvider().search_instruments("bitcoin", limit=1),
+        "coingecko",
+        "search_instruments",
     )
     assert rows and rows[0].symbol == "BTC-USD"
 
@@ -490,7 +537,9 @@ def test_coingecko_credentialed_search():
 def test_coingecko_credentialed_profile_observes_id_resolution_request():
     _require("COINGECKO_API_KEY")
     profile, measurement = _observed_read(
-        lambda: CoinGeckoProvider().get_instrument_profile("BTC-USD"), "coingecko"
+        lambda: CoinGeckoProvider().get_instrument_profile("BTC-USD"),
+        "coingecko",
+        "get_instrument_profile",
     )
     assert profile is not None
     assert profile.extra["coingecko_id"] == "bitcoin"
@@ -501,14 +550,18 @@ def test_fred_credentialed_series():
     _require("FRED_API_KEY")
     start, end = _bounds()
     rows, _ = _observed_read(
-        lambda: FREDProvider().fetch_ohlcv("^IRX", Timeframe.D1, start, end), "fred"
+        lambda: FREDProvider().fetch_ohlcv("^IRX", Timeframe.D1, start, end),
+        "fred",
+        "fetch_ohlcv",
     )
     assert rows and all(row.close > 0 for row in rows)
 
 
 def test_finra_credentialed_short_interest():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
-    rows, _ = _observed_read(lambda: FINRAProvider().fetch_short_interest("AAPL"), "finra")
+    rows, _ = _observed_read(
+        lambda: FINRAProvider().fetch_short_interest("AAPL"), "finra", "fetch_short_interest"
+    )
     assert rows
     assert all(row.settlement_date and row.short_position is not None for row in rows)
     assert any((row.source_identifier or "").upper() == "AAPL" for row in rows)
@@ -520,6 +573,7 @@ def test_finra_credentialed_otc_daily_list():
     rows, _ = _observed_read(
         lambda: FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end),
         "finra",
+        "fetch_market_events",
     )
     assert rows
     for row in rows:
@@ -531,7 +585,9 @@ def test_finra_otc_directory_credentialed_source():
 
     _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
     page, _ = _observed_read(
-        lambda: FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0), "finra_otc_directory"
+        lambda: FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0),
+        "finra_otc_directory",
+        "discover_universe_page",
     )
     assert page["quotes"]
     assert page["total"] >= len(page["quotes"])
@@ -558,12 +614,15 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
     rows, _ = _observed_read(
         lambda: provider.fetch_ohlcv(symbol, Timeframe.D1, start, end, adjusted=False),
         provider.name,
+        "fetch_ohlcv",
     )
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
     assert all(row.close > 0 for row in rows)
     if provider.name == "tiingo":
-        profile, _ = _observed_read(lambda: provider.get_instrument_profile(symbol), provider.name)
+        profile, _ = _observed_read(
+            lambda: provider.get_instrument_profile(symbol), provider.name, "get_instrument_profile"
+        )
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
@@ -574,6 +633,7 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
                 symbol, Timeframe.M5, intraday_start, datetime.now(UTC), adjusted=False
             ),
             provider.name,
+            "fetch_ohlcv",
         )
         assert intraday_rows
         assert all(row.ts.tzinfo is not None and row.close > 0 for row in intraday_rows)
@@ -587,11 +647,14 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
                     symbol, timeframe, period_start, end, adjusted=False
                 ),
                 provider.name,
+                "fetch_ohlcv",
             )
             assert period_rows
             assert all(row.ts.tzinfo is not None and row.close > 0 for row in period_rows)
     if provider.name == "fmp":
-        profile, _ = _observed_read(lambda: provider.get_instrument_profile(symbol), provider.name)
+        profile, _ = _observed_read(
+            lambda: provider.get_instrument_profile(symbol), provider.name, "get_instrument_profile"
+        )
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
@@ -601,18 +664,20 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
                 end=date.today() + timedelta(days=45),
             ),
             provider.name,
+            "fetch_market_events",
         )
         assert calendar_events
         assert all(event.event_type == "earnings" for event in calendar_events)
         assert all(event.effective_date is not None for event in calendar_events)
     if provider.name == "tradier":
         expirations, _ = _observed_read(
-            lambda: provider.list_option_expirations(symbol), provider.name
+            lambda: provider.list_option_expirations(symbol), provider.name, "list_option_expirations"
         )
         assert expirations
         contracts, _ = _observed_read(
             lambda: provider.fetch_option_chain(symbol, expiration=expirations[0]),
             provider.name,
+            "fetch_option_chain",
         )
         assert contracts
         assert all(contract.underlying_symbol == symbol for contract in contracts)
@@ -624,7 +689,11 @@ def test_eodhd_free_plan_profile_entitlement_is_explicit():
 
     _require("EODHD_API_KEY")
     with pytest.raises(ProviderResponseError) as exc_info:
-        _observed_read(lambda: EODHDProvider().get_instrument_profile("AAPL"), "eodhd")
+        _observed_read(
+            lambda: EODHDProvider().get_instrument_profile("AAPL"),
+            "eodhd",
+            "get_instrument_profile",
+        )
     assert exc_info.value.status_code == 403
 
 
@@ -633,12 +702,17 @@ def test_marketdata_app_credentialed_option_surface():
 
     _require("MARKETDATA_APP_API_KEY")
     provider = MarketDataAppProvider()
-    expirations, _ = _observed_read(lambda: provider.list_option_expirations("AAPL"), provider.name)
+    expirations, _ = _observed_read(
+        lambda: provider.list_option_expirations("AAPL"),
+        provider.name,
+        "list_option_expirations",
+    )
     assert expirations
     expiration = next((value for value in expirations if value >= date.today()), expirations[-1])
     contracts, _ = _observed_read(
         lambda: provider.fetch_option_chain("AAPL", expiration=expiration, max_symbols=20),
         provider.name,
+        "fetch_option_chain",
     )
     assert contracts
     assert len(contracts) <= 20
@@ -653,6 +727,7 @@ def test_marketdata_app_credentialed_option_surface():
             end=datetime.now(UTC) + timedelta(days=1),
         ),
         provider.name,
+        "fetch_option_quote_history",
     )
     assert isinstance(quote_points, list)
 
@@ -664,6 +739,7 @@ def test_marketdata_app_credentialed_account_usage_snapshot():
     usage, measurement = _observed_read(
         lambda: MarketDataAppProvider().fetch_account_usage(),
         "marketdata_app",
+        "fetch_account_usage",
     )
     assert usage is not None
     assert usage.provider == "marketdata_app"
@@ -687,6 +763,7 @@ def test_marketdata_app_credentialed_intraday_history():
             "AAPL", Timeframe.M5, start, end, adjusted=False
         ),
         "marketdata_app",
+        "fetch_ohlcv",
     )
     assert measurement.http_requests > 0
     assert rows and rows[-1].close > 0
@@ -697,11 +774,19 @@ def test_finnhub_credentialed_company_profile():
     """The observed free key does not entitle the stock-candle endpoint."""
 
     _require("FINNHUB_API_KEY")
-    profile, _ = _observed_read(lambda: FinnhubProvider().get_instrument_profile("AAPL"), "finnhub")
+    profile, _ = _observed_read(
+        lambda: FinnhubProvider().get_instrument_profile("AAPL"),
+        "finnhub",
+        "get_instrument_profile",
+    )
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.name and profile.exchange
-    events, _ = _observed_read(lambda: FinnhubProvider().fetch_instrument_events("AAPL"), "finnhub")
+    events, _ = _observed_read(
+        lambda: FinnhubProvider().fetch_instrument_events("AAPL"),
+        "finnhub",
+        "fetch_instrument_events",
+    )
     assert events
     assert all(event.event_time.tzinfo is not None for event in events)
     assert any(event.eps_actual is not None or event.eps_estimate is not None for event in events)
@@ -711,6 +796,7 @@ def test_finnhub_credentialed_company_profile():
             end=date.today() + timedelta(days=45),
         ),
         "finnhub",
+        "fetch_market_events",
     )
     assert all(event.effective_date is not None for event in calendar_events)
 
@@ -720,7 +806,9 @@ def test_ibkr_read_only_gateway_profile_history_and_snapshot():
 
     _require("IBKR_READ_ONLY_URL", "IBKR_READ_ONLY_SESSION_COOKIE")
     provider = IBKRProvider()
-    profile, _ = _observed_read(lambda: provider.get_instrument_profile("AAPL"), "ibkr")
+    profile, _ = _observed_read(
+        lambda: provider.get_instrument_profile("AAPL"), "ibkr", "get_instrument_profile"
+    )
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.listings and profile.listings[0].extra_data.get("conid")
@@ -730,8 +818,11 @@ def test_ibkr_read_only_gateway_profile_history_and_snapshot():
             "AAPL", Timeframe.D1, start, datetime.now(UTC), adjusted=False
         ),
         "ibkr",
+        "fetch_ohlcv",
     )
     assert bars and bars[-1].close > 0
-    price, measurement = _observed_read(lambda: provider.get_current_price("AAPL"), "ibkr")
+    price, measurement = _observed_read(
+        lambda: provider.get_current_price("AAPL"), "ibkr", "get_current_price"
+    )
     assert price is not None and price > 0
     assert measurement.http_requests >= 2

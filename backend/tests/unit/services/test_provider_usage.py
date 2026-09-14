@@ -57,6 +57,92 @@ def test_read_live_usage_ledger_aggregates_redacted_rows(tmp_path, monkeypatch):
     }
 
 
+def test_read_live_usage_ledger_aggregates_bounded_operation_breakdown(tmp_path, monkeypatch):
+    now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text(
+        json.dumps(
+            {
+                "at": now.isoformat(),
+                "provider": "alpaca",
+                "operations": 2,
+                "http_requests": 3,
+                "response_bytes": 30,
+                "exit_status": 0,
+                "operation_usage": {
+                    "fetch_ohlcv": {
+                        "operations": 1,
+                        "http_requests": 2,
+                        "response_bytes": 20,
+                        "failed_operations": 0,
+                    },
+                    "get_instrument_profile": {
+                        "operations": 1,
+                        "http_requests": 1,
+                        "response_bytes": 10,
+                        "failed_operations": 0,
+                    },
+                },
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    result = read_live_usage_ledger(now=now)
+
+    assert result["providers"]["alpaca"]["operation_breakdown"] == [
+        {
+            "operation": "fetch_ohlcv",
+            "operations": 1,
+            "http_requests": 2,
+            "response_bytes": 20,
+            "failed_operations": 0,
+        },
+        {
+            "operation": "get_instrument_profile",
+            "operations": 1,
+            "http_requests": 1,
+            "response_bytes": 10,
+            "failed_operations": 0,
+        },
+    ]
+
+
+def test_read_live_usage_ledger_rejects_operation_breakdown_above_provider_totals(
+    tmp_path, monkeypatch
+):
+    now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text(
+        json.dumps(
+            {
+                "at": now.isoformat(),
+                "provider": "alpaca",
+                "operations": 1,
+                "http_requests": 1,
+                "response_bytes": 10,
+                "exit_status": 0,
+                "operation_usage": {
+                    "fetch_ohlcv": {
+                        "operations": 2,
+                        "http_requests": 2,
+                        "response_bytes": 20,
+                        "failed_operations": 0,
+                    }
+                },
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    result = read_live_usage_ledger(now=now)
+
+    assert result["rows"] == 0
+    assert result["invalid_rows"] == 1
+
+
 def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(tmp_path / "missing.jsonl"))
 

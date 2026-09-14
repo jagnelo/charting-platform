@@ -2,8 +2,8 @@
 """Merge redacted provider-live usage receipts into an owner-managed ledger.
 
 Receipts from local worktrees and GitHub artifacts are account-level evidence,
-not runtime quota reservations. This utility accepts only the aggregate fields
-and allow-listed provider-capacity headers emitted by
+not runtime quota reservations. This utility accepts only the aggregate fields,
+bounded operation breakdowns, and allow-listed provider-capacity headers emitted by
 ``tests/live/live_usage.py``, deduplicates a run/provider row under an
 exclusive destination lock, and never copies unknown fields such as payloads
 or credentials.
@@ -89,6 +89,35 @@ def _capacity_headers(value: Any) -> dict[str, str] | None:
     return result
 
 
+def _operation_usage(value: Any) -> dict[str, dict[str, int]] | None:
+    """Validate redacted per-operation transport totals from a live receipt."""
+
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or len(value) > 128:
+        return None
+    result: dict[str, dict[str, int]] = {}
+    for raw_operation, raw_values in value.items():
+        operation = str(raw_operation).strip()
+        if (
+            not operation
+            or len(operation) > 128
+            or not operation.isprintable()
+            or not isinstance(raw_values, dict)
+        ):
+            return None
+        parsed: dict[str, int] = {}
+        for field in ("operations", "http_requests", "response_bytes", "failed_operations"):
+            parsed_value = _nonnegative_int(raw_values.get(field, 0))
+            if parsed_value is None:
+                return None
+            parsed[field] = parsed_value
+        if parsed["failed_operations"] > parsed["operations"]:
+            return None
+        result[operation] = parsed
+    return result
+
+
 def _normalise_row(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -125,6 +154,14 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
     response_headers = _capacity_headers(value.get("response_headers"))
     if response_headers is None:
         return None
+    operation_usage = _operation_usage(value.get("operation_usage"))
+    if operation_usage is None:
+        return None
+    if any(
+        sum(item[field] for item in operation_usage.values()) > values[field]
+        for field in ("operations", "http_requests", "response_bytes")
+    ) or sum(item["failed_operations"] for item in operation_usage.values()) > failed_operations:
+        return None
     row: dict[str, Any] = {
         "at": observed.isoformat(),
         "usage_scope": usage_scope,
@@ -133,6 +170,7 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
         "failed_operations": failed_operations,
         "process_exit_status": process_exit_status,
         "response_headers": response_headers,
+        "operation_usage": operation_usage,
     }
     run_id = str(value.get("run_id") or "").strip()
     if run_id:

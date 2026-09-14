@@ -3,7 +3,8 @@
 This ledger is deliberately outside Git and outside the application database:
 the live suite runs direct adapters and therefore consumes provider accounts
 without going through the runtime reservation path.  It records only observed
-provider/request/byte counts and never credentials or response bodies.
+provider/request/byte counts and bounded operation names, and never credentials
+or response bodies.
 """
 
 from __future__ import annotations
@@ -50,7 +51,7 @@ _CAPACITY_HEADERS = {
     "x-ratelimit-reset",
     "x-ratelimit-used",
 }
-_observations: list[tuple[str, int, int, dict[str, str], bool]] = []
+_observations: list[tuple[str, str, int, int, dict[str, str], bool]] = []
 _PROCESS_RUN_ID = str(uuid4())
 
 
@@ -118,6 +119,7 @@ def _safe_headers(headers: Mapping[str, object] | None) -> dict[str, str]:
 def record_observation(
     provider: str,
     *,
+    operation: str = "unspecified",
     http_requests: int,
     response_bytes: int,
     response_headers: Mapping[str, object] | None = None,
@@ -130,9 +132,13 @@ def record_observation(
     failure must not mark unrelated successful provider rows as failed.
     """
 
+    normalized_operation = str(operation).strip() or "unspecified"
+    if len(normalized_operation) > 128 or not normalized_operation.isprintable():
+        raise ValueError("provider live usage operation is invalid")
     _observations.append(
         (
             str(provider).strip() or "unknown",
+            normalized_operation,
             max(0, int(http_requests)),
             max(0, int(response_bytes)),
             _safe_headers(response_headers),
@@ -155,14 +161,29 @@ def flush_observations(exit_status: int) -> Path | None:
             "operations": 0,
             "failed_operations": 0,
             "response_headers": {},
+            "operation_usage": {},
         }
     )
-    for provider, requests, response_bytes, response_headers, success in _observations:
+    for provider, operation, requests, response_bytes, response_headers, success in _observations:
         grouped[provider]["http_requests"] += requests
         grouped[provider]["response_bytes"] += response_bytes
         grouped[provider]["operations"] += 1
         grouped[provider]["failed_operations"] += int(not success)
         grouped[provider]["response_headers"].update(response_headers)
+        operation_rows = grouped[provider]["operation_usage"]
+        operation_row = operation_rows.setdefault(
+            operation,
+            {
+                "operations": 0,
+                "http_requests": 0,
+                "response_bytes": 0,
+                "failed_operations": 0,
+            },
+        )
+        operation_row["operations"] += 1
+        operation_row["http_requests"] += requests
+        operation_row["response_bytes"] += response_bytes
+        operation_row["failed_operations"] += int(not success)
 
     # The wrapper supplies an explicit run ID for CI/local manifest runs. A
     # direct pytest invocation must still get a fresh identity: process IDs can
@@ -187,6 +208,12 @@ def flush_observations(exit_status: int) -> Path | None:
             "failed_operations": values["failed_operations"],
             "process_exit_status": max(0, int(exit_status)),
             "response_headers": dict(values["response_headers"]),
+            "operation_usage": {
+                operation: dict(operation_values)
+                for operation, operation_values in sorted(
+                    values["operation_usage"].items()
+                )
+            },
         }
         for provider, values in sorted(grouped.items())
     ]

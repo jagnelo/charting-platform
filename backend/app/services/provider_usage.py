@@ -181,6 +181,7 @@ def _empty_live_usage() -> dict[str, Any]:
         "last_observation_at": None,
         "usage_scopes": [],
         "last_response_headers": {},
+        "operation_breakdown": {},
     }
 
 
@@ -305,6 +306,47 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                         ):
                             raise ValueError("invalid live usage header")
                         safe_headers[name] = value
+                    operation_usage = row.get("operation_usage")
+                    if operation_usage is None:
+                        operation_usage = {}
+                    if not isinstance(operation_usage, dict) or len(operation_usage) > 128:
+                        raise ValueError("invalid live operation usage")
+                    safe_operation_usage: dict[str, dict[str, int]] = {}
+                    operation_totals = {
+                        "operations": 0,
+                        "http_requests": 0,
+                        "response_bytes": 0,
+                        "failed_operations": 0,
+                    }
+                    for raw_operation, raw_values in operation_usage.items():
+                        operation = str(raw_operation).strip()
+                        if (
+                            not operation
+                            or len(operation) > 128
+                            or not operation.isprintable()
+                            or not isinstance(raw_values, dict)
+                        ):
+                            raise ValueError("invalid live operation usage")
+                        parsed_operation: dict[str, int] = {}
+                        for field in operation_totals:
+                            parsed = _nonnegative_int(raw_values.get(field, 0))
+                            if parsed is None:
+                                raise ValueError("invalid live operation usage")
+                            parsed_operation[field] = parsed
+                            operation_totals[field] += parsed
+                        if parsed_operation["failed_operations"] > parsed_operation["operations"]:
+                            raise ValueError("invalid live operation usage")
+                        safe_operation_usage[operation] = parsed_operation
+                    if any(
+                        operation_totals[field] > row_total
+                        for field, row_total in (
+                            ("operations", operations),
+                            ("http_requests", requests),
+                            ("response_bytes", response_bytes),
+                            ("failed_operations", failed_operations),
+                        )
+                    ):
+                        raise ValueError("live operation usage exceeds provider totals")
                     if (
                         not provider
                         or len(provider) > 128
@@ -335,6 +377,24 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 summary["operations"] += operations
                 summary["http_requests"] += requests
                 summary["response_bytes"] += response_bytes
+                for operation, values in safe_operation_usage.items():
+                    operation_summary = summary["operation_breakdown"].setdefault(
+                        operation,
+                        {
+                            "operation": operation,
+                            "operations": 0,
+                            "http_requests": 0,
+                            "response_bytes": 0,
+                            "failed_operations": 0,
+                        },
+                    )
+                    for field in (
+                        "operations",
+                        "http_requests",
+                        "response_bytes",
+                        "failed_operations",
+                    ):
+                        operation_summary[field] += values[field]
                 prior_observation = summary["last_observation_at"]
                 if prior_observation is None or observed_at >= prior_observation:
                     # A merged ledger is not guaranteed to be line-ordered.
@@ -383,6 +443,10 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
             provider: {
                 **summary,
                 "usage_scopes": sorted(summary["usage_scopes"]),
+                "operation_breakdown": sorted(
+                    summary["operation_breakdown"].values(),
+                    key=lambda row: (-row["http_requests"], row["operation"]),
+                ),
             }
             for provider, summary in providers.items()
         },
@@ -588,6 +652,10 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     for data_source in data_sources:
         tracking = _usage_tracking_config(data_source)
         provider_logs = logs_by_source.get(data_source.id, [])
+        live_test_usage = live_usage_by_provider.get(data_source.name)
+        if live_test_usage is None:
+            live_test_usage = _empty_live_usage()
+            live_test_usage["operation_breakdown"] = []
         last_24h_logs = [
             log
             for log in provider_logs
@@ -832,9 +900,7 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     "invalid_rows": live_usage_ledger.get("invalid_rows", 0),
                     "last_observation_at": live_usage_ledger.get("last_observation_at"),
                 },
-                "live_test_usage": live_usage_by_provider.get(
-                    data_source.name, _empty_live_usage()
-                ),
+                "live_test_usage": live_test_usage,
             }
         )
     return summaries

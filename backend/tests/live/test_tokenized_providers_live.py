@@ -45,7 +45,7 @@ def _require(*names: str) -> None:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 
 
-def _observed_read(call, provider_name: str):
+def _observed_read(call, provider_name: str, operation: str):
     """Require live tokenized reads to contribute transport evidence."""
 
     measurement, token = activate_provider_telemetry()
@@ -57,6 +57,7 @@ def _observed_read(call, provider_name: str):
         # caller decides whether a bounded retry is allowed.
         record_observation(
             provider_name,
+            operation=operation,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
@@ -69,6 +70,7 @@ def _observed_read(call, provider_name: str):
         deactivate_provider_telemetry(token)
     record_observation(
         provider_name,
+        operation=operation,
         http_requests=measurement.http_requests,
         response_bytes=measurement.response_bytes,
         response_headers=measurement.response_headers,
@@ -82,12 +84,14 @@ def _observed_read(call, provider_name: str):
 def test_xstocks_public_asset_and_price():
     provider = XStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "xstocks"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "xstocks",
+        "discover_tokenized_assets",
     )
     assert rows
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol), "xstocks"
+        lambda: provider.get_tokenized_price(rows[0].symbol), "xstocks", "get_tokenized_price"
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced)
@@ -111,6 +115,7 @@ def test_xstocks_public_corporate_actions():
     events, measurement = _observed_read(
         lambda: provider.fetch_tokenized_corporate_actions(page=1, page_size=1),
         "xstocks",
+        "fetch_tokenized_corporate_actions",
     )
     assert isinstance(events, list)
     assert all(isinstance(event, dict) for event in events)
@@ -120,13 +125,17 @@ def test_xstocks_public_corporate_actions():
 def test_robinhood_public_asset_and_price():
     provider = RobinhoodTokenProvider()
     rows, _ = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "robinhood_tokens"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "robinhood_tokens",
+        "discover_tokenized_assets",
     )
     assert rows
     _assert_asset(rows[0])
     try:
         priced, quote_measurement = _observed_read(
-            lambda: provider.get_tokenized_price(rows[0].symbol), "robinhood_tokens"
+            lambda: provider.get_tokenized_price(rows[0].symbol),
+            "robinhood_tokens",
+            "get_tokenized_price",
         )
     except ProviderRateLimitError as exc:
         # Robinhood's public edge occasionally returns its documented local
@@ -136,7 +145,9 @@ def test_robinhood_public_asset_and_price():
             raise
         time.sleep(1.1)
         priced, quote_measurement = _observed_read(
-            lambda: provider.get_tokenized_price(rows[0].symbol), "robinhood_tokens"
+            lambda: provider.get_tokenized_price(rows[0].symbol),
+            "robinhood_tokens",
+            "get_tokenized_price",
         )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
@@ -145,7 +156,9 @@ def test_robinhood_public_asset_and_price():
 def test_robinhood_public_corporate_actions():
     provider = RobinhoodTokenProvider()
     events, measurement = _observed_read(
-        lambda: provider.fetch_tokenized_corporate_actions(), "robinhood_tokens"
+        lambda: provider.fetch_tokenized_corporate_actions(),
+        "robinhood_tokens",
+        "fetch_tokenized_corporate_actions",
     )
     assert isinstance(events, list)
     assert all(isinstance(event, dict) for event in events)
@@ -155,7 +168,9 @@ def test_robinhood_public_corporate_actions():
 def test_bybit_public_xstocks_asset_and_price():
     provider = BybitXStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "bybit_xstocks"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "bybit_xstocks",
+        "discover_tokenized_assets",
     )
     assert rows
     assert measurement.response_bytes > 0
@@ -171,7 +186,9 @@ def test_bybit_public_xstocks_asset_and_price():
     }
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol), "bybit_xstocks"
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "bybit_xstocks",
+        "get_tokenized_price",
     )
     assert quote_measurement.http_requests >= 2
     assert set(quote_measurement.response_headers) <= {
@@ -189,7 +206,9 @@ def test_gate_public_tradfi_asset_and_orderbook():
     # a small bounded page and require one quote-bearing symbol so this test
     # proves the market-data surface rather than merely catalogue metadata.
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=5), "gate_tradfi"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=5),
+        "gate_tradfi",
+        "discover_tokenized_assets",
     )
     assert rows
     assert measurement.response_bytes > 0
@@ -197,7 +216,9 @@ def test_gate_public_tradfi_asset_and_orderbook():
     for row in rows:
         _assert_asset(row)
         priced, quote_measurement = _observed_read(
-            lambda row=row: provider.get_tokenized_price(row.symbol), "gate_tradfi"
+            lambda row=row: provider.get_tokenized_price(row.symbol),
+            "gate_tradfi",
+            "get_tokenized_price",
         )
         assert quote_measurement.http_requests >= 2
         _assert_asset(priced)
@@ -212,7 +233,9 @@ def test_gate_public_tradfi_asset_and_orderbook():
 def test_kraken_public_xstocks_asset_and_ticker():
     provider = KrakenXStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "kraken_xstocks"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "kraken_xstocks",
+        "discover_tokenized_assets",
     )
     assert measurement.response_bytes > 0
     # Kraken currently publishes no pair whose provider-native metadata marks
@@ -222,7 +245,9 @@ def test_kraken_public_xstocks_asset_and_ticker():
         return
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol), "kraken_xstocks"
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "kraken_xstocks",
+        "get_tokenized_price",
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
@@ -232,7 +257,9 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     _require("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY")
     provider = DinariTokenProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "dinari"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "dinari",
+        "discover_tokenized_assets",
     )
     assert rows
     _assert_asset(rows[0])
@@ -252,20 +279,20 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
         )
     )
     resolved_by_symbol, symbol_measurement = _observed_read(
-        lambda: provider.get_tokenized_asset(rows[0].symbol), "dinari"
+        lambda: provider.get_tokenized_asset(rows[0].symbol), "dinari", "get_tokenized_asset"
     )
     assert symbol_measurement.http_requests == 1
     _assert_asset(resolved_by_symbol)
     assert resolved_by_symbol.asset_id == identifier
     priced, price_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(identifier), "dinari"
+        lambda: provider.get_tokenized_price(identifier), "dinari", "get_tokenized_price"
     )
     # The provider-native UUID is cached from the validated catalogue read;
     # only the downstream price endpoint is required after that point.
     assert price_measurement.http_requests >= 1
     _assert_asset(priced, require_quote=True)
     quoted, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_quote(identifier), "dinari"
+        lambda: provider.get_tokenized_quote(identifier), "dinari", "get_tokenized_quote"
     )
     assert quote_measurement.http_requests >= 1
     _assert_asset(quoted, require_quote=True)
@@ -278,6 +305,7 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
                 identifier, timespan=timespan
             ),
             "dinari",
+            "fetch_tokenized_historical_prices",
         )
         assert history_measurement.http_requests >= 1
         assert isinstance(history, list)
@@ -291,17 +319,23 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
             assert row["close"] > 0
             assert isinstance(row["raw_payload"], dict)
     news, news_measurement = _observed_read(
-        lambda: provider.fetch_tokenized_news(identifier, limit=1), "dinari"
+        lambda: provider.fetch_tokenized_news(identifier, limit=1),
+        "dinari",
+        "fetch_tokenized_news",
     )
     assert news_measurement.http_requests >= 1
     assert isinstance(news, list)
     dividends, dividend_measurement = _observed_read(
-        lambda: provider.fetch_tokenized_dividends(identifier), "dinari"
+        lambda: provider.fetch_tokenized_dividends(identifier),
+        "dinari",
+        "fetch_tokenized_dividends",
     )
     assert dividend_measurement.http_requests >= 1
     assert isinstance(dividends, list)
     splits, split_measurement = _observed_read(
-        lambda: provider.fetch_tokenized_splits(identifier), "dinari"
+        lambda: provider.fetch_tokenized_splits(identifier),
+        "dinari",
+        "fetch_tokenized_splits",
     )
     assert split_measurement.http_requests >= 1
     assert isinstance(splits, list)
@@ -310,12 +344,16 @@ def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
     # additional request and is still a valid live observation.
     if provider._split_cursors:
         continued, continuation_measurement = _observed_read(
-            lambda: provider.fetch_tokenized_splits(identifier, page=2), "dinari"
+            lambda: provider.fetch_tokenized_splits(identifier, page=2),
+            "dinari",
+            "fetch_tokenized_splits",
         )
         assert continuation_measurement.http_requests >= 1
         assert isinstance(continued, list)
     actions, action_measurement = _observed_read(
-        lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol), "dinari"
+        lambda: provider.fetch_tokenized_corporate_actions(symbol=rows[0].symbol),
+        "dinari",
+        "fetch_tokenized_corporate_actions",
     )
     assert action_measurement.http_requests >= 3
     assert isinstance(actions, list)
@@ -327,18 +365,23 @@ def test_ondo_credentialed_metadata_price_market_summary_and_ohlc():
     _require("ONDO_GLOBAL_MARKETS_API_KEY")
     provider = OndoGlobalMarketsProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "ondo_global_markets"
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1),
+        "ondo_global_markets",
+        "discover_tokenized_assets",
     )
     assert rows
     _assert_asset(rows[0])
     priced, price_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol), "ondo_global_markets"
+        lambda: provider.get_tokenized_price(rows[0].symbol),
+        "ondo_global_markets",
+        "get_tokenized_price",
     )
     assert price_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
     market, market_measurement = _observed_read(
         lambda: provider.fetch_tokenized_market_data(rows[0].symbol),
         "ondo_global_markets",
+        "fetch_tokenized_market_data",
     )
     assert market_measurement.http_requests >= 2
     assert market is not None
@@ -349,12 +392,14 @@ def test_ondo_credentialed_metadata_price_market_summary_and_ohlc():
             rows[0].symbol, interval="1day", range_="1day", market="primary"
         ),
         "ondo_global_markets",
+        "fetch_tokenized_ohlc",
     )
     assert ohlc_measurement.http_requests >= 2
     assert isinstance(candles, list)
     historical, historical_measurement = _observed_read(
         lambda: provider.fetch_tokenized_historical_prices(rows[0].symbol, timespan="DAY"),
         "ondo_global_markets",
+        "fetch_tokenized_historical_prices",
     )
     assert historical_measurement.http_requests >= 2
     assert isinstance(historical, list)

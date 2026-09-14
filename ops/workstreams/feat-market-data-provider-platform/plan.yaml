@@ -154,6 +154,20 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Direct live-provider usage receipts now retain a bounded operation
+      breakdown in addition to provider totals: each operation records only
+      measured operation count, HTTP requests, response bytes, and failures.
+      The owner-ledger reader and receipt merger validate nested totals against
+      provider aggregates, preserve backward compatibility for older rows, and
+      expose the normalized breakdown through provider usage diagnostics. Every
+      market-data and tokenized live probe now supplies an explicit adapter
+      operation label; focused usage coverage passed 32/32, the 49-case live
+      matrix collected cleanly, and the final live run recorded 43/49 passes
+      with 6 honest outcomes (three Alpha Vantage daily-capacity responses and
+      missing Tradier, IBKR, and Ondo credentials). No credentials or payloads
+      entered Git; provider/legal/deployment/reconciliation/shadow gates remain
+      fail-closed.
+    - >-
       Alpaca metadata now normalizes platform crypto symbols such as
       `BTC-USD` to Alpaca's documented `BTC/USD` asset path while retaining
       the provider symbol in the listing record. The focused fixture suite
