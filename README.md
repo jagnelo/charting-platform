@@ -180,8 +180,11 @@ MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
 PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_historical_prices":["dinari","ondo_global_markets"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
-PROVIDER_RATE_LIMIT_SEEDS={}
-PROVIDER_FRESHNESS_SEEDS={}
+# Use __CODE_DEFAULT__ when no replacement map is intended. An explicit {}
+# remains a deliberate empty override that removes routable provider policies.
+PROVIDER_RATE_LIMIT_SEEDS=__CODE_DEFAULT__
+PROVIDER_FRESHNESS_SEEDS=__CODE_DEFAULT__
+PROVIDER_USAGE_PROFILE_SEEDS=__CODE_DEFAULT__
 OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
 
 # Provider credentials / tuning
@@ -203,8 +206,14 @@ Useful provider envs:
 - `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["edgar","openfigi"]}`. Do not add yfinance unless the legacy/options path has been explicitly reviewed.
 - `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider. Values must be
   copied from the provider's current published contract and include a complete
-  quota contract; there is no safe generic example or fallback.
+  quota contract; there is no safe generic fallback. `__CODE_DEFAULT__` keeps
+  the reviewed in-code map; an explicit `{}` deliberately removes routable
+  provider policies.
 - `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
+- `PROVIDER_USAGE_PROFILE_SEEDS`: JSON object keyed by provider for reviewed
+  operation costs and provider-native usage dimensions. `__CODE_DEFAULT__`
+  keeps the in-code profile; an explicit `{}` deliberately removes those
+  overrides.
 - `OPTION_CHAIN_REFRESH_HORIZON_DAYS`: refresh horizon for tracked-interest options maintenance.
 
 Provider provenance is persisted alongside mastered instrument/detail/stat fields so it remains clear where key metadata came from, when it was observed, and why a given provider won field selection.
