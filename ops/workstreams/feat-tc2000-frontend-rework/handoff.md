@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 - Verified Oakmark dated holdings
+
+Product commit `cef626151` promotes Oakmark's official symbol-scoped CSV
+holdings exports to the issuer-native OAKM/OAKI route. The adapter requires
+exactly one published composition date and non-empty rows, fails closed for
+undated or ambiguous snapshots, date-scopes row IDs, and records complete
+native-route composition/as-of, row-count, and
+`issuer_native_oakmark_symbol_holdings_csv` provenance metadata. The reviewed
+live OAKM route published 41 rows dated 2026-09-14. Focused Oakmark assertions
+passed 2/2 including the undated regression; opt-in live provider assertions
+passed 3/3; the direct live adapter probe returned 41 complete rows; and Ruff,
+formatting, and diff checks passed.
+
+The exact Docker-backed branch gate passed backend units 1592/1592,
+integration 405/405 at 82.13% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104 with exactly the six established protected watchlist-column-editor/
+workspace-floating diffs. Docker teardown removed all containers, volumes,
+network, four generated images, and testcontainer sessions. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy
+changed. Continue family-wide R1 population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Wellington dated holdings
 
 Product commit `4e76ab33d` requires Wellington-managed VUSV/VDIG/VUSG's

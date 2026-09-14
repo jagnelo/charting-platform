@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Require dated Oakmark holdings
+
+Product commit `cef626151` promotes Oakmark's official symbol-scoped CSV
+holdings exports to the issuer-native route for OAKM/OAKI. The adapter now
+requires exactly one published composition date and non-empty rows, fails
+closed for undated or ambiguous snapshots, date-scopes source IDs, and records
+complete composition/as-of, row-count, and
+`issuer_native_oakmark_symbol_holdings_csv` provenance metadata. The reviewed
+live OAKM route published 41 rows dated 2026-09-14.
+
+Focused Oakmark assertions passed 2/2 including the undated regression; the
+opt-in live provider assertions passed 3/3 and the direct live adapter probe
+returned 41 complete rows. Ruff, formatting, and diff checks passed. The exact
+branch-scoped Docker-backed gate passed backend units 1592/1592, integration
+405/405 with 82.13% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker teardown removed all four generated images, containers,
+volumes, network, and testcontainer sessions. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10 remain open.
+
 ## 2026-09-14 - Require dated Wellington holdings
 
 Product commit `4e76ab33d` requires Wellington-managed VUSV/VDIG/VUSG's

@@ -13,6 +13,25 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest Oakmark dated holdings seam is verified at branch tip `cef626151`:
+  Oakmark's official symbol-scoped CSV route for OAKM/OAKI now requires exactly
+  one published composition date and non-empty rows, fails closed for undated or
+  ambiguous snapshots, date-scopes source row IDs, and records complete
+  composition/as-of, row-count, and `issuer_native_oakmark_symbol_holdings_csv`
+  provenance metadata. The reviewed live OAKM route published 41 rows dated
+  2026-09-14. Focused Oakmark assertions passed 2/2 including the undated
+  regression; the opt-in live provider assertions passed 3/3; the direct live
+  adapter probe returned 41 complete rows; Ruff, formatting, and diff checks
+  passed. The exact gate passed backend units 1592/1592, integration 405/405 at
+  82.13% combined coverage, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner probes, and functional
+  E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with only the six
+  unchanged protected watchlist-column-editor/workspace-floating diffs. Docker
+  teardown removed all branch-scoped containers, volumes, network, four generated
+  images, and testcontainer sessions. No generic provider/fallback, migration,
+  visual baseline, threshold, mask, skip, or acceptance policy changed. Continue
+  R1 family-wide canonical population/history, D1/W1/MN floors, rebalance
+  continuity, and AC2-AC7/AC10 remain open.
   Latest Wellington dated holdings seam is verified at branch tip `4e76ab33d`:
   the issuer-native Vanguard publisher route for Wellington-managed VUSV/VDIG/VUSG
   now requires a parseable composition date, fails closed for undated or empty
@@ -3845,7 +3864,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_wellington_dated_holdings
+  current_phase: R1_verified_oakmark_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
@@ -3853,6 +3872,25 @@ progress:
     guard, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest Oakmark dated holdings seam is verified at branch tip `cef626151`:
+    Oakmark's official symbol-scoped CSV route for OAKM/OAKI now requires exactly
+    one published composition date and non-empty rows, fails closed for undated or
+    ambiguous snapshots, date-scopes source row IDs, and records complete
+    composition/as-of, row-count, and `issuer_native_oakmark_symbol_holdings_csv`
+    provenance metadata. The reviewed live OAKM route published 41 rows dated
+    2026-09-14. Focused Oakmark assertions passed 2/2 including the undated
+    regression; the opt-in live provider assertions passed 3/3; the direct live
+    adapter probe returned 41 complete rows; Ruff, formatting, and diff checks
+    passed. The exact gate passed backend units 1592/1592, integration 405/405 at
+    82.13% combined coverage, frontend Vitest 1067/1067, type-check/build,
+    compose/deployment contracts, expected research-runner probes, and functional
+    E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with only the six
+    unchanged protected watchlist-column-editor/workspace-floating diffs. Docker
+    teardown removed all branch-scoped containers, volumes, network, four generated
+    images, and testcontainer sessions. No generic provider/fallback, migration,
+    visual baseline, threshold, mask, skip, or acceptance policy changed. Continue
+    R1 family-wide canonical population/history, D1/W1/MN floors, rebalance
+    continuity, and AC2-AC7/AC10 remain open.
     Latest Wellington dated holdings seam is verified at branch tip `4e76ab33d`:
     the issuer-native Vanguard publisher route for Wellington-managed VUSV/VDIG/VUSG
     now requires a parseable composition date, fails closed for undated or empty

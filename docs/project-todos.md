@@ -42,6 +42,29 @@
 
 # Project TODO Memory
 
+### 2026-09-14 - Require dated Oakmark holdings
+
+- [x] Promote Oakmark's official symbol-scoped CSV holdings exports to the
+      issuer-native OAKM/OAKI route; require exactly one composition date and
+      non-empty rows, fail closed for undated/ambiguous snapshots, date-scope
+      row IDs, and record complete native-route provenance/row-count metadata
+      (`cef626151`). The reviewed OAKM route published 41 rows dated
+      2026-09-14.
+- [x] Focused Oakmark assertions passed 2/2 including the undated regression;
+      opt-in live provider assertions passed 3/3 and the direct live adapter
+      probe returned 41 complete rows. Ruff/format/diff checks passed. The
+      exact gate passed backend units 1592/1592, integration 405/405 at 82.13%
+      combined coverage, frontend Vitest 1067/1067, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker teardown removed all branch-scoped containers,
+      volumes, network, four images, and testcontainer sessions. No provider/
+      fallback, migration, visual baseline, threshold, mask, skip, or
+      acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ### 2026-09-14 - Require dated Wellington holdings
 
 - [x] Require Wellington-managed Vanguard publisher holdings for VUSV/VDIG/VUSG
