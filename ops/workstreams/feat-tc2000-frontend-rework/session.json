@@ -54,7 +54,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1a6c3b94bda94c3b13bb49aa6b3e2a2d76a6ced1",
+  "head": "8c44de5355cde4b03a5678a10ada4e2ff0dd5010",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-14T15:31:45.597562+00:00",
-  "last_human_progress_update": "2026-09-14T15:30:21.659345+00:00",
+  "last_checkpoint": "2026-09-14T16:07:35.852272+00:00",
+  "last_human_progress_update": "2026-09-14T16:06:34.660466+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "80945af8b53d6202603a9e9924ded643a4b234b9744704bc9c46fe31a474c094",
+  "plan_hash": "825f5df9bed8a47b88c4eabf3926305b94a079c654ed585345e8121f0f5fe1db",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Wellington dated holdings is verified at product tip 4e76ab33d; the exact gate is blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
-    "current_phase": "R1_verified_wellington_dated_holdings",
+    "current_blocker": "Oakmark dated holdings is verified at product tip cef626151; the exact gate is blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
+    "current_phase": "R1_verified_oakmark_dated_holdings",
     "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the undated-backfill guard, and the six protected visual state-oracle assertions; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T15:30:21.658859+00:00"
+    "updated_at": "2026-09-14T16:06:34.660355+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
