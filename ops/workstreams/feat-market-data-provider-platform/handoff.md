@@ -16,17 +16,18 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
   and usage evidence only; provider/legal/deployment/reconciliation/shadow
   gates remain open.
 
-- Final backend source checkpoint: `2735f038f` (`test(provider): live-verify
-  Alpaca crypto metadata`). Alpaca metadata translates platform `BTC-USD` to
-  Alpaca's `BTC/USD` asset route, preserves the provider-native listing symbol,
-  and now has a bounded credentialed live BTC-USD probe in the manifest. The
-  focused Alpaca fixture suite passed `46/46`; the authoritative Docker-backed
-  gate passed `2,524/2,524` at `81.74%` combined coverage with 89 warnings in
-  `519.79s`, using isolated testcontainer session
-  `c40296e6-f89a-487c-a060-86fd83c72706`, cleaned without host-wide pruning.
-  No frontend or ETF-provider adapter files changed.
+- Final backend source checkpoint: `0b27192eb` (`feat(ops): attribute live
+  provider usage by operation`). Direct live-provider receipts now retain a
+  bounded operation breakdown alongside provider totals, with validated nested
+  counters exposed through usage diagnostics; all 49 market-data/tokenized
+  live probes pass explicit adapter operation labels. Focused usage coverage
+  passed `32/32`; the authoritative Docker-backed gate passed `2,527/2,527`
+  at `81.74%` combined coverage with 89 warnings in `478.02s`, using isolated
+  testcontainer session `7f420e71-c14e-45a6-bb7b-1399e71bc390`, cleaned
+  without host-wide pruning. No frontend or ETF-provider adapter files
+  changed.
 
-- Final current-head live matrix at `2735f038f` collected 49 manifest cases
+- Historical current-head live matrix at `2735f038f` collected 49 manifest cases
   and passed 43/49. Both Alpaca AAPL and BTC-USD profile reads passed; Alpha
   Vantage's three calendar/earnings operations returned typed documented
   free-key capacity responses; Tradier, IBKR, and Ondo remained exact

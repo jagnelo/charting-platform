@@ -98,20 +98,19 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: ready_for_human_review
 remaining_gaps:
   - >-
-    The final current-head lock-protected live matrix at source `2735f038f`
+    The final current-head lock-protected live matrix at source `0b27192eb`
     collected 49 manifest cases and passed 43/49, including both the Alpaca
     AAPL and BTC-USD authenticated asset-profile probes. The three Alpha
     Vantage IPO-calendar/earnings operations returned typed documented
     free-key capacity responses, while Tradier, IBKR, and Ondo remained exact
     missing-credential preflights. The owner-managed redacted receipt under
-    run `d0f738be-3b3b-4523-9649-86aa9b464ae4` recorded 26 provider rows, 98
-    HTTP requests, 79 operations, 23,237,350 response bytes, and four failed
-    operations (the expected Alpha Vantage capacity responses plus one
-    documented EODHD non-entitlement observation). Routing safety remains
-    fail-closed for the explicitly unreviewed quota, entitlement, legal,
-    byte-bound, deployment, reconciliation, and shadow controls; this is
-    transport evidence only and makes no acceptance or routing-promotion
-    claim.
+    run `5e42d113-3e2a-4b81-a055-35109f365d73` recorded 26 provider rows, 96
+    HTTP requests, 78 explicitly labelled operations, 23,159,806 response
+    bytes, and four failed operations. Every provider row retained an
+    operation breakdown; routing safety remains fail-closed for the
+    explicitly unreviewed quota, entitlement, legal, byte-bound, deployment,
+    reconciliation, and shadow controls. This is transport evidence only and
+    makes no acceptance or routing-promotion claim.
   - >-
     The current-HEAD lock-protected live matrix on 2026-09-14 collected 47
     cases and passed 41/47. The three Alpha Vantage IPO-calendar/earnings
