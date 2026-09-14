@@ -8858,9 +8858,36 @@ async def test_tremblant_adapter_verifies_toga_application_and_parses_filepoint_
         == "issuer_product_page_verified_filepoint_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-14"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 2
+    assert result.raw_json["as_of_date"] == "2026-07-14"
+    assert result.rows[0].source_row_id == "TOGA:2026-07-14:1:00827B106"
 
     with pytest.raises(ValueError, match="scoped to TOGA"):
         await adapter.fetch_latest(symbol="TMT")
+
+
+@pytest.mark.asyncio
+async def test_tremblant_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("tremblant")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html><h1>Tremblant Global ETF TOGA</h1></html>"),
+        FakeResponse(text=f'$.ajax({{url:"./assets/data/{adapter.holdings_filename}"}})'),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+                    "-,TOGA,AFRM,00827B106,Affirm Holdings Inc,10,80,800,2.50%,10000",
+                ]
+            ),
+            url=adapter.holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="TOGA")
 
 
 @pytest.mark.asyncio
