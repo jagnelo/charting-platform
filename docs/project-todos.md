@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified linked-workbook holdings completeness
+
+- [x] Require and record a holdings-specific published `Data as of` date for
+      Little Harbor, Pettee/Hoya, Sound Capital/River1, and Sovereign official
+      linked-workbook routes; verify non-empty native rows and fail closed for
+      undated holdings pages.
+- [x] Product commit `c2671c2c9`; focused assertions passed `8/8`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1573/1573`, integration `405/405` with `82.05%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified GraniteShares holdings completeness
 
 - [x] Require a published composition date for GraniteShares' official NVD

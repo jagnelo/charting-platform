@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 — Promote verified linked-workbook holdings completeness
+
+Product commit `c2671c2c9` requires and records a holdings-specific published
+`Data as of` date for the official linked-workbook family: Little Harbor,
+Pettee/Hoya, Sound Capital/River1, and Sovereign. Each adapter now parses the
+issuer page's holdings section, verifies non-empty rows and native route
+identity, fails closed when the holdings page is undated, and scopes explicit
+`completeness_status: complete` to the native route; generic current/daily/
+table labels remain fail-closed.
+
+Focused linked-workbook assertions passed `8/8`; Ruff/format/diff checks
+passed. The exact branch-scoped gate passed backend units `1573/1573`,
+integration `405/405` with `82.05%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected watchlist-column-editor/
+workspace-floating diffs remain. Docker resources were cleaned. No provider/
+fallback, migration, visual baseline, threshold, mask, skip, or acceptance
+policy changed. Family-wide R1 population/history, D1/W1/MN floors,
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified GraniteShares holdings completeness
 
 Product commit `8b4b6129d` requires a published composition date for

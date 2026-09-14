@@ -13,6 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `c2671c2c9` requires and records a holdings-specific
+  published `Data as of` date for Little Harbor, Pettee/Hoya, Sound
+  Capital/River1, and Sovereign official linked-workbook routes. The adapters
+  verify issuer-page holdings identity and non-empty native rows, fail closed
+  for undated holdings pages, and scope explicit `completeness_status: complete`
+  to the native routes. Focused linked-workbook assertions passed 8/8; Ruff,
+  formatting, and diff checks passed. The exact branch-scoped gate passed
+  backend units 1573/1573, integration 405/405 with 82.05% combined coverage,
+  frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
+  expected research-runner probes, and functional E2E 165 passed with 107
+  skipped. Visual E2E passed 98/104 with the six unchanged protected
+  watchlist-column-editor/workspace-floating diffs. Branch-scoped Docker
+  resources were cleaned with no retained containers, volumes, networks, or
+  testcontainer sessions. No generic provider/fallback, migration, visual,
+  threshold, mask, skip, or acceptance policy changed. Continue R1 family-wide
+  canonical population/history, D1/W1/MN floors, rebalance continuity, and
+  AC2–AC7/AC10.
   Latest product commit `8b4b6129d` requires a published composition date for
   GraniteShares' official NVD holdings workbook route. The adapter derives the
   snapshot date from the issuer-published workbook filename, verifies native
@@ -3694,13 +3711,18 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_graniteshares_holdings_completeness
+  current_phase: R1_verified_linked_workbook_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
     mappings, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Six unchanged protected visual diffs remain; all non-visual and functional
+    checks pass. Remote push remains intentionally held. The linked-workbook
+    holdings completeness seam is verified; continue the next bounded R1
+    canonical provider/history seam while preserving explicit completeness
+    evidence and the six protected visual state-oracle assertions.
     Six unchanged protected visual diffs remain; all non-visual and functional
     checks pass. Remote push remains intentionally held. The GraniteShares
     holdings completeness seam is verified; continue the next bounded R1

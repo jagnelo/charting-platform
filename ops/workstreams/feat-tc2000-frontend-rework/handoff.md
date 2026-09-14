@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 — Verified linked-workbook holdings completeness
+
+Product commit `c2671c2c9` requires and records a holdings-specific published
+`Data as of` date for Little Harbor, Pettee/Hoya, Sound Capital/River1, and
+Sovereign official linked-workbook routes. The adapters verify issuer-page
+holdings identity and non-empty native rows, fail closed for undated pages,
+and scope explicit `completeness_status: complete` to the native routes.
+
+Focused linked-workbook assertions passed `8/8`; Ruff, formatting, and diff
+checks passed. The exact branch-scoped gate passed backend units `1573/1573`,
+integration `405/405` with `82.05%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned with no retained containers, volumes, networks, or testcontainer
+sessions. No generic provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam
+while preserving explicit completeness evidence, fail-closed mappings, and
+the six protected visual state-oracle assertions. Do not integrate, promote,
+deploy, push, or mutate another worktree.
+
 ## 2026-09-14 — Verified GraniteShares holdings completeness
 
 Product commit `8b4b6129d` requires a published composition date for
