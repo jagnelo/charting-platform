@@ -1,3 +1,28 @@
+### 2026-09-14 - Verified SS&C dated holdings
+
+- [x] Harden the shared Capital Impact adapter for the EntrepreneurShares and
+      ERShares public SS&C full-holdings API routes; require non-empty retained
+      rows with exactly one parseable `asofdate`, fail closed for undated,
+      invalid, or mixed-date payloads, date-scope row IDs, and record complete
+      native-route provenance/row-count metadata (`da0334842`, formatted at
+      `6bc4d93e8`). The reviewed XOVR route published 33 rows dated 2026-09-11
+      for each route.
+- [x] Focused SS&C assertions passed 7/7 including undated/mixed-date
+      regressions; opt-in live public-route assertions passed 3/3; direct
+      public issuer probes returned 33 complete rows dated 2026-09-11 for
+      EntrepreneurShares and ERShares. Ruff/format/diff checks passed. The
+      exact gate passed backend units 1600/1600, integration 405/405 at 82.17%
+      combined coverage, frontend Vitest 1067/1067, type-check/build,
+      compose/deployment contracts, research-runner probes, and functional E2E
+      165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
+      remain. Docker teardown removed all branch-scoped containers, volumes,
+      network, four images, and testcontainer sessions. No provider/fallback,
+      migration, visual baseline, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Cohen & Steers dated holdings
 
 Product commit `33f759bac` hardens Cohen & Steers' public WordPress fund API
