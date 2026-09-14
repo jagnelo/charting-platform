@@ -116,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "31a4442363346dc018e8c6d02cbdae95a458cf57",
+  "head": "b8ebd058da705a71f55433e774771abe8c0f60dc",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-14T13:41:35.058051+00:00",
-  "last_human_progress_update": "2026-09-14T13:40:51.358275+00:00",
+  "last_checkpoint": "2026-09-14T14:15:46.979059+00:00",
+  "last_human_progress_update": "2026-09-14T14:14:56.899718+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "15472e41240a2efb62b2df3a0c96bebbb9663912f99631ff334fb0addb81345c",
+  "plan_hash": "8ced90118f0d8b5f953f7b72890bd9b7d6fe902853b42a1d049e7f51e4a25b6b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "ALPS/SS&C dated holdings seam is verified at f607797cd; exact gate passes all non-visual stages with 1588 backend units, 405 integration tests at 82.11% combined coverage, 1067 frontend tests, and 165 functional E2E passes with 107 skips; visual E2E remains 98/104 only because of the six established protected diffs. Docker teardown is clean; continue R1 family-wide population/history, D1/W1/MN floors, continuity, and AC2-AC7/AC10.",
-    "current_phase": "R1_verified_alps_dated_holdings",
+    "current_blocker": "Latest Aptus dated holdings seam is verified at branch tip c481193f4: issuer-native WordPress holdings now require a publisher-declared composition date, fail closed when absent, date-scope source row IDs, and record complete native-route composition/as-of, row-count, and provenance metadata. Focused assertions passed 2/2 including the undated-page regression; the opt-in live provider assertion passed 1/1 and the direct live adapter probe returned 33 complete DRSK rows dated 2026-09-11. The exact gate passed backend units 1589/1589, integration 405/405 at 82.12% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with only the six unchanged protected diffs; Docker teardown removed all branch-scoped containers, volumes, network, four images, and testcontainer sessions. Continue the next bounded R1 family-wide population/history seam; D1/W1/MN floors, continuity, and AC2-AC7/AC10 remain open.",
+    "current_phase": "R1_verified_aptus_dated_holdings",
     "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the cold-navigation Add-tool regression, the undated-backfill guard, and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T13:40:51.358153+00:00"
+    "updated_at": "2026-09-14T14:14:56.898943+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
