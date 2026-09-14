@@ -54,15 +54,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "docs/project-todos.md",
-    "docs/tc2000-acceptance-governance.md",
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -122,10 +114,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7aa159a04baf0672768ac91c2dd79ab188cfea9d",
+  "head": "fbca3fb51b9c0318ea09f2f59b43e39bd80fe790",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-14T23:26:48.629163+00:00",
+  "last_checkpoint": "2026-09-14T23:54:36.508709+00:00",
   "last_human_progress_update": "2026-09-14T23:54:06.181938+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
