@@ -2324,3 +2324,14 @@ changed.
   at `81.72%` combined coverage with 89 warnings in `557.73s`, using isolated
   session `16d8b47d-f8c9-4d3f-a767-71a1f30f0753`. No frontend or ETF-provider
   adapter files changed.
+
+- Compose policy-seed fallbacks now preserve the in-code reviewed maps when the
+  external deployment environment omits an override: the explicit
+  `__CODE_DEFAULT__` sentinel invokes the Settings field default, while an
+  explicit `{}` remains a deliberate empty/quarantine override. The behavior
+  is covered for rate-limit, freshness, and usage-profile maps in both
+  environment examples and standard/RPi Compose wiring. Focused coverage passed
+  `110/110`; the authoritative Docker-backed backend gate passed `2,491/2,491`
+  at `81.72%` combined coverage with 89 warnings in `495.11s`, using isolated
+  session `fbcfc12b-98b5-438d-80b2-3034b0ac3ec1`. No frontend or ETF-provider
+  adapter files changed.
