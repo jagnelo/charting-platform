@@ -175,9 +175,11 @@ class Settings(BaseSettings):
         # configurations are filtered by provider capability at runtime too.
         "instrument_search": ["edgar", "massive", "alpha_vantage"],
         # SEC remains the default issuer/profile source; Massive's ticker
-        # overview is an explicit supplementary metadata route with stable
-        # FIGI/CIK and listing lifecycle fields.
-        "instrument_metadata": ["edgar", "massive"],
+        # overview is the preferred supplementary metadata route with stable
+        # FIGI/CIK and listing lifecycle fields. Alpaca is last because its
+        # authenticated asset object is provider-native listing metadata and
+        # does not itself establish a cross-provider identity.
+        "instrument_metadata": ["edgar", "massive", "alpaca"],
         "price_history": ["alpaca", "alpha_vantage"],
         "latest_price": ["alpaca", "alpha_vantage"],
         # Alpha Vantage's EARNINGS endpoint is a final corroborating fallback;
@@ -922,6 +924,7 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
+                "get_instrument_profile": 1,
             },
         },
         "massive": {

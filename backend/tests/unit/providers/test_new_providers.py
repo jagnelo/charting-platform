@@ -158,7 +158,7 @@ class TestRegistryCapabilities:
         assert "instrument_events" in caps
         assert "universe_discovery" in caps
         assert "option_chain" not in caps
-        assert "instrument_metadata" not in caps
+        assert "instrument_metadata" in caps
 
     def test_fred_capabilities(self):
         caps = set(list_provider_capabilities("fred"))
@@ -356,6 +356,72 @@ class TestAlpacaCredentialWarning:
             page = AlpacaProvider().discover_universe_page("EQUITY", 0)
         assert page["quotes"][0]["symbol"] == "AAPL"
         assert get.call_args.args[0] == "https://paper-api.alpaca.markets/v2/assets"
+
+    def test_get_instrument_profile_preserves_asset_identity_and_listing_metadata(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {
+            "id": "asset-uuid",
+            "class": "us_equity",
+            "exchange": "NASDAQ",
+            "symbol": "AAPL",
+            "name": "Apple Inc.",
+            "status": "active",
+            "tradable": True,
+            "marginable": True,
+            "shortable": True,
+            "easy_to_borrow": True,
+            "fractionable": True,
+            "currency": "USD",
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            profile = AlpacaProvider().get_instrument_profile("aapl")
+        assert profile is not None
+        assert profile.symbol == "AAPL"
+        assert profile.name == "Apple Inc."
+        assert profile.exchange == "NASDAQ"
+        assert profile.quote_type == "EQUITY"
+        assert profile.identifiers[0].identifier_type == "ALPACA_ASSET_ID"
+        assert profile.identifiers[0].identifier_value == "asset-uuid"
+        assert profile.listings[0].provider_instrument_type == "us_equity"
+        assert profile.extra["fractionable"] is True
+        assert get.call_args.args[0] == "https://paper-api.alpaca.markets/v2/assets/AAPL"
+
+    def test_get_instrument_profile_returns_none_for_documented_not_found(self):
+        response = httpx.Response(
+            404,
+            request=httpx.Request("GET", "https://paper-api.alpaca.markets/v2/assets/UNKNOWN"),
+        )
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            assert AlpacaProvider().get_instrument_profile("UNKNOWN") is None
+
+    def test_get_instrument_profile_rejects_malformed_success_payload(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"symbol": "AAPL"}
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_TRADING_BASE_URL = "https://paper-api.alpaca.markets/v2"
+            with pytest.raises(ProviderResponseError, match="omitted name"):
+                AlpacaProvider().get_instrument_profile("AAPL")
 
     def test_invalid_assets_host_fails_closed(self):
         with patch("app.providers.alpaca.settings") as configured:

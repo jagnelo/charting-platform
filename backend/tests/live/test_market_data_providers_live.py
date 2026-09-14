@@ -326,6 +326,17 @@ def test_alpaca_credentialed_latest_price():
     assert price is not None and price > 0
 
 
+def test_alpaca_credentialed_profile():
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    profile, _ = _observed_read(
+        lambda: AlpacaProvider().get_instrument_profile("AAPL"), "alpaca"
+    )
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.name
+    assert profile.listings and profile.listings[0].provider_symbol == "AAPL"
+
+
 def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     """Exercise the non-price Alpaca surfaces used by universe/event refreshes."""
 

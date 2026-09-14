@@ -22,13 +22,19 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from math import ceil
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
 from app.config import provider_positive_integer, settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.base import InstrumentEventRecord
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentEventRecord,
+    InstrumentProfile,
+    ListingRecord,
+)
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderResponseError,
@@ -317,6 +323,122 @@ class AlpacaProvider:
                 "alpaca get_current_price %s: %s", symbol, redact_provider_message(exc)[:1000]
             )
             return None
+
+    # ── Instrument Metadata ─────────────────────────────────────────────────
+
+    def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+        """Return Alpaca's authenticated asset metadata for one symbol.
+
+        The trading API's asset object is an instrument/listing observation,
+        not a claim that Alpaca's UUID is a cross-provider canonical identity.
+        We therefore retain the provider asset id as an explicit identifier and
+        preserve the complete provider payload for later FIGI/CIK enrichment.
+        A documented 404 is treated as an unknown symbol; malformed successful
+        responses remain typed errors rather than being converted to an empty
+        result.
+        """
+
+        normalized_symbol = str(symbol or "").strip().upper()
+        if not normalized_symbol:
+            return None
+        self._require_configured()
+        url = f"{_trading_base_url()}/assets/{quote(normalized_symbol, safe='._-')}"
+        try:
+            response = httpx.get(url, headers=self._headers(), timeout=20)
+            observe_response(response)
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            payload = response.json()
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpaca returned invalid asset JSON") from exc
+
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Alpaca returned an invalid asset object")
+        provider_symbol = str(payload.get("symbol") or "").strip().upper()
+        if not provider_symbol:
+            raise ProviderResponseError(self.name, "Alpaca asset response omitted symbol")
+        if provider_symbol != normalized_symbol:
+            raise ProviderResponseError(
+                self.name,
+                "Alpaca asset response returned a different symbol than requested",
+            )
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise ProviderResponseError(self.name, "Alpaca asset response omitted name")
+
+        asset_class = str(payload.get("class") or payload.get("asset_class") or "").strip()
+        quote_type = "CRYPTOCURRENCY" if asset_class == "crypto" else "EQUITY"
+        exchange = str(payload.get("exchange") or "").strip() or None
+        currency = str(payload.get("currency") or "").strip().upper() or None
+        asset_id = str(payload.get("id") or "").strip()
+        identifiers = (
+            [
+                IdentifierRecord(
+                    identifier_type="ALPACA_ASSET_ID",
+                    identifier_value=asset_id,
+                    source=self.name,
+                )
+            ]
+            if asset_id
+            else []
+        )
+        listing = ListingRecord(
+            provider_symbol=provider_symbol,
+            exchange_code=exchange,
+            currency=currency,
+            provider_instrument_type=asset_class or None,
+            is_primary=True,
+            known_at=datetime.now(UTC),
+            extra_data={
+                key: payload[key]
+                for key in (
+                    "status",
+                    "tradable",
+                    "marginable",
+                    "shortable",
+                    "easy_to_borrow",
+                    "fractionable",
+                )
+                if key in payload
+            },
+        )
+        extra = {
+            key: payload[key]
+            for key in (
+                "id",
+                "class",
+                "status",
+                "tradable",
+                "marginable",
+                "shortable",
+                "easy_to_borrow",
+                "fractionable",
+                "maintenance_margin_requirement",
+                "attributes",
+                "min_order_size",
+                "min_trade_increment",
+                "price_increment",
+            )
+            if key in payload
+        }
+        return InstrumentProfile(
+            provider=self.name,
+            symbol=provider_symbol,
+            canonical_symbol=provider_symbol,
+            name=name,
+            currency=currency,
+            quote_type=quote_type,
+            exchange=exchange,
+            identifiers=identifiers,
+            listings=[listing],
+            raw_payload=dict(payload),
+            extra=extra,
+        )
 
     # ── Corporate Actions (Events) ────────────────────────────────────────────
 

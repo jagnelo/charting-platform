@@ -1705,6 +1705,7 @@ def test_single_request_provider_profiles_are_explicit():
             "get_current_price": 1,
             "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
+            "get_instrument_profile": 1,
         },
         "massive": {
             "search_instruments": 1,
