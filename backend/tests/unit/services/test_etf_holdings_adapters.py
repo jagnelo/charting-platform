@@ -26157,12 +26157,43 @@ async def test_alerian_public_proxy_parses_identity_date_and_cash_rows(monkeypat
     assert result.rows[0].weight == Decimal("0.0829")
     assert result.rows[0].market_value == Decimal("43070003.88")
     assert result.rows[0].extra_data["industry"] == "Oil Gas & Consumable Fuels"
+    assert result.rows[0].source_row_id == "ENFR:2026-08-13:1:29273V100"
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
+    assert result.rows[1].source_row_id == "ENFR:2026-08-13:2:Cash Equivalent"
     assert result.legal_metadata["composition_date"] == "2026-08-13"
+    assert result.legal_metadata["as_of_date"] == "2026-08-13"
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == "alerian_native_issuer_json"
     assert result.legal_metadata["route_resolution"] == (
         "alps_public_hubspot_proxy_marketing_api_full_holdings"
     )
+
+
+@pytest.mark.asyncio
+async def test_alerian_public_proxy_rejects_undated_rows(monkeypatch):
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "fundsymbol": "ENFR",
+                        "holdingsymbol": "ET",
+                        "name": "Energy Transfer LP",
+                        "asofdate": None,
+                    }
+                ]
+            ),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish one composition date"):
+        await adapter.fetch_latest(symbol="ENFR")
 
 
 @pytest.mark.asyncio

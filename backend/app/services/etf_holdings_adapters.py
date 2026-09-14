@@ -64848,6 +64848,7 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
         rows: list[CanonicalHoldingRow] = []
         composition_dates: set[date] = set()
+        has_undated_row = False
         for index, item in enumerate(payload):
             if not isinstance(item, dict):
                 raise ValueError(
@@ -64861,6 +64862,8 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
             as_of_date = self._parse_as_of_date(item.get("asofdate"))
             if as_of_date is not None:
                 composition_dates.add(as_of_date)
+            else:
+                has_undated_row = True
             raw_symbol = _clean(item.get("holdingsymbol") or item.get("identifiertodisplay"))
             name = _clean(item.get("name"))
             holding_type_text = (_clean(item.get("holdingtype")) or "").upper()
@@ -64894,11 +64897,22 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
-        if len(composition_dates) > 1:
+        if has_undated_row or len(composition_dates) != 1:
             raise ValueError(
-                f"ALPS holdings returned inconsistent as-of dates for {normalized_symbol}."
+                f"ALPS holdings did not publish one composition date for {normalized_symbol}."
             )
-        composition_date = next(iter(composition_dates), None)
+        composition_date = next(iter(composition_dates))
+        date_text = composition_date.isoformat()
+        rows = [
+            replace(
+                row,
+                source_row_id=(
+                    f"{normalized_symbol}:{date_text}:{index}:"
+                    f"{row.cusip or row.isin or row.symbol or row.name or 'holding'}"
+                ),
+            )
+            for index, row in enumerate(rows, start=1)
+        ]
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -64916,14 +64930,10 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "api_route": self.API_TEMPLATE.format(symbol_upper=normalized_symbol),
                 "refresh_frequency": "daily_issuer_api",
                 "freshness_semantics": "issuer_disclosed_holdings_date",
-                **(
-                    {
-                        "composition_date": composition_date.isoformat(),
-                        "as_of_date": composition_date.isoformat(),
-                    }
-                    if composition_date
-                    else {}
-                ),
+                "composition_date": date_text,
+                "as_of_date": date_text,
+                "row_count": len(rows),
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )

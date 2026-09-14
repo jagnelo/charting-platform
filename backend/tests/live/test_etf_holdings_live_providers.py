@@ -2188,6 +2188,26 @@ async def test_live_acsi_dated_daily_csv_route():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("alerian")
+async def test_live_alerian_dated_public_proxy_route():
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ENFR")
+
+    _assert_live_holdings_result(result, adapter_key="alerian", min_rows=20)
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == ("alps_public_hubspot_proxy_marketing_api_full_holdings")
+    assert metadata["composition_date"]
+    assert metadata["as_of_date"] == metadata["composition_date"]
+    assert metadata["row_count"] == len(result.rows)
+    assert metadata["completeness_status"] == "complete"
+    assert metadata["snapshot_provenance"] == "alerian_native_issuer_json"
+    assert result.rows[0].source_row_id.startswith("ENFR:")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("oakmark")
 async def test_live_oakmark_symbol_scoped_csv_route():
     adapter = get_holdings_adapter("oakmark")
