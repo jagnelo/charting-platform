@@ -15943,6 +15943,10 @@ class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Indexperts holdings feed did not expose complete current rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Indexperts holdings feed did not publish a composition date for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,

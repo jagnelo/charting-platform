@@ -3121,6 +3121,37 @@ async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_ho
 
 
 @pytest.mark.asyncio
+async def test_indexperts_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("indexperts")
+    assert adapter is not None
+    product_url = "https://etfpages.com/?t=QIDX"
+    holdings_url = "https://www.ncfunds.com/etf/load.php?f=449"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<section><h3>Portfolio Holdings</h3></section>",
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(text="{}", content_type="application/json", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_payload",
+        staticmethod(
+            lambda payload, *, symbol: (
+                [CanonicalHoldingRow(symbol="ANET", name="Arista Networks")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="QIDX")
+
+
+@pytest.mark.asyncio
 async def test_fortuna_adapter_rejects_undated_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("fortuna")
     assert adapter is not None
