@@ -2,6 +2,28 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
+- Final backend source checkpoint: `2735f038f` (`test(provider): live-verify
+  Alpaca crypto metadata`). Alpaca metadata translates platform `BTC-USD` to
+  Alpaca's `BTC/USD` asset route, preserves the provider-native listing symbol,
+  and now has a bounded credentialed live BTC-USD probe in the manifest. The
+  focused Alpaca fixture suite passed `46/46`; the authoritative Docker-backed
+  gate passed `2,524/2,524` at `81.74%` combined coverage with 89 warnings in
+  `519.79s`, using isolated testcontainer session
+  `c40296e6-f89a-487c-a060-86fd83c72706`, cleaned without host-wide pruning.
+  No frontend or ETF-provider adapter files changed.
+
+- Final current-head live matrix at `2735f038f` collected 49 manifest cases
+  and passed 43/49. Both Alpaca AAPL and BTC-USD profile reads passed; Alpha
+  Vantage's three calendar/earnings operations returned typed documented
+  free-key capacity responses; Tradier, IBKR, and Ondo remained exact
+  missing-credential preflights. Owner-managed receipt run
+  `d0f738be-3b3b-4523-9649-86aa9b464ae4` recorded 26 provider rows, 98 HTTP
+  requests, 79 operations, 23,237,350 response bytes, and four failed
+  operations (three Alpha Vantage capacity responses and one expected EODHD
+  non-entitlement observation). The runner returned exit code 2 and makes no
+  acceptance or routing-promotion claim; unresolved provider/legal,
+  deployment-secret, reconciliation, and shadow gates remain open.
+
 - Latest backend source checkpoint: `a49c5b9f1` (`feat(provider): add Alpaca
   instrument metadata`). Alpaca's authenticated `/v2/assets/{symbol}` surface
   now maps into the common `InstrumentProfile` contract, retains the provider

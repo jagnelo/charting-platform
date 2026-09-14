@@ -98,14 +98,14 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: ready_for_human_review
 remaining_gaps:
   - >-
-    The current-head lock-protected live matrix at source `a49c5b9f1` collected
-    48 manifest cases and passed 42/48. The new Alpaca authenticated asset
-    metadata probe passed; the three Alpha Vantage IPO-calendar/earnings
-    operations returned typed documented free-key capacity responses, while
-    Tradier, IBKR, and Ondo remained exact missing-credential preflights. The
-    owner-managed redacted receipt under run
-    `b22ca35b-b3ea-4d20-8c0c-eeb77b30cca8` recorded 26 provider rows, 97 HTTP
-    requests, 78 operations, 23,169,232 response bytes, and four failed
+    The final current-head lock-protected live matrix at source `2735f038f`
+    collected 49 manifest cases and passed 43/49, including both the Alpaca
+    AAPL and BTC-USD authenticated asset-profile probes. The three Alpha
+    Vantage IPO-calendar/earnings operations returned typed documented
+    free-key capacity responses, while Tradier, IBKR, and Ondo remained exact
+    missing-credential preflights. The owner-managed redacted receipt under
+    run `d0f738be-3b3b-4523-9649-86aa9b464ae4` recorded 26 provider rows, 98
+    HTTP requests, 79 operations, 23,237,350 response bytes, and four failed
     operations (the expected Alpha Vantage capacity responses plus one
     documented EODHD non-entitlement observation). Routing safety remains
     fail-closed for the explicitly unreviewed quota, entitlement, legal,
@@ -153,6 +153,17 @@ remaining_gaps:
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      Alpaca metadata now normalizes platform crypto symbols such as
+      `BTC-USD` to Alpaca's documented `BTC/USD` asset path while retaining
+      the provider symbol in the listing record. The focused fixture suite
+      passed `46/46`, the bounded live BTC-USD profile probe passed against
+      the supplied paper account, and the final authoritative Docker-backed
+      backend gate passed `2,524/2,524` at `81.74%` combined coverage with 89
+      warnings in `519.79s`, using isolated testcontainer session
+      `c40296e6-f89a-487c-a060-86fd83c72706`, cleaned without host-wide
+      pruning. Source checkpoint `2735f038f` is pushed; no frontend or
+      ETF-provider adapter files changed.
     - >-
       Alpaca now exposes the authenticated trading-API asset profile through
       the common `InstrumentProfile` contract. The adapter preserves the

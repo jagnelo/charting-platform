@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-14 — Final Alpaca crypto metadata live validation
+
+- [x] Normalize Alpaca crypto asset metadata requests from the platform's
+      `BTC-USD` representation to the provider's `BTC/USD` path while keeping
+      provider-native listing symbols and explicit `ALPACA_ASSET_ID` identity.
+      Focused Alpaca fixture coverage passed 46/46; the credentialed BTC-USD
+      live probe passed; the final authoritative Docker-backed backend gate
+      passed 2,524/2,524 at 81.74% coverage with 89 warnings. Source checkpoint
+      `2735f038f` is pushed and no frontend or ETF-provider adapter files
+      changed.
+- [x] Re-run the complete lock-protected matrix at the final head. It
+      collected 49 cases and passed 43/49, with the three documented Alpha
+      Vantage free-key capacity responses and exact Tradier/IBKR/Ondo
+      credential preflights preserved. The owner-only redacted receipt
+      recorded 26 provider rows, 98 HTTP requests, 79 operations, 23,237,350
+      response bytes, and four failed operations; routing/legal/deployment/
+      reconciliation/shadow controls remain fail-closed.
+
 ### 2026-09-14 — Alpaca instrument metadata and current-head live validation
 
 - [x] Add Alpaca's authenticated asset metadata endpoint to the common
