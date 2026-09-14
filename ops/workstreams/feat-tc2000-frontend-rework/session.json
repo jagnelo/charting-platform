@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "37c431d04dce52220e24f1fa262bb873ef94fd5f",
+  "head": "8b4b6129d7d151ff6d2e6442fb7d6019e8ce9158",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T03:52:40.019865+00:00",
-  "last_human_progress_update": "2026-09-14T03:50:42.302198+00:00",
+  "last_human_progress_update": "2026-09-14T04:25:10.436945+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "1704844167ebdc4f9491fb53a13ac53cb319c352630137f0e8320b1fd7161de8",
+  "plan_hash": "2b2c7f5ffe6e6d1d9cfe11d2b748634945f759c0a32d73287e01473e33f611f2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Range ETFs holdings completeness is verified at product tip 827ae2b02; remote push remains intentionally held.",
-    "current_phase": "R1_verified_range_holdings_completeness",
-    "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed mappings, and the six protected visual state-oracle assertions.",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. GraniteShares holdings completeness is verified at product tip 8b4b6129d; remote push remains intentionally held.",
+    "current_phase": "R1_verified_graniteshares_holdings_completeness",
+    "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed mappings, and the six protected visual state-oracle assertions; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T03:50:42.301739+00:00"
+    "updated_at": "2026-09-14T04:25:10.435773+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

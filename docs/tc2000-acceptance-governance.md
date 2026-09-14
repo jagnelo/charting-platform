@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified GraniteShares holdings completeness receipt
+
+Commit `8b4b6129d` requires a published composition date and preserves
+explicit `completeness_status: complete` only for GraniteShares' official NVD
+holdings workbook route. The adapter derives the date from the issuer's
+published workbook filename and verifies non-empty rows; undated workbooks
+fail closed and generic labels remain unchanged.
+
+Focused assertions passed `4/4`; the exact gate passed backend units
+`1569/1569`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-14 — Verified Range ETFs holdings completeness receipt
 
 Commit `827ae2b02` requires a published composition date and preserves

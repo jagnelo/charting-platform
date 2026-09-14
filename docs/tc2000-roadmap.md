@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 — Promote verified GraniteShares holdings completeness
+
+Product commit `8b4b6129d` requires a published composition date for
+GraniteShares' official NVD holdings workbook route. The adapter derives the
+snapshot date from the issuer-published workbook filename, verifies the native
+route and non-empty rows, and now fails closed when an undated workbook is
+returned; explicit `completeness_status: complete` remains scoped to the
+native route and generic current/daily/table labels remain fail-closed.
+
+Focused GraniteShares assertions passed `4/4`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1569/1569`, integration
+`405/405` with `82.04%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified Range ETFs holdings completeness
 
 Product commit `827ae2b02` requires a published composition date for Range
