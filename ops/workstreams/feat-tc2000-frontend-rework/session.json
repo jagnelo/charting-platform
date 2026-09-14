@@ -55,13 +55,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
-    "docs/project-todos.md",
-    "docs/tc2000-acceptance-governance.md",
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -122,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "52771a08e8dce5976283cd1a49241a8f9e50f03a",
+  "head": "61d7dd21b712745a8bd90cf796e3361849b39a51",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-14T20:10:44.928083+00:00",
-  "last_human_progress_update": "2026-09-14T20:10:26.839978+00:00",
+  "last_checkpoint": "2026-09-14T20:39:22.864232+00:00",
+  "last_human_progress_update": "2026-09-14T20:37:49.054824+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "21ed4516a28f321ae46066a1e54d641ee91d239828d570e2bda2ba3980424877",
+  "plan_hash": "f0a5ab2afb2f6168f9ba6c3db5ae2e0a8aa4eadcc523fa8182586b1c0b86077b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -142,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Convergence dated holdings are verified at product tip 52771a08e; exact gate remains blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
-    "current_phase": "R1_verified_convergence_dated_holdings",
+    "current_blocker": "Dhandho dated holdings are verified at product tip 9ada7cb8e; exact gate remains blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
+    "current_phase": "R1_verified_dhandho_dated_holdings",
     "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the cold-navigation Add-tool regression, the undated-backfill guard, and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T20:10:26.838910+00:00"
+    "updated_at": "2026-09-14T20:37:49.054706+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
