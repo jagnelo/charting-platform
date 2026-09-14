@@ -2301,3 +2301,8 @@ changed.
   `tokenized_historical_prices` seed for Dinari and Ondo, matching both
   environment examples. `git diff --check` and `make branch-validate` passed;
   no provider calls or credentials were used.
+
+- The durable plan now distinguishes the current branch checkpoint `d326fb062`
+  from the backend-source checkpoint `78715e5b9de2` used by the latest full
+  gate. `git diff --check` and `make branch-validate` passed; no provider calls
+  or credentials were used.
