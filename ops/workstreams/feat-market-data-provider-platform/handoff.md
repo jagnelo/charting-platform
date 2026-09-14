@@ -2290,3 +2290,9 @@ changed.
   changed. The branch remains `ready_for_human_review`; provider/legal,
   trusted-secret-store, deferred-credential, NMS/OTC reconciliation, and
   separately approved shadow-run gates remain intentionally open.
+
+- Deployment documentation was corrected to match the implemented Dinari and
+  Ondo tokenized historical adapters and all four supported windows (`DAY`,
+  `WEEK`, `MONTH`, and `YEAR`). `git diff --check` and `make branch-validate`
+  passed (`30` workstream records); no provider calls or credentials were
+  used.

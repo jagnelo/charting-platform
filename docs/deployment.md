@@ -49,10 +49,11 @@ Leave `TOKENIZED_HISTORICAL_REFRESH_ENABLED=false` until the provider's
 historical endpoint quota, terms, and redistribution rights are reviewed. When
 approved, set the same `TOKENIZED_HISTORICAL_REFRESH_MAX_ASSETS` and
 `TOKENIZED_HISTORICAL_REFRESH_TIMESPAN` values in both `backend` and `worker`.
-The current adapter exposes this path for Dinari's `DAY`, `WEEK`, and `MONTH`
-aggregates; rows are stored as provider-native raw `24_7` OHLC candles with no
-fabricated volume or adjustment. The worker is scheduled at 07:00 UTC and
-remains fail-closed when the provider operation cost or entitlement is unknown.
+The current adapters expose this path for Dinari and Ondo Global Markets'
+`DAY`, `WEEK`, `MONTH`, and `YEAR` aggregates; rows are stored as
+provider-native raw `24_7` OHLC candles with no fabricated volume or
+adjustment. The worker is scheduled at 07:00 UTC and remains fail-closed when
+the provider operation cost or entitlement is unknown.
 
 Tokenized catalogue discovery is a separate daily job, also disabled by
 default. After reviewing catalogue-provider quotas and terms, set
