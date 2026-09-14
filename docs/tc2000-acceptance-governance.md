@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified Cultivar dated holdings
+
+Product commit `3de6e028b` hardens Cultivar's native fund-page holdings route
+for CVAR. Retained rows now require exactly one parseable `Fund Holdings as of`
+date; undated, invalid, and ambiguous pages fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`cultivar_native_current_fund_page_holdings_table` provenance metadata is
+recorded. The direct public fund page returned 92 rows dated 2026-09-11.
+
+Focused assertions passed 3/3 including undated/invalid/ambiguous-date
+regressions, the opt-in live public-route assertion passed 1/1, and the direct
+probe returned 92 complete dated rows. Ruff, formatting, and diff checks passed.
+The exact Docker-backed branch gate passed backend units 1607/1607, integration
+405/405 at 82.18% combined coverage, frontend Vitest 1067/1067, type-check/
+build, compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six established protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Canary dated holdings
 
 Product commit `ef1ca2eed` hardens Canary's native product-page holdings route

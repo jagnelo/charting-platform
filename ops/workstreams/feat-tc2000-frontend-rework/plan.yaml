@@ -13,17 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest Canary dated holdings seam is verified at branch tip `ef1ca2eed`:
-  Canary's native product-page holdings route for `HBR` now requires exactly
-  one parseable composition date across retained rows, fails closed for
-  undated, invalid, or mixed-date snapshots, date-scopes source IDs, and
-  records complete composition/as-of, row-count, and
-  `canary_native_product_page_current_holdings_table` provenance metadata. The
-  direct public product page returned 2 rows dated 2026-09-14. Focused parser
-  assertions passed 1/1 including undated/invalid/mixed-date regressions; the
-  escalated opt-in live route assertion passed 1/1; the direct public probe
-  returned 2 complete dated rows; Ruff, formatting, and diff checks passed.
-  The exact gate passed backend units 1606/1606, integration 405/405 with
+  Latest Cultivar dated holdings seam is verified at branch tip `3de6e028b`:
+  Cultivar's native fund-page holdings route for `CVAR` now requires exactly
+  one parseable `Fund Holdings as of` date, fails closed for undated, invalid,
+  or ambiguous pages, date-scopes source IDs, and records complete
+  composition/as-of, row-count, and
+  `cultivar_native_current_fund_page_holdings_table` provenance metadata. The
+  direct public fund page returned 92 rows dated 2026-09-11. Focused parser
+  assertions passed 3/3 including undated/invalid/ambiguous-date regressions;
+  the escalated opt-in live route assertion passed 1/1; the direct public probe
+  returned 92 complete dated rows; Ruff, formatting, and diff checks passed.
+  The exact gate passed backend units 1607/1607, integration 405/405 with
   82.18% combined coverage, frontend Vitest 1067/1067, type-check/build,
   compose/deployment contracts, research-runner sandbox/resource probes, and
   functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with
@@ -148,7 +148,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_canary_dated_holdings
+  current_phase: R1_verified_cultivar_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
@@ -156,17 +156,17 @@ progress:
     guard, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
-    Latest Canary dated holdings seam is verified at branch tip `ef1ca2eed`:
-    Canary's native product-page holdings route for `HBR` now requires exactly
-    one parseable composition date across retained rows, fails closed for
-    undated, invalid, or mixed-date snapshots, date-scopes source IDs, and
-    records complete composition/as-of, row-count, and
-    `canary_native_product_page_current_holdings_table` provenance metadata.
-    The direct public product page returned 2 rows dated 2026-09-14. Focused
-    parser assertions passed 1/1 including undated/invalid/mixed-date
+    Latest Cultivar dated holdings seam is verified at branch tip `3de6e028b`:
+    Cultivar's native fund-page holdings route for `CVAR` now requires exactly
+    one parseable `Fund Holdings as of` date, fails closed for undated, invalid,
+    or ambiguous pages, date-scopes source IDs, and records complete
+    composition/as-of, row-count, and
+    `cultivar_native_current_fund_page_holdings_table` provenance metadata.
+    The direct public fund page returned 92 rows dated 2026-09-11. Focused
+    parser assertions passed 3/3 including undated/invalid/ambiguous-date
     regressions; the escalated opt-in live route assertion passed 1/1; the
-    direct public probe returned 2 complete dated rows; Ruff, formatting, and
-    diff checks passed. The exact gate passed backend units 1606/1606,
+    direct public probe returned 92 complete dated rows; Ruff, formatting, and
+    diff checks passed. The exact gate passed backend units 1607/1607,
     integration 405/405 with 82.18% combined coverage, frontend Vitest
     1067/1067, type-check/build, compose/deployment contracts,
     research-runner sandbox/resource probes, and functional E2E 165 passed

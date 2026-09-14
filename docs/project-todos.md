@@ -1,3 +1,25 @@
+## 2026-09-14 - Verified Cultivar dated holdings
+
+- [x] Harden Cultivar's native fund-page holdings route for `CVAR`; require
+      exactly one parseable `Fund Holdings as of` date, fail closed for
+      undated/invalid/ambiguous pages, date-scope row IDs, and record complete
+      native-route provenance/row-count metadata (`3de6e028b`). The direct
+      public fund page published 92 rows dated 2026-09-11.
+- [x] Focused Cultivar parser assertions passed 3/3 including undated, invalid,
+      and ambiguous-date regressions; the opt-in live route assertion passed
+      1/1; the direct public probe returned 92 complete dated rows. Ruff/format/
+      diff checks passed. The exact gate passed backend units 1607/1607,
+      integration 405/405 at 82.18% combined coverage, frontend Vitest
+      1067/1067, type-check/build, compose/deployment contracts,
+      research-runner probes, and functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
+      remain. Docker teardown removed all branch-scoped containers, volumes,
+      network, four images, and testcontainer sessions. No provider/fallback,
+      migration, visual baseline, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Canary dated holdings
 
 - [x] Harden Canary's native product-page holdings route for `HBR`; require
