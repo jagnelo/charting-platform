@@ -20384,15 +20384,24 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
         response.raise_for_status()
-        rows = self._parse_embedded_holdings(response.text, symbol=symbol)
+        rows, composition_date = self._parse_embedded_holdings(response.text, symbol=symbol)
         if not rows:
             raise ValueError(
                 f"Exchange Traded Concepts page did not expose holdings rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Exchange Traded Concepts page did not publish a composition date for {symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            raw_json={
+                "source_format": "nuxt_payload",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(response.url),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata={
@@ -20403,22 +20412,31 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": self.route_resolution,
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_fund_page_payload",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )
 
     @classmethod
-    def _parse_embedded_holdings(cls, raw_html: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+    def _parse_embedded_holdings(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
         component_id = f"bluemonte-{symbol.strip().lower()}-HoldingsComponent-1"
-        hydrated_rows, _ = _extract_nuxt_hydration_holdings(
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
             raw_html,
             component_id=component_id,
         )
         if hydrated_rows:
-            return _canonical_nuxt_holdings_rows(
+            rows = _canonical_nuxt_holdings_rows(
                 hydrated_rows,
                 source_row_prefix=cls.source_row_prefix,
             )
+            return cls._date_rows(rows, composition_date), composition_date
 
         component_match = re.search(
             rf'(?P<var>[A-Za-z_$][\w$]*)\.componentId="{re.escape(component_id)}";'
@@ -20427,16 +20445,23 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             flags=re.DOTALL,
         )
         if component_match is None:
-            return []
+            return [], None
 
         variable_name = component_match.group("var")
+        component_body = component_match.group("body")
+        date_match = re.search(
+            r"(?:holdings\s+)?as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
+            component_body,
+            flags=re.IGNORECASE,
+        )
+        composition_date = _parse_issuer_date(date_match.group(1)) if date_match else None
         data_match = re.search(
             rf"{re.escape(variable_name)}\.finData=\[(?P<rows>.*?)\];",
-            component_match.group("body"),
+            component_body,
             flags=re.DOTALL,
         )
         if data_match is None:
-            return []
+            return [], composition_date
 
         rows: list[CanonicalHoldingRow] = []
         for position, raw_object in enumerate(
@@ -20478,6 +20503,18 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        return cls._date_rows(rows, composition_date), composition_date
+
+    @classmethod
+    def _date_rows(
+        cls,
+        rows: list[CanonicalHoldingRow],
+        composition_date: date | None,
+    ) -> list[CanonicalHoldingRow]:
+        if composition_date is None:
+            return rows
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"{cls.source_row_prefix}-{composition_date.isoformat()}-{index}"
         return rows
 
 

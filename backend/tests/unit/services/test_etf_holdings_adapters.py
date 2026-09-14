@@ -18087,6 +18087,35 @@ async def test_exchange_traded_concepts_adapter_parses_only_requested_bluemonte_
     assert result.legal_metadata["route_resolution"] == (
         "exchange_traded_concepts_bluemonte_fund_page_payload"
     )
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.legal_metadata["as_of_date"] == "2026-07-09"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.rows[0].source_row_id == "exchange-traded-concepts-2026-07-09-1"
+
+
+@pytest.mark.asyncio
+async def test_exchange_traded_concepts_adapter_rejects_undated_bluemonte_payload(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("exchange_traded_concepts")
+    assert adapter is not None
+    raw_html = """
+    <script>
+    ql.componentId="bluemonte-bluc-HoldingsComponent-1";
+    ql.finData=[{figi:"BBG000KMT5K3",ticker:"SPYM",quantity:1,description:"SPDR ETF",market_value:"1",percent_of_nav:"100%"}];ql.btnLink="";
+    </script>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://bluemontefunds.com/bluc",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="BLUC")
 
 
 @pytest.mark.asyncio
