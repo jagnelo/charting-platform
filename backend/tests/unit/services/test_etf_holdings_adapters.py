@@ -3011,6 +3011,39 @@ async def test_cygnet_adapter_uses_declared_full_holdings_csv_and_filters_accoun
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].symbol is None
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.rows[0].source_row_id == "ELM:2026-07-15:1:922908769"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["as_of_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
+async def test_cygnet_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("cygnet")
+    assert adapter is not None
+    product_url = "https://www.elmfunds.com/elm-market-navigator-etf"
+    holdings_url = "https://docs.google.com/spreadsheets/export?id=example&exportFormat=csv"
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Elm Market Navigator ETF (ELM)</h1>"
+                '<a href="https://docs.google.com/spreadsheets/export?id=example&amp;exportFormat=csv">'
+                "Download FULL Holdings CSV</a>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings\n"
+                "-,ELM,VTI,922908769,Vanguard Total Stock Market ETF,1,1,1,100%\n"
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="ELM")
 
 
 @pytest.mark.asyncio
