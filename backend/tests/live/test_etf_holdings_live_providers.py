@@ -2189,6 +2189,15 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert metadata["completeness_status"] == "complete"
         assert metadata["snapshot_provenance"] == "optimize_native_fund_scoped_holdings_xls"
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "emles":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "emles_public_fund_page_full_holdings_download"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == "emles_native_fund_scoped_holdings_csv"
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
     if adapter_key == "cultivar":
         metadata = result.legal_metadata or {}
         assert metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"

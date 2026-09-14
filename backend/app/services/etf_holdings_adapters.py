@@ -6457,8 +6457,11 @@ class AkreHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
                 "route_resolution": "issuer_filepoint_daily_holdings_csv",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "emles_native_fund_scoped_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -26351,7 +26354,12 @@ class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
-            raw_json={"source_format": "csv", "row_count": len(rows)},
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(holdings_response.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -26361,8 +26369,11 @@ class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "csv",
                 "route_resolution": "emles_public_fund_page_full_holdings_download",
                 "product_page_url": str(page_response.url),
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "emles_native_fund_scoped_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -26380,27 +26391,26 @@ class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(f"EMLes product page identity did not match requested ETF {symbol}.")
 
     @staticmethod
-    def _parse_holdings_csv(
-        raw_csv: str, *, symbol: str
-    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = 0
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
-            row_date = _clean(raw.get("as_of_date") or raw.get("run_date"))
-            if row_date:
-                try:
-                    parsed_date = date.fromisoformat(row_date)
-                    if composition_date is None or parsed_date > composition_date:
-                        composition_date = parsed_date
-                except ValueError:
-                    pass
             name = _clean(raw.get("name"))
             ticker = _clean(raw.get("ticker"))
             identifier = _clean(raw.get("identifier"))
-            haystack = " ".join(part.lower() for part in (ticker, name) if part)
-            is_cash = "cash" in haystack or "cash equivalent" in haystack
             if not any([ticker, name, identifier, raw.get("market_value")]):
                 continue
+            row_date = _clean(raw.get("as_of_date") or raw.get("run_date"))
+            if row_date:
+                try:
+                    composition_dates.add(date.fromisoformat(row_date))
+                except ValueError:
+                    invalid_or_missing_dates += 1
+            else:
+                invalid_or_missing_dates += 1
+            haystack = " ".join(part.lower() for part in (ticker, name) if part)
+            is_cash = "cash" in haystack or "cash equivalent" in haystack
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash else (ticker.upper() if ticker else None),
@@ -26412,11 +26422,21 @@ class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if is_cash else None,
                     holding_type="cash" if is_cash else "equity",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    source_row_id=f"{symbol}:{row_date}:{index}",
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "EMLes holdings CSV must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        for row in rows:
+            row.source_row_id = row.source_row_id.replace(
+                f":{row.source_row_id.split(':')[1]}:", f":{composition_date.isoformat()}:"
             )
         return rows, composition_date
 

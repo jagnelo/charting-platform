@@ -20047,9 +20047,38 @@ async def test_emles_adapter_fetches_identity_validated_full_holdings_csv(monkey
     assert equity_row.cusip == "67066G104"
     assert equity_row.weight == Decimal("0.45")
     assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["as_of_date"] == "2026-07-13"
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == ("emles_native_fund_scoped_holdings_csv")
+    assert cash_row.source_row_id == "EOPS:2026-07-13:1"
+    assert equity_row.source_row_id == "EOPS:2026-07-13:2"
+    assert result.raw_json["composition_date"] == "2026-07-13"
+    assert result.raw_json["row_count"] == 2
     assert (
         result.legal_metadata["route_resolution"] == "emles_public_fund_page_full_holdings_download"
     )
+
+
+def test_emles_holdings_require_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("emles")
+    assert adapter is not None
+    csv_prefix = "run_date,as_of_date,name,ticker,identifier,shares_held,market_value,weight\n"
+    valid = csv_prefix + "2026-07-13,2026-07-13,NVIDIA Corp,NVDA,67066G104,25,4500,45"
+    invalid = csv_prefix + "2026-07-13,not-a-date,NVIDIA Corp,NVDA,67066G104,25,4500,45"
+    mixed = (
+        csv_prefix
+        + "2026-07-13,2026-07-13,NVIDIA Corp,NVDA,67066G104,25,4500,45\n"
+        + "2026-07-14,2026-07-14,Apple Inc,AAPL,037833100,10,2000,20"
+    )
+    undated = csv_prefix + ",,NVIDIA Corp,NVDA,67066G104,25,4500,45"
+    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="EOPS")
+    assert len(rows) == 1
+    assert snapshot_date == date(2026, 7, 13)
+    assert rows[0].source_row_id == "EOPS:2026-07-13:1"
+    for payload in (invalid, mixed, undated):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_holdings_csv(payload, symbol="EOPS")
 
 
 @pytest.mark.asyncio
