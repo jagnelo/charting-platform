@@ -24131,6 +24131,31 @@ async def test_spear_adapter_parses_fixed_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "spear"
     assert result.legal_metadata["route_resolution"] == "issuer_fixed_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-29"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 2
+    assert result.raw_json["as_of_date"] == "2026-06-29"
+    assert result.rows[0].source_row_id == "SPRX:2026-06-29:1:04626A103"
+
+
+@pytest.mark.asyncio
+async def test_spear_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("spear")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+                    "-,SPRX,ALAB,04626A103,Astera Labs Inc,1,1,1,1.00%,100",
+                ]
+            ),
+            url=adapter.holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="SPRX")
 
 
 @pytest.mark.asyncio
