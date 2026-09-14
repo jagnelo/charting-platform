@@ -1,5 +1,28 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-14 - Verified ACSI dated holdings
+
+Product commit `b067dc884` promotes ACSI Funds' official daily holdings CSV to
+an issuer-native ACSI route. The adapter requires non-empty rows with exactly
+one parseable composition date, fails closed for undated or mixed-date exports,
+date-scopes source IDs, and records complete native-route composition/as-of,
+row-count, and `issuer_native_acsi_daily_holdings_csv` provenance metadata. The
+reviewed live CSV published 33 rows dated 2026-09-14. Focused ACSI assertions
+passed 2/2 including the undated-row regression; the dedicated opt-in live
+provider assertion passed 1/1; the direct public CSV probe returned 33 complete
+rows dated 2026-09-14; and Ruff, formatting, and diff checks passed.
+
+The exact Docker-backed branch gate passed backend units 1593/1593,
+integration 405/405 at 82.13% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104 with exactly the six established protected watchlist-column-editor/
+workspace-floating diffs. Docker teardown removed all containers, volumes,
+network, four generated images, and testcontainer sessions. No provider/
+fallback, migration, visual baseline, threshold, mask, skip, or acceptance
+policy changed. Continue family-wide R1 population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 ## 2026-09-14 - Verified Oakmark dated holdings
