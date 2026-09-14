@@ -24229,6 +24229,31 @@ async def test_timothy_plan_adapter_parses_holdings_page_table(monkeypatch):
     assert result.legal_metadata["source_provider"] == "timothy_plan"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_page_table"
     assert result.legal_metadata["composition_date"] == "2026-06-29"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 2
+    assert result.raw_json["as_of_date"] == "2026-06-29"
+    assert result.rows[0].source_row_id == "TPHD:2026-06-29:1:US0010551028"
+
+
+@pytest.mark.asyncio
+async def test_timothy_plan_adapter_rejects_undated_holdings_page(monkeypatch):
+    adapter = get_holdings_adapter("timothy_plan")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <table>
+              <tr><td>Name</td><td>Symbol</td><td>ISIN</td><td>Shares Held</td><td>Market Value %</td><td>Market Value $</td></tr>
+              <tr><td>AFLAC INC</td><td>AFL U</td><td>US0010551028</td><td>1</td><td>1.00%</td><td>$100</td></tr>
+            </table>
+            """,
+            url="https://timothyplan.com/our-etfs/summary-etf-hds-holdings.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="TPHD")
 
 
 @pytest.mark.asyncio

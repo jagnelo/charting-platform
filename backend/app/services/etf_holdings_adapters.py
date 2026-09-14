@@ -28377,11 +28377,26 @@ class TimothyPlanHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"Timothy Plan holdings page did not expose rows for {symbol}.")
         as_of_date = self._extract_as_of_date(response.text)
+        if as_of_date is None:
+            raise ValueError(
+                f"Timothy Plan holdings page did not expose a dated snapshot for {symbol}."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{as_of_date.isoformat()}:{index}:"
+                f"{row.isin or row.symbol or row.name or 'holding'}"
+            )
 
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json=None,
+            raw_json={
+                "source_format": "issuer_symbol_holdings_page_table",
+                "product_page_url": holdings_url,
+                "row_count": len(rows),
+                "composition_date": as_of_date.isoformat(),
+                "as_of_date": as_of_date.isoformat(),
+            },
             source_url=str(getattr(response, "url", holdings_url)),
             source_identifier=issuer_product_id or normalized_symbol,
             legal_metadata={
@@ -28393,6 +28408,7 @@ class TimothyPlanHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "composition_date": as_of_date.isoformat() if as_of_date else None,
                 "as_of_date": as_of_date.isoformat() if as_of_date else None,
                 "terms_note": self.config.terms_note,
+                "completeness_status": "complete",
             },
         )
 
