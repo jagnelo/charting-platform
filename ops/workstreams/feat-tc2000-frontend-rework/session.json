@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7dab581d80230f57e428dd3979b7e9ed38a9fb8e",
+  "head": "ce2353738ee4a889ae80d5d229da2560165fed59",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T07:45:10.964585+00:00",
-  "last_human_progress_update": "2026-09-14T07:44:10.776458+00:00",
+  "last_human_progress_update": "2026-09-14T08:34:53.359571+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "a4751c412726d63644aa8dfe503e21d382812a7a959e728625f9a16f67c90d06",
+  "plan_hash": "fd3e74ddd7d753c47f19db2cf1b3aae51746a3f6df36a0a9816f1d9f8e6259c5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. Sterling Capital holdings completeness is verified at branch tip f8e07190; continue the next bounded R1 canonical provider/history seam.",
-    "current_phase": "R1_verified_sterling_capital_holdings_completeness",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. The first Cygnet gate had one transient F8u-boolean header-visibility failure; isolated reproduction passed 1/1 without code changes. The rerun is green through all non-visual/functional stages. Remote push remains intentionally held. Cygnet holdings completeness is verified at branch tip ce2353738; continue the next bounded R1 canonical provider/history seam.",
+    "current_phase": "R1_verified_cygnet_holdings_completeness",
     "next_action": "Inspect and implement the next bounded R1 canonical provider/history completeness seam, with focused deterministic coverage and the exact branch-scoped gate at the next coherent tip; preserve fail-closed evidence and unchanged visual/provider policy.",
     "total": 10,
-    "updated_at": "2026-09-14T07:44:10.776342+00:00"
+    "updated_at": "2026-09-14T08:34:53.359458+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

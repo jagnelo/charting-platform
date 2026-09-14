@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Cygnet holdings completeness
+
+- [x] Require and record Cygnet Capital ELM's published composition date for
+      the issuer-declared full holdings CSV; verify account-scoped non-empty
+      rows, fail closed for undated snapshots, mark the native route complete,
+      and date-scope row IDs.
+- [x] Product commit `ce2353738`; focused assertions passed `3/3`, Ruff/
+      format/diff checks passed. The first exact gate had one transient
+      F8u-boolean header-visibility failure; isolated reproduction passed
+      `1/1` in 5.1s without code changes. The rerun exact gate passed backend
+      units `1580/1580`, integration `405/405` with `82.07%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain. Docker resources were cleaned with no retained containers,
+      volumes, networks, or testcontainer sessions. No generic provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified Sterling Capital holdings completeness
 
 - [x] Require and record Sterling Capital's published composition date for the

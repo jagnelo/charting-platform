@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 — Promote verified Cygnet holdings completeness
+
+Product commit `ce2353738` requires and records the published composition date
+for Cygnet Capital's ELM issuer-declared full holdings CSV. The adapter
+verifies non-empty account-scoped rows, fails closed for undated snapshots,
+records composition/as-of metadata, scopes `completeness_status: complete` to
+the native route, and date-scopes row IDs.
+
+Focused Cygnet assertions passed `3/3`; Ruff/format/diff checks passed. The
+first exact gate had one transient F8u-boolean header-visibility failure; the
+isolated reproduction passed `1/1` in 5.1s without code changes. The rerun
+exact branch-scoped gate passed backend units `1580/1580`, integration
+`405/405` with `82.07%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified Sterling Capital holdings completeness
 
 Product commit `f8e071903` requires and records the published composition date
