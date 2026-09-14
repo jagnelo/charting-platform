@@ -24338,10 +24338,25 @@ class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"LionShares holdings CSV did not expose rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"LionShares holdings CSV did not expose a dated snapshot for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.symbol or row.name or 'holding'}"
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
-            raw_json=None,
+            raw_json={
+                "source_format": "issuer_fund_page_verified_application_declared_holdings_csv",
+                "product_page_url": product_url,
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(holdings_response, "url", holdings_url)),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -24354,6 +24369,7 @@ class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "lionshares_issuer_native_filepoint_holdings_csv",
             },
         )
@@ -24556,10 +24572,25 @@ class TwinOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError(f"Twin Oak holdings CSV did not expose rows for {normalized_symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"Twin Oak holdings CSV did not expose a dated snapshot for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.symbol or row.name or 'holding'}"
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
-            raw_json=None,
+            raw_json={
+                "source_format": "issuer_fund_page_verified_application_declared_holdings_csv",
+                "product_page_url": product_page_url,
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(holdings_response, "url", holdings_url)),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -24572,6 +24603,7 @@ class TwinOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
+                "completeness_status": "complete",
                 "snapshot_provenance": "twin_oak_issuer_native_filepoint_holdings_csv",
             },
         )

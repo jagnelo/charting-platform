@@ -2968,6 +2968,38 @@ async def test_lionshares_adapter_uses_product_declared_csv_and_filters_account(
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].symbol is None
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.rows[0].source_row_id == "TOT:2026-07-15:1:464287150"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
+async def test_lionshares_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("lionshares")
+    assert adapter is not None
+    product_url = "https://lionsharesetf.com/tot"
+    application_url = "https://lionsharesetf.com/assets/js/app.js?version=16"
+    holdings_url = (
+        "https://lionsharesetf.com/assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<div class="fund-page" data-ticker="TOT"></div><script src="/assets/js/app.js?version=16"></script>',
+            url=product_url,
+        ),
+        FakeResponse(
+            text='const holdings = "./assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv";',
+            url=application_url,
+        ),
+        FakeResponse(
+            text="Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n-,TOT,ITOT,464287150,iShares Core S&P Total U.S. Stock Market ETF,1,1,1,100%\n",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="TOT")
 
 
 @pytest.mark.asyncio
@@ -8884,6 +8916,36 @@ async def test_twin_oak_adapter_validates_application_feed_and_filters_fund_rows
         "issuer_fund_page_verified_application_declared_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.rows[0].source_row_id == "TOAK:2026-07-15:1:SPY 08/21/2026 20.01 C"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["as_of_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
+async def test_twin_oak_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("twin_oak")
+    assert adapter is not None
+    filename = "FilepointTwinOak.40O9.O9_ETF_Holdings.csv"
+    product_page_url = "https://twinoaketfs.com/TOAK"
+    holdings_url = f"https://twinoaketfs.com/assets/data/{filename}"
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<div class="fund-page" data-ticker="TOAK"></div>',
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=f'$.ajax({{url:"./assets/data/{filename}"}})',
+            url=adapter.APP_SCRIPT_URL,
+        ),
+        FakeResponse(
+            text="Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n-,TOAK,VOO,922908363,Vanguard S&P 500 ETF,1,1,1,100%\n",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="TOAK")
 
 
 @pytest.mark.asyncio
