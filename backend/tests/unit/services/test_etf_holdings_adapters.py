@@ -15940,6 +15940,7 @@ async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
     assert result.rows[0].market_value == Decimal("34348887")
     assert result.rows[0].country == "United States"
     assert result.rows[0].holding_type == "equity"
+    assert result.rows[0].source_row_id == "SDOG:2026-07-02:1:372460105"
     assert result.rows[1].symbol is None
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].holding_type == "cash"
@@ -15947,6 +15948,8 @@ async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
         "issuer_public_hubspot_proxy_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-02"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 2
 
 
 @pytest.mark.asyncio
@@ -16005,6 +16008,33 @@ async def test_oshares_uses_alps_public_proxy_as_native_route(monkeypatch):
         "issuer_public_hubspot_proxy_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-08-07"
+    assert result.legal_metadata["completeness_status"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_ssc_alps_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("ssc")
+    assert adapter is not None
+
+    payload = [
+        {
+            "fundsymbol": "SDOG",
+            "holdingsymbol": "GPC",
+            "name": "Genuine Parts Co.",
+            "weight": 0.0255,
+            "holdingtype": "Common Stock",
+        }
+    ]
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="SDOG")
 
 
 @pytest.mark.asyncio

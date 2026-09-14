@@ -28727,10 +28727,26 @@ class AlpsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"{self.adapter_key} returned no parseable holdings rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"{self.adapter_key} holdings payload did not publish a composition date for {symbol}."
+            )
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.symbol or row.name or 'holding'}"
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"rows": payload},
+            raw_json={
+                "rows": payload,
+                "source_format": "issuer_public_hubspot_proxy_holdings_json",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(response, "url", source)),
             source_identifier=(issuer_product_id or symbol).strip().upper(),
             legal_metadata={
@@ -28739,8 +28755,10 @@ class AlpsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
                 "route_resolution": "issuer_public_hubspot_proxy_holdings_json",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
+                "snapshot_provenance": "issuer_native_alps_holdings_json",
                 "terms_note": self.config.terms_note,
             },
         )
