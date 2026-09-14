@@ -1,3 +1,24 @@
+### 2026-09-14 - Require dated ALPS/SS&C holdings
+
+- [x] Require a publisher-declared composition date for ALPS/SS&C native
+      holdings JSON; fail closed for undated payloads, date-scope row IDs, and
+      record complete native-route provenance/row-count metadata
+      (f607797cd).
+- [x] Focused ALPS/SS&C and O'Shares assertions passed 3/3, live public
+      probes passed 3/3, and Ruff/format/diff checks passed. The exact gate
+      passed backend units 1588/1588, integration 405/405 at 82.11% combined
+      coverage, frontend Vitest 1067/1067, type-check/build,
+      compose/deployment contracts, expected research-runner probes, and
+      functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker teardown was clean with no retained containers,
+      volumes, networks, testcontainer sessions, or images. No provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
+
 # Project TODO Memory
 
 ### 2026-09-14 - Make history backfill skip undated snapshots

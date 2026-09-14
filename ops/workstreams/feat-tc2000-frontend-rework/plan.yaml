@@ -3826,14 +3826,27 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_history_backfill_undated_guard
+  current_phase: R1_verified_alps_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
-    while preserving explicit completeness evidence, fail-closed holdings
-    mappings, the cold-navigation Add-tool regression, and the six protected
-    visual diffs; rerun focused deterministic coverage and the exact
-    branch-scoped gate at the next coherent tip.
+    while preserving explicit dated completeness evidence, fail-closed holdings
+    mappings, the cold-navigation Add-tool regression, the undated-backfill
+    guard, and the six protected visual diffs; rerun focused deterministic
+    coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest ALPS/SS&C dated holdings seam is verified at branch tip
+    f607797cd: native holdings JSON now requires a publisher-declared
+    composition date, fails closed when absent, date-scopes source row IDs,
+    and records complete native-route composition/as-of, row-count, and
+    provenance metadata; O'Shares inherits the ALPS contract. Focused
+    assertions passed 3/3, live public probes passed 3/3, and Ruff, formatting,
+    and diff checks passed. The exact gate passed backend units 1588/1588,
+    integration 405/405 at 82.11% combined coverage, frontend Vitest 1067/1067,
+    type-check/build, compose/deployment contracts, expected research-runner
+    probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+    98/104 with only the six unchanged protected diffs; Docker teardown is
+    clean. Continue the next bounded R1 family-wide population/history seam;
+    D1/W1/MN floors, continuity, and AC2-AC7/AC10 remain open.
     Latest history-backfill safety seam is verified at branch tip `75a6c7e45`: legacy holdings snapshots without a publisher-declared composition date remain available to audit/readiness paths but are excluded from queue planning and counted explicitly; the task propagates `undated_snapshot_count`. Focused benchmark-family history/task assertions passed 34/34; Ruff, formatting, and diff checks passed. The exact gate passed backend units 1587/1587, integration 405/405 at 82.10% combined coverage, frontend Vitest 1067/1067, functional E2E 165 passed with 107 skipped, and visual E2E 98/104 with only the six unchanged protected diffs. Docker is clean; remote push remains intentionally held. Continue the next bounded R1 canonical provider/history seam and preserve fail-closed evidence.
     Latest Infrastructure Capital dated holdings seam is verified at branch tip `619bd4826`: the adapter requires the official product-page composition date before consuming the native XLS workbook, fails closed for an undated page, records composition/as-of and row-count metadata, marks the native route complete, and date-scopes row IDs. Focused unit assertions passed 2/2 and the reviewed live workbook probe passed 1/1; Ruff, formatting, and diff checks passed. The exact gate passed backend units 1587/1587, integration 405/405 at 82.10% combined coverage, frontend Vitest 1067/1067, functional E2E 165 passed with 107 skipped, and visual E2E 98/104 with only the six unchanged protected diffs. Docker is clean; remote push remains intentionally held. Continue the next bounded R1 canonical provider/history seam and preserve fail-closed evidence.
     Latest Timothy Plan holdings and cold-navigation seam is verified at branch

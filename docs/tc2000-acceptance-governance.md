@@ -1,5 +1,26 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified dated ALPS/SS&C holdings
+
+Commit f607797cd requires ALPS/SS&C native holdings JSON to publish a
+composition date before acceptance. Undated payloads fail closed; accepted
+rows receive date-scoped IDs and complete native-route composition/as-of,
+row-count, and provenance metadata. The O'Shares route uses the same ALPS
+contract.
+
+Focused ALPS/SS&C and O'Shares assertions passed 3/3, including the undated
+regression; live public probes passed 3/3; Ruff, formatting, and diff checks
+passed. The exact Docker-backed branch gate passed backend units 1588/1588,
+integration 405/405 at 82.11% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104; the same six protected baselines remain the only failures. Docker
+teardown was clean with no retained containers, volumes, networks,
+testcontainer sessions, or images. No provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Verified Infrastructure Capital dated holdings
 
 Commit `619bd4826` requires and records Infrastructure Capital's publisher-declared composition date from the official product page before consuming its native XLS holdings workbook. The adapter verifies non-empty rows, fails closed for an undated product page, records composition/as-of and row-count metadata, marks the native route complete, and date-scopes row IDs.

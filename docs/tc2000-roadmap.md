@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Require dated ALPS/SS&C holdings
+
+Product commit f607797cd requires ALPS/SS&C's native holdings JSON routes to
+publish a composition date before they are accepted. Undated payloads now fail
+closed; accepted rows receive date-scoped source IDs and complete native-route
+metadata, including composition/as-of dates, row count, and provenance. The
+O'Shares route inherits the same ALPS contract.
+
+Focused ALPS/SS&C and O'Shares assertions passed 3/3, including the undated
+payload regression; the reviewed live public probes passed 3/3. Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker-backed gate
+passed backend units 1588/1588, integration 405/405 with 82.11% combined
+coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+contracts, expected research-runner probes, and functional E2E 165 passed with
+107 skipped. Visual E2E passed 98/104; the same six protected
+watchlist-column-editor/workspace-floating diffs remain. Docker teardown was
+clean with no retained containers, volumes, networks, testcontainer sessions,
+or images. No provider/fallback, migration, visual baseline, threshold, mask,
+skip, or acceptance policy changed. Family-wide R1 population/history,
+D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10 remain open.
+
 ## 2026-09-14 - Make history backfill skip undated snapshots
 
 Product commit `75a6c7e45` makes benchmark-family snapshot-history backfill fail closed for legacy holdings snapshots without a publisher-declared composition date. Such rows remain available to audit/readiness paths, but are excluded from queue planning and counted as `undated_snapshot_count`; the task response carries that evidence forward so history bounds cannot be fabricated or crash the worker.
