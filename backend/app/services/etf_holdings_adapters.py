@@ -25866,10 +25866,14 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"AltShares portfolio report contained no parseable positions for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"AltShares portfolio report did not expose a dated snapshot for {normalized_symbol}."
+            )
+        composition_date_text = composition_date.isoformat()
         for index, row in enumerate(rows, start=1):
             row.source_row_id = (
-                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'unknown'}:"
-                f"{index}:{row.name or 'holding'}"
+                f"{normalized_symbol}:{composition_date_text}:{index}:{row.name or 'holding'}"
             )
             row.extra_data = {
                 **row.extra_data,
@@ -25878,7 +25882,13 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text="\n".join(row.name or "" for row in rows),
-            raw_json={"source_format": "pdf", "fund_name": fund_name, "row_count": len(rows)},
+            raw_json={
+                "source_format": "pdf",
+                "fund_name": fund_name,
+                "row_count": len(rows),
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+            },
             source_url=str(report.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -25888,10 +25898,14 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "pdf",
                 "route_resolution": "altshares_periodic_complete_portfolio_report",
                 "product_page_url": str(product_page.url),
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
                 "refresh_frequency": "periodic_issuer_report",
                 "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_dated_complete_holdings",
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "water_island_native_periodic_complete_portfolio_report_pdf",
             },
         )
 
@@ -25929,7 +25943,13 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
         net_assets = _decimal(net_assets_matches[0]) if net_assets_matches else None
         rows: list[CanonicalHoldingRow] = []
         is_short_section = False
-        for raw_line in text.splitlines():
+        holdings_text = re.split(
+            r"\b(?:EQUITY SWAP CONTRACTS|OUTSTANDING FORWARD FOREIGN CURRENCY EXCHANGE CONTRACTS|PORTFOLIO FOOTNOTES)\b",
+            text,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0]
+        for raw_line in holdings_text.splitlines():
             line = raw_line.strip()
             if not line:
                 continue
@@ -25961,6 +25981,10 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         extra_data={"position_side": "short" if is_short else "long"},
                     )
                 )
+        if not rows or composition_date is None:
+            raise ValueError(
+                "AltShares portfolio report did not publish a dated non-empty snapshot."
+            )
         return rows, composition_date
 
 

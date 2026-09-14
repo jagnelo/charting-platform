@@ -2166,6 +2166,17 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert metadata["completeness_status"] == "complete"
         assert metadata["snapshot_provenance"] == "dhandho_native_complete_holdings_pdf"
         assert result.rows[0].source_row_id.startswith("WAGN:")
+    if adapter_key in {"water_island", "altshares"}:
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "altshares_periodic_complete_portfolio_report"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == (
+            "water_island_native_periodic_complete_portfolio_report_pdf"
+        )
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
 
 
 @pytest.mark.asyncio

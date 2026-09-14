@@ -228,6 +228,8 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
         NET ASSETS - 100.00%          $ 103,389,496
         SCHEDULE OF SECURITIES SOLD SHORT
         Allegiant Travel Co.   (11,873) $ (1,212,827)
+        EQUITY SWAP CONTRACTS
+        USD   3,612,346 CAD   4,894,950 Morgan Stanley & Co.  03/16/2026   21,684
         """,
         fund_name="AltShares Merger Arbitrage ETF",
     )
@@ -242,6 +244,15 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
     assert rows[1].row_type == "cash"
     assert rows[2].shares == Decimal("-11873")
     assert rows[2].extra_data["position_side"] == "short"
+
+    with pytest.raises(ValueError, match="dated non-empty snapshot"):
+        adapter._parse_holdings_text(
+            """
+            AltShares Merger Arbitrage ETF Portfolio of Investments (unaudited)
+            COMMON STOCKS - 98.07% Advertising - 1.01% Clear Channel Outdoor Holdings, Inc.   434,198  $ 1,042,075
+            """,
+            fund_name="AltShares Merger Arbitrage ETF",
+        )
 
 
 def test_sofi_parser_reads_complete_quarterly_schedule_and_discloses_archive_semantics():
