@@ -2306,3 +2306,11 @@ changed.
   from the backend-source checkpoint `78715e5b9de2` used by the latest full
   gate. `git diff --check` and `make branch-validate` passed; no provider calls
   or credentials were used.
+
+- A configuration-parity guard now asserts README, root environment, and
+  backend environment provider-chain examples match, including the dedicated
+  Dinari/Ondo `tokenized_historical_prices` seed. Focused coverage passed
+  `20/20`; the authoritative Docker-backed backend gate passed `2,489/2,489`
+  at `81.72%` combined coverage with 89 warnings in `494.95s`, using isolated
+  session `c96a4b01-3fbc-495b-a704-954c6207c66b`. No frontend or ETF-provider
+  adapter files changed.
