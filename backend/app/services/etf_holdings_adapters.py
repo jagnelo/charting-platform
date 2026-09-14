@@ -24830,6 +24830,11 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Cohen & Steers fund API did not publish exactly one composition date for {normalized_symbol}."
+            )
+        composition_date_text = composition_date.isoformat()
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -24842,8 +24847,11 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
                 "route_resolution": "cohen_steers_public_fund_api",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date_text,
+                "as_of_date": composition_date_text,
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "cohen_steers_native_public_fund_api",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -24917,7 +24925,8 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not isinstance(raw_holdings, list):
             return [], None
         rows: list[CanonicalHoldingRow] = []
-        composition_date = None
+        composition_dates: set[date] = set()
+        undated_rows = False
         for index, raw in enumerate(raw_holdings, start=1):
             if not isinstance(raw, dict):
                 continue
@@ -24925,11 +24934,10 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
             ticker = _clean(raw.get("ticker"))
             security_type = _clean(raw.get("securityType"))
             row_date = _clean(raw.get("asOfDate"))
+            parsed_row_date = None
             if row_date:
                 try:
-                    parsed = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
-                    if composition_date is None or parsed > composition_date:
-                        composition_date = parsed
+                    parsed_row_date = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
                 except ValueError:
                     pass
             haystack = " ".join(part.lower() for part in (ticker, name, security_type) if part)
@@ -24939,6 +24947,10 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             if not any([ticker, name, raw.get("cusip"), raw.get("marketValue")]):
                 continue
+            if parsed_row_date is None:
+                undated_rows = True
+            else:
+                composition_dates.add(parsed_row_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None
@@ -24963,6 +24975,16 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if undated_rows or len(composition_dates) != 1:
+            raise ValueError(
+                f"Cohen & Steers fund API did not publish exactly one composition date for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        composition_date_text = composition_date.isoformat()
+        for row in rows:
+            row.source_row_id = (
+                f"{symbol}:{composition_date_text}:{row.source_row_id.split(':', 1)[1]}"
             )
         return rows, composition_date
 

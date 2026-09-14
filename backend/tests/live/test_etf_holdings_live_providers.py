@@ -3554,9 +3554,15 @@ async def test_live_cohen_steers_public_fund_api():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="CSRE")
     _assert_live_holdings_result(result, adapter_key="cohen_steers", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == "cohen_steers_public_fund_api"
-    assert result.legal_metadata["composition_date"]
-    assert result.legal_metadata["source_format"] == "json"
+    metadata = result.legal_metadata or {}
+    assert metadata["route_resolution"] == "cohen_steers_public_fund_api"
+    assert metadata["composition_date"]
+    assert metadata["as_of_date"] == metadata["composition_date"]
+    assert metadata["row_count"] == len(result.rows)
+    assert metadata["completeness_status"] == "complete"
+    assert metadata["snapshot_provenance"] == "cohen_steers_native_public_fund_api"
+    assert metadata["source_format"] == "json"
+    assert result.rows[0].source_row_id.startswith("CSRE:")
 
 
 @pytest.mark.asyncio

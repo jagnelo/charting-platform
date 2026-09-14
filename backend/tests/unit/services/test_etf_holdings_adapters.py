@@ -19226,9 +19226,75 @@ def test_cohen_steers_adapter_parses_public_fund_payload():
     assert rows[0].cusip == "004239109"
     assert rows[0].isin == "US0042391096"
     assert rows[0].weight == Decimal("0.041527")
+    assert rows[0].source_row_id == "CSRE:2026-07-10:1:004239109"
     assert rows[1].symbol is None
     assert rows[1].holding_type == "cash"
+    assert rows[1].source_row_id == "CSRE:2026-07-10:2:CASH"
     assert composition_date == date(2026, 7, 10)
+
+
+@pytest.mark.parametrize("as_of_dates", [[None], ["2026-07-10", "2026-07-11"]])
+def test_cohen_steers_adapter_rejects_missing_or_mixed_holdings_dates(as_of_dates):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    holdings = [
+        {
+            "holdingName": "Acadia Realty Trust",
+            "ticker": f"AKR{index}",
+            "cusip": "004239109",
+            "marketValue": "19594221.25",
+            "asOfDate": as_of_date,
+        }
+        for index, as_of_date in enumerate(as_of_dates, start=1)
+    ]
+
+    with pytest.raises(ValueError, match="exactly one composition date"):
+        adapter._parse_fund_payload(
+            {
+                "meta": {
+                    "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+                    "fullHoldings": holdings,
+                }
+            },
+            symbol="CSRE",
+        )
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_fetch_preserves_dated_source_metadata(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "cusip": "004239109",
+                    "marketValue": "19594221.25",
+                    "asOfDate": "2026-07-10T00:00:00",
+                }
+            ],
+        }
+    }
+
+    def fake_requests_get(url, **kwargs):
+        assert url == adapter.fund_url
+        assert kwargs["params"] == {"action": "load_fund", "id": "15098"}
+        return FakeResponse(text=json.dumps(payload), content_type="application/json")
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    result = await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].source_row_id == "CSRE:2026-07-10:1:004239109"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["as_of_date"] == "2026-07-10"
+    assert result.legal_metadata["row_count"] == 1
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == ("cohen_steers_native_public_fund_api")
 
 
 @pytest.mark.asyncio
