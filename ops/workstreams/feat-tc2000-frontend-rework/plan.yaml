@@ -3826,13 +3826,23 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_spear_holdings_completeness
+  current_phase: R1_verified_timothy_plan_holdings_and_cold_navigation
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
-    mappings, and the six protected visual diffs; rerun focused deterministic
-    coverage and the exact branch-scoped gate at the next coherent tip.
+    mappings, the cold-navigation Add-tool regression, and the six protected
+    visual diffs; rerun focused deterministic coverage and the exact
+    branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest Timothy Plan holdings and cold-navigation seam is verified at branch
+    tip ad97b1aae: product commits 86c4820f1 and ad97b1aae; focused Timothy
+    assertions passed 12/12 and focused F8t-results-open passed 1/1. Corrected
+    exact gate passed backend units 1586/1586, integration 405/405 at 82.10%
+    combined coverage, frontend Vitest 1067/1067, functional E2E 165 passed
+    with 107 skipped, and visual E2E 98/104 with only the six unchanged
+    protected diffs. Docker is clean; remote push remains intentionally held.
+    Continue the next bounded R1 canonical provider/history seam and preserve
+    fail-closed evidence.
     Latest Spear holdings completeness seam is verified at branch tip
     `045478c6e`: focused assertions passed 10/10; full gate passed backend
     units 1585/1585, integration 405/405 at 82.10% combined coverage,

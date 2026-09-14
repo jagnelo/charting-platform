@@ -2,6 +2,15 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 - Verified Timothy Plan holdings and Add-tool cold-navigation fix
+
+Product commit 86c4820f1 requires and records Timothy Plan's published holdings snapshot date for its native HTML holdings table. Product commit ad97b1aae preserves the first Add-tool command when a shell click races the workstation's asynchronous mount on cold /chart navigation.
+
+Focused Timothy Plan assertions passed 12/12; focused Playwright F8t-results-open passed 1/1; Ruff, formatting, diff, type-check, and build checks passed. The corrected exact branch-scoped gate passed backend units 1586/1586, integration 405/405 with 82.10% combined coverage, frontend Vitest 1067/1067, compose/deployment contracts, expected research-runner probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104; only the six unchanged protected watchlist-column-editor/workspace-floating diffs failed. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No provider/fallback, migration, visual baseline, threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed holdings mappings, and the unchanged visual and provider policy.
+
+
 ## 2026-09-14 — Verified Spear holdings completeness
 
 Product commit `045478c6e` requires and records the published composition date

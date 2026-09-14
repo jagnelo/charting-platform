@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-14 - Verify Timothy Plan holdings and cold-navigation tool opens
+
+- [x] Require and record Timothy Plan's published holdings snapshot date for the native HTML holdings table; verify non-empty rows, fail closed for undated snapshots, mark the native route complete, and date-scope row IDs (86c4820f1).
+- [x] Preserve the first Add-tool command when a shell click races the workstation's asynchronous mount on cold /chart navigation (ad97b1aae). Focused Timothy assertions passed 12/12; focused F8t-results-open passed 1/1; the corrected exact gate passed backend units 1586/1586, integration 405/405 at 82.10%, frontend Vitest 1067/1067, and functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs remain. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No provider/fallback, migration, visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+
 ### 2026-09-14 — Promote verified Spear holdings completeness
 
 - [x] Require and record Spear Funds' published composition date for the
