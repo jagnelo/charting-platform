@@ -2388,3 +2388,8 @@ changed.
   `81.72%` coverage with 89 warnings in `587.32s`, using isolated testcontainer
   session `b11f41de-f9c0-48ce-a25e-13e9f06d097c`, cleaned without host-wide
   pruning. No frontend or ETF-provider adapter files changed.
+
+- The committed annual-timeframe checkpoint `6a47f6ed7` independently reran
+  staging-to-feature migration compatibility successfully: `29` changed
+  migration files, previous-release schema `fe4f5a6b7c8d`, and previous
+  application `/health` HTTP 200. Temporary PostgreSQL resources were cleaned.
