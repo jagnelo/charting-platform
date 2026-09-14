@@ -1121,7 +1121,15 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
 }
 
 async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
-  if (!componentMounted) return
+  // A shell click can arrive in the same render turn as the workstation's
+  // asynchronous onMounted hook. Yield once so the hook can mark the
+  // component live; only abort when the component is genuinely being torn
+  // down. Dropping that first Add-tool command leaves the menu open and makes
+  // the action appear unresponsive on a cold /chart navigation.
+  if (!componentMounted) {
+    await nextTick()
+    if (!componentMounted) return
+  }
   // The dock can already expose a fully usable active tab while the initial
   // workspace promise is still settling (notably after Golden Layout restores
   // a persisted snapshot). Do not strand an Add-tool click behind that promise
