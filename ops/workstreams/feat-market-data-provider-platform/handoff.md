@@ -2377,3 +2377,14 @@ changed.
   provider capacity headers. This confirms bounded transport/schema behavior
   only; it does not promote routing, infer Dinari limits, or close the wider
   provider/legal/deployment/shadow gates.
+
+- Tokenized aggregate persistence now supports the documented `YEAR` window
+  through a real canonical `Timeframe.Y1` value. Calendar-year bucketing, the
+  PostgreSQL `timeframe` enum migration, tokenized history mapping, market-data
+  freshness fallback, and Radar timeframe ranking are covered without making
+  ordinary providers claim annual-native support. Focused coverage passed
+  `33/33`; staging-to-feature migration compatibility passed `29` changed
+  migrations; and the authoritative backend gate passed `2,495/2,495` at
+  `81.72%` coverage with 89 warnings in `587.32s`, using isolated testcontainer
+  session `b11f41de-f9c0-48ce-a25e-13e9f06d097c`, cleaned without host-wide
+  pruning. No frontend or ETF-provider adapter files changed.

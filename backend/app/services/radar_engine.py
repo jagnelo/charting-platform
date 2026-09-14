@@ -793,6 +793,7 @@ def _timeframe_importance(timeframe: Timeframe | str) -> float:
         Timeframe.D1.value: 0.88,
         Timeframe.W1.value: 0.95,
         Timeframe.MN.value: 1.00,
+        Timeframe.Y1.value: 1.00,
     }
     return values.get(timeframe.value if isinstance(timeframe, Timeframe) else str(timeframe), 0.88)
 

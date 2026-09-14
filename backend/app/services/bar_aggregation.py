@@ -12,12 +12,14 @@ from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 
 def _bucket_timestamp(ts: datetime, target: Timeframe) -> datetime:
     value = ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
-    if target in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
+    if target in {Timeframe.D1, Timeframe.W1, Timeframe.MN, Timeframe.Y1}:
         if target == Timeframe.D1:
             return value.replace(hour=0, minute=0, second=0, microsecond=0)
         if target == Timeframe.W1:
             day = value.replace(hour=0, minute=0, second=0, microsecond=0)
             return day - timedelta(days=day.weekday())
+        if target == Timeframe.Y1:
+            return value.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         return value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     seconds = TIMEFRAME_SECONDS[target]
     epoch = int(value.timestamp())

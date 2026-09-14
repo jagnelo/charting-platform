@@ -393,8 +393,17 @@ async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("timespan", "expected_timeframe"),
+    [
+        ("DAY", Timeframe.D1),
+        ("WEEK", Timeframe.W1),
+        ("MONTH", Timeframe.MN),
+        ("YEAR", Timeframe.Y1),
+    ],
+)
 async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
-    db, instrument, monkeypatch
+    db, instrument, monkeypatch, timespan, expected_timeframe
 ):
     await upsert_tokenized_asset(
         AsyncSessionAdapter(db),
@@ -434,7 +443,7 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
         return SimpleNamespace(provider_name="dinari", data_source=source, result=result)
 
     async def fake_attach(_db, _instrument, timeframe, adjusted, execution, *, bars):
-        assert timeframe is Timeframe.D1
+        assert timeframe is expected_timeframe
         assert adjusted is False
         assert execution.data_source is source
         return bars
@@ -442,7 +451,7 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
     async def fake_persist(_db, _instrument, **kwargs):
         assert kwargs["data_source_id"] == 77
         assert kwargs["provider_symbol"] == "dinari-aapl-history"
-        assert kwargs["timeframe"] is Timeframe.D1
+        assert kwargs["timeframe"] is expected_timeframe
         assert kwargs["adjusted"] is False
         persisted.extend(kwargs["bars"])
 
@@ -452,7 +461,7 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
     monkeypatch.setattr(tokenized_assets, "persist_price_history_bars", fake_persist)
 
     result = await refresh_tokenized_historical_prices(
-        AsyncSessionAdapter(db), max_assets=10, timespan="DAY"
+        AsyncSessionAdapter(db), max_assets=10, timespan=timespan
     )
 
     assert result["status"] == "refreshed", result
@@ -461,7 +470,7 @@ async def test_refresh_tokenized_historical_prices_normalizes_raw_247_bars(
     assert result["failed"] == 0
     assert result["history"][0]["provider_asset_id"] == "dinari-aapl-history"
     assert len(persisted) == 1
-    assert persisted[0].timeframe is Timeframe.D1
+    assert persisted[0].timeframe is expected_timeframe
     assert persisted[0].session == "24_7"
     assert persisted[0].is_adjusted is False
     assert persisted[0].volume is None
@@ -590,12 +599,12 @@ async def test_refresh_tokenized_historical_prices_persists_scoped_series_and_ob
 
 
 @pytest.mark.asyncio
-async def test_refresh_tokenized_historical_prices_rejects_unmapped_timespan(db):
+async def test_refresh_tokenized_historical_prices_accepts_year_timespan(db):
     result = await refresh_tokenized_historical_prices(
         AsyncSessionAdapter(db), timespan="YEAR"
     )
 
-    assert result["status"] == "invalid_timespan"
+    assert result["status"] == "no_assets"
     assert result["timespan"] == "YEAR"
 
 

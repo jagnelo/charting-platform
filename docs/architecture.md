@@ -38,7 +38,7 @@ option_chain_snapshot / option_quote_point
 
 ohlcv_bar
   ├── instrument_id  (FK → instrument)
-  ├── timeframe      (enum: M1 M5 M15 M30 H1 H2 H4 H12 D1 W1 MN)
+  ├── timeframe      (enum: M1 M5 M15 M30 H1 H2 H4 H12 D1 W1 MN Y1)
   ├── ts             (timestamp with timezone)
   ├── open/high/low/close/volume
   └── is_adjusted    (unique constraint: instrument+timeframe+ts+is_adjusted)

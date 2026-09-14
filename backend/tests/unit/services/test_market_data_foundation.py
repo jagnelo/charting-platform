@@ -69,3 +69,39 @@ def test_local_rollup_emits_only_observed_buckets():
     assert result[0]["close"] == Decimal("11.5")
     assert result[0]["high"] == Decimal("12")
     assert result[0]["volume"] == Decimal("5")
+
+
+def test_local_rollup_uses_calendar_year_buckets():
+    bars = [
+        SimpleNamespace(
+            ts=datetime(2025, 12, 31, 23, 59, tzinfo=UTC),
+            session="24_7",
+            open=Decimal("10"),
+            high=Decimal("11"),
+            low=Decimal("9"),
+            close=Decimal("10.5"),
+            volume=None,
+            is_adjusted=False,
+            adjustment_basis="raw",
+            adjustment_version="v1",
+        ),
+        SimpleNamespace(
+            ts=datetime(2026, 1, 1, 0, 1, tzinfo=UTC),
+            session="24_7",
+            open=Decimal("10.5"),
+            high=Decimal("12"),
+            low=Decimal("10"),
+            close=Decimal("11.5"),
+            volume=None,
+            is_adjusted=False,
+            adjustment_basis="raw",
+            adjustment_version="v1",
+        ),
+    ]
+
+    result = aggregate_bars(bars, Timeframe.Y1)
+
+    assert [row["ts"] for row in result] == [
+        datetime(2025, 1, 1, tzinfo=UTC),
+        datetime(2026, 1, 1, tzinfo=UTC),
+    ]

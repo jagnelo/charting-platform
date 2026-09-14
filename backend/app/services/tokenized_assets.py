@@ -771,6 +771,7 @@ _TOKENIZED_HISTORY_TIMEFRAMES = {
     "DAY": Timeframe.D1,
     "WEEK": Timeframe.W1,
     "MONTH": Timeframe.MN,
+    "YEAR": Timeframe.Y1,
 }
 
 

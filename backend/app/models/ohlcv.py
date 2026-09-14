@@ -18,6 +18,7 @@ class Timeframe(str, enum.Enum):
       D  = days
       W  = weeks
       MN = months
+      Y  = calendar years
     """
 
     M1 = "M1"  # 1 minute
@@ -31,6 +32,7 @@ class Timeframe(str, enum.Enum):
     D1 = "D1"  # 1 day
     W1 = "W1"  # 1 week
     MN = "MN"  # 1 month
+    Y1 = "Y1"  # 1 calendar year
 
 
 # Timeframe → approximate seconds (used for aggregation logic)
@@ -46,6 +48,9 @@ TIMEFRAME_SECONDS: dict[Timeframe, int] = {
     Timeframe.D1: 86400,
     Timeframe.W1: 604800,
     Timeframe.MN: 2592000,
+    # Approximate seconds are used only for generic lookback/fallback math;
+    # calendar-year bucketing is handled explicitly by bar_aggregation.
+    Timeframe.Y1: 365 * 86400,
 }
 
 

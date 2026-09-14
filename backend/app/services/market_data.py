@@ -1043,6 +1043,7 @@ _TF_STALENESS: dict[Timeframe, timedelta] = {
     Timeframe.D1: timedelta(days=1),
     Timeframe.W1: timedelta(weeks=1),
     Timeframe.MN: timedelta(days=31),
+    Timeframe.Y1: timedelta(days=366),
 }
 
 
