@@ -1,5 +1,30 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-14 - Verified Cohen & Steers dated holdings
+
+Product commit `33f759bac` hardens Cohen & Steers' public WordPress fund API
+route for CSRE. The adapter now requires non-empty native holdings with exactly
+one parseable holding date across every retained row, fails closed for missing,
+invalid, or mixed-date payloads, date-scopes source IDs, and records complete
+composition/as-of, row-count, and `cohen_steers_native_public_fund_api`
+provenance metadata. The direct public issuer API route published 53 rows dated
+2026-09-14.
+
+Focused Cohen & Steers assertions passed 4/4 including missing/mixed-date
+regressions and mocked fetch metadata; the escalated opt-in live route assertion
+passed 1/1; and the direct public issuer probe returned 53 complete rows dated
+2026-09-14. Ruff, formatting, and diff checks passed. The exact branch-scoped
+Docker-backed gate passed backend units 1598/1598, integration 405/405 with
+82.16% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/
+deployment contracts, research-runner sandbox/resource probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with exactly the six
+unchanged protected watchlist-column-editor/workspace-floating diffs. Docker
+teardown removed all branch-scoped containers, volumes, network, four generated
+images, and testcontainer sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue
+family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Calvert dated holdings
 
 Product commit `3c07b4c6` hardens Calvert's official issuer-native daily JSON route
