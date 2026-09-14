@@ -21622,10 +21622,48 @@ async def test_neil_azous_rareview_adapter_parses_database_info_payload(monkeypa
     assert result.rows[1].holding_type == "cash"
     assert result.rows[1].currency == "USD"
     assert result.legal_metadata["composition_date"] == "2026-07-22"
+    assert result.legal_metadata["as_of_date"] == "2026-07-22"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["composition_date"] == "2026-07-22"
+    assert result.rows[0].source_row_id == "rareview-2026-07-22-1"
     assert result.legal_metadata["source_provider"] == "rareview_capital"
     assert result.legal_metadata["route_resolution"] == (
         "rareview_product_page_database_info_payload"
     )
+
+
+@pytest.mark.asyncio
+async def test_neil_azous_rareview_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("neil_azous")
+    assert adapter is not None
+
+    payload = [
+        {
+            "fund_ticker": "RDFI",
+            "fund_description": "Rareview Dynamic Fixed Income ETF",
+            "constituents": json.dumps(
+                [
+                    {
+                        "constituent_ticker": "EDD",
+                        "constituent_description": "MORGAN STANLEY EMERGING MARK",
+                        "constituent_market_value": "5382171.99",
+                    }
+                ]
+            ),
+        }
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f"<script>var databaseInfo = {json.dumps(payload)};</script>",
+            content_type="text/html",
+            url="https://rareviewcapital.com/dynamic-fixed-income-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="RDFI")
 
 
 @pytest.mark.asyncio

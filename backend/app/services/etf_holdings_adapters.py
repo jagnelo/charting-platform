@@ -14630,6 +14630,11 @@ class NeilAzousRareviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError(f"Rareview product page did not expose holdings rows for {symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"Rareview product page did not publish a composition date for {symbol}."
+            )
+        rows = self._date_rows(rows, composition_date)
 
         legal_metadata: dict[str, Any] = {
             "source_access": self.config.source_access,
@@ -14639,10 +14644,11 @@ class NeilAzousRareviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "route_resolution": "rareview_product_page_database_info_payload",
             "source_quality": "issuer_reported_current_holdings",
             "snapshot_provenance": "issuer_native_product_page_payload",
+            "composition_date": composition_date.isoformat(),
+            "as_of_date": composition_date.isoformat(),
+            "completeness_status": "complete",
             "terms_note": self.config.terms_note,
         }
-        if composition_date is not None:
-            legal_metadata["composition_date"] = composition_date.isoformat()
 
         return HoldingsFetchResult(
             rows=rows,
@@ -14650,12 +14656,22 @@ class NeilAzousRareviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raw_json={
                 "source_format": "html_embedded_json",
                 "snapshot": snapshot,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "row_count": len(rows),
             },
             source_url=str(response.url),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata=legal_metadata,
         )
+
+    @staticmethod
+    def _date_rows(
+        rows: list[CanonicalHoldingRow], composition_date: date
+    ) -> list[CanonicalHoldingRow]:
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"rareview-{composition_date.isoformat()}-{index}"
+        return rows
 
     async def _fetch_product_page(
         self, resolved_source_url: str
