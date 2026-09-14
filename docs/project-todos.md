@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Rareview holdings completeness
+
+- [x] Require and record Rareview RDFI's published composition date for the
+      official databaseInfo holdings payload; verify non-empty native rows,
+      fail closed for undated snapshots, mark the native route complete, and
+      date-scope row IDs.
+- [x] Product commit `d227b50ba`; focused assertions passed `2/2`, Ruff/
+      format/diff checks passed, and the exact gate passed backend units
+      `1578/1578`, integration `405/405` with `82.07%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain. Docker resources were cleaned with no retained containers,
+      volumes, networks, or testcontainer sessions. No generic provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified Miller Value holdings completeness
 
 - [x] Require and record Miller Value MVPA/MVPL's published composition date
