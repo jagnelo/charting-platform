@@ -2335,3 +2335,9 @@ changed.
   at `81.72%` combined coverage with 89 warnings in `495.11s`, using isolated
   session `fbcfc12b-98b5-438d-80b2-3034b0ac3ec1`. No frontend or ETF-provider
   adapter files changed.
+
+- README provider configuration guidance now documents the explicit
+  `__CODE_DEFAULT__` sentinel for omitted policy maps and the separate meaning
+  of an explicit `{}` empty override, matching the root and backend environment
+  examples. Provider secret-wiring coverage passed `21/21`; Ruff, diff checks,
+  and workstream validation passed. No provider call or credential was used.
