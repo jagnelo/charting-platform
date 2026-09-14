@@ -55,7 +55,13 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -116,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b8ebd058da705a71f55433e774771abe8c0f60dc",
+  "head": "851d1f2af5d28efc6aced29060936609a41360d2",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T14:15:46.979059+00:00",
-  "last_human_progress_update": "2026-09-14T14:14:56.899718+00:00",
+  "last_human_progress_update": "2026-09-14T14:50:31.680233+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "8ced90118f0d8b5f953f7b72890bd9b7d6fe902853b42a1d049e7f51e4a25b6b",
+  "plan_hash": "1a912bde8407b72e0b0c7c0b4c9dca29fc3b31a49268217f81587e2099cde14c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Latest Aptus dated holdings seam is verified at branch tip c481193f4: issuer-native WordPress holdings now require a publisher-declared composition date, fail closed when absent, date-scope source row IDs, and record complete native-route composition/as-of, row-count, and provenance metadata. Focused assertions passed 2/2 including the undated-page regression; the opt-in live provider assertion passed 1/1 and the direct live adapter probe returned 33 complete DRSK rows dated 2026-09-11. The exact gate passed backend units 1589/1589, integration 405/405 at 82.12% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with only the six unchanged protected diffs; Docker teardown removed all branch-scoped containers, volumes, network, four images, and testcontainer sessions. Continue the next bounded R1 family-wide population/history seam; D1/W1/MN floors, continuity, and AC2-AC7/AC10 remain open.",
-    "current_phase": "R1_verified_aptus_dated_holdings",
-    "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the cold-navigation Add-tool regression, the undated-backfill guard, and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
+    "current_blocker": "AllianceBernstein dated holdings is verified at product tip 851d1f2af; the exact gate is blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
+    "current_phase": "R1_verified_alliancebernstein_dated_holdings",
+    "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the undated-backfill guard, and the six protected visual state-oracle assertions; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T14:14:56.898943+00:00"
+    "updated_at": "2026-09-14T14:50:31.680101+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
