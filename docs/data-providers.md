@@ -1068,7 +1068,8 @@ provider's authoritative `total` metadata to be an actual integer; boolean,
 numeric-string, fractional, negative, or otherwise malformed totals fail the
 run closed instead of being coerced into a false completeness claim.
 
-FINRA's asynchronous Query API result payloads are documented as unbounded.
+FINRA's asynchronous Query API result payloads are documented as unbounded by
+the [FINRA platform usage limits](https://developer.finra.org/docs).
 The adapter therefore requires a positive `FINRA_ASYNC_MAX_RESULT_BYTES` (or
 an explicit per-call bound), validates `Content-Length` when supplied, and
 enforces the limit while streaming chunks so oversized bodies are not
