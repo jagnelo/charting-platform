@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6a69b95372efed53683aaf7bd0e19a618f98dcd6",
+  "head": "27b7b24dc12b20c6a5f2c1da2898ca0274587545",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T09:05:17.665416+00:00",
-  "last_human_progress_update": "2026-09-14T09:04:25.395193+00:00",
+  "last_human_progress_update": "2026-09-14T09:32:35.230072+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "fcfc37f7bab8a80042a233a8ecdca7d0f35ed6cce6029282c9056ff44408a2a8",
+  "plan_hash": "b35b6501511b8d4d253a1758cd5a262e5f0a437b41a4f75475191c8c75052e9c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. FilePoint/LionShares and Twin Oak holdings completeness is verified at branch tip 245ac0a56; continue the next bounded R1 canonical provider/history seam.",
-    "current_phase": "R1_verified_filepoint_holdings_completeness",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. Tremblant TOGA holdings completeness is verified at branch tip 27b7b24dc; continue the next bounded R1 canonical provider/history seam.",
+    "current_phase": "R1_verified_tremblant_holdings_completeness",
     "next_action": "Inspect and implement the next bounded R1 canonical provider/history completeness seam, with focused deterministic coverage and the exact branch-scoped gate at the next coherent tip; preserve fail-closed evidence and unchanged visual/provider policy.",
     "total": 10,
-    "updated_at": "2026-09-14T09:04:25.395078+00:00"
+    "updated_at": "2026-09-14T09:32:35.229958+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
