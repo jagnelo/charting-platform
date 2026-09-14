@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Verified Water Island/AltShares dated holdings
+
+Product commit `0d7437b01` hardens the shared Water Island/AltShares native
+periodic portfolio-of-investments PDF route for `ARB` and `EVNT`. The adapter
+now requires a dated non-empty snapshot, excludes swap, forward, and footnote
+sections from the holdings parse, date-scopes source IDs, and records complete
+composition/as-of, row-count, and
+`water_island_native_periodic_complete_portfolio_report_pdf` provenance metadata.
+The reviewed public report published 66 `ARB` rows and 42 `EVNT` rows dated
+2026-02-28.
+
+Focused Water Island assertions passed 2/2 including the missing-date and
+non-holdings-section regressions; escalated opt-in live route assertions passed
+2/2 for the Water Island and AltShares discovery keys; and direct public probes
+returned the same complete dated snapshots. Ruff, formatting, and diff checks
+passed. The exact branch-scoped Docker-backed gate passed backend units
+1606/1606, integration 405/405 with 82.18% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, research-runner
+sandbox/resource probes, and functional E2E 165 passed with 107 skipped. Visual
+E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Dhandho dated holdings
 
 Product commit `9ada7cb8e` hardens Pabrai Wagons' native complete-holdings PDF

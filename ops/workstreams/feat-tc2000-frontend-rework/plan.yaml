@@ -13,19 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest Dhandho dated holdings seam is verified at branch tip `9ada7cb8e`:
-  Pabrai Wagons' native complete-holdings PDF route for WAGN now requires a
-  dated non-empty snapshot, fails closed when the composition date or rows are
-  absent, date-scopes source IDs, and records complete composition/as-of,
-  row-count, and `dhandho_native_complete_holdings_pdf` provenance metadata.
-  The direct public route published 21 rows dated 2026-03-31. Focused assertions
-  passed 9/9 including the missing-date regression; the escalated opt-in live
-  route assertion passed 1/1; the direct probe returned 21 complete rows dated
-  2026-03-31; Ruff, formatting, and diff checks passed. The exact gate passed
-  backend units 1606/1606, integration 405/405 at 82.18% combined coverage,
-  frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
-  research-runner sandbox/resource probes, and functional E2E 165 passed with
-  107 skipped. Visual E2E passed 98/104 with only the six unchanged protected
+  Latest Water Island/AltShares dated holdings seam is verified at branch tip
+  `0d7437b01`: the shared native periodic portfolio-of-investments PDF route
+  for `ARB` and `EVNT` now requires a dated non-empty snapshot, excludes swap,
+  forward, and footnote sections from the holdings parse, date-scopes source
+  IDs, and records complete composition/as-of, row-count, and
+  `water_island_native_periodic_complete_portfolio_report_pdf` provenance
+  metadata. The reviewed public report published 66 `ARB` rows and 42 `EVNT`
+  rows dated 2026-02-28. Focused assertions passed 2/2 including missing-date
+  and non-holdings-section regressions; escalated opt-in live route assertions
+  passed 2/2; direct public probes returned complete dated snapshots; Ruff,
+  formatting, and diff checks passed. The exact gate passed backend units
+  1606/1606, integration 405/405 at 82.18% combined coverage, frontend Vitest
+  1067/1067, type-check/build, compose/deployment contracts, research-runner
+  sandbox/resource probes, and functional E2E 165 passed with 107 skipped.
+  Visual E2E passed 98/104 with only the six unchanged protected
   watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
   branch-scoped containers, volumes, network, four generated images, and
   testcontainer sessions. No generic provider/fallback, migration, visual
@@ -146,7 +148,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_dhandho_dated_holdings
+  current_phase: R1_verified_water_island_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
@@ -154,26 +156,27 @@ progress:
     guard, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
-    Latest Dhandho dated holdings seam is verified at branch tip `9ada7cb8e`:
-    Pabrai Wagons' native complete-holdings PDF route for WAGN now requires a
-    dated non-empty snapshot, fails closed when the composition date or rows are
-    absent, date-scopes source IDs, and records complete composition/as-of,
-    row-count, and `dhandho_native_complete_holdings_pdf` provenance metadata.
-    The direct public route published 21 rows dated 2026-03-31. Focused
-    assertions passed 9/9 including the missing-date regression; the escalated
-    opt-in live route assertion passed 1/1; the direct probe returned 21
-    complete rows dated 2026-03-31; Ruff, formatting, and diff checks passed.
-    The exact gate passed backend units 1606/1606, integration 405/405 at
-    82.18% combined coverage, frontend Vitest 1067/1067, type-check/build,
-    compose/deployment contracts, research-runner sandbox/resource probes, and
-    functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with
-    only the six unchanged protected watchlist-column-editor/workspace-floating
-    diffs. Docker teardown removed all branch-scoped containers, volumes,
-    network, four generated images, and testcontainer sessions. No generic
-    provider/fallback, migration, visual baseline, threshold, mask, skip, or
-    acceptance policy changed. Continue R1 family-wide canonical
-    population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
-    remain open.
+    Latest Water Island/AltShares dated holdings seam is verified at branch tip
+    `0d7437b01`: the shared native periodic portfolio-of-investments PDF route
+    for `ARB` and `EVNT` now requires a dated non-empty snapshot, excludes swap,
+    forward, and footnote sections from the holdings parse, date-scopes source
+    IDs, and records complete composition/as-of, row-count, and
+    `water_island_native_periodic_complete_portfolio_report_pdf` provenance
+    metadata. The reviewed public report published 66 `ARB` rows and 42 `EVNT`
+    rows dated 2026-02-28. Focused assertions passed 2/2 including missing-date
+    and non-holdings-section regressions; escalated opt-in live route assertions
+    passed 2/2; direct public probes returned complete dated snapshots; Ruff,
+    formatting, and diff checks passed. The exact gate passed backend units
+    1606/1606, integration 405/405 at 82.18% combined coverage, frontend Vitest
+    1067/1067, type-check/build, compose/deployment contracts, research-runner
+    sandbox/resource probes, and functional E2E 165 passed with 107 skipped.
+    Visual E2E passed 98/104 with only the six unchanged protected
+    watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+    branch-scoped containers, volumes, network, four generated images, and
+    testcontainer sessions. No generic provider/fallback, migration, visual
+    baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+    family-wide canonical population/history, D1/W1/MN floors, rebalance
+    continuity, and AC2-AC7/AC10 remain open.
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
