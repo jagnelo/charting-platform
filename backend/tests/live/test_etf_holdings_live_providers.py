@@ -2126,6 +2126,19 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert result.legal_metadata["composition_date"]
     if adapter_key == "ishares" and symbol == "SOXX":
         assert any(row.symbol == "NVDA" for row in result.rows)
+    if adapter_key == "capital_impact":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == (
+            "entrepreneurshares_public_ssnc_full_holdings_api"
+        )
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == (
+            "entrepreneurshares_native_ssnc_full_holdings_api"
+        )
+        assert result.rows[0].source_row_id.startswith("XOVR:")
 
 
 @pytest.mark.asyncio
@@ -3020,6 +3033,13 @@ async def test_live_ershares_ssnc_full_holdings_api():
     _assert_live_holdings_result(result, adapter_key="ershares", min_rows=20)
     assert result.legal_metadata["route_resolution"] == ("ershares_public_ssnc_full_holdings_api")
     assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["as_of_date"] == result.legal_metadata["composition_date"]
+    assert result.legal_metadata["row_count"] == len(result.rows)
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "ershares_native_ssnc_full_holdings_api"
+    )
+    assert result.rows[0].source_row_id.startswith("XOVR:")
     assert any(row.cusip for row in result.rows)
 
 

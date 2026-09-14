@@ -25100,6 +25100,15 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Capital Impact SS&C holdings route returned no complete rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Capital Impact SS&C holdings route did not publish exactly one composition date for {normalized_symbol}."
+            )
+        snapshot_provenance = (
+            "ershares_native_ssnc_full_holdings_api"
+            if self.adapter_key == "ershares"
+            else "entrepreneurshares_native_ssnc_full_holdings_api"
+        )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=api_response.text,
@@ -25113,8 +25122,11 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "json",
                 "route_resolution": self.route_resolution,
                 "product_page_url": str(product_response.url),
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": snapshot_provenance,
                 "terms_note": self.config.terms_note,
             },
         )
@@ -25198,7 +25210,8 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not isinstance(payload, list):
             return [], None
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        undated_rows = False
         for index, raw in enumerate(payload, start=1):
             if not isinstance(raw, dict):
                 continue
@@ -25211,11 +25224,12 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
             ticker = _clean(raw.get("holdingsymbol")) or _clean(raw.get("primaryidentifier"))
             holding_type = _clean(raw.get("holdingtype"))
             row_date = _clean(raw.get("asofdate"))
+            parsed_row_date = None
             if row_date:
                 try:
-                    parsed = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
-                    if composition_date is None or parsed > composition_date:
-                        composition_date = parsed
+                    parsed_row_date = datetime.fromisoformat(
+                        row_date.replace("Z", "+00:00")
+                    ).date()
                 except ValueError:
                     pass
             haystack = " ".join(part.lower() for part in (ticker, name, holding_type) if part)
@@ -25224,6 +25238,10 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
             cusip = _clean(raw.get("cusip"))
             if not any([ticker, name, cusip, raw.get("marketvalue")]):
                 continue
+            if parsed_row_date is None:
+                undated_rows = True
+            else:
+                composition_dates.add(parsed_row_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None
@@ -25246,6 +25264,16 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if undated_rows or len(composition_dates) != 1:
+            raise ValueError(
+                f"Capital Impact holdings API did not publish exactly one composition date for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        composition_date_text = composition_date.isoformat()
+        for row in rows:
+            row.source_row_id = (
+                f"{symbol}:{composition_date_text}:{row.source_row_id.split(':', 1)[1]}"
             )
         return rows, composition_date
 

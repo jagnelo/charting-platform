@@ -19371,6 +19371,40 @@ async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypa
         "entrepreneurshares_public_ssnc_full_holdings_api"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["as_of_date"] == "2026-07-10"
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "entrepreneurshares_native_ssnc_full_holdings_api"
+    )
+    assert equity_row.source_row_id == "XOVR:2026-07-10:1:67066G104"
+    assert cash_row.source_row_id == "XOVR:2026-07-10:2:USD"
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        [None],
+        ["2026-07-10T05:00:00", "2026-07-11T05:00:00"],
+    ],
+)
+def test_capital_impact_parser_rejects_undated_or_mixed_snapshots(dates):
+    adapter = get_holdings_adapter("capital_impact")
+    assert adapter is not None
+    payload = [
+        {
+            "fundsymbol": "XOVR",
+            "asofdate": row_date,
+            "cusip": f"67066G10{index}",
+            "name": f"Holding {index}",
+            "holdingsymbol": f"H{index}",
+            "marketvalue": 1,
+        }
+        for index, row_date in enumerate(dates, start=4)
+    ]
+
+    with pytest.raises(ValueError, match="exactly one composition date"):
+        adapter._parse_holdings_payload(payload, symbol="XOVR")
 
 
 @pytest.mark.asyncio
