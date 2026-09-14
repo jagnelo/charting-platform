@@ -65417,6 +65417,10 @@ class RangeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Range's official product page did not expose holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Range's official product page did not publish a composition date for {normalized_symbol}."
+            )
         composition_value = composition_date.isoformat() if composition_date else None
         return HoldingsFetchResult(
             rows=rows,

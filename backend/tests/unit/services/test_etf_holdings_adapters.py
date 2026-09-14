@@ -25250,6 +25250,36 @@ async def test_range_official_nuxt_route_parses_dated_nukz_holdings(monkeypatch)
     assert result.legal_metadata["completeness_status"] == "complete"
 
 
+@pytest.mark.asyncio
+async def test_range_official_nuxt_route_rejects_undated_holdings(monkeypatch):
+    adapter = get_holdings_adapter("range")
+    assert adapter is not None
+    payload = [
+        None,
+        "rangeetfs-nukz-HoldingsComponent-1",
+        None,
+        [5],
+        {"componentId": 1, "date": 2, "finData": 3, "ticker": 4},
+        {"ticker": 6, "description": 7, "quantity": 8, "market_value": 9, "percent_of_nav": 10},
+        "CCJ",
+        "CAMECO CORP",
+        692378,
+        "64,820,428.36",
+        "8.26%",
+    ]
+    page_html = (
+        '<script type="application/json" data-nuxt-data="nuxt-app" '
+        'id="__NUXT_DATA__">'
+        f"{json.dumps(payload)}"
+        "</script>"
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, url="https://rangeetfs.com/nukz")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="NUKZ")
+
+
 def test_format_template_returns_none_when_missing_fields():
     assert _format_template("https://issuer.example/{symbol}/{date}", {"symbol": "SPY"}) is None
     assert (
