@@ -19,7 +19,7 @@ from app.providers.base import (
     OptionContractRecord,
     ProviderSearchResult,
 )
-from app.providers.errors import redact_provider_message
+from app.providers.errors import ProviderResponseError, redact_provider_message
 
 logger = logging.getLogger(__name__)
 
@@ -345,7 +345,14 @@ class YFinanceProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        yf_interval = TF_TO_YF.get(timeframe, "1d")
+        yf_interval = TF_TO_YF.get(timeframe)
+        if yf_interval is None:
+            # Y1 is a calendar-year rollup used by the tokenized history
+            # bridge. yfinance has no verified annual interval here; falling
+            # back to 1d would mislabel daily observations as annual bars.
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         try:
             ticker = yf.Ticker(symbol)
             yf_end = (end + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -770,6 +777,10 @@ class YFinanceProvider:
         ]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        if timeframe not in TF_TO_YF:
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         tf_seconds = {
             Timeframe.M1: 60,
             Timeframe.M5: 300,
@@ -782,7 +793,11 @@ class YFinanceProvider:
             Timeframe.D1: 86400,
             Timeframe.W1: 604800,
             Timeframe.MN: 2628000,
-        }.get(timeframe, 86400)
+        }.get(timeframe)
+        if tf_seconds is None:
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         days_needed = max(7, int(tf_seconds * limit * 2 / 86400))
         max_lookback = TF_MAX_LOOKBACK_DAYS.get(timeframe)
         if max_lookback is not None:

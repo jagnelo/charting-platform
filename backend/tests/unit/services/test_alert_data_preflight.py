@@ -8,6 +8,10 @@ from app.services import alert_engine
 from app.tasks import alert_tasks
 
 
+def test_calendar_year_alert_lookback_is_not_daily():
+    assert alert_engine._TF_BAR_DURATION[Timeframe.Y1].days == 366
+
+
 class _FakeDb:
     def __init__(self, *instruments):
         self.instruments = {instrument.id: instrument for instrument in instruments}

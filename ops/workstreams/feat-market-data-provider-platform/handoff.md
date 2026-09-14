@@ -2393,3 +2393,11 @@ changed.
   staging-to-feature migration compatibility successfully: `29` changed
   migration files, previous-release schema `fe4f5a6b7c8d`, and previous
   application `/health` HTTP 200. Temporary PostgreSQL resources were cleaned.
+
+- Annual timeframe boundary handling is now fail-closed outside the tokenized
+  history bridge: Nautilus backtests reject unverified `Y1` bar specifications,
+  yfinance rejects `Y1` instead of silently using a daily interval, and
+  indicator-alert lookbacks use a calendar-year duration. Focused
+  provider/backtest/alert coverage passed `260/260`; Ruff and diff checks
+  passed. No provider calls, credentials, frontend, or ETF-provider adapter
+  files changed.

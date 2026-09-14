@@ -71,6 +71,20 @@ from app.providers.registry import (
     list_provider_capabilities,
     provider_supports_adjustment,
 )
+from app.providers.yfinance import YFinanceProvider
+
+
+def test_yfinance_rejects_calendar_year_without_network_fallback():
+    provider = YFinanceProvider()
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.Y1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2025, 1, 1, tzinfo=UTC),
+        )
+    with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+        provider.latest_window_start(Timeframe.Y1, 1)
 
 # ── Registry capability detection ────────────────────────────────────────────
 

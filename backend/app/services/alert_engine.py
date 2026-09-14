@@ -42,6 +42,8 @@ _TF_BAR_DURATION: dict[Timeframe, timedelta] = {
     Timeframe.D1: timedelta(days=1),
     Timeframe.W1: timedelta(weeks=1),
     Timeframe.MN: timedelta(days=31),
+    # Y1 is a calendar-year tokenized-history bucket; do not treat it as D1.
+    Timeframe.Y1: timedelta(days=366),
 }
 
 

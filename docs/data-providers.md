@@ -329,6 +329,9 @@ states that production API access starts at $2,000/month; Sandbox access is the
 appropriate environment for evaluation and fixture/live transport validation,
 not production entitlement evidence. The adapter never treats CIK/CUSIP/FIGI fields as the
 token's primary identity and never fabricates volume for the aggregate history.
+The canonical `Y1` timeframe is a calendar-year bucket for this tokenized
+history bridge; ordinary market-data adapters must advertise an explicit
+annual interval or remain unsupported rather than mapping `Y1` to daily data.
 Dinari's [US-customer requirements](https://docs.dinari.com/docs/us) make partner
 approval, regulatory, data-security, and redistribution review a deployment
 gate, so having a key alone does not make this provider routable.

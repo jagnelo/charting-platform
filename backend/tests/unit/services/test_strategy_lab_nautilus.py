@@ -4,7 +4,19 @@ from decimal import Decimal
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.services.strategy_lab_nautilus import run_single_instrument_nautilus_backtest
+from app.services.strategy_lab_nautilus import (
+    _timeframe_to_bar_spec,
+    run_single_instrument_nautilus_backtest,
+)
+
+
+def test_nautilus_rejects_unverified_calendar_year_bars():
+    try:
+        _timeframe_to_bar_spec(Timeframe.Y1)
+    except ValueError as exc:
+        assert str(exc) == "Nautilus backtests do not support timeframe Y1"
+    else:  # pragma: no cover - keeps the fail-closed contract explicit.
+        raise AssertionError("Y1 must not be silently mapped to a Nautilus bar")
 
 
 def _bar(ts: datetime, open_: float, high: float, low: float, close: float) -> OHLCVBar:
