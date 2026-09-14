@@ -110,7 +110,11 @@ class BinanceProvider:
             )
         tf_str = _TF_MAP.get(timeframe)
         binance_sym = _to_binance(symbol)
-        if tf_str is None or binance_sym is None:
+        if tf_str is None:
+            raise ProviderResponseError(
+                self.name, f"Binance does not support timeframe {timeframe.value}"
+            )
+        if binance_sym is None:
             return []
 
         start_ms = int(start.timestamp() * 1000)

@@ -140,7 +140,9 @@ class AlpacaProvider:
         self._require_configured()
         tf_str = _TF_MAP.get(timeframe)
         if tf_str is None:
-            return []
+            raise ProviderResponseError(
+                self.name, f"Alpaca does not support timeframe {timeframe.value}"
+            )
 
         is_crypto = _is_crypto(symbol)
         alpaca_sym = _to_alpaca_crypto(symbol) if is_crypto else symbol

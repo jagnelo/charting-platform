@@ -1025,7 +1025,9 @@ class TiingoProvider(_RESTProvider):
         self._require_raw_history(adjusted)
         resample = self._RESAMPLE.get(timeframe)
         if not resample:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         payload = self._get(
             f"tiingo/daily/{symbol.upper()}/prices",
             {
@@ -1119,7 +1121,11 @@ class TwelveDataProvider(_RESTProvider):
     ) -> list[OHLCVBar]:
         self._require_raw_history(adjusted)
         interval = self._INTERVAL.get(timeframe)
-        if not interval or end <= start:
+        if not interval:
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
+        if end <= start:
             return []
         bounded_start = _bounded_datetime(start)
         bounded_end = _bounded_datetime(end)
@@ -1294,7 +1300,9 @@ class TradierProvider(_RESTProvider):
     ) -> list[OHLCVBar]:
         self._require_raw_history(adjusted)
         if timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         interval = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}[
             timeframe
         ]
@@ -1558,7 +1566,9 @@ class MarketDataAppProvider(_RESTProvider):
             Timeframe.W1: "W",
         }.get(timeframe)
         if not resolution:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         payload = self._get(
             # MarketData.app canonicalizes candle resources with a trailing
             # slash; omitting it causes a 301 redirect that the shared REST
@@ -1806,7 +1816,9 @@ class FinnhubProvider(_RESTProvider):
         self._require_raw_history(adjusted)
         resolution = self._RESOLUTION.get(timeframe)
         if not resolution:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         payload = self._get(
             "stock/candle",
             {
@@ -2005,7 +2017,9 @@ class MarketstackProvider(_RESTProvider):
     ) -> list[OHLCVBar]:
         self._require_raw_history(adjusted)
         if timeframe is not Timeframe.D1:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         if end <= start:
             return []
         bounded_start = _bounded_datetime(start)
@@ -2141,7 +2155,9 @@ class EODHDProvider(_RESTProvider):
         self._require_raw_history(adjusted)
         period = self._PERIOD.get(timeframe)
         if not period:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         payload = self._get(
             f"eod/{symbol.upper()}.US",
             {
@@ -2235,7 +2251,9 @@ class FMPProvider(_RESTProvider):
     ) -> list[OHLCVBar]:
         self._require_raw_history(adjusted)
         if timeframe is not Timeframe.D1:
-            return []
+            raise ProviderResponseError(
+                self.name, f"{self.name} does not support timeframe {timeframe.value}"
+            )
         payload = self._get(
             "historical-price-eod/full",
             {

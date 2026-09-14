@@ -93,6 +93,40 @@ def test_crypto_and_equity_adapters_reject_calendar_year_latest_windows(provider
         provider_cls().latest_window_start(Timeframe.Y1, 1)
 
 
+def test_alpaca_rejects_calendar_year_history_before_transport():
+    provider = AlpacaProvider()
+    with (
+        patch("app.providers.alpaca.settings") as configured,
+        patch("app.providers.alpaca.httpx.get") as get,
+    ):
+        configured.ALPACA_API_KEY = "key"
+        configured.ALPACA_SECRET_KEY = "secret"
+        configured.ALPACA_DATA_FEED = "iex"
+        with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.Y1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2025, 1, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+    get.assert_not_called()
+
+
+def test_binance_rejects_calendar_year_history_before_transport():
+    provider = BinanceProvider()
+    with patch("app.providers.binance.httpx.get") as get:
+        with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+            provider.fetch_ohlcv(
+                "BTC-USD",
+                Timeframe.Y1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2025, 1, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+    get.assert_not_called()
+
+
 def test_alpha_vantage_rejects_calendar_year_latest_windows():
     with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
         AlphaVantageProvider().latest_window_start(Timeframe.Y1, 1)

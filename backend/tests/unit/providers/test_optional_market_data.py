@@ -110,6 +110,33 @@ def test_optional_history_adapters_reject_calendar_year_latest_windows(provider_
         provider_cls().latest_window_start(Timeframe.Y1, 1)
 
 
+@pytest.mark.parametrize(
+    "provider_cls",
+    [
+        TiingoProvider,
+        TwelveDataProvider,
+        TradierProvider,
+        MarketDataAppProvider,
+        FinnhubProvider,
+        MarketstackProvider,
+        EODHDProvider,
+        FMPProvider,
+    ],
+)
+def test_optional_history_adapters_reject_calendar_year_history_before_transport(provider_cls):
+    provider = provider_cls()
+    with patch.object(provider, "_get") as get:
+        with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.Y1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2025, 1, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+    get.assert_not_called()
+
+
 def test_twelve_data_parses_intraday_values():
     provider = TwelveDataProvider()
     payload = {
