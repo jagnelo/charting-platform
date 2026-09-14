@@ -20,6 +20,13 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
   deployment-secret, reconciliation, deferred-credential, and shadow-run
   gates remain open as recorded below.
 
+- The current-HEAD authoritative Docker-backed combined backend gate was rerun
+  after the configuration-preflight receipt and passed `2,488/2,488` at
+  `81.72%` coverage with 89 warnings in `488.89s`, using isolated testcontainer
+  session `c10069ff-beec-468f-8efe-e8bc3de455cf`. Cleanup removed only this
+  workstream's resources without host-wide pruning. No frontend or ETF-provider
+  adapter files changed.
+
 ## Human authorization
 
 - Recorded at: 2026-09-04T16:12:23.412849+00:00
