@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Verified Convergence dated holdings
+
+Product commit `52771a08e` hardens Convergence's issuer page-linked holdings
+route for CLSE. The adapter now requires non-empty retained CSV rows with
+exactly one parseable `Date`, fails closed for missing, invalid, or mixed-date
+snapshots, date-scopes source IDs, and records complete composition/as-of,
+row-count, and `convergence_native_product_page_linked_holdings_csv` provenance
+metadata. The direct public route published 361 rows dated 2026-09-14.
+
+Focused Convergence assertions passed 8/8 including missing/invalid/mixed-date
+regressions; the escalated opt-in live route assertion passed 1/1; and the
+direct public issuer probe returned 361 complete rows dated 2026-09-14. Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker-backed gate
+passed backend units 1606/1606, integration 405/405 with 82.18% combined
+coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+contracts, research-runner sandbox/resource probes, and functional E2E 165
+passed with 107 skipped. Visual E2E passed 98/104 with exactly the six unchanged
+protected watchlist-column-editor/workspace-floating diffs. Docker teardown
+removed all branch-scoped containers, volumes, network, four generated images,
+and testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Corgi dated holdings
 
 Product commit `94f09137e` hardens Corgi Funds' issuer-native public holdings
