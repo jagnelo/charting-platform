@@ -13,6 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product commit `f8e071903` requires and records Sterling Capital's
+  published composition date from issuer-native fund-scoped holdings PDFs,
+  including Sterling Fund Management and Guardian wrappers. The shared adapter
+  verifies non-empty rows, fails closed for undated snapshots, records
+  composition/as-of metadata, scopes `completeness_status: complete` to the
+  native route, and date-scopes row IDs. Focused Sterling family assertions
+  passed 5/5; Ruff, formatting, and diff checks passed. The exact
+  branch-scoped gate passed backend units 1579/1579, integration 405/405 at
+  82.07% combined coverage, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner probes, and
+  functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with
+  only the six unchanged protected watchlist-column-editor/workspace-floating
+  diffs. Docker resources were cleaned with no retained containers, volumes,
+  networks, or testcontainer sessions. No generic provider/fallback,
+  migration, visual, threshold, mask, skip, or acceptance policy changed.
+  Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+  rebalance continuity, and AC2–AC7/AC10.
   Latest product commit `d227b50ba` requires and records Rareview RDFI's
   published composition date from the official databaseInfo holdings payload.
   The adapter verifies non-empty issuer-native rows, fails closed for undated
@@ -3791,13 +3808,20 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_rareview_holdings_completeness
+  current_phase: R1_verified_sterling_capital_holdings_completeness
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit completeness evidence, fail-closed holdings
     mappings, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest Sterling Capital holdings completeness seam is verified at branch tip
+    `f8e071903`: focused assertions passed 5/5; full gate passed backend units
+    1579/1579, integration 405/405 at 82.07% combined coverage, frontend
+    Vitest 1067/1067, functional E2E 165 passed with 107 skipped, and visual
+    E2E 98/104 with only the six unchanged protected diffs. Docker is clean;
+    remote push remains intentionally held. Continue the next bounded R1
+    canonical provider/history seam and preserve fail-closed evidence.
     Latest Rareview holdings completeness seam is verified at branch tip
     `d227b50ba`: focused assertions passed 2/2; full gate passed backend units
     1578/1578, integration 405/405 at 82.07% combined coverage, frontend
