@@ -59827,15 +59827,24 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             response.raise_for_status()
 
-        rows = self._parse_product_page(response.text, symbol=normalized_symbol)
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
         if not rows:
             raise ValueError(
                 "WealthTrust's official WLTG product page returned no complete holdings table."
             )
+        if composition_date is None:
+            raise ValueError(
+                "WealthTrust's official WLTG product page did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "html", "row_count": len(rows)},
+            raw_json={
+                "source_format": "html",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(response.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -59847,17 +59856,27 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(response.url),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "wealthtrust_native_product_page_holdings_table",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "completeness_status": "complete",
             },
         )
 
     @classmethod
-    def _parse_product_page(cls, raw_html: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
         normalized_html = html.unescape(raw_html)
         if "WealthTrust DBS Long Term Growth ETF" not in normalized_html or not re.search(
             rf"\b{re.escape(symbol)}\b", normalized_html, re.I
         ):
             raise ValueError("WealthTrust product page did not match the requested ETF.")
+
+        composition_date = cls._extract_composition_date(normalized_html)
 
         parser = _HTMLTablesParser()
         parser.feed(normalized_html)
@@ -59872,7 +59891,7 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
             None,
         )
         if table is None:
-            return []
+            return [], composition_date
 
         rows: list[CanonicalHoldingRow] = []
         header = table[0]
@@ -59913,7 +59932,9 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD",
                     holding_type=holding_type,
                     row_type="cash" if is_cash else "derivative" if is_derivative else "security",
-                    source_row_id=f"wealthtrust-{symbol}-{index}",
+                    source_row_id=(
+                        f"wealthtrust-{symbol}-{composition_date.isoformat() if composition_date else 'current'}-{index}"
+                    ),
                     extra_data={
                         key: value
                         for key, value in raw.items()
@@ -59921,7 +59942,22 @@ class WealthTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
-        return rows
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(raw_html: str) -> date | None:
+        """Read WealthTrust's holdings snapshot date from its labeled page metadata."""
+
+        visible_text = re.sub(r"<[^>]+>", " ", html.unescape(raw_html))
+        visible_text = re.sub(r"\s+", " ", visible_text)
+        for pattern in (
+            r"\bAS\s+OF\s+DATE\s*:?\s*(\d{1,2}/\d{1,2}/\d{4})\b",
+            r"\bCURRENT\s+AS\s+OF\s*:?\s*(\d{1,2}/\d{1,2}/\d{4})\b",
+        ):
+            match = re.search(pattern, visible_text, flags=re.IGNORECASE)
+            if match:
+                return _parse_issuer_date(match.group(1))
+        return None
 
 
 class EighthWonderHoldingsAdapter(IssuerCsvHoldingsAdapter):

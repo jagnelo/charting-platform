@@ -20275,6 +20275,7 @@ async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(
         FakeResponse(
             text=(
                 "<h1>WealthTrust DBS Long Term Growth ETF</h1><p>WLTG</p>"
+                "<p>Current as of 9/8/2026</p>"
                 "<table><tr><th>ETF Ticker</th><th>Description</th><th>Ticker</th>"
                 "<th>Weight</th><th>Market Value</th><th>FIGI</th><th>Shares Held</th></tr>"
                 "<tr><td>WLTG</td><td>Apple Inc.</td><td>AAPL</td><td>2.50%</td>"
@@ -20304,6 +20305,34 @@ async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(
         == "wealthtrust_public_wltg_complete_holdings_table"
     )
     assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["composition_date"] == "2026-09-08"
+    assert result.legal_metadata["as_of_date"] == "2026-09-08"
+    assert result.rows[0].source_row_id == "wealthtrust-WLTG-2026-09-08-1"
+
+
+@pytest.mark.asyncio
+async def test_wealthtrust_adapter_rejects_undated_holdings_page(monkeypatch):
+    adapter = get_holdings_adapter("wealthtrust")
+    assert adapter is not None
+    product_page_url = "https://wealthtrustetf.com/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>WealthTrust DBS Long Term Growth ETF</h1><p>WLTG</p>"
+                "<table><tr><th>ETF Ticker</th><th>Description</th><th>Ticker</th>"
+                "<th>Weight</th><th>Market Value</th><th>FIGI</th><th>Shares Held</th></tr>"
+                "<tr><td>WLTG</td><td>Apple Inc.</td><td>AAPL</td><td>2.50%</td>"
+                "<td>2500000</td><td>BBG000B9XRY4</td><td>10000</td></tr></table>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="WLTG")
 
 
 @pytest.mark.asyncio
