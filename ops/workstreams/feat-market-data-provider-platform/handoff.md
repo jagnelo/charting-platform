@@ -2366,3 +2366,14 @@ changed.
   any configured external quota. The latest credentialed live evidence remains
   the bounded matrix recorded above, with provider-specific routing/legal and
   deployment-secret gates still intentionally open.
+
+- A lock-protected credentialed live subset for the newly supplied providers
+  passed `9/9` selected cases (`38` unrelated cases deselected) in `25.63s` on
+  2026-09-14. The owner-managed external ledger recorded aggregate-only usage:
+  Alpaca `5` requests/operations and `6,487,899` bytes with observed
+  `200`/`199` rate-limit headers; MarketData.app `6` requests/operations and
+  `17,101` bytes with observed `10,000` credit headers and zero consumed
+  credits; Dinari `14` requests/`12` operations and `109,022` bytes with no
+  provider capacity headers. This confirms bounded transport/schema behavior
+  only; it does not promote routing, infer Dinari limits, or close the wider
+  provider/legal/deployment/shadow gates.
