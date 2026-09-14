@@ -704,7 +704,7 @@ or explicitly set the live host (`https://api.alpaca.markets/v2`) for live
 credentials. Historical/latest market-data calls continue to use
 `https://data.alpaca.markets/v2`.
 
-Corporate actions use the current v1 endpoint and follow its `next_page_token`
+Corporate actions use the [current v1 endpoint](https://docs.alpaca.markets/us/reference/corporateactions-1) and follow its `next_page_token`
 cursor. Because the number of requests is response-dependent, the checked-in
 usage profile deliberately has no fixed event cost. Runtime event routing is
 fail-closed until a positive, conservative `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`
