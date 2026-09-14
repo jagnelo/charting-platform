@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified Canary dated holdings
+
+Product commit `ef1ca2eed` hardens Canary's native product-page holdings route
+for HBR. Retained rows now require exactly one parseable composition date;
+undated, invalid, and mixed-date snapshots fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`canary_native_product_page_current_holdings_table` provenance metadata is
+recorded. The direct public product page returned 2 rows dated 2026-09-14.
+
+Focused assertions passed 1/1 including undated/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+2 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1606/1606, integration 405/405
+at 82.18% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six established protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Water Island/AltShares dated holdings
 
 Product commit `0d7437b01` hardens the shared Water Island/AltShares native
