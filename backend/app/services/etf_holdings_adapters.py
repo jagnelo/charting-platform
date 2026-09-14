@@ -26479,7 +26479,12 @@ class ACPHorizonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "csv", "row_count": len(rows)},
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(response.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -26488,37 +26493,39 @@ class ACPHorizonHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
                 "route_resolution": "acp_horizon_public_multi_fund_daily_holdings_csv",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "acp_horizon_native_multi_fund_daily_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
 
     @staticmethod
-    def _parse_holdings_csv(
-        raw_csv: str, *, symbol: str
-    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = 0
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
             if _clean(raw.get("Account")) != symbol:
+                continue
+            ticker = _clean(raw.get("StockTicker"))
+            cusip = _clean(raw.get("CUSIP"))
+            name = _clean(raw.get("SecurityName"))
+            if not any([ticker, cusip, name, raw.get("MarketValue")]):
                 continue
             row_date = _clean(raw.get("Date"))
             if row_date:
                 try:
-                    parsed_date = datetime.strptime(row_date, "%m/%d/%Y").date()
-                    if composition_date is None or parsed_date > composition_date:
-                        composition_date = parsed_date
+                    composition_dates.add(datetime.strptime(row_date, "%m/%d/%Y").date())
                 except ValueError:
-                    pass
-            ticker = _clean(raw.get("StockTicker"))
-            cusip = _clean(raw.get("CUSIP"))
-            name = _clean(raw.get("SecurityName"))
+                    invalid_or_missing_dates += 1
+            else:
+                invalid_or_missing_dates += 1
             cash_marker = _clean(raw.get("MoneyMarketFlag"))
             haystack = " ".join(part.lower() for part in (ticker, name, cash_marker) if part)
             is_cash = bool(cash_marker) or "cash" in haystack or "money market" in haystack
-            if not any([ticker, cusip, name, raw.get("MarketValue")]):
-                continue
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash else (ticker.upper() if ticker else None),
@@ -26530,11 +26537,21 @@ class ACPHorizonHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if is_cash else None,
                     holding_type="cash" if is_cash else "equity",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    source_row_id=f"{symbol}:{row_date}:{index}",
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "ACP Horizon holdings CSV must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        for row in rows:
+            row.source_row_id = row.source_row_id.replace(
+                f":{row.source_row_id.split(':')[1]}:", f":{composition_date.isoformat()}:"
             )
         return rows, composition_date
 
