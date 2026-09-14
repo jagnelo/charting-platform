@@ -163,7 +163,9 @@ class AlphaVantageProvider:
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         if timeframe is not Timeframe.D1:
-            return []
+            raise ProviderResponseError(
+                self.name, f"Alpha Vantage does not support timeframe {timeframe.value}"
+            )
         if adjusted:
             # The free ``TIME_SERIES_DAILY`` endpoint returns raw OHLCV. The
             # adjusted daily endpoint is a premium surface, so never let a

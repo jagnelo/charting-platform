@@ -1207,17 +1207,19 @@ class TestFREDCredentialWarning:
                     )
         assert "FRED_API_KEY" in caplog.text
 
-    def test_unsupported_timeframe_returns_empty(self):
+    def test_unsupported_timeframe_is_typed_before_transport(self):
         provider = FREDProvider()
         with patch("app.providers.fred.settings") as mock_settings:
             mock_settings.FRED_API_KEY = "key"
-            bars = provider.fetch_ohlcv(
-                "^TNX",
-                Timeframe.M1,
-                datetime(2024, 1, 1, tzinfo=UTC),
-                datetime(2024, 2, 1, tzinfo=UTC),
-            )
-        assert bars == []
+            with patch("app.providers.fred.httpx.get") as get:
+                with pytest.raises(ProviderResponseError, match="does not support timeframe M1"):
+                    provider.fetch_ohlcv(
+                        "^TNX",
+                        Timeframe.M1,
+                        datetime(2024, 1, 1, tzinfo=UTC),
+                        datetime(2024, 2, 1, tzinfo=UTC),
+                    )
+        get.assert_not_called()
 
     def test_unknown_symbol_returns_empty_without_warning(self, caplog):
         provider = FREDProvider()
@@ -1893,6 +1895,19 @@ class TestAlphaVantageProvider:
                     Timeframe.D1,
                     datetime(2024, 1, 2, tzinfo=UTC),
                     datetime(2024, 1, 4, tzinfo=UTC),
+                )
+        get.assert_not_called()
+
+    def test_unsupported_timeframe_is_typed_before_transport(self):
+        provider = AlphaVantageProvider()
+        with patch("app.providers.alpha_vantage.httpx.get") as get:
+            with pytest.raises(ProviderResponseError, match="does not support timeframe M1"):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.M1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 4, tzinfo=UTC),
+                    adjusted=False,
                 )
         get.assert_not_called()
 

@@ -146,8 +146,10 @@ class FREDProvider:
         if series_id is None:
             return []
         _assert_key()
-        if timeframe not in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
-            return []
+        if timeframe is not Timeframe.D1:
+            raise ProviderResponseError(
+                self.name, f"FRED does not support timeframe {timeframe.value}"
+            )
 
         try:
             r = httpx.get(
@@ -242,7 +244,7 @@ class FREDProvider:
         return bars[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        if timeframe not in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
+        if timeframe is not Timeframe.D1:
             raise ProviderResponseError(
                 self.name, f"FRED does not support timeframe {timeframe.value}"
             )
