@@ -58,25 +58,8 @@
     "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -116,14 +99,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9df01dcb96f40742939082a07ddbd0e1cd07f5a5",
+  "head": "34a1565055c21cae78bd7462c3563535f75e4d61",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T03:22:41.794920+00:00",
-  "last_human_progress_update": "2026-09-14T03:22:07.310380+00:00",
+  "last_human_progress_update": "2026-09-14T03:50:42.302198+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "d7c379f90ead468784f74c65eaa1f89070182c6f944c574e18be20d9f6596add",
+  "plan_hash": "1704844167ebdc4f9491fb53a13ac53cb319c352630137f0e8320b1fd7161de8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +119,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Palmer Square holdings completeness is verified at product tip 4effca228; remote push remains intentionally held.",
-    "current_phase": "R1_verified_palmer_square_holdings_completeness",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Range ETFs holdings completeness is verified at product tip 827ae2b02; remote push remains intentionally held.",
+    "current_phase": "R1_verified_range_holdings_completeness",
     "next_action": "Continue the next bounded R1 canonical provider/history seam while preserving explicit completeness evidence, fail-closed mappings, and the six protected visual state-oracle assertions.",
     "total": 10,
-    "updated_at": "2026-09-14T03:22:07.310265+00:00"
+    "updated_at": "2026-09-14T03:50:42.301739+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
