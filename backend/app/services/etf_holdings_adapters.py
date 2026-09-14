@@ -11074,6 +11074,10 @@ class RetirefulHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 "Retireful's paginated holdings table did not match its declared complete portfolio."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Retireful's official {normalized_symbol} page did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text="\n<!-- retireful-page-break -->\n".join(raw_pages),

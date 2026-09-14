@@ -16787,6 +16787,36 @@ async def test_retireful_adapter_follows_official_pagination_and_preserves_cash(
 
 
 @pytest.mark.asyncio
+async def test_retireful_adapter_rejects_undated_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("retireful")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="issuer page",
+            content_type="text/html",
+            url="https://www.mohrfunds.com/rule-adaptive-core-etf",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_product_page",
+        staticmethod(
+            lambda raw_html, *, symbol, expected_fund_name, page_url, page_number: (
+                None,
+                1,
+                [CanonicalHoldingRow(symbol="AAPL", name="Apple Inc.")],
+                None,
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="RULE", identifiers={})
+
+
+@pytest.mark.asyncio
 async def test_srn_adapter_verifies_siren_page_and_filters_shared_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("srn")
     assert adapter is not None
