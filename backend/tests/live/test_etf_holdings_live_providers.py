@@ -2128,9 +2128,7 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert any(row.symbol == "NVDA" for row in result.rows)
     if adapter_key == "capital_impact":
         metadata = result.legal_metadata or {}
-        assert metadata["route_resolution"] == (
-            "entrepreneurshares_public_ssnc_full_holdings_api"
-        )
+        assert metadata["route_resolution"] == ("entrepreneurshares_public_ssnc_full_holdings_api")
         assert metadata["composition_date"]
         assert metadata["as_of_date"] == metadata["composition_date"]
         assert metadata["row_count"] == len(result.rows)

@@ -25227,9 +25227,7 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
             parsed_row_date = None
             if row_date:
                 try:
-                    parsed_row_date = datetime.fromisoformat(
-                        row_date.replace("Z", "+00:00")
-                    ).date()
+                    parsed_row_date = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
                 except ValueError:
                     pass
             haystack = " ".join(part.lower() for part in (ticker, name, holding_type) if part)
