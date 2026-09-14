@@ -2157,6 +2157,15 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "convergence_native_product_page_linked_holdings_csv"
         )
         assert result.rows[0].source_row_id.startswith("CLSE:")
+    if adapter_key == "dhandho":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "issuer_resources_latest_complete_holdings_pdf"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == "dhandho_native_complete_holdings_pdf"
+        assert result.rows[0].source_row_id.startswith("WAGN:")
 
 
 @pytest.mark.asyncio

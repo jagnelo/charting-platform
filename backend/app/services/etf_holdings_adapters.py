@@ -25730,6 +25730,9 @@ class DhandhoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_resources_latest_complete_holdings_pdf",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "dhandho_native_complete_holdings_pdf",
                 "refresh_frequency": "periodic_issuer_report",
                 "terms_note": self.config.terms_note,
             },
@@ -25770,6 +25773,13 @@ class DhandhoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     extra_data={"source": "dhandho_complete_holdings_pdf"},
                 )
             )
+        if not rows or composition_date is None:
+            raise ValueError(
+                "Pabrai Wagons complete holdings PDF did not publish a dated non-empty snapshot."
+            )
+        composition_date_text = composition_date.isoformat()
+        for row in rows:
+            row.source_row_id = f"WAGN:{composition_date_text}:{row.source_row_id.split(':', 1)[1]}"
         return rows, composition_date
 
 

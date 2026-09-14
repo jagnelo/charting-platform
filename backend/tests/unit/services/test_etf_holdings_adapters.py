@@ -19603,6 +19603,13 @@ TOTAL INVESTMENTS - 101.6% (Cost $132,461,354)      152,464,020
     assert rows[0].shares == Decimal("144935")
     assert rows[0].market_value == Decimal("7111960")
     assert rows[1].row_type == "cash"
+    assert [row.source_row_id for row in rows] == [
+        "WAGN:2026-03-31:1",
+        "WAGN:2026-03-31:2",
+    ]
+
+    with pytest.raises(ValueError, match="dated non-empty snapshot"):
+        adapter._parse_holdings_text("Noble Corp. PLC      144,935      7,111,960")
 
 
 def test_raymond_james_parser_preserves_quarterly_equity_and_bond_positions():
