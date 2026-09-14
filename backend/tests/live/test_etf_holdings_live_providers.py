@@ -2137,6 +2137,15 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "entrepreneurshares_native_ssnc_full_holdings_api"
         )
         assert result.rows[0].source_row_id.startswith("XOVR:")
+    if adapter_key == "corgi":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "corgi_public_fund_holdings_api"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == "corgi_native_fund_holdings_api"
+        assert result.rows[0].source_row_id.startswith("FDRS:")
 
 
 @pytest.mark.asyncio

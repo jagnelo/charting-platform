@@ -19466,6 +19466,40 @@ async def test_corgi_adapter_fetches_fund_specific_public_holdings(monkeypatch):
     assert cash_row.row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "corgi_public_fund_holdings_api"
     assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["as_of_date"] == "2026-07-13"
+    assert result.legal_metadata["row_count"] == 3
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == "corgi_native_fund_holdings_api"
+    assert [row.source_row_id for row in result.rows] == [
+        "FDRS:2026-07-13:1:30303M102",
+        "FDRS:2026-07-13:2:912797SA6",
+        "FDRS:2026-07-13:3:Cash&Other",
+    ]
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        [None],
+        ["2026-07-13", "2026-07-14"],
+        ["not-a-date"],
+    ],
+)
+def test_corgi_parser_rejects_undated_invalid_or_mixed_snapshots(dates):
+    adapter = get_holdings_adapter("corgi")
+    assert adapter is not None
+    payload = [
+        {
+            "position_date": row_date,
+            "security_name": f"Holding {index}",
+            "security_cusip": f"30303M10{index}",
+            "security_ticker": f"H{index}",
+            "market_value": 100,
+        }
+        for index, row_date in enumerate(dates, start=1)
+    ]
+    with pytest.raises(ValueError, match="exactly one composition date"):
+        adapter._parse_holdings_payload(payload, symbol="FDRS")
 
 
 @pytest.mark.asyncio
