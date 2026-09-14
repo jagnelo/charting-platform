@@ -2,6 +2,29 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 — Verified Artemis and X-Square holdings completeness
+
+Product commit `05971d070` requires a published composition date for Artemis
+Capital's official holdings table and X-Square Capital's official holdings
+payload. Each adapter verifies parseable non-empty rows and a published
+snapshot date; undated payloads now fail closed while explicit
+`completeness_status: complete` remains scoped to the native routes.
+
+Focused Artemis/X-Square assertions passed `4/4`; Ruff, formatting, and diff
+checks passed. The exact branch-scoped gate passed backend units `1563/1563`,
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; only the six
+unchanged protected watchlist-column-editor/workspace-floating diffs failed.
+Docker resources were cleaned with no retained containers, volumes, networks,
+or testcontainer sessions. No generic provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam
+while preserving explicit completeness evidence, fail-closed mappings, and the
+six protected visual state-oracle assertions. Do not integrate, promote,
+deploy, push, or mutate another worktree.
+
 ## 2026-09-14 — Verified MUFG, McIvy/Genter, and Langar holdings completeness
 
 Product commit `6fcc3c382` requires a published composition date for MUFG Japan

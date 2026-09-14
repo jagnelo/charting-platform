@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified Artemis and X-Square holdings completeness receipt
+
+Commit `05971d070` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Artemis Capital's official
+holdings table and X-Square Capital's official holdings payload. It verifies
+parseable non-empty rows and a published snapshot date; undated payloads fail
+closed and generic labels remain unchanged.
+
+Focused assertions passed `4/4`; the exact gate passed backend units
+`1563/1563`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment, expected research-runner probes, and
+functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`,
+with the same six protected baselines remaining the only failures. Docker
+resources were cleaned with no retained containers, volumes, networks, or
+testcontainer sessions. No generic provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Verified MUFG, McIvy/Genter, and Langar holdings completeness receipt
 
 Commit `6fcc3c382` requires a published composition date and preserves

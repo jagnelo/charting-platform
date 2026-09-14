@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified Artemis and X-Square holdings completeness
+
+- [x] Require a published composition date for Artemis Capital's official
+      holdings table and X-Square Capital's official holdings payload. Verify
+      parseable non-empty rows; keep undated payloads fail-closed and generic
+      labels unchanged.
+- [x] Product commit `05971d070`; focused Artemis/X-Square assertions passed
+      `4/4`, Ruff/format/diff checks passed, and the exact gate passed backend
+      units `1563/1563`, integration `405/405`, frontend Vitest `1067/1067`,
+      type-check/build, compose/deployment contracts, expected
+      research-runner probes, and functional E2E `165 passed` with `107
+      skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
+### 2026-09-14 — Promote verified MUFG, McIvy/Genter, and Langar holdings completeness
+
 ### 2026-09-14 — Promote verified MUFG, McIvy/Genter, and Langar holdings completeness
 
 - [x] Require a published composition date for MUFG Japan Small Cap's official
