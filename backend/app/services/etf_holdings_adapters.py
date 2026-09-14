@@ -168,6 +168,19 @@ def _parse_issuer_date(value: Any) -> date | None:
     return None
 
 
+def _extract_top_holdings_data_as_of(raw_html: str) -> date | None:
+    """Extract the issuer-published date immediately following a holdings heading."""
+    heading = re.search(r"\bTOP(?:\s+10)?\s+HOLDINGS\b", raw_html, re.IGNORECASE)
+    if heading is None:
+        return None
+    match = re.search(
+        r"\bDATA\s+AS\s+OF\s+(\d{1,2}/\d{1,2}/\d{4})\b",
+        raw_html[heading.end() :],
+        re.IGNORECASE,
+    )
+    return _parse_issuer_date(match.group(1)) if match else None
+
+
 def _extract_nuxt_hydration_holdings(
     raw_html: str,
     *,
@@ -19591,6 +19604,11 @@ class LittleHarborHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
+            composition_date = _extract_top_holdings_data_as_of(page_response.text)
+            if composition_date is None:
+                raise ValueError(
+                    f"Little Harbor product page did not publish a composition date for {normalized_symbol}."
+                )
             workbook_response = await client.get(
                 holdings_url,
                 headers=_issuer_page_request_headers(
@@ -19635,6 +19653,8 @@ class LittleHarborHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(getattr(page_response, "url", product_url)),
                 "source_quality": "issuer_page_declared_current_complete_holdings",
                 "completeness_status": "complete",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "snapshot_provenance": "issuer_native_product_page_linked_workbook",
                 "terms_note": self.config.terms_note,
             },
@@ -19789,6 +19809,11 @@ class PetteeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
+            composition_date = _extract_top_holdings_data_as_of(page_response.text)
+            if composition_date is None:
+                raise ValueError(
+                    f"Pettee/Hoya product page did not publish a composition date for {normalized_symbol}."
+                )
             workbook_response = await client.get(
                 holdings_url,
                 headers=_issuer_page_request_headers(
@@ -19832,6 +19857,8 @@ class PetteeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(getattr(page_response, "url", product_url)),
                 "source_quality": "issuer_page_declared_current_complete_holdings",
                 "completeness_status": "complete",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "snapshot_provenance": "issuer_native_product_page_linked_workbook",
                 "terms_note": self.config.terms_note,
             },
@@ -19976,6 +20003,11 @@ class SoundCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
+            composition_date = _extract_top_holdings_data_as_of(page_response.text)
+            if composition_date is None:
+                raise ValueError(
+                    f"Sound Capital product page did not publish a composition date for {normalized_symbol}."
+                )
             workbook_response = await client.get(
                 self.HOLDINGS_URL,
                 headers=_issuer_page_request_headers(
@@ -20019,6 +20051,8 @@ class SoundCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(getattr(page_response, "url", self.PRODUCT_PAGE_URL)),
                 "source_quality": "issuer_page_declared_current_complete_holdings",
                 "completeness_status": "complete",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "snapshot_provenance": "issuer_native_publisher_product_page_linked_workbook",
                 "terms_note": self.config.terms_note,
             },
@@ -20157,6 +20191,11 @@ class SovereignHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
+            composition_date = _extract_top_holdings_data_as_of(page_response.text)
+            if composition_date is None:
+                raise ValueError(
+                    f"Sovereign's Capital product page did not publish a composition date for {normalized_symbol}."
+                )
             workbook_response = await client.get(
                 self.HOLDINGS_URL,
                 headers=_issuer_page_request_headers(
@@ -20199,6 +20238,8 @@ class SovereignHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(getattr(page_response, "url", self.PRODUCT_PAGE_URL)),
                 "source_quality": "issuer_page_declared_current_complete_holdings",
                 "completeness_status": "complete",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "snapshot_provenance": "issuer_native_product_page_linked_workbook",
                 "terms_note": self.config.terms_note,
             },

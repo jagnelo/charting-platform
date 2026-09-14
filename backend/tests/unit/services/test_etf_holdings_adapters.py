@@ -23205,7 +23205,8 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
         FakeResponse(
             text=(
                 "<html>LHA Market State Tactical Beta ETF "
-                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
+                f'<a href="{workbook_url}">Download Full Holdings</a>'
+                "<p>TOP HOLDINGS <span>Data as of 09/14/2026</span></p></html>"
             ),
             content_type="text/html",
             url="https://www.lhafunds.com/mstb",
@@ -23258,6 +23259,8 @@ async def test_little_harbor_adapter_parses_only_mstb_linked_holdings_workbook(m
         "issuer_page_declared_current_complete_holdings"
     )
     assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["composition_date"] == "2026-09-14"
+    assert result.legal_metadata["as_of_date"] == "2026-09-14"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -23274,7 +23277,8 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
         FakeResponse(
             text=(
                 "<html>Hoya Capital Housing ETF "
-                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
+                f'<a href="{workbook_url}">Download Full Holdings</a>'
+                "<p>TOP 10 HOLDINGS <span>Data as of 06/11/2026</span></p></html>"
             ),
             content_type="text/html",
             url="https://www.hoyaetfs.com/homz",
@@ -23318,6 +23322,8 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
         "issuer_page_declared_current_complete_holdings"
     )
     assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["composition_date"] == "2026-06-11"
+    assert result.legal_metadata["as_of_date"] == "2026-06-11"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -23334,7 +23340,8 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
         FakeResponse(
             text=(
                 "<html>Trenchless Fund ETF (RVER) "
-                f'<a href="{workbook_url}">Download Full Holdings</a></html>'
+                f'<a href="{workbook_url}">Download Full Holdings</a>'
+                "<p>TOP 10 HOLDINGS <span>Data as of 09/10/2026</span></p></html>"
             ),
             content_type="text/html",
             url="https://river1.us/rver",
@@ -23385,6 +23392,8 @@ async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(m
         "issuer_page_declared_current_complete_holdings"
     )
     assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["composition_date"] == "2026-09-10"
+    assert result.legal_metadata["as_of_date"] == "2026-09-10"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
@@ -23401,7 +23410,8 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
         FakeResponse(
             text=(
                 "<html>Sovereign's Capital Flourish Fund (SOVF) "
-                f'<a href="{workbook_url}">Download full holdings</a></html>'
+                f'<a href="{workbook_url}">Download full holdings</a>'
+                "<p>TOP 10 HOLDINGS <span>Data as of 09/09/2026</span></p></html>"
             ),
             content_type="text/html",
             url="https://www.scetfs.com/sovf",
@@ -23444,9 +23454,68 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
         "issuer_page_declared_current_complete_holdings"
     )
     assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["composition_date"] == "2026-09-09"
+    assert result.legal_metadata["as_of_date"] == "2026-09-09"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("adapter_key", "symbol", "page_url", "page_identity", "download_path"),
+    [
+        (
+            "little_harbor",
+            "MSTB",
+            "https://www.lhafunds.com/mstb",
+            "LHA Market State Tactical Beta ETF",
+            "download-holdings-usbanks.php?fund=mstb",
+        ),
+        (
+            "pettee",
+            "HOMZ",
+            "https://www.hoyaetfs.com/homz",
+            "Hoya Capital Housing ETF",
+            "download-holdings-usbanks.php?fund=homz",
+        ),
+        (
+            "sound_capital",
+            "RVER",
+            "https://river1.us/rver",
+            "Trenchless Fund ETF (RVER)",
+            "download-holdings-usbanks.php?fund=rver",
+        ),
+        (
+            "sovereign",
+            "SOVF",
+            "https://www.scetfs.com/sovf",
+            "Sovereign's Capital Flourish Fund (SOVF)",
+            "download-holdings-usbanks.php?fund=sovf",
+        ),
+    ],
+)
+async def test_linked_workbook_adapters_reject_undated_holdings_page(
+    monkeypatch,
+    adapter_key,
+    symbol,
+    page_url,
+    page_identity,
+    download_path,
+):
+    adapter = get_holdings_adapter(adapter_key)
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<html>{page_identity}<a href="{download_path}">Download Full Holdings</a></html>',
+            content_type="text/html",
+            url=page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol=symbol)
 
 
 @pytest.mark.asyncio
