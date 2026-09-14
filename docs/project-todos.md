@@ -42,6 +42,26 @@
 
 # Project TODO Memory
 
+### 2026-09-14 - Require dated Wellington holdings
+
+- [x] Require Wellington-managed Vanguard publisher holdings for VUSV/VDIG/VUSG
+to publish a parseable composition date; fail closed for undated/empty results,
+date-scope row IDs, and record complete native-route provenance/row-count
+metadata (`4e76ab33d`). The reviewed VUSV route published 86 rows dated
+2026-06-30.
+- [x] Focused Wellington assertions passed 3/3 including the undated regression;
+the opt-in live provider assertions passed 2/2 and the direct live adapter probe
+returned 86 complete rows. Ruff/format/diff checks passed. The exact gate passed
+backend units 1591/1591, integration 405/405 at 82.13% combined coverage,
+frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
+expected research-runner probes, and functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+diffs remain. Docker teardown removed all branch-scoped containers, volumes,
+network, four images, and testcontainer sessions. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
 ### 2026-09-14 - Require dated AllianceBernstein holdings
 
 - [x] Require AllianceBernstein's issuer-native model workbook route to
