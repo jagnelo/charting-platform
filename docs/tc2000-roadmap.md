@@ -3,7 +3,27 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-13
+Last reconciled: 2026-09-14
+
+## 2026-09-14 — Promote verified Palmer Square holdings completeness
+
+Product commit `4effca228` requires a published composition date for Palmer
+Square's official PSQO/PSQA product-page embedded Full Investment Holdings
+payload. The adapter already verifies non-empty rows and issuer-native payload
+identity; undated pages now fail closed while explicit
+`completeness_status: complete` remains scoped to the native route; generic
+current/daily/table labels remain fail-closed.
+
+Focused Palmer Square assertions passed `2/2`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1567/1567`, integration
+`405/405` with `82.04%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
 
 ## 2026-09-14 — Promote verified Retireful/Mohr holdings completeness
 

@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 — Verified Palmer Square holdings completeness
+
+Product commit `4effca228` requires a published composition date for Palmer
+Square's official PSQO/PSQA product-page embedded Full Investment Holdings
+payload. The adapter verifies non-empty rows and issuer-native payload
+identity; undated pages now fail closed while explicit
+`completeness_status: complete` remains scoped to the native route.
+
+Focused Palmer Square assertions passed `2/2`; Ruff, formatting, and diff
+checks passed. The exact branch-scoped gate passed backend units `1567/1567`,
+integration `405/405` with `82.04%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned with no retained containers, volumes, networks, or testcontainer
+sessions. No generic provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam
+while preserving explicit completeness evidence, fail-closed mappings, and
+the six protected visual state-oracle assertions. Do not integrate, promote,
+deploy, push, or mutate another worktree.
+
 ## 2026-09-14 — Verified Retireful/Mohr holdings completeness
 
 Product commit `697b51d00` requires a published composition date for
