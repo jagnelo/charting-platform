@@ -5,6 +5,13 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Make history backfill skip undated snapshots
+
+Product commit `75a6c7e45` makes benchmark-family snapshot-history backfill fail closed for legacy holdings snapshots without a publisher-declared composition date. Such rows remain available to audit/readiness paths, but are excluded from queue planning and counted as `undated_snapshot_count`; the task response carries that evidence forward so history bounds cannot be fabricated or crash the worker.
+
+Focused benchmark-family history/task assertions passed `34/34`; Ruff, formatting, and diff checks passed. The exact branch-scoped gate passed backend units `1587/1587`, integration `405/405` with `82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six protected watchlist-column-editor/workspace-floating diffs remain. Docker resources were cleaned with no retained containers, volumes, networks, testcontainer sessions, or images. No provider/fallback, migration, visual baseline, threshold, mask, skip, or acceptance policy changed. Family-wide R1 population/history, D1/W1/MN floors, continuity, and AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Verify Infrastructure Capital dated holdings
 
 Product commit `619bd4826` requires and records Infrastructure Capital's publisher-declared composition date from the official product page before consuming its native XLS holdings workbook. The adapter verifies non-empty native rows, fails closed when the product page is undated, records composition/as-of, source URL, workbook row count, and completeness metadata, and date-scopes row IDs.

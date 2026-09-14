@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-14 - Make history backfill skip undated snapshots
+
+- [x] Exclude legacy holdings snapshots without a publisher-declared
+      composition date from benchmark-family history queue planning while
+      retaining them for audit/readiness paths; report
+      undated_snapshot_count through the task response (75a6c7e45).
+- [x] Focused benchmark-family history/task assertions passed 34/34; Ruff,
+      formatting, and diff checks passed. The exact gate passed backend units
+      1587/1587, integration 405/405 at 82.10%, frontend Vitest 1067/1067,
+      type-check/build, compose/deployment contracts, expected
+      research-runner probes, and functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker resources were cleaned with no retained containers,
+      volumes, networks, testcontainer sessions, or images. No provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
+
 ### 2026-09-14 - Verify Infrastructure Capital dated holdings
 
 - [x] Require and record Infrastructure Capital's publisher-declared

@@ -54,7 +54,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "06089c4bee7943ebe4a07ae7dfbc17a2a150b8fc",
+  "head": "75a6c7e4535c58ed4374810a39e712c842ea7b8b",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T12:34:06.658499+00:00",
-  "last_human_progress_update": "2026-09-14T12:33:26.544992+00:00",
+  "last_human_progress_update": "2026-09-14T13:02:28.785614+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "66c9c395681ad4bb7c3113be5b8a24a40afa2a1c148286709f67b7253b656336",
+  "plan_hash": "76142bceee1a1408eb67a1cea62605bc2bc1aa65779262b63b3e87d34d966183",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +141,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Infrastructure Capital dated holdings and cold-navigation seams are verified at 619bd4826/ad97b1aae; exact gate is green outside six established visual diffs; Docker teardown is clean; continue next bounded R1 canonical provider/history seam.",
-    "current_phase": "R1_verified_infrastructure_capital_dated_holdings",
-    "next_action": "Inspect and implement the next bounded R1 issuer-native population/history seam, preserving explicit composition-date evidence, fail-closed mappings, cold-navigation regression, and six protected visual diffs; rerun focused checks and exact gate at the next coherent tip.",
+    "current_blocker": "Infrastructure Capital, cold-navigation, and history-backfill undated-snapshot seams are verified at 619bd4826/ad97b1aae/75a6c7e45; exact gate is green outside six established visual diffs; Docker teardown is clean; continue next bounded R1 canonical provider/history seam.",
+    "current_phase": "R1_verified_history_backfill_undated_guard",
+    "next_action": "Inspect and implement the next bounded R1 canonical population/history or continuity seam, preserving explicit composition-date evidence, fail-closed mappings, undated-backfill guard, cold-navigation regression, and six protected visual diffs; rerun focused checks and exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T12:33:26.544876+00:00"
+    "updated_at": "2026-09-14T13:02:28.785493+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
