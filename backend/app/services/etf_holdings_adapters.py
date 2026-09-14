@@ -28580,7 +28580,20 @@ class InfrastructureCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "Infrastructure Capital needs an ETF symbol for its holdings workbook."
             )
 
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        product_page_url = self.product_page_template.format(symbol_upper=normalized_symbol)
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_page_response.raise_for_status()
+            composition_date = _extract_top_holdings_data_as_of(product_page_response.text)
+            if composition_date is None:
+                raise ValueError(
+                    "Infrastructure Capital product page did not publish a holdings composition date."
+                )
             response = await client.get(
                 holdings_url,
                 headers=self.source_request_headers(source_url=holdings_url),
@@ -28595,12 +28608,25 @@ class InfrastructureCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Infrastructure Capital holdings workbook returned no parseable rows for {symbol}."
             )
+        dated_rows = rows
+        for index, row in enumerate(dated_rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.isin or row.symbol or row.name or 'row'}"
+            )
         return HoldingsFetchResult(
-            rows=rows,
+            rows=dated_rows,
             raw_text=_table_to_text(workbook_rows),
-            raw_json={"source_format": "xls", "workbook_rows": workbook_rows},
+            raw_json={
+                "source_format": "xls",
+                "product_page_url": str(getattr(product_page_response, "url", product_page_url)),
+                "workbook_rows": workbook_rows,
+                "row_count": len(dated_rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(response, "url", holdings_url)),
-            source_identifier=(issuer_product_id or symbol).strip().upper(),
+            source_identifier=normalized_symbol,
             legal_metadata={
                 "route_resolution": "infrastructure_capital_symbol_holdings_xls",
                 "source_access": self.config.source_access,
@@ -28609,6 +28635,9 @@ class InfrastructureCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "xls",
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_symbol_holdings_xls",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "completeness_status": "complete",
                 "terms_note": self.config.terms_note,
             },
         )

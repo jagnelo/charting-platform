@@ -3190,6 +3190,10 @@ async def test_live_infrastructure_capital_symbol_holdings_workbook():
     assert result.legal_metadata["route_resolution"] == (
         "infrastructure_capital_symbol_holdings_xls"
     )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["as_of_date"] == result.legal_metadata["composition_date"]
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.rows[0].source_row_id.startswith("ICAP:")
     assert result.rows[0].cusip
 
 

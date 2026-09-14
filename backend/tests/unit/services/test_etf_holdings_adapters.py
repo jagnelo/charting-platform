@@ -11418,6 +11418,14 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>Infrastructure Capital Equity Income ETF (ICAP)</h1>"
+                "<h2>TOP 10 HOLDINGS</h2><p>Data as of 07/23/2026.</p></html>"
+            ),
+            content_type="text/html",
+            url="https://www.infracapfund.com/ICAP",
+        ),
         FakeResponse(content=xls_payload, content_type="application/vnd.ms-excel"),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
@@ -11428,11 +11436,12 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
 
     result = await adapter.fetch_latest(symbol="ICAP", identifiers={})
 
-    assert FakeAsyncClient.requested[0][0] == (
+    assert FakeAsyncClient.requested[0][0] == "https://www.infracapfund.com/ICAP"
+    assert FakeAsyncClient.requested[1][0] == (
         "https://www.infracapfund.com/download-holdings-usbanks.php?fund=ICAP"
     )
     assert (
-        FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://www.infracapfund.com/ICAP"
+        FakeAsyncClient.requested[1][1]["headers"]["Referer"] == "https://www.infracapfund.com/ICAP"
     )
     assert result.rows[0].symbol == "AVGO"
     assert result.rows[0].cusip == "11135F101"
@@ -11441,6 +11450,31 @@ async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(m
     )
     assert result.legal_metadata["source_provider"] == "infrastructure_capital"
     assert result.legal_metadata["source_format"] == "xls"
+    assert result.legal_metadata["composition_date"] == "2026-07-23"
+    assert result.legal_metadata["as_of_date"] == "2026-07-23"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 1
+    assert result.rows[0].source_row_id == "ICAP:2026-07-23:1:11135F101"
+
+
+@pytest.mark.asyncio
+async def test_infrastructure_capital_adapter_rejects_undated_product_page(monkeypatch):
+    adapter = get_holdings_adapter("infrastructure_capital")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>Infrastructure Capital Equity Income ETF (ICAP)</h1>"
+                "<h2>TOP 10 HOLDINGS</h2></html>"
+            ),
+            content_type="text/html",
+            url="https://www.infracapfund.com/ICAP",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a holdings composition date"):
+        await adapter.fetch_latest(symbol="ICAP", identifiers={})
 
 
 @pytest.mark.asyncio
