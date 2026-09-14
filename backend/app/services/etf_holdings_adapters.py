@@ -29329,6 +29329,16 @@ class AllianceBernsteinHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"AllianceBernstein holdings workbook did not expose parseable rows for {symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"AllianceBernstein holdings workbook did not publish a composition date for {symbol}."
+            )
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.isin or row.symbol or row.name or 'holding'}"
+            )
         raw_text = _table_to_text(workbook_rows)
         return HoldingsFetchResult(
             rows=rows,
@@ -29338,22 +29348,27 @@ class AllianceBernsteinHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "model_url": model_url,
                 "workbook_url": str(workbook_response.url),
                 "workbook_rows": workbook_rows,
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
             },
             source_url=str(workbook_response.url),
-            source_identifier=issuer_product_id or symbol.strip().upper(),
+            source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "xlsx",
                 "route_resolution": "issuer_product_page_model_workbook",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
                 "net_assets": str(net_assets) if net_assets is not None else None,
                 "base_currency": base_currency,
                 "product_page_url": str(page_response.url),
                 "model_url": model_url,
                 "terms_note": self.config.terms_note,
+                "completeness_status": "complete",
+                "snapshot_provenance": "issuer_native_alliancebernstein_model_workbook",
             },
         )
 

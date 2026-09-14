@@ -2130,6 +2130,25 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("alliancebernstein")
+async def test_live_alliancebernstein_fwd_model_workbook():
+    adapter = get_holdings_adapter("alliancebernstein")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="FWD")
+
+    _assert_live_holdings_result(result, adapter_key="alliancebernstein", min_rows=10)
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["as_of_date"] == result.legal_metadata["composition_date"]
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_alliancebernstein_model_workbook"
+    )
+    assert result.rows[0].source_row_id.startswith("FWD:")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("ishares")
 async def test_live_ishares_explicit_historical_as_of_snapshot():
     adapter = get_holdings_adapter("ishares")

@@ -15223,8 +15223,70 @@ async def test_alliancebernstein_adapter_fetches_model_linked_workbook(monkeypat
     assert result.legal_metadata["source_format"] == "xlsx"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_model_workbook"
     assert result.legal_metadata["composition_date"] == "2026-04-30"
+    assert result.legal_metadata["as_of_date"] == "2026-04-30"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_alliancebernstein_model_workbook"
+    )
+    assert result.rows[0].source_row_id == "FWD:2026-04-30:1:11135F101"
+    assert result.raw_json["row_count"] == 1
+    assert result.raw_json["composition_date"] == "2026-04-30"
     assert result.legal_metadata["net_assets"] == "2478960606"
     assert result.legal_metadata["base_currency"] == "USD"
+
+
+@pytest.mark.asyncio
+async def test_alliancebernstein_adapter_rejects_undated_workbook(monkeypatch):
+    adapter = get_holdings_adapter("alliancebernstein")
+    assert adapter is not None
+    workbook = _xlsx_workbook(
+        [
+            ["AB Disruptors ETF"],
+            ["Holdings report"],
+            ["Base Currency: USD"],
+            ["Securities"],
+            [
+                "Units/Par Value/ # of contracts",
+                "Issue Description/Name",
+                "Accounting Value (BC)",
+                "% of Net Assets",
+                "ISIN (Primary ID)",
+                "Cusip",
+                "Sedol",
+                "Ticker",
+            ],
+            [
+                "203705",
+                "Broadcom, Inc.",
+                "85032578.15",
+                "0.0343",
+                "US11135F1012",
+                "11135F101",
+                "BDZ78H9",
+                "AVGO",
+            ],
+        ]
+    )
+    model_url = "/content/abde_holdings.model.json"
+    workbook_url = "/content/ab_full_holdings.xlsx"
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<div data-portfolio-holding="{model_url}"></div>',
+            content_type="text/html",
+        ),
+        FakeResponse(
+            text=json.dumps({"links": [{"url": workbook_url}]}),
+            content_type="application/json",
+        ),
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="FWD")
 
 
 @pytest.mark.asyncio
