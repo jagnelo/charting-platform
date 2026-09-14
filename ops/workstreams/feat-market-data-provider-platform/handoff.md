@@ -2,17 +2,19 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
-- Latest backend source checkpoint: `bbaf83789` (`fix(provider): type
-  unsupported daily history requests`). The required Docker-backed gate passed
-  `2,510/2,510` at `81.73%` combined coverage with 89 warnings in `492.90s`
+- Latest backend source checkpoint: `d0662d139` (`fix(provider): type
+  unsupported history timeframes`). The required Docker-backed gate passed
+  `2,520/2,520` at `81.75%` combined coverage with 89 warnings in `523.12s`
   using isolated testcontainer session
-  `144652ec-b005-48af-9fd7-4c7fceb78e50`; the workstream validator passed all
-  30 records and the branch is clean/pushed. Alpha Vantage and FRED now reject
-  unsupported direct history timeframes before transport, in addition to the
-  provider-wide `Y1` latest-window hardening. No frontend or ETF-provider
-  adapter files changed. Provider/legal, trusted-secret-store, deferred-
-  credential, NMS/OTC reconciliation, and separately approved shadow-run
-  gates remain open.
+  `46c3894d-e2c3-4e57-a5be-1d34654c5d0c`; focused provider adapter coverage
+  passed `343/343` with `--no-cov`, Ruff and diff checks passed, and the branch
+  is pushed. Alpaca, Binance, Tiingo, Twelve Data, Tradier, MarketData.app,
+  Finnhub, Marketstack, EODHD, and FMP now reject unsupported direct history
+  timeframes with typed provider errors before transport rather than returning
+  ambiguous empty lists; valid empty ranges and non-crypto Binance symbols are
+  unchanged. No frontend or ETF-provider adapter files changed.
+  Provider/legal, trusted-secret-store, deferred-credential, NMS/OTC
+  reconciliation, and separately approved shadow-run gates remain open.
 
 - Tokenized historical comments and documentation are now consistent with the
   implemented Dinari/Ondo bridge and its four supported windows (`DAY`,

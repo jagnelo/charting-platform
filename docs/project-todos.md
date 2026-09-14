@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-14 — Typed unsupported history timeframes across adapters
+
+- [x] Make direct history requests fail closed with typed provider errors when
+      a provider does not advertise the requested timeframe. Alpaca, Binance,
+      Tiingo, Twelve Data, Tradier, MarketData.app, Finnhub, Marketstack, EODHD,
+      and FMP no longer turn unsupported annual/unmapped windows into an
+      ambiguous empty result; valid empty ranges and non-crypto Binance symbol
+      filtering remain intact. Focused adapter tests passed 343/343 with
+      `--no-cov`; the authoritative Docker-backed backend gate passed
+      2,520/2,520 at 81.75% coverage with 89 warnings. Provider entitlement,
+      quota, legal, deployment-secret, and routing-promotion gates remain
+      fail-closed.
+
 ### 2026-09-14 — Typed unsupported daily-provider timeframes
 
 - [x] Make Alpha Vantage and FRED reject unsupported direct and latest history

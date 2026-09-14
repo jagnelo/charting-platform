@@ -127,6 +127,20 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Direct history adapters now fail closed with typed
+      `ProviderResponseError` values when a requested timeframe is not
+      advertised by the provider. Alpaca, Binance, Tiingo, Twelve Data,
+      Tradier, MarketData.app, Finnhub, Marketstack, EODHD, and FMP no longer
+      return an ambiguous empty list for unsupported annual (or other
+      unmapped) windows, while valid empty ranges and non-crypto Binance
+      symbols retain their prior semantics. Focused adapter coverage passed
+      `343/343` with `--no-cov`; Ruff and diff checks passed. The authoritative
+      Docker-backed backend gate passed `2,520/2,520` at `81.75%` combined
+      coverage with 89 warnings in `523.12s`, using isolated testcontainer
+      session `46c3894d-e2c3-4e57-a5be-1d34654c5d0c`, cleaned without
+      host-wide pruning. Source checkpoint `d0662d139` contains no frontend or
+      ETF-provider adapter changes.
+    - >-
       Tokenized aggregate persistence now supports the documented `YEAR`
       window through a real canonical `Timeframe.Y1` value. Calendar-year
       bucketing, the PostgreSQL `timeframe` enum migration, tokenized history
