@@ -2,16 +2,17 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
-- Latest backend source checkpoint: `243695c21` (`fix(provider): reject
-  unsupported annual windows`). The required Docker-backed gate passed
-  `2,509/2,509` at `81.73%` combined coverage with 89 warnings in `512.82s`
+- Latest backend source checkpoint: `bbaf83789` (`fix(provider): type
+  unsupported daily history requests`). The required Docker-backed gate passed
+  `2,510/2,510` at `81.73%` combined coverage with 89 warnings in `492.90s`
   using isolated testcontainer session
-  `bfe6aa6d-c60f-4983-a41f-75b86b63fbc5`; the workstream validator passed all
-  30 records and the branch is clean/pushed. All provider latest-window
-  helpers now reject unsupported `Y1` explicitly rather than deriving a daily
-  lookback. No frontend or ETF-provider adapter files changed. Provider/legal,
-  trusted-secret-store, deferred-credential, NMS/OTC reconciliation, and
-  separately approved shadow-run gates remain open.
+  `144652ec-b005-48af-9fd7-4c7fceb78e50`; the workstream validator passed all
+  30 records and the branch is clean/pushed. Alpha Vantage and FRED now reject
+  unsupported direct history timeframes before transport, in addition to the
+  provider-wide `Y1` latest-window hardening. No frontend or ETF-provider
+  adapter files changed. Provider/legal, trusted-secret-store, deferred-
+  credential, NMS/OTC reconciliation, and separately approved shadow-run
+  gates remain open.
 
 - Tokenized historical comments and documentation are now consistent with the
   implemented Dinari/Ondo bridge and its four supported windows (`DAY`,

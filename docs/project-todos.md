@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-14 — Typed unsupported daily-provider timeframes
+
+- [x] Make Alpha Vantage and FRED reject unsupported direct and latest history
+      timeframes before transport, rather than returning an ambiguous empty
+      dataset or deriving an unsupported lookback. Focused provider/alert/
+      Nautilus coverage passed 356/356; the authoritative Docker-backed
+      backend gate passed 2,510/2,510 at 81.73% coverage with 89 warnings.
+      Provider/legal, quota, and deployment gates remain fail-closed.
+
 ### 2026-09-13 — Tokenized historical documentation parity
 
 - [x] Align the provider configuration comment and data-provider guide with
