@@ -1,5 +1,12 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified Infrastructure Capital dated holdings
+
+Commit `619bd4826` requires and records Infrastructure Capital's publisher-declared composition date from the official product page before consuming its native XLS holdings workbook. The adapter verifies non-empty rows, fails closed for an undated product page, records composition/as-of and row-count metadata, marks the native route complete, and date-scopes row IDs.
+
+Focused Infrastructure Capital unit assertions passed `2/2`; the reviewed live workbook probe passed `1/1`; Ruff/format/diff checks passed. The exact gate passed backend units `1587/1587`, integration `405/405` with `82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six protected baselines remaining the only failures. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No generic provider/fallback, visual baseline/mask/threshold/skip, migration, or acceptance policy changed. R1 family-wide population/history, floors, continuity, and AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Verified Timothy Plan holdings and Add-tool cold-navigation fix
 
 Commit 86c4820f1 requires and records Timothy Plan's published holdings snapshot date for the native HTML holdings table. Commit ad97b1aae yields once in openTool so a shell click racing asynchronous workstation mount is not dropped on cold /chart navigation.

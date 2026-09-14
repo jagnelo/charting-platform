@@ -5,6 +5,13 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Verify Infrastructure Capital dated holdings
+
+Product commit `619bd4826` requires and records Infrastructure Capital's publisher-declared composition date from the official product page before consuming its native XLS holdings workbook. The adapter verifies non-empty native rows, fails closed when the product page is undated, records composition/as-of, source URL, workbook row count, and completeness metadata, and date-scopes row IDs.
+
+Focused Infrastructure Capital unit assertions passed `2/2`; the reviewed live workbook probe passed `1/1`; Ruff, formatting, and diff checks passed. The exact branch-scoped gate passed backend units `1587/1587`, integration `405/405` with `82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six protected watchlist-column-editor/workspace-floating diffs remain. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No provider/fallback, migration, visual baseline, threshold, mask, skip, or acceptance policy changed. Family-wide R1 population/history, D1/W1/MN floors, continuity, and AC2-AC7/AC10 remain open.
+
+
 ## 2026-09-14 - Verify Timothy Plan holdings and cold-navigation tool opens
 
 Product commit 86c4820f1 requires and records Timothy Plan's published holdings snapshot date for its native HTML holdings table. The adapter verifies non-empty native rows, fails closed for undated snapshots, records composition/as-of and row-count metadata, scopes completeness_status: complete to the native route, and date-scopes row IDs. Product commit ad97b1aae also yields once in openTool when a shell click races the workstation's asynchronous mount, preserving the first Add-tool command on a cold /chart navigation.

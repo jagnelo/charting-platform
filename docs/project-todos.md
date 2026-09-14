@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-14 - Verify Infrastructure Capital dated holdings
+
+- [x] Require and record Infrastructure Capital's publisher-declared
+      composition date from the official product page before consuming its
+      native XLS holdings workbook; fail closed for undated pages, mark the
+      native route complete, and date-scope row IDs (619bd4826).
+- [x] Focused Infrastructure Capital unit assertions passed 2/2 and the
+      reviewed live workbook probe passed 1/1; Ruff, formatting, and diff
+      checks passed. The exact gate passed backend units 1587/1587,
+      integration 405/405 at 82.10%, frontend Vitest 1067/1067, type-check/
+      build, compose/deployment contracts, expected research-runner probes,
+      and functional E2E 165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker resources were cleaned with no retained containers,
+      volumes, networks, or testcontainer sessions. No provider/fallback,
+      migration, visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
+
+
 ### 2026-09-14 - Verify Timothy Plan holdings and cold-navigation tool opens
 
 - [x] Require and record Timothy Plan's published holdings snapshot date for the native HTML holdings table; verify non-empty rows, fail closed for undated snapshots, mark the native route complete, and date-scope row IDs (86c4820f1).
