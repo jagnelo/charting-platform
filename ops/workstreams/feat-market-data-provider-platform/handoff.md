@@ -2281,3 +2281,12 @@ changed.
   `accepted=4`. This remains transport/schema evidence only and does not
   promote unreviewed routing entitlements. No frontend or ETF-provider adapter
   files changed.
+
+- The exact current pushed HEAD `78715e5b9de2` passed the authoritative
+  Docker-backed combined backend gate on 2026-09-14: `2,488` tests passed at
+  `81.71%` combined coverage with 89 warnings in `501.69s`. Isolated
+  testcontainer session `3cf7d5d5-45dc-4e81-a2c6-9f9d6245dfe2` was cleaned
+  without a host-wide prune. No frontend or ETF-provider adapter files
+  changed. The branch remains `ready_for_human_review`; provider/legal,
+  trusted-secret-store, deferred-credential, NMS/OTC reconciliation, and
+  separately approved shadow-run gates remain intentionally open.
