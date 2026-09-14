@@ -1,3 +1,26 @@
+## 2026-09-14 - Verified Corgi dated holdings
+
+- [x] Harden Corgi Funds' issuer-native public holdings route for FDRS; require
+      non-empty retained rows with exactly one parseable `position_date`, fail
+      closed for missing/invalid/mixed-date snapshots, date-scope row IDs, and
+      record complete native-route provenance/row-count metadata
+      (`94f09137e`). The reviewed public route published 52 rows dated
+      2026-09-14.
+- [x] Focused Corgi assertions passed 4/4 including missing/invalid/mixed-date
+      regressions; the opt-in live route assertion passed 1/1; the direct public
+      probe returned 52 complete rows dated 2026-09-14. Ruff/format/diff checks
+      passed. The exact gate passed backend units 1603/1603, integration 405/405
+      at 82.17% combined coverage, frontend Vitest 1067/1067, type-check/build,
+      compose/deployment contracts, research-runner probes, and functional E2E
+      165 passed with 107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual diffs
+      remain. Docker teardown removed all branch-scoped containers, volumes,
+      network, four images, and testcontainer sessions. No provider/fallback,
+      migration, visual baseline, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ### 2026-09-14 - Verified SS&C dated holdings
 
 - [x] Harden the shared Capital Impact adapter for the EntrepreneurShares and
