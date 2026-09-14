@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 - Verified Optimize dated holdings
+
+Product commit `a9cdd8829` hardens Optimize's native product-page verified
+fund-scoped XLS route for OPTZ. The adapter now requires exactly one parseable
+holdings-specific composition date (`Data as of ... Holdings are subject to
+change`), fails closed for undated, invalid, or ambiguous pages, date-scopes
+source IDs, and records complete composition/as-of, row-count, and
+`optimize_native_fund_scoped_holdings_xls` provenance metadata. The direct public
+holdings export published 339 rows dated 2026-09-14.
+
+Focused Optimize assertions passed 2/2 including invalid/mixed/missing-date
+regressions; the escalated opt-in live route assertion passed 1/1; and the
+direct public probe returned 339 complete rows dated 2026-09-14. Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker-backed gate
+passed backend units 1608/1608, integration 405/405 with 82.19% combined
+coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+contracts, research-runner sandbox/resource probes, and functional E2E 165
+passed with 107 skipped. Visual E2E passed 98/104 with exactly the six unchanged
+protected watchlist-column-editor/workspace-floating diffs. Docker teardown
+removed all branch-scoped containers, volumes, network, four generated images,
+and testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Cultivar dated holdings
 
 Product commit `3de6e028b` hardens Cultivar's native fund-page holdings route

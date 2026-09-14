@@ -1,5 +1,28 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Verified Optimize dated holdings
+
+Product commit `a9cdd8829` hardens Optimize's native fund-scoped verified XLS
+route for `OPTZ`. Retained rows now require exactly one parseable
+holdings-specific `Data as of ... Holdings are subject to change` composition
+date; undated, invalid, and ambiguous pages fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`optimize_native_fund_scoped_holdings_xls` provenance metadata is recorded. The
+direct public holdings export returned 339 rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including invalid/mixed/missing-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+339 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1608/1608, integration 405/405
+at 82.19% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Cultivar dated holdings
 
 Product commit `3de6e028b` hardens Cultivar's native fund-page holdings route
