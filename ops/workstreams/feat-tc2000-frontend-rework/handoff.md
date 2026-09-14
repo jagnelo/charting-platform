@@ -1,5 +1,29 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Verified EMLes dated holdings
+
+Product commit `a001e82cd` hardens EMLes's native public fund-page,
+fund-scoped CSV route for the listed ETF lineup, focused on `EOPS`. Retained
+rows now require exactly one parseable snapshot date; undated, invalid, and
+mixed-date exports fail closed; source IDs are date-scoped; and complete
+composition/as-of, row-count, and `emles_native_fund_scoped_holdings_csv`
+provenance metadata is recorded. The direct public EOPS export returned 1
+complete row dated 2022-10-20 (cash-only disclosure).
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+1 complete dated row. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1609/1609, integration 405/405
+at 82.20% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; a preceding attempt hit a transient
+PostgreSQL termination and was retried from a clean stack. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy
+changed. Continue R1 family-wide population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Optimize dated holdings
 
 Product commit `a9cdd8829` hardens Optimize's native fund-scoped verified XLS

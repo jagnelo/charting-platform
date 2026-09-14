@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-15 - Verified EMLes dated holdings
+
+Product commit `a001e82cd` hardens EMLes's native public fund-page,
+fund-scoped CSV route for EOPS and its listed ETF lineup. The adapter now
+requires exactly one parseable snapshot date across retained rows, fails closed
+for undated, invalid, or mixed-date exports, date-scopes source IDs, and records
+complete composition/as-of, row-count, and
+`emles_native_fund_scoped_holdings_csv` provenance metadata. The direct public
+EOPS export published 1 complete row dated 2022-10-20 (cash-only disclosure).
+
+Focused EMLes assertions passed 2/2 including missing/invalid/mixed-date
+regressions; the escalated opt-in live route assertion passed 1/1; and the
+direct public probe returned 1 complete dated row. Ruff, formatting, and diff
+checks passed. The exact branch-scoped Docker-backed gate passed backend units
+1609/1609, integration 405/405 with 82.20% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, research-runner
+sandbox/resource probes, and functional E2E 165 passed with 107 skipped. Visual
+E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. A preceding attempt hit a transient PostgreSQL
+termination during integration setup and was retried from a clean stack; no
+product regression was observed. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified Optimize dated holdings
 
 Product commit `a9cdd8829` hardens Optimize's native product-page verified
