@@ -116,14 +116,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4a37aafb5a043d8ec5ea4a89f880cdbdaa0d3dcb",
+  "head": "de1c20b936640dfeb61767deb4e2e9669455421c",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-14T16:41:17.768075+00:00",
-  "last_human_progress_update": "2026-09-14T16:39:36.729806+00:00",
+  "last_checkpoint": "2026-09-14T17:13:16.734422+00:00",
+  "last_human_progress_update": "2026-09-14T17:12:27.799578+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "e81c2cd243e0b19f662e622324e13800776753f364444f0ca27115a8ef26a667",
+  "plan_hash": "d5f24b4bd6f4220773412c4ae54195401e9842e3e977d238882a79e956e2c621",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -136,11 +136,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "ACSI dated holdings is verified at product tip b067dc884; the exact gate is blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
-    "current_phase": "R1_verified_acsi_dated_holdings",
+    "current_blocker": "Alerian dated holdings is verified at product tip f7f4ed33d; the exact gate is blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
+    "current_phase": "R1_verified_alerian_dated_holdings",
     "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the undated-backfill guard, and the six protected visual state-oracle assertions; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T16:39:36.729600+00:00"
+    "updated_at": "2026-09-14T17:12:27.799463+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
