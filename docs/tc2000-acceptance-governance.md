@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified National Security Index holdings completeness receipt
+
+Commit `325bb4762` requires a published composition date and preserves
+explicit `completeness_status: complete` only for the National Security Index
+ETF's official product-page declared holdings CSV. It verifies issuer/product
+identity and parseable non-empty rows; undated payloads fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `24/24`; the exact gate passed backend units
+`1558/1558`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
 ## 2026-09-14 — Verified AOT, SMI 3Fourteen, and Abacus Global holdings completeness receipt
 
 Commit `56f982a39` requires a published composition date and adds explicit
