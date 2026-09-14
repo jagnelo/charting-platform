@@ -28059,11 +28059,26 @@ class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_allspring_csv(response.text)
         if not rows:
             raise ValueError(f"Allspring holdings CSV did not expose holdings rows for {symbol}.")
+        if composition_date is None:
+            raise ValueError(
+                f"Allspring holdings CSV did not expose a dated snapshot for {symbol}."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat()}:{index}:"
+                f"{row.cusip or row.symbol or row.name or 'holding'}"
+            )
 
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json=None,
+            raw_json={
+                "source_format": "issuer_symbol_total_holdings_csv",
+                "product_page_url": "https://www.allspringglobal.com/investments/performance/etfs/",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(getattr(response, "url", holdings_url)),
             source_identifier=issuer_product_id or normalized_symbol,
             legal_metadata={
@@ -28075,6 +28090,7 @@ class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
+                "completeness_status": "complete",
             },
         )
 

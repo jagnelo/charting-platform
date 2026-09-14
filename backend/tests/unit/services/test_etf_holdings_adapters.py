@@ -22687,6 +22687,32 @@ async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "allspring"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-26"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.raw_json["row_count"] == 4
+    assert result.raw_json["as_of_date"] == "2026-06-26"
+    assert result.rows[0].source_row_id == "ASLV:2026-06-26:1:023135106"
+
+
+@pytest.mark.asyncio
+async def test_allspring_adapter_rejects_undated_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("allspring")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Total holdings",
+                    "SecurityName,Ticker,CUSIP,ISIN,SEDOL,AssetClass,SharesPrincipalAmount,MarketValue,NotionalValue,PercentOfNetAssets",
+                    "Amazon.com, Inc.,AMZN,023135106,US0231351067,2000019,Equity Security,1,$100,,1.00%",
+                ]
+            ),
+            url="https://www.allspringglobal.com/globalassets/data/total-holdings/ASLV.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not expose a dated snapshot"):
+        await adapter.fetch_latest(symbol="ASLV")
 
 
 @pytest.mark.asyncio
