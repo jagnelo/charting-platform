@@ -13,6 +13,26 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest Alerian dated holdings seam is verified at branch tip `f7f4ed33d`:
+  Alerian's issuer-owned ALPS HubSpot proxy route for AMLP/ENFR now requires
+  non-empty rows with exactly one parseable `asofdate`, fails closed for
+  undated or mixed-date payloads, date-scopes source IDs, and records complete
+  composition/as-of, row-count, and `alerian_native_issuer_json` provenance
+  metadata. The reviewed live ENFR route published 29 rows dated 2026-09-11.
+  Focused Alerian assertions passed 5/5 including the undated-row regression;
+  dedicated and generic live route assertions passed 2/2; the direct public
+  proxy probe returned 29 dated rows; Ruff, formatting, and diff checks passed.
+  The exact gate passed backend units 1594/1594, integration 405/405 at 82.14%
+  combined coverage, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, expected research-runner probes, and
+  functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with
+  only the six unchanged protected watchlist-column-editor/workspace-floating
+  diffs. Docker teardown removed all branch-scoped containers, volumes,
+  network, four generated images, and testcontainer sessions. No generic
+  provider/fallback, migration, visual baseline, threshold, mask, skip, or
+  acceptance policy changed. Continue R1 family-wide canonical
+  population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+  remain open.
   Latest ACSI dated holdings seam is verified at branch tip `b067dc884`:
   ACSI Funds' official daily holdings CSV route for ACSI now requires non-empty
   rows with exactly one parseable composition date, fails closed for undated or
@@ -3884,7 +3904,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_acsi_dated_holdings
+  current_phase: R1_verified_alerian_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
@@ -3892,6 +3912,26 @@ progress:
     guard, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
+    Latest Alerian dated holdings seam is verified at branch tip `f7f4ed33d`:
+    Alerian's issuer-owned ALPS HubSpot proxy route for AMLP/ENFR now requires
+    non-empty rows with exactly one parseable `asofdate`, fails closed for
+    undated or mixed-date payloads, date-scopes source IDs, and records complete
+    composition/as-of, row-count, and `alerian_native_issuer_json` provenance
+    metadata. The reviewed live ENFR route published 29 rows dated 2026-09-11.
+    Focused Alerian assertions passed 5/5 including the undated-row regression;
+    dedicated and generic live route assertions passed 2/2; the direct public
+    proxy probe returned 29 dated rows; Ruff, formatting, and diff checks passed.
+    The exact gate passed backend units 1594/1594, integration 405/405 at 82.14%
+    combined coverage, frontend Vitest 1067/1067, type-check/build,
+    compose/deployment contracts, expected research-runner probes, and
+    functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with
+    only the six unchanged protected watchlist-column-editor/workspace-floating
+    diffs. Docker teardown removed all branch-scoped containers, volumes,
+    network, four generated images, and testcontainer sessions. No generic
+    provider/fallback, migration, visual baseline, threshold, mask, skip, or
+    acceptance policy changed. Continue R1 family-wide canonical
+    population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+    remain open.
     Latest ACSI dated holdings seam is verified at branch tip `b067dc884`:
     ACSI Funds' official daily holdings CSV route for ACSI now requires non-empty
     rows with exactly one parseable composition date, fails closed for undated or

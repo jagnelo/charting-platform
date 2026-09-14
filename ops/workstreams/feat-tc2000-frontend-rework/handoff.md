@@ -1,5 +1,28 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-14 - Verified Alerian dated holdings
+
+Product commit `f7f4ed33d` hardens Alerian's issuer-owned ALPS HubSpot proxy
+route for AMLP/ENFR. The adapter requires non-empty rows with exactly one
+parseable `asofdate`, fails closed for undated or mixed-date payloads,
+date-scopes source IDs, and records complete native-route composition/as-of,
+row-count, and `alerian_native_issuer_json` provenance metadata. The reviewed
+live ENFR route published 29 rows dated 2026-09-11. Focused Alerian assertions
+passed 5/5 including the undated-row regression; dedicated and generic live
+route assertions passed 2/2; the direct public proxy probe returned 29 dated
+rows; and Ruff, formatting, and diff checks passed.
+
+The exact Docker-backed branch gate passed backend units 1594/1594,
+integration 405/405 at 82.14% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104 with exactly the six established protected watchlist-column-editor/
+workspace-floating diffs. Docker teardown removed all containers, volumes,
+network, four generated images, and testcontainer sessions. No provider/
+fallback, migration, visual baseline, threshold, mask, skip, or acceptance
+policy changed. Continue family-wide R1 population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-14 - Verified ACSI dated holdings
 
 Product commit `b067dc884` promotes ACSI Funds' official daily holdings CSV to
