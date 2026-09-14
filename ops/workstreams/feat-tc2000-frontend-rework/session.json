@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2f07887325e5dbd684afde65890d8f4ec1b06568",
+  "head": "045478c6e0e9d36a35d06ffbb2a5663b8fee9353",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T10:01:30.613688+00:00",
-  "last_human_progress_update": "2026-09-14T10:00:39.488381+00:00",
+  "last_human_progress_update": "2026-09-14T10:28:58.181531+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "a4ecb7e0e795039f627c78d6a817ae422771ec24cec2bc0607f0aab0a7d66a83",
+  "plan_hash": "27fe98daeac204ccee245bf86fdb63f2d22614c1c22620ded01d50d507bd31b2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. Allspring holdings completeness is verified at branch tip 1c9ee96ed; continue the next bounded R1 canonical provider/history seam.",
-    "current_phase": "R1_verified_allspring_holdings_completeness",
+    "current_blocker": "Six unchanged protected visual diffs remain; all non-visual and functional checks pass. Remote push remains intentionally held. Spear holdings completeness is verified at branch tip 045478c6e; continue the next bounded R1 canonical provider/history seam.",
+    "current_phase": "R1_verified_spear_holdings_completeness",
     "next_action": "Inspect and implement the next bounded R1 canonical provider/history completeness seam, with focused deterministic coverage and the exact branch-scoped gate at the next coherent tip; preserve fail-closed evidence and unchanged visual/provider policy.",
     "total": 10,
-    "updated_at": "2026-09-14T10:00:39.488250+00:00"
+    "updated_at": "2026-09-14T10:28:58.181272+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified Spear holdings completeness receipt
+
+Commit `045478c6e` requires and records the published composition date for
+Spear Funds' fixed issuer holdings CSV route for SPRX. The adapter verifies
+non-empty rows, fails closed for undated snapshots, records composition/as-of
+and row-count metadata, marks the native route complete, and date-scopes row
+IDs.
+
+Focused Spear assertions passed `10/10`; Ruff/format/diff checks passed. The
+exact gate passed backend units `1585/1585`, integration `405/405` with
+`82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`, with the same six protected
+baselines remaining the only failures. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, visual baseline/mask/threshold/skip, migration, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Verified Allspring holdings completeness receipt
 
 Commit `1c9ee96ed` requires and records the published composition date for
