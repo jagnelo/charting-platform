@@ -1245,6 +1245,27 @@ def test_blank_marketdata_trial_expiry_is_unset_for_environment_boot(monkeypatch
     assert parsed.MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT is None
 
 
+def test_json_seed_code_default_sentinel_preserves_code_defaults_and_empty_is_explicit():
+    parsed = Settings(
+        _env_file=None,
+        PROVIDER_RATE_LIMIT_SEEDS="__CODE_DEFAULT__",
+        PROVIDER_FRESHNESS_SEEDS="__CODE_DEFAULT__",
+        PROVIDER_USAGE_PROFILE_SEEDS="__CODE_DEFAULT__",
+    )
+    assert "alpaca" in parsed.PROVIDER_RATE_LIMIT_SEEDS
+    assert "massive" in parsed.PROVIDER_USAGE_PROFILE_SEEDS
+
+    explicitly_empty = Settings(
+        _env_file=None,
+        PROVIDER_RATE_LIMIT_SEEDS="{}",
+        PROVIDER_FRESHNESS_SEEDS="{}",
+        PROVIDER_USAGE_PROFILE_SEEDS="{}",
+    )
+    assert explicitly_empty.PROVIDER_RATE_LIMIT_SEEDS == {}
+    assert explicitly_empty.PROVIDER_FRESHNESS_SEEDS == {}
+    assert explicitly_empty.PROVIDER_USAGE_PROFILE_SEEDS == {}
+
+
 def test_blank_explicit_quota_group_fails_closed():
     policy = ProviderPolicy(
         data_source_id=1,

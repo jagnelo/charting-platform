@@ -4,7 +4,10 @@ from copy import deepcopy
 from datetime import UTC, datetime
 
 from pydantic import field_validator
+from pydantic_core import PydanticUseDefault
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_SETTINGS_USE_CODE_DEFAULT = "__CODE_DEFAULT__"
 
 
 class Settings(BaseSettings):
@@ -1862,6 +1865,11 @@ class Settings(BaseSettings):
     @classmethod
     def parse_jsonish(cls, v):
         if isinstance(v, str):
+            # Compose uses an explicit sentinel when an optional JSON override
+            # is absent. Preserve the reviewed in-code seed; an explicit ``{}``
+            # remains a deliberate empty override that can quarantine routes.
+            if v.strip() == _SETTINGS_USE_CODE_DEFAULT:
+                raise PydanticUseDefault
             return json.loads(v)
         return v
 

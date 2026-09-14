@@ -380,6 +380,25 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
         assert f"{name}=" in example
 
 
+def test_policy_seed_deployment_fallback_preserves_code_defaults():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        for name in (
+            "PROVIDER_RATE_LIMIT_SEEDS",
+            "PROVIDER_FRESHNESS_SEEDS",
+            "PROVIDER_USAGE_PROFILE_SEEDS",
+        ):
+            assert f"{name}: ${{{name}:-__CODE_DEFAULT__}}" in compose
+    for relative_path in (".env.example", "backend/.env.example"):
+        example = (ROOT / relative_path).read_text()
+        for name in (
+            "PROVIDER_RATE_LIMIT_SEEDS",
+            "PROVIDER_FRESHNESS_SEEDS",
+            "PROVIDER_USAGE_PROFILE_SEEDS",
+        ):
+            assert f"{name}=__CODE_DEFAULT__" in example
+
+
 def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host():
     sandbox_host = "https://api-enterprise.sandbox.dinari.com/api/v2"
     retired_host = "https://api-enterprise.sbt.dinari.com/api/v2"
