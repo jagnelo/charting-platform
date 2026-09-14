@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-15 - Verified ACP Horizon dated holdings
+
+Product commit `7aa159a04` hardens ACP Horizon's issuer-native multi-fund
+daily CSV route for `HBTA`. Retained rows now require exactly one parseable
+snapshot date; undated, invalid, and mixed-date exports fail closed; source IDs
+are date-scoped; and complete composition/as-of, row-count, and
+`acp_horizon_native_multi_fund_daily_holdings_csv` provenance metadata is
+recorded. The direct public export returned 207 complete rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+207 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1610/1610, integration 405/405
+at 82.20% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified EMLes dated holdings
 
 Product commit `a001e82cd` hardens EMLes's native public fund-page,

@@ -13,25 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest EMLes dated holdings seam is verified at branch tip `a001e82cd`:
-  EMLes's native public fund-page, fund-scoped CSV route for the listed ETF
-  lineup now requires exactly one parseable snapshot date across retained rows,
-  fails closed for undated, invalid, or mixed-date exports, date-scopes source
-  IDs, and records complete composition/as-of, row-count, and
-  `emles_native_fund_scoped_holdings_csv` provenance metadata. The direct public
-  EOPS export returned 1 complete row dated 2022-10-20 (cash-only disclosure).
-  Focused assertions passed 2/2 including missing/invalid/mixed-date regressions;
-  the escalated opt-in live route assertion passed 1/1; the direct public probe
-  returned 1 complete dated row; Ruff, formatting, and diff checks passed. The
-  exact branch-scoped Docker-backed gate passed backend units 1609/1609,
+  Latest ACP Horizon dated holdings seam is verified at branch tip `7aa159a04`:
+  ACP Horizon's issuer-native multi-fund daily CSV route for `HBTA` now requires
+  exactly one parseable snapshot date across retained account rows, fails closed
+  for undated, invalid, or mixed-date exports, date-scopes source IDs, and
+  records complete composition/as-of, row-count, and
+  `acp_horizon_native_multi_fund_daily_holdings_csv` provenance metadata. The
+  direct public HBTA export returned 207 complete rows dated 2026-09-14. Focused
+  assertions passed 2/2 including missing/invalid/mixed-date regressions; the
+  escalated opt-in live route assertion passed 1/1; the direct public probe
+  returned 207 complete dated rows; Ruff, formatting, and diff checks passed. The
+  exact branch-scoped Docker-backed gate passed backend units 1610/1610,
   integration 405/405 with 82.20% combined coverage, frontend Vitest 1067/1067,
   type-check/build, compose/deployment contracts, research-runner sandbox/resource
   probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104
   with only the six unchanged protected watchlist-column-editor/workspace-floating
   diffs. Docker teardown removed all branch-scoped containers, volumes, network,
-  four generated images, and testcontainer sessions. A preceding attempt hit a
-  transient PostgreSQL termination during integration setup and was retried from
-  a clean stack; no product regression was observed. No generic provider/fallback,
+  four generated images, and testcontainer sessions. No generic provider/fallback,
   migration, visual baseline, threshold, mask, skip, or acceptance policy
   changed. Continue R1 family-wide canonical population/history, D1/W1/MN floors,
   rebalance continuity, and AC2-AC7/AC10 remain open.
@@ -149,7 +147,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_emles_dated_holdings
+  current_phase: R1_verified_acp_horizon_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
@@ -157,25 +155,23 @@ progress:
     guard, and the six protected visual diffs; rerun focused deterministic
     coverage and the exact branch-scoped gate at the next coherent tip.
   current_blocker: >-
-    Latest EMLes dated holdings seam is verified at branch tip `a001e82cd`:
-    EMLes's native public fund-page, fund-scoped CSV route for the listed ETF
-    lineup now requires exactly one parseable snapshot date across retained rows,
-    fails closed for undated, invalid, or mixed-date exports, date-scopes source
-    IDs, and records complete composition/as-of, row-count, and
-    `emles_native_fund_scoped_holdings_csv` provenance metadata. The direct public
-    EOPS export returned 1 complete row dated 2022-10-20 (cash-only disclosure).
-    Focused assertions passed 2/2 including missing/invalid/mixed-date regressions;
-    the escalated opt-in live route assertion passed 1/1; the direct public probe
-    returned 1 complete dated row; Ruff, formatting, and diff checks passed. The
-    exact branch-scoped Docker-backed gate passed backend units 1609/1609,
+    Latest ACP Horizon dated holdings seam is verified at branch tip `7aa159a04`:
+    ACP Horizon's issuer-native multi-fund daily CSV route for `HBTA` now requires
+    exactly one parseable snapshot date across retained account rows, fails closed
+    for undated, invalid, or mixed-date exports, date-scopes source IDs, and
+    records complete composition/as-of, row-count, and
+    `acp_horizon_native_multi_fund_daily_holdings_csv` provenance metadata. The
+    direct public HBTA export returned 207 complete rows dated 2026-09-14. Focused
+    assertions passed 2/2 including missing/invalid/mixed-date regressions; the
+    escalated opt-in live route assertion passed 1/1; the direct public probe
+    returned 207 complete dated rows; Ruff, formatting, and diff checks passed. The
+    exact branch-scoped Docker-backed gate passed backend units 1610/1610,
     integration 405/405 with 82.20% combined coverage, frontend Vitest 1067/1067,
     type-check/build, compose/deployment contracts, research-runner sandbox/resource
     probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104
     with only the six unchanged protected watchlist-column-editor/workspace-floating
     diffs. Docker teardown removed all branch-scoped containers, volumes, network,
-    four generated images, and testcontainer sessions. A preceding attempt hit a
-    transient PostgreSQL termination during integration setup and was retried from
-    a clean stack; no product regression was observed. No generic provider/fallback,
+    four generated images, and testcontainer sessions. No generic provider/fallback,
     migration, visual baseline, threshold, mask, skip, or acceptance policy
     changed. Continue R1 family-wide canonical population/history, D1/W1/MN floors,
     rebalance continuity, and AC2-AC7/AC10 remain open.
