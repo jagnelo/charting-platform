@@ -18995,6 +18995,10 @@ class MitsubishiUfjHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"MUFG's verified product page did not expose holdings for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"MUFG's verified product page did not publish a composition date for {normalized_symbol}."
+            )
 
         return HoldingsFetchResult(
             rows=rows,
@@ -19254,6 +19258,10 @@ class McivyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"McIvy/Genter's verified {normalized_symbol} route returned no complete holdings."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"McIvy/Genter's verified {normalized_symbol} route did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=data_response.text,
@@ -19467,6 +19475,10 @@ class LangarHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(
                 f"Langar's verified {normalized_symbol} route returned no complete holdings."
+            )
+        if composition_date is None:
+            raise ValueError(
+                f"Langar's verified {normalized_symbol} route did not publish a composition date."
             )
         return HoldingsFetchResult(
             rows=rows,

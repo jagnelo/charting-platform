@@ -22680,6 +22680,51 @@ async def test_mitsubishi_ufj_adapter_parses_only_mjsc_product_page_holdings(mon
 
 
 @pytest.mark.asyncio
+async def test_mitsubishi_ufj_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("mitsubishi_ufj")
+    assert adapter is not None
+    payload = [
+        None,
+        {"componentId": 2, "date": 3, "finData": 4},
+        "mufgetf-mjsc-HoldingsComponent-1",
+        None,
+        [5],
+        {
+            "figi": 6,
+            "ticker": 7,
+            "quantity": 8,
+            "description": 9,
+            "market_value": 10,
+            "percent_of_nav": 11,
+        },
+        "BBG000BCMC18",
+        "6134 JP",
+        "11100",
+        "FUJI CORPORATION",
+        "497,198.53",
+        "2.04%",
+    ]
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>MUFG Japan Small Cap Active ETF</h1>"
+                '<div data-preview-route="mjsc" '
+                'data-preview-component-id="mufgetf-mjsc-HoldingsComponent-1"></div>'
+                '<script type="application/json" id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}"
+                "</script></html>"
+            ),
+            content_type="text/html",
+            url="https://www.mufgetfs.com/mjsc",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="MJSC")
+
+
+@pytest.mark.asyncio
 async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monkeypatch):
     adapter = get_holdings_adapter("mcivy")
     assert adapter is not None
@@ -22766,6 +22811,51 @@ async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monke
 
 
 @pytest.mark.asyncio
+async def test_mcivy_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("mcivy")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                {"GEND": {"fundno": "446", "fname": "Genter Capital Dividend Income ETF"}}
+            ),
+            content_type="application/json",
+            url="https://www.genterfunds.com/js/fund_settings.json?version=6.17.26",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "generalinfo": [
+                        {
+                            "ffundno": "446",
+                            "fticker": "GEND",
+                            "fname": "Genter Capital Dividend Income ETF",
+                        }
+                    ],
+                    "holdings": [
+                        {
+                            "ticker": "NTRS",
+                            "cusip": "665859104",
+                            "descr1": "NORTHERN TRUST ORD",
+                            "quantity": "1278.0",
+                            "marketvalue": "236021.04",
+                            "percentmv": "4.74",
+                            "category": "COMMSTCK",
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+            url="https://www.ncfunds.com/etf/load.php?f=446",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="GEND")
+
+
+@pytest.mark.asyncio
 async def test_langar_adapter_parses_only_identity_verified_lght_holdings(monkeypatch):
     adapter = get_holdings_adapter("langar")
     assert adapter is not None
@@ -22827,10 +22917,54 @@ async def test_langar_adapter_parses_only_identity_verified_lght_holdings(monkey
         "langar_nottingham_fund_scoped_complete_holdings_json"
     )
     assert result.legal_metadata["publisher"] == "The Nottingham Company"
+    assert result.legal_metadata["composition_date"] == "2026-07-17"
     assert result.legal_metadata["completeness_status"] == "complete"
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
+async def test_langar_adapter_rejects_undated_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("langar")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps({"LGHT": {"fundno": "424", "fname": "Langar Global HealthTech ETF"}}),
+            content_type="application/json",
+            url="https://www.langarfunds.com/js/fund_settings.json?version=6.17.26",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "generalinfo": [
+                        {
+                            "ffundno": "424",
+                            "fticker": "LGHT",
+                            "fname": "Langar Global HealthTech ETF",
+                        }
+                    ],
+                    "holdings": [
+                        {
+                            "ticker": "RMD",
+                            "cusip": "761152107",
+                            "descr1": "RESMED INC",
+                            "quantity": "961",
+                            "marketvalue": "191229.39",
+                            "percentmv": "9.37",
+                            "category": "COMMSTCK",
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+            url="https://www.ncfunds.com/etf/load.php?f=424",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="LGHT")
 
 
 @pytest.mark.asyncio
