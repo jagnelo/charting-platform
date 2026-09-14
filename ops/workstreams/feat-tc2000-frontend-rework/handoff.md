@@ -2,6 +2,30 @@
 
 Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
+## 2026-09-14 — Verified WealthTrust holdings completeness
+
+Product commit `481d60892` requires and records WealthTrust WLTG's published
+holdings snapshot date from the official complete holdings table's labeled
+`Current as of`/`As of Date` metadata. The adapter verifies official product
+identity and non-empty native rows, fails closed for undated pages, and scopes
+explicit `completeness_status: complete` to the native route.
+
+Focused WealthTrust assertions passed `2/2`; Ruff, formatting, and diff checks
+passed. The exact branch-scoped gate passed backend units `1574/1574`,
+integration `405/405` with `82.05%` combined coverage, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor/workspace-floating diffs failed. Docker resources were
+cleaned with no retained containers, volumes, networks, or testcontainer
+sessions. No generic provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed.
+
+Next action: continue the next bounded R1 canonical provider/history seam
+while preserving explicit completeness evidence, fail-closed mappings, and
+the six protected visual state-oracle assertions. Do not integrate, promote,
+deploy, push, or mutate another worktree.
+
 ## 2026-09-14 — Verified linked-workbook holdings completeness
 
 Product commit `c2671c2c9` requires and records a holdings-specific published

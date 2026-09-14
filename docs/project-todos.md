@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-14 — Promote verified WealthTrust holdings completeness
+
+- [x] Require and record WealthTrust WLTG's published `Current as of`/
+      `As of Date` snapshot for the official complete holdings table; verify
+      non-empty native rows and fail closed for undated pages.
+- [x] Product commit `481d60892`; focused assertions passed `2/2`,
+      Ruff/format/diff checks passed, and the exact gate passed backend units
+      `1574/1574`, integration `405/405` with `82.05%` combined coverage,
+      frontend Vitest `1067/1067`, type-check/build, compose/deployment
+      contracts, expected research-runner probes, and functional E2E `165
+      passed` with `107 skipped`.
+- [x] Visual E2E passed `98/104`; only the six unchanged protected visual
+      diffs remain (watchlist-column-editor and workspace-floating). Docker
+      resources were cleaned with no retained containers, volumes, networks,
+      or testcontainer sessions. No generic provider/fallback, migration,
+      visual, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2–AC7/AC10.
+
 ### 2026-09-14 — Promote verified linked-workbook holdings completeness
 
 - [x] Require and record a holdings-specific published `Data as of` date for
