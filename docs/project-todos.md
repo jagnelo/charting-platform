@@ -86,6 +86,28 @@
 
 # Project TODO Memory
 
+### 2026-09-14 - Require dated Calvert holdings
+
+- [x] Harden Calvert's official issuer-native daily JSON route for CVLC;
+      require non-empty holdings with exactly one effective date, fail closed
+      for undated snapshots, date-scope row IDs, and record complete native
+      provenance/row-count metadata (`3c07b4c6`). The direct public issuer route
+      published 756 rows dated 2026-09-11.
+- [x] Focused Calvert assertions passed 4/4 including the undated regression;
+      dedicated live route assertions passed 2/2; the direct public issuer probe
+      returned 756 dated rows. Ruff/format/diff checks passed. The exact gate
+      passed backend units 1595/1595, integration 405/405 at 82.14% combined
+      coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+      contracts, research-runner probes, and functional E2E 165 passed with
+      107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected visual
+      diffs remain. Docker teardown removed all branch-scoped containers,
+      volumes, network, four images, and testcontainer sessions. No provider/
+      fallback, migration, visual, threshold, mask, skip, or acceptance policy
+      changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ### 2026-09-14 - Require dated Oakmark holdings
 
 - [x] Promote Oakmark's official symbol-scoped CSV holdings exports to the

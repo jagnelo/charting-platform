@@ -1,5 +1,28 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 - Require dated Calvert holdings
+
+Product commit `3c07b4c6` hardens Calvert's official issuer-native daily JSON
+route for CVLC. The adapter requires non-empty holdings with exactly one
+parseable effective date, fails closed for undated snapshots, date-scopes source
+IDs, and records complete composition/as-of, row-count, and
+`calvert_native_issuer_json` provenance metadata. The direct public issuer route
+published 756 rows dated 2026-09-11.
+
+Focused Calvert assertions passed 4/4 including the undated-row regression; the
+dedicated live route assertions passed 2/2; the direct public issuer probe
+returned 756 dated rows; and Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1595/1595, integration 405/405
+with 82.14% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional E2E 165
+passed with 107 skipped. Visual E2E passed 98/104 with only the six unchanged
+protected watchlist-column-editor/workspace-floating diffs. Docker teardown
+removed all branch-scoped containers, volumes, network, four generated images,
+and testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+remain open.
+
 ## 2026-09-14 - Require dated Alerian holdings
 
 Product commit `f7f4ed33d` hardens Alerian's issuer-owned ALPS HubSpot proxy

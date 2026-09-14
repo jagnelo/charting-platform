@@ -13,6 +13,25 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest Calvert dated holdings seam is verified at branch tip `3c07b4c6`:
+  Calvert's official issuer-native daily JSON route for CVLC now requires
+  non-empty holdings with exactly one parseable effective date, fails closed
+  for undated snapshots, date-scopes source IDs, and records complete
+  composition/as-of, row-count, and `calvert_native_issuer_json` provenance
+  metadata. The direct public issuer route published 756 rows dated 2026-09-11.
+  Focused Calvert assertions passed 4/4 including the undated-row regression;
+  dedicated live route assertions passed 2/2; the direct public issuer probe
+  returned 756 dated rows; Ruff, formatting, and diff checks passed.
+  The clean exact gate passed backend units 1595/1595, integration 405/405
+  at 82.14% combined coverage, frontend Vitest 1067/1067, type-check/build,
+  compose/deployment contracts, research-runner probes, and functional E2E
+  165 passed with 107 skipped. Visual E2E passed 98/104 with only the six
+  unchanged protected watchlist-column-editor/workspace-floating diffs.
+  Docker teardown removed all branch-scoped containers, volumes, network, four
+  generated images, and testcontainer sessions. No generic provider/fallback,
+  migration, visual baseline, threshold, mask, skip, or acceptance policy
+  changed. Continue R1 family-wide canonical population/history, D1/W1/MN
+  floors, rebalance continuity, and AC2-AC7/AC10 remain open.
   Latest Alerian dated holdings seam is verified at branch tip `f7f4ed33d`:
   Alerian's issuer-owned ALPS HubSpot proxy route for AMLP/ENFR now requires
   non-empty rows with exactly one parseable `asofdate`, fails closed for
@@ -3891,7 +3910,26 @@ branch_tests:
   - "cd frontend && npm run build"
   - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
   - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
-  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework"
+  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework    Latest Calvert dated holdings seam is verified at branch tip `3c07b4c6`:
+    Calvert's official issuer-native daily JSON route for CVLC now requires
+    non-empty holdings with exactly one parseable effective date, fails closed
+    for undated snapshots, date-scopes source IDs, and records complete
+    composition/as-of, row-count, and `calvert_native_issuer_json` provenance
+    metadata. The direct public issuer route published 756 rows dated 2026-09-11.
+    Focused Calvert assertions passed 4/4 including the undated-row regression;
+    dedicated live route assertions passed 2/2; the direct public issuer probe
+    returned 756 dated rows; Ruff, formatting, and diff checks passed.
+    The clean exact gate passed backend units 1595/1595, integration 405/405
+    at 82.14% combined coverage, frontend Vitest 1067/1067, type-check/build,
+    compose/deployment contracts, research-runner probes, and functional E2E
+    165 passed with 107 skipped. Visual E2E passed 98/104 with only the six
+    unchanged protected watchlist-column-editor/workspace-floating diffs.
+    Docker teardown removed all branch-scoped containers, volumes, network, four
+    generated images, and testcontainer sessions. No generic provider/fallback,
+    migration, visual baseline, threshold, mask, skip, or acceptance policy
+    changed. Continue R1 family-wide canonical population/history, D1/W1/MN
+    floors, rebalance continuity, and AC2-AC7/AC10 remain open.
+"
   - "make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework"
 branch_tests_reason: "The implementation spans backend services and workers, frontend workstation consumers, authenticated Playwright flows, four visual projects, and the exhaustive repository integration gate; all listed commands are run as their relevant phases become ready."
 live_test_impact: "Authenticated workstation and opt-in canonical provider/data evidence may be required; use bounded probes and never expose or invent credentials."
@@ -3904,7 +3942,7 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_alerian_dated_holdings
+  current_phase: R1_verified_calvert_dated_holdings
   next_action: >-
     Continue the next bounded R1 family-wide canonical population/history seam
     while preserving explicit dated completeness evidence, fail-closed holdings
