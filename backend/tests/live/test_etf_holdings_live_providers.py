@@ -2149,6 +2149,25 @@ async def test_live_alliancebernstein_fwd_model_workbook():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("wellington")
+async def test_live_wellington_vanguard_publisher_route():
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="VUSV")
+
+    _assert_live_holdings_result(result, adapter_key="wellington", min_rows=10)
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["as_of_date"] == result.legal_metadata["composition_date"]
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_vanguard_wellington_managed_etf"
+    )
+    assert result.rows[0].source_row_id.startswith("VUSV:")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("ishares")
 async def test_live_ishares_explicit_historical_as_of_snapshot():
     adapter = get_holdings_adapter("ishares")

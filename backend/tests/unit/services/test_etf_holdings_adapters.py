@@ -7677,13 +7677,50 @@ async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeyp
     assert result.rows[0].shares == Decimal("87")
     assert result.rows[0].market_value == Decimal("33207.9")
     assert result.rows[0].weight == Decimal("0.048288")
+    assert result.rows[0].source_row_id == "VUSV:2026-07-27:1:594918104"
     assert result.legal_metadata["composition_date"] == "2026-07-27"
+    assert result.legal_metadata["as_of_date"] == "2026-07-27"
+    assert result.legal_metadata["row_count"] == 1
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "issuer_native_vanguard_wellington_managed_etf"
+    )
+    assert result.raw_json["row_count"] == 1
+    assert result.raw_json["composition_date"] == "2026-07-27"
     assert result.legal_metadata["adapter_key"] == "wellington"
     assert result.legal_metadata["source_provider"] == "vanguard"
     assert result.legal_metadata["portfolio_manager"] == "wellington_management"
     assert result.legal_metadata["route_resolution"] == (
         "vanguard_publisher_pcf_json_for_wellington_managed_etf"
     )
+
+
+@pytest.mark.asyncio
+async def test_wellington_adapter_rejects_undated_publisher_result(monkeypatch):
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    async def fake_resolve(client, *, symbol):
+        del client
+        return "V055"
+
+    async def fake_detail(*, symbol, fund_id):
+        del symbol, fund_id
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="MSFT", name="MICROSOFT CORP.")],
+            legal_metadata={
+                "adapter_key": "wellington",
+                "route_resolution": "vanguard_publisher_json_api_for_wellington_managed_etf",
+                "composition_date": None,
+                "as_of_date": None,
+            },
+        )
+
+    monkeypatch.setattr(adapter, "_resolve_vanguard_fund_id", fake_resolve)
+    monkeypatch.setattr(adapter, "_fetch_vanguard_detail_holdings", fake_detail)
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="VUSV")
 
 
 @pytest.mark.asyncio

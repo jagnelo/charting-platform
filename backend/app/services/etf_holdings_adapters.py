@@ -4549,6 +4549,38 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
         route_resolution = (result.legal_metadata or {}).get("route_resolution")
         if route_resolution != "vanguard_publisher_pcf_json_for_wellington_managed_etf":
             route_resolution = "vanguard_publisher_json_api_for_wellington_managed_etf"
+        published_date = self._normalize_published_date(
+            (result.legal_metadata or {}).get("composition_date")
+            or (result.legal_metadata or {}).get("as_of_date")
+        )
+        if not result.rows:
+            raise ValueError(
+                f"Wellington's Vanguard publisher route returned no holdings rows for {normalized_symbol}."
+            )
+        if published_date is None:
+            raise ValueError(
+                f"Wellington's Vanguard publisher route did not publish a composition date for {normalized_symbol}."
+            )
+        date_text = published_date.isoformat()
+        result.rows = [
+            replace(
+                row,
+                source_row_id=(
+                    f"{normalized_symbol}:{date_text}:{index}:"
+                    f"{row.cusip or row.isin or row.symbol or row.name or 'holding'}"
+                ),
+            )
+            for index, row in enumerate(result.rows, start=1)
+        ]
+        raw_json = dict(result.raw_json or {})
+        raw_json.update(
+            {
+                "row_count": len(result.rows),
+                "composition_date": date_text,
+                "as_of_date": date_text,
+            }
+        )
+        result.raw_json = raw_json
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_access": self.config.source_access,
@@ -4556,8 +4588,33 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
             "adapter_key": self.adapter_key,
             "route_resolution": route_resolution,
             "portfolio_manager": "wellington_management",
+            "composition_date": date_text,
+            "as_of_date": date_text,
+            "row_count": len(result.rows),
+            "completeness_status": "complete",
+            "snapshot_provenance": "issuer_native_vanguard_wellington_managed_etf",
         }
         return result
+
+    @staticmethod
+    def _normalize_published_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for pattern in (
+            "%Y-%m-%d",
+            "%m/%d/%Y",
+            "%m/%d/%Y %H:%M:%S",
+            "%m/%d/%Y %H:%M",
+        ):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        try:
+            return date.fromisoformat(text[:10])
+        except ValueError:
+            return None
 
     async def _fetch_vanguard_detail_holdings(
         self, *, symbol: str, fund_id: str
