@@ -2,15 +2,16 @@
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
-- Latest backend source checkpoint: `9e42c0dfc` (`fix(provider): fail closed
-  on unsupported annual timeframe`). The required Docker-backed gate passed
-  `2,498/2,498` at `81.73%` combined coverage with 89 warnings in `499.71s`
+- Latest backend source checkpoint: `243695c21` (`fix(provider): reject
+  unsupported annual windows`). The required Docker-backed gate passed
+  `2,509/2,509` at `81.73%` combined coverage with 89 warnings in `512.82s`
   using isolated testcontainer session
-  `227cf019-68c7-46bc-a17e-ac0bc0d40812`; the workstream validator passed all
-  30 records and the branch is clean/pushed. No frontend or ETF-provider
-  adapter files changed. Provider/legal, trusted-secret-store, deferred-
-  credential, NMS/OTC reconciliation, and separately approved shadow-run
-  gates remain open.
+  `bfe6aa6d-c60f-4983-a41f-75b86b63fbc5`; the workstream validator passed all
+  30 records and the branch is clean/pushed. All provider latest-window
+  helpers now reject unsupported `Y1` explicitly rather than deriving a daily
+  lookback. No frontend or ETF-provider adapter files changed. Provider/legal,
+  trusted-secret-store, deferred-credential, NMS/OTC reconciliation, and
+  separately approved shadow-run gates remain open.
 
 - Tokenized historical comments and documentation are now consistent with the
   implemented Dinari/Ondo bridge and its four supported windows (`DAY`,
