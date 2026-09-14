@@ -20106,6 +20106,41 @@ async def test_soundwatch_adapter_uses_matching_issuer_linked_xls_and_preserves_
 
 
 @pytest.mark.asyncio
+async def test_soundwatch_adapter_rejects_undated_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("soundwatch")
+    assert adapter is not None
+    product_page_url = "https://www.soundwatch.com/shdg"
+    holdings_url = "https://www.soundwatch.com/download-holdings-usbanks.php?fund=shdg"
+    table = [
+        ["Soundwatch Hedged Equity ETF", "", "", "", "", ""],
+        ["% of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"],
+        ["96.93", "iShares Core S&P 500 ETF", "IVV", "464287200", "208648", "155801634.56"],
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "Soundwatch Hedged Equity ETF SHDG "
+                '<a href="/download-holdings-usbanks.php?fund=shdg">Download full holdings</a>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            content=b"legacy-xls", content_type="application/vnd.ms-excel", url=holdings_url
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_holdings_xls",
+        lambda raw_workbook: ([], table),
+    )
+
+    with pytest.raises(ValueError, match="did not publish a composition date"):
+        await adapter.fetch_latest(symbol="SHDG")
+
+
+@pytest.mark.asyncio
 async def test_wealthtrust_adapter_parses_only_the_official_wltg_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("wealthtrust")
     assert adapter is not None

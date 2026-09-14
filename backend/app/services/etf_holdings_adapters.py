@@ -59546,6 +59546,10 @@ class SoundwatchHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError("Soundwatch's official workbook returned no complete SHDG portfolio.")
+        if composition_date is None:
+            raise ValueError(
+                "Soundwatch's official SHDG product page did not publish a composition date."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(table),
