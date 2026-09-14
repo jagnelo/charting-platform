@@ -54,7 +54,15 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-acceptance-governance.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -114,14 +122,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1cddd26ca3687772bb95ebf601ed188b28b8d628",
+  "head": "a9cdd882985bafbc771aa2d8c656433559ce08d8",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-14T22:13:24.111907+00:00",
-  "last_human_progress_update": "2026-09-14T22:12:29.388209+00:00",
+  "last_human_progress_update": "2026-09-14T22:46:14.662503+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "0b7cb2816d0d33667799391747c0fd8a9f3c602cd934d9e3c2f1450d4f5a89d1",
+  "plan_hash": "c86b13977e2574432a64645821318271034316751489cf32b2a780e541acad9b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -134,11 +142,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Cultivar dated holdings are verified at product tip 3de6e028b; exact gate remains blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
-    "current_phase": "R1_verified_cultivar_dated_holdings",
+    "current_blocker": "Optimize dated holdings are verified at product tip a9cdd8829; exact gate remains blocked only by the six established protected visual diffs. Continue family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.",
+    "current_phase": "R1_verified_optimize_dated_holdings",
     "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving explicit dated completeness evidence, fail-closed holdings mappings, the cold-navigation Add-tool regression, the undated-backfill guard, and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-14T22:12:29.387949+00:00"
+    "updated_at": "2026-09-14T22:46:14.662394+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
