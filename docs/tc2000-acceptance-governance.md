@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-14 — Verified Miller Value holdings completeness receipt
+
+Commit `3e6dc61c4` requires and records Miller Value MVPA/MVPL's published
+composition date from the official issuer-native Nuxt holdings payloads. The
+adapter verifies non-empty rows, fails closed for undated pages, records
+composition/as-of metadata, marks native routes complete, and date-scopes row
+IDs.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1577/1577`, integration `405/405` with `82.06%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
 ## 2026-09-14 — Verified Adaptive Investments holdings completeness receipt
 
 Commit `71ea4f76c` requires and records Adaptive Investments ADPV's published

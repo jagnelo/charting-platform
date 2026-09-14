@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-14
 
+## 2026-09-14 — Promote verified Miller Value holdings completeness
+
+Product commit `3e6dc61c4` requires and records the published composition date
+for Miller Value's official MVPA/MVPL Nuxt holdings payloads. The adapter
+verifies non-empty issuer-native rows, fails closed for undated pages, records
+both `composition_date` and `as_of_date`, scopes `completeness_status: complete`
+to the native route, and date-scopes row IDs.
+
+Focused Miller Value assertions passed `2/2`; Ruff/format/diff checks passed.
+The exact branch-scoped gate passed backend units `1577/1577`, integration
+`405/405` with `82.06%` combined coverage, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected watchlist-column-editor/workspace-floating
+diffs remain. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No provider/fallback, migration,
+visual baseline, threshold, mask, skip, or acceptance policy changed.
+Family-wide R1 population/history, D1/W1/MN floors, continuity, and
+AC2–AC7/AC10 remain open.
+
 ## 2026-09-14 — Promote verified Adaptive Investments holdings completeness
 
 Product commit `71ea4f76c` requires and records the published composition date
