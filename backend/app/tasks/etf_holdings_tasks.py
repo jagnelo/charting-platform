@@ -187,6 +187,7 @@ async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
             **{key: plan[key] for key in ("family_keys", "roles", "max_snapshots", "limited")},
             "available_snapshot_count": plan.get("available_snapshot_count", 0),
             "selected_snapshot_count": plan["selected_snapshot_count"],
+            "undated_snapshot_count": plan.get("undated_snapshot_count", 0),
             "continuity_by_symbol": plan.get("continuity_by_symbol", {}),
             "queued": queued,
             "already_queued": already_queued,

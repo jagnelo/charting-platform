@@ -774,6 +774,7 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
                 ),
                 (102, date(2026, 6, 30), 400, "SPYV"),
                 (103, date(2026, 5, 31), 300, "SPY"),
+                (104, None, 200, "SPY"),
             ]
 
     class Session:
@@ -789,6 +790,7 @@ async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkey
 
     assert plan["available_snapshot_count"] == 3
     assert plan["selected_snapshot_count"] == 2
+    assert plan["undated_snapshot_count"] == 1
     assert plan["limited"] is True
     assert [item["snapshot_id"] for item in plan["snapshots"]] == [101, 102]
     assert plan["snapshots"][0]["legs"] == [{"family_key": "sp500", "role": "cap_weight"}]

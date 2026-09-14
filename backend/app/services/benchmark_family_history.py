@@ -167,6 +167,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
             "selected_snapshot_count": 0,
             "limited": False,
             "continuity_by_symbol": {},
+            "undated_snapshot_count": 0,
         }
 
     snapshot_instrument = aliased(Instrument)
@@ -229,14 +230,20 @@ async def plan_benchmark_family_snapshot_history_refresh(
         )
     ).all()
     snapshots: list[dict[str, Any]] = []
+    undated_snapshot_count = 0
     seen_ids: set[int] = set()
     seen_effective_dates: set[tuple[str, date]] = set()
     observed_dates_by_symbol: dict[str, set[date]] = {}
     for row in rows:
         snapshot_id, composition_date, resolved_count, symbol = row[:4]
         normalized_symbol = str(symbol).strip().upper()
-        if isinstance(composition_date, date):
-            observed_dates_by_symbol.setdefault(normalized_symbol, set()).add(composition_date)
+        if not isinstance(composition_date, date):
+            # History bounds are derived from the publisher-declared
+            # composition date. Legacy undated snapshots remain visible to
+            # other audit/readiness paths but cannot safely enter backfill.
+            undated_snapshot_count += 1
+            continue
+        observed_dates_by_symbol.setdefault(normalized_symbol, set()).add(composition_date)
         canonical_id = int(snapshot_id)
         # A corrected issuer disclosure can produce multiple persisted rows for
         # one effective composition date.  The query is ordered by
@@ -312,6 +319,7 @@ async def plan_benchmark_family_snapshot_history_refresh(
         "selected_snapshot_count": len(selected),
         "limited": limited,
         "continuity_by_symbol": continuity_by_symbol,
+        "undated_snapshot_count": undated_snapshot_count,
     }
 
 

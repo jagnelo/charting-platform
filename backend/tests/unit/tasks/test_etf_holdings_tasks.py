@@ -182,6 +182,7 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
             "limited": True,
             "available_snapshot_count": 3,
             "selected_snapshot_count": 2,
+            "undated_snapshot_count": 1,
             "continuity_by_symbol": {
                 "SPY": {
                     "status": "gapped",
@@ -223,6 +224,7 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
 
     assert result["selected_snapshot_count"] == 2
     assert result["available_snapshot_count"] == 3
+    assert result["undated_snapshot_count"] == 1
     assert result["continuity_by_symbol"] == {
         "SPY": {
             "status": "gapped",
