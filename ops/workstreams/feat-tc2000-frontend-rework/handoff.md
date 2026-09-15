@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Watchlist context-menu keyboard invocation
+
+Product commit `d20572b150cb0d20596fce66560facc2dd908a0b` adds Shift+F10 and
+Context Menu key entry to the VirtualWatchlist row action menu. Keyboard
+invocation is row-scoped, positions the menu against that row, and avoids
+listbox/global shortcut handling. Existing menu focus, arrow navigation,
+Escape-close, and row-focus recovery remain intact; right-click remains
+supported.
+
+Authenticated headless Chromium F9e-context-keyboard passed 1/1 for the
+existing right-click workflow and new Shift+F10 invocation, including focus
+movement/recovery. The first Shift+F10 browser check reproduced the uncovered
+behavior before the fix. VirtualWatchlist unit coverage passed 73/73 including
+the dedicated Context Menu key path; full frontend Vitest passed 1,076/1,076;
+type-check and production build passed with the existing large-chunk warning.
+Workstream validation passed, the scope guard passed 29 changed paths and its
+six self-tests passed, and `git diff --check` passed.
+
+The branch stack was run without opening a visible browser. The standard
+Buildx builder entry was unavailable/orphaned, so the images were built with a
+temporary unselected builder; it and the named Compose stack were removed
+after the test. Resource accounting found zero retained containers, volumes,
+test sessions, or known bytes. No visual baseline, mask, threshold, skip,
+provider/ETF behavior, or acceptance policy changed. Exact-tip integration and
+the four-project visual matrix remain outstanding.
+
 ## 2026-09-15 - Research Results run-selection and comparison semantics
 
 Product commit `e6d405ecb7ad8a69a32f8ef273b8711fc836a815` fixes the persisted

@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Watchlist context-menu keyboard invocation
+
+Product checkpoint `d20572b150cb0d20596fce66560facc2dd908a0b` opens the
+VirtualWatchlist row action menu from Shift+F10 and the dedicated Context Menu
+key. The menu is anchored to the focused row; keyboard invocation is stopped
+before listbox/global handlers, and the existing first-item focus, arrow
+navigation, Escape-close, and row-focus restoration behavior is preserved.
+The original right-click path remains covered.
+
+The authenticated headless Chromium F9e-context-keyboard flow passed 1/1,
+covering mouse invocation plus Shift+F10, menu navigation, Escape, and focus
+recovery. The first new browser assertion reproduced that Shift+F10 did not
+open the menu; the row-scoped keyboard handler fixed it. The focused
+VirtualWatchlist unit suite passed 73/73 including both Shift+F10 and Context
+Menu key paths; full frontend Vitest passed 1,076/1,076; type-check and
+production build passed (existing large-chunk warning). TC scope validation
+passed for 29 changed paths, its six self-tests passed, workstream validation
+and `git diff --check` passed.
+
+The normal stack-up helper hit an orphaned, worktree-named Buildx registration
+and safely cleaned up. The isolated stack was then built with a temporary,
+unselected builder and brought up under the same TC2000-specific Compose
+project; both that builder and stack were removed afterward. Resource
+accounting found zero containers, volumes, test sessions, known bytes, or
+unknown components. No visual oracles, provider/ETF behavior, or acceptance
+policy changed; the exact-tip and four-project visual gates remain open.
+
 ## 2026-09-15 - Research Results run-selection and comparison semantics
 
 Product checkpoint `e6d405ecb7ad8a69a32f8ef273b8711fc836a815` separates the
