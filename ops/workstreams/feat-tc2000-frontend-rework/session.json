@@ -116,11 +116,11 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "64836d0ae6c69a85c085dbb8830a72924f17f585",
+  "head": "e6d405ecb7ad8a69a32f8ef273b8711fc836a815",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T16:22:43.883344+00:00",
-  "last_human_progress_update": "2026-09-15T16:21:02.953120+00:00",
+  "last_checkpoint": "2026-09-15T16:50:55.962647+00:00",
+  "last_human_progress_update": "2026-09-15T16:50:07.116593+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
   "plan_hash": "67ab16443085495207320e5010addb54c979e336a554370cc7203da3d6914d74",
@@ -136,10 +136,10 @@
       "AC1"
     ],
     "current_blocker": "Six protected visual diffs remain; provider and ETF changes have not reached staging.",
-    "current_phase": "R1_occurrence_keyboard_accessibility_across_views",
-    "next_action": "Continue independent TC-owned workstation interaction and Study/Strategy slices; preserve visual oracles, and recheck staging before consuming provider or ETF contracts.",
+    "current_phase": "R1_research_results_run_selector_semantics",
+    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy slices; preserve visual oracles, recheck staging before consuming upstream contracts, and defer exact-tip integration and the four-project visual matrix until gates clear.",
     "total": 9,
-    "updated_at": "2026-09-15T16:21:02.953037+00:00"
+    "updated_at": "2026-09-15T16:50:07.116497+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

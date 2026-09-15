@@ -1,5 +1,41 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Research Results run-selection and comparison semantics
+
+Product commit `e6d405ecb7ad8a69a32f8ef273b8711fc836a815` fixes the persisted
+Study Results run selector's nested controls. Each run is a semantic list item
+with a sibling comparison checkbox and native run-selection button; selection
+state remains on the list item as `aria-current`. This keeps comparison
+independent from row selection and provides native Enter/Space activation.
+
+Focused Research Results and keyboard component coverage passed 42/42; full
+frontend Vitest passed 1,076/1,076; `vue-tsc --noEmit` and production build
+passed with the existing large-chunk warning. Authenticated headless Chromium
+F8t-results passed 1/1 on the isolated Compose stack, verifying independent
+comparison and run selection by Enter, Space, and click. The final browser run
+used `STACK_URL=http://127.0.0.1:28083`; earlier startup attempts failed before
+product assertions due to sandbox Chromium permissions and then the default
+localhost port. Workstream validation passed, the TC scope guard passed 29
+changed paths and its six self-tests passed, and `git diff --check` passed.
+Stack teardown removed containers, volumes, network, and four generated
+images; resource accounting found zero containers, volumes, test sessions, or
+known bytes. No interactive browser or user tab was used.
+
+## 2026-09-15 - Global keyboard shortcuts yield to controls
+
+Product commit `6b579185d2a0be4bc2b00040909c3a5821a848bd` makes the global
+workstation keyboard handler yield to native and ARIA interactive controls, so
+Space on workspace tabs or Study controls keeps its native activation rather
+than changing the chart symbol. Full frontend Vitest passed 1,076/1,076;
+type-check and production build passed (existing large-chunk warning); headless
+Chromium F9e-keyboard and F8k-shift passed 2/2 on the isolated branch stack.
+No visual oracle, provider/ETF behavior, or acceptance policy changed.
+
+These are focused UI/accessibility slices only. The six protected visual
+mismatches remain unresolved, provider and ETF work remain outside TC until
+their changes reach staging, and exact-tip integration plus the four-project
+visual matrix remain outstanding.
+
 ## 2026-09-15 - Occurrence keyboard accessibility across workstation views
 
 Product commit `64836d0ae6c69a85c085dbb8830a72924f17f585` extends the native

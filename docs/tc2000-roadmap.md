@@ -5,6 +5,44 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Research Results run-selection and comparison semantics
+
+Product checkpoint `e6d405ecb7ad8a69a32f8ef273b8711fc836a815` separates the
+persisted Study Results row into a semantic list item containing two sibling
+controls: a native comparison checkbox and a named native run-selection
+button. This removes the former nested interactive controls while keeping
+`aria-current` on the selected item. Comparison toggles no longer depend on
+row click propagation, and Enter/Space/click select runs through the button.
+
+Research Results plus keyboard-focused component coverage passed 42/42; full
+frontend Vitest passed 1,076/1,076; type-check and production build passed
+(existing large-chunk warning). Authenticated headless Chromium F8t-results
+passed 1/1 on the isolated branch stack, asserting comparison does not change
+the selected run and that Enter, Space, and click select persisted runs. The
+final run targeted this worktree's `127.0.0.1:28083` stack. An initial
+unsandboxed-process attempt was blocked before Chromium launch, and the first
+permitted launch used Playwright's default localhost port; the exact isolated
+URL then passed. No visible browser or user tab was used. Workstream validation,
+scope guard (29 paths), all six scope self-tests, and `git diff --check` passed.
+Teardown removed the branch stack, volumes, network, and four generated images;
+resource accounting found zero retained containers, volumes, test sessions, or
+known bytes.
+
+## 2026-09-15 - Global keyboard shortcuts yield to controls
+
+Product checkpoint `6b579185d2a0be4bc2b00040909c3a5821a848bd` teaches the
+workstation-level symbol/F1/type shortcuts to yield when focus is on native or
+ARIA interactive controls. This preserves Space activation for workspace tabs
+and Study controls rather than traversing to another symbol. Unit coverage
+passed as part of the 1,076-test frontend suite; type-check and production
+build passed with only the existing large-chunk warning. Headless Chromium
+F9e-keyboard and F8k-shift passed 2/2 against the branch-scoped stack.
+
+Neither slice changes visual baselines, masks, thresholds, skips, provider/ETF
+behavior, or acceptance policy. The six protected visual mismatches and
+provider/ETF staging boundary remain open; these focused receipts are not an
+exact-tip integration or four-project visual pass.
+
 ## 2026-09-15 - Occurrence keyboard accessibility across workstation views
 
 Product checkpoint `64836d0ae6c69a85c085dbb8830a72924f17f585` extends the
