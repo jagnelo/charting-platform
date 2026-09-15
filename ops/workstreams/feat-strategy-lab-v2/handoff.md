@@ -100,12 +100,47 @@ API, plugin, or indirect route. Continue independent local work; ask the human
 to explicitly authorize this exact remote destination before attempting normal
 publication again.
 
-Next implementation context: add host-side portfolio allocation and shared-risk
-contracts plus broaden result metric coverage, still only under the owned package
-paths. Keep shared-path integration deferred until provider, ETF, and TC2000
-workstreams reach staging and their exact contracts are reconciled. Maintain the
-branch as `in_progress`; closure, integration, promotion, and deployment are not
-authorized.
+## 2026-09-15 - Shared-account allocation and metrics checkpoint
+
+The second parallel-safe implementation slice is committed locally as
+`6def980311f7c5aef05ffcc13646d9beeae5c5aa`. It adds event-aligned component
+target resolution, deterministic conflict policies, cash-equity-only signed
+notional risk checks, all-or-nothing shared limits, explicit flat targets, and
+34-digit deterministic Decimal arithmetic. Product classes without a registered
+and policy-allowed risk model fail closed. Raw order sizing and engine routing
+remain unsupported.
+
+Metrics v2 now adds explicit-currency account P&L/return, drawdown duration,
+Ulcer, annualized return/volatility, Sharpe/Sortino/Calmar, monetary recovery
+factor, empirical nearest-rank VaR/expected shortfall, and trade-quality/streak
+summaries. Each value records its calculation and basis conventions. Equity
+curves currently mean equally spaced post-start marks; timestamps and
+irregular-time annualization remain unsupported. Exposure/capital, execution
+cost, attribution, rolling, distribution, sensitivity, calendar metrics,
+persistence, APIs, workers, isolated execution, and Nautilus integration remain
+open.
+
+Validation on the exact implementation tree: focused package pytest passed 30
+tests; Ruff and mypy passed; `git diff --check` passed. `make branch-validate`
+is rerun after this operational checkpoint. The package-only checks do not
+satisfy the planned full-stack completion profile.
+
+Publication remains a transport hold, not a product blocker. The current
+implementation tip is `6def980311f7c5aef05ffcc13646d9beeae5c5aa`; the recorded
+remote tip is `d2497f43084d52d3e66b40a91be25dd2678620be`, so the local branch is
+four commits ahead after this implementation commit. The previous elevated
+push for an earlier payload was rejected by the private-repository egress
+review. No push of the current range has been attempted. Do not retry
+`rtk git push origin feat/strategy-lab-v2` until the human explicitly authorizes
+the exact current destination and range; continue independently scoped local
+work and never claim synchronization.
+
+Next implementation context: add typed timestamped engine account, exposure,
+fill-cost, and attribution observations plus capital-utilization/execution-cost
+metrics under package-owned paths. Then define calendar-aware rebalance
+semantics. Keep shared integration deferred until provider, ETF, and TC2000 reach
+staging and their exact contracts are reconciled. Maintain `in_progress`;
+closure, integration, promotion, and deployment are not authorized.
 
 This operational checkpoint updates only the following branch-owned records:
 

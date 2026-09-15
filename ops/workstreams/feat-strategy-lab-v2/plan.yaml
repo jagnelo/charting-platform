@@ -294,7 +294,8 @@ status: in_progress
 remaining_gaps:
   - The current engine-neutral package is only an initial core; persistence, API routes, workers, isolated strategy execution, local Compose services, and Nautilus execution are not implemented.
   - Data snapshot construction binds but does not verify the provider coverage-evidence document; the future provider adapter must verify it against series content, range, row count, calendar, and semantics before runs can execute.
-  - Portfolio capital allocation, order conflict/priority policy, shared-account risk controls, and the full planned result-metric catalog remain to be implemented.
+  - Event-level target allocation and shared notional caps now exist for an explicitly registered cash-equity risk model only. Futures, options, FX, crypto and other classes fail closed pending product-appropriate risk models and verified valuation evidence; raw order sizing, engine routing, complete margin/stress controls, and scheduled rebalancing remain unimplemented.
+  - Metrics v2 adds account return/drawdown/tail and trade-quality summaries, but the planned catalog still lacks exposure/capital, fees/slippage, attribution, rolling, distribution, sensitivity, and calendar-period outputs with authoritative timestamped inputs.
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
@@ -303,5 +304,5 @@ progress:
   completed: [workstream-plan]
   total: 18
   current_phase: engine-neutral-core
-  current_blocker: remote publication is held by elevated approval review; local implementation can continue
-  next_action: implement host-side portfolio allocation and shared-risk contracts plus broader result metrics under the package-owned paths; defer shared integration until provider, ETF, and TC2000 work reaches staging
+  current_blocker: none
+  next_action: add typed timestamped engine account/exposure/fill-cost observations and metrics for capital utilization, execution costs, and component attribution under package-owned paths; then define calendar-aware rebalance semantics, keeping all shared integration deferred until provider, ETF, and TC2000 reach staging
