@@ -274,7 +274,11 @@ function isCrossSectionalStudyRun(run: ResearchRunSummary | null | undefined) {
 }
 function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number], run?: ResearchRunSummary | null) {
   if (isCrossSectionalStudyRun(run)) {
-    if (artifact.artifact_type === 'series') return 'Compatible target: aggregate chart plot only; the series describes the prepared cross-sectional universe, not the active symbol.'
+    if (artifact.artifact_type === 'series') {
+      return seriesData(artifact)
+        ? 'Compatible target: aggregate chart plot only; the series describes the prepared cross-sectional universe, not the active symbol.'
+        : 'View/export only: this cross-sectional series has no aligned timestamps and values for an aggregate chart plot.'
+    }
     if (['scalar', 'boolean', 'range'].includes(artifact.artifact_type)) return 'View/export only: this cross-sectional aggregate cannot be reinterpreted as a per-symbol column or condition.'
   }
   const capability = studyArtifactCapability(artifact.artifact_type)
@@ -512,7 +516,7 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
     && run?.status === 'completed'
     && run.output_contract === 'study'
     && (aggregate
-      ? artifact.artifact_type === 'series'
+      ? artifact.artifact_type === 'series' && Boolean(seriesData(artifact))
       : artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
       || (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null))
 }

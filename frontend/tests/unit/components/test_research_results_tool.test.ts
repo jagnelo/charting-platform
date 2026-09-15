@@ -580,6 +580,20 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “percentage_history” as chart plot')
   })
 
+  it('keeps malformed cross-sectional series view-only instead of offering an aggregate chart plot', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 41, status: 'completed', code_version_id: 91, output_contract: 'study', run_config: { result_scope: 'cross_sectional' }, dataset_manifest: { source: 'canonical_database' }, artifacts: [
+        { id: 42, name: 'unaligned_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.4, 0.5] } } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: unaligned_history"]').exists()).toBe(false)
+    expect(wrapper.find('[title="Export unaligned_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this cross-sectional series has no aligned timestamps and values for an aggregate chart plot.')
+  })
+
   it('promotes a structured scalar through an explicit thresholded Boolean condition', async () => {
     const source = "output.scalar('score', market.close()[-1])"
     const lineage = {
