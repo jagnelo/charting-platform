@@ -42,8 +42,12 @@ four generated images and all stack resources; the resource audit found zero
 containers, volumes, test sessions, and known attributable bytes. No baseline,
 mask, threshold, skip, provider/fallback behavior, or acceptance policy changed.
 
-The workstream remains active. Continue with the exact QQQE Dreyfus source row;
-the optional branch-tests suffix remains unrun because visual E2E failed.
+The workstream remains active. The Dreyfus row is retained here as historical
+evidence, but its classification/parser disposition belongs to
+`feat/etf-holdings-constituents` after that branch reaches staging; it is not a
+forward TC-owned task under the approved 2026-09-15 scope replan. Continue with
+independent TC workstation UI and Study/Strategy work. The optional
+branch-tests suffix remains unrun because visual E2E failed.
 
 ## 2026-09-15 - Verified Killir GARY dated holdings
 

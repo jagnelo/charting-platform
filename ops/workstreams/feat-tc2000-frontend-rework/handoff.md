@@ -12188,3 +12188,19 @@ Study/Strategy work, then consume provider and ETF changes only through staging
 and perform the planned semantic reconciliation. The known 98/104 visual result
 and six protected diffs remain historical; this focused slice did not rerun the
 visual matrix or exact-tip gate.
+
+## 2026-09-15 - Clear superseded Dreyfus forward action
+
+The active roadmap's opening summary still told TC to continue classifying the
+QQQE Dreyfus row, which conflicted with the approved scope replan. It now keeps
+that finding as historical evidence and assigns any parser/classification
+disposition to the ETF owner after the ETF branch reaches staging. No parser,
+provider, ETF, or other product behavior changed.
+
+While checking a proposed asynchronous-focus follow-up to the chart-template
+keyboard slice, the rendered control order confirmed that Reset chart defaults
+is the final enabled control both before and after template hydration. The
+follow-up was therefore unnecessary and was removed; the committed behavior is
+unchanged. The focused ChartTemplateControl suite passes 11/11. Existing
+headless F9c/F9e browser evidence remains the 2/2 receipt above; no browser UI
+or user tab was accessed.
