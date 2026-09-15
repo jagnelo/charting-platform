@@ -1418,6 +1418,85 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('preserves promoted Python signal lineage during profile edits and runs its immutable version', async () => {
+    let pythonSignal = clone(definition)
+    pythonSignal.definition_type = 'python'
+    pythonSignal.metadata = {
+      origin: 'study_lab_promotion',
+      code_asset_id: 41,
+      code_version_id: 1205,
+      output_contract: 'boolean',
+    }
+    pythonSignal.versions[0].definition_snapshot = {
+      kind: 'python_signal',
+      code_version_id: 1205,
+      output_contract: 'boolean',
+    }
+    pythonSignal.versions[0].universe_config = {}
+
+    const originalGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()!
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([clone(pythonSignal)])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(clone(pythonSignal))
+      return originalGet(path, params)
+    })
+    ;(api.patch as ReturnType<typeof vi.fn>).mockImplementation((path: string, payload?: any) => {
+      if (path === '/strategy-lab/definitions/4') {
+        pythonSignal = { ...pythonSignal, ...payload }
+        return Promise.resolve(clone(pythonSignal))
+      }
+      return Promise.resolve(clone(pythonSignal).versions[0])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('Executable code version')
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('1205')
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('boolean')
+    expect(wrapper.text()).not.toContain('Entry logic')
+    expect(wrapper.text()).not.toContain('Risk')
+    expect(wrapper.text()).not.toContain('Exits')
+    expect(wrapper.find('.detail-actions .btn-primary').exists()).toBe(false)
+
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'SPY')
+    expect(wrapper.text()).toContain('SPY')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Renamed Study signal')
+    await wrapper.get('textarea[placeholder="What market behaviour is this strategy trying to capture?"]').setValue('Keep the promoted Study lineage.')
+    await wrapper.get('button[aria-label="Save profile"]').trigger('click')
+    await flushPromises()
+
+    expect(api.patch).toHaveBeenCalledWith('/strategy-lab/definitions/4', {
+      name: 'Renamed Study signal',
+      description: 'Keep the promoted Study lineage.',
+      is_active: true,
+      tags: ['momentum'],
+    })
+    expect(api.patch).not.toHaveBeenCalledWith('/strategy-lab/versions/8', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.anything())
+    expect(wrapper.text()).toContain('SPY')
+
+    await (wrapper.vm as any).publishStrategy()
+    await flushPromises()
+    expect(api.patch).not.toHaveBeenCalledWith('/strategy-lab/versions/8', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.anything())
+    expect(wrapper.text()).toContain('Python signal code and version lineage are immutable in Strategy Lab')
+
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+    expect((runButton!.element as HTMLButtonElement).disabled).toBe(false)
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      timeframe: 'D1',
+      universe_config: { symbols: ['SPY'] },
+      parameter_grid: null,
+    }))
+  })
+
   it('saves the current draft version including conditions and run defaults', async () => {
     const wrapper = mountView()
 

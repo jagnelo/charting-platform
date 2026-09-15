@@ -3013,6 +3013,11 @@ test.describe('TC2000 workstation', () => {
     // the promotion controls settle under the full serial matrix. Retry the
     // real click against the currently mounted control instead of holding a
     // detached element handle.
+    const signalPromotionResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && response.url().includes('/strategy-lab/signals/from-code/'),
+      { timeout: 45_000 },
+    )
     await expect.poll(async () => {
       const button = page.locator('.study-lab-tool:visible').last().getByRole('button', { name: 'Save as Strategy signal' })
       if (await button.count() !== 1) return false
@@ -3029,6 +3034,33 @@ test.describe('TC2000 workstation', () => {
     // assertion bounded by the enclosing test timeout without treating a
     // transient database queue as a false product failure.
     await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 45_000 })
+    const promotion = await signalPromotionResponse
+    const promotedSignal = await promotion.json()
+
+    await page.goto('/legacy/strategy-lab')
+    const strategySignalTile = page.locator('.strategy-sidebar .definition-item').filter({ hasText: promotedSignal.name })
+    await expect(strategySignalTile).toHaveCount(1, { timeout: 30_000 })
+    await strategySignalTile.click()
+    const lineage = page.getByTestId('python-signal-lineage')
+    if (!(await lineage.isVisible())) {
+      await page.getByTitle('Expand Strategy profile').click()
+    }
+    await expect(lineage).toContainText(String(promotedSignal.versions[0].definition_snapshot.code_version_id))
+    await expect(lineage).toContainText(promotedSignal.versions[0].definition_snapshot.output_contract)
+    await expect(page.getByRole('button', { name: 'Publish revision' })).toHaveCount(0)
+
+    await page.getByRole('textbox', { name: 'Name' }).fill(`${promotedSignal.name} profile edit`)
+    const profilePatchPromise = page.waitForRequest(request =>
+      request.method() === 'PATCH'
+      && request.url().endsWith(`/strategy-lab/definitions/${promotedSignal.id}`),
+      { timeout: 30_000 },
+    )
+    await page.getByRole('button', { name: 'Save profile' }).click()
+    const profilePatch = await profilePatchPromise
+    expect(Object.keys(profilePatch.postDataJSON()).sort()).toEqual(['description', 'is_active', 'name', 'tags'])
+    await expect(lineage).toContainText(String(promotedSignal.versions[0].definition_snapshot.code_version_id))
+    await expect(page.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Run backtest' })).toHaveAttribute('title', 'Choose a run universe before running this Python signal.')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

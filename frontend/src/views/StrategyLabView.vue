@@ -134,6 +134,7 @@
             </svg>
           </button>
           <button
+            v-if="!isPythonSignal"
             class="btn-primary"
             type="button"
             @click="publishStrategy"
@@ -175,7 +176,7 @@
                   placeholder="Momentum Continuation"
                 />
               </label>
-              <label class="field">
+              <label v-if="!isPythonSignal" class="field">
                 <span class="field-label">Source</span>
                 <select v-model="sourceType" class="form-select">
                   <option value="custom">Custom rules</option>
@@ -204,17 +205,58 @@
               </label>
             </div>
 
+            <div v-if="isPythonSignal" class="python-signal-lineage" data-testid="python-signal-lineage">
+              <div class="subsection-title">
+                <h4>Python signal lineage</h4>
+                <span class="detail-version-pill">Immutable</span>
+              </div>
+              <p>
+                This strategy runs the promoted Study Lab code version below. To change signal logic,
+                edit it in Study Lab and promote a new signal; Strategy Lab only allows profile edits here.
+              </p>
+              <dl class="python-signal-lineage__fields">
+                <div>
+                  <dt>Code asset</dt>
+                  <dd>{{ pythonSignalLineage.codeAssetId ?? 'Not recorded' }}</dd>
+                </div>
+                <div>
+                  <dt>Executable code version</dt>
+                  <dd>{{ pythonSignalLineage.codeVersionId ?? 'Unavailable' }}</dd>
+                </div>
+                <div>
+                  <dt>Output contract</dt>
+                  <dd>{{ pythonSignalLineage.outputContract ?? 'Unavailable' }}</dd>
+                </div>
+                <div>
+                  <dt>Origin</dt>
+                  <dd>{{ pythonSignalLineage.origin ?? 'Not recorded' }}</dd>
+                </div>
+              </dl>
+              <p v-if="pythonSignalLineageMismatch" class="python-signal-lineage__warning" role="alert">
+                The saved profile lineage does not match the executable version snapshot. The snapshot remains authoritative;
+                running this signal is disabled until the lineage is repaired from Study Lab.
+              </p>
+              <p v-else-if="!pythonSignalCodeReferenceReady" class="python-signal-lineage__warning" role="alert">
+                This signal has no supported immutable code-version reference, so it cannot be run from Strategy Lab.
+              </p>
+            </div>
+
             <div class="subsection">
               <div class="subsection-head">
                 <div class="subsection-title">
-                  <h4>{{ sourceType === 'radar' ? 'Universe scope' : 'Universe' }}</h4>
+                  <h4>{{ isPythonSignal ? 'Run universe' : sourceType === 'radar' ? 'Universe scope' : 'Universe' }}</h4>
                   <HoverTooltip :text="sourceType === 'radar'
                     ? 'Radar provides the source instruments by default. Use the scope controls only when you want to narrow replay to a manual symbol list, watchlist, or screener result.'
-                    : 'Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.'">
+                    : isPythonSignal
+                      ? 'Choose the dataset for the next run. Python signal code and its Study Lab version remain immutable; this run universe is not saved as a Strategy revision.'
+                      : 'Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.'">
                     <button type="button" class="help-dot" aria-label="Universe info">i</button>
                   </HoverTooltip>
                 </div>
               </div>
+              <p v-if="isPythonSignal" class="python-signal-run-note">
+                This selection is used only for the next run. Python signal code and its output contract stay tied to the immutable Study Lab version.
+              </p>
 
               <div class="form-grid two-up">
                 <label class="field">
@@ -352,7 +394,7 @@
               </template>
             </div>
 
-            <div class="form-grid three-up">
+            <div v-if="!isPythonSignal" class="form-grid three-up">
               <label class="field">
                 <span class="field-label">Timeframe</span>
                 <select v-model="logicDraft.timeframe" class="form-select">
@@ -381,7 +423,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div v-if="!isPythonSignal" class="panel">
           <div class="panel-head">
             <div class="panel-head-title">
               <button
@@ -511,7 +553,7 @@
           </div>
           </div>
 
-          <div class="panel">
+            <div v-if="!isPythonSignal" class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
                 <button
@@ -662,7 +704,7 @@
             </div>
           </div>
 
-          <div class="panel">
+            <div v-if="!isPythonSignal" class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
                 <button
@@ -775,7 +817,8 @@
                 class="btn-primary"
                 type="button"
                 @click="runCurrentVersion"
-                :disabled="strategyLab.isRunning || showRunSubsetValidation"
+                :disabled="strategyLab.isRunning || showRunSubsetValidation || !pythonSignalRunReady"
+                :title="isPythonSignal && !pythonSignalRunReady ? pythonSignalRunReadinessMessage : undefined"
               >
                 {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
               </button>
@@ -1563,7 +1606,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ResizeHandle from '@/components/common/ResizeHandle.vue'
@@ -1667,6 +1710,7 @@ const STRATEGY_SIDEBAR_MAX_WIDTH = 420
 const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
 const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
 const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
+const PYTHON_SIGNAL_REVISION_GUIDANCE = 'Python signal code and version lineage are immutable in Strategy Lab. Make signal changes in Study Lab and promote a new signal.'
 const initialSidebarState = loadStrategySidebarState()
 const initialSectionStates = loadStrategySectionStates()
 
@@ -1858,6 +1902,37 @@ const currentVersion = computed<StrategyVersion | null>(() =>
   ?? strategyLab.selectedDefinition?.versions[0]
   ?? null
 )
+const pythonSignalSnapshot = computed<Record<string, any>>(() => {
+  const snapshot = currentVersion.value?.definition_snapshot
+  return snapshot && typeof snapshot === 'object' ? snapshot : {}
+})
+const isPythonSignal = computed(() =>
+  strategyLab.selectedDefinition?.definition_type === 'python'
+  || String(pythonSignalSnapshot.value.kind ?? '').startsWith('python_')
+)
+const pythonSignalLineage = computed(() => ({
+  codeAssetId: strategyLab.selectedDefinition?.metadata?.code_asset_id ?? null,
+  codeVersionId: pythonSignalSnapshot.value.code_version_id ?? null,
+  outputContract: pythonSignalSnapshot.value.output_contract ?? null,
+  origin: strategyLab.selectedDefinition?.metadata?.origin ?? null,
+}))
+const pythonSignalLineageMismatch = computed(() => {
+  const metadataVersionId = strategyLab.selectedDefinition?.metadata?.code_version_id
+  const snapshotVersionId = pythonSignalSnapshot.value.code_version_id
+  return metadataVersionId != null
+    && snapshotVersionId != null
+    && metadataVersionId !== snapshotVersionId
+})
+const pythonSignalCodeReferenceReady = computed(() => {
+  const codeVersionId = pythonSignalSnapshot.value.code_version_id
+  const kind = String(pythonSignalSnapshot.value.kind ?? '')
+  return kind.startsWith('python_')
+    && typeof codeVersionId === 'number'
+    && Number.isInteger(codeVersionId)
+    && codeVersionId > 0
+    && ['boolean', 'events'].includes(String(pythonSignalSnapshot.value.output_contract ?? ''))
+    && !pythonSignalLineageMismatch.value
+})
 const selectedWatchlist = computed(() =>
   availableWatchlists.value.find(item => item.id === selectedWatchlistId.value) ?? null
 )
@@ -3075,6 +3150,17 @@ const hasEntryLogic = computed(() =>
   sourceType.value === 'radar' || conditionCount.value > 0
 )
 
+const pythonSignalRunReady = computed(() =>
+  !isPythonSignal.value || (pythonSignalCodeReferenceReady.value && hasUniverseSelection.value)
+)
+const pythonSignalRunReadinessMessage = computed(() => {
+  if (!pythonSignalCodeReferenceReady.value) {
+    return 'This Python signal is missing a supported immutable code-version reference.'
+  }
+  if (!hasUniverseSelection.value) return 'Choose a run universe before running this Python signal.'
+  return ''
+})
+
 const canPublish = computed(() =>
   Boolean(draft.name.trim())
   && hasUniverseSelection.value
@@ -4081,6 +4167,40 @@ function compileCondition(condition: BuilderConditionNode) {
 
 async function saveProfileOnly() {
   if (!strategyLab.selectedDefinition || !currentVersion.value) return
+  if (isPythonSignal.value) {
+    const runInputs = {
+      universeMode: universeMode.value,
+      symbols: [...logicDraft.symbols],
+      selectedWatchlistId: selectedWatchlistId.value,
+      selectedScreenerId: selectedScreenerId.value,
+      selectedBasketId: selectedBasketId.value,
+      selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
+      selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
+      selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
+      selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
+      runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+    }
+    await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, {
+      name: draft.name.trim(),
+      description: draft.description.trim() || null,
+      is_active: draft.is_active,
+      tags: normalizeTags(draft.tags),
+    })
+    const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
+    hydrateFromSelection(refreshed)
+    await nextTick()
+    universeMode.value = runInputs.universeMode
+    logicDraft.symbols = runInputs.symbols
+    selectedWatchlistId.value = runInputs.selectedWatchlistId
+    selectedScreenerId.value = runInputs.selectedScreenerId
+    selectedBasketId.value = runInputs.selectedBasketId
+    selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
+    selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
+    selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
+    selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
+    Object.assign(runDraft, runInputs.runDraft)
+    return
+  }
   const definitionPayload = buildDefinitionPayload()
   const versionPayload = buildVersionPayload()
   await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
@@ -4103,6 +4223,10 @@ async function deleteCurrentStrategy() {
 }
 
 async function publishStrategy() {
+  if (isPythonSignal.value) {
+    strategyLab.error = PYTHON_SIGNAL_REVISION_GUIDANCE
+    return
+  }
   const definitionPayload = buildDefinitionPayload()
   const versionPayload = buildVersionPayload()
   if (isNew.value) {
@@ -4123,18 +4247,21 @@ async function publishStrategy() {
 
 async function runCurrentVersion() {
   if (!currentVersion.value) return
+  if (isPythonSignal.value && !pythonSignalRunReady.value) return
   const slippageBps = optionalNumberValue(runDraft.slippage_bps)
   const commissionValue = optionalNumberValue(runDraft.commission_value)
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
     test_mode: runDraft.test_mode,
-    timeframe: runDraft.timeframe || null,
+    timeframe: runDraft.timeframe || (isPythonSignal.value ? logicDraft.timeframe || 'D1' : null),
     date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
     date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
     parameter_values: {},
-    parameter_grid: parameterGridPayload(),
-    universe_config: runDraft.use_subset && runDraft.overrideSymbols.length
-      ? { symbols: runDraft.overrideSymbols }
-      : {},
+    parameter_grid: isPythonSignal.value ? null : parameterGridPayload(),
+    universe_config: isPythonSignal.value
+      ? effectiveRunUniverseConfig.value
+      : runDraft.use_subset && runDraft.overrideSymbols.length
+        ? { symbols: runDraft.overrideSymbols }
+        : {},
     execution_assumptions: {
       initial_capital: runDraft.initial_capital,
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
@@ -4213,6 +4340,14 @@ function downloadBlob(filename: string, mimeType: string, content: string) {
 }
 
 function buildDefinitionPayload() {
+  if (isPythonSignal.value) {
+    return {
+      name: draft.name.trim(),
+      description: draft.description.trim() || null,
+      is_active: draft.is_active,
+      tags: normalizeTags(draft.tags),
+    }
+  }
   return {
     name: draft.name.trim(),
     description: draft.description.trim() || null,
@@ -5171,6 +5306,48 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 .run-detail {
   display: grid;
   gap: 8px;
+}
+
+.python-signal-lineage {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #29333d;
+  border-radius: 4px;
+  background: #101419;
+}
+
+.python-signal-lineage > p,
+.python-signal-run-note {
+  margin: 0;
+  color: #aeb7c0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.python-signal-lineage__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.python-signal-lineage__fields dt {
+  color: #7c8995;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.python-signal-lineage__fields dd {
+  margin: 3px 0 0;
+  color: #e0e6eb;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.python-signal-lineage__warning {
+  color: #ffcf73 !important;
 }
 
 .coverage-preview-section,

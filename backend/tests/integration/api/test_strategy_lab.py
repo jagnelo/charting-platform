@@ -556,6 +556,136 @@ class TestStrategyLabAPI:
             "output_contract": "boolean",
         }
 
+    def test_python_signal_profile_edits_preserve_immutable_code_lineage(
+        self, client, auth_headers
+    ):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-signal-immutable-profile",
+                "name": "Immutable Profile Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "output.boolean('signal', True)",
+                    "output_contract": "boolean",
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        code_version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{code_version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        promoted = promotion_res.json()
+        strategy_id = promoted["id"]
+        strategy_version_id = promoted["versions"][0]["id"]
+        original_metadata = promoted["metadata"]
+        original_snapshot = promoted["versions"][0]["definition_snapshot"]
+
+        profile_res = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={
+                "name": "Renamed Immutable Profile Signal",
+                "description": "A safe profile-only edit.",
+                "is_active": False,
+                "tags": ["reviewed"],
+            },
+        )
+        assert profile_res.status_code == 200, profile_res.text
+        profile = profile_res.json()
+        assert profile["name"] == "Renamed Immutable Profile Signal"
+        assert profile["description"] == "A safe profile-only edit."
+        assert profile["is_active"] is False
+        assert profile["tags"] == ["reviewed"]
+        assert profile["definition_type"] == "python"
+        assert profile["metadata"] == original_metadata
+        assert profile["versions"][0]["definition_snapshot"] == original_snapshot
+
+        type_mutation = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={"definition_type": "rules"},
+        )
+        assert type_mutation.status_code == 409
+        assert "immutable" in type_mutation.json()["detail"].lower()
+
+        lineage_mutation = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={"metadata": {}},
+        )
+        assert lineage_mutation.status_code == 409
+
+        version_creation = client.post(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}/versions",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+        assert version_creation.status_code == 409
+
+        version_mutation = client.patch(
+            f"/api/v1/strategy-lab/versions/{strategy_version_id}",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+        assert version_mutation.status_code == 409
+
+        final_res = client.get(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+        )
+        assert final_res.status_code == 200, final_res.text
+        final = final_res.json()
+        assert final["definition_type"] == "python"
+        assert final["metadata"] == original_metadata
+        assert len(final["versions"]) == 1
+        assert final["versions"][0]["id"] == strategy_version_id
+        assert final["versions"][0]["is_current"] is True
+        assert final["versions"][0]["definition_snapshot"] == original_snapshot
+
+    def test_mislabelled_python_signal_snapshot_rejects_version_mutation(
+        self, client, auth_headers, db, user
+    ):
+        from app.models.strategy import StrategyDefinition, StrategyVersion
+
+        strategy = StrategyDefinition(
+            user_id=user.id,
+            name="Legacy Python Signal With Rules Type",
+            source_type="custom",
+            definition_type="rules",
+            tags=[],
+            metadata_json={},
+        )
+        strategy.versions.append(
+            StrategyVersion(
+                version_number=1,
+                definition_snapshot={
+                    "kind": "python_signal",
+                    "code_version_id": 98765,
+                    "output_contract": "boolean",
+                },
+            )
+        )
+        db.add(strategy)
+        db.flush()
+        version = strategy.versions[0]
+
+        response = client.patch(
+            f"/api/v1/strategy-lab/versions/{version.id}",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+
+        assert response.status_code == 409, response.text
+        assert "immutable" in response.json()["detail"].lower()
+
     def test_promoted_python_signal_run_queues_isolated_research(
         self, client, auth_headers, instrument, ohlcv_bars
     ):

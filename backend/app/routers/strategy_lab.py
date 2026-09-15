@@ -30,6 +30,11 @@ from app.services.strategy_lab import (
 
 router = APIRouter(prefix="/strategy-lab", tags=["strategy-lab"])
 
+PYTHON_SIGNAL_IMMUTABLE_DETAIL = (
+    "Python signal code and version lineage are immutable in Strategy Lab; "
+    "make changes in Study Lab and promote a new signal."
+)
+
 
 def _definition_query_for_user(user_id: int):
     return (
@@ -58,6 +63,21 @@ async def _load_definition_or_404(
     if strategy is None:
         raise HTTPException(status_code=404, detail="Strategy definition not found")
     return strategy
+
+
+def _is_immutable_python_signal(strategy: StrategyDefinition) -> bool:
+    if strategy.definition_type == "python":
+        return True
+    return any(
+        isinstance(version.definition_snapshot, dict)
+        and str(version.definition_snapshot.get("kind", "")).startswith("python_")
+        for version in strategy.versions
+    )
+
+
+def _reject_python_signal_version_mutation(strategy: StrategyDefinition) -> None:
+    if _is_immutable_python_signal(strategy):
+        raise HTTPException(status_code=409, detail=PYTHON_SIGNAL_IMMUTABLE_DETAIL)
 
 
 @router.get("/definitions", response_model=list[StrategyDefinitionSummaryOut])
@@ -244,6 +264,12 @@ async def update_definition(
 ):
     strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
     payload = body.model_dump(exclude_unset=True)
+    if _is_immutable_python_signal(strategy) and {
+        "source_type",
+        "definition_type",
+        "metadata",
+    }.intersection(payload):
+        raise HTTPException(status_code=409, detail=PYTHON_SIGNAL_IMMUTABLE_DETAIL)
     if "source_type" in payload:
         payload["source_type"] = payload["source_type"].value
     if "definition_type" in payload:
@@ -277,6 +303,7 @@ async def create_version(
     current_user: User = Depends(get_current_user),
 ):
     strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
+    _reject_python_signal_version_mutation(strategy)
     next_version = max((version.version_number for version in strategy.versions), default=0) + 1
     for existing in strategy.versions:
         existing.is_current = False
@@ -318,11 +345,13 @@ async def update_version(
     version_stmt = (
         select(StrategyVersion)
         .join(StrategyDefinition, StrategyDefinition.id == StrategyVersion.strategy_id)
+        .options(selectinload(StrategyVersion.strategy).selectinload(StrategyDefinition.versions))
         .where(StrategyDefinition.user_id == current_user.id, StrategyVersion.id == version_id)
     )
     version = (await db.execute(version_stmt)).scalar_one_or_none()
     if version is None:
         raise HTTPException(status_code=404, detail="Strategy version not found")
+    _reject_python_signal_version_mutation(version.strategy)
 
     version.definition_snapshot = body.definition_snapshot
     version.parameter_schema = body.parameter_schema
