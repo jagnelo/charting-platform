@@ -11393,6 +11393,18 @@ known overlaps are durable and reviewable.
 Exit: focused and authenticated browser coverage protects each changed flow;
 visual oracles are not weakened.
 
+Current focused receipt at product/test tip `74b049c6` (2026-09-15): Chart
+Templates and Chart Plot Library now open at their last enabled visible control
+on Arrow-Up, while click and Arrow-Down retain first-control entry. Focused
+component tests passed `43/43`; the full frontend Vitest suite, type-check, and
+production build passed (the existing large-chunk warning remains). The
+authenticated headless F9c/F9e browser flows passed `2/2` against the isolated
+branch stack, including Escape focus recovery. Teardown/resource accounting
+found no retained containers, volumes, or test sessions. This is a focused R1
+receipt, not a fresh exact-tip gate; the latest exact gate remains `e93de4af`,
+with `98/104` visual assertions and the same six protected diffs. No screenshot
+baseline, mask, threshold, skip, or acceptance policy changed.
+
 ### R2 — Consume the market-data provider platform
 
 - After `feat/market-data-provider-platform` reaches staging, synchronize TC
@@ -11662,10 +11674,16 @@ Continue independent TC workstation UI and Study/Strategy slices. Do not add new
 provider-routing, live-probe, generic-ingestion, or refresh-worker behavior to TC. The last exact
 product-tip gate at `e93de4af` passed every pre-visual stage and functional Playwright (165 passed,
 107 documented skips); visual parity remains 98/104 with the same six protected screenshot diffs.
-Provider-platform (`da06e560`) is ready for human review but not in staging; ETF holdings
-(`52814f95`) is waiting for that integration. Keep TC consumer integration pending until the
-coordinator promotes provider-platform and then ETF through staging. The full measured path
-intersection and exact integration order are in the TC ownership ledger.
+At current product/test tip `74b049c6`, Chart Templates and Chart Plot Library have
+bidirectional keyboard-entry coverage; focused component tests passed 43/43 and the existing
+authenticated headless Playwright flows passed 2/2. This focused slice does not close R1 or the
+exact-tip gate. The branch has 1,254 locally committed changes after last-known tracking tip
+`63d64bfe`; no push was attempted for the current range after earlier private-origin authorization
+rejections and a DNS failure on the last remote read. Local provider tip `da06e560` and ETF tip
+`52814f95` are not ancestors of local staging `8b885a2f`; these are local refs, not fresh remote
+confirmation. Keep TC consumer integration pending until the coordinator promotes provider-platform
+and then ETF through staging. The full measured path intersection and exact integration order are
+in the TC ownership ledger.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
