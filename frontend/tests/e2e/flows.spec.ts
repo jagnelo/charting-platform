@@ -3101,6 +3101,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8t-results — Study Results exposes selected runs and structured results semantically', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
     await page.route(/\/api\/v1\/research\/runs(?:\?.*)?$/, async route => {
       if (route.request().method() !== 'GET') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
@@ -3147,13 +3148,17 @@ test.describe('TC2000 workstation', () => {
         run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY', timeframe: 'D1' },
         dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
         reproducibility_hash: 'sha256:structured-event-results',
-        artifact_count: 5,
+        artifact_count: 6,
         artifacts: [
           { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } },
           { id: 6, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
           { id: 7, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
           { id: 8, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
           { id: 9, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+          { id: 10, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: {
+            points: [{ timestamp: '2026-01-03T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }],
+            occurrences: [{ occurrence_id: '7:2026-01-03T00:00:00Z:member_entered', timestamp: '2026-01-03T00:00:00Z', kind: 'member_entered', instrument_id: 7, symbol: 'SPY', name: 'SPY', value: true, metric: 0.04, percentage: 1, pass_count: 1, eligible_count: 1 }],
+          } } },
         ],
       }]) })
     })
@@ -3300,6 +3305,30 @@ test.describe('TC2000 workstation', () => {
     await results.getByRole('button', { name: 'Save events as Strategy signal' }).click()
     await expect(results).toContainText('Saved event artifact as Strategy signal “Breakout events signal” (#43)')
     await results.locator('.research-results-tool__run').filter({ hasText: 'Run #885' }).click()
+    const eventList = results.getByRole('list', { name: 'occurrences filtered occurrences' })
+    const eventOccurrence = eventList.getByRole('listitem').getByRole('button', { name: 'SPY 2026-01-02 occurrence' })
+    await expect(eventOccurrence).toBeVisible()
+    await expect(eventOccurrence).toHaveAccessibleName('SPY 2026-01-02 occurrence')
+    const breadthList = results.getByRole('list', { name: 'Historical breadth occurrences' })
+    const breadthOccurrence = breadthList.getByRole('listitem').getByRole('button', { name: 'SPY entered 2026-01-03T00:00:00Z' })
+    await expect(breadthOccurrence).toBeVisible()
+    await expect(breadthOccurrence).toHaveAccessibleName('SPY entered 2026-01-03T00:00:00Z')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    const linkedChart = page.getByRole('region', { name: 'Chart workspace' }).first()
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await eventOccurrence.focus()
+    await eventOccurrence.press('Enter')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-02')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await breadthOccurrence.focus()
+    await breadthOccurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-03T00:00:00Z')
     await expect(results.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
     await expect(results.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
     await results.getByRole('button', { name: 'Save filter: occurrences' }).click()

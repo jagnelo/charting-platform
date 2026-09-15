@@ -292,7 +292,12 @@ describe('ResearchResultsTool', () => {
     await wrapper.get('[aria-label="Occurrence symbol filter"]').setValue('spy')
     expect(wrapper.text()).toContain('1 shown')
     expect(wrapper.text()).not.toContain('AAPL')
-    const occurrence = wrapper.get('[aria-label="SPY entered 2026-01-02T00:00:00+00:00"]')
+    const list = wrapper.get('[role="list"][aria-label="Historical breadth occurrences"]')
+    const item = list.get('[role="listitem"]')
+    const occurrence = item.get('button')
+    expect(item.findAll('button')).toHaveLength(1)
+    expect(occurrence.attributes('type')).toBe('button')
+    expect(occurrence.attributes('aria-label')).toBe('SPY entered 2026-01-02T00:00:00+00:00')
     await occurrence.trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
       symbol: 'SPY',
@@ -324,7 +329,12 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('1 shown')
     expect(wrapper.text()).not.toContain('AAPL')
     await wrapper.get('[aria-label="signal_events event type filter"]').setValue('member_entered')
-    const event = wrapper.get('[aria-label="SPY 2026-01-02T00:00:00Z occurrence"]')
+    const list = wrapper.get('[role="list"][aria-label="signal_events filtered occurrences"]')
+    const item = list.get('[role="listitem"]')
+    const event = item.get('button')
+    expect(item.findAll('button')).toHaveLength(1)
+    expect(event.attributes('type')).toBe('button')
+    expect(event.attributes('aria-label')).toBe('SPY 2026-01-02T00:00:00Z occurrence')
     await event.trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
       symbol: 'SPY',
