@@ -27550,10 +27550,11 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
             failures: list[str] = []
             holdings_response: httpx.Response | None = None
             holdings_url: str | None = None
+            report_date: date | None = None
             for days_back in range(16):
-                report_date = date.today() - timedelta(days=days_back)
+                candidate_report_date = date.today() - timedelta(days=days_back)
                 candidate_url = self.gary_holdings_template.format(
-                    date_mmddyyyy=report_date.strftime("%m%d%Y")
+                    date_mmddyyyy=candidate_report_date.strftime("%m%d%Y")
                 )
                 response = await client.get(
                     candidate_url,
@@ -27570,9 +27571,10 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 if response.text.strip():
                     holdings_response = response
                     holdings_url = candidate_url
+                    report_date = candidate_report_date
                     break
                 failures.append(f"{candidate_url}:empty")
-            if holdings_response is None or holdings_url is None:
+            if holdings_response is None or holdings_url is None or report_date is None:
                 raise ValueError(
                     "Killir/KKM GARY did not expose a recent dated holdings text file: "
                     + "; ".join(failures[-5:])
@@ -27580,6 +27582,14 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows, composition_date = self._parse_gary_text(holdings_response.text)
         if not rows:
             raise ValueError("Killir/KKM GARY holdings text returned no complete rows.")
+        if composition_date is None:
+            raise ValueError("Killir/KKM GARY holdings text has no valid composition date.")
+        if composition_date != report_date:
+            raise ValueError(
+                "Killir/KKM GARY holdings row date does not match its dated report filename: "
+                f"rows={composition_date.isoformat()} filename="
+                f"{report_date.isoformat() if report_date else 'unknown'}"
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
@@ -27587,7 +27597,10 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "pipe_delimited_text",
                 "product_page_url": str(page_response.url),
                 "bundle_url": str(bundle_response.url),
+                "requested_holdings_url": holdings_url,
                 "row_count": len(rows),
+                "all_rows_dated_same_date": True,
+                "filename_report_date": report_date.isoformat(),
             },
             source_url=str(getattr(holdings_response, "url", holdings_url)),
             source_identifier="GARY",
@@ -27599,6 +27612,10 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "killir_mango_page_declared_sei_trade_date_holdings_text",
                 "product_page_url": str(page_response.url),
                 "bundle_url": str(bundle_response.url),
+                "requested_holdings_url": holdings_url,
+                "row_count": len(rows),
+                "all_rows_dated_same_date": True,
+                "filename_report_date": report_date.isoformat(),
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
@@ -27698,7 +27715,7 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @classmethod
     def _parse_gary_text(cls, raw_text: str) -> tuple[list[CanonicalHoldingRow], date | None]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
         for position, raw in enumerate(
             csv.DictReader(StringIO(raw_text.strip()), delimiter="|"),
             start=1,
@@ -27706,8 +27723,6 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if (_clean(raw.get("fund_ticker")) or "").upper() != "GARY":
                 continue
             row_date = cls._parse_date(raw.get("date"))
-            if row_date and (composition_date is None or row_date > composition_date):
-                composition_date = row_date
             raw_ticker = _clean(raw.get("security_ticker"))
             ticker, exchange = cls._split_ticker(raw_ticker)
             name = _clean(raw.get("security_description"))
@@ -27725,6 +27740,11 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             if not any([parsed_symbol, name, cusip, raw.get("market_value")]):
                 continue
+            if row_date is None:
+                raise ValueError(
+                    "Killir/KKM GARY holdings text contains a retained row without a valid date."
+                )
+            composition_dates.add(row_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=parsed_symbol,
@@ -27745,7 +27765,13 @@ class KillirHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
-        return rows, composition_date
+        if len(composition_dates) > 1:
+            rendered_dates = ", ".join(sorted(value.isoformat() for value in composition_dates))
+            raise ValueError(
+                "Killir/KKM GARY holdings text contains mixed composition dates: "
+                f"{rendered_dates}"
+            )
+        return rows, next(iter(composition_dates), None)
 
     @staticmethod
     def _parse_iso_date(value: Any) -> date | None:

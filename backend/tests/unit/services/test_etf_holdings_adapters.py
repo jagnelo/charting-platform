@@ -20006,9 +20006,97 @@ async def test_killir_gary_adapter_discovers_recent_trade_date_file_and_parses_t
     assert equity_row.isin == "US0079031078"
     assert equity_row.weight == Decimal("0.0503")
     assert result.legal_metadata["composition_date"] == "2026-07-24"
+    assert result.legal_metadata["filename_report_date"] == "2026-07-24"
+    assert result.legal_metadata["requested_holdings_url"] == holdings_url
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["all_rows_dated_same_date"] is True
+    assert result.raw_json["all_rows_dated_same_date"] is True
     assert result.legal_metadata["route_resolution"] == (
         "killir_mango_page_declared_sei_trade_date_holdings_text"
     )
+
+
+@pytest.mark.parametrize(
+    ("row_dates", "message"),
+    [
+        (["07/24/2026", "07/25/2026"], "mixed composition dates"),
+        (["07/24/2026", ""], "without a valid date"),
+    ],
+)
+def test_killir_gary_parser_rejects_mixed_or_undated_rows(row_dates, message):
+    adapter = get_holdings_adapter("killir")
+    assert adapter is not None
+    header = (
+        "date|fund_ticker|security_description|security_cusip|security_isin|"
+        "security_sedol|security_ticker|security_group|security_type|quantity|"
+        "market_value|percent_of_net_assets"
+    )
+    rows = [
+        f"{row_date}|GARY|Apple Inc.|037833100|US0378331005|2046251|AAPL|"
+        "Stock - Common||10|1000|1.0"
+        for row_date in row_dates
+    ]
+
+    with pytest.raises(ValueError, match=message):
+        adapter._parse_gary_text("\n".join([header, *rows]))
+
+
+@pytest.mark.asyncio
+async def test_killir_gary_adapter_rejects_report_date_mismatch(monkeypatch):
+    adapter = get_holdings_adapter("killir")
+    assert adapter is not None
+
+    class MockDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 7, 25)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    page_url = "https://mangogrowthetf.com/"
+    bundle_url = "https://mangogrowthetf.com/assets/js/app.js?version=6"
+    report_url = (
+        "https://mangogrowthetf.com/assets/data/"
+        "SEI_KKM_Financial_Tradedate_Holdings_07242026.txt"
+    )
+    holdings_text = "\n".join(
+        [
+            (
+                "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
+                "security_type|security_number|security_cusip|security_sedol|"
+                "security_isin|security_ticker|security_description|quantity|"
+                "market_value|notional_value|percent_of_market_value|percent_of_net_assets"
+            ),
+            (
+                "07/23/2026|5420|Mango Growth ETF|00764Q561|GARY|Stock - Common||"
+                "007903107|007903107|2007849|US0079031078|AMD|ADVANCED MICRO DEVICES|"
+                "26908.00|14044630.60||5.32|5.03"
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="Mango Growth ETF <section id='holdings'>#holdings</section> assets/js/app.js?version=6",
+            content_type="text/html",
+            url=page_url,
+        ),
+        FakeResponse(
+            text='const pattern="SEI_KKM_Financial_Tradedate_Holdings_"; const ticker="GARY";',
+            content_type="application/javascript",
+            url=bundle_url,
+        ),
+        FakeResponse(
+            text="",
+            content_type="text/plain",
+            status_code=404,
+            url=report_url.replace("07242026", "07252026"),
+        ),
+        FakeResponse(text=holdings_text, content_type="text/plain", url=report_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="does not match its dated report filename"):
+        await adapter.fetch_latest(symbol="GARY")
 
 
 @pytest.mark.asyncio
