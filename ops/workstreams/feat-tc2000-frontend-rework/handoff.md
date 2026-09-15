@@ -12204,3 +12204,21 @@ follow-up was therefore unnecessary and was removed; the committed behavior is
 unchanged. The focused ChartTemplateControl suite passes 11/11. Existing
 headless F9c/F9e browser evidence remains the 2/2 receipt above; no browser UI
 or user tab was accessed.
+
+## 2026-09-15 - Keyboard-accessible chart-template import
+
+Product commit `dd9e1c3668dca2319a77397453c2788ecce0955c` replaces the
+mouse-only label around a hidden file input with a visible, named Import button.
+It opens the same file picker, preserves the import/export format and behavior,
+and now participates in normal focus order; ArrowUp opens the template popover
+on Import as the last enabled control. The regression failed before the fix.
+
+ChartTemplateControl passed 12/12 and the full frontend suite passed 1,074/1,074;
+type-check and production build passed with the existing large-chunk warning.
+The authenticated, headless F9f export/import flow passed 1/1 using Enter on
+Import and selecting the exported file. Scope validation and its 6/6 self-tests
+passed. Teardown removed this branch's containers, volumes, network, and four
+generated images; no branch test sessions remained. This is a focused R1/R6
+receipt, not a fresh exact-tip or four-project visual gate. No provider/ETF
+behavior, screenshot baseline, threshold, mask, skip, or acceptance policy
+changed; no Chrome UI or user tab was accessed.

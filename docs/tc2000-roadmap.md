@@ -11678,16 +11678,19 @@ Continue independent TC workstation UI and Study/Strategy slices. Do not add new
 provider-routing, live-probe, generic-ingestion, or refresh-worker behavior to TC. The last exact
 product-tip gate at `e93de4af` passed every pre-visual stage and functional Playwright (165 passed,
 107 documented skips); visual parity remains 98/104 with the same six protected screenshot diffs.
-At current product/test tip `74b049c6`, Chart Templates and Chart Plot Library have
-bidirectional keyboard-entry coverage; focused component tests passed 43/43 and the existing
-authenticated headless Playwright flows passed 2/2. This focused slice does not close R1 or the
-exact-tip gate. The branch has 1,254 locally committed changes after last-known tracking tip
-`63d64bfe`; no push was attempted for the current range after earlier private-origin authorization
-rejections and a DNS failure on the last remote read. Local provider tip `da06e560` and ETF tip
-`52814f95` are not ancestors of local staging `8b885a2f`; these are local refs, not fresh remote
-confirmation. Keep TC consumer integration pending until the coordinator promotes provider-platform
-and then ETF through staging. The full measured path intersection and exact integration order are
-in the TC ownership ledger.
+At product/test tip `dd9e1c36`, the chart-template Import action is a named, keyboard-reachable
+button that opens the existing file picker; ArrowUp enters on that final control. The focused
+ChartTemplateControl suite passed 12/12, the full frontend suite passed 1,074/1,074, type-check and
+production build passed (with the existing large-chunk warning), and authenticated headless F9f
+export/import via Enter passed 1/1. The isolated stack teardown found no remaining branch
+containers, volumes, network, or test sessions; no screenshot baseline or acceptance policy
+changed. This focused receipt does not close R1 or the exact-tip gate. The branch has 1,258 locally
+committed changes after last-known tracking tip `63d64bfe`; no push was attempted for the current
+range after earlier private-origin authorization rejections and a DNS failure on the last remote
+read. Local provider tip `da06e560` and ETF tip `52814f95` are not ancestors of local staging
+`8b885a2f`; these are local refs, not fresh remote confirmation. Keep TC consumer integration
+pending until the coordinator promotes provider-platform and then ETF through staging. The full
+measured path intersection and exact integration order are in the TC ownership ledger.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
