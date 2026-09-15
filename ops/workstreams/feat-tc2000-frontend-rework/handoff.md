@@ -1,5 +1,41 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Promoted Python signal lineage in Strategy Lab
+
+Product commit `7c4bd3ba494706b517d496ca63770055b88f9b3e` preserves Study Lab
+code/version lineage for promoted Python signals. Strategy Lab displays the
+immutable executable version and output contract, allows safe profile edits,
+hides generic rules/revision controls, and runs against a run-only selected
+universe. The backend rejects mutation of Python definition lineage or version
+snapshots, including legacy definitions whose version snapshot identifies a
+`python_*` signal; the version update query eagerly loads the versions used by
+that defensive check.
+
+Focused backend integration passed 3/3 (safe profile update, immutable
+promotion/run behavior, and mislabeled-snapshot conflict regression), with
+Ruff and formatting checks passing. Full frontend coverage, type-check, and
+production build passed; authenticated headless Chromium F8q passed 1/1 on the
+isolated worktree stack. Workstream validation, scope guard (33 paths), all six
+scope self-tests, and `git diff --check` passed. Teardown removed all stack
+containers, volumes, network, and four generated images; final resource status
+found zero containers, volumes, test sessions, known bytes, or unknown
+components. No visible browser, visual baseline, mask, threshold, skip,
+provider/ETF behavior, or acceptance policy changed. This is a focused R5 slice,
+not the exact-tip integration or four-project visual gate; the six protected
+visual mismatches and upstream provider/ETF staging boundary remain open.
+
+Continue with the next independent TC-owned workstation or Study/Strategy
+slice. Do not implement provider/ETF responsibilities in this branch; consume
+their contracts only after promotion through staging and reconcile shared
+paths at the final integration step. The pending origin synchronization is an
+operational hold only, not a reason to stop independent local work.
+
+This branch-owned handoff is `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`;
+the product roadmap receipt is in `docs/tc2000-roadmap.md`, validation evidence
+is in `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and
+active session/progress state is in
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`.
+
 ## 2026-09-15 - Watchlist context-menu keyboard invocation
 
 Product commit `d20572b150cb0d20596fce66560facc2dd908a0b` adds Shift+F10 and
@@ -12461,3 +12497,34 @@ checkpoint commit is verified externally with `git rev-parse`.
 Next: continue the next independent TC-owned R1/R5/R6 workstation or
 Study/Strategy slice, preserving all visual oracles and consuming provider/ETF
 work only after its promotion through staging.
+
+## 2026-09-15 - R5 immutable Python Study signal preservation (context start)
+
+The prior `F8k-a` context is complete and committed as product commit
+`81b0b258c965883f05d8caf80fec456e78f32dc1`; its separate operational checkpoint
+is `2333ede119412ee5c2c6e01d9499a410fed091fd`. The TC worktree is clean at the
+checkpoint. The remote feature ref remains `63d64bfe95c98bfe6e550bf69c213ae1cd64a629`,
+leaving the local range `63d64bfe95c98bfe6e550bf69c213ae1cd64a629..2333ede119412ee5c2c6e01d9499a410fed091fd`
+committed locally pending push. Repository guidance explicitly treats a
+rejected push as a synchronization hold and permits the next independent,
+cleanly committed context; do not retry an exact payload rejected by the
+private-origin safeguard without newly approved trusted authorization.
+
+The active context is `R5_python_signal_immutability`. Intent: preserve
+Study-promoted Python signal identity and immutable version lineage in Strategy
+Lab, allow safe profile-only edits without replacing the Python definition or
+snapshot with a rules payload, and expose an explicit capability boundary for
+rule-based revisions that are not supported for immutable Python signals.
+Runs remain available against the promoted code version. Provider and ETF
+consumer work remains deferred until both upstream branches reach staging.
+
+Owned product paths:
+
+- `frontend/src/views/StrategyLabView.vue`
+- `frontend/tests/unit/views/test_strategy_lab_view.test.ts`
+- `frontend/tests/e2e/flows.spec.ts`
+
+The previous context's focused, full frontend, type-check, build, authenticated
+headless F8k-a, TC scope-guard, and workstream-validation evidence is recorded
+above. This R5 context has not yet changed product files. Acceptance flexibility
+used: None.

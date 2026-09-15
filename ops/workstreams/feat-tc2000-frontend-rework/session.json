@@ -52,7 +52,9 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
+    "docs/tc2000-roadmap.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -114,14 +116,14 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "81b0b258c965883f05d8caf80fec456e78f32dc1",
+  "head": "7c4bd3ba494706b517d496ca63770055b88f9b3e",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T17:46:46.645507+00:00",
-  "last_human_progress_update": "2026-09-15T17:45:16.641532+00:00",
+  "last_checkpoint": "2026-09-15T20:26:22.432585+00:00",
+  "last_human_progress_update": "2026-09-15T20:24:55.299279+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
-  "plan_hash": "67ab16443085495207320e5010addb54c979e336a554370cc7203da3d6914d74",
+  "next_action": "Continue the next independent TC-owned workstation or Study/Strategy slice from the roadmap; keep provider/ETF consumers deferred until both upstream changes reach staging, then reconcile and run exact-tip validation.",
+  "plan_hash": "fba9ac81eba8ae138f62efa8f3588ecd28bb70afe4f6fa6b4fb2d7343d2fb36a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -133,16 +135,18 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Six protected visual diffs remain; provider-platform and ETF changes have not reached staging; the current 1,274-commit local range remains unpushed under the private-origin safeguard.",
-    "current_phase": "R1_popout_retry_recovery",
-    "next_action": "Continue the next independent TC-owned R1/R5/R6 workstation or Study/Strategy slice; defer provider/ETF consumers until staging and line-level shared-path reconciliation.",
+    "current_blocker": "No blocker to independent local work. Final review still requires provider and ETF staging integration plus resolution or explicit disposition of the six protected visual diffs; remote push remains an operational synchronization hold only.",
+    "current_phase": "R5_python_signal_lineage_delivered",
+    "next_action": "Continue the next independent TC-owned workstation or Study/Strategy slice from the roadmap; keep provider/ETF consumers deferred until both upstream changes reach staging, then reconcile and run exact-tip validation.",
     "total": 9,
-    "updated_at": "2026-09-15T17:45:16.641283+00:00"
+    "updated_at": "2026-09-15T20:24:55.299207+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "failure_category": "prior private-origin safeguard rejection requires trusted exact-payload authorization; latest read-only ls-remote failed DNS; no current-range push attempted",
+    "current_local_head": "7c4bd3ba494706b517d496ca63770055b88f9b3e",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..7c4bd3ba494706b517d496ca63770055b88f9b3e",
+    "failure_category": "prior exact payload was rejected by the private-origin safeguard; current range was not retried without trusted exact-payload authorization; read-only remote lookup currently succeeds",
     "head_at_product_checkpoint": "74b049c62425f326cdf2171ecb5bcebe047b2260",
     "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..74b049c62425f326cdf2171ecb5bcebe047b2260",
     "remote": "origin",

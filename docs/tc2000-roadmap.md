@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Preserve promoted Python signal lineage in Strategy Lab
+
+Product checkpoint `7c4bd3ba494706b517d496ca63770055b88f9b3e` keeps the
+existing TC Study-to-Strategy promotion model intact while making promoted
+Python signals explicitly lineage-preserving in Strategy Lab. The signal's
+Study Lab code version and output contract are visible and immutable; profile
+fields remain editable without rewriting the code snapshot, and version edits
+or new rules revisions return a clear conflict. A legacy/mislabeled definition
+is also guarded by its `python_*` version snapshot. Python signal runs use the
+selected run-only universe and do not publish it as a Strategy revision.
+
+The full frontend coverage suite, type-check, and production build passed; the
+branch-stack build repeated the production type-check/build. Focused Strategy
+Lab integration tests passed 3/3, including the mislabeled-snapshot regression;
+Ruff and format checks passed. Authenticated headless Chromium F8q passed 1/1,
+verifying lineage, safe profile PATCH fields, and the run-universe guard.
+Workstream validation, the TC scope guard (33 paths and six self-tests), and
+diff checks passed. Teardown removed the branch-scoped stack, volumes, network,
+and four generated images; resource accounting found zero retained containers,
+volumes, test sessions, known bytes, or unknown components. No visual oracle,
+provider/ETF behavior, or acceptance policy changed. The six protected visual
+diffs and upstream staging boundary remain open; this is not an exact-tip or
+four-project visual-gate pass.
+
 ## 2026-09-15 - Watchlist context-menu keyboard invocation
 
 Product checkpoint `d20572b150cb0d20596fce66560facc2dd908a0b` opens the

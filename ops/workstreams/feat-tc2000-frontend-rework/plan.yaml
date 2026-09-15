@@ -250,23 +250,21 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R1_workstation_menu_keyboard_navigation
+  current_phase: R5_python_signal_immutability
   next_action: >-
-    Continue independent TC-owned workstation UI and Study/Strategy work while
-    provider and ETF changes remain outside local staging. Preserve every visual
-    oracle and the six protected mismatches. Recheck staging before integration;
-    once provider then ETF work reaches staging, consume the staging tip through
-    the prescribed workflow, reconcile shared paths semantically, and rerun the
-    exact-tip gate before human review.
+    Preserve the immutable promoted Python Study signal contract in Strategy
+    Lab: display source lineage/output contract, permit safe profile changes
+    without rewriting the Python definition/version snapshot, and explicitly
+    block unsupported rules-based revision. Validate this independent TC-owned
+    R5 context with focused tests and authenticated headless browser evidence.
+    Keep provider/ETF consumers deferred until both changes reach staging, then
+    reconcile shared paths semantically and run the exact-tip gate.
   current_blocker: >-
-    Local staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; the current local
-    provider tip da06e560b1aaa0e5399e1e9565f174abe925bda8 and ETF tip
-    52814f95bd0ef62968ba1af4018ff9ef5049d3d6 are not ancestors of staging.
-    These are local ref snapshots; remote refresh is not confirmed. This is an
-    external integration dependency, not permission to duplicate either domain
-    in TC. The last exact gate at e93de4af passed all pre-visual stages and
-    functional E2E (165 passed, 107 documented skips); visual parity remains
-    98/104 with six protected diffs.
+    Integration remains externally gated: remote staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
+    provider is 73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3, and ETF is
+    52814f95bd0ef62968ba1af4018ff9ef5049d3d6; neither dependency is in staging.
+    This blocks consumer integration only. Six protected visual diffs remain;
+    pending push is an operational synchronization hold, not a product blocker.
 historical_implementation_records:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
