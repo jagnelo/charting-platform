@@ -1,6 +1,6 @@
 <template>
   <section class="chart-template" aria-label="Chart templates" @keydown.esc="closeToTrigger">
-    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen" @keydown="handleTriggerKeydown">Templates</button>
+    <button ref="trigger" type="button" title="Chart templates" aria-label="Chart templates" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Templates</button>
     <div v-if="open" ref="menuRoot" class="chart-template__menu" role="menu" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart templates</b><button type="button" aria-label="Close chart templates" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <div class="chart-template__save">
@@ -116,14 +116,20 @@ function cancelRename() {
   renameDraft.value = ''
 }
 
-function toggleOpen() {
+function focusLastMenuControl() {
+  const controls = menuRoot.value?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)')
+  controls?.item(controls.length - 1)?.focus()
+}
+
+function toggleOpen(focusLast = false) {
   open.value = !open.value
   if (open.value) void nextTick(() => {
     void load()
     positionMenu()
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)
-    firstEditor.value?.focus()
+    if (focusLast) focusLastMenuControl()
+    else firstEditor.value?.focus()
   })
   else {
     window.removeEventListener('resize', positionMenu)
@@ -156,11 +162,10 @@ function closeToTrigger() {
 }
 
 function handleTriggerKeydown(event: KeyboardEvent) {
-  if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
-    event.preventDefault()
-    if (!open.value) toggleOpen()
-    else void nextTick(() => firstEditor.value?.focus())
-  }
+  if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
+  event.preventDefault()
+  if (!open.value) toggleOpen(event.key === 'ArrowUp')
+  else void nextTick(() => event.key === 'ArrowUp' ? focusLastMenuControl() : firstEditor.value?.focus())
 }
 
 function handleMenuKeydown(event: KeyboardEvent) {

@@ -66,6 +66,18 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('opens at the last enabled plot action when ArrowUp is pressed', async () => {
+    const chart = usePanelStore('plot-library-arrow-up-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-arrow-up-test' } }, attachTo: document.body })
+    const trigger = wrapper.get('button[aria-label="Chart plot library"]')
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    expect(wrapper.get('[role="menu"]').exists()).toBe(true)
+    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Delete SMA(20)"]').element))
+    wrapper.unmount()
+  })
+
   it('closes through the header control and restores trigger focus', async () => {
     const wrapper = mount(ChartPlotLibrary, { attachTo: document.body, props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-close-test' } } })
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')

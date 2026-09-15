@@ -1,6 +1,6 @@
 <template>
   <section class="chart-plots" aria-label="Chart plot library" @pointerdown.stop @mousedown.stop @keydown.esc="closeToTrigger">
-    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
+    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
     <div v-if="open" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
       <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
@@ -107,13 +107,18 @@ function positionMenu() {
   const top = below + menuHeight <= window.innerHeight - gutter ? below : Math.max(gutter, above)
   menuStyle.value = { position: 'fixed', left: `${Math.round(left)}px`, top: `${Math.round(top)}px`, width: `${Math.round(width)}px`, maxHeight: `${Math.round(menuHeight)}px` }
 }
-function toggleOpen() {
+function focusLastMenuControl() {
+  const controls = menuRoot.value?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)')
+  controls?.item(controls.length - 1)?.focus()
+}
+function toggleOpen(focusLast = false) {
   open.value = !open.value
   if (open.value) void nextTick(() => {
     positionMenu()
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)
-    firstControl.value?.focus()
+    if (focusLast) focusLastMenuControl()
+    else firstControl.value?.focus()
   })
   else closeToTrigger()
 }
@@ -127,7 +132,8 @@ function closeToTrigger() {
 function handleTriggerKeydown(event: KeyboardEvent) {
   if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
   event.preventDefault()
-  if (!open.value) toggleOpen()
+  if (!open.value) toggleOpen(event.key === 'ArrowUp')
+  else if (event.key === 'ArrowUp') focusLastMenuControl()
   else firstControl.value?.focus()
 }
 function handleMenuKeydown(event: KeyboardEvent) {

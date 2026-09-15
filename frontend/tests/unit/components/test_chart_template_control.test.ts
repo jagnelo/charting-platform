@@ -152,6 +152,16 @@ describe('ChartTemplateControl', () => {
     wrapper.unmount()
   })
 
+  it('opens at the last enabled chart-template control when ArrowUp is pressed', async () => {
+    const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
+    const trigger = wrapper.get('button[aria-label="Chart templates"]')
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    expect(wrapper.get('[role="menu"]').exists()).toBe(true)
+    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('footer button').element))
+    wrapper.unmount()
+  })
+
   it('closes through the header control and restores trigger focus', async () => {
     const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
     const trigger = wrapper.get('button[aria-label="Chart templates"]')
