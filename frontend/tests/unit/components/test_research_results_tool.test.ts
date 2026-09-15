@@ -55,7 +55,12 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.find('[role="region"][aria-label="Study Lab research results"]').exists()).toBe(true)
     expect(wrapper.find('[role="list"][aria-label="Persisted research runs"]').exists()).toBe(true)
-    expect(wrapper.find('.research-results-tool__run').attributes('aria-current')).toBe('true')
+    const selectedItem = wrapper.get('[role="listitem"].research-results-tool__run')
+    expect(selectedItem.attributes('aria-current')).toBe('true')
+    expect(selectedItem.get('button.research-results-tool__run-select').attributes('aria-label')).toBe('Run 10, completed, 1 artifacts')
+    const comparisonCheckbox = selectedItem.get('input[type="checkbox"]')
+    expect(selectedItem.element.contains(comparisonCheckbox.element)).toBe(true)
+    expect(selectedItem.get('button.research-results-tool__run-select').element.contains(comparisonCheckbox.element)).toBe(false)
     const loadingNotice = wrapper.find('.research-results-tool__notice[role="status"]')
     expect(loadingNotice.text()).toContain('Loading selected run details')
     expect(loadingNotice.attributes('aria-live')).toBe('polite')
@@ -163,7 +168,7 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
-    await wrapper.findAll('button.research-results-tool__run')[1].trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
     expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
 
     resolveRerun(queued)
@@ -1125,7 +1130,7 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Rerun snapshot')
     expect(wrapper.text()).toContain('Rerun latest')
 
-    await wrapper.findAll('button.research-results-tool__run')[1].trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-status="canceled"]').text()).toBe('Canceled')
     expect(wrapper.get('.research-results-tool__run-guidance').text()).toContain('saved configuration is preserved')
