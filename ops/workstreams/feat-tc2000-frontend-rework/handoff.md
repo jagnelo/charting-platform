@@ -12083,3 +12083,9 @@ implementation out of TC and revisit staging only after upstream promotion is
 verifiable. At this product commit, the local origin ref remained
 `63d64bfe95c98bfe6e550bf69c213ae1cd64a629` (1,247 commits behind), so this
 small changeset was not pushed with the unrelated backlog.
+
+The workstream checkpoint commit `e3ef3bd4ea676acdd239f5e271fb712017edea86`
+was verified externally with `git rev-parse`; its session record intentionally
+anchors to the prior product commit rather than self-referencing. This follow-up
+record is anchored to that checkpoint, and its own enclosing commit will likewise
+be verified externally with `git rev-parse` after commit.
