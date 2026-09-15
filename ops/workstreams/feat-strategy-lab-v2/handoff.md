@@ -218,3 +218,39 @@ This operational checkpoint updates only the following branch-owned records:
 - `ops/workstreams/feat-strategy-lab-v2/handoff.md`
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+## 2026-09-15 - Calendar-period equity metrics checkpoint
+
+The next engine-neutral slice is committed locally as
+`5a5177ea28d5a1b50d225aaa5b400d46f4a411aa`. It adds immutable,
+run-attempt-scoped account-equity intervals bound to a versioned session
+calendar. Calendar metrics reconcile account equity deltas less explicit
+external cash flows and support each-session, ISO-weekly, monthly, quarterly,
+and yearly buckets. Period completeness requires the prior actual session
+close through the period's final actual session close; returns are null for
+incomplete coverage or external flows (time-weighted returns are not inferred).
+
+Independent review identified and resolved one P2 comparison risk: a partial
+window could otherwise emit a value named as a full calendar-period return.
+The partial-period test now asserts the null and its explicit reason. Exact-tip
+focused validation passed: 51 package tests, Ruff, mypy (18 source files), and
+`git diff --check`. `ruff format --check` would reformat ten package files,
+including existing code, so broad formatter churn was not applied. The focused
+checks do not satisfy the planned database/Redis, API, worker, Compose, Nautilus,
+security, or full-stack validation gates.
+
+The branch is ten commits ahead of recorded remote
+`d2497f43084d52d3e66b40a91be25dd2678620be`; this slice has not been pushed and
+the prior private-repository publication hold remains unchanged. No shared or
+parallel branch was touched. Next bounded engine-neutral slice: implement
+run-scoped rolling return/risk series with explicit session sampling, complete
+window coverage, and minimum-observation rules. Keep provider, ETF, TC2000,
+shared runtime, persistence, API, worker, Compose, and frontend boundaries
+unchanged. Maintain `in_progress`; closure, integration, promotion, and
+deployment remain unauthorized.
+
+This checkpoint updates only these dirty branch-owned records:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
