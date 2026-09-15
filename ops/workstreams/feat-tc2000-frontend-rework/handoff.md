@@ -12089,3 +12089,37 @@ was verified externally with `git rev-parse`; its session record intentionally
 anchors to the prior product commit rather than self-referencing. This follow-up
 record is anchored to that checkpoint, and its own enclosing commit will likewise
 be verified externally with `git rev-parse` after commit.
+
+## 2026-09-15 - Workstation menu ArrowUp focus
+
+Product commit `c5d77a4499bf904dcaff379265e46cb878b5ebef`
+(`fix(tc2000): open menus at keyboard navigation edge`) fixes an R1 keyboard
+entry inconsistency: closed shell and tool-window menu triggers opened at the
+first item for both ArrowDown and ArrowUp. ArrowUp now opens at the final
+enabled action, while ArrowDown/Enter/Space retain first-item entry. The
+workspace switcher's nested listbox keeps its existing selected-workspace focus
+behavior.
+
+The focused ToolWindow and WorkstationView tests passed 39/39; full frontend
+Vitest passed 1,071/1,071 across 122 files; `vue-tsc --noEmit`, production
+build, TC scope guard (16 changed paths since `e93de4af`), its 6/6 self-tests,
+and `git diff --check` passed. The production build retains its existing
+large-chunk warning. An authenticated headed browser check confirmed ArrowUp
+focused the final Add-tool action (`Python Library`) and final ToolWindow action
+(`Close`). No styling, screenshot baseline, visual threshold, mask, skip, data
+provider behavior, or ETF behavior changed.
+
+The branch-scoped stack was torn down; cleanup removed its containers, volumes,
+network, and four generated images, with no retained volumes or test-container
+sessions. The six Playwright CLI snapshots were moved out of the worktree to
+`/private/tmp/tc2000-playwright-Weed2i` after the ownership guard correctly
+rejected their temporary top-level location; the scope guard then passed.
+
+The origin ref remains `63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. No push was
+attempted: the 1,250-commit local range includes the historical ETF-adapter
+implementation already identified for owner reconciliation, so publishing the
+range is held pending that scope reconciliation. This is not a product or
+transport failure. Continue independent TC-owned workstation UI and
+Study/Strategy work; provider/ETF consumer integration remains gated on their
+promotion through staging. The workstream checkpoint for this product commit
+will be verified externally with `git rev-parse`.

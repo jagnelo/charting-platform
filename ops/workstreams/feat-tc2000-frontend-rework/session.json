@@ -51,29 +51,10 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -113,13 +94,13 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e3ef3bd4ea676acdd239f5e271fb712017edea86",
+  "head": "c5d77a4499bf904dcaff379265e46cb878b5ebef",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T12:58:52.760769+00:00",
+  "last_checkpoint": "2026-09-15T13:21:20.000000+00:00",
   "last_human_progress_update": "2026-09-15T12:53:59.344728+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work; keep provider/ETF consumer integration gated on promotion through staging.",
   "plan_hash": "14560f613b3400c4aa19a28c4ff222f7762965f6afde0cbb00a47a48591a4eed",
   "planning_required": false,
   "planning_state": "ready",
@@ -132,11 +113,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Provider and ETF tips are absent from local staging; six protected visual mismatches remain; origin trails the local feature branch by 1,247 commits, so no push was attempted.",
-    "current_phase": "R1_accessibility_column_visibility_complete",
+    "current_blocker": "Provider and ETF tips are absent from local staging; visual parity remains 98/104 with six protected diffs. The unpushed local feature range includes historical ETF-adapter work requiring owner reconciliation, so no push was attempted.",
+    "current_phase": "R1_workstation_menu_keyboard_navigation_complete",
     "next_action": "Continue independent TC-owned workstation UI and Study/Strategy implementation; preserve the visual oracles and recheck upstream staging before consumer integration.",
     "total": 9,
-    "updated_at": "2026-09-15T12:53:59.344615+00:00"
+    "updated_at": "2026-09-15T13:21:20.000000+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
