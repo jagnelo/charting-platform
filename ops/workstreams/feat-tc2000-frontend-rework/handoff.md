@@ -11911,3 +11911,33 @@ test-container sessions, or known attributable bytes; four generated images
 were removed. No provider/fallback, visual baseline, mask, threshold, skip, or
 acceptance policy changed. Continue R1 family-wide population/history,
 D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+
+## 2026-09-15 - Verified Killir GARY dated holdings
+
+Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens
+Killir/KKM's issuer-declared GARY dated SEI text route. Every retained row must
+have one parseable date and all retained rows must share it; missing, invalid,
+and mixed dates fail closed, and the row date must match the selected report
+filename. Raw and normalized metadata record the requested route, filename
+date, composition/as-of date, row count, and single-date validation.
+
+A read-only probe against the live public route returned 41 retained rows dated
+2026-09-14; every row was dated and agreed with the
+SEI_KKM_Financial_Tradedate_Holdings_09142026.txt report. Focused Killir tests
+passed 5/5, the full holdings-adapter unit module passed 584/584, the opt-in live
+GARY route test passed 1/1, and Ruff, formatting, and diff checks passed.
+
+The initial full integration attempt stopped at backend coverage because the
+restricted sandbox could not access the local Docker socket. The authorized
+rerun completed backend units (1618/1618), integration (405/405, 82.23%
+combined coverage), frontend Vitest (1067/1067), type-check/build, Compose and
+research-runner checks, and functional Playwright (165 passed, 107 documented
+skips). The command exited 1 at visual E2E: 98/104 passed; the only failures
+were the six established protected state-oracle diffs—watchlist-column-editor
+open at 1080p/100% and 125%, and workspace-floating at 1080p/100% and 125% and
+1440p/100% and 125%. The optional branch-tests suffix was not reached.
+Post-gate resource audit confirmed zero containers, volumes, test-container
+sessions, or known attributable bytes. No provider/fallback, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue R1 family-wide
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
