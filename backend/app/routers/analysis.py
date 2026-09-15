@@ -7973,6 +7973,7 @@ async def queue_python_breadth(
         "execution_mode": execution_mode,
         "history_limit": body.history_limit,
         "output_contract": body.output_contract,
+        "output_name": version.output_name if body.condition_tree is None else None,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
         "reference_universe": (
@@ -8003,6 +8004,7 @@ async def queue_python_breadth(
         },
         "condition": condition_metadata,
         "output_contract": body.output_contract,
+        "output_name": version.output_name if body.condition_tree is None else None,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
         "reference_universe": (

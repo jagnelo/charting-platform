@@ -4083,6 +4083,130 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-market-map-python-output — named Python lineage survives a saved snapshot', async ({ page, browserDiagnostics }) => {
+    const source = {
+      source_id: 'watchlist:7', source_kind: 'personal', name: 'Swing candidates',
+      locked: false, can_follow: true, can_clone: true, can_edit_membership: true, member_count: 1,
+      membership_version: 'watchlist:7:v3', provenance: { availability: 'available' },
+    }
+    const versions = [{
+      kind: 'condition', name: 'Momentum score', versions: [
+        { id: 5101, version_number: 1, output_contract: 'series', output_name: 'fast' },
+        { id: 5102, version_number: 2, output_contract: 'series', output_name: 'slow' },
+        { id: 5103, version_number: 3, output_contract: 'boolean', output_name: 'qualifies' },
+      ],
+    }, {
+      kind: 'condition', name: 'Archived condition', is_archived: true,
+      versions: [{ id: 5199, version_number: 1, output_contract: 'series', output_name: 'archived' }],
+    }]
+    let selectedCodeVersionId: number | null = null
+    let marketMapRequestBody: Record<string, unknown> | null = null
+    let lastMap: Record<string, unknown> | null = null
+    let savedSnapshotName = ''
+    const snapshot = () => ({
+      id: 91, name: savedSnapshotName || 'Slow output snapshot', source_id: source.source_id,
+      membership_version: source.membership_version, cache_key: 'a'.repeat(64), snapshot_hash: 'b'.repeat(64),
+      created_at: '2026-09-15T10:00:00Z', updated_at: '2026-09-15T10:00:00Z', map: lastMap,
+    })
+
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          source_id: source.source_id, source_kind: source.source_kind, name: source.name, locked: false,
+          membership_version: source.membership_version, max_instruments: 5000, available_instrument_count: 1,
+          selected_instrument_count: 1, limited: false, excluded_count: 0, overall_status: 'ready',
+          timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100,
+            analysis_ready_member_count: 1, analysis_ready_percent: 100, required_bar_count: 252, bar_count: 300,
+            oldest: '2025-01-01T00:00:00Z', newest: '2026-09-14T00:00:00Z', in_progress_count: 0,
+            complete_count: 1, failed_count: 0, pending_count: 0 }],
+        }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([source]) })
+    })
+    await page.route('**/api/v1/watchlists', async route => {
+      if (route.request().method() === 'GET') await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      else await route.continue()
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(versions) })
+    })
+    await page.route('**/api/v1/analysis/breadth/python', async route => {
+      const body = route.request().postDataJSON() as { code_version_id?: number }
+      selectedCodeVersionId = Number(body.code_version_id ?? 0)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ run_id: 777 }) })
+    })
+    await page.route('**/api/v1/analysis/breadth/python/runs/777', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'completed' }) })
+    })
+    await page.route('**/api/v1/analysis/market-map/snapshots**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON() as { name?: string }
+        savedSnapshotName = String(body.name ?? '')
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot()) })
+      } else if (pathname.endsWith('/snapshots/91')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot()) })
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      marketMapRequestBody = body
+      const hasPythonRun = Number(body.python_run_id ?? 0) > 0
+      lastMap = {
+        source, group_by: 'sector_industry', period: '1D', period_start: '2026-09-14T00:00:00Z',
+        period_end: '2026-09-15T00:00:00Z', timeframe: 'D1', adjustment: 'split_adjusted',
+        area_metric: body.area_metric ?? 'market_cap', color_metric: body.color_metric ?? 'return',
+        membership_version: source.membership_version, calculation_version: 'market-map-v1',
+        cache_key: 'a'.repeat(64), cache_hit: false, freshness: 'current',
+        freshness_detail: { requested: 1, current: 1, stale: 0, other: 0 },
+        requested_count: 1, evaluated_count: 1, coverage: 1, color_coverage: 1, area_coverage: 1,
+        warnings: [], exclusions: [], python_run_id: hasPythonRun ? body.python_run_id : null,
+        python_code_version_id: hasPythonRun ? selectedCodeVersionId : null,
+        python_output_name: hasPythonRun ? 'slow' : null,
+        python_output_contract: hasPythonRun ? 'series' : null,
+        nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 1,
+          covered_count: 1, area_total: 1, color_value: 0.02, coverage: 1, color_coverage: 1,
+          area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }],
+        cells: [{ instrument_id: 1, symbol: 'NVDA', name: 'NVIDIA', sector: 'Technology',
+          industry: 'Semiconductors', group_path: ['Technology', 'Semiconductors'], area_value: 1,
+          color_value: 0.05, return_value: 0.05, coverage: 1, color_coverage: 1,
+          area_coverage: 1, warnings: [] }],
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(lastMap) })
+    })
+
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Map' }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    await mapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
+    await mapWindow.getByRole('combobox', { name: 'Market Map colour metric' }).selectOption('python')
+    const outputPicker = mapWindow.getByRole('combobox', { name: 'Market Map Python colour asset' })
+    await expect(outputPicker).toContainText('Momentum score · slow · v2 · series', { timeout: 15_000 })
+    await expect(outputPicker).not.toContainText('Archived condition')
+    await outputPicker.selectOption('5102')
+    await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect.poll(() => selectedCodeVersionId, { timeout: 15_000 }).toBe(5102)
+    await expect(mapWindow.locator('[aria-label="Market Map Python output lineage"]')).toContainText('slow · series · version #5102 · run #777', { timeout: 15_000 })
+
+    expect(marketMapRequestBody).toEqual(expect.objectContaining({
+      source_id: 'watchlist:7', color_metric: 'python', python_run_id: 777,
+    }))
+    await mapWindow.getByRole('textbox', { name: 'Market Map snapshot name' }).fill('Slow output snapshot')
+    await mapWindow.getByRole('button', { name: 'Save snapshot' }).click()
+    const snapshotPicker = mapWindow.getByRole('combobox', { name: 'Market Map snapshot' })
+    await expect(snapshotPicker).toHaveValue('91', { timeout: 15_000 })
+    await expect(outputPicker).toHaveValue('5102')
+    await expect(mapWindow.locator('[aria-label="Market Map Python output lineage"]')).toContainText('slow · series · version #5102 · run #777')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-family-map-drilldown — selected benchmark family opens its locked constituent watchlist', async ({ page, browserDiagnostics }) => {
     const requestedSources: string[] = []
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {

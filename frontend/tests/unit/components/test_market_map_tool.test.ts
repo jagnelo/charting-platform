@@ -1183,26 +1183,88 @@ describe('MarketMapTool', () => {
   })
 
   it('runs a completed isolated Python output before colouring the map', async () => {
+    const eligibleOutputs = [{
+      kind: 'condition',
+      name: 'Momentum score',
+      versions: [
+        { id: 16, version_number: 1, output_contract: 'series', output_name: 'fast' },
+        { id: 17, version_number: 2, output_contract: 'series', output_name: 'slow' },
+        { id: 18, version_number: 3, output_contract: 'boolean', output_name: 'qualifies' },
+      ],
+    }, {
+      kind: 'condition',
+      name: 'Archived condition',
+      is_archived: true,
+      versions: [{ id: 19, version_number: 1, output_contract: 'series', output_name: 'archived' }],
+    }]
+    const pythonMapResponse = {
+      ...response,
+      color_metric: 'python',
+      python_run_id: 42,
+      python_code_version_id: 17,
+      python_output_name: 'slow',
+      python_output_contract: 'series',
+    }
     apiGet.mockImplementation((path: string) => {
-      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])
+      if (path === '/code/assets') return Promise.resolve(eligibleOutputs)
+      if (path === '/analysis/market-map/snapshots/91') {
+        return Promise.resolve({ id: 91, name: 'Slow output snapshot', source_id: 'market-group:sp500', map: pythonMapResponse })
+      }
       return Promise.resolve([])
     })
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: 42 })
-      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, python_run_id: body?.python_run_id })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...pythonMapResponse, color_metric: body?.color_metric, python_run_id: body?.python_run_id })
+      if (path === '/analysis/market-map/snapshots') {
+        return Promise.resolve({ id: 91, name: body?.name, source_id: 'market-group:sp500', map: pythonMapResponse })
+      }
       return Promise.resolve([])
     })
     apiGet.mockImplementation((path: string) => {
-      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])
+      if (path === '/code/assets') return Promise.resolve(eligibleOutputs)
+      if (path === '/analysis/market-map/snapshots/91') {
+        return Promise.resolve({ id: 91, name: 'Slow output snapshot', source_id: 'market-group:sp500', map: pythonMapResponse })
+      }
       if (path === '/analysis/breadth/python/runs/42') return Promise.resolve({ status: 'completed' })
       return Promise.resolve([])
     })
     const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500', color_metric: 'python', python_code_version_id: 17 } } })
     await flushPromises()
+    const outputPicker = wrapper.get('select[aria-label="Market Map Python colour asset"]')
+    expect(outputPicker.text()).toContain('Momentum score · fast · v1 · series')
+    expect(outputPicker.text()).toContain('Momentum score · slow · v2 · series')
+    expect(outputPicker.text()).toContain('Momentum score · qualifies · v3 · boolean')
+    expect(outputPicker.text()).not.toContain('Archived condition')
     await wrapper.get('.market-map-tool__run').trigger('click')
     await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python', expect.objectContaining({
+      code_version_id: 17,
+      output_contract: 'series',
+    }))
     const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'python')
     expect(request).toEqual(expect.objectContaining({ color_metric: 'python', python_run_id: 42 }))
+    expect(wrapper.get('[aria-label="Market Map Python output lineage"]').text()).toContain('slow · series · version #17 · run #42')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      python_code_version_id: 17,
+      python_output_name: 'slow',
+    }))
+
+    await wrapper.get('input[aria-label="Market Map snapshot name"]').setValue('Slow output snapshot')
+    const saveSnapshotButton = wrapper.findAll('button').find(button => button.text().trim() === 'Save snapshot')
+    expect(saveSnapshotButton).toBeDefined()
+    await saveSnapshotButton!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/analysis/market-map/snapshots', {
+      name: 'Slow output snapshot',
+      cache_key: response.cache_key,
+    })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots/91')
+    expect(wrapper.get('[aria-label="Market Map Python output lineage"]').text()).toContain('slow · series · version #17 · run #42')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      python_code_version_id: 17,
+      python_output_name: 'slow',
+      python_run_id: 42,
+    }))
 
     await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('return')
     await wrapper.get('select[aria-label="Market Map area metric"]').setValue('python')
@@ -1210,6 +1272,27 @@ describe('MarketMapTool', () => {
     await flushPromises()
     const areaRequest = apiPost.mock.calls.map(call => call[1]).find(body => body?.area_metric === 'python')
     expect(areaRequest).toEqual(expect.objectContaining({ area_metric: 'python', python_run_id: 42 }))
+  })
+
+  it('rejects an incompatible Boolean output when Python drives tile area', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{
+        kind: 'condition',
+        name: 'Eligibility',
+        versions: [{ id: 27, version_number: 1, output_contract: 'boolean', output_name: 'eligible' }],
+      }])
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, {
+      props: { configuration: { source_id: 'market-group:sp500', area_metric: 'python', python_code_version_id: 27 } },
+    })
+    await flushPromises()
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).not.toHaveBeenCalledWith('/analysis/breadth/python', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/analysis/market-map', expect.anything())
+    expect(wrapper.get('[role="alert"]').text()).toContain('tile area requires a compatible numeric-series Python output')
   })
 
   it('ignores stale Python run resolution after the source changes', async () => {

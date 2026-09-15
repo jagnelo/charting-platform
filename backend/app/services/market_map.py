@@ -27,7 +27,7 @@ from app.models.provider_runtime import (
     ProviderEntitlementRevision,
     ProviderPolicy,
 )
-from app.models.research import ResearchRun
+from app.models.research import CodeVersion, ResearchRun
 from app.providers import list_provider_capabilities
 from app.schemas.market_map import (
     MarketMapCell,
@@ -402,7 +402,9 @@ async def _python_colour_values(
     db: AsyncSession,
     user_id: int,
     run_id: int,
-) -> tuple[dict[int, tuple[float | None, str | None, bool | None, float | None]], str]:
+) -> tuple[
+    dict[int, tuple[float | None, str | None, bool | None, float | None]], str, int, str | None
+]:
     """Read completed isolated batch cells for one user-owned Python run.
 
     Python is never executed by the Market Map request. The run must already be
@@ -413,7 +415,10 @@ async def _python_colour_values(
     run = (
         await db.execute(
             select(ResearchRun)
-            .options(selectinload(ResearchRun.artifacts))
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
             .where(ResearchRun.id == run_id, ResearchRun.user_id == user_id)
         )
     ).scalar_one_or_none()
@@ -422,7 +427,20 @@ async def _python_colour_values(
     if run.status != "completed":
         raise ValueError("python_run_not_completed")
     config = run.run_config if isinstance(run.run_config, dict) else {}
-    output_contract = str(config.get("output_contract") or "series")
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != user_id
+        or version.asset.kind != "condition"
+        or version.asset.is_archived
+    ):
+        raise ValueError("python_run_condition_unavailable")
+    output_contract = str(version.output_contract)
+    if config.get("output_contract") not in {None, output_contract}:
+        raise ValueError("python_run_output_contract_mismatch")
+    if "output_name" in config and config.get("output_name") != version.output_name:
+        raise ValueError("python_run_output_name_mismatch")
     artifact = next(
         (
             item
@@ -470,7 +488,7 @@ async def _python_colour_values(
             values[instrument_id] = (None, "python_numeric_invalid", None, numeric_metric)
         else:
             values[instrument_id] = (numeric_value, None, None, numeric_value)
-    return values, output_contract
+    return values, output_contract, version.id, version.output_name
 
 
 async def _python_breadth_condition_values(
@@ -982,6 +1000,10 @@ def _cache_key(
         "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
         "classification_snapshot_ids": sorted(classification_snapshot_ids or []),
     }
+    if request.color_metric == "python" or request.area_metric == "python":
+        # Python maps now expose the immutable selected-output lineage. Avoid
+        # reusing cache rows created before that response contract existed.
+        payload["python_output_lineage_version"] = 2
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
@@ -1388,13 +1410,21 @@ async def build_market_map(
         profile_snapshot_policy_fingerprint,
         classification_snapshot_ids,
     )
-    python_values, python_output_contract = ({}, "")
+    python_values, python_output_contract, python_code_version_id, python_output_name = (
+        {},
+        "",
+        None,
+        None,
+    )
     if (
         request.color_metric == "python" or request.area_metric == "python"
     ) and request.python_run_id is not None:
-        python_values, python_output_contract = await _python_colour_values(
-            db, user_id, request.python_run_id
-        )
+        (
+            python_values,
+            python_output_contract,
+            python_code_version_id,
+            python_output_name,
+        ) = await _python_colour_values(db, user_id, request.python_run_id)
     if request.area_metric == "python" and python_output_contract != "series":
         raise ValueError("python_area_requires_series")
     cached_result = await read_market_map_cache(db, user_id, cache_key)
@@ -1497,6 +1527,8 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "isolated_python",
                     "run_id": request.python_run_id,
+                    "code_version_id": python_code_version_id,
+                    "output_name": python_output_name,
                     "output_contract": python_output_contract,
                 }
         elif request.area_metric == "weight":
@@ -1886,6 +1918,9 @@ async def build_market_map(
         color_metric=request.color_metric,
         condition=request.condition,
         python_run_id=request.python_run_id,
+        python_code_version_id=python_code_version_id,
+        python_output_name=python_output_name,
+        python_output_contract=python_output_contract or None,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         reference_source=reference_source,
         reference_source_id=request.reference_source_id,

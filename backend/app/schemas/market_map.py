@@ -145,6 +145,9 @@ class MarketMapOut(BaseModel):
     color_metric: MarketMapColorMetric
     condition: dict[str, object] | None = None
     python_run_id: int | None = None
+    python_code_version_id: int | None = None
+    python_output_name: str | None = None
+    python_output_contract: str | None = None
     reference_symbol: str | None = None
     reference_source: WatchlistSourceRead | None = None
     reference_source_id: str | None = None

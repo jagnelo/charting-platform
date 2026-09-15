@@ -138,12 +138,12 @@
       </label>
       <label v-if="colorMetric === 'python' || areaMetric === 'python'">Python output
         <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
-          <option :value="null">Select a Boolean or numeric-series asset</option>
+          <option :value="null">Select a named Boolean or numeric-series output</option>
           <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
       <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
-      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
+      <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
       <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
@@ -162,7 +162,7 @@
     <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status">{{ publicationMessage }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
-      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.python_run_id && map.python_code_version_id" aria-label="Market Map Python output lineage">Python · {{ map.python_output_name || 'unnamed output' }} · {{ map.python_output_contract || 'unknown contract' }} · version #{{ map.python_code_version_id }} · run #{{ map.python_run_id }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
     <div v-if="benchmarkFamilyKey || benchmarkCoverageLoading || benchmarkCoverageError" class="market-map-tool__benchmark-readiness" aria-label="Benchmark family canonical readiness">
       <strong>Canonical readiness</strong>
@@ -357,7 +357,13 @@ const advancedBreadthEditor = ref(Boolean(props.configuration.advanced_breadth_e
 const breadthConditionTree = ref<BreadthConditionNode>((props.configuration.condition as BreadthConditionNode | undefined) ?? { kind: 'above_moving_average', params: { period: 200, average: 'sma', comparator: 'above' } })
 const pythonCodeVersionId = ref<number | null>(Number(props.configuration.python_code_version_id ?? 0) || null)
 const pythonRunId = ref<number | null>(Number(props.configuration.python_run_id ?? 0) || null)
-const pythonAssets = ref<Array<{ versionId: number; name: string; outputContract: 'boolean' | 'series' }>>([])
+const pythonAssets = ref<Array<{
+  versionId: number
+  versionNumber: number
+  name: string
+  outputName: string | null
+  outputContract: 'boolean' | 'series'
+}>>([])
 const pythonAssetsLoading = ref(false)
 const pythonRunLoading = ref(false)
 const pythonRunError = ref('')
@@ -1266,13 +1272,36 @@ async function loadPythonAssets() {
   const generation = ++pythonAssetsGeneration
   pythonAssetsLoading.value = true
   try {
-    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number; output_contract?: string }> }>>('/code/assets')
+    const assets = await api.get<Array<{
+      kind: string
+      name: string
+      is_archived?: boolean
+      versions: Array<{
+        id?: number
+        version_number: number
+        output_contract?: string
+        output_name?: string | null
+      }>
+    }>>('/code/assets')
     if (!componentMounted || generation !== pythonAssetsGeneration) return
-    pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition').flatMap(asset => {
-      const version = asset.versions.slice(-1)[0]
-      if (version?.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
-      return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, outputContract: version.output_contract }]
-    })
+    pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition' && !asset.is_archived).flatMap(asset =>
+      [...(asset.versions ?? [])]
+        .sort((left, right) => right.version_number - left.version_number)
+        .flatMap(version => {
+          if (version.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
+          const outputName = version.output_name?.trim() || null
+          const outputLabel = outputName
+            ? `${outputName} · v${version.version_number}`
+            : `default output · v${version.version_number}`
+          return [{
+            versionId: version.id,
+            versionNumber: version.version_number,
+            name: `${asset.name} · ${outputLabel}`,
+            outputName,
+            outputContract: version.output_contract,
+          }]
+        }),
+    )
   } catch (cause) {
     if (!componentMounted || generation !== pythonAssetsGeneration) return
     pythonRunError.value = cause instanceof Error ? cause.message : 'Unable to load Python code assets'
@@ -1283,9 +1312,12 @@ async function loadPythonAssets() {
 
 async function resolvePythonRun(generation = runGeneration) {
   pythonRunError.value = ''
-  if (pythonCodeVersionId.value == null) throw new Error('Select a Boolean or numeric-series Python asset first.')
+  if (pythonCodeVersionId.value == null) throw new Error('Select a named Boolean or numeric-series Python output first.')
   const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
-  if (!selected) throw new Error('The selected Python asset is unavailable or no longer active.')
+  if (!selected) throw new Error('The selected Python output is unavailable or no longer active. Choose an active named output.')
+  if (areaMetric.value === 'python' && selected.outputContract !== 'series') {
+    throw new Error('Market Map tile area requires a compatible numeric-series Python output.')
+  }
   const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
     code_version_id: selected.versionId,
     universe: pythonUniverse(),
@@ -1667,6 +1699,7 @@ async function loadSnapshot() {
       advancedBreadthEditor.value = true
     }
     pythonRunId.value = snapshot.map.python_run_id ?? null
+    pythonCodeVersionId.value = snapshot.map.python_code_version_id ?? null
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
     selectedNode.value = null
@@ -1800,7 +1833,7 @@ async function run() {
 }
 function persist() {
   if (!componentMounted) return
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, timeframe: timeframe.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, timeframe: timeframe.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_output_name: pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)?.outputName ?? props.configuration.python_output_name ?? null, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, timeframe, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(timeframe, () => {

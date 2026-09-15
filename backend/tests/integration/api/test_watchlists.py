@@ -3513,6 +3513,7 @@ class TestWatchlistsCrud:
             version_number=1,
             source="return 1.0",
             output_contract="series",
+            output_name="momentum",
             parameter_schema={},
             default_parameters={},
         )
@@ -3522,7 +3523,7 @@ class TestWatchlistsCrud:
             user_id=user.id,
             code_version_id=version.id,
             status="completed",
-            run_config={"output_contract": "series"},
+            run_config={"output_contract": "series", "output_name": "momentum"},
             dataset_manifest={"dataset_version": "test"},
         )
         run.artifacts.append(
@@ -3562,8 +3563,29 @@ class TestWatchlistsCrud:
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["python_run_id"] == run.id
+        assert body["python_code_version_id"] == version.id
+        assert body["python_output_name"] == "momentum"
+        assert body["python_output_contract"] == "series"
         assert {cell["color_value"] for cell in body["cells"]} == {2.5, -0.5}
         assert body["coverage"] == 1
+
+        snapshot_response = client.post(
+            "/api/v1/analysis/market-map/snapshots",
+            headers=auth_headers,
+            json={"name": "Momentum output", "cache_key": body["cache_key"]},
+        )
+        assert snapshot_response.status_code == 200, snapshot_response.text
+        saved_map = snapshot_response.json()["map"]
+        assert saved_map["python_run_id"] == run.id
+        assert saved_map["python_code_version_id"] == version.id
+        assert saved_map["python_output_name"] == "momentum"
+        assert saved_map["python_output_contract"] == "series"
+        restored_response = client.get(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_response.json()['id']}",
+            headers=auth_headers,
+        )
+        assert restored_response.status_code == 200, restored_response.text
+        assert restored_response.json()["map"] == saved_map
 
         area_response = client.post(
             "/api/v1/analysis/market-map",
@@ -3585,11 +3607,22 @@ class TestWatchlistsCrud:
             item["code"] == "python_area_non_positive" for item in area_cells["MSFT"]["warnings"]
         )
 
+        boolean_version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=2,
+            source="return True",
+            output_contract="boolean",
+            output_name="qualifies",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(boolean_version)
+        db.flush()
         boolean_run = ResearchRun(
             user_id=user.id,
-            code_version_id=version.id,
+            code_version_id=boolean_version.id,
             status="completed",
-            run_config={"output_contract": "boolean"},
+            run_config={"output_contract": "boolean", "output_name": "qualifies"},
             dataset_manifest={"dataset_version": "test"},
         )
         boolean_run.artifacts.append(

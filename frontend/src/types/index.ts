@@ -955,6 +955,9 @@ export interface MarketMap {
   color_metric: MarketMapColorMetric
   condition?: Record<string, unknown> | null
   python_run_id?: number | null
+  python_code_version_id?: number | null
+  python_output_name?: string | null
+  python_output_contract?: string | null
   reference_symbol?: string | null
   reference_source?: WatchlistSource
   reference_source_id?: string | null

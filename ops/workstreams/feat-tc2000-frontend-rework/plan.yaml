@@ -163,6 +163,9 @@ shared_path_exceptions:
   - path: backend/tests/integration/api/test_strategy_lab.py
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
     reason: preserve TC Strategy Lab API tests while keeping provider and holdings setup under upstream owners.
+  - path: backend/tests/integration/api/test_watchlists.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC Market Map execution and immutable Python-output lineage tests only; no provider or ETF acquisition coverage.
   - path: backend/app/models/strategy.py
     owners: [TC, market-data-provider-platform]
     reason: TC-owned Strategy domain only; avoid generic provider schema additions.
@@ -250,15 +253,14 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_python_signal_immutability
+  current_phase: R5_market_map_named_python_outputs
   next_action: >-
-    Preserve the immutable promoted Python Study signal contract in Strategy
-    Lab: display source lineage/output contract, permit safe profile changes
-    without rewriting the Python definition/version snapshot, and explicitly
-    block unsupported rules-based revision. Validate this independent TC-owned
-    R5 context with focused tests and authenticated headless browser evidence.
-    Keep provider/ETF consumers deferred until both changes reach staging, then
-    reconcile shared paths semantically and run the exact-tip gate.
+    Continue R5's Python compatibility matrix after exposing every active named
+    Boolean/series CodeVersion in Market Map with immutable run/output lineage
+    and save/restore coverage. Audit the remaining TC-owned consumer gaps and
+    select the next independent Study/Strategy/workstation slice. Keep provider
+    and ETF consumer integration deferred until their work reaches staging;
+    then reconcile shared paths semantically and run the exact-tip gate.
   current_blocker: >-
     Integration remains externally gated: remote staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
     provider is 73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3, and ETF is
