@@ -76,10 +76,8 @@ scope:
     reconciliation is recorded.
 owned_paths:
   - backend/app/strategy_lab_v2/
-  - backend/tests/unit/strategy_lab_v2/
+  - backend/app/strategy_lab_v2/tests/
   - backend/strategy_runtime/
-  - backend/tests/integration/strategy_lab_v2/
-  - backend/tests/strategy_runtime/
   - docs/strategy-lab-v2.md
   - ops/workstreams/feat-strategy-lab-v2/
 shared_path_gates:
@@ -266,7 +264,7 @@ acceptance_criteria:
       live shadow activation, human closure, integration, and promotion remain
       separately authorized.
 branch_tests:
-  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric unit tests.
+  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric tests live in backend/app/strategy_lab_v2/tests and are run explicitly with `cd backend && uv run pytest app/strategy_lab_v2/tests -q`; do not add to the provider-owned backend/tests tree.
   - Database and migration tests for fresh install and prior staging schema compatibility.
   - PostgreSQL/Redis integration for outbox, leases, idempotency, retries, cancellation, and recovery.
   - Nautilus stable-v2 conformance and deterministic multi-instrument portfolio fixtures.
@@ -277,8 +275,10 @@ branch_tests:
 branch_tests_reason: >-
   The completed backend work changes persistence, HTTP contracts, Redis work
   queues, isolated Python execution, Rust/Nautilus integration, and Docker
-  services. Initial engine-neutral packages can be validated with unit tests,
-  but branch completion requires PostgreSQL/Redis and Compose-backed integration.
+  services. The active provider workstream owns backend/tests, so v2-focused
+  tests stay beside the new package and use an explicit pytest path. Initial
+  engine-neutral packages can be validated with unit tests, but branch
+  completion requires PostgreSQL/Redis and Compose-backed integration.
 live_test_impact: >-
   No real broker, broker paper account, or external test service is used. Forward
   validation consumes platform canonical events; activating a long-running
@@ -301,4 +301,4 @@ progress:
   total: 18
   current_phase: engine-neutral-core
   current_blocker: none
-  next_action: implement isolated domain, capability, deterministic experiment, and metric contracts while upstream branches progress
+  next_action: implement immutable domain contracts, capability preflight, typed strategy intents, deterministic search and walk-forward expansion, and versioned metrics in new package-owned paths

@@ -1,5 +1,60 @@
 {
-  "acceptance_criteria": [],
+  "acceptance_criteria": [
+    {
+      "id": "AC-DOMAIN"
+    },
+    {
+      "id": "AC-SDK"
+    },
+    {
+      "id": "AC-DATA"
+    },
+    {
+      "id": "AC-REPRODUCIBILITY"
+    },
+    {
+      "id": "AC-SEARCH"
+    },
+    {
+      "id": "AC-PORTFOLIO"
+    },
+    {
+      "id": "AC-METRICS"
+    },
+    {
+      "id": "AC-ARTIFACTS"
+    },
+    {
+      "id": "AC-WORKERS"
+    },
+    {
+      "id": "AC-NAUTILUS"
+    },
+    {
+      "id": "AC-FORWARD"
+    },
+    {
+      "id": "AC-API"
+    },
+    {
+      "id": "AC-LEGACY"
+    },
+    {
+      "id": "AC-SECURITY"
+    },
+    {
+      "id": "AC-COMPOSE"
+    },
+    {
+      "id": "AC-UPSTREAM"
+    },
+    {
+      "id": "AC-UI-BOUNDARY"
+    },
+    {
+      "id": "AC-VALIDATION"
+    }
+  ],
   "active_session_id": "603da09c-b640-4018-9f40-c62f4564b074",
   "branch": "feat/strategy-lab-v2",
   "dirty_paths": [],
@@ -24,30 +79,39 @@
     "volume_count": 0,
     "worktree_id": "feat-strategy-lab-v2-a4470b6785"
   },
-  "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/strategy-lab-v2: Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_request": {
-    "objective": "Advance feat/strategy-lab-v2: Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
   },
-  "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
-  "head": "52a67c6cc74e4b8e4efe95e9d608bce821b8bd02",
-  "implementation_sha": "8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35",
-  "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/strategy-lab-v2: Implement the production-grade, local-first Strategy Lab v2 backend for reproducible portfolio backtesting, walk-forward and search experiments, and persistent broker-free shadow testing. Keep the strategy SDK engine-neutral, use Nautilus as the only authoritative simulator after stable v2 conformance, and respect provider-platform, ETF, and TC2000 workstream ownership.",
+  "goal_recorded_at": "2026-09-15T20:00:01.242815+00:00",
+  "goal_request": {
+    "objective": "Advance feat/strategy-lab-v2: Implement the production-grade, local-first Strategy Lab v2 backend for reproducible portfolio backtesting, walk-forward and search experiments, and persistent broker-free shadow testing. Keep the strategy SDK engine-neutral, use Nautilus as the only authoritative simulator after stable v2 conformance, and respect provider-platform, ETF, and TC2000 workstream ownership."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "head": "edad367f4dad25596ffb3655f75ba0d6f92a461d",
+  "implementation_sha": "edad367f4dad25596ffb3655f75ba0d6f92a461d",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "3e5ee7a13be99d539f87459c7594372c394995ef1105569d621feb889af168a7",
-  "planning_required": true,
-  "planning_state": "draft",
+  "plan_hash": "9b2feda24d639ac801ee2291106f2a0e1408220c6424f422f54de16607400f8e",
+  "planning_required": false,
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
+    "completed": [
+      "workstream-plan"
+    ],
     "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "current_phase": "engine-neutral-core",
+    "total": 18
   },
-  "remote": "52a67c6cc74e4b8e4efe95e9d608bce821b8bd02",
-  "remote_sha": null,
+  "remote": "edad367f4dad25596ffb3655f75ba0d6f92a461d",
+  "remote_sha": "edad367f4dad25596ffb3655f75ba0d6f92a461d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
