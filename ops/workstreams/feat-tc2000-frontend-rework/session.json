@@ -52,9 +52,10 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "frontend/tests/e2e/tc2000_visual.spec.ts",
+    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
@@ -117,11 +118,11 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9f9cee0fce949a91fb3335bb6082ee27f9e73e15",
+  "head": "4d448da2cb6749d3fbf1cad378ac04c3e395772b",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-15T00:55:24.026596+00:00",
-  "last_human_progress_update": "2026-09-15T12:10:32.822068+00:00",
+  "last_human_progress_update": "2026-09-15T12:27:01.723277+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "14560f613b3400c4aa19a28c4ff222f7762965f6afde0cbb00a47a48591a4eed",
@@ -136,11 +137,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Provider-platform is not yet in staging, ETF waits on that integration, and six protected visual diffs remain; independent TC UI and Study/Strategy work continues.",
-    "current_phase": "R1_popout_state_preservation",
-    "next_action": "Continue independent TC-owned workstation UI, layout/pop-out, and Study/Strategy slices; preserve screenshot baselines pending human review; consume provider and ETF contracts only after staging promotions.",
+    "current_blocker": "Provider-platform and ETF are still absent from the local staging tip; a read-only remote ref query could not resolve github.com, and the six protected visual diffs remain.",
+    "current_phase": "R1_native_editor_keyboard",
+    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy product slices; preserve the visual baselines, do not implement provider/ETF responsibilities, and recheck live staging refs when network access is available.",
     "total": 9,
-    "updated_at": "2026-09-15T12:10:32.822002+00:00"
+    "updated_at": "2026-09-15T12:27:01.723213+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

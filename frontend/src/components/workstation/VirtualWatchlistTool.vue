@@ -420,6 +420,9 @@ function handleEditorKeydown(editor: WatchlistEditor, event: KeyboardEvent) {
     closeEditorToTrigger(editor)
     return
   }
+  // Inputs and selects own these keys for caret movement and value selection;
+  // only use the editor's roving focus behavior from non-editable controls.
+  if (event.target instanceof Element && event.target.closest('input, select, textarea, [contenteditable="true"]')) return
   const focusable = editorFocusable(editor)
   const current = focusable.indexOf(document.activeElement as HTMLElement)
   let next: number | null = null

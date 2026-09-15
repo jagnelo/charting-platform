@@ -716,6 +716,15 @@ test.describe('Chart', () => {
     const editor = watchlist.getByRole('dialog', { name: 'Column editor' })
     await expect(editor).toBeVisible()
     await expect(editor.locator('input,select,button').first()).toBeFocused()
+    const columnLabel = editor.locator('.watchlist__label-input').first()
+    const labelValue = await columnLabel.inputValue()
+    await columnLabel.focus()
+    await columnLabel.evaluate(input => {
+      const field = input as HTMLInputElement
+      field.setSelectionRange(field.value.length, field.value.length)
+    })
+    await page.keyboard.press('ArrowLeft')
+    await expect.poll(() => columnLabel.evaluate(input => (input as HTMLInputElement).selectionStart)).toBe(labelValue.length - 1)
     await editor.press('Escape')
     await expect(editor).toHaveCount(0)
     await expect(columns).toBeFocused()

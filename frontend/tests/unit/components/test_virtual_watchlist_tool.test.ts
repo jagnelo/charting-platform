@@ -55,6 +55,24 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('preserves native arrow-key handling in editable column settings', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows }, attachTo: document.body })
+    await wrapper.get('button[aria-label="Columns"]').trigger('click')
+
+    const nativeKeys = [
+      ...wrapper.findAll('.watchlist__label-input').flatMap(control => ['ArrowLeft', 'Home', 'End'].map(key => ({ control, key }))),
+      ...wrapper.findAll('.watchlist__format-input').map(control => ({ control, key: 'ArrowDown' })),
+    ]
+    expect(nativeKeys.length).toBeGreaterThan(0)
+    for (const { control, key } of nativeKeys) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      control.element.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
+    }
+
+    wrapper.unmount()
+  })
+
   it('exposes an explicit busy state while preserving the virtualized list', () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Refreshing sectors', rows, loading: true, loadingLabel: 'Refreshing sector analysis…' },

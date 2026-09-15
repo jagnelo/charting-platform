@@ -12033,3 +12033,24 @@ The isolated stack was torn down and its post-cleanup audit found no remaining
 containers, volumes, or network. The two
 `watchlist-column-editor-open` diffs remain a separate, unexplained issue and
 must not be conflated with this finding.
+
+### R1 follow-up: native keyboard behavior in the column editor
+
+The editor-level roving-focus handler was cancelling arrow/Home/End keys even
+when focus was inside native input and select controls. It now leaves those
+editable controls to browser-native key handling while preserving Escape-to-
+trigger focus recovery and the existing non-editable focus navigation. The
+watchlist component suite passed 72/72, the complete frontend Vitest command
+exited successfully, `vue-tsc --noEmit` passed, and the authenticated
+`F9e-watchlist-editors-keyboard` browser flow passed 1/1, including a real text
+caret movement check. No visual baseline or policy changed. Stack teardown and
+resource accounting completed for this worktree.
+
+### Upstream status check
+
+Local refs still show staging at `8b885a2f`, provider-platform at `da06e560`,
+and ETF holdings at `52814f95`; neither feature ref is included in the local
+staging tip. A read-only `git ls-remote` check could not resolve `github.com`,
+so these are local-ref observations, not a live remote confirmation. Do not
+synchronize the TC branch until the upstream promotion state is verifiable and
+both required contracts have reached staging.
