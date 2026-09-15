@@ -7,7 +7,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Recorded at: 2026-09-15T19:48:24.815519+00:00
 - Request: Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
-- Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.
+- Planning state: ready; session goal is active and the workstream remains `in_progress`.
 
 Update this handoff at each coherent boundary.
 
@@ -45,11 +45,71 @@ the current parallel-safe boundary, deferred shared-path gates, and
 `full_stack_browser` completion profile. Initial focused package work can use
 unit checks; the complete branch must pass the repository's full backend,
 database/Redis, migration, Compose, worker, API, browser, and exact-tip gates.
-`make branch-validate` currently validates all 30 workstream records. The
-session-local goal is active. Initial canonical serialization and immutable
-domain contracts are now being added only under the new package; capability,
-SDK intents, experiment expansion, metrics, and deterministic tests follow.
+`make branch-validate` currently validates all workstream records. The
+session-local goal is active.
 
 Session `603da09c-b640-4018-9f40-c62f4564b074` owns this worktree. Do not edit
 another worktree, even if dependency work advances in parallel; reconcile its
 staged changes here only after an authorized staging update.
+
+## 2026-09-15 - Engine-neutral core checkpoint
+
+The initial engine-neutral implementation is committed locally as
+`4f265239c1b736e50ba7bf514f0986ca663eebc9`; a separate focused documentation
+correction is `1d934e578cb3a75f37d31ec30b6d551d004452b5`. Both commits are in the
+assigned worktree. They add only `backend/app/strategy_lab_v2/` and
+`docs/strategy-lab-v2.md`. No active provider, ETF, TC2000, model, migration,
+router, worker, dependency, Compose, or frontend path was changed.
+
+Focused evidence on the code checkpoint: `cd backend && rtk uv run pytest
+app/strategy_lab_v2/tests -q --override-ini addopts=` passed (9 tests),
+`rtk uv run ruff check app/strategy_lab_v2` passed, and
+`rtk uv run mypy app/strategy_lab_v2` passed. The focused pytest override avoids
+applying the repository-wide coverage threshold to this package-only slice; it
+does not satisfy the final full-suite gate.
+
+The core now includes typed immutable domain and strategy-package contracts,
+canonical content fingerprints, preflight classification and degradation,
+semantic snapshot-to-requirement matching, SDK input/intent contracts,
+deterministic search and walk-forward planning, Decimal baseline metrics,
+attempt/forward-event lifecycle helpers, and result provenance binding trial,
+successful attempt, package/strategy, portfolio, snapshot, metric, engine/build,
+dependency, assumptions, seed, and output artifact identities.
+
+Important trust boundary: `DataSeriesManifest` binds an upstream
+`coverage_evidence_digest`, but the engine-neutral package cannot resolve or
+validate that evidence document. `DataSnapshot` checks manifest semantics and
+range continuity only; it trusts the upstream attestation reference. Before any
+execution path exists, the provider-platform adapter must validate the attested
+series content, range, row count, calendar, and semantic dimensions. Host-side
+portfolio allocation/shared-risk execution, complete metrics, persistence, API,
+isolated strategy runtime, workers, local Compose services, and authoritative
+Nautilus execution remain unfinished. Do not treat this checkpoint as a usable
+simulator or sandbox.
+
+Publication hold: after the implementation commit, the exact command
+`rtk git push origin feat/strategy-lab-v2` was denied by the elevated execution
+approval reviewer. Its stated issue was that the transcript did not establish
+the private `origin` destination as a trusted organization-owned repository or
+contain explicit authorization for that destination. The pre-operational local
+implementation/doc tip is `1d934e578cb3a75f37d31ec30b6d551d004452b5`; after
+this workstream-record checkpoint, verify its enclosing commit externally with
+`rtk git rev-parse HEAD`. The remote `origin/feat/strategy-lab-v2` remains
+`d2497f43084d52d3e66b40a91be25dd2678620be`. Do not retry through another shell,
+API, plugin, or indirect route. Continue independent local work; ask the human
+to explicitly authorize this exact remote destination before attempting normal
+publication again.
+
+Next implementation context: add host-side portfolio allocation and shared-risk
+contracts plus broaden result metric coverage, still only under the owned package
+paths. Keep shared-path integration deferred until provider, ETF, and TC2000
+workstreams reach staging and their exact contracts are reconciled. Maintain the
+branch as `in_progress`; closure, integration, promotion, and deployment are not
+authorized.
+
+This operational checkpoint updates only the following branch-owned records:
+
+- `ops/workstreams/feat-strategy-lab-v2/plan.yaml`
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`

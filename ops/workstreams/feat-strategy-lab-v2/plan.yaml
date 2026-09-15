@@ -264,7 +264,7 @@ acceptance_criteria:
       live shadow activation, human closure, integration, and promotion remain
       separately authorized.
 branch_tests:
-  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric tests live in backend/app/strategy_lab_v2/tests and are run explicitly with `cd backend && uv run pytest app/strategy_lab_v2/tests -q`; do not add to the provider-owned backend/tests tree.
+  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric tests live in backend/app/strategy_lab_v2/tests and are run explicitly with `cd backend && rtk uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=`; do not add to the provider-owned backend/tests tree.
   - Database and migration tests for fresh install and prior staging schema compatibility.
   - PostgreSQL/Redis integration for outbox, leases, idempotency, retries, cancellation, and recovery.
   - Nautilus stable-v2 conformance and deterministic multi-instrument portfolio fixtures.
@@ -292,6 +292,9 @@ deployment_impact: >-
   real data, provider secret distribution, or broker connectivity is authorized.
 status: in_progress
 remaining_gaps:
+  - The current engine-neutral package is only an initial core; persistence, API routes, workers, isolated strategy execution, local Compose services, and Nautilus execution are not implemented.
+  - Data snapshot construction binds but does not verify the provider coverage-evidence document; the future provider adapter must verify it against series content, range, row count, calendar, and semantics before runs can execute.
+  - Portfolio capital allocation, order conflict/priority policy, shared-account risk controls, and the full planned result-metric catalog remain to be implemented.
   - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
@@ -300,5 +303,5 @@ progress:
   completed: [workstream-plan]
   total: 18
   current_phase: engine-neutral-core
-  current_blocker: none
-  next_action: implement immutable domain contracts, capability preflight, typed strategy intents, deterministic search and walk-forward expansion, and versioned metrics in new package-owned paths
+  current_blocker: remote publication is held by elevated approval review; local implementation can continue
+  next_action: implement host-side portfolio allocation and shared-risk contracts plus broader result metrics under the package-owned paths; defer shared integration until provider, ETF, and TC2000 work reaches staging
