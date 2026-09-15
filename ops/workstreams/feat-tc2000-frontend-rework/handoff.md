@@ -12013,6 +12013,23 @@ been sent or acknowledged.
 
 The exact gate receipt above remains historical at `e93de4af`: all pre-visual
 stages and functional Playwright passed (165 passed, 107 documented skips);
-visual remains 98/104 with six protected diffs. Preserve those oracles. Next,
-finish the TC scope guard and ledger, then resume independent TC UI and
+visual remains 98/104 with six protected diffs. Preserve those oracles. The
+scope guard and ownership ledger now pass; resume independent TC UI and
 Study/Strategy work while upstream branches progress.
+
+### Visual-oracle follow-up observed during this session
+
+The retained Playwright artifact for `workspace-floating` at
+`visual-1080p-100` shows a meaningful data-state mismatch: the expected image
+has the benchmark column headings and no members, while the actual pop-out has
+the five seeded benchmark rows. This is consistent with the intended late
+pop-out hydration behavior. The test now verifies that all five source rows
+survive floating and retain the expected symbol order. The focused
+stack-backed test passed those state assertions, then failed only on the
+protected screenshot comparison (11,901 pixels, ratio 0.02, above the 0.005
+limit). `docs/tc2000-visual-parity.md` requires human review for every baseline
+change, so no screenshot was updated or acceptance threshold/mask/skip changed.
+The isolated stack was torn down and its post-cleanup audit found no remaining
+containers, volumes, or network. The two
+`watchlist-column-editor-open` diffs remain a separate, unexplained issue and
+must not be conflated with this finding.

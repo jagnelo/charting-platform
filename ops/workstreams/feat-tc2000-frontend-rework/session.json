@@ -50,19 +50,34 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
+  "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-roadmap.md",
+    "frontend/tests/e2e/tc2000_visual.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/ownership-reconciliation.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/ownership-reconciliation.yaml",
-    "scripts/validate-tc2000-scope.py"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -100,17 +115,16 @@
     "objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "fulfilled",
-  "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e93de4af43766a85242958e30702d32f231df8ee",
+  "head": "9f9cee0fce949a91fb3335bb6082ee27f9e73e15",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-15T00:55:24.026596+00:00",
-  "last_human_progress_update": "2026-09-15T11:52:11.228328+00:00",
+  "last_human_progress_update": "2026-09-15T12:10:32.822068+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "eeb7944290ccfd987fa12e36e24eb59ff684cb96872a9ba4b517bba578376d7d",
+  "plan_hash": "14560f613b3400c4aa19a28c4ff222f7762965f6afde0cbb00a47a48591a4eed",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -122,11 +136,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Provider-platform is not yet in staging, ETF holdings waits on it, and the six protected visual diffs remain; these do not block independent TC UI or Study/Strategy work.",
-    "current_phase": "R1_independent_tc_ui_and_study_strategy",
-    "next_action": "Choose and implement the next independent TC-owned frontend or Study/Strategy slice from the pinned V25 backlog. Keep provider and ETF acquisition/adapter changes out of TC; integrate both contracts after their staging promotions.",
+    "current_blocker": "Provider-platform is not yet in staging, ETF waits on that integration, and six protected visual diffs remain; independent TC UI and Study/Strategy work continues.",
+    "current_phase": "R1_popout_state_preservation",
+    "next_action": "Continue independent TC-owned workstation UI, layout/pop-out, and Study/Strategy slices; preserve screenshot baselines pending human review; consume provider and ETF contracts only after staging promotions.",
     "total": 9,
-    "updated_at": "2026-09-15T11:52:11.228246+00:00"
+    "updated_at": "2026-09-15T12:10:32.822002+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

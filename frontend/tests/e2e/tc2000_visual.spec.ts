@@ -313,12 +313,20 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.goto('/')
     await waitForShellReady(page)
     const sourceTool = page.locator('.tool-window').first()
+    const expectedSymbols = ['DIA', 'IWM', 'QQQ', 'RSP', 'SPY']
+    await expect(sourceTool.locator('.watchlist__row')).toHaveCount(expectedSymbols.length)
     const popupPromise = context.waitForEvent('page')
     await sourceTool.locator('button[title="Float"]').click()
     const popup = await popupPromise
     await popup.waitForLoadState('domcontentloaded')
     const popoutTool = popup.locator('.workstation__popout .tool-window')
     await expect(popoutTool).toBeVisible({ timeout: 15_000 })
+    const popoutRows = popoutTool.locator('.watchlist__row')
+    await expect(popoutRows).toHaveCount(expectedSymbols.length)
+    const poppedSymbols = await popoutRows.evaluateAll((rows) =>
+      rows.map((row) => row.getAttribute('aria-label')?.split(/\s+/)[0] ?? ''),
+    )
+    expect(poppedSymbols).toEqual(expectedSymbols)
     await expect(popup).toHaveScreenshot('workspace-floating.png', {
       animations: 'disabled',
       caret: 'hide',
