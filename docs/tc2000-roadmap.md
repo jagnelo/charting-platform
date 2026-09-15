@@ -11644,6 +11644,25 @@ status and available persisted data; gaps remain explicit.
 
 Exit: compatibility-matrix cells have unit/API/persistence/consumer evidence.
 
+Current focused receipt at product tip `3c14a03f` (2026-09-15): Market Map
+lists every compatible immutable Boolean or numeric-series CodeVersion from
+active Python conditions, identifies its output name/contract/version, and
+submits the exact selected version rather than accepting a free-form output
+name. Completed-map responses now retain run/version/output lineage; named
+snapshots preserve that lineage and restore the selected version. Boolean
+outputs remain ineligible for numeric tile area. The Market Map component
+tests passed `52/52`, full frontend Vitest passed `1,078/1,078`, type-check and
+production build passed (the existing large-chunk warning remains), the full
+watchlist/Market Map integration file passed `53/53`, and authenticated
+headless F8s-market-map-python-output passed `1/1`. Ruff, format, scope guard
+(`40` changed paths), and its six self-tests passed. The isolated Compose stack
+and four task-built images were removed; resource accounting found zero
+containers, volumes, test sessions, known bytes, or unknown components. This
+is focused R5 evidence, not a fresh exact-tip gate: the six protected visual
+diffs and upstream provider/ETF staging boundary remain open. No output can
+cause Market Map to acquire data, and no visual oracle or acceptance policy
+changed.
+
 ### R6 — Close visual, resilience, accessibility and performance evidence
 
 - Validate missing/partial/stale/error/loading, dense treemap, Study, tools,

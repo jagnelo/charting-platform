@@ -12526,5 +12526,49 @@ Owned product paths:
 
 The previous context's focused, full frontend, type-check, build, authenticated
 headless F8k-a, TC scope-guard, and workstream-validation evidence is recorded
-above. This R5 context has not yet changed product files. Acceptance flexibility
-used: None.
+above. At context start this R5 slice had not yet changed product files. Its
+delivered scope is recorded below. Acceptance flexibility used: None.
+
+## 2026-09-15 - Market Map named Python output lineage
+
+Product commit `3c14a03fb857e0c3de4251f6ca1e5e0423799aaa`
+(`feat(tc2000): preserve named Python output lineage in Market Map`) extends
+Market Map's Python picker from one latest asset version to every compatible
+immutable Boolean or numeric-series CodeVersion on an active, unarchived
+condition. The picker identifies output name, contract, and version; the client
+submits only the immutable `code_version_id`, and the backend derives and
+validates output lineage from the completed run's version. Boolean outputs may
+colour tiles but are rejected for numeric area. Market Map responses now expose
+run/version/output lineage, persist it in named snapshots, and restore the
+selected version when a snapshot is loaded. No free-form output-name override
+or provider/ETF acquisition behavior was added. The exact integration-test file
+is documented as a shared TC consumer seam in
+`ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`.
+
+Validation: the focused Market Map component suite passed `52/52`; full
+frontend Vitest passed `1,078/1,078`; frontend type-check and production build
+passed with only the pre-existing large-chunk warning; all `53/53`
+`test_watchlists.py` integration cases passed; Ruff and format checks passed;
+and authenticated headless Chromium `F8s-market-map-python-output` passed
+`1/1`, verifying immutable version `5102`, returned `slow` series lineage, and
+snapshot save/restore. `git diff --check` passed. The TC scope guard passed for
+`40` changed paths and all six scope self-tests passed. Workstream validation
+and session checkpoint are being refreshed with this receipt.
+
+The normal stack helper encountered the stale worktree-named Buildx
+registration; its failure handler stopped the exact TC Compose project. The
+project was then rebuilt with Docker's existing `default` builder, without
+changing the builder registry, and the browser flow passed against that
+branch-scoped stack. Standard scoped teardown removed the stack's containers,
+volumes, network, and four task-built images; final resource accounting found
+zero containers, volumes, test sessions, known retained bytes, or unknown
+components. The Playwright run was headless; no visible browser, screenshot
+baseline, mask, threshold, skip, visual oracle, provider/ETF behavior, or
+acceptance policy changed. This is focused R5 evidence, not the exact-tip gate;
+the six protected visual diffs and provider/ETF staging boundary remain open.
+
+Next: continue the R5 Python compatibility matrix with another independent
+TC-owned Study/Strategy/workstation slice. Keep upstream provider and ETF
+integration deferred until both reach staging, preserve all visual oracles,
+and do not retry the previously rejected private-origin push without trusted
+exact-payload authorization.
