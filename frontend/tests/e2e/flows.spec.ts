@@ -3148,9 +3148,12 @@ test.describe('TC2000 workstation', () => {
         run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY', timeframe: 'D1' },
         dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
         reproducibility_hash: 'sha256:structured-event-results',
-        artifact_count: 6,
+        artifact_count: 7,
         artifacts: [
-          { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } },
+          { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [
+            { symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' },
+            { symbol: 'SPY', timestamp: '2026-01-04T00:00:00Z', kind: 'breakdown' },
+          ] } },
           { id: 6, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
           { id: 7, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
           { id: 8, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
@@ -3159,6 +3162,7 @@ test.describe('TC2000 workstation', () => {
             points: [{ timestamp: '2026-01-03T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }],
             occurrences: [{ occurrence_id: '7:2026-01-03T00:00:00Z:member_entered', timestamp: '2026-01-03T00:00:00Z', kind: 'member_entered', instrument_id: 7, symbol: 'SPY', name: 'SPY', value: true, metric: 0.04, percentage: 1, pass_count: 1, eligible_count: 1 }],
           } } },
+          { id: 11, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'occurrences', title: 'Recent occurrences', span: 12 }] } } },
         ],
       }]) })
     })
@@ -3329,6 +3333,16 @@ test.describe('TC2000 workstation', () => {
     await breadthOccurrence.press('Space')
     await expect(activeSymbol).toHaveValue('SPY')
     await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-03T00:00:00Z')
+    const dashboardOccurrence = results.locator('.study-dashboard__events button').filter({ hasText: '2026-01-04T00:00:00Z' })
+    await expect(dashboardOccurrence).toBeVisible()
+    await expect(dashboardOccurrence).toHaveAccessibleName('SPY 2026-01-04T00:00:00Z breakdown')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await dashboardOccurrence.focus()
+    await dashboardOccurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-04T00:00:00Z')
     await expect(results.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
     await expect(results.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
     await results.getByRole('button', { name: 'Save filter: occurrences' }).click()
@@ -4539,8 +4553,13 @@ test.describe('TC2000 workstation', () => {
     await expect(occurrencePanel).toBeVisible({ timeout: 15_000 })
     const occurrence = occurrencePanel.getByRole('button', { name: /SPY Entered condition/ })
     await expect(occurrence).toBeVisible()
-    await occurrence.click()
-    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await occurrence.focus()
+    await occurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
     await expect(page.locator('.chart-root[data-linked-timestamp]')).toHaveAttribute('data-linked-timestamp', '2026-06-27T00:00:00Z')
     const condition = breadth.locator('select[aria-label="Breadth condition"]')
     await condition.selectOption('rsi')

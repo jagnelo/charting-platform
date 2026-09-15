@@ -816,7 +816,7 @@
           <strong>Member state changes</strong>
           <span>{{ genericBreadthHistoryOccurrences.length }} shown · click to publish</span>
         </header>
-        <button v-for="occurrence in genericBreadthHistoryOccurrences" :key="occurrence.occurrence_id" type="button" :aria-label="`${occurrence.symbol} ${genericBreadthOccurrenceLabel(occurrence)} ${occurrence.timestamp}`" @click="emit('occurrence', occurrence.symbol, occurrence.timestamp, occurrence.instrument_id)">
+        <button v-for="occurrence in genericBreadthHistoryOccurrences" :key="occurrence.occurrence_id" type="button" :aria-label="`${occurrence.symbol} ${genericBreadthOccurrenceLabel(occurrence)} ${occurrence.timestamp}`" @keydown.stop @click="emit('occurrence', occurrence.symbol, occurrence.timestamp, occurrence.instrument_id)">
           <strong>{{ occurrence.symbol }}</strong>
           <span>{{ genericBreadthOccurrenceLabel(occurrence) }} · {{ occurrence.timestamp }}</span>
           <small v-if="occurrence.percentage != null">{{ (occurrence.percentage * 100).toFixed(1) }}%</small>

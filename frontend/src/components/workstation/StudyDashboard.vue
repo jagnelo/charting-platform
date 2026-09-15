@@ -12,7 +12,7 @@
       <StudyRangeUPlot v-else-if="target(panel)?.artifact_type === 'range' && rangeData(target(panel)!)" :name="panel.title" :timestamps="rangeData(target(panel)!)!.timestamps" :lower="rangeData(target(panel)!)!.lower" :upper="rangeData(target(panel)!)!.upper" :center="rangeData(target(panel)!)!.center" />
       <StudyScatterUPlot v-else-if="target(panel)?.artifact_type === 'scatter' && scatterData(target(panel)!)" :name="panel.title" :x="scatterData(target(panel)!)!.x" :y="scatterData(target(panel)!)!.y" />
       <StudyHeatmap v-else-if="target(panel)?.artifact_type === 'heatmap' && heatmapData(target(panel)!)" :name="panel.title" :rows="heatmapData(target(panel)!)!.rows" :columns="heatmapData(target(panel)!)!.columns" :values="heatmapData(target(panel)!)!.values" />
-      <div v-else-if="target(panel)?.artifact_type === 'events'" class="study-dashboard__events"><button v-for="(event, index) in eventRows(target(panel)!)" :key="`${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
+      <div v-else-if="target(panel)?.artifact_type === 'events'" class="study-dashboard__events"><button v-for="(event, index) in eventRows(target(panel)!)" :key="`${event.timestamp}-${index}`" type="button" :aria-label="`${event.symbol} ${event.timestamp} ${event.kind ?? 'Event'}`" @keydown.stop @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
       <pre v-else>{{ target(panel) ? JSON.stringify(target(panel)!.payload.value ?? target(panel)!.payload, null, 2) : 'Referenced artifact is unavailable.' }}</pre>
     </article>
   </section>

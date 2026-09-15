@@ -238,10 +238,10 @@ describe('ResearchResultsTool', () => {
       { id: 8, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample_size', title: 'Sample size', span: 12 }] } } },
     ] }])
     const wrapper = mountTool()
-    await flushPromises()
+      await flushPromises()
 
-    expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
-  })
+      expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
+    })
 
   it('renders collected Python breadth history and publishes canonical occurrence identity', async () => {
     apiGet.mockResolvedValue([{ id: 19, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
