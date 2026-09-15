@@ -2177,6 +2177,15 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             "water_island_native_periodic_complete_portfolio_report_pdf"
         )
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "818":
+        metadata = result.legal_metadata or {}
+        assert metadata["route_resolution"] == "liberty_one_product_page_scoped_holdings_api"
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == ("liberty_one_native_fund_scoped_holdings_api")
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
     if adapter_key == "optimize":
         metadata = result.legal_metadata or {}
         assert (

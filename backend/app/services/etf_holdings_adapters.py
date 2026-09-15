@@ -26891,6 +26891,8 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(page_response.url),
                 "portfolio_id": portfolio_id,
                 "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
             },
             source_url=str(holdings_response.url),
             source_identifier=portfolio_id,
@@ -26902,8 +26904,11 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "liberty_one_product_page_scoped_holdings_api",
                 "product_page_url": str(page_response.url),
                 "portfolio_id": portfolio_id,
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "liberty_one_native_fund_scoped_holdings_api",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -26965,7 +26970,8 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not isinstance(payload, list):
             return [], None
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = False
         for index, raw in enumerate(payload, start=1):
             if not isinstance(raw, dict):
                 continue
@@ -26974,13 +26980,6 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if portfolio_name and expected_name not in portfolio_name.upper():
                 continue
             as_of_date = _clean(raw.get("asOfDate"))
-            if as_of_date:
-                try:
-                    parsed_date = datetime.fromisoformat(as_of_date.replace("Z", "+00:00")).date()
-                    if composition_date is None or parsed_date > composition_date:
-                        composition_date = parsed_date
-                except ValueError:
-                    pass
             raw_ticker = _clean(raw.get("securityTicker"))
             ticker, exchange = LibertyOneHoldingsAdapter._split_ticker(raw_ticker)
             identifier = _clean(raw.get("securityIdentifier"))
@@ -26991,6 +26990,16 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
             is_fixed_income = any(token in haystack for token in ("BOND", "NOTE", "FIXED INCOME"))
             if not any([ticker, identifier, name, raw.get("marketValueBase")]):
                 continue
+            parsed_date: date | None = None
+            if as_of_date:
+                try:
+                    parsed_date = datetime.fromisoformat(as_of_date.replace("Z", "+00:00")).date()
+                except ValueError:
+                    pass
+            if parsed_date is None:
+                invalid_or_missing_dates = True
+            else:
+                composition_dates.add(parsed_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash or is_fixed_income else ticker,
@@ -27005,12 +27014,20 @@ class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     if is_cash
                     else ("fixed_income" if is_fixed_income else "equity"),
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    source_row_id=(
+                        f"{symbol}:{parsed_date.isoformat() if parsed_date else 'undated'}:{index}"
+                    ),
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
             )
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "Liberty One holdings API must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
         return rows, composition_date
 
     @staticmethod

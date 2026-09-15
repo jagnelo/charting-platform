@@ -20344,8 +20344,50 @@ async def test_liberty_one_adapter_discovers_portfolio_id_and_parses_scoped_hold
     assert cash_row.symbol is None
     assert cash_row.row_type == "cash"
     assert len(result.rows) == 2
+    assert result.raw_json["composition_date"] == "2026-07-10"
+    assert result.raw_json["as_of_date"] == "2026-07-10"
+    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-10"
     assert result.legal_metadata["portfolio_id"] == "1256"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert (
+        result.legal_metadata["snapshot_provenance"]
+        == "liberty_one_native_fund_scoped_holdings_api"
+    )
+
+
+def test_liberty_one_holdings_require_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("818")
+    assert adapter is not None
+    valid = [
+        {
+            "asOfDate": "2026-07-10T00:00:00Z",
+            "portfolioName": "Liberty One Spectrum ETF",
+            "securityIdentifier": "931142103",
+            "securityTicker": "WMT US",
+            "securityDescriptionLong": "Walmart, Inc.",
+            "marketValueBase": 100,
+        }
+    ]
+    invalid = [{**valid[0], "asOfDate": "not-a-date"}]
+    undated = [{**valid[0], "asOfDate": None}]
+    mixed = [
+        valid[0],
+        {
+            **valid[0],
+            "asOfDate": "2026-07-11T00:00:00Z",
+            "securityIdentifier": "037833100",
+            "securityTicker": "AAPL US",
+            "securityDescriptionLong": "Apple Inc.",
+        },
+    ]
+    rows, snapshot_date = adapter._parse_holdings_payload(valid, symbol="SPCT")
+    assert len(rows) == 1
+    assert snapshot_date == date(2026, 7, 10)
+    assert rows[0].source_row_id == "SPCT:2026-07-10:1"
+    for payload in (invalid, undated, mixed):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_holdings_payload(payload, symbol="SPCT")
 
 
 @pytest.mark.asyncio
