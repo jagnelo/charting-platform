@@ -55,6 +55,25 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('gives each column visibility checkbox a concise accessible name', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key: 'relative_1m', label: '1M' },
+        ],
+      },
+    })
+    await wrapper.get('button[aria-label="Columns"]').trigger('click')
+
+    expect(wrapper.findAll('.watchlist__column-editor-row input[type="checkbox"]').map(input => input.attributes('aria-label'))).toEqual([
+      'Show Symbol column',
+      'Show 1M column',
+    ])
+  })
+
   it('preserves native arrow-key handling in editable column settings', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows }, attachTo: document.body })
     await wrapper.get('button[aria-label="Columns"]').trigger('click')
