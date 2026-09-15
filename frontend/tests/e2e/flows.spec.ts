@@ -280,7 +280,7 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F9c-keyboard — chart templates support keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
+  test('F9c-keyboard — chart templates support bidirectional keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 10_000 })
@@ -291,6 +291,14 @@ test.describe('Chart', () => {
     const editor = menu.getByRole('textbox', { name: 'Chart template name' })
     await expect(editor).toBeFocused()
     await editor.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+
+    await trigger.press('ArrowUp')
+    await expect(menu).toBeVisible()
+    const lastControl = menu.locator('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)').last()
+    await expect(lastControl).toBeFocused()
+    await lastControl.press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(trigger).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
@@ -645,7 +653,7 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F9e-plot-library-keyboard — chart plot library supports keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
+  test('F9e-plot-library-keyboard — chart plot library supports bidirectional keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
@@ -655,6 +663,14 @@ test.describe('Chart', () => {
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('combobox', { name: 'Add indicator plot' })).toBeFocused()
     await menu.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+
+    await trigger.press('ArrowUp')
+    await expect(menu).toBeVisible()
+    const lastControl = menu.locator('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)').last()
+    await expect(lastControl).toBeFocused()
+    await lastControl.press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(trigger).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
