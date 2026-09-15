@@ -11964,4 +11964,55 @@ Ruff, format-check, and `git diff --check` passed. No provider precedence,
 fallback, listing acceptance, visual baseline, or acceptance policy changed.
 The Dreyfus government-cash row still requires exact source-row investigation;
 W1/MN floors, dated rebalance continuity, family population, and R2-R7 evidence
-remain open. Full exact-tip validation is pending after this change.
+remain open.
+
+The exact full integration gate at product tip `e93de4af` passed workstream,
+dependency, migration, lint, backend coverage (1,619/1,619 unit tests and
+405/405 integration tests at 82.23% combined coverage), frontend Vitest
+(1,067/1,067), type-check/build, Compose/provider/research-runner checks, and
+functional Playwright (165 passed, 107 documented skips). Visual E2E exited 1:
+98/104 passed, with the six established protected diffs—watchlist-column-editor
+open at 1080p/100% and 125% (13,844 pixels each); workspace-floating at
+1080p/100% and 125% (15,817 pixels each) and 1440p/100% and 125% (9,770 pixels
+each). The optional branch-tests suffix was not reached. Teardown removed the
+four generated images and all stack resources; the resource audit found zero
+containers, volumes, test sessions, and known attributable bytes. No baseline,
+mask, threshold, skip, provider/fallback behavior, or acceptance policy changed.
+
+## 2026-09-15 — Scope replan and upstream ownership
+
+The human approved a frontend-led TC scope: continue the workstation V25
+look/behavior and TC's existing Python/DSL/Study/Strategy engine, while consuming
+generic market-data capability from `feat/market-data-provider-platform` and ETF
+holdings capability from `feat/etf-holdings-constituents`. Do not add provider
+routing, credentials, probes, ingestion/refresh workers, ETF adapters or
+constituent resolution in this branch.
+
+Measured against common staging `8b885a2f`, the current path intersections are
+78 provider-platform ↔ TC and 35 ETF ↔ TC; they are provisional path overlaps,
+not blanket proof of duplicate behavior. Each path and its provisional
+disposition is in `ownership-reconciliation.yaml`. The TC adapter history
+contains 93 commits touching `backend/app/services/etf_holdings_adapters.py`;
+that path and tests require reconciliation with the ETF owner after staging.
+The separate Strategy Lab branch has no changed-path overlap and is not a TC
+dependency.
+
+Provider-platform is at `da06e560` / `ready_for_human_review`, not in staging.
+ETF holdings is at `52814f95` and waits on provider-platform staging. The safe
+order is provider-platform → staging, ETF holdings → staging, then TC consumes
+the updated staging branch using the repository workflow. TC continues
+independent frontend and Study/Strategy work in the meantime; it does not merge
+or edit another worktree.
+
+The QQQE N-PORT Dreyfus row investigation found SEC Item C.4 “short-term
+investment vehicle” and Item C.1 “registered fund” for DGCXX, with `0.8313234437`
+percent reported weight (`0.008313234437` as a fraction). Its focused parser
+exploration passed 9/9, but the parser/test edits are out of scope and have been
+removed from TC. This is an ETF-domain finding for owner handoff; it has not yet
+been sent or acknowledged.
+
+The exact gate receipt above remains historical at `e93de4af`: all pre-visual
+stages and functional Playwright passed (165 passed, 107 documented skips);
+visual remains 98/104 with six protected diffs. Preserve those oracles. Next,
+finish the TC scope guard and ledger, then resume independent TC UI and
+Study/Strategy work while upstream branches progress.

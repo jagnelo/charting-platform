@@ -5,35 +5,28 @@ parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 latest_staging_merge_sha: da78591c0f75626d584e0bc691cd939f80addc27
-dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging."
+dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
+human_intent_authorization: >-
+  The human approved implementation of the TC2000 V25-inspired workstation roadmap
+  and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
+  feat/market-data-provider-platform and feat/etf-holdings-constituents instead
+  of duplicating their provider and ETF-domain ownership. TC remains frontend-led
+  and may continue its existing TC-specific Python/DSL/Study/Strategy engine.
+  Keep branch history; reconcile file and semantic overlaps after upstream work
+  reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest product tip bb70fff142a7f4b247664ce4047f93ac37343523 hardens
-  Killir/KKM GARY issuer-declared dated SEI text: every retained row must
-  have one parseable date and all retained rows must share it; missing,
-  invalid, and mixed dates fail closed; the row date must match the selected
-  report filename. Raw and normalized metadata record the requested route,
-  filename date, composition/as-of date, row count, and single-date check.
-  The live public route returned 41 rows dated 2026-09-14, all dated and
-  consistent with the 09142026 filename. Focused Killir tests passed 5/5;
-  the full holdings-adapter module passed 584/584; the opt-in public GARY
-  route test passed 1/1; Ruff, formatting, and diff checks passed. The first
-  full gate attempt was blocked at backend coverage by sandbox permission
-  to the Docker socket. Its authorized rerun completed backend units 1618/1618,
-  integration 405/405 at 82.23% combined coverage, frontend Vitest 1067/1067,
-  type-check/build, Compose and runner checks, and functional E2E 165 passed
-  with 107 documented skips. It exited 1 only at visual E2E: 98/104 passed and
-  the same six protected watchlist-column-editor-open and workspace-floating
-  diffs failed; the optional branch-tests suffix was not reached. Post-run
-  resource audit found zero containers, volumes, sessions, or known bytes.
-  No provider/fallback, baseline, threshold, mask, skip, or acceptance policy
-  changed. Continue R1 family-wide population/history, D1/W1/MN floors,
-  rebalance continuity, and AC2-AC7/AC10.
+  The exact full gate at e93de4af43766a85242958e30702d32f231df8ee passed every
+  pre-visual stage and functional Playwright (165 passed, 107 documented skips);
+  visual parity remains 98/104 with the six protected watchlist-column-editor
+  and workspace-floating diffs. The provider-platform branch is at
+  ready_for_human_review but is not in staging, and the ETF branch is waiting
+  for that dependency. TC must continue independent UI and TC-owned Study/
+  Strategy work without implementing their provider/ETF responsibilities.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -41,38 +34,50 @@ goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
-goal: "Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review."
+goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
 scope:
-  - "R0: synchronize and baseline the staging-derived feature branch, including static checks, focused authenticated browser flows, visual projects, and Golden Layout resilience reproduction."
-  - "R1: make all eight benchmark families canonical-data-ready with provider, entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and bounded refresh evidence; no silent fallback or fabricated data."
-  - "R2: complete the live-data benchmark-to-style-to-sector-to-industry/proxy-to-constituent top-down trader workflow with linked symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness."
-  - "R3: complete current and historical breadth, ratios, rotation, rankings, leadership, concentration, dispersion, drawdown, volatility, correlation, seasonality, and source-polymorphic Market Map contracts where supported."
-  - "R4: preserve immutable Python/Study Lab AST and lineage while promoting compatible outputs across columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors."
-  - "R5-R6: close the mapped V25 visual/state parity, loading/error/freshness, Golden Layout/native-window, endurance, accessibility, security, sandbox, migration, and performance evidence without weakening visual or functional oracles."
-  - "R7: perform the exact-tip audit and exhaustive integration gate, stopping at ready_for_human_review without integrating, promoting, deploying, or mutating another worktree."
+  - "R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt durable in this workstream."
+  - "R1: independently advance the TC workstation UI and behavior against the pinned V25 reference and existing acceptance evidence while upstream provider/ETF work proceeds."
+  - "R2: integrate the provider-platform consumer contract from staging for identity/listing/OHLCV capability, entitlement, health, evaluator preflight, and coverage; TC may compose and display readiness but must not implement provider routing, credentials, refresh workers, or generic ingestion."
+  - "R3: integrate ETF holdings capability and source metadata from staging; TC may consume and present it but must not implement ETF adapters, provider probes, holdings refresh, or constituent resolution."
+  - "R4: complete TC-owned top-down workflows and read-side analytics over canonical persisted inputs, without claiming or acquiring canonical population/history that belongs upstream."
+  - "R5: preserve and advance TC-specific Python/DSL/Study/Strategy behavior, immutable artifacts, lineage, and compatible promotion across workstation surfaces."
+  - "R6: close V25 visual/state parity, Golden Layout/window resilience, accessibility, security, and performance evidence without weakening visual or functional oracles."
+  - "R7: after provider then ETF work reaches staging, synchronize TC through the prescribed workflow, reconcile every shared path semantically, and run exact-tip validation before ready_for_human_review; do not directly merge branches, promote, deploy, or mutate another worktree."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
-  - frontend/src/components/workstation
-  - frontend/src/stores
-  - frontend/tests/unit
+  - frontend/src/views/StudyLabView.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/components/workstation/
+  - frontend/src/components/strategy/
+  - frontend/src/stores/workspace.ts
+  - frontend/src/lib/workstation/
+  - frontend/tests/unit/
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/e2e/workstation_performance.spec.ts
   - frontend/playwright.config.ts
-  - backend/app/api/routes/analysis.py
-  - backend/app/api/routes/providers.py
-  - backend/app/api/routes/etf_holdings.py
+  - backend/app/routers/analysis.py
+  - backend/app/routers/strategy_lab.py
+  - backend/app/routers/research.py
+  - backend/app/schemas/analysis.py
+  - backend/app/schemas/code.py
+  - backend/app/schemas/strategy.py
+  - backend/app/schemas/workstation.py
+  - backend/app/schemas/market_map.py
+  - backend/app/models/strategy.py
+  - backend/app/models/research.py
+  - backend/app/models/workstation.py
   - backend/app/services/top_down_taxonomy.py
   - backend/app/services/benchmark_family_coverage.py
   - backend/app/services/benchmark_family_history.py
   - backend/app/services/benchmark_family_holdings_runs.py
-  - backend/app/services/etf_holdings_refresh.py
   - backend/app/services/workstation_bootstrap.py
   - backend/app/services/market_map.py
   - backend/app/services/breadth.py
-  - backend/app/services/provider_entitlements.py
-  - backend/app/schemas
-  - backend/app/models
-  - backend/app/workers
+  - backend/app/services/research_jobs.py
+  - backend/app/services/strategy_lab.py
+  - backend/app/services/strategy_lab_nautilus.py
   - backend/tests/unit/services/test_top_down_taxonomy.py
   - backend/tests/unit/services/test_benchmark_family_coverage.py
   - backend/tests/unit/services/test_benchmark_family_history.py
@@ -80,114 +85,193 @@ owned_paths:
   - backend/tests/unit/services/test_market_map.py
   - backend/tests/unit/services/test_breadth.py
   - backend/tests/unit/services/test_workstation_bootstrap.py
-  - backend/tests/integration/api/test_etf_holdings.py
+  - backend/tests/unit/services/test_research_jobs.py
+  - backend/tests/unit/services/test_strategy_lab.py
+  - backend/tests/unit/services/test_strategy_lab_nautilus.py
+  - backend/tests/integration/api/test_strategy_lab.py
   - docs/tc2000-acceptance-governance.md
   - docs/tc2000-roadmap.md
   - docs/tc2000-visual-parity.md
+  - scripts/validate-tc2000-scope.py
+  - ops/workstreams/feat-tc2000-frontend-rework/
+excluded_paths:
+  - .env.example
+  - backend/.env.example
+  - backend/app/providers/
+  - backend/app/routers/providers.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/etf_holdings.py
+  - backend/app/routers/instruments.py
+  - backend/app/services/market_data.py
+  - backend/app/services/provider_*
+  - backend/app/services/instrument_sync.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/etf_holdings*
+  - backend/app/models/ohlcv.py
+  - backend/app/models/etf_holdings.py
+  - backend/app/models/provider_*
+  - backend/app/schemas/ohlcv.py
+  - backend/app/schemas/etf_holdings*
+  - backend/app/schemas/instrument.py
+  - backend/app/tasks/data_tasks.py
+  - backend/app/tasks/etf_holdings_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/tests/live/test_etf_holdings_live_providers.py
+  - backend/tests/unit/services/test_etf_holdings*
+  - backend/tests/unit/tasks/test_etf_holdings*
+  - backend/tests/integration/api/test_etf_holdings.py
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/components/etf/
+  - frontend/tests/unit/components/test_etf_holdings*
+  - docs/data-providers.md
   - docs/project-todos.md
-  - ops/workstreams/feat-tc2000-frontend-rework
+shared_path_exceptions:
+  - path: backend/app/routers/analysis.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC analysis/readiness aggregation only; keep provider and ETF authority upstream.
+  - path: backend/app/routers/research.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC Research/Study/Strategy behavior only; no provider/holdings acquisition.
+  - path: backend/app/schemas/analysis.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC aggregate response fields only; preserve upstream provider evidence as source of truth.
+  - path: backend/app/schemas/market_map.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC Market Map consumer/read contract only; no provider policy or capability ownership.
+  - path: backend/app/services/market_map.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC read-side grouping and consumer composition only.
+  - path: backend/app/services/breadth.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC analytics over persisted inputs only; no generic bar fetch or provider routing.
+  - path: backend/app/services/research_jobs.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC research execution and lineage only; consume persisted/canonical inputs.
+  - path: backend/tests/unit/services/test_research_jobs.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC Research/Study/Strategy behavior tests only; do not expand provider coverage ownership.
+  - path: backend/app/services/strategy_lab.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC-specific Study/Strategy engine and analysis only.
+  - path: backend/app/services/strategy_lab_nautilus.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC-specific strategy engine only; no provider capability ownership.
+  - path: backend/app/services/workstation_bootstrap.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: only adapt TC workstation startup to upstream readiness/enqueue contracts; remove direct provider/ETF acquisition.
+  - path: backend/tests/integration/api/test_strategy_lab.py
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: preserve TC Strategy Lab API tests while keeping provider and holdings setup under upstream owners.
+  - path: backend/app/models/strategy.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC-owned Strategy domain only; avoid generic provider schema additions.
+  - path: backend/app/models/research.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC-owned Study/Research lineage only.
+  - path: backend/app/schemas/code.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC Python DSL contract only.
+  - path: backend/app/schemas/strategy.py
+    owners: [TC, market-data-provider-platform]
+    reason: TC Strategy API contract only.
+  - path: frontend/src/types/index.ts
+    owners: [TC, market-data-provider-platform, etf-holdings-constituents]
+    reason: TC consumer types only; keep provider and ETF schemas authoritative upstream.
+  - path: frontend/src/components/workstation/MarketMapTool.vue
+    owners: [TC, etf-holdings-constituents]
+    reason: workstation consumer display and interactions only.
+  - path: frontend/src/components/workstation/WorkstationToolContent.vue
+    owners: [TC, etf-holdings-constituents]
+    reason: TC tool composition only; do not expand ETF product ownership.
+  - path: frontend/tests/unit/components/test_market_map_tool.test.ts
+    owners: [TC, etf-holdings-constituents]
+    reason: TC workstation consumer tests only.
 dependencies:
-  - "canonical provider/data evidence and existing workstation acceptance governance"
-  - "synchronized staging capabilities only; do not mutate the active ETF worktree"
+  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); dependency is not yet in staging."
+  - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
+  - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
+  - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
+scope_guard_baseline_sha: e93de4af43766a85242958e30702d32f231df8ee
+dependency_order:
+  - feat/market-data-provider-platform -> staging
+  - feat/etf-holdings-constituents -> staging (after provider-platform)
+  - feat/tc2000-frontend-rework consumes the updated staging tip
+upstream_consumer_contracts:
+  market_data:
+    source_of_truth: feat/market-data-provider-platform
+    preflight_statuses: [full, partial, deferred, stale-blocked, provider-unavailable, empty]
+    tc_rules:
+      - Preserve upstream status, provider/capability/entitlement evidence, coverage, and freshness.
+      - Do not select providers, probe providers, retry, repair, or enqueue ingestion from TC read paths.
+      - Treat only explicitly sufficient upstream coverage plus TC analytic requirements as analysis-ready; expose partial/deferred/stale/unavailable/empty distinctly.
+  etf_holdings:
+    source_of_truth: feat/etf-holdings-constituents
+    availability: [current, degraded, stale, unavailable, not_applicable, unknown]
+    tc_rules:
+      - Preserve usable_for_current_analysis as the upstream eligibility authority.
+      - displayable_last_known permits labelled last-known display only, never current analysis.
+      - Preserve source tier, provider, composition/published/freshness dates, completeness, identity, and failure/audit metadata.
+      - Do not implement adapters, provider probes, refresh routes/workers, or constituent resolution in TC.
 acceptance_criteria:
   - id: AC1
-    text: "Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression."
+    text: "The TC-only ownership boundary is executable: future touched paths are in the scoped allowlist or documented shared exceptions, and provider/ETF-owned paths fail validation."
   - id: AC2
-    text: "All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data."
+    text: "TC consumes the provider-platform preflight and coverage contract from staging without implementing generic provider selection, credentials, ingestion, refresh workers, or provider probes."
   - id: AC3
-    text: "The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness."
+    text: "TC consumes ETF holdings capability/source lineage from staging; stale last-known holdings remain display-only and do not become current analytic input."
   - id: AC4
-    text: "Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries."
+    text: "The TC workstation supports its benchmark-to-sector/industry/constituent flow, Market Map, breadth, ratios, and historical analytics over persisted evidence with explicit gaps and provenance."
   - id: AC5
-    text: "Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them."
+    text: "The existing TC Python/DSL/Study/Strategy engine remains the single programming model, immutable and lineage-preserving, with compatible promotions and explicit capability errors."
   - id: AC6
-    text: "Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors."
+    text: "Mapped V25 reference states and the workstation interaction model are implemented and validated without weakening visual or functional oracles."
   - id: AC7
-    text: "The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy."
+    text: "Golden Layout/window resilience, accessibility, security, sandbox, endurance, dense-data performance, migration, and logging checks provide actionable evidence."
   - id: AC8
-    text: "Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence."
+    text: "After both upstream branches reach staging, every intersecting path has a line-level semantic disposition and the TC branch passes exact-tip validation or records a precise reproducible external blocker."
   - id: AC9
-    text: "Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker."
-  - id: AC10
-    text: "The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree."
+    text: "The branch stops at ready_for_human_review with clean, synchronized TC-owned workstream records and no direct branch merge, deployment, or mutation of another worktree."
 branch_tests:
+  - "UV_CACHE_DIR=/private/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py"
+  - "UV_CACHE_DIR=/private/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py --self-test"
   - "cd frontend && npm run type-check"
   - "cd frontend && npm run test:coverage"
   - "cd frontend && npm run build"
   - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
   - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
-  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework    Latest Calvert dated holdings seam is verified at branch tip `3c07b4c6`:
-    Calvert's official issuer-native daily JSON route for CVLC now requires
-    non-empty holdings with exactly one parseable effective date, fails closed
-    for undated snapshots, date-scopes source IDs, and records complete
-    composition/as-of, row-count, and `calvert_native_issuer_json` provenance
-    metadata. The direct public issuer route published 756 rows dated 2026-09-11.
-    Focused Calvert assertions passed 4/4 including the undated-row regression;
-    dedicated live route assertions passed 2/2; the direct public issuer probe
-    returned 756 dated rows; Ruff, formatting, and diff checks passed.
-    The clean exact gate passed backend units 1595/1595, integration 405/405
-    at 82.14% combined coverage, frontend Vitest 1067/1067, type-check/build,
-    compose/deployment contracts, research-runner probes, and functional E2E
-    165 passed with 107 skipped. Visual E2E passed 98/104 with only the six
-    unchanged protected watchlist-column-editor/workspace-floating diffs.
-    Docker teardown removed all branch-scoped containers, volumes, network, four
-    generated images, and testcontainer sessions. No generic provider/fallback,
-    migration, visual baseline, threshold, mask, skip, or acceptance policy
-    changed. Continue R1 family-wide canonical population/history, D1/W1/MN
-    floors, rebalance continuity, and AC2-AC7/AC10 remain open.
-"
+  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework/plan.yaml"
   - "make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework"
-branch_tests_reason: "The implementation spans backend services and workers, frontend workstation consumers, authenticated Playwright flows, four visual projects, and the exhaustive repository integration gate; all listed commands are run as their relevant phases become ready."
-live_test_impact: "Authenticated workstation and opt-in canonical provider/data evidence may be required; use bounded probes and never expose or invent credentials."
-migration_impact: "Potential additive schema/index changes only if required by canonical readiness/history contracts; run migration and rollback evidence before completion."
+branch_tests_reason: "The scope guard protects the branch boundary; focused/full frontend, TC analysis and Study/Strategy tests, authenticated browser flows, all four visual projects, staged consumer-contract checks, and the exhaustive integration gate run as their phases become ready."
+live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
+migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed:
-    - AC1
-    - AC8
-    - AC9
-  total: 10
-  current_phase: R1_auditable_historical_holding_disposition
+  completed: []
+  total: 9
+  current_phase: R0_scope_reconciliation
   next_action: >-
-    Inspect the exact QQQE source row for Dreyfus government cash and record its
-    classification or explicit disposition. The two EA rows are identity-confirmed
-    historical equities but intentionally remain noncanonical: OpenFIGI returns
-    EA* / MM, which fails the supported US-listing guard, and temporal listing
-    lifecycle support is not yet available. Then continue W1/MN floors, dated
-    rebalance continuity, and remaining R1 family population/history. Preserve
-    native-date completeness, fail-closed mapping, the cold-navigation Add-tool
-    regression, and the undated-backfill guard. Keep all six protected visual
-    diffs visible; rerun focused coverage and the exact branch gate at the next
-    coherent tip.
+    Complete the TC ownership/dependency ledger and executable scope guard, retain
+    the exact e93de4af validation receipt, and remove the uncommitted SEC parser
+    change after recording its Dreyfus finding as an ETF-owner handoff. Continue
+    independent TC workstation/visual and Study/Strategy work while upstream
+    branches progress; once provider then ETF work reaches staging, consume that
+    staging tip and perform line-level reconciliation. Keep all six protected
+    visual mismatches visible.
   current_blocker: >-
-    Latest product tip bb70fff142a7f4b247664ce4047f93ac37343523 hardens
-    Killir/KKM GARY issuer-declared dated SEI text: every retained row must
-    have one parseable date and all retained rows must share it; missing,
-    invalid, and mixed dates fail closed; the row date must match the selected
-    report filename. Raw and normalized metadata record the requested route,
-    filename date, composition/as-of date, row count, and single-date check.
-    The live public route returned 41 rows dated 2026-09-14, all dated and
-    consistent with the 09142026 filename. Focused Killir tests passed 5/5;
-    the full holdings-adapter module passed 584/584; the opt-in public GARY
-    route test passed 1/1; Ruff, formatting, and diff checks passed. The first
-    full gate attempt was blocked at backend coverage by sandbox permission
-    to the Docker socket. Its authorized rerun completed backend units 1618/1618,
-    integration 405/405 at 82.23% combined coverage, frontend Vitest 1067/1067,
-    type-check/build, Compose and runner checks, and functional E2E 165 passed
-    with 107 documented skips. It exited 1 only at visual E2E: 98/104 passed and
-    the same six protected watchlist-column-editor-open and workspace-floating
-    diffs failed; the optional branch-tests suffix was not reached. Post-run
-    resource audit found zero containers, volumes, sessions, or known bytes.
-    No provider/fallback, baseline, threshold, mask, skip, or acceptance policy
-    changed. Continue R1 family-wide population/history, D1/W1/MN floors,
-    rebalance continuity, and AC2-AC7/AC10.
-remaining_gaps:
+    Provider-platform is ready for human review but not yet available in staging;
+    the ETF branch remains behind that dependency. This is an external integration
+    dependency, not permission to duplicate either domain in TC. The last exact
+    gate at e93de4af passed all pre-visual stages and functional E2E (165 passed,
+    107 documented skips); visual parity remains 98/104 with six protected diffs.
+historical_implementation_records:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 7333b328 adds canonical/placeholder/unresolved/excluded member dispositions to every persisted benchmark-family snapshot while keeping canonical IDs and readiness denominators scoped to resolved security/equity rows. The mixed snapshot workspace integration contract passed 57/57; focused Market Map/accessibility/pop-out frontend coverage passed 66/66; type-check, Ruff, and diff checks passed. The exact gate passed all non-visual stages and functional Playwright 165/272 (107 documented skips); visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 07bafee7 exposes the existing unavailable-popout recovery message as an assertive alert/live region for assistive technology. Focused workstation/pop-out tests passed 28/28; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit 4daf9b95 makes the concise workstation footer recovery message a polite, atomic status announcement for assistive technology. Focused workstation/pop-out tests passed 27/27 with role=status, aria-live=polite, and aria-atomic=true asserted; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
+historical_implementation_records_continued:
   - "Product commit 83bcb722 adds a visually hidden accessible description to hydrated workstation pop-outs clarifying that monitor placement and native window controls are browser/OS managed. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, and the unchanged exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit caff874b adds a named focusable pop-out landmark with post-hydration keyboard focus. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, the fresh-stack F8u-boolean reproduction passed 1/1, and the exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1 canonical family/provider-history readiness and R2-R7 evidence."
   - "Product tip 80f7f266 adds an accessible labelled readiness status for canonical universe provenance (registry, family count, point-in-time/latest mode, missing-family count, and provider-call boundary) without provider calls, route selection, readiness inference, fallback, visual-oracle, or acceptance-policy changes. Full frontend Vitest passed 970/970; type-check/build passed; rebuilt authenticated Chromium passed both evidence assertions 2/2; teardown/resource accounting were clean. The corrected exact-tip gate at docs b57e5893 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs."
@@ -310,3 +394,9 @@ remaining_gaps:
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies. Product tip 22fd676e adds the named structured-event Strategy signal cell in Research Results, and 3a7e4861 extends the same explicit events_to_signal asset adapter with source/output/run lineage to the primary Study Lab for direct and named multi-output events. Structured scalar/series/Boolean/range outputs cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible; numeric Study series use latest_series_to_scalar, range centers use range_center_to_series for chart plots and range_center_to_scalar for latest-value watchlist columns. The explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
   - "R7: the exact-tip gate at prior product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remained 98/104 with the same six state-oracle diffs. The exact-tip gate at metadata tip 098546be (product tip 928bf8ae) passed all non-visual stages and functional Playwright 157/157 with 106 documented skips; its unchanged visual matrix is 98/104 with six state-oracle diffs. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."
+remaining_gaps:
+  - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
+  - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
+  - "Path intersections are not proof of duplicate behavior; line-level semantics remain pending after staging. The 93-commit TC etf_holdings_adapters.py history is explicitly flagged for ETF-owner reconciliation/transfer."
+  - "The QQQE N-PORT Dreyfus DGCXX row is SEC-classified as a registered-fund short-term investment vehicle; its parser finding is recorded for ETF-owner handoff, but no parser fix is retained or accepted."
+  - "At e93de4af the exact TC gate passed all pre-visual stages and functional E2E (165 passed, 107 documented skips); visual remains 98/104 with six protected diffs. No visual policy changes are authorized by this replan."

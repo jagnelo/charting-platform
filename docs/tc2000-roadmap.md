@@ -29,6 +29,22 @@ EA rows without counting them as canonical. The Dreyfus government-cash row is
 still unclassified and remains open, as do W1/MN history, rebalance continuity,
 and the remaining R1-R7 evidence.
 
+The exact full integration gate at product tip `e93de4af` passed workstream,
+dependency, migration, lint, backend coverage (1,619/1,619 unit tests and
+405/405 integration tests at 82.23% combined coverage), frontend Vitest
+(1,067/1,067), type-check/build, Compose/provider/research-runner checks, and
+functional Playwright (165 passed, 107 documented skips). Visual E2E exited 1:
+98/104 passed, with the six established protected diffs—watchlist-column-editor
+open at 1080p/100% and 125% (13,844 pixels each); workspace-floating at
+1080p/100% and 125% (15,817 pixels each) and 1440p/100% and 125% (9,770 pixels
+each). The optional branch-tests suffix was not reached. Teardown removed the
+four generated images and all stack resources; the resource audit found zero
+containers, volumes, test sessions, and known attributable bytes. No baseline,
+mask, threshold, skip, provider/fallback behavior, or acceptance policy changed.
+
+The workstream remains active. Continue with the exact QQQE Dreyfus source row;
+the optional branch-tests suffix remains unrun because visual E2E failed.
+
 ## 2026-09-15 - Verified Killir GARY dated holdings
 
 Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
@@ -11235,6 +11251,25 @@ lineage:
 7. expose freshness, coverage, provider, entitlement, effective-time, known-time, and unavailable
    states rather than substituting or fabricating data.
 
+## TC branch scope and ownership boundary
+
+This is a frontend-led TC2000 workstation rework. Its product end state remains
+the V25-inspired workflow above, but ownership is divided across the active
+parallel branches: `feat/market-data-provider-platform` owns generic market-data
+identity, listings, provider routing/capability, coverage and refresh; and
+`feat/etf-holdings-constituents` owns ETF holdings adapters, acquisition,
+constituent resolution, refresh and audit. TC consumes both through staging and
+may build only the consumer/read-side composition needed by the workstation.
+
+TC continues to own its existing Python/DSL/Study/Strategy engine and its
+frontend workflows. Earlier provider-population and ETF-adapter work in this
+roadmap remains historical branch context and is retained in the workstream
+ledger; it is not authorization to duplicate those responsibilities going
+forward. Path intersections require line-level review after upstream branches
+reach staging. See the TC workstream's
+`ops/workstreams/feat-tc2000-frontend-rework/ownership-reconciliation.md` for
+the measured overlap inventory, contracts, and promotion order.
+
 ### Required benchmark-family roots
 
 - S&P 500, S&P 400, S&P 600, and S&P 1500
@@ -11329,7 +11364,113 @@ These are planning estimates, not acceptance percentages and not an arithmetic c
 Overall functional implementation is roughly 65–70% mature, while real-data daily readiness is
 materially lower because family population and point-in-time history are gating inputs.
 
-## Dependency-ordered workstreams
+## Current dependency-ordered workstreams — 2026-09-15 replan
+
+These are the active branch tasks and supersede the historical decomposition
+below. Provider and ETF data readiness are explicit product dependencies, but
+their implementation remains owned by their parallel branches.
+
+### R0 — Lock scope, dependencies, and historical evidence
+
+- Keep the TC plan, measured overlap ledger, scope guard, roadmap and exact
+  `e93de4af` gate receipt aligned.
+- Record the Dreyfus N-PORT classification finding for ETF-owner handoff, then
+  remove the uncommitted parser experiment from TC.
+- Continue frontend-led TC implementation and the existing TC Study/Strategy
+  engine without duplicating upstream responsibilities.
+
+Exit: workstream validation and scope guard pass; dependencies, exclusions and
+known overlaps are durable and reviewable.
+
+### R1 — Advance independent workstation UI and interaction work
+
+- Close mapped V25 reference-state gaps in shell, tools, charts, linking,
+  keyboard interaction, layout persistence and pop-outs.
+- Continue TC-owned Study/Strategy UI and compatible artifact promotion.
+- Preserve seeded-flow labels, reference-authority distinctions and every
+  unchanged screenshot oracle.
+
+Exit: focused and authenticated browser coverage protects each changed flow;
+visual oracles are not weakened.
+
+### R2 — Consume the market-data provider platform
+
+- After `feat/market-data-provider-platform` reaches staging, synchronize TC
+  using the repository workflow and consume identity/listing, OHLCV coverage,
+  capability, entitlement, health and evaluator-preflight evidence.
+- Preserve preflight states `full`, `partial`, `deferred`, `stale-blocked`,
+  `provider-unavailable` and `empty`, with source, freshness and reasons.
+- Compose TC readiness only from explicit upstream evidence and TC analytic
+  requirements; do not add provider routing, probes, credentials, retries,
+  ingestion or refresh workers.
+
+Exit: every consumed status has consumer contract tests and workstation reads
+do not initiate provider work.
+
+### R3 — Consume ETF holdings/constituent capability
+
+- After ETF holdings synchronizes with the provider branch and reaches staging,
+  consume its capability, provenance and audit contracts.
+- Preserve availability, `usable_for_current_analysis`, `displayable_last_known`,
+  source tier, identity, provider, dates, completeness and failure details.
+- Permit last-known display only with an explicit label; never use it as current
+  analysis input. Reconcile adapter/parser overlaps with the ETF owner.
+
+Exit: current, degraded, stale, unavailable, not-applicable, unknown and partial
+states have consumer coverage without TC-owned adapter/probe/refresh behavior.
+
+### R4 — Complete TC workflows and read-side analytics
+
+- Retain benchmark → style → sector → optional industry/proxy → constituent
+  navigation, linked symbol/timeframe, ratios, indicators, drawings, source
+  lock/edit and save/restore behavior.
+- Advance Market Map, breadth, rotation, ranking and historical consumers only
+  over persisted inputs; preserve denominators, exclusions, provenance and
+  effective/known time.
+- Surface unsupported and incomplete inputs rather than adding acquisition or
+  backfill logic.
+
+Exit: deterministic and authenticated consumer evidence agrees with upstream
+status and available persisted data; gaps remain explicit.
+
+### R5 — Preserve TC Python/Study/Strategy capabilities
+
+- Preserve the single Python-native model, immutable definitions and code/run/
+  dataset/output lineage.
+- Complete shape-compatible promotions across columns, filters, scans, gauges,
+  alerts, chart plots and Strategy signals; return explicit errors otherwise.
+
+Exit: compatibility-matrix cells have unit/API/persistence/consumer evidence.
+
+### R6 — Close visual, resilience, accessibility and performance evidence
+
+- Validate missing/partial/stale/error/loading, dense treemap, Study, tools,
+  keyboard, pop-outs, layout restoration and native/browser-window limitations.
+- Keep endurance, accessibility, security/sandbox, dense-data and performance
+  budgets explicit and repeatable.
+- Preserve the unchanged 104-case four-project matrix and protected diffs.
+
+Exit: each state has an honest manifest disposition and no visual or functional
+acceptance oracle is weakened.
+
+### R7 — Reconcile staging and hand off at review
+
+- Promote provider-platform to staging, then ETF holdings to staging through
+  their coordinator workflow; TC does not directly merge either branch.
+- Synchronize TC from resulting staging and assign a line-level semantic
+  disposition to every measured overlap, transferring ETF-owned behavior via
+  its owner when needed.
+- Run focused/full suites, authenticated flows, all visual projects and the
+  exact-tip integration gate; update TC-only durable records.
+
+Exit: clean, synchronized TC records, current exact-tip evidence and
+`ready_for_human_review`; no deployment or direct branch integration.
+
+## Historical workstreams from prior scope — preserved, superseded
+
+The following decomposition records the prior TC branch plan and remains useful
+as history. Its provider-population, provider-operations and ETF-adapter tasks
+are no longer forward ownership for TC; use the current replan above.
 
 ### R0 — Re-establish a current, reproducible baseline
 
@@ -11499,7 +11640,8 @@ accurately visible to the user/operator, the worktree is clean and pushed, and t
 
 The TC2000 frontend rework is ready for human review only when all of the following are true:
 
-- the canonical live-data version of the top-down workflow passes for all supported roots/roles;
+- the canonical live-data version of the top-down workflow passes for all supported roots/roles,
+  using identity/listing/OHLCV and ETF evidence supplied by the owning upstream branches;
 - unsupported or unentitled roots/roles are explicit and evidence-backed, not silently replaced;
 - historical universe, weights, classifications, bars, and analytical results respect effective
   and known-time boundaries;
@@ -11509,23 +11651,21 @@ The TC2000 frontend rework is ready for human review only when all of the follow
   declared endurance matrix;
 - every required visual state has an honest manifest disposition and all applicable visual gates
   pass unchanged;
-- full automated, live-provider, security, migration, performance, and exhaustive integration
-  evidence is current at the exact feature tip;
+- full automated, upstream live-provider/ETF, security, migration, performance, and exhaustive
+  integration evidence is current at the exact feature tip;
 - no hidden fixture, paid-provider assumption, acceptance waiver, or stale historical claim is
   presented as product completion.
 
 ## Immediate next checkpoint
 
-Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `d1f3da4d`; focused family-readiness
-coverage passed `28/28` plus `9/9` Docker integration cases, and the exact-tip exhaustive gate
-returned `165` functional passes with `107` documented skips across `272`, plus `98/104` visual
-passes with the same six known state-oracle diffs. All non-visual and functional stages pass,
-while the unchanged six visual state-oracle diffs remain explicit: column-editor-open at both
-1080p projects and workspace-floating at all four visual projects. Preserve the declared
-provider fallback boundaries and all existing acceptance policy while expanding the remaining
-canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
-security evidence, dense-data budgets, and R2-R7 work.
+Continue independent TC workstation UI and Study/Strategy slices. Do not add new SEC/ETF adapter,
+provider-routing, live-probe, generic-ingestion, or refresh-worker behavior to TC. The last exact
+product-tip gate at `e93de4af` passed every pre-visual stage and functional Playwright (165 passed,
+107 documented skips); visual parity remains 98/104 with the same six protected screenshot diffs.
+Provider-platform (`da06e560`) is ready for human review but not in staging; ETF holdings
+(`52814f95`) is waiting for that integration. Keep TC consumer integration pending until the
+coordinator promotes provider-platform and then ETF through staging. The full measured path
+intersection and exact integration order are in the TC ownership ledger.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
