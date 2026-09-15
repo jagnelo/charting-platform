@@ -113,7 +113,7 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Provider and ETF tips are absent from local staging; visual parity remains 98/104 with six protected diffs. The unpushed local feature range includes historical ETF-adapter work requiring owner reconciliation, so no push was attempted.",
+    "current_blocker": "Provider and ETF tips remain absent from local staging; visual parity remains 98/104 with six protected diffs. Current clean range 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..2c0ec6c0e4294b52e1ad3838e113061577082c85 is committed_locally_pending_push after prior private-origin rejection; exact current payload authorization is unavailable and the latest remote read failed DNS.",
     "current_phase": "R1_workstation_menu_keyboard_navigation_complete",
     "next_action": "Continue independent TC-owned workstation UI and Study/Strategy implementation; preserve the visual oracles and recheck upstream staging before consumer integration.",
     "total": 9,
@@ -122,6 +122,16 @@
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_synchronized": false,
+  "push_status": {
+    "status": "committed_locally_pending_push",
+    "remote": "origin",
+    "branch": "feat/tc2000-frontend-rework",
+    "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
+    "head_at_product_checkpoint": "2c0ec6c0e4294b52e1ad3838e113061577082c85",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..2c0ec6c0e4294b52e1ad3838e113061577082c85",
+    "command": "rtk git push origin feat/tc2000-frontend-rework",
+    "failure_category": "prior private-origin safeguard rejection requires trusted exact-payload authorization; latest read-only ls-remote failed DNS; no current-range push attempted"
+  },
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "9b1fe115-af11-4e05-b633-356c4d5c18f1",

@@ -12123,3 +12123,31 @@ transport failure. Continue independent TC-owned workstation UI and
 Study/Strategy work; provider/ETF consumer integration remains gated on their
 promotion through staging. The workstream checkpoint for this product commit
 will be verified externally with `git rev-parse`.
+
+## 2026-09-15 - Current feature-range export hold
+
+At product/checkpoint HEAD `2c0ec6c0e4294b52e1ad3838e113061577082c85`, the
+clean local feature branch is 1,251 commits ahead of its local tracking ref
+`origin/feat/tc2000-frontend-rework` at
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. The exact pending range at this
+checkpoint is
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..2c0ec6c0e4294b52e1ad3838e113061577082c85`;
+the normal command is `rtk git push origin feat/tc2000-frontend-rework`.
+
+This is recorded as `committed_locally_pending_push`. Earlier exact push
+attempts on this branch were rejected before Git by the private-origin egress
+safeguard because trusted authorization was unavailable; those prior ranges
+are preserved in `validation.jsonl`. The range has since advanced, so do not
+retry without explicit authorization for the exact current payload. A new
+read-only `git ls-remote` check also failed because `github.com` could not be
+resolved, so `63d64bfe` is the last known tracking/remote SHA, not a fresh live
+confirmation. No push was attempted for this updated range.
+
+The local range includes 93 prior commits touching
+`backend/app/services/etf_holdings_adapters.py`, already classified for owner
+reconciliation after ETF work reaches staging. No history rewriting or
+cross-worktree changes were made. This is an operational transport hold, not a
+product blocker; continue only with clean, separately committed TC-owned
+contexts. Provider and ETF consumer integration remains gated on promotion
+through staging. The enclosing operational checkpoint is verified externally
+with `git rev-parse`.
