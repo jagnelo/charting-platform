@@ -10,8 +10,9 @@ extend or reinterpret the current Strategy Lab runner.
 An immutable strategy version declares its SDK version, exact dependency
 artifacts, parameter schema/defaults, and content digest. A portfolio version
 binds strategy versions to instrument scopes, capital budgets, priorities,
-and a typed/versioned shared-risk policy. Scheduled rebalancing remains
-untyped and is not applied by this engine-neutral core. A
+and typed/versioned shared-risk and optional calendar-rebalance policies. The
+core plans deterministic schedule boundaries from a complete pinned calendar;
+applying them to allocation or engine orders/fills remains deferred. A
 `TargetPositionIntent.target_fraction` is a fraction of the emitting component's
 share of current account equity; the host multiplies it by that component's
 capital weight. Targets are bounded by the component's capital budget unless an
@@ -71,7 +72,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and recursive immutability.
 - `contracts.py` defines immutable strategy, portfolio, snapshot, experiment,
   package, trial, attempt, artifact, metric, run-result provenance, and
-  forward-instance records. Snapshot preflight matching includes event type and
+  forward-instance records. Portfolios carry a typed, calendar-versioned
+  rebalance policy rather than an unvalidated free-form mapping. Snapshot
+  preflight matching includes event type and
   semantic series requirements; manifest interval continuity is structural
   validation, not a substitute for upstream coverage-attestation verification.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
@@ -86,6 +89,16 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   snapshots bind opaque valuation evidence which the future adapter must verify;
   futures, options, FX, crypto, and other models are not currently supported.
   This pure module does not create or route engine orders.
+- `rebalance.py` validates complete local-date calendar coverage with explicit
+  trading/closed days, official trading-date labels, UTC session segments,
+  timezone and tzdb versions, and source evidence. It deterministically schedules
+  per-session, ISO-weekly, monthly, quarterly, or yearly boundaries using the
+  first/last actual session and session-open-before-events or
+  session-close-after-events timing. Calendar identity is content-addressed;
+  weekly/monthly/etc. schedules require complete bucket coverage so missing
+  dates cannot be silently treated as holidays. DST/overnight timing is carried
+  by explicit UTC instants. The output is only a decision boundary; it does not
+  imply same-price fills, infer missed events, fetch calendars, or create orders.
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
+from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
 
 if TYPE_CHECKING:
     from app.strategy_lab_v2.capabilities import PreflightReport
@@ -304,7 +305,7 @@ class PortfolioComposition:
     initial_capital: Decimal
     base_currency: str
     components: tuple[PortfolioComponent, ...]
-    rebalance_policy: Mapping[str, Any] = field(default_factory=dict)
+    rebalance_policy: CalendarRebalancePolicy | None = None
     shared_risk_policy: SharedRiskPolicy = field(default_factory=SharedRiskPolicy)
 
     @deterministic_decimal_math
@@ -328,7 +329,10 @@ class PortfolioComposition:
             raise ValueError("portfolio capital weights must not exceed one")
         object.__setattr__(self, "components", tuple(self.components))
         object.__setattr__(self, "base_currency", self.base_currency.upper())
-        object.__setattr__(self, "rebalance_policy", freeze_json(self.rebalance_policy))
+        if self.rebalance_policy is not None and not isinstance(
+            self.rebalance_policy, CalendarRebalancePolicy
+        ):
+            raise TypeError("rebalance_policy must be a CalendarRebalancePolicy or None")
         if not isinstance(self.shared_risk_policy, SharedRiskPolicy):
             raise TypeError("shared_risk_policy must be a SharedRiskPolicy")
 

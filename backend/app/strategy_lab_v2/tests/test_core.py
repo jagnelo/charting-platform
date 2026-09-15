@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
@@ -57,6 +58,11 @@ from app.strategy_lab_v2.lifecycle import (
     transition_attempt,
 )
 from app.strategy_lab_v2.metrics import calculate_performance_metrics, calculate_trade_metrics
+from app.strategy_lab_v2.rebalance import (
+    CalendarRebalancePolicy,
+    RebalanceCadence,
+    RebalanceTrigger,
+)
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
     OrderIntent,
@@ -442,12 +448,25 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         Decimal("100000"),
         "usd",
         (component,),
-        rebalance_policy={"frequency": "monthly"},
+        rebalance_policy=CalendarRebalancePolicy(
+            calendar_id="XNYS",
+            calendar_fingerprint=content_digest("XNYS-test-calendar"),
+            cadence=RebalanceCadence.MONTHLY,
+            trigger=RebalanceTrigger.SESSION_OPEN_BEFORE_EVENTS,
+        ),
         shared_risk_policy=SharedRiskPolicy(max_gross_exposure_fraction=Decimal("1.0")),
     )
     assert portfolio.base_currency == "USD"
     assert portfolio.unallocated_capital_weight == Decimal("0.40")
     assert portfolio.fingerprint == content_digest(portfolio)
+    with pytest.raises(TypeError, match="CalendarRebalancePolicy or None"):
+        replace(
+            portfolio,
+            rebalance_policy=cast(
+                CalendarRebalancePolicy,
+                {"frequency": "monthly"},
+            ),
+        )
 
     package = StrategyPackage(
         package_id="package-s1-v1",
