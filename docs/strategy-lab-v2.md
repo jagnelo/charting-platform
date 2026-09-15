@@ -111,7 +111,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   conversion, infer costs, or infer P&L attribution from position weights.
 - `experiments.py` expands deterministic search/scenario plans and
   leakage-aware walk-forward folds.
-- `metrics.py` v5 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
@@ -145,9 +145,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and periodic risk-free target are required inputs. Rolling return, volatility,
   Sharpe, Sortino, drawdown, duration, and Ulcer metrics fail closed on incomplete
   flow evidence or external flows; net P&L remains available only with complete
-  flow reports. Remaining gaps include irregular-time annualized metrics,
-  margin/capital utilization, financing outside fill reports, distributions,
-  and sensitivity.
+  flow reports. `calculate_session_return_distribution_metrics()` adds a
+  run-scoped summary over an explicit inclusive range of actual trading-session
+  labels: nearest-rank close-to-close return quantiles and empirical VaR/expected
+  shortfall, with no interpolation and the selected tail sample counts recorded.
+  Every session must have an observation and a mark at the preceding actual
+  session close. Missing coverage, incomplete external-flow reporting, or any
+  external-flow event withholds the entire distribution; simple close-to-close
+  returns are not presented as flow-adjusted time-weighted returns. Histogram
+  bins and sensitivity analysis are not part of this summary. Remaining gaps
+  include irregular-time annualized metrics, margin/capital utilization,
+  financing outside fill reports, and sensitivity.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active

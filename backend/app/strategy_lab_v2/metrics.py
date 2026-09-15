@@ -13,6 +13,7 @@ from app.strategy_lab_v2.contracts import (
     MetricBasis,
     MetricValue,
     RollingMetricPoint,
+    SessionReturnDistribution,
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.observations import (
@@ -33,7 +34,15 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v5"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v6"
+DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES = (
+    Decimal("0.05"),
+    Decimal("0.25"),
+    Decimal("0.50"),
+    Decimal("0.75"),
+    Decimal("0.95"),
+)
+DEFAULT_SESSION_RETURN_CONFIDENCE_LEVELS = (Decimal("0.95"),)
 _METRIC_FORMULAS = {
     "total_pnl": "terminal equity minus initial capital; external cash flows are not modeled",
     "total_return": "terminal equity divided by initial capital minus one",
@@ -106,6 +115,19 @@ def _validate_decimal_series(values: Sequence[Decimal], field_name: str) -> tupl
     if any(not isinstance(value, Decimal) or not value.is_finite() for value in series):
         raise ValueError(f"{field_name} must contain only finite Decimal values")
     return series
+
+
+def _ceil_probability_count(count: int, probability: Decimal, *, complement: bool = False) -> int:
+    numerator, denominator = probability.as_integer_ratio()
+    if complement:
+        numerator = denominator - numerator
+    product_numerator = count * numerator
+    return (product_numerator + denominator - 1) // denominator
+
+
+def _decimal_token(value: Decimal) -> str:
+    token = format(value, "f")
+    return token.rstrip("0").rstrip(".") if "." in token else token
 
 
 def _currency_code(value: str) -> str:
@@ -1428,6 +1450,205 @@ def calculate_rolling_equity_metrics(
             )
         )
     return tuple(points)
+
+
+@deterministic_decimal_math
+def calculate_session_return_distribution_metrics(
+    observations: Sequence[AccountEquityIntervalObservation],
+    *,
+    calendar: SessionCalendarSnapshot,
+    start_session_label: date,
+    end_session_label: date,
+    quantile_probabilities: Sequence[Decimal] = DEFAULT_SESSION_RETURN_QUANTILE_PROBABILITIES,
+    confidence_levels: Sequence[Decimal] = DEFAULT_SESSION_RETURN_CONFIDENCE_LEVELS,
+    minimum_observations: int = 2,
+) -> SessionReturnDistribution:
+    """Summarize exact run-scoped close-to-close session returns without interpolation.
+
+    The inclusive requested range must have one actual session-close interval per
+    trading session, with each opening mark at the preceding actual session close.
+    Incomplete coverage or external-flow evidence withholds every distribution
+    value; cash-flow-adjusted P&L is not treated as a time-weighted return.
+    """
+
+    if type(start_session_label) is not date or type(end_session_label) is not date:
+        raise TypeError("session bounds must be dates, not datetimes")
+    if start_session_label > end_session_label:
+        raise ValueError("start_session_label must not follow end_session_label")
+    if (
+        not isinstance(minimum_observations, int)
+        or isinstance(minimum_observations, bool)
+        or minimum_observations < 2
+    ):
+        raise ValueError("minimum_observations must be an integer of at least two")
+
+    raw_quantiles = _validate_decimal_series(quantile_probabilities, "quantile_probabilities")
+    raw_confidence = _validate_decimal_series(confidence_levels, "confidence_levels")
+    if not raw_quantiles or any(not Decimal(0) < value < Decimal(1) for value in raw_quantiles):
+        raise ValueError("quantile_probabilities must be strictly between zero and one")
+    if not raw_confidence or any(not Decimal(0) < value < Decimal(1) for value in raw_confidence):
+        raise ValueError("confidence_levels must be strictly between zero and one")
+    if len(set(raw_quantiles)) != len(raw_quantiles):
+        raise ValueError("quantile_probabilities must not contain duplicates")
+    if len(set(raw_confidence)) != len(raw_confidence):
+        raise ValueError("confidence_levels must not contain duplicates")
+    quantiles = tuple(sorted(raw_quantiles))
+    confidence_levels_sorted = tuple(sorted(raw_confidence))
+
+    intervals, session_by_label = _validated_equity_intervals(observations, calendar)
+    if start_session_label not in session_by_label or end_session_label not in session_by_label:
+        raise ValueError("session bounds must be actual trading-session labels in the supplied calendar")
+    if any(
+        item.session_label < start_session_label or item.session_label > end_session_label
+        for item in intervals
+    ):
+        raise ValueError("account equity intervals must be confined to the requested session range")
+
+    calendar_sessions = tuple(session_by_label[label] for label in sorted(session_by_label))
+    calendar_session_index = {
+        session.session_label: index for index, session in enumerate(calendar_sessions)
+    }
+    expected_labels = tuple(
+        session.session_label
+        for session in calendar_sessions
+        if start_session_label <= session.session_label <= end_session_label
+    )
+    observed_labels = tuple(item.session_label for item in intervals)
+    coverage_complete = observed_labels == expected_labels
+    for item in intervals:
+        session_index = calendar_session_index[item.session_label]
+        preceding_session = calendar_sessions[session_index - 1] if session_index > 0 else None
+        if preceding_session is None or item.start_point.event_time != preceding_session.close_time:
+            coverage_complete = False
+
+    flow_reports_complete = all(
+        item.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+        for item in intervals
+    )
+    external_flows_occurred = (
+        any(item.external_cash_flow_occurred is True for item in intervals)
+        if flow_reports_complete
+        else None
+    )
+    observation_digest = content_digest(intervals)
+    observed_sessions = len(intervals)
+    expected_sessions = len(expected_labels)
+
+    null_reason = None
+    if not coverage_complete:
+        null_reason = (
+            "requested session range is missing observations or preceding actual session-close marks"
+        )
+    elif not flow_reports_complete:
+        null_reason = "one or more external cash-flow reports are incomplete"
+    elif external_flows_occurred:
+        null_reason = (
+            "external cash-flow events make close-to-close returns unsuitable until "
+            "time-weighted returns are implemented"
+        )
+    elif observed_sessions < minimum_observations:
+        null_reason = f"at least {minimum_observations} session-return observations are required"
+    eligible = null_reason is None
+    returns = (
+        tuple(item.ending_equity / item.starting_equity - Decimal(1) for item in intervals)
+        if eligible
+        else ()
+    )
+    sorted_returns = tuple(sorted(returns))
+    basis = (
+        "trading-session close-to-close simple returns; "
+        f"inclusive_range={start_session_label.isoformat()}..{end_session_label.isoformat()}; "
+        f"expected_sessions={expected_sessions}; observed_sessions={observed_sessions}; "
+        f"coverage_complete={str(coverage_complete).lower()}; "
+        f"external_cash_flow_reports_complete={str(flow_reports_complete).lower()}; "
+        f"external_flows_occurred={external_flows_occurred}; "
+        f"calendar={calendar.fingerprint}; observations={observation_digest}"
+    )
+    metric_values: list[MetricValue] = []
+    for probability in quantiles:
+        rank = _ceil_probability_count(observed_sessions, probability) if eligible else None
+        value = sorted_returns[rank - 1] if rank is not None else None
+        token = _decimal_token(probability)
+        metric_values.append(
+            _value(
+                f"session_return_quantile:p={token}",
+                value,
+                unit="fraction",
+                basis=MetricBasis.NET,
+                sample_size=observed_sessions,
+                calculation_basis=(
+                    f"empirical nearest-rank session-return quantile p={probability}; "
+                    f"one-based rank={rank}; no interpolation; {basis}"
+                ),
+                null_reason=null_reason,
+            )
+        )
+
+    tail_counts: list[int | None] = []
+    for confidence in confidence_levels_sorted:
+        tail_count = (
+            _ceil_probability_count(observed_sessions, confidence, complement=True)
+            if eligible
+            else None
+        )
+        tail_counts.append(tail_count)
+        worst_returns = sorted_returns[:tail_count] if tail_count is not None else ()
+        value_at_risk = max(Decimal(0), -worst_returns[-1]) if worst_returns else None
+        expected_shortfall = (
+            max(Decimal(0), -sum(worst_returns, Decimal(0)) / Decimal(tail_count))
+            if tail_count is not None
+            else None
+        )
+        token = _decimal_token(confidence)
+        metric_values.extend(
+            (
+                _value(
+                    f"session_return_value_at_risk:c={token}",
+                    value_at_risk,
+                    unit="fraction",
+                    basis=MetricBasis.NET,
+                    sample_size=observed_sessions,
+                    calculation_basis=(
+                        f"non-negative loss at the empirical lower-tail nearest-rank return boundary; "
+                        f"confidence={confidence}; tail_observations={tail_count}; no interpolation; {basis}"
+                    ),
+                    null_reason=null_reason,
+                ),
+                _value(
+                    f"session_return_expected_shortfall:c={token}",
+                    expected_shortfall,
+                    unit="fraction",
+                    basis=MetricBasis.NET,
+                    sample_size=observed_sessions,
+                    calculation_basis=(
+                        f"non-negative mean loss across the worst tail observations; "
+                        f"confidence={confidence}; tail_observations={tail_count}; {basis}"
+                    ),
+                    null_reason=null_reason,
+                ),
+            )
+        )
+
+    return SessionReturnDistribution(
+        portfolio_fingerprint=intervals[0].portfolio_fingerprint,
+        run_attempt_id=intervals[0].run_attempt_id,
+        calendar_fingerprint=calendar.fingerprint,
+        start_session_label=start_session_label,
+        end_session_label=end_session_label,
+        opening_point=intervals[0].start_point,
+        closing_point=intervals[-1].end_point,
+        expected_sessions=expected_sessions,
+        observed_sessions=observed_sessions,
+        coverage_complete=coverage_complete,
+        external_cash_flow_reports_complete=flow_reports_complete,
+        external_flows_occurred=external_flows_occurred,
+        minimum_observations=minimum_observations,
+        quantile_probabilities=quantiles,
+        confidence_levels=confidence_levels_sorted,
+        effective_tail_observation_counts=tuple(tail_counts),
+        observation_digest=observation_digest,
+        metrics=tuple(metric_values),
+    )
 
 
 @deterministic_decimal_math

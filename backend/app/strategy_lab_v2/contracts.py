@@ -824,6 +824,137 @@ class RollingMetricPoint:
 
 
 @dataclass(frozen=True, slots=True)
+class SessionReturnDistribution:
+    """Run-scoped distribution summary from an exact calendar session range."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    calendar_fingerprint: str
+    start_session_label: date
+    end_session_label: date
+    opening_point: ObservationPoint
+    closing_point: ObservationPoint
+    expected_sessions: int
+    observed_sessions: int
+    coverage_complete: bool
+    external_cash_flow_reports_complete: bool
+    external_flows_occurred: bool | None
+    minimum_observations: int
+    quantile_probabilities: tuple[Decimal, ...]
+    confidence_levels: tuple[Decimal, ...]
+    effective_tail_observation_counts: tuple[int | None, ...]
+    observation_digest: str
+    metrics: tuple[MetricValue, ...]
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        _nonempty(self.run_attempt_id, "run_attempt_id")
+        require_sha256_digest(self.calendar_fingerprint, field_name="calendar_fingerprint")
+        if type(self.start_session_label) is not date or type(self.end_session_label) is not date:
+            raise TypeError("session range labels must be dates, not datetimes")
+        if self.start_session_label > self.end_session_label:
+            raise ValueError("start_session_label must not follow end_session_label")
+        if not isinstance(self.opening_point, ObservationPoint) or not isinstance(
+            self.closing_point, ObservationPoint
+        ):
+            raise TypeError("distribution boundary marks must be ObservationPoint values")
+        if self.closing_point <= self.opening_point:
+            raise ValueError("distribution closing mark must follow its opening mark")
+        for name, value, minimum in (
+            ("expected_sessions", self.expected_sessions, 1),
+            ("observed_sessions", self.observed_sessions, 1),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+                raise ValueError(f"{name} must be a positive integer")
+        if self.observed_sessions > self.expected_sessions:
+            raise ValueError("observed_sessions must not exceed expected_sessions")
+        if not isinstance(self.coverage_complete, bool):
+            raise TypeError("coverage_complete must be a bool")
+        if self.coverage_complete and self.observed_sessions != self.expected_sessions:
+            raise ValueError("complete distributions require all expected session observations")
+        if not isinstance(self.external_cash_flow_reports_complete, bool):
+            raise TypeError("external_cash_flow_reports_complete must be a bool")
+        if self.external_flows_occurred is not None and not isinstance(
+            self.external_flows_occurred, bool
+        ):
+            raise TypeError("external_flows_occurred must be a bool or None")
+        if self.external_cash_flow_reports_complete != (self.external_flows_occurred is not None):
+            raise ValueError(
+                "complete flow reports require occurrence evidence; incomplete reports must be unknown"
+            )
+        if (
+            not isinstance(self.minimum_observations, int)
+            or isinstance(self.minimum_observations, bool)
+            or self.minimum_observations < 2
+        ):
+            raise ValueError("minimum_observations must be an integer of at least two")
+
+        quantiles = tuple(self.quantile_probabilities)
+        confidence = tuple(self.confidence_levels)
+        for name, values in (
+            ("quantile_probabilities", quantiles),
+            ("confidence_levels", confidence),
+        ):
+            if not values or any(
+                not isinstance(value, Decimal)
+                or not value.is_finite()
+                or not Decimal(0) < value < Decimal(1)
+                for value in values
+            ):
+                raise ValueError(f"{name} must contain probabilities strictly between zero and one")
+            if values != tuple(sorted(set(values))):
+                raise ValueError(f"{name} must be unique and sorted")
+
+        tail_counts = tuple(self.effective_tail_observation_counts)
+        if len(tail_counts) != len(confidence):
+            raise ValueError("tail observation counts must align with confidence levels")
+        eligible = (
+            self.coverage_complete
+            and self.external_cash_flow_reports_complete
+            and self.external_flows_occurred is False
+            and self.observed_sessions >= self.minimum_observations
+        )
+        for count in tail_counts:
+            if count is not None and (
+                not isinstance(count, int)
+                or isinstance(count, bool)
+                or not 1 <= count <= self.observed_sessions
+            ):
+                raise ValueError("effective tail observation counts must be valid sample counts")
+            if eligible != (count is not None):
+                raise ValueError("tail observation counts must be present only for eligible samples")
+
+        require_sha256_digest(self.observation_digest, field_name="observation_digest")
+        metrics = tuple(self.metrics)
+        expected_metric_count = len(quantiles) + 2 * len(confidence)
+        if len(metrics) != expected_metric_count or any(
+            not isinstance(item, MetricValue) for item in metrics
+        ):
+            raise ValueError("distribution metrics must contain each requested quantile and tail value")
+        if len({item.name for item in metrics}) != len(metrics):
+            raise ValueError("distribution metric names must be unique")
+        if len({item.definition_version for item in metrics}) != 1:
+            raise ValueError("distribution metrics must use one definition version")
+        if any(
+            item.sample_size != self.observed_sessions or item.basis is not MetricBasis.NET
+            for item in metrics
+        ):
+            raise ValueError("distribution metrics must use the observed sample count and net basis")
+        if eligible and any(item.value is None for item in metrics):
+            raise ValueError("eligible distribution samples must provide every requested metric")
+        if not eligible and any(item.value is not None for item in metrics):
+            raise ValueError("ineligible distribution samples must not provide metric values")
+        object.__setattr__(self, "quantile_probabilities", quantiles)
+        object.__setattr__(self, "confidence_levels", confidence)
+        object.__setattr__(self, "effective_tail_observation_counts", tail_counts)
+        object.__setattr__(self, "metrics", metrics)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class MetricSet:
     metric_set_id: str
     trial_id: str

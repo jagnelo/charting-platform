@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal, localcontext
+from typing import TypedDict
 
 import pytest
 
@@ -19,6 +20,7 @@ from app.strategy_lab_v2.contracts import (
     ProductRiskModel,
     RiskExposureMeasure,
     RollingMetricPoint,
+    SessionReturnDistribution,
 )
 from app.strategy_lab_v2.metrics import (
     calculate_calendar_period_metrics,
@@ -26,6 +28,7 @@ from app.strategy_lab_v2.metrics import (
     calculate_execution_cost_metrics,
     calculate_exposure_utilization_metrics,
     calculate_rolling_equity_metrics,
+    calculate_session_return_distribution_metrics,
 )
 from app.strategy_lab_v2.observations import (
     AccountEquityIntervalObservation,
@@ -54,6 +57,12 @@ RESULT_BUNDLE = content_digest("engine-result-evidence-bundle-v1")
 MODEL = content_digest("engine-cost-model-v1")
 BENCHMARK = content_digest("slippage-benchmark-v1")
 START = datetime(2024, 1, 2, 15, 0, tzinfo=UTC)
+
+
+class _SessionDistributionArgs(TypedDict):
+    calendar: SessionCalendarSnapshot
+    start_session_label: date
+    end_session_label: date
 
 
 def _january_calendar() -> SessionCalendarSnapshot:
@@ -138,6 +147,31 @@ def _equity_interval(
         external_cash_flow_report_status=flow_status,
         base_currency="USD",
         engine_evidence_digest=EVIDENCE,
+    )
+
+
+def _two_session_equity_intervals(
+    calendar: SessionCalendarSnapshot,
+) -> tuple[AccountEquityIntervalObservation, ...]:
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    return (
+        _equity_interval(
+            calendar,
+            date(2024, 1, 2),
+            ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+            first_close,
+            "100000",
+            "110000",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 3),
+            first_close,
+            second_close,
+            "110000",
+            "88000",
+        ),
     )
 
 
@@ -441,7 +475,7 @@ def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> N
         calendar.fingerprint
         in metrics["calendar_period_net_pnl:monthly:month:2024-01"].calculation_basis
     )
-    assert all(item.definition_version == "strategy-lab.metrics.v5" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
 
 
 def test_calendar_period_partial_and_external_flow_returns() -> None:
@@ -642,7 +676,7 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     assert metrics["rolling_maximum_drawdown"].value == Decimal("-0.01")
     assert metrics["rolling_maximum_drawdown_duration"].value == Decimal(1)
     assert Decimal("0.007") < metrics["rolling_ulcer_index"].value < Decimal("0.008")
-    assert all(item.definition_version == "strategy-lab.metrics.v5" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
 
     risk_free_target = Decimal("0.001")
     targeted_metrics = _metric_map(
@@ -929,6 +963,377 @@ def test_rolling_equity_metrics_apply_minimum_sample_and_zero_risk_rules() -> No
             risk_free_return_per_period=Decimal(0),
             minimum_risk_observations=1,
         )
+
+
+def test_session_return_distribution_metrics_use_pinned_nearest_rank_estimators() -> None:
+    calendar = _january_calendar()
+    intervals = _two_session_equity_intervals(calendar)
+    distribution = calculate_session_return_distribution_metrics(
+        intervals,
+        calendar=calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 3),
+        quantile_probabilities=(Decimal("0.75"), Decimal("0.25")),
+        confidence_levels=(Decimal("0.50"), Decimal("0.25")),
+    )
+
+    assert isinstance(distribution, SessionReturnDistribution)
+    assert distribution.coverage_complete
+    assert distribution.expected_sessions == distribution.observed_sessions == 2
+    assert distribution.external_cash_flow_reports_complete
+    assert distribution.external_flows_occurred is False
+    assert distribution.quantile_probabilities == (Decimal("0.25"), Decimal("0.75"))
+    assert distribution.confidence_levels == (Decimal("0.25"), Decimal("0.50"))
+    assert distribution.effective_tail_observation_counts == (2, 1)
+    assert distribution.observation_digest == content_digest(intervals)
+
+    metrics = _metric_map(distribution.metrics)
+    assert metrics["session_return_quantile:p=0.25"].value == Decimal("-0.2")
+    assert metrics["session_return_quantile:p=0.75"].value == Decimal("0.1")
+    assert metrics["session_return_value_at_risk:c=0.25"].value == Decimal(0)
+    assert metrics["session_return_expected_shortfall:c=0.25"].value == Decimal("0.05")
+    assert metrics["session_return_value_at_risk:c=0.5"].value == Decimal("0.2")
+    assert metrics["session_return_expected_shortfall:c=0.5"].value == Decimal("0.2")
+    assert all(item.sample_size == 2 for item in metrics.values())
+    assert all(item.basis is MetricBasis.NET for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
+    assert "one-based rank=1; no interpolation" in metrics[
+        "session_return_quantile:p=0.25"
+    ].calculation_basis
+
+    canonical_order = calculate_session_return_distribution_metrics(
+        intervals,
+        calendar=calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 3),
+        quantile_probabilities=(Decimal("0.25"), Decimal("0.75")),
+        confidence_levels=(Decimal("0.25"), Decimal("0.50")),
+    )
+    with localcontext() as decimal_context:
+        decimal_context.prec = 7
+        low_precision_result = calculate_session_return_distribution_metrics(
+            intervals,
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 3),
+            quantile_probabilities=(Decimal("0.75"), Decimal("0.25")),
+            confidence_levels=(Decimal("0.50"), Decimal("0.25")),
+        )
+    assert distribution.fingerprint == canonical_order.fingerprint
+    assert distribution.fingerprint == low_precision_result.fingerprint
+
+    tied = (
+        replace(
+            intervals[0],
+            ending_equity=Decimal("105000"),
+        ),
+        replace(
+            intervals[1],
+            starting_equity=Decimal("105000"),
+            ending_equity=Decimal("110250"),
+        ),
+    )
+    tied_metrics = _metric_map(
+        calculate_session_return_distribution_metrics(
+            tied,
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 3),
+        ).metrics
+    )
+    assert tied_metrics["session_return_quantile:p=0.25"].value == Decimal("0.05")
+    assert tied_metrics["session_return_quantile:p=0.75"].value == Decimal("0.05")
+    assert tied_metrics["session_return_value_at_risk:c=0.95"].value == Decimal(0)
+    assert tied_metrics["session_return_expected_shortfall:c=0.95"].value == Decimal(0)
+
+    precision_boundary_intervals = (
+        _equity_interval(
+            calendar,
+            date(2024, 1, 2),
+            ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+            ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2),
+            "100",
+            "60",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 3),
+            ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2),
+            ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3),
+            "60",
+            "72",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 31),
+            ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3),
+            ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 4),
+            "72",
+            "93.6",
+        ),
+    )
+    precise_quantile = Decimal("0.3333333333333333333333333333333334")
+    precise_confidence = Decimal("0.6666666666666666666666666666666666")
+    precision_boundary = calculate_session_return_distribution_metrics(
+        precision_boundary_intervals,
+        calendar=calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 31),
+        quantile_probabilities=(precise_quantile,),
+        confidence_levels=(precise_confidence,),
+    )
+    precision_metrics = _metric_map(precision_boundary.metrics)
+    assert precision_metrics[
+        "session_return_quantile:p=0.3333333333333333333333333333333334"
+    ].value == Decimal("0.2")
+    assert precision_boundary.effective_tail_observation_counts == (2,)
+    assert precision_metrics[
+        "session_return_expected_shortfall:c=0.6666666666666666666666666666666666"
+    ].value == Decimal("0.1")
+
+    with pytest.raises(ValueError, match="complete distributions require"):
+        replace(distribution, observed_sessions=1)
+    with pytest.raises(ValueError, match="tail observation counts must align"):
+        replace(distribution, effective_tail_observation_counts=(1,))
+    with pytest.raises(ValueError, match="observed sample count"):
+        replace(
+            distribution,
+            metrics=(replace(distribution.metrics[0], sample_size=1),)
+            + distribution.metrics[1:],
+        )
+
+
+def test_session_return_distribution_metrics_fail_closed_on_coverage_and_flow_evidence() -> None:
+    calendar = _january_calendar()
+    intervals = _two_session_equity_intervals(calendar)
+    common: _SessionDistributionArgs = {
+        "calendar": calendar,
+        "start_session_label": date(2024, 1, 2),
+        "end_session_label": date(2024, 1, 3),
+    }
+
+    missing_start = calculate_session_return_distribution_metrics((intervals[1],), **common)
+    assert not missing_start.coverage_complete
+    assert missing_start.expected_sessions == 2
+    assert missing_start.observed_sessions == 1
+    assert all(item.value is None for item in missing_start.metrics)
+    assert all(
+        item.null_reason
+        == "requested session range is missing observations or preceding actual session-close marks"
+        for item in missing_start.metrics
+    )
+
+    wrong_open = replace(
+        intervals[0],
+        start_point=ObservationPoint(datetime(2023, 12, 29, 20, 0, tzinfo=UTC), 1),
+    )
+    wrong_open_result = calculate_session_return_distribution_metrics(
+        (wrong_open, intervals[1]), **common
+    )
+    assert not wrong_open_result.coverage_complete
+    assert all(item.value is None for item in wrong_open_result.metrics)
+
+    multi_session_gap = replace(
+        intervals[1],
+        session_label=date(2024, 1, 31),
+        end_point=ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 4),
+    )
+    gap_result = calculate_session_return_distribution_metrics(
+        (intervals[0], multi_session_gap),
+        calendar=calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 31),
+    )
+    assert not gap_result.coverage_complete
+    assert gap_result.expected_sessions == 3
+    assert gap_result.observed_sessions == 2
+    assert all(item.value is None for item in gap_result.metrics)
+
+    nontrading_end: _SessionDistributionArgs = {
+        **common,
+        "end_session_label": date(2024, 1, 4),
+    }
+    with pytest.raises(ValueError, match="actual trading-session labels"):
+        calculate_session_return_distribution_metrics(intervals, **nontrading_end)
+    with pytest.raises(ValueError, match="same run attempt"):
+        calculate_session_return_distribution_metrics(
+            (intervals[0], replace(intervals[1], run_attempt_id="attempt-2")), **common
+        )
+    with pytest.raises(ValueError, match="bind the supplied calendar version"):
+        calculate_session_return_distribution_metrics(
+            (replace(intervals[0], calendar_fingerprint=content_digest("other-calendar")),),
+            **common,
+        )
+
+    net_zero_flow = replace(
+        intervals[0],
+        external_cash_flow=Decimal(0),
+        external_cash_flow_occurred=True,
+    )
+    flow_result = calculate_session_return_distribution_metrics(
+        (net_zero_flow, intervals[1]), **common
+    )
+    assert flow_result.external_cash_flow_reports_complete
+    assert flow_result.external_flows_occurred is True
+    assert flow_result.observed_sessions == 2
+    assert all(item.value is None for item in flow_result.metrics)
+    assert all(
+        item.null_reason
+        == "external cash-flow events make close-to-close returns unsuitable until "
+        "time-weighted returns are implemented"
+        for item in flow_result.metrics
+    )
+
+    partial_flow = replace(
+        intervals[0],
+        external_cash_flow=Decimal("100"),
+        external_cash_flow_occurred=True,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+    )
+    partial_result = calculate_session_return_distribution_metrics(
+        (partial_flow, intervals[1]), **common
+    )
+    assert not partial_result.external_cash_flow_reports_complete
+    assert partial_result.external_flows_occurred is None
+    assert partial_result.observed_sessions == 2
+    assert all(item.null_reason == "one or more external cash-flow reports are incomplete" for item in partial_result.metrics)
+
+    unavailable_flow = replace(
+        intervals[0],
+        external_cash_flow=None,
+        external_cash_flow_occurred=None,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.UNAVAILABLE,
+    )
+    unavailable_result = calculate_session_return_distribution_metrics(
+        (unavailable_flow, intervals[1]), **common
+    )
+    assert all(item.value is None for item in unavailable_result.metrics)
+    assert all(item.null_reason == "one or more external cash-flow reports are incomplete" for item in unavailable_result.metrics)
+
+
+def test_session_return_distribution_metrics_validate_parameters_minimum_sample_and_early_close() -> None:
+    calendar = _january_calendar()
+    single_interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2),
+        "100000",
+        "101000",
+    )
+    insufficient = calculate_session_return_distribution_metrics(
+        (single_interval,),
+        calendar=calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 2),
+    )
+    assert insufficient.coverage_complete
+    assert insufficient.expected_sessions == insufficient.observed_sessions == 1
+    assert insufficient.effective_tail_observation_counts == (None,)
+    assert all(item.value is None for item in insufficient.metrics)
+    assert all(
+        item.null_reason == "at least 2 session-return observations are required"
+        for item in insufficient.metrics
+    )
+
+    with pytest.raises(ValueError, match="strictly between zero and one"):
+        calculate_session_return_distribution_metrics(
+            (single_interval,),
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 2),
+            quantile_probabilities=(Decimal(0),),
+        )
+    with pytest.raises(ValueError, match="strictly between zero and one"):
+        calculate_session_return_distribution_metrics(
+            (single_interval,),
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 2),
+            confidence_levels=(Decimal(1),),
+        )
+    with pytest.raises(ValueError, match="must not contain duplicates"):
+        calculate_session_return_distribution_metrics(
+            (single_interval,),
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 2),
+            quantile_probabilities=(Decimal("0.5"), Decimal("0.50")),
+        )
+    with pytest.raises(ValueError, match="minimum_observations"):
+        calculate_session_return_distribution_metrics(
+            (single_interval,),
+            calendar=calendar,
+            start_session_label=date(2024, 1, 2),
+            end_session_label=date(2024, 1, 2),
+            minimum_observations=True,
+        )
+    with pytest.raises(ValueError, match="start_session_label must not follow"):
+        calculate_session_return_distribution_metrics(
+            (single_interval,),
+            calendar=calendar,
+            start_session_label=date(2024, 1, 3),
+            end_session_label=date(2024, 1, 2),
+        )
+
+    early_close_time = datetime(2024, 1, 2, 18, 0, tzinfo=UTC)
+    early_session = TradingSession(
+        "XNYS:2024-01-02:early-close",
+        date(2024, 1, 2),
+        (
+            SessionSegment(
+                datetime(2024, 1, 2, 14, 30, tzinfo=UTC),
+                early_close_time,
+            ),
+        ),
+    )
+    early_calendar = replace(
+        calendar,
+        days=tuple(
+            replace(day, session=early_session)
+            if day.label == date(2024, 1, 2)
+            else day
+            for day in calendar.days
+        ),
+        source_evidence_digest=content_digest("january-early-close-calendar-source-v1"),
+    )
+    first_early_close = ObservationPoint(early_close_time, 2)
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    early_intervals = (
+        _equity_interval(
+            early_calendar,
+            date(2024, 1, 2),
+            ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+            first_early_close,
+            "100000",
+            "105000",
+        ),
+        _equity_interval(
+            early_calendar,
+            date(2024, 1, 3),
+            first_early_close,
+            second_close,
+            "105000",
+            "110250",
+        ),
+    )
+    early_result = calculate_session_return_distribution_metrics(
+        early_intervals,
+        calendar=early_calendar,
+        start_session_label=date(2024, 1, 2),
+        end_session_label=date(2024, 1, 3),
+    )
+    assert early_result.coverage_complete
+    assert early_result.metrics[0].value is not None
+    early_close_by_label = {
+        day.label: day.session.close_time
+        for day in early_calendar.days
+        if day.session is not None
+    }
+    assert all(
+        item.end_point.event_time == early_close_by_label[item.session_label]
+        for item in early_intervals
+    )
 
 
 def test_calendar_period_metrics_reject_mixed_runs_unmatched_marks_and_wrong_calendar() -> None:
