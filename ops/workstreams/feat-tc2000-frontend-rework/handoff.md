@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Occurrence keyboard accessibility across workstation views
+
+Product commit `64836d0ae6c69a85c085dbb8830a72924f17f585` extends the native
+occurrence-button keyboard behavior to Study Dashboard event panels and generic
+breadth-history rows. Both buttons stop keydown propagation without preventing
+native keyboard activation, avoiding conflict with WorkstationView's
+Space-to-next-symbol shortcut while retaining their existing linked-symbol and
+historical timestamp behavior.
+
+Frontend Vitest passed 1,075/1,075 (focused Research Results and Study Dashboard
+component tests 40/40); `vue-tsc --noEmit` and production build passed, with the
+existing >500 kB chunk warning. Authenticated headless Chromium F8t Study
+Results and F8s breadth-family flows passed 2/2 against the TC2000 worktree's
+isolated Compose stack. They exercised Space on each occurrence view from QQQ,
+returned to SPY, and verified the selected timestamp on the linked chart.
+Workstream validation passed; the TC scope guard passed for 27 changed paths
+and its six self-tests passed; `git diff --check` passed. Teardown removed the
+branch's containers, volumes, network, and four generated images; resource
+accounting found zero containers, volumes, test sessions, or known retained
+bytes. No visual baselines, masks, thresholds, skips, provider/ETF behavior,
+or acceptance policy changed. This is a focused slice only: the six protected
+visual mismatches and provider/ETF staging boundary remain open, and the exact-
+tip integration plus four-project visual matrix have not passed.
+
+Continue with independent TC-owned workstation interaction and Study/Strategy
+work. Keep provider and ETF implementation outside TC until their source
+branches reach staging, then consume only through the prescribed workflow.
+
 ## 2026-09-15 - Research Results occurrence keyboard accessibility
 
 Product commit `03bd5b103d84fcd8e03b0ce74ec944abfa711a88` fixes the persisted

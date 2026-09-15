@@ -5,7 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
-## 2026-09-15 - Research Results occurrence keyboard accessibility
+## 2026-09-15 - Occurrence keyboard accessibility across workstation views
+
+Product checkpoint `64836d0ae6c69a85c085dbb8830a72924f17f585` extends the
+native occurrence-button keyboard behavior from Study Lab and persisted
+Research Results to Study Dashboard events and generic breadth-history rows.
+Both affected buttons stop keydown propagation so the workstation's Space
+symbol-traversal shortcut cannot steal activation; native Enter/Space behavior
+and linked-symbol/timestamp handling remain unchanged.
+
+Frontend Vitest passed 1,075/1,075; focused Research Results and direct Study
+Dashboard component tests passed 40/40; `vue-tsc --noEmit` and production build
+passed (existing large-chunk warning). Authenticated headless Chromium passed
+F8t Study Results and F8s breadth-family flows (2/2), including Space activation
+from QQQ back to SPY and the selected occurrence timestamp on the linked chart.
+The scope guard passed for 27 changed paths, its six self-tests passed, and
+workstream validation and `git diff --check` passed. Branch-stack teardown and
+resource accounting found zero retained containers, volumes, test sessions,
+or known bytes. No visual baseline, mask, threshold, skip, provider/ETF
+behavior, or acceptance policy changed. The six protected visual mismatches
+and upstream staging boundary remain open; this is not an exact-tip integration
+or four-project visual pass.
+
+## 2026-09-15 - Research Results occurrence keyboard accessibility (prior checkpoint)
 
 Product checkpoint `03bd5b103d84fcd8e03b0ce74ec944abfa711a88` gives persisted
 Study event and historical-breadth occurrences semantic list-item wrappers
