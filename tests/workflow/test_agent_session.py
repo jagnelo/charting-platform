@@ -1,5 +1,7 @@
 import importlib.util
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def text(path: str) -> str:
@@ -166,3 +168,70 @@ def test_validation_profile_classifier_cannot_weaken_runtime_boundaries() -> Non
     assert not module.profile_is_sufficient(
         "unit", {"owned_paths": ["frontend/src/views/Workstation.vue"]}
     )
+
+
+def test_provider_live_evidence_requires_full_matrix_and_metadata_only_tail(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_provider_live",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    stream = tmp_path / "feat-market-data-provider-platform"
+    stream.mkdir()
+    (stream / "plan.yaml").write_text(
+        "approved_execution_decisions:\n"
+        "  providers:\n"
+        "    tradier: 'Deferred by user; keep non-routable.'\n"
+    )
+    (stream / "validation.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "provider_live_matrix",
+                "scope": "full_matrix",
+                "result": "passed",
+                "source_sha": "a" * 40,
+                "case_count": 4,
+                "passed_cases": 4,
+                "failed_cases": 0,
+                "skipped_cases": 0,
+                "dirty_source_paths": [],
+                "approved_deferrals": {"tradier": "Deferred by user; keep non-routable."},
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(
+        module,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0),
+    )
+    monkeypatch.setattr(
+        module,
+        "git",
+        lambda *args, **kwargs: "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+    )
+    assert module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
+
+    monkeypatch.setattr(module, "git", lambda *args, **kwargs: "backend/app/providers/alpaca.py")
+    assert not module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
+
+
+def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_external_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    assert module.external_service_path("backend/app/providers/alpaca.py")
+    assert module.external_service_path("backend/app/config.py")
+    assert module.external_service_path(".github/workflows/provider-live.yml")
+    assert module.external_service_path("backend/app/tasks/market_data_refresh.py")
+    assert module.external_service_path("docs/data-providers.md")
+    assert module.external_service_path(".env.example")
+    assert not module.external_service_path("frontend/src/views/Workstation.vue")

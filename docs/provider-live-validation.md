@@ -12,6 +12,25 @@ runs one bounded read per provider (including the public tokenized-security
 matrix), and returns non-zero when a credential or usage-attribution preflight
 is blocked. A missing credential is never reported as a passing skip. The
 wrapper returns exit code `2` for an incomplete credential/usage preflight.
+For focused implementation follow-up, the same lock, usage ledger, preflight,
+and manifest can select one or more provider suites without spending other
+providers' quotas:
+
+```sh
+PROVIDER_LIVE_USAGE_SCOPE=local-dev-bybit RUN_LIVE_PROVIDER_TESTS=1 \
+  rtk uv run --project backend python scripts/run-live-provider-probes.py \
+  --provider bybit_xstocks
+```
+
+Omitting `--provider` always runs the complete registered live matrix; provider
+selection is diagnostic evidence only and never substitutes for the full
+current-source acceptance run.
+
+Providers explicitly deferred by the user in the active branch workstream are
+excluded from that executable matrix only when their plan records the deferral;
+the redacted receipt records the exact provider and rationale. Their adapters
+remain fixture-covered and non-routable. A missing key for any non-deferred
+provider, any failed case, or any skip still blocks a passing full-matrix receipt.
 The provider secret-wiring suite also checks the live manifest itself: every
 registered provider must name at least one bounded live test, or carry an
 explicit exclusion rationale for an internal, legacy, or descriptor-only
@@ -105,6 +124,7 @@ variables. Put the reviewed non-secret safety settings
 `FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
 `TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
+`PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_USAGE_PROFILE_SEEDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
 and `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans,
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
@@ -115,9 +135,15 @@ configuration variables. The SEC directory controls
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`, and
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE` are also
 passed through as non-secret variables. The workflow passes these controls
-through without inventing entitlements. Leave the MarketData.app pair
-blank/zero, the option bound at zero, and the SEC directory scan disabled with
-a zero submissions bound until the corresponding reviews are complete. Keep
+through without inventing entitlements. Configure each environment
+independently; a GitHub variable never inherits the local `~/.config` setting.
+The local MarketData.app account uses the reviewed Starter Trial/10,000 daily
+credits through its configured expiry, then automatically falls back to the
+Free Forever/100 daily-credit contract. Do not copy that account's key or plan
+configuration into GitHub; provision and review a separate CI account first.
+In GitHub, leave the MarketData.app pair blank/zero, the option bound at zero,
+and the SEC directory scan disabled with a zero submissions bound until that
+environment has its own reviewed account/entitlement and scan controls. Keep
 required reviewers enabled. Ordinary
 push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked

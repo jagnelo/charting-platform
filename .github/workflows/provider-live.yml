@@ -24,6 +24,8 @@ jobs:
       # below; never place provider credentials or payloads in the artifact.
       PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
       PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}
+      PROVIDER_RATE_LIMIT_SEEDS: ${{ vars.PROVIDER_RATE_LIMIT_SEEDS || '__CODE_DEFAULT__' }}
+      PROVIDER_USAGE_PROFILE_SEEDS: ${{ vars.PROVIDER_USAGE_PROFILE_SEEDS || '__CODE_DEFAULT__' }}
       EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
       NASDAQ_USER_AGENT: ${{ vars.NASDAQ_USER_AGENT || 'charting-platform market-data-universe' }}
       OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}

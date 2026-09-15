@@ -46,7 +46,6 @@ INTENTIONAL_QUOTA_UNKNOWN_PROVIDERS = {
     "ondo_global_markets",
     "dinari",
     "alpaca_itn",
-    "xstocks",
 }
 
 
@@ -103,6 +102,33 @@ def test_published_bandwidth_pools_use_conservative_decimal_byte_ceilings():
         assert all(
             str(item.get("limit_basis", "")).startswith("decimal_bytes_") for item in byte_pools
         )
+
+
+def test_xstocks_and_bybit_public_quota_contracts_are_explicit_and_provider_scoped():
+    xstocks = provider_rate_limit_seed("xstocks")["quota_contract"]
+    assert (xstocks.get("unknown_dimensions") or []) == []
+    assert xstocks["dimensions"] == [
+        {
+            "name": "public_requests_per_minute",
+            "limit": 1000,
+            "window_seconds": 60,
+            "unit": "requests",
+            "scope": "public_api",
+            "quota_group": "public_api",
+            "source": "https://docs.xstocks.fi/apis/openapi",
+            "evidence": "The public assets and corporate-actions endpoints returned the same X-RateLimit-Limit/Remaining/Reset window (limit 1000) during bounded live validation on 2026-09-14.",
+            "verified_at": "2026-09-14",
+        }
+    ]
+    assert xstocks["reset"] == "rolling"
+
+    bybit = provider_rate_limit_seed("bybit_xstocks")["quota_contract"]
+    assert (bybit.get("unknown_dimensions") or []) == []
+    assert bybit.get("untracked_constraints", []) == []
+    assert bybit["dimensions"][0]["limit"] == 600
+    assert bybit["dimensions"][0]["window_seconds"] == 5
+    assert bybit["dimensions"][0]["scope"] == "ip"
+    assert bybit.get("provider_headers_required") is not True
 
 
 def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
@@ -1218,7 +1244,8 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     )
     expired_trial = provider_rate_limit_seed("marketdata_app")
     assert expired_trial["quota_contract"]["dimensions"][0]["limit"] == 100
-    assert "account_plan" not in expired_trial["quota_contract"]["dimensions"][0]
+    assert expired_trial["quota_contract"]["dimensions"][0]["account_plan"] == "free_forever"
+    assert expired_trial["quota_contract"]["dimensions"][0]["account_limit_reviewed"] is True
 
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
     missing_expiry_trial = provider_rate_limit_seed("marketdata_app")
@@ -1378,6 +1405,46 @@ def test_alpaca_market_data_headers_reconcile_only_matching_request_window():
         }
     )
     assert _observed_dimension_totals(policy, mismatched) == {}
+
+
+def test_xstocks_native_headers_reconcile_only_matching_shared_public_window():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.TOKENIZED_ASSETS,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "public_requests_per_minute",
+                    "limit": 1000,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "public_api",
+                    "quota_group": "public_api",
+                    "source": "https://docs.xstocks.fi/apis/openapi",
+                }
+            ],
+        },
+    )
+    assert _observed_dimension_totals(
+        policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-limit": "1000",
+                "x-ratelimit-remaining": "993",
+                "x-ratelimit-reset": "1789238854",
+            }
+        ),
+    ) == {"public_requests_per_minute": 7}
+    assert _observed_dimension_totals(
+        policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-limit": "100",
+                "x-ratelimit-remaining": "93",
+            }
+        ),
+    ) == {}
 
 
 def test_non_applicable_dimension_is_not_charged_during_runtime_settlement():
@@ -1861,7 +1928,7 @@ def test_provider_native_tradier_and_binance_counters_require_contract_match():
                 "x-bapi-limit-status": "587",
             }
         ),
-    ) == {"http_requests_per_five_seconds": 13}
+    ) == {}
     assert (
         _observed_dimension_totals(
             bybit_policy,

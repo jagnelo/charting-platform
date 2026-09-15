@@ -520,12 +520,23 @@ class Settings(BaseSettings):
         },
         "xstocks": {
             "quota_contract": {
-                "dimensions": [],
-                "unknown_dimensions": ["public provider quota/rate limit"],
-                "source": "https://docs.xstocks.fi/apis/openapi",
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_minute",
+                        "limit": 1000,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "public_api",
+                        "quota_group": "public_api",
+                        "source": "https://docs.xstocks.fi/apis/openapi",
+                        "evidence": "The public assets and corporate-actions endpoints returned the same X-RateLimit-Limit/Remaining/Reset window (limit 1000) during bounded live validation on 2026-09-14.",
+                        "verified_at": "2026-09-14",
+                    }
+                ],
+                "reset": "rolling",
             },
-            "quota_scope": "public_endpoint",
-            "quota_source": "xStocks API documentation (numeric public limit not published)",
+            "quota_scope": "public_api",
+            "quota_source": "xStocks public API response headers, cross-checked against the public API reference",
         },
         "robinhood_tokens": {
             "quota_contract": {
@@ -559,10 +570,8 @@ class Settings(BaseSettings):
                     }
                 ],
                 "reset": "rolling",
-                "provider_headers_required": True,
-                "untracked_constraints": ["provider_response_headers", "endpoint_and_uid_limits"],
             },
-            "quota_scope": "ip_and_endpoint",
+            "quota_scope": "ip",
             "quota_source": "Bybit V5 rate-limit documentation",
         },
         "gate_tradfi": {
@@ -1561,7 +1570,7 @@ class Settings(BaseSettings):
             "configured_plan": "public-read",
             "is_free": True,
             "authentication_required": False,
-            "usage_terms": "Public xStocks read endpoints; numeric public quota is not published. xStocks' official legal materials state they are not available in the United States or to U.S. persons; quota verification and jurisdiction/redistribution review are required before any routing.",
+            "usage_terms": "Public API guide documents unauthenticated metadata reads and observed shared 1000/minute native headers are enforced. Public read access alone does not prove permission for automated continuous collection: current xStocks terms include automated-retrieval restrictions for the Site/Services and partner integrations are eligibility-reviewed. Keep non-routable until API-specific permission and deployment jurisdiction/data-use eligibility are established.",
             "history_depth": "Current metadata, price, supply, multiplier and corporate-action observations",
             "venue_coverage": "xStocks tokenized equities and ETFs across published chain deployments",
             "freshness_semantics": "Cached/current provider endpoint response",
@@ -1579,7 +1588,7 @@ class Settings(BaseSettings):
             "configured_plan": "public-market-data",
             "is_free": True,
             "authentication_required": False,
-            "usage_terms": "Bybit public market-data endpoints; IP and endpoint limits apply.",
+            "usage_terms": "Anonymous public market endpoints are bounded by the 600 requests per 5 seconds per IP outer limit. Separate rolling UID/endpoint limits apply to authenticated API traffic. Bybit restricts requests from U.S. and Mainland-China IP addresses.",
             "history_depth": "Current instrument and ticker metadata",
             "venue_coverage": "Bybit xStocks symbols",
             "freshness_semantics": "Public exchange endpoint response",
@@ -1958,6 +1967,17 @@ def marketdata_app_trial_expiry_is_valid(plan: str) -> bool:
     )
 
 
+def marketdata_app_trial_expiry_has_elapsed() -> bool:
+    """Return whether a configured, timezone-aware trial expiry is in the past."""
+
+    expires_at = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+    return bool(
+        isinstance(expires_at, datetime)
+        and expires_at.tzinfo is not None
+        and expires_at.astimezone(UTC) <= datetime.now(UTC)
+    )
+
+
 def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
     """Return a documented MarketData.app daily plan only when reviewed.
 
@@ -1972,7 +1992,17 @@ def marketdata_app_reviewed_plan() -> tuple[str, int] | None:
     if reviewed_pair is None:
         return None
     plan, _ = reviewed_pair
-    return reviewed_pair if marketdata_app_trial_expiry_is_valid(plan) else None
+    if not plan.endswith("_trial"):
+        return reviewed_pair
+    if marketdata_app_trial_expiry_is_valid(plan):
+        return reviewed_pair
+    if marketdata_app_trial_expiry_has_elapsed():
+        # Trial capacity is temporary. When the configured trial window ends,
+        # automatically fall back to the documented Free Forever pool rather
+        # than either retaining 10k/100k credits or disabling this provider.
+        return "free_forever", _MARKETDATA_APP_DAILY_CREDIT_LIMITS["free_forever"]
+    # A trial without an explicit, valid end time is not an entitlement.
+    return None
 
 
 def provider_reviewed_flag(value: object) -> bool:

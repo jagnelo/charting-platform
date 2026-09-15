@@ -582,6 +582,66 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
     assert entitlement.quota_policy["history_constraints"]["max_lookback_years"] == 1
     assert policy.quota_contract["dimensions"][0]["limit"] == 10000
     assert policy.quota_contract["dimensions"][0]["account_plan"] == "starter"
+    assert entitlement.is_free is False
+
+
+@pytest.mark.asyncio
+async def test_marketdata_trial_expiry_reseeds_entitlement_and_quota_to_free_forever(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
+    monkeypatch.setattr(
+        settings,
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        datetime(2030, 1, 1, tzinfo=UTC),
+    )
+
+    await seed_provider_runtime(async_db)
+    source = db.execute(
+        select(DataSource).where(DataSource.name == "marketdata_app")
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert entitlement.configured_plan == "marketdata-starter_trial-operator-reviewed"
+    assert entitlement.is_free is True
+    assert entitlement.quota_policy["contract"]["dimensions"][0]["limit"] == 10000
+    assert policy.quota_contract["dimensions"][0]["limit"] == 10000
+
+    monkeypatch.setattr(
+        settings,
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        datetime(2020, 1, 1, tzinfo=UTC),
+    )
+    await seed_provider_runtime(async_db)
+    db.expire_all()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert entitlement.configured_plan == "marketdata-free_forever-operator-reviewed"
+    assert entitlement.is_free is True
+    assert entitlement.quota_policy["contract"]["dimensions"][0]["limit"] == 100
+    assert policy.quota_contract["dimensions"][0]["limit"] == 100
 
 
 @pytest.mark.asyncio

@@ -782,6 +782,39 @@ It is only done when:
 - browser console and backend logs were checked when applicable
 - handoff/state/report files were updated
 
+### External-service integration acceptance
+
+Any change that adds or modifies an external-service adapter, provider
+capability, authentication/configuration wiring, quota/usage accounting,
+pagination, entitlement, or data-use policy is an integration change. Before
+human review, the workstream must identify the affected provider and
+capability, cite current authoritative contract evidence, and cover operation
+costs, quota units/windows/reset and shared scope, pagination/response-size
+behavior, history/venue/freshness entitlement, and data-use restrictions. Add
+provider-specific fixtures and a bounded live case to the manifest; a
+registry entry without a live case or a concrete documented exclusion fails
+the workflow checks.
+
+After provider source changes are committed, run the complete lock-protected
+provider live matrix from that exact source SHA. A focused `--provider` probe,
+fixture, successful HTTP status alone, or a skipped test is not full-matrix
+evidence. Missing credentials, exhausted quotas, provider errors, and
+unresolved terms must be recorded as such and cannot be described as a passing
+integration. An intentionally deferred provider may remain excluded only when
+the branch workstream records the human-approved deferral and the provider is
+non-routable. Commit the redacted validation receipt; subsequent commits that
+change provider behavior, provider docs/contracts, tests, credentials wiring,
+or deployment integration invalidate that live evidence and require a rerun.
+
+Live validation may consume the same account quota as other environments. Use
+the provider-live lock, record the environment scope, and never pass
+local-development secrets to routine CI or another deployment. A provider's
+own account/device/IP restrictions take precedence over the repository's
+separate-secret-store convention; where one account is limited to one egress
+IP, do not use that account concurrently from different environments. Record
+the unresolved account/egress arrangement as a deployment gate instead of
+assuming separate keys solve it.
+
 ## Validation requirements
 
 When relevant, the orchestrator must be able to run:

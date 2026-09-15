@@ -258,6 +258,12 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
         monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
         monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
+        # The local worktree may be configured with an active MarketData.app
+        # trial. This diagnostics test verifies the unconfigured path, so keep
+        # its account-plan inputs hermetic instead of inheriting local env.
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+        monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
         assert provider_routing_control_settings("finra") == (
             "FINRA_ASYNC_MAX_RESULT_BYTES",
         )
@@ -476,14 +482,11 @@ class TestProviderRegistry:
             "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
             datetime(2020, 1, 1, tzinfo=UTC),
         )
-        assert provider_missing_routing_controls("marketdata_app") == [
-            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
-        ]
+        assert provider_missing_routing_controls("marketdata_app") == []
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100)
         assert provider_missing_routing_controls("marketdata_app") == [
             "MARKETDATA_APP_REVIEWED_PLAN",
             "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
-            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
         ]
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)

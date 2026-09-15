@@ -78,7 +78,7 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
     "xstocks": ConfiguredProvider(
         "xstocks",
         "https://api.xstocks.fi/api/v2",
-        "Public xStocks tokenized-equity/ETF metadata, prices, multipliers and corporate actions; public quota is not documented.",
+        "Public xStocks tokenized-equity/ETF metadata, prices, multipliers and corporate actions; native rolling quota headers are enforced.",
     ),
     "robinhood_tokens": ConfiguredProvider(
         "robinhood_tokens",

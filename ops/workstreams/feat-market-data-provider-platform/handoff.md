@@ -16,8 +16,11 @@
   inactive and created only after a clean staged scan on strong evidence;
   Dinari Sandbox is canary-only with no production-data persistence; xStocks is
   eligible for the sole non-US user and its observed 1000/minute rolling
-  response-header contract must be enforced; MarketData.app narrows from the
-  trial to Free Forever based on native account state.
+  response-header contract must be enforced; MarketData.app uses the explicitly
+  configured 10,000/day Starter Trial quota until 2026-10-11 18:09 Lisbon time,
+  then automatically falls back to Free Forever at 100/day. Plan, quota, and
+  timezone-aware expiry are provider-specific environment settings; native
+  `/user/` data does not identify Starter Trial versus paid Starter.
 - Tradier, IBKR, and Ondo are explicitly deferred and remain non-routable.
   Existing keys are local-development-only. Staging/master secrets require
   later owner provisioning; production secrets remain target-owned. The
@@ -30,6 +33,48 @@
   validation. Do not change frontend or ETF-provider adapter ownership.
 - Active session: `2d683fe6-c28c-4164-b66e-7dcc57cd03d5`; branch starts at
   synchronized source `da06e560b1aaa0e5399e1e9565f174abe925bda8`.
+
+## 2026-09-15 changeset context: exact provider configuration and live-gate enforcement
+
+- Scope: make MarketData.app's 30-day Starter Trial and expiry explicit per
+  environment, dynamically downgrade its persisted entitlement/quota to Free
+  Forever/100 credits per day at expiry, keep all provider quota/usage maps
+  environment-configurable, clarify xStocks/Bybit native quota and data-use
+  gates, and enforce current-source full live-matrix evidence for provider
+  integration changes. User-approved provider deferrals are represented in the
+  matrix rather than mislabeled as passes.
+- Owned implementation files for this context: `.env.example`,
+  `.github/workflows/provider-live.yml`, `README.md`, `backend/.env.example`,
+  `backend/app/config.py`, `backend/app/providers/configured.py`,
+  `backend/app/providers/registry.py`, `backend/app/services/provider_runtime.py`,
+  `backend/tests/unit/services/test_provider_quota_contract.py`,
+  `backend/tests/unit/services/test_provider_registry.py`,
+  `backend/tests/unit/services/test_provider_runtime.py`,
+  `backend/tests/unit/test_provider_secret_wiring.py`,
+  `backend/tests/unit/test_live_provider_runner.py`, `docs/agent-orchestration.md`,
+  `docs/data-providers.md`, `docs/provider-live-validation.md`,
+  `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
+  `scripts/agent-session.py`, `scripts/run-live-provider-probes.py`, and
+  `tests/workflow/test_agent_session.py`. No frontend or ETF-adapter path is
+  included.
+- Pre-commit evidence: focused configuration/runtime/runner/session suite
+  `197 passed`; Ruff, workstream validation (`30` records), and `git diff
+  --check` pass; authoritative Docker-backed backend gate `2,533 passed`,
+  81.75% coverage, 89 warnings. The earlier FINRA OTC directory focused live
+  probe passed `1/1` against pre-change source and is not current-SHA acceptance
+  evidence. A full current-source provider matrix is the next validation and
+  may consume the configured accounts' real quotas.
+- Exact next action: stage and inspect only the listed implementation/docs,
+  approved plan, and this handoff; commit and push the source checkpoint, then
+  run the lock-protected complete live matrix against that exact source SHA.
+  Keep `session.json` and `validation.jsonl` out of this source commit; update
+  them in the required separate operational checkpoint after matrix results.
+- Remaining gates are not cleared by this changeset or its unit/backend tests:
+  full live matrix (including honest Alpha Vantage capacity outcomes), SEC scan
+  bound/materialization execution, complete NMS/OTC reconciliation and source
+  terms, provider legal/quota/response-size controls, separate CI/deployment
+  secret stores, Dinari sandbox persistence isolation, future non-Strategy
+  evaluator coverage, and the separately authorized final 30-day shadow run.
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 

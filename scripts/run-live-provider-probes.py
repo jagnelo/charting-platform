@@ -9,15 +9,20 @@ credentials return exit code 2; they are never represented as passing skips.
 
 from __future__ import annotations
 
+import argparse
 import json
 import importlib.util
 import os
+import re
 import subprocess
+import tempfile
 from datetime import UTC, datetime
+from xml.etree import ElementTree
 from pathlib import Path
 from uuid import uuid4
 
 from dotenv import load_dotenv
+import yaml
 
 _LOCK_SPEC = importlib.util.spec_from_file_location(
     "provider_live_lock", Path(__file__).with_name("provider_live_lock.py")
@@ -438,12 +443,11 @@ def routing_safety_preflight() -> dict[str, str]:
         "non-routable: official public polling allowance is not published"
     )
     result["xstocks"] = (
-        "non-routable: numeric public quota is not published; official US-person, "
-        "jurisdiction, and redistribution eligibility must be reviewed"
+        "non-routable: the live-verified 1000/minute shared public header contract "
+        "is accounted for, but xStocks API automation/partner terms and the "
+        "deployment's jurisdiction-specific data-use eligibility remain unverified"
     )
-    result["bybit_xstocks"] = (
-        "non-routable: endpoint/UID limits require provider-native header state"
-    )
+    result["bybit_xstocks"] = "routable: anonymous public calls are bounded by the documented 600/5-second/IP ceiling"
     result["marketstack discovery"] = (
         "routable"
         if os.getenv("MARKETSTACK_DISCOVERY_EXCHANGE", "").strip()
@@ -465,6 +469,7 @@ def routing_safety_preflight() -> dict[str, str]:
         marketdata_limit = 0
     expected_marketdata_limit = marketdata_limits.get(marketdata_plan)
     marketdata_expiry_issue = False
+    trial_expired = False
     if marketdata_plan.endswith("_trial"):
         raw_expiry = os.getenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "").strip()
         try:
@@ -474,26 +479,38 @@ def routing_safety_preflight() -> dict[str, str]:
         marketdata_expiry_issue = (
             parsed_expiry is None
             or parsed_expiry.tzinfo is None
-            or parsed_expiry.astimezone(UTC) <= datetime.now(UTC)
         )
-    result["marketdata.app account plan"] = (
-        "routable"
-        if expected_marketdata_limit is not None
+        trial_expired = bool(
+            parsed_expiry is not None
+            and parsed_expiry.tzinfo is not None
+            and parsed_expiry.astimezone(UTC) <= datetime.now(UTC)
+        )
+    marketdata_pair_valid = (
+        expected_marketdata_limit is not None
         and marketdata_limit == expected_marketdata_limit
-        and not marketdata_expiry_issue
-        else (
-            "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
-            if marketdata_expiry_issue
-            and expected_marketdata_limit is not None
-            and marketdata_limit == expected_marketdata_limit
-            else (
-                "non-routable: explicit reviewed plan/limit pair and reviewed trial "
-                "plan expiry are required"
-                if marketdata_expiry_issue
-                else "non-routable: explicit reviewed plan/limit pair required"
-            )
-        )
     )
+    if marketdata_pair_valid and marketdata_expiry_issue:
+        result["marketdata.app account plan"] = (
+            "non-routable: trial requires a timezone-aware "
+            "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
+        )
+    elif marketdata_pair_valid and trial_expired:
+        result["marketdata.app account plan"] = (
+            "routable: configured trial expired; effective quota automatically falls back to "
+            "Free Forever at 100 credits/day"
+        )
+    elif marketdata_pair_valid and marketdata_plan in {"starter", "trader"}:
+        result["marketdata.app account plan"] = (
+            "routable: paid plan reviewed"
+            if os.getenv("ALLOW_PAID_PROVIDER_ROUTING", "false").strip().lower() == "true"
+            else "non-routable: paid plan requires ALLOW_PAID_PROVIDER_ROUTING=true"
+        )
+    elif marketdata_pair_valid:
+        result["marketdata.app account plan"] = "routable"
+    else:
+        result["marketdata.app account plan"] = (
+            "non-routable: explicit reviewed plan/limit pair required"
+        )
     raw_option_chain_bound = (
         os.getenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0").strip() or "0"
     )
@@ -547,10 +564,28 @@ def changed_provider_code() -> bool:
         "backend/app/config.py",
         "backend/app/providers/",
         "backend/app/services/provider",
+        "backend/app/services/market_data.py",
+        "backend/app/services/instrument_events.py",
+        "backend/app/services/options_data.py",
+        "backend/app/services/tokenized_assets.py",
         "backend/app/models/provider",
+        "backend/app/routers/providers.py",
+        "backend/app/schemas/provider",
+        "backend/app/tasks/",
+        "backend/app/workers/",
         "backend/tests/live/",
+        "backend/tests/integration/provider",
         "backend/alembic/versions/",
         "scripts/run-live-provider-probes.py",
+        "scripts/merge-provider-live-usage.py",
+        "docs/data-providers.md",
+        "docs/provider-live-validation.md",
+        ".github/workflows/provider-live.yml",
+        ".github/workflows/ci.yml",
+        ".env.example",
+        "backend/.env.example",
+        "docker-compose.yml",
+        "deploy/rpi/compose.yml",
     )
     if any(
         path.startswith(provider_paths)
@@ -592,15 +627,231 @@ def changed_provider_code() -> bool:
         "backend/app/config.py",
         "backend/app/providers/",
         "backend/app/services/provider",
+        "backend/app/services/market_data.py",
+        "backend/app/services/instrument_events.py",
+        "backend/app/services/options_data.py",
+        "backend/app/services/tokenized_assets.py",
         "backend/app/models/provider",
+        "backend/app/routers/providers.py",
+        "backend/app/schemas/provider",
+        "backend/app/tasks/",
+        "backend/app/workers/",
         "backend/tests/live/",
         "backend/tests/integration/provider",
         "backend/alembic/versions/",
+        "scripts/run-live-provider-probes.py",
+        "scripts/merge-provider-live-usage.py",
+        "docs/data-providers.md",
+        "docs/provider-live-validation.md",
+        ".github/workflows/provider-live.yml",
+        ".github/workflows/ci.yml",
+        ".env.example",
+        "backend/.env.example",
+        "docker-compose.yml",
+        "deploy/rpi/compose.yml",
     )
     return any(path.startswith(relevant) for path in result.stdout.splitlines())
 
 
+def approved_live_deferrals(plan_path: Path | None = None) -> dict[str, str]:
+    """Read human-approved provider deferrals from the branch-owned plan."""
+
+    if plan_path is None:
+        branch = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        ).stdout.strip()
+        slug = re.sub(r"[^A-Za-z0-9]+", "-", branch).strip("-").lower()
+        plan_path = ROOT / "ops" / "workstreams" / slug / "plan.yaml"
+    if not plan_path.is_file():
+        return {}
+    try:
+        plan = yaml.safe_load(plan_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    decisions = plan.get("approved_execution_decisions") if isinstance(plan, dict) else None
+    providers = decisions.get("providers") if isinstance(decisions, dict) else None
+    if not isinstance(providers, dict):
+        return {}
+    deferred: dict[str, str] = {}
+    for provider, decision in providers.items():
+        reason = str(decision or "").strip()
+        if reason.lower().startswith("deferred by user"):
+            name = str(provider).strip()
+            if name not in LIVE_PROVIDER_CASES:
+                raise ValueError(
+                    f"workstream defers {name}, which has no live manifest disposition"
+                )
+            deferred[name] = reason
+    return deferred
+
+
+def selected_live_test_arguments(
+    providers: list[str] | None,
+    *,
+    deferred_providers: set[str] | None = None,
+) -> list[str]:
+    """Return exact manifest nodes for a provider subset, or the full matrix."""
+
+    if providers is None:
+        arguments = [
+            "tests/live/test_market_data_providers_live.py",
+            "tests/live/test_tokenized_providers_live.py",
+        ]
+        exclusions = sorted(deferred_providers or set())
+        if exclusions:
+            arguments.extend(
+                [
+                    "-k",
+                    " and ".join(
+                        f"not {provider.removesuffix('_global_markets')}"
+                        for provider in exclusions
+                    ),
+                ]
+            )
+        return arguments
+    if not providers:
+        return selected_live_test_arguments(None, deferred_providers=deferred_providers)
+    unknown = sorted(set(providers) - set(LIVE_PROVIDER_CASES))
+    if unknown:
+        raise ValueError(f"providers have no live manifest cases: {', '.join(unknown)}")
+    nodes = sorted(
+        {
+            f"tests/live/{relative_path}::{function_name}"
+            for provider in providers
+            for relative_path, function_name in LIVE_PROVIDER_CASES[provider]
+        }
+    )
+    # Several optional adapters intentionally share a parameterized live test.
+    # Pytest's -k expression selects just the requested provider case while
+    # keeping all cases for providers with dedicated functions.
+    filter_terms = set(providers)
+    shared_parameterized_cases = {"test_optional_credentialed_provider_small_read"}
+    filter_terms.update(
+        function_name.removeprefix("test_")
+        for provider in providers
+        for _relative_path, function_name in LIVE_PROVIDER_CASES[provider]
+        if function_name not in shared_parameterized_cases
+    )
+    return [*nodes, "-k", " or ".join(sorted(filter_terms))]
+
+
+def _git_output(*arguments: str) -> str:
+    result = subprocess.run(
+        ["git", *arguments], cwd=ROOT, text=True, capture_output=True, check=False
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def _source_sha() -> str:
+    return _git_output("rev-parse", "HEAD")
+
+
+def _workstream_validation_path() -> Path | None:
+    branch = _git_output("branch", "--show-current")
+    if not branch:
+        return None
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", branch).strip("-").lower()
+    path = ROOT / "ops" / "workstreams" / slug / "validation.jsonl"
+    return path if path.is_file() else None
+
+
+def _dirty_source_paths() -> list[str]:
+    status = _git_output("status", "--porcelain", "--untracked-files=all")
+    paths: list[str] = []
+    for line in status.splitlines():
+        candidate = line[3:].split(" -> ")[-1] if len(line) >= 3 else line
+        if candidate and not candidate.startswith("ops/workstreams/"):
+            paths.append(candidate)
+    return sorted(set(paths))
+
+
+def _junit_counts(path: Path) -> dict[str, int]:
+    if not path.is_file():
+        return {"case_count": 0, "passed_cases": 0, "failed_cases": 0, "skipped_cases": 0}
+    root = ElementTree.parse(path).getroot()
+    suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
+    counts = {
+        "case_count": sum(int(suite.attrib.get("tests", 0)) for suite in suites),
+        "failed_cases": sum(
+            int(suite.attrib.get("failures", 0)) + int(suite.attrib.get("errors", 0))
+            for suite in suites
+        ),
+        "skipped_cases": sum(int(suite.attrib.get("skipped", 0)) for suite in suites),
+    }
+    counts["passed_cases"] = max(
+        0, counts["case_count"] - counts["failed_cases"] - counts["skipped_cases"]
+    )
+    return counts
+
+
+def _record_live_validation(
+    *,
+    providers: list[str] | None,
+    exit_code: int,
+    missing: dict[str, list[str]],
+    counts: dict[str, int],
+    approved_deferrals: dict[str, str],
+) -> None:
+    """Persist a redacted live-test receipt in the active branch workstream."""
+
+    path = _workstream_validation_path()
+    if path is None:
+        return
+    dirty_paths = _dirty_source_paths()
+    full_matrix = not providers
+    if dirty_paths:
+        result = "not_current_source"
+    elif missing:
+        result = "incomplete_preflight"
+    elif exit_code != 0 or counts["failed_cases"] or counts["skipped_cases"]:
+        result = "failed"
+    elif full_matrix:
+        result = "passed"
+    else:
+        result = "focused_passed"
+    receipt = {
+        "at": datetime.now(UTC).isoformat(),
+        "command": "scripts/run-live-provider-probes.py",
+        "kind": "provider_live_matrix",
+        "scope": "full_matrix" if full_matrix else "focused",
+        "result": result,
+        "source_sha": _source_sha(),
+        "dirty_source_paths": dirty_paths,
+        **counts,
+        "missing_environment_names": sorted(
+            {name for names in missing.values() for name in names}
+        ),
+        "providers_selected": sorted(providers or []),
+        "approved_deferrals": approved_deferrals if full_matrix else {},
+        "exit_code": exit_code,
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(receipt, sort_keys=True) + "\n")
+    print(
+        "provider live receipt: "
+        f"{result} ({counts['passed_cases']}/{counts['case_count']} cases; "
+        f"source {receipt['source_sha'] or 'unknown'})"
+    )
+
+
+def _arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--provider",
+        action="append",
+        choices=sorted(LIVE_PROVIDER_CASES),
+        help="run only this provider's manifest-backed cases; repeat to select several",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    arguments = _arguments()
+    selected_providers = set(arguments.provider or [])
     # Prefer an operator-owned source outside Git. Worktree runtime setup links
     # the usual ignored paths to this file, but loading it directly also makes
     # this command safe to run before any Make target. Explicit exports retain
@@ -620,7 +871,19 @@ def main() -> int:
         )
         return 0
     missing: dict[str, list[str]] = {}
-    for provider, names in {"keyless/config": KEYLESS, **CREDENTIALS}.items():
+    deferred_providers = approved_live_deferrals()
+    required: dict[str, tuple[str, ...]] = {}
+    if not selected_providers or "edgar" in selected_providers:
+        required["keyless/config"] = KEYLESS
+    required.update(
+        {
+            provider: names
+            for provider, names in CREDENTIALS.items()
+            if (not selected_providers and provider not in deferred_providers)
+            or provider in selected_providers
+        }
+    )
+    for provider, names in required.items():
         absent = [name for name in names if not setting_is_configured(name)]
         if absent:
             missing[provider] = absent
@@ -638,23 +901,38 @@ def main() -> int:
     try:
         with provider_live_run_lock() as lock_path:
             print(f"live provider lock: {lock_path}")
-            result = subprocess.run(
-                [
-                    ".venv/bin/pytest",
-                    "tests/live/test_market_data_providers_live.py",
-                    "tests/live/test_tokenized_providers_live.py",
-                    "-m",
-                    "live",
-                    "--no-header",
-                    "-q",
-                    "--no-cov",
-                ],
-                cwd=ROOT / "backend",
-                env={
-                    **os.environ,
-                    "RUN_LIVE_PROVIDER_TESTS": "1",
-                    "PROVIDER_LIVE_RUN_ID": str(uuid4()),
-                },
+            with tempfile.TemporaryDirectory(prefix="provider-live-matrix-") as temp_dir:
+                junit_path = Path(temp_dir) / "results.xml"
+                result = subprocess.run(
+                    [
+                        ".venv/bin/pytest",
+                        *selected_live_test_arguments(
+                            arguments.provider,
+                            deferred_providers=(
+                                set(deferred_providers) if not arguments.provider else set()
+                            ),
+                        ),
+                        "-m",
+                        "live",
+                        "--no-header",
+                        "-q",
+                        "--no-cov",
+                        f"--junitxml={junit_path}",
+                    ],
+                    cwd=ROOT / "backend",
+                    env={
+                        **os.environ,
+                        "RUN_LIVE_PROVIDER_TESTS": "1",
+                        "PROVIDER_LIVE_RUN_ID": str(uuid4()),
+                    },
+                )
+                counts = _junit_counts(junit_path)
+            _record_live_validation(
+                providers=arguments.provider,
+                exit_code=result.returncode,
+                missing=missing,
+                counts=counts,
+                approved_deferrals=deferred_providers,
             )
     except ProviderLiveRunAlreadyActive as exc:
         print(f"live provider probes: blocked by local key-use lock: {exc}")

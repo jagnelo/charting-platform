@@ -52,6 +52,8 @@ owned_paths:
   - scripts/run-live-provider-probes.py
   - scripts/merge-provider-live-usage.py
   - scripts/validate-workstream.py
+  - scripts/agent-session.py
+  - tests/workflow/test_agent_session.py
   - scripts/run-branch-tests.py
   - scripts/worktree-runtime.py
 dependencies:
@@ -129,10 +131,10 @@ approved_execution_decisions:
   providers:
     tradier: Deferred by user; keep non-routable and report exact credential preflight.
     ibkr: Deferred by user; keep non-routable and report exact gateway/session preflight.
-    ondo: Deferred by user; keep non-routable and do not request credentials in this phase.
+    ondo_global_markets: Deferred by user; keep non-routable and do not request credentials in this phase.
     dinari: Sandbox-only, including a production-host canary isolated from canonical persistence; production API access remains disabled because the documented starting price is 2000 per month.
     xstocks: Sole user is an eligible non-US person; public API calls need no account. Live response-header limit is 1000 per rolling minute with remaining/reset headers and must be enforced as provider-native state.
-    marketdata_app: Use observed 10000/day trial only while account-native state confirms it; automatically narrow to documented Free Forever 100/day after trial expiry, without requiring an expiry date from the user.
+    marketdata_app: Use the explicitly configured Starter Trial quota of 10000 credits/day through the timezone-aware configured expiry (30 days from the 2026-09-11 18:09 Lisbon key-email time, i.e. 2026-10-11 18:09+01:00); after expiry automatically fall back to Free Forever at 100/day. The plan/limit/expiry remain provider-specific environment configuration. Do not infer the account plan from /user/ headers; paid-plan quota changes require an explicit plan/limit configuration and paid-routing authorization.
     unknown_quotas: Investigate official documentation, account endpoints, and bounded live headers; do not ask the user to guess operational limits. Keep only truly undiscoverable dimensions non-routable.
   credentials:
     environments: [local-development, github-staging-validation, github-master-validation, live-production]

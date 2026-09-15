@@ -171,12 +171,15 @@ TOKENIZED_PROVIDER_PRIORITY=["robinhood_tokens","xstocks","bybit_xstocks","gate_
 # zero unless an operator has reviewed the request filters and selected a
 # conservative maximum symbol count.
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
-# MarketData.app daily plan/limit must be reviewed together. Supported pairs:
-# free_forever/100, starter/10000, trader/100000. Leave blank/0 until the
-# account's current entitlement is confirmed; native response headers never
-# widen this automatically.
+# MarketData.app plan/limit must match this environment's actual account tier.
+# Supported daily pairs: free_forever/100, starter_trial/10000,
+# trader_trial/100000, starter/10000, trader/100000. Trial plans require an
+# explicit timezone-aware expiry; after it, runtime quota falls back to
+# free_forever/100. Native response headers never promote the configured plan.
 MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
+# Required only for starter_trial/trader_trial; ISO-8601 with a UTC offset.
+MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
 PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_historical_prices":["dinari","ondo_global_markets"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
@@ -206,9 +209,14 @@ Useful provider envs:
 - `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["edgar","openfigi"]}`. Do not add yfinance unless the legacy/options path has been explicitly reviewed.
 - `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider. Values must be
   copied from the provider's current published contract and include a complete
-  quota contract; there is no safe generic fallback. `__CODE_DEFAULT__` keeps
-  the reviewed in-code map; an explicit `{}` deliberately removes routable
-  provider policies.
+  quota contract; there is no safe generic fallback. This is an environment-
+  specific full seed map, so retain every provider policy that should remain
+  routable when replacing it. `__CODE_DEFAULT__` keeps the reviewed in-code map;
+  an explicit `{}` deliberately removes routable provider policies. A provider
+  plan change must update its complete quota contract and separately reviewed
+  entitlement; set `ALLOW_PAID_PROVIDER_ROUTING=true` only for an approved paid
+  plan. This allows production quota updates through that environment's config
+  without embedding account limits as immutable code assumptions.
 - `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
 - `PROVIDER_USAGE_PROFILE_SEEDS`: JSON object keyed by provider for reviewed
   operation costs and provider-native usage dimensions. `__CODE_DEFAULT__`

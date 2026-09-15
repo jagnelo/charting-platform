@@ -7,7 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
+    marketdata_app_reviewed_plan,
     marketdata_app_reviewed_plan_pair,
+    marketdata_app_trial_expiry_has_elapsed,
     marketdata_app_trial_expiry_is_valid,
     provider_positive_integer,
     provider_rate_limit_seed,
@@ -734,7 +736,7 @@ def provider_missing_routing_controls(
         return missing
     if name == "marketdata_app":
         reviewed_pair = marketdata_app_reviewed_plan_pair()
-        if reviewed_pair is not None and marketdata_app_trial_expiry_is_valid(reviewed_pair[0]):
+        if marketdata_app_reviewed_plan() is not None:
             return []
         missing: list[str] = []
         if reviewed_pair is None:
@@ -742,8 +744,11 @@ def provider_missing_routing_controls(
         configured_plan = str(
             getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "") or ""
         ).strip().lower()
-        if configured_plan.endswith("_trial") and not marketdata_app_trial_expiry_is_valid(
-            configured_plan
+        if (
+            reviewed_pair is not None
+            and configured_plan.endswith("_trial")
+            and not marketdata_app_trial_expiry_is_valid(configured_plan)
+            and not marketdata_app_trial_expiry_has_elapsed()
         ):
             missing.append("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT")
         return list(dict.fromkeys(missing or required))

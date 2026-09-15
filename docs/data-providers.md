@@ -168,11 +168,11 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | EODHD | long-history daily EOD, fixture-covered fundamentals/profile adapter, US exchange list | `EODHD_API_KEY` | Free 20 API calls/day and 1,000 requests/minute; EOD free history is limited to one year; the supplied free key returned HTTP 403 for Fundamentals, while the official plan description limits free access to EOD history and exchange lists; data-heavy endpoints consume multiple calls (fundamentals/options 10, intraday/technical/news 5) | API key / minute requests + GMT calendar-day call budget | EOD daily/weekly/monthly history live-proven; Fundamentals is explicitly non-routable for the current free entitlement and its 403 is retained as typed evidence |
 | FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search, current option expirations/chains with provider Greeks | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | option endpoints normalize OCC symbols, contract fields, and nested Greeks; account live evidence required |
-| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year; stock candles cost 1 credit per 1,000 returned candles (date-granular requests use a conservative full-day bound for intraday resolutions); expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; response-dependent candle/option costs must be estimated or bounded before routing; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; the live option-chain probe is bounded to 20 contracts, while chain routing remains fail-closed at the default zero bound; authenticated account counters are available through `GET /providers/usage/account` after an explicit admin refresh and are persisted across sessions without widening routing limits |
+| MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | Plan-specific: Free Forever 100/day; Starter Trial 10,000/day until configured expiry; Starter 10,000/day; Trader Trial/Trader 100,000/day. Resets 09:30 ET; 50 account-wide concurrent requests; free/trial data is at least 24h delayed and limited to one year; stock candles cost 1 credit per 1,000 returned candles (date-granular requests use a conservative full-day bound for intraday resolutions); expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; configure exact plan, matching limit, and timezone-aware trial expiry separately per environment; trial quota automatically falls back to Free Forever 100/day after expiry; response-dependent candle/option costs must be estimated or bounded before routing; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; account `/user/` headers expose quota state but not Starter Trial vs paid Starter, so operator configuration is authoritative; authenticated counters persist across sessions without widening routing limits |
 | IBKR | read-only Client Portal Gateway security search, instrument profile, raw historical OHLCV for equities and futures, and latest-price snapshots; options-specific methods remain unimplemented | `IBKR_READ_ONLY_URL`, `IBKR_READ_ONLY_SESSION_COOKIE`, optional `IBKR_CONID_MAP` | Global 10 requests/sec/session; historical endpoint 50 requests/minute, max 5 concurrent, and max 1,000 bars per response; expired futures history is unavailable beyond two years after expiry; endpoint-specific pacing and penalty-box behavior apply | authenticated gateway session / rolling endpoint windows; interactive gateway login is required and may need to be renewed daily | concrete adapter is fixture-covered; raw history/latest/profile remain non-routable until a gateway session and bounded live evidence are supplied; futures should use an explicit provider `conid` mapping when symbol search is ambiguous; adjusted history is filtered before routing |
-| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published; official legal materials state xStocks are not available in the United States or to U.S. persons | public endpoint / unknown | public metadata and price-endpoint probe passed; an explicit null quote while the selected token's session was closed is retained as provider state; non-routable until quota, jurisdiction, and redistribution eligibility are verified |
+| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Public API responses exposed a shared 1,000-request rolling-minute `X-RateLimit-Limit`/`Remaining`/`Reset` contract across assets and corporate-actions endpoints; verified 2026-09-14 and reconciled only on an exact limit match | public API / rolling minute; provider headers are retained and cumulative use is durably reconciled | bounded public metadata, price, and corporate-action reads are proven; still non-routable until API automation/partner terms and deployment jurisdiction/data-use eligibility are established |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
-| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; API limits are rolling per second per UID and endpoint, with `X-Bapi-Limit*` headers documented but not emitted by the current unauthenticated public edge | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting and reliable native-header state required before routing |
+| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | Anonymous V5 traffic is bounded by the documented 600 HTTP requests per 5 seconds per IP ceiling. The separate rolling endpoint/UID headers describe authenticated API-rate state and are not a prerequisite for these unauthenticated market endpoints; they are retained as telemetry if present but are not conflated with the IP pool | shared outbound IP / rolling 5 seconds | bounded live asset + ticker probe passed; the durable router enforces the public IP ceiling without requiring absent authenticated `X-Bapi-Limit*` state; use only from an eligible non-US egress because Bybit documents U.S./Mainland-China IP restrictions |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
 | Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
 | Ondo Global Markets | authenticated tokenized US stock/ETF metadata, chain addresses/ISIN/tags, indicative latest prices, display-only primary/underlying market summaries (including 24-hour price history and underlying metrics), OHLC candles, and canonical daily history with local WEEK/MONTH/YEAR rollups | `ONDO_GLOBAL_MARKETS_API_KEY` | OpenAPI documents HTTP 429/account rate limiting but no numeric quota; endpoint caching and display-only/non-oracle restrictions apply | API key/account / provider-defined | concrete metadata/latest-price/market-summary/OHLC/history adapter is fixture-covered; no live credential evidence yet; remains non-routable until account terms/quota are reviewed |
@@ -321,12 +321,19 @@ shares-outstanding, and market-cap fields without inventing omitted values. A pr
 xStocks pairs is recorded as an empty catalogue, never as evidence that a
 traditional share is the same token.
 
-xStocks has an additional US eligibility gate: its [official legal notice](https://xstocks.com/us)
-states that xStocks are not available in the United States or to U.S. persons.
-The public metadata adapter may retain non-trading observations for research,
-but those observations cannot be routed as an eligible US data or trading
-source unless the operator documents a lawful, jurisdiction-specific basis and
-redistribution permission.
+xStocks has an additional eligibility gate: its [official legal notice](https://xstocks.com/us)
+states that xStocks are not available in the United States or to U.S. persons,
+and its [partner page](https://xstocks.com/partner) says integrations are
+subject to eligibility review and partners must implement geographic
+compliance. The developer guide does say public metadata endpoints need no API
+key, but that does not establish permission for automated continuous
+collection: the linked [Terms of Service](https://xstocks.com/documents/xstocks-terms-of-service.pdf)
+include automated-retrieval/use restrictions for the Site/Services. Therefore
+the quota is now correctly recorded and enforced, while xStocks remains
+non-routable until the API-specific terms/partner permission and this
+deployment's jurisdiction/data-use eligibility are confirmed. Public responses
+may still be exercised by the bounded validation suite as transport evidence;
+they are not proof of production rights.
 
 Dinari's [stock-data guide](https://docs.dinari.com/docs/stock-data) documents
 provider-native Stock UUIDs, aggregate DAY/WEEK/MONTH/YEAR history, news, and
@@ -395,13 +402,15 @@ interval/range combinations are validated against the provider's published
 finite matrix and every candle retains explicit primary-versus-underlying
 market scope. Both adapters preserve raw provider payloads for provenance.
 Bybit's official [rate-limit contract](https://bybit-exchange.github.io/docs/v5/rate-limit)
-publishes both the 600/5-second/IP outer ceiling and rolling per-second
-endpoint/UID limits. The current public xStocks responses were live-probed and
-did not emit the documented `X-Bapi-Limit*` headers; the adapter retains those
-headers if they appear, but absence is not converted into a guessed allowance.
-Bybit remaining-limit headers are reconciled only when they exactly match the
-reviewed coarse outer contract, but endpoint/UID limits and reliable native
-header state keep that route non-routable until they are modeled. Gate's public stock contract is
+publishes a 600/5-second/IP outer ceiling and separate rolling per-second
+endpoint/UID limits. These xStocks reads call the documented anonymous public
+market endpoints (`instruments-info` and `tickers`), so the adapter enforces
+the shared IP ceiling; it does not require authenticated endpoint/UID headers
+that these public responses do not emit. Those headers remain telemetry if an
+edge begins returning them, and are not incorrectly reconciled against the IP
+pool. Bybit also documents that API requests from U.S. or Mainland-China IPs
+are restricted; the public source must therefore run only from an eligible
+egress region. Gate's public stock contract is
 static and IP-scoped in the official provider-wide rate-limit table, so its
 public read route is eligible after the bounded live probe; any returned
 remaining-limit headers remain observational rather than a routing
@@ -946,26 +955,27 @@ expiration discovery, current chains, and historical single-contract quotes.
 
 The adapter follows the documented `/v1` endpoints and preserves OCC symbols,
 provider timestamps, quote fields, and historical null Greeks. The provider
-documents 100 daily credits on Free Forever accounts, reset at 09:30
-America/New_York, plus a 50-request concurrency ceiling. Free/trial accounts
-receive delayed data and only one year of historical data. See the provider's
+documents 100 daily credits on Free Forever accounts, 10,000 on Starter, and
+100,000 on Trader, reset at 09:30 America/New_York, plus a 50-request
+concurrency ceiling. Free and trial accounts are limited to data at least 24
+hours old and one year of history. Each account is limited to one active IP;
+account sharing and data redistribution are prohibited. See the provider's
 [rate-limit](https://www.marketdata.app/docs/api/rate-limiting/),
 [free-account](https://www.marketdata.app/docs/account/free-accounts/),
 [option-chain](https://www.marketdata.app/docs/api/options/chain/), and
 [option-quotes](https://www.marketdata.app/docs/api/options/quotes/)
-documentation. The repository's 100-credit seed is specifically the documented
-Free Forever contract; an account that returns another native limit is not
-silently promoted. Record the reviewed account plan and exact matching daily
-limit in `MARKETDATA_APP_REVIEWED_PLAN` (`free_forever`, `starter_trial`,
-`trader_trial`, `starter`, or `trader`) and
-`MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` (`100`, `10000`, or `100000`).
-The two trial identifiers remain distinct from their paid-plan counterparts:
-the provider documents them as 30-day trials that fall back to Free Forever
-if no paid subscription is selected, so the review record must make the
-time-limited entitlement explicit. For either trial identifier,
-`MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` must also contain the operator-
-reviewed, future, timezone-aware ISO-8601 expiry; absent, naive, or elapsed
-values keep the wider trial pool fail-closed.
+documentation. Configure `MARKETDATA_APP_REVIEWED_PLAN` and its exact daily
+limit: `free_forever`/100, `starter_trial`/10,000, `trader_trial`/100,000,
+`starter`/10,000, or `trader`/100,000. A trial additionally requires a
+timezone-aware ISO-8601 `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT`; missing or
+invalid expiry fails closed. While a configured trial is active, the runtime
+reserves its documented daily pool. At or after expiry, it automatically
+changes the effective entitlement and quota to Free Forever/100 credits per
+day, without requiring a deployment-time plan edit. A later paid upgrade is
+configured by changing the plan/limit pair; because routing is free-only by
+default, paid plans additionally require `ALLOW_PAID_PROVIDER_ROUTING=true`.
+This plan/limit configuration is provider-specific and may be set separately
+for local development, protected CI, and production.
 Quant/Prime plans use a different per-minute contract and remain outside this
 daily-plan gate until their dimensions are modeled explicitly.
 
@@ -1150,13 +1160,15 @@ FINNHUB_API_KEY=
 MARKETSTACK_API_KEY=
 EODHD_API_KEY=
 MARKETDATA_APP_API_KEY=       # MarketData.app — US delayed stocks/options
-# Account plan/limit must be explicitly reviewed together. Supported daily
-# pairs are free_forever/100, starter_trial/10000, trader_trial/100000,
-# starter/10000, and trader/100000. Trial identifiers remain time-limited.
-# Leave blank/0 when the account entitlement is not confirmed; native headers
-# never widen it.
+# Account plan/limit must match this environment's confirmed account tier.
+# Pairs: free_forever/100, starter_trial/10000, trader_trial/100000,
+# starter/10000, and trader/100000. Trial plans need an explicit expiry.
+# Expired trials automatically fall back to free_forever/100. Native headers
+# are observations and never widen the reviewed plan.
 MARKETDATA_APP_REVIEWED_PLAN=
 MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
+# Required only for starter_trial/trader_trial; timezone-aware ISO-8601.
+MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=
 # Current option chains consume one credit per returned symbol. Set this only
 # after reviewing the exact request filters; zero keeps chain routing closed.
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
@@ -1180,6 +1192,20 @@ MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE=disabled
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false
 MARKET_UNIVERSE_MISSING_CONFIRMATIONS=3
 ```
+
+Provider quotas and operation-cost profiles are configuration, not immutable
+per-provider assumptions. Each environment can replace the reviewed in-code
+maps with `PROVIDER_RATE_LIMIT_SEEDS` (complete quota contracts) and
+`PROVIDER_USAGE_PROFILE_SEEDS` (operation-specific accounting). Use
+`__CODE_DEFAULT__` to retain the reviewed code defaults. A non-empty replacement
+must include every provider policy that should stay routable; `{}` intentionally
+removes these policies and is not a safe way to change just one provider. When a
+provider plan changes, update its complete limit/window/reset/scope contract and
+its entitlement separately; paid plans also require the explicit paid-routing
+switch. This lets each production, CI, RPi, or local environment reflect its
+own account tier without credentials or account-specific quota values entering
+Git. Runtime/admin policy changes are stored in the application database and
+must remain source-backed and auditable.
 
 ---
 

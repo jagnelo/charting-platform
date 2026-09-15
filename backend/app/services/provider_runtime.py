@@ -299,8 +299,10 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
         else:
             plan, _ = reviewed_plan
             base["configured_plan"] = f"marketdata-{plan}-operator-reviewed"
+            base["is_free"] = plan in {"free_forever", "starter_trial", "trader_trial"}
             base["usage_terms"] = (
-                f"MarketData.app {plan} account plan; provider credits and licensing terms apply."
+                f"MarketData.app {plan} account plan; provider credits, single-IP, concurrency, "
+                "data-age, and licensing terms apply."
             )
     base.setdefault(
         "live_probe_status",
@@ -624,6 +626,23 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
         if (
             unit in {"request", "requests"}
             and window_seconds == 60
+            and "docs.xstocks.fi" in source
+        ):
+            # The xStocks public API currently returns a shared limit/remaining
+            # snapshot on anonymous public endpoints. Reconcile only the exact
+            # observed contract; missing or changed headers remain telemetry
+            # and cannot silently redefine this reviewed quota.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
+            continue
+        if (
+            unit in {"request", "requests"}
+            and window_seconds == 60
             and "about-market-data-api" in source
             and "alpaca.markets" in source
         ):
@@ -657,24 +676,6 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             # or mismatched limit alter the local window.
             if header_limit == limit and remaining <= header_limit:
                 totals[name] = max(0, header_limit - remaining)
-            continue
-        if (
-            unit in {"request", "requests"}
-            and "bybit-exchange.github.io" in source
-            and window_seconds == 5
-        ):
-            # Bybit exposes the endpoint/UID limit and remaining status on
-            # every V5 response. Reconcile only when the response confirms
-            # the exact reviewed coarse contract; endpoint- and UID-specific
-            # constraints remain separately untracked and therefore keep this
-            # provider non-routable until those dimensions are modeled.
-            try:
-                header_limit = int(headers["x-bapi-limit"])
-                remaining = int(headers["x-bapi-limit-status"])
-            except (KeyError, TypeError, ValueError):
-                continue
-            if header_limit == limit and 0 <= remaining <= header_limit:
-                totals[name] = header_limit - remaining
             continue
         if (
             unit in {"request", "requests"}
@@ -1387,7 +1388,11 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 await db.flush()
             if rate_seed.get("quota_contract"):
                 quota_policy = dict(entitlement.quota_policy or {})
-                quota_policy.setdefault("contract", dict(rate_seed["quota_contract"]))
+                configured_contract = dict(rate_seed["quota_contract"])
+                if provider_name == "marketdata_app" and entitlement_was_new:
+                    quota_policy["contract"] = configured_contract
+                else:
+                    quota_policy.setdefault("contract", configured_contract)
                 entitlement.quota_policy = quota_policy
             seed_quota_policy = entitlement_seed.get("quota_policy")
             if isinstance(seed_quota_policy, dict):
@@ -1403,6 +1408,19 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 "free-forever",
                 "account-plan-review-required",
             }
+            if provider_name == "marketdata_app":
+                repository_seed_plans.update(
+                    {
+                        f"marketdata-{plan}-operator-reviewed"
+                        for plan in (
+                            "free_forever",
+                            "starter_trial",
+                            "trader_trial",
+                            "starter",
+                            "trader",
+                        )
+                    }
+                )
             if (
                 not entitlement_was_new
                 and str(entitlement.configured_plan or "").strip().lower()
@@ -1434,6 +1452,19 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 entitlement.revision = int(entitlement.revision or 1) + 1
             elif entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
+            if (
+                provider_name == "marketdata_app"
+                and rate_seed.get("quota_contract")
+                and str(entitlement.configured_plan or "").startswith("marketdata-")
+                and str(entitlement.configured_plan or "").endswith("-operator-reviewed")
+            ):
+                # Environment-reviewed MarketData.app plans (including an
+                # expired trial's Free Forever fallback) are dynamic. Apply
+                # their active quota after the repository seed merge above so
+                # a static seed cannot restore an outdated daily allowance.
+                quota_policy = dict(entitlement.quota_policy or {})
+                quota_policy["contract"] = dict(rate_seed["quota_contract"])
+                entitlement.quota_policy = quota_policy
             if entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
             await record_entitlement_revision(db, entitlement, change_reason="runtime_seed")

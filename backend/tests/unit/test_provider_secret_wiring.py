@@ -268,6 +268,14 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "if: always()" in workflow
     assert "retention-days: 90" in workflow
     assert "if-no-files-found: ignore" in workflow
+    assert (
+        "PROVIDER_RATE_LIMIT_SEEDS: ${{ vars.PROVIDER_RATE_LIMIT_SEEDS || '__CODE_DEFAULT__' }}"
+        in workflow
+    )
+    assert (
+        "PROVIDER_USAGE_PROFILE_SEEDS: ${{ vars.PROVIDER_USAGE_PROFILE_SEEDS || '__CODE_DEFAULT__' }}"
+        in workflow
+    )
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:
@@ -433,7 +441,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
-    assert statuses["bybit_xstocks"].startswith("non-routable:")
+    assert statuses["bybit_xstocks"].startswith("routable:")
     assert (
         statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
@@ -489,26 +497,28 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["tiingo"].startswith("non-routable: missing positive bounds")
 
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
+    monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "25")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"
-    assert statuses["marketdata.app account plan"] == "routable"
+    assert statuses["marketdata.app account plan"] == "routable: paid plan reviewed"
     assert statuses["marketdata.app option chain"] == "routable"
+    monkeypatch.delenv("ALLOW_PAID_PROVIDER_ROUTING", raising=False)
 
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.delenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", raising=False)
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"] == (
-        "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
+        "non-routable: trial requires a timezone-aware "
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
     )
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "100")
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"] == (
-        "non-routable: explicit reviewed plan/limit pair and reviewed trial "
-        "plan expiry are required"
+        "non-routable: explicit reviewed plan/limit pair required"
     )
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2030-01-01T00:00:00+00:00")
@@ -516,8 +526,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketdata.app account plan"] == "routable"
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", "2020-01-01T00:00:00+00:00")
     statuses = routing_safety_preflight()
-    assert statuses["marketdata.app account plan"] == (
-        "non-routable: reviewed trial plan expiry must be a future timezone-aware ISO-8601 value"
+    assert statuses["marketdata.app account plan"].startswith(
+        "routable: configured trial expired; effective quota automatically falls back"
     )
 
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "1")
@@ -567,11 +577,38 @@ def test_live_runner_treats_provider_configuration_changes_as_provider_changes(m
 
     class _Status:
         returncode = 0
-        stdout = " M backend/app/config.py\n"
 
-    monkeypatch.setattr(_LIVE_SCRIPT.subprocess, "run", lambda *args, **kwargs: _Status())
+        def __init__(self, path: str):
+            self.stdout = f" M {path}\n"
 
-    assert _LIVE_SCRIPT.changed_provider_code() is True
+    for path in (
+        "backend/app/config.py",
+        "docs/data-providers.md",
+        "docs/provider-live-validation.md",
+        ".env.example",
+        ".github/workflows/provider-live.yml",
+    ):
+        monkeypatch.setattr(
+            _LIVE_SCRIPT.subprocess,
+            "run",
+            lambda *args, _path=path, **kwargs: _Status(_path),
+        )
+        assert _LIVE_SCRIPT.changed_provider_code() is True, path
+
+
+def test_live_runner_can_select_only_manifest_cases_for_a_provider():
+    assert _LIVE_SCRIPT.selected_live_test_arguments(["bybit_xstocks"]) == [
+        "tests/live/test_tokenized_providers_live.py::test_bybit_public_xstocks_asset_and_price",
+        "-k",
+        "bybit_public_xstocks_asset_and_price or bybit_xstocks",
+    ]
+    arguments = _LIVE_SCRIPT.selected_live_test_arguments(["marketdata_app"])
+    assert "tests/live/test_market_data_providers_live.py::test_optional_credentialed_provider_small_read" in arguments
+    assert "marketdata_app" in arguments[-1]
+    assert _LIVE_SCRIPT.selected_live_test_arguments(None) == [
+        "tests/live/test_market_data_providers_live.py",
+        "tests/live/test_tokenized_providers_live.py",
+    ]
 
 
 def test_live_runner_uses_staging_merge_base_after_metadata_commit(monkeypatch):

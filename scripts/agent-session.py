@@ -607,7 +607,10 @@ def record_validation(stream: Path, payload: dict[str, Any]) -> None:
 
 
 def validation_evidence_current(
-    stream: Path, head: str, profile: str | None = None
+    stream: Path,
+    head: str,
+    profile: str | None = None,
+    worktree: Path | None = None,
 ) -> bool:
     journal = stream / "validation.jsonl"
     if not journal.exists():
@@ -627,9 +630,129 @@ def validation_evidence_current(
         if profile and evidence_profile and evidence_profile != profile:
             continue
         if (
-            evidence_sha == head
+            isinstance(evidence_sha, str)
+            and evidence_sha_matches_current_source(
+                stream, evidence_sha, head, worktree=worktree
+            )
             and result in {"pass", "passed", "green", "success"}
             and (not profile or evidence_profile == profile)
+        ):
+            return True
+    return False
+
+
+def evidence_sha_matches_current_source(
+    stream: Path,
+    evidence_sha: str,
+    head: str,
+    *,
+    worktree: Path | None = None,
+) -> bool:
+    """Allow only workstream-record commits after the validated source SHA."""
+
+    if evidence_sha == head:
+        return True
+    if not re.fullmatch(r"[0-9a-f]{7,40}", evidence_sha):
+        return False
+    checkout = worktree or root()
+    ancestor = run(
+        "git", "merge-base", "--is-ancestor", evidence_sha, head,
+        cwd=checkout, check=False,
+    )
+    if ancestor.returncode != 0:
+        return False
+    changed = git("diff", "--name-only", f"{evidence_sha}..{head}", cwd=checkout)
+    allowed_prefix = f"ops/workstreams/{stream.name}/"
+    return bool(changed) and all(item.startswith(allowed_prefix) for item in changed.splitlines())
+
+
+def external_service_path(path: str) -> bool:
+    """Return whether a path can change an external-provider integration."""
+
+    return (
+        path.startswith(("backend/app/providers/", "backend/tests/live/"))
+        or path.startswith(("backend/app/schemas/provider", "backend/app/tasks/", "backend/app/workers/"))
+        or path.startswith("backend/tests/integration/provider")
+        or path.startswith("backend/alembic/versions/")
+        or path in {
+            "backend/app/config.py",
+            "backend/app/models/provider_runtime.py",
+            "backend/app/routers/providers.py",
+            "backend/app/services/provider_runtime.py",
+            "backend/app/services/provider_routing.py",
+            "backend/app/services/provider_account_usage.py",
+            "backend/app/services/market_data.py",
+            "backend/app/services/instrument_events.py",
+            "backend/app/services/options_data.py",
+            "backend/app/services/tokenized_assets.py",
+            "scripts/run-live-provider-probes.py",
+            "scripts/merge-provider-live-usage.py",
+            "docs/data-providers.md",
+            "docs/provider-live-validation.md",
+            "README.md",
+            ".github/workflows/provider-live.yml",
+            ".github/workflows/ci.yml",
+            ".env.example",
+            "backend/.env.example",
+            "docker-compose.yml",
+            "deploy/rpi/compose.yml",
+        }
+    )
+
+
+def provider_integration_changed(plan: dict[str, Any], worktree: Path) -> bool:
+    """Detect provider integration changes against the recorded branch base."""
+
+    base = str(plan.get("base_sha") or "")
+    if not re.fullmatch(r"[0-9a-f]{40}", base):
+        return True
+    result = run(
+        "git", "diff", "--name-only", f"{base}...HEAD", cwd=worktree, check=False
+    )
+    if result.returncode:
+        return True
+    return any(external_service_path(item) for item in result.stdout.splitlines())
+
+
+def provider_live_evidence_current(
+    stream: Path, head: str, worktree: Path
+) -> bool:
+    """Require a clean, full provider matrix at unchanged provider source."""
+
+    journal = stream / "validation.jsonl"
+    if not journal.exists():
+        return False
+    for line in journal.read_text().splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict):
+            continue
+        total = value.get("case_count")
+        decisions = parse_plan(stream / "plan.yaml").get("approved_execution_decisions") or {}
+        provider_decisions = decisions.get("providers") if isinstance(decisions, dict) else {}
+        expected_deferrals = {
+            str(provider): str(decision).strip()
+            for provider, decision in (provider_decisions or {}).items()
+            if str(decision or "").strip().lower().startswith("deferred by user")
+        }
+        if (
+            value.get("kind") != "provider_live_matrix"
+            or value.get("scope") != "full_matrix"
+            or value.get("result") != "passed"
+            or not isinstance(total, int)
+            or total <= 0
+            or value.get("passed_cases") != total
+            or value.get("failed_cases") != 0
+            or value.get("skipped_cases") != 0
+            or value.get("dirty_source_paths") != []
+            or value.get("approved_deferrals") != expected_deferrals
+        ):
+            continue
+        source_sha = value.get("source_sha")
+        if isinstance(source_sha, str) and evidence_sha_matches_current_source(
+            stream, source_sha, head, worktree=worktree
         ):
             return True
     return False
@@ -1071,10 +1194,18 @@ def finish(session_id: str, interrupted: bool, next_action: str) -> None:
         if not interrupted:
             head = git("rev-parse", "HEAD", cwd=path)
             if not validation_evidence_current(
-                stream, head, str(plan.get("local_validation_profile"))
+                stream, head, str(plan.get("local_validation_profile")), path
             ):
                 raise SystemExit(
                     "normal finish requires passing validation evidence for the current HEAD"
+                )
+            if provider_integration_changed(plan, path) and not provider_live_evidence_current(
+                stream, head, path
+            ):
+                raise SystemExit(
+                    "normal finish requires a passing full provider live matrix for the "
+                    "current provider source SHA; focused probes, skips, or incomplete "
+                    "credential/quota preflights are not acceptance evidence"
                 )
     dirty = dirty_paths(path)
     if dirty and not interrupted:
