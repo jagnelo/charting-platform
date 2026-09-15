@@ -20242,11 +20242,40 @@ async def test_archer_investment_adapter_discovers_and_parses_arwg_daily_holding
     assert cash_row.symbol is None
     assert cash_row.row_type == "cash"
     assert cash_row.weight == Decimal("0.025")
+    assert result.raw_json["composition_date"] == "2026-07-13"
+    assert result.raw_json["as_of_date"] == "2026-07-13"
+    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert (
+        result.legal_metadata["snapshot_provenance"]
+        == "archer_investment_native_daily_holdings_csv"
+    )
     assert (
         result.legal_metadata["route_resolution"]
         == "archer_investment_product_page_linked_daily_holdings_csv"
     )
+
+
+def test_archer_investment_holdings_require_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("archer_investment")
+    assert adapter is not None
+    prefix = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag\n"
+    valid = prefix + "07/13/2026,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
+    invalid = prefix + "not-a-date,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
+    mixed = (
+        prefix
+        + "07/13/2026,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,\n"
+        + "07/14/2026,ARWG,AAPL,037833100,Apple Inc,10,200,2000,20%,"
+    )
+    undated = prefix + ",ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,"
+    rows, snapshot_date = adapter._parse_holdings_csv(valid, symbol="ARWG")
+    assert len(rows) == 1
+    assert snapshot_date == date(2026, 7, 13)
+    assert rows[0].source_row_id == "ARWG:2026-07-13:1"
+    for payload in (invalid, mixed, undated):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_holdings_csv(payload, symbol="ARWG")
 
 
 @pytest.mark.asyncio

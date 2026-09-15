@@ -26728,6 +26728,8 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "issuer_product_page_linked_daily_holdings_csv",
                 "product_page_url": str(page_response.url),
                 "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
             },
             source_url=str(csv_response.url),
             source_identifier=normalized_symbol,
@@ -26738,8 +26740,11 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "csv",
                 "route_resolution": "archer_investment_product_page_linked_daily_holdings_csv",
                 "product_page_url": str(page_response.url),
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "archer_investment_native_daily_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -26762,19 +26767,13 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
         raw_csv: str, *, symbol: str
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = False
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
             account = (_clean(raw.get("Account")) or "").upper()
             if account != symbol.upper():
                 continue
             row_date = _clean(raw.get("Date"))
-            if row_date:
-                try:
-                    parsed_date = datetime.strptime(row_date, "%m/%d/%Y").date()
-                    if composition_date is None or parsed_date > composition_date:
-                        composition_date = parsed_date
-                except ValueError:
-                    pass
             ticker = _clean(raw.get("StockTicker"))
             cusip = _clean(raw.get("CUSIP"))
             name = _clean(raw.get("SecurityName"))
@@ -26783,6 +26782,11 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
             is_cash = bool(money_market_flag) or "cash" in haystack or "money market" in haystack
             if not any([ticker, cusip, name, raw.get("MarketValue")]):
                 continue
+            parsed_date = _parse_issuer_date(row_date)
+            if parsed_date is None:
+                invalid_or_missing_dates = True
+            else:
+                composition_dates.add(parsed_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash else (ticker.upper() if ticker else None),
@@ -26794,11 +26798,21 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if is_cash else None,
                     holding_type="cash" if is_cash else "equity",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    source_row_id=f"{symbol}:{row_date or 'undated'}:{index}",
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
+            )
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "Archer Investment holdings CSV must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        composition_date = next(iter(composition_dates))
+        for row in rows:
+            row.source_row_id = row.source_row_id.replace(
+                f":{row.source_row_id.split(':')[1]}:", f":{composition_date.isoformat()}:"
             )
         return rows, composition_date
 
