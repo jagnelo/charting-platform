@@ -8,7 +8,7 @@ derive component P&L from position changes.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
@@ -182,6 +182,54 @@ class FillCostObservation:
             "costs",
             tuple(sorted(costs, key=lambda item: item.cost_component_id)),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class AccountEquityIntervalObservation:
+    """One engine-reported prior-mark-to-session-close account interval.
+
+    External cash flow uses account-cash signs: deposits are positive and
+    withdrawals negative. The interval's net P&L is reconciled as ending equity
+    minus starting equity minus this flow. Return calculations remain undefined
+    for intervals with external flows until a time-weighted method is selected.
+    """
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    calendar_fingerprint: str
+    session_label: date
+    start_point: ObservationPoint
+    end_point: ObservationPoint
+    starting_equity: Decimal
+    ending_equity: Decimal
+    external_cash_flow: Decimal
+    base_currency: str
+    engine_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        require_sha256_digest(self.calendar_fingerprint, field_name="calendar_fingerprint")
+        if type(self.session_label) is not date:
+            raise TypeError("session_label must be a date, not a datetime")
+        if not isinstance(self.start_point, ObservationPoint):
+            raise TypeError("start_point must be an ObservationPoint")
+        if not isinstance(self.end_point, ObservationPoint):
+            raise TypeError("end_point must be an ObservationPoint")
+        if self.end_point <= self.start_point:
+            raise ValueError("equity interval end_point must follow start_point")
+        for name in ("starting_equity", "ending_equity", "external_cash_flow"):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite():
+                raise ValueError(f"{name} must be a finite Decimal")
+        if self.starting_equity <= 0 or self.ending_equity < 0:
+            raise ValueError("starting_equity must be positive and ending_equity non-negative")
+        object.__setattr__(
+            self, "base_currency", _currency_code(self.base_currency, "base_currency")
+        )
+        require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
 
 
 @dataclass(frozen=True, slots=True)

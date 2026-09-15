@@ -108,7 +108,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   attribution from position weights.
 - `experiments.py` expands deterministic search/scenario plans and
   leakage-aware walk-forward folds.
-- `metrics.py` v3 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v4 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
@@ -128,9 +128,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   denominator. Run-level component P&L attribution reconciles
   exactly to portfolio gross/net P&L and requires an explicit unallocated
   component when residual results exist. These remain only part of the planned
-  catalog; irregular-time/capital utilization, financing outside fill reports,
-  rolling, distributions, sensitivity, and calendar-period metrics still need
-  additional authoritative input contracts.
+  catalog. `calculate_calendar_period_metrics()` adds run-scoped linked
+  prior-mark-to-session-close P&L and per-period returns for each-session,
+  ISO-weekly, monthly, quarterly, or yearly cadence, tied to the exact session
+  calendar and complete-period flag. Net P&L reconciles account equity changes
+  after explicit external flows; returns are null for incomplete period coverage
+  and when flows occur until a time-weighted return method is selected. Remaining
+  gaps include irregular-time annualized metrics, margin/capital utilization,
+  financing outside fill reports, rolling series, distributions, and sensitivity.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active

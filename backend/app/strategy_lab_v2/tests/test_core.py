@@ -415,7 +415,7 @@ def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
     assert by_name["total_return"].basis is MetricBasis.NET
     assert by_name["sharpe_ratio"].value is not None
     assert by_name["sharpe_ratio"].annualization_basis == "252 observed periods per year"
-    assert all(item.definition_version == "strategy-lab.metrics.v3" for item in metrics)
+    assert all(item.definition_version == "strategy-lab.metrics.v4" for item in metrics)
 
     trade_metrics = {
         item.name: item

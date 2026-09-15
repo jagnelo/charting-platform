@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 
 import pytest
@@ -20,11 +20,13 @@ from app.strategy_lab_v2.contracts import (
     RiskExposureMeasure,
 )
 from app.strategy_lab_v2.metrics import (
+    calculate_calendar_period_metrics,
     calculate_component_attribution_metrics,
     calculate_execution_cost_metrics,
     calculate_exposure_utilization_metrics,
 )
 from app.strategy_lab_v2.observations import (
+    AccountEquityIntervalObservation,
     ComponentPnlObservation,
     CostReportStatus,
     ExecutionCostComponent,
@@ -32,6 +34,14 @@ from app.strategy_lab_v2.observations import (
     FillCostObservation,
     ObservationPoint,
     PortfolioPnlObservation,
+)
+from app.strategy_lab_v2.rebalance import (
+    CalendarDay,
+    CalendarDayStatus,
+    RebalanceCadence,
+    SessionCalendarSnapshot,
+    SessionSegment,
+    TradingSession,
 )
 
 PORTFOLIO = content_digest("observation-test-portfolio")
@@ -41,6 +51,78 @@ RESULT_BUNDLE = content_digest("engine-result-evidence-bundle-v1")
 MODEL = content_digest("engine-cost-model-v1")
 BENCHMARK = content_digest("slippage-benchmark-v1")
 START = datetime(2024, 1, 2, 15, 0, tzinfo=UTC)
+
+
+def _january_calendar() -> SessionCalendarSnapshot:
+    start = date(2023, 12, 1)
+    end = date(2024, 1, 31)
+    trading_dates = (
+        date(2023, 12, 29),
+        date(2024, 1, 2),
+        date(2024, 1, 3),
+        date(2024, 1, 31),
+    )
+    sessions = {
+        label: TradingSession(
+            f"XNYS:{label.isoformat()}",
+            label,
+            (
+                SessionSegment(
+                    datetime(label.year, label.month, label.day, 14, 30, tzinfo=UTC),
+                    datetime(label.year, label.month, label.day, 21, 0, tzinfo=UTC),
+                ),
+            ),
+        )
+        for label in trading_dates
+    }
+    calendar_days: list[CalendarDay] = []
+    current = start
+    while current <= end:
+        calendar_days.append(
+            CalendarDay(
+                current,
+                CalendarDayStatus.TRADING if current in sessions else CalendarDayStatus.CLOSED,
+                sessions.get(current),
+            )
+        )
+        current += timedelta(days=1)
+    days = tuple(calendar_days)
+    return SessionCalendarSnapshot(
+        calendar_id="XNYS",
+        definition_version="XNYS-reg-hours-v1",
+        timezone_name="America/New_York",
+        timezone_database_version="2024a-test-fixture",
+        coverage_start=start,
+        coverage_end=end,
+        days=days,
+        source_evidence_digest=content_digest("january-equity-calendar-source-v1"),
+    )
+
+
+def _equity_interval(
+    calendar: SessionCalendarSnapshot,
+    label: date,
+    start_point: ObservationPoint,
+    end_point: ObservationPoint,
+    starting_equity: str,
+    ending_equity: str,
+    *,
+    flow: str = "0",
+    attempt_id: str = "attempt-1",
+) -> AccountEquityIntervalObservation:
+    return AccountEquityIntervalObservation(
+        portfolio_fingerprint=PORTFOLIO,
+        run_attempt_id=attempt_id,
+        calendar_fingerprint=calendar.fingerprint,
+        session_label=label,
+        start_point=start_point,
+        end_point=end_point,
+        starting_equity=Decimal(starting_equity),
+        ending_equity=Decimal(ending_equity),
+        external_cash_flow=Decimal(flow),
+        base_currency="USD",
+        engine_evidence_digest=EVIDENCE,
+    )
 
 
 def _snapshot(
@@ -237,6 +319,149 @@ def test_exposure_metrics_reject_reordered_and_unsupported_product_marks() -> No
     )
     with pytest.raises(ValueError, match="unsupported exposure risk model"):
         calculate_exposure_utilization_metrics((unsupported,))
+
+
+def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> None:
+    calendar = _january_calendar()
+    start = ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1)
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    last_close = ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 3)
+    intervals = (
+        _equity_interval(
+            calendar,
+            date(2024, 1, 2),
+            start,
+            first_close,
+            "100000",
+            "101000",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 31),
+            first_close,
+            last_close,
+            "101000",
+            "102000",
+        ),
+    )
+
+    metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+
+    assert metrics["calendar_period_net_pnl:monthly:month:2024-01"].value == Decimal(2000)
+    assert metrics["calendar_period_return:monthly:month:2024-01"].value == Decimal("0.02")
+    assert metrics["calendar_period_complete:monthly:month:2024-01"].value == Decimal(1)
+    assert metrics["calendar_period_return:monthly:month:2024-01"].unit == "fraction"
+    assert (
+        calendar.fingerprint
+        in metrics["calendar_period_net_pnl:monthly:month:2024-01"].calculation_basis
+    )
+    assert all(item.definition_version == "strategy-lab.metrics.v4" for item in metrics.values())
+
+
+def test_calendar_period_partial_and_external_flow_returns() -> None:
+    calendar = _january_calendar()
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    last_close = ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 3)
+    partial = _equity_interval(
+        calendar,
+        date(2024, 1, 31),
+        first_close,
+        last_close,
+        "101000",
+        "102000",
+    )
+    partial_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            (partial,), calendar=calendar, cadence=RebalanceCadence.MONTHLY
+        )
+    )
+    assert partial_metrics["calendar_period_complete:monthly:month:2024-01"].value == Decimal(0)
+    assert partial_metrics["calendar_period_return:monthly:month:2024-01"].value is None
+    assert partial_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
+        "calendar period coverage is incomplete"
+    )
+
+    flow_intervals = (
+        _equity_interval(
+            calendar,
+            date(2024, 1, 2),
+            ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+            first_close,
+            "100000",
+            "106000",
+            flow="5000",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 31),
+            first_close,
+            last_close,
+            "106000",
+            "107000",
+        ),
+    )
+    flow_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            flow_intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+    assert flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"].value == Decimal(2000)
+    assert flow_metrics["calendar_period_return:monthly:month:2024-01"].value is None
+    assert flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
+        "period contains external cash flows; time-weighted return is not implemented"
+    )
+
+
+def test_calendar_period_metrics_reject_mixed_runs_unmatched_marks_and_wrong_calendar() -> None:
+    calendar = _january_calendar()
+    start = ObservationPoint(datetime(2024, 1, 1, 20, 0, tzinfo=UTC), 1)
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    last_close = ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 3)
+    first = _equity_interval(
+        calendar, date(2024, 1, 2), start, first_close, "100000", "101000"
+    )
+    second = _equity_interval(
+        calendar, date(2024, 1, 31), first_close, last_close, "101000", "102000"
+    )
+
+    with pytest.raises(ValueError, match="same run attempt"):
+        calculate_calendar_period_metrics(
+            (first, replace(second, run_attempt_id="attempt-2")),
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    with pytest.raises(ValueError, match="contiguous mark chain"):
+        calculate_calendar_period_metrics(
+            (
+                first,
+                replace(
+                    second,
+                    start_point=ObservationPoint(first_close.event_time, 99),
+                ),
+            ),
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    with pytest.raises(ValueError, match="official session close"):
+        calculate_calendar_period_metrics(
+            (replace(first, end_point=ObservationPoint(datetime(2024, 1, 2, 20, 0, tzinfo=UTC), 2)),),
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    with pytest.raises(ValueError, match="bind the supplied calendar version"):
+        calculate_calendar_period_metrics(
+            (replace(first, calendar_fingerprint=content_digest("other-calendar")),),
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
 
 
 def test_execution_cost_metrics_reconcile_fill_cash_effects_and_component_costs() -> None:

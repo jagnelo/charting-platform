@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 from decimal import ROUND_CEILING, Decimal
 
 from app.strategy_lab_v2.allocation import PortfolioExposureSnapshot
@@ -14,6 +15,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.observations import (
+    AccountEquityIntervalObservation,
     ComponentPnlObservation,
     CostReportStatus,
     ExecutionCostKind,
@@ -21,8 +23,15 @@ from app.strategy_lab_v2.observations import (
     ObservationPoint,
     PortfolioPnlObservation,
 )
+from app.strategy_lab_v2.rebalance import (
+    RebalanceCadence,
+    SessionCalendarSnapshot,
+    TradingSession,
+    calendar_period_key,
+    require_complete_calendar_period_coverage,
+)
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v3"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v4"
 _METRIC_FORMULAS = {
     "total_pnl": "terminal equity minus initial capital; external cash flows are not modeled",
     "total_return": "terminal equity divided by initial capital minus one",
@@ -840,6 +849,169 @@ def calculate_exposure_utilization_metrics(
             ),
         ),
     )
+
+
+@deterministic_decimal_math
+def calculate_calendar_period_metrics(
+    observations: Sequence[AccountEquityIntervalObservation],
+    *,
+    calendar: SessionCalendarSnapshot,
+    cadence: RebalanceCadence,
+) -> tuple[MetricValue, ...]:
+    """Aggregate linked prior-mark-to-session-close equity intervals by calendar.
+
+    Net P&L reconciles account equity changes after explicitly reported external
+    cash flows. Period returns are emitted only for complete periods with no
+    external flow; a time-weighted return method is not inferred.
+    A period is marked complete only when observations start at the preceding
+    actual session close and reach the period's final session close. Calendar
+    evidence must therefore include at least one prior session for a complete
+    first observed period.
+    """
+
+    intervals = tuple(observations)
+    if not intervals:
+        raise ValueError("at least one account equity interval is required")
+    if any(not isinstance(item, AccountEquityIntervalObservation) for item in intervals):
+        raise TypeError("observations must contain AccountEquityIntervalObservation values")
+    if not isinstance(calendar, SessionCalendarSnapshot):
+        raise TypeError("calendar must be a SessionCalendarSnapshot")
+    if not isinstance(cadence, RebalanceCadence):
+        raise TypeError("cadence must be a RebalanceCadence")
+    require_complete_calendar_period_coverage(calendar, cadence)
+
+    portfolio_fingerprint = intervals[0].portfolio_fingerprint
+    run_attempt_id = intervals[0].run_attempt_id
+    currency = intervals[0].base_currency
+    calendar_fingerprint = calendar.fingerprint
+    session_by_label = {
+        day.session.session_label: day.session for day in calendar.days if day.session is not None
+    }
+    groups: dict[str, list[AccountEquityIntervalObservation]] = {}
+    observed_labels: set[date] = set()
+    previous: AccountEquityIntervalObservation | None = None
+    for item in intervals:
+        if item.portfolio_fingerprint != portfolio_fingerprint:
+            raise ValueError("all account equity intervals must use the same portfolio version")
+        if item.run_attempt_id != run_attempt_id:
+            raise ValueError("all account equity intervals must belong to the same run attempt")
+        if item.base_currency != currency:
+            raise ValueError("all account equity intervals must use the same base currency")
+        if item.calendar_fingerprint != calendar_fingerprint:
+            raise ValueError("account equity intervals must bind the supplied calendar version")
+        session = session_by_label.get(item.session_label)
+        if session is None:
+            raise ValueError("account equity interval session label is not a trading date")
+        if item.end_point.event_time != session.close_time:
+            raise ValueError("account equity interval must end at its official session close")
+        if item.session_label in observed_labels:
+            raise ValueError("account equity intervals must be unique per session label")
+        if previous is not None:
+            if item.end_point <= previous.end_point:
+                raise ValueError("account equity intervals must be strictly ordered")
+            if item.start_point != previous.end_point:
+                raise ValueError("account equity intervals must form one contiguous mark chain")
+            if item.starting_equity != previous.ending_equity:
+                raise ValueError("contiguous account equity intervals must reconcile their marks")
+        observed_labels.add(item.session_label)
+        groups.setdefault(calendar_period_key(item.session_label, cadence), []).append(item)
+        previous = item
+
+    calendar_sessions_by_period: dict[str, list[TradingSession]] = {}
+    calendar_sessions: list[TradingSession] = []
+    for day in calendar.days:
+        if day.session is not None:
+            calendar_sessions.append(day.session)
+            period = calendar_period_key(day.label, cadence)
+            calendar_sessions_by_period.setdefault(period, []).append(day.session)
+    calendar_session_index = {
+        session.session_label: index for index, session in enumerate(calendar_sessions)
+    }
+
+    metrics: list[MetricValue] = []
+    for period in sorted(groups, key=lambda value: groups[value][0].session_label):
+        period_intervals = groups[period]
+        expected_sessions = calendar_sessions_by_period[period]
+        first_expected_session = expected_sessions[0]
+        last_expected_session = expected_sessions[-1]
+        first_interval = period_intervals[0]
+        last_interval = period_intervals[-1]
+        first_session_index = calendar_session_index[first_expected_session.session_label]
+        preceding_session = (
+            calendar_sessions[first_session_index - 1] if first_session_index > 0 else None
+        )
+        period_complete = (
+            first_interval.session_label == first_expected_session.session_label
+            and preceding_session is not None
+            and first_interval.start_point.event_time == preceding_session.close_time
+            and last_interval.session_label == last_expected_session.session_label
+            and last_interval.end_point.event_time == last_expected_session.close_time
+        )
+        net_pnl = sum(
+            (
+                item.ending_equity - item.starting_equity - item.external_cash_flow
+                for item in period_intervals
+            ),
+            Decimal(0),
+        )
+        has_external_flows = any(item.external_cash_flow != 0 for item in period_intervals)
+        return_null_reason = (
+            "calendar period coverage is incomplete"
+            if not period_complete
+            else "period contains external cash flows; time-weighted return is not implemented"
+            if has_external_flows
+            else None
+        )
+        period_return = (
+            None
+            if return_null_reason is not None
+            else last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+        )
+        observation_digest = content_digest(tuple(period_intervals))
+        basis = (
+            f"{cadence.value} calendar period {period}; opening mark {first_interval.start_point.event_time.isoformat()}; "
+            f"closing session {last_interval.session_label.isoformat()}; calendar {calendar_fingerprint}; "
+            f"period_complete={str(period_complete).lower()}; observations {observation_digest}"
+        )
+        metrics.extend(
+            (
+                _value(
+                    f"calendar_period_net_pnl:{cadence.value}:{period}",
+                    net_pnl,
+                    unit=f"currency:{currency}",
+                    basis=MetricBasis.NET,
+                    sample_size=len(period_intervals),
+                    calculation_basis=(
+                        "sum of linked session-close account equity changes less explicitly reported "
+                        f"external cash flows; {basis}"
+                    ),
+                ),
+                _value(
+                    f"calendar_period_return:{cadence.value}:{period}",
+                    period_return,
+                    unit="fraction",
+                    basis=MetricBasis.NET,
+                    sample_size=len(period_intervals),
+                    calculation_basis=(
+                        "closing account equity divided by the first interval opening equity minus one; "
+                        f"{basis}"
+                    ),
+                    null_reason=return_null_reason,
+                ),
+                _value(
+                    f"calendar_period_complete:{cadence.value}:{period}",
+                    Decimal(1) if period_complete else Decimal(0),
+                    unit="boolean",
+                    basis=MetricBasis.NET,
+                    sample_size=len(period_intervals),
+                    calculation_basis=(
+                        "one means marks span the preceding actual session close through "
+                        f"the last actual session close; {basis}"
+                    ),
+                ),
+            )
+        )
+    return tuple(metrics)
 
 
 @deterministic_decimal_math

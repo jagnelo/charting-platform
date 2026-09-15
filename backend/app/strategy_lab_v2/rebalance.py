@@ -262,7 +262,7 @@ class ScheduledRebalance:
         _nonempty(self.cadence_period, "cadence_period")
 
 
-def _period_key(value: date, cadence: RebalanceCadence) -> str:
+def calendar_period_key(value: date, cadence: RebalanceCadence) -> str:
     if cadence is RebalanceCadence.EACH_SESSION:
         return f"session:{value.isoformat()}"
     if cadence is RebalanceCadence.ISO_WEEKLY:
@@ -305,7 +305,7 @@ def _period_end(value: date, cadence: RebalanceCadence) -> date:
     return value
 
 
-def _require_complete_period_coverage(
+def require_complete_calendar_period_coverage(
     calendar: SessionCalendarSnapshot,
     cadence: RebalanceCadence,
 ) -> None:
@@ -359,12 +359,12 @@ def schedule_rebalances(
         or through_session_label > calendar.coverage_end
     ):
         raise ValueError("requested rebalance range is outside calendar coverage")
-    _require_complete_period_coverage(calendar, policy.cadence)
+    require_complete_calendar_period_coverage(calendar, policy.cadence)
 
     sessions_by_period: dict[str, list[TradingSession]] = {}
     for day in calendar.days:
         if day.session is not None:
-            period = _period_key(day.label, policy.cadence)
+            period = calendar_period_key(day.label, policy.cadence)
             sessions_by_period.setdefault(period, []).append(day.session)
 
     selected: list[tuple[str, TradingSession]] = []
