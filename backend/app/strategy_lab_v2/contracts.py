@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
+from app.strategy_lab_v2.observations import ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
 
 if TYPE_CHECKING:
@@ -739,6 +740,87 @@ class MetricValue:
             _nonempty(self.annualization_basis, "annualization_basis")
         if self.calculation_basis is not None:
             _nonempty(self.calculation_basis, "calculation_basis")
+
+
+@dataclass(frozen=True, slots=True)
+class RollingMetricPoint:
+    """One structured end-of-session point in a rolling metric series."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    calendar_fingerprint: str
+    window_sessions: int
+    observed_sessions: int
+    window_start_session_label: date | None
+    window_end_session_label: date
+    window_start_point: ObservationPoint | None
+    window_end_point: ObservationPoint
+    coverage_complete: bool
+    observation_digest: str
+    metrics: tuple[MetricValue, ...]
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        _nonempty(self.run_attempt_id, "run_attempt_id")
+        require_sha256_digest(self.calendar_fingerprint, field_name="calendar_fingerprint")
+        if (
+            not isinstance(self.window_sessions, int)
+            or isinstance(self.window_sessions, bool)
+            or self.window_sessions < 1
+        ):
+            raise ValueError("window_sessions must be a positive integer")
+        if (
+            not isinstance(self.observed_sessions, int)
+            or isinstance(self.observed_sessions, bool)
+            or not 1 <= self.observed_sessions <= self.window_sessions
+        ):
+            raise ValueError("observed_sessions must be between one and window_sessions")
+        if self.window_start_session_label is not None and type(
+            self.window_start_session_label
+        ) is not date:
+            raise TypeError("window_start_session_label must be a date or None")
+        if type(self.window_end_session_label) is not date:
+            raise TypeError("window_end_session_label must be a date, not a datetime")
+        if (
+            self.window_start_session_label is not None
+            and self.window_start_session_label > self.window_end_session_label
+        ):
+            raise ValueError("rolling window start label must not follow its end label")
+        if self.window_start_point is not None and not isinstance(
+            self.window_start_point, ObservationPoint
+        ):
+            raise TypeError("window_start_point must be an ObservationPoint or None")
+        if not isinstance(self.window_end_point, ObservationPoint):
+            raise TypeError("window_end_point must be an ObservationPoint")
+        if not isinstance(self.coverage_complete, bool):
+            raise TypeError("coverage_complete must be a bool")
+        if self.coverage_complete and (
+            self.observed_sessions != self.window_sessions
+            or self.window_start_session_label is None
+            or self.window_start_point is None
+        ):
+            raise ValueError("complete rolling points require full session and opening-mark coverage")
+        if (
+            self.window_start_point is not None
+            and self.window_end_point <= self.window_start_point
+        ):
+            raise ValueError("rolling window end point must follow its opening mark")
+        require_sha256_digest(self.observation_digest, field_name="observation_digest")
+        metrics = tuple(self.metrics)
+        if not metrics or any(not isinstance(item, MetricValue) for item in metrics):
+            raise ValueError("rolling points must contain typed MetricValue records")
+        metric_names = [item.name for item in metrics]
+        if len(metric_names) != len(set(metric_names)):
+            raise ValueError("rolling point metric names must be unique")
+        if len({item.definition_version for item in metrics}) != 1:
+            raise ValueError("rolling point metrics must use one definition version")
+        if any(item.sample_size != self.observed_sessions for item in metrics):
+            raise ValueError("rolling point metric sample sizes must match observed_sessions")
+        object.__setattr__(self, "metrics", metrics)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
 
 
 @dataclass(frozen=True, slots=True)

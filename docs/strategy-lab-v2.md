@@ -102,13 +102,16 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and
-  account/component P&L records. Event and fill observations are scoped to one
-  run attempt so metrics cannot silently combine separate retries. Engine adapters must provide the
-  evidence; the core does not perform FX conversion, infer costs, or infer P&L
-  attribution from position weights.
+  account/component P&L records. Account-equity intervals distinguish complete,
+  partial, and unavailable external-cash-flow reports; a complete report must
+  explicitly report both net amount and flow occurrence, distinguishing no flows
+  from offsetting flows with a zero net amount. Event and fill observations are
+  scoped to one run attempt so metrics cannot silently combine separate retries.
+  Engine adapters must provide the evidence; the core does not perform FX
+  conversion, infer costs, or infer P&L attribution from position weights.
 - `experiments.py` expands deterministic search/scenario plans and
   leakage-aware walk-forward folds.
-- `metrics.py` v4 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v5 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
@@ -132,10 +135,19 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   prior-mark-to-session-close P&L and per-period returns for each-session,
   ISO-weekly, monthly, quarterly, or yearly cadence, tied to the exact session
   calendar and complete-period flag. Net P&L reconciles account equity changes
-  after explicit external flows; returns are null for incomplete period coverage
-  and when flows occur until a time-weighted return method is selected. Remaining
-  gaps include irregular-time annualized metrics, margin/capital utilization,
-  financing outside fill reports, rolling series, distributions, and sensitivity.
+  after explicit complete external-flow reports; it is null when those reports
+  are partial or unavailable. Returns are null for incomplete period coverage
+  and when flows occur until a time-weighted return method is selected.
+  `calculate_rolling_equity_metrics()` returns structured, run-scoped points for
+  each observed close. Each window requires the requested number of consecutive
+  session-close intervals plus the preceding session close; missing observations
+  are explicit incomplete points, not compressed samples. Annualization periods
+  and periodic risk-free target are required inputs. Rolling return, volatility,
+  Sharpe, Sortino, drawdown, duration, and Ulcer metrics fail closed on incomplete
+  flow evidence or external flows; net P&L remains available only with complete
+  flow reports. Remaining gaps include irregular-time annualized metrics,
+  margin/capital utilization, financing outside fill reports, distributions,
+  and sensitivity.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active

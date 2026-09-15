@@ -12,6 +12,7 @@ from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     MetricBasis,
     MetricValue,
+    RollingMetricPoint,
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.observations import (
@@ -19,6 +20,7 @@ from app.strategy_lab_v2.observations import (
     ComponentPnlObservation,
     CostReportStatus,
     ExecutionCostKind,
+    ExternalCashFlowReportStatus,
     FillCostObservation,
     ObservationPoint,
     PortfolioPnlObservation,
@@ -31,7 +33,7 @@ from app.strategy_lab_v2.rebalance import (
     require_complete_calendar_period_coverage,
 )
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v4"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v5"
 _METRIC_FORMULAS = {
     "total_pnl": "terminal equity minus initial capital; external cash flows are not modeled",
     "total_return": "terminal equity divided by initial capital minus one",
@@ -851,24 +853,13 @@ def calculate_exposure_utilization_metrics(
     )
 
 
-@deterministic_decimal_math
-def calculate_calendar_period_metrics(
+def _validated_equity_intervals(
     observations: Sequence[AccountEquityIntervalObservation],
-    *,
     calendar: SessionCalendarSnapshot,
-    cadence: RebalanceCadence,
-) -> tuple[MetricValue, ...]:
-    """Aggregate linked prior-mark-to-session-close equity intervals by calendar.
-
-    Net P&L reconciles account equity changes after explicitly reported external
-    cash flows. Period returns are emitted only for complete periods with no
-    external flow; a time-weighted return method is not inferred.
-    A period is marked complete only when observations start at the preceding
-    actual session close and reach the period's final session close. Calendar
-    evidence must therefore include at least one prior session for a complete
-    first observed period.
-    """
-
+) -> tuple[
+    tuple[AccountEquityIntervalObservation, ...],
+    dict[date, TradingSession],
+]:
     intervals = tuple(observations)
     if not intervals:
         raise ValueError("at least one account equity interval is required")
@@ -876,9 +867,6 @@ def calculate_calendar_period_metrics(
         raise TypeError("observations must contain AccountEquityIntervalObservation values")
     if not isinstance(calendar, SessionCalendarSnapshot):
         raise TypeError("calendar must be a SessionCalendarSnapshot")
-    if not isinstance(cadence, RebalanceCadence):
-        raise TypeError("cadence must be a RebalanceCadence")
-    require_complete_calendar_period_coverage(calendar, cadence)
 
     portfolio_fingerprint = intervals[0].portfolio_fingerprint
     run_attempt_id = intervals[0].run_attempt_id
@@ -887,7 +875,6 @@ def calculate_calendar_period_metrics(
     session_by_label = {
         day.session.session_label: day.session for day in calendar.days if day.session is not None
     }
-    groups: dict[str, list[AccountEquityIntervalObservation]] = {}
     observed_labels: set[date] = set()
     previous: AccountEquityIntervalObservation | None = None
     for item in intervals:
@@ -914,8 +901,38 @@ def calculate_calendar_period_metrics(
             if item.starting_equity != previous.ending_equity:
                 raise ValueError("contiguous account equity intervals must reconcile their marks")
         observed_labels.add(item.session_label)
-        groups.setdefault(calendar_period_key(item.session_label, cadence), []).append(item)
         previous = item
+    return intervals, session_by_label
+
+
+@deterministic_decimal_math
+def calculate_calendar_period_metrics(
+    observations: Sequence[AccountEquityIntervalObservation],
+    *,
+    calendar: SessionCalendarSnapshot,
+    cadence: RebalanceCadence,
+) -> tuple[MetricValue, ...]:
+    """Aggregate linked prior-mark-to-session-close equity intervals by calendar.
+
+    Net P&L reconciles account equity changes after explicitly reported external
+    cash flows. Period returns are emitted only for complete periods with no
+    external flow; a time-weighted return method is not inferred.
+    A period is marked complete only when observations start at the preceding
+    actual session close and reach the period's final session close. Calendar
+    evidence must therefore include at least one prior session for a complete
+    first observed period.
+    """
+
+    intervals, session_by_label = _validated_equity_intervals(observations, calendar)
+    if not isinstance(cadence, RebalanceCadence):
+        raise TypeError("cadence must be a RebalanceCadence")
+    require_complete_calendar_period_coverage(calendar, cadence)
+
+    currency = intervals[0].base_currency
+    calendar_fingerprint = calendar.fingerprint
+    groups: dict[str, list[AccountEquityIntervalObservation]] = {}
+    for item in intervals:
+        groups.setdefault(calendar_period_key(item.session_label, cadence), []).append(item)
 
     calendar_sessions_by_period: dict[str, list[TradingSession]] = {}
     calendar_sessions: list[TradingSession] = []
@@ -947,17 +964,40 @@ def calculate_calendar_period_metrics(
             and last_interval.session_label == last_expected_session.session_label
             and last_interval.end_point.event_time == last_expected_session.close_time
         )
-        net_pnl = sum(
-            (
-                item.ending_equity - item.starting_equity - item.external_cash_flow
-                for item in period_intervals
-            ),
-            Decimal(0),
+        flow_reports_complete = all(
+            item.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+            for item in period_intervals
         )
-        has_external_flows = any(item.external_cash_flow != 0 for item in period_intervals)
+        has_external_flows = any(
+            item.external_cash_flow_occurred is True for item in period_intervals
+        )
+        net_pnl = (
+            sum(
+                (
+                    item.ending_equity
+                    - item.starting_equity
+                    - (
+                        item.external_cash_flow
+                        if item.external_cash_flow is not None
+                        else Decimal(0)
+                    )
+                    for item in period_intervals
+                ),
+                Decimal(0),
+            )
+            if flow_reports_complete
+            else None
+        )
+        net_pnl_null_reason = (
+            "one or more external cash-flow reports are incomplete"
+            if not flow_reports_complete
+            else None
+        )
         return_null_reason = (
             "calendar period coverage is incomplete"
             if not period_complete
+            else "one or more external cash-flow reports are incomplete"
+            if not flow_reports_complete
             else "period contains external cash flows; time-weighted return is not implemented"
             if has_external_flows
             else None
@@ -985,6 +1025,7 @@ def calculate_calendar_period_metrics(
                         "sum of linked session-close account equity changes less explicitly reported "
                         f"external cash flows; {basis}"
                     ),
+                    null_reason=net_pnl_null_reason,
                 ),
                 _value(
                     f"calendar_period_return:{cadence.value}:{period}",
@@ -1012,6 +1053,381 @@ def calculate_calendar_period_metrics(
             )
         )
     return tuple(metrics)
+
+
+@deterministic_decimal_math
+def calculate_rolling_equity_metrics(
+    observations: Sequence[AccountEquityIntervalObservation],
+    *,
+    calendar: SessionCalendarSnapshot,
+    window_sessions: int,
+    periods_per_year: int,
+    risk_free_return_per_period: Decimal,
+    minimum_risk_observations: int = 2,
+) -> tuple[RollingMetricPoint, ...]:
+    """Calculate an explicit rolling metric point at each observed session close.
+
+    Each window consists of ``window_sessions`` complete close-to-close account
+    equity intervals plus its preceding actual session close as the opening mark.
+    Missing sessions never collapse into adjacent samples. Periods per year and
+    the periodic risk-free target are caller-supplied conventions. Return and
+    equity-path risk metrics are withheld if any external cash-flow events
+    occurred or their report is incomplete; net P&L remains available when flow
+    reports are complete, after subtracting the reported net flows.
+    """
+
+    if (
+        not isinstance(window_sessions, int)
+        or isinstance(window_sessions, bool)
+        or window_sessions < 1
+    ):
+        raise ValueError("window_sessions must be a positive integer")
+    if (
+        not isinstance(periods_per_year, int)
+        or isinstance(periods_per_year, bool)
+        or periods_per_year < 1
+    ):
+        raise ValueError("periods_per_year must be a positive integer")
+    if (
+        not isinstance(minimum_risk_observations, int)
+        or isinstance(minimum_risk_observations, bool)
+        or minimum_risk_observations < 2
+    ):
+        raise ValueError("minimum_risk_observations must be an integer of at least two")
+    if (
+        not isinstance(risk_free_return_per_period, Decimal)
+        or not risk_free_return_per_period.is_finite()
+        or risk_free_return_per_period <= -1
+    ):
+        raise ValueError("risk_free_return_per_period must be finite and greater than -1")
+
+    intervals, _ = _validated_equity_intervals(observations, calendar)
+    portfolio_fingerprint = intervals[0].portfolio_fingerprint
+    run_attempt_id = intervals[0].run_attempt_id
+    calendar_fingerprint = calendar.fingerprint
+    calendar_sessions = [day.session for day in calendar.days if day.session is not None]
+    session_index = {
+        session.session_label: index for index, session in enumerate(calendar_sessions)
+    }
+    interval_by_label = {item.session_label: item for item in intervals}
+    annualization_basis = (
+        f"sample session-return convention: {periods_per_year} sessions per year"
+    )
+    points: list[RollingMetricPoint] = []
+
+    for endpoint in intervals:
+        end_index = session_index[endpoint.session_label]
+        first_window_index = end_index - window_sessions + 1
+        window_start_session = (
+            calendar_sessions[first_window_index] if first_window_index >= 0 else None
+        )
+        expected_sessions = calendar_sessions[max(0, first_window_index) : end_index + 1]
+        window_intervals = tuple(
+            interval_by_label[session.session_label]
+            for session in expected_sessions
+            if session.session_label in interval_by_label
+        )
+        observed_sessions = len(window_intervals)
+        first_window_interval = (
+            interval_by_label.get(window_start_session.session_label)
+            if window_start_session is not None
+            else None
+        )
+        window_start_point = (
+            first_window_interval.start_point if first_window_interval is not None else None
+        )
+        preceding_session = (
+            calendar_sessions[first_window_index - 1]
+            if first_window_index > 0
+            else None
+        )
+        coverage_null_reason = None
+        if first_window_index < 0 or len(expected_sessions) != window_sessions:
+            coverage_null_reason = (
+                "calendar coverage does not include the complete rolling window"
+            )
+        elif preceding_session is None:
+            coverage_null_reason = (
+                "calendar coverage does not include the opening session close"
+            )
+        elif observed_sessions != window_sessions:
+            coverage_null_reason = (
+                "one or more expected session-close observations are missing"
+            )
+        elif window_intervals[0].start_point.event_time != preceding_session.close_time:
+            coverage_null_reason = (
+                "rolling window opening mark does not match the preceding session close"
+            )
+        coverage_complete = coverage_null_reason is None
+
+        flow_reports_complete = all(
+            item.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+            for item in window_intervals
+        )
+        has_external_flows = any(
+            item.external_cash_flow_occurred is True for item in window_intervals
+        )
+        flow_report_null_reason = (
+            "one or more external cash-flow reports are incomplete"
+            if not flow_reports_complete
+            else None
+        )
+        flow_return_null_reason = (
+            flow_report_null_reason
+            if flow_report_null_reason is not None
+            else "rolling window contains external cash flows; time-weighted return is not implemented"
+            if has_external_flows
+            else None
+        )
+        observation_digest = content_digest(window_intervals)
+        start_label = (
+            window_start_session.session_label if window_start_session is not None else None
+        )
+        basis = (
+            f"{window_sessions}-session window ending {endpoint.session_label.isoformat()}; "
+            f"expected start={start_label.isoformat() if start_label is not None else 'outside calendar'}; "
+            f"observed_sessions={observed_sessions}; coverage_complete={str(coverage_complete).lower()}; "
+            f"calendar={calendar_fingerprint}; risk_free_return_per_period={risk_free_return_per_period}; "
+            f"periods_per_year={periods_per_year}; observations={observation_digest}"
+        )
+        sample_size = observed_sessions
+
+        if coverage_null_reason is not None:
+            net_pnl = None
+            net_pnl_null_reason = coverage_null_reason
+        elif not flow_reports_complete:
+            net_pnl = None
+            net_pnl_null_reason = "one or more external cash-flow reports are incomplete"
+        else:
+            net_pnl = sum(
+                (
+                    item.ending_equity
+                    - item.starting_equity
+                    - (
+                        item.external_cash_flow
+                        if item.external_cash_flow is not None
+                        else Decimal(0)
+                    )
+                    for item in window_intervals
+                ),
+                Decimal(0),
+            )
+            net_pnl_null_reason = None
+
+        equity_metric_null_reason = coverage_null_reason or flow_return_null_reason
+        if equity_metric_null_reason is not None:
+            rolling_return = None
+            annualized_volatility = None
+            sharpe_ratio = None
+            sortino_ratio = None
+            maximum_drawdown = None
+            maximum_drawdown_duration = None
+            ulcer_index = None
+            risk_null_reason = equity_metric_null_reason
+            sharpe_null_reason = equity_metric_null_reason
+            sortino_null_reason = equity_metric_null_reason
+        else:
+            first_interval = window_intervals[0]
+            last_interval = window_intervals[-1]
+            rolling_return = (
+                last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+            )
+            returns = tuple(
+                item.ending_equity / item.starting_equity - Decimal(1)
+                for item in window_intervals
+            )
+            if len(returns) < minimum_risk_observations:
+                annualized_volatility = None
+                sharpe_ratio = None
+                sortino_ratio = None
+                risk_null_reason = (
+                    f"at least {minimum_risk_observations} return observations are required"
+                )
+                sharpe_null_reason = risk_null_reason
+                sortino_null_reason = risk_null_reason
+            else:
+                mean_return = sum(returns, Decimal(0)) / Decimal(len(returns))
+                sample_variance = sum(
+                    ((value - mean_return) ** 2 for value in returns), Decimal(0)
+                ) / Decimal(len(returns) - 1)
+                annualized_volatility = (
+                    sample_variance * Decimal(periods_per_year)
+                ).sqrt()
+                risk_null_reason = None
+                if sample_variance == 0:
+                    sharpe_ratio = None
+                    sharpe_null_reason = "return observations have zero sample variance"
+                else:
+                    sharpe_ratio = (
+                        (mean_return - risk_free_return_per_period)
+                        / sample_variance.sqrt()
+                        * Decimal(periods_per_year).sqrt()
+                    )
+                    sharpe_null_reason = None
+                downside = tuple(
+                    min(value - risk_free_return_per_period, Decimal(0)) for value in returns
+                )
+                downside_deviation = (
+                    sum((value**2 for value in downside), Decimal(0)) / Decimal(len(returns))
+                ).sqrt()
+                if downside_deviation == 0:
+                    sortino_ratio = None
+                    sortino_null_reason = (
+                        "no downside deviation below the periodic risk-free target"
+                    )
+                else:
+                    sortino_ratio = (
+                        (mean_return - risk_free_return_per_period)
+                        / downside_deviation
+                        * Decimal(periods_per_year).sqrt()
+                    )
+                    sortino_null_reason = None
+
+            equity_values = (window_intervals[0].starting_equity,) + tuple(
+                item.ending_equity for item in window_intervals
+            )
+            running_peak = equity_values[0]
+            drawdowns: list[Decimal] = []
+            current_drawdown_duration = 0
+            maximum_drawdown_duration = 0
+            for equity in equity_values[1:]:
+                running_peak = max(running_peak, equity)
+                drawdown = equity / running_peak - Decimal(1)
+                drawdowns.append(drawdown)
+                if drawdown < 0:
+                    current_drawdown_duration += 1
+                    maximum_drawdown_duration = max(
+                        maximum_drawdown_duration, current_drawdown_duration
+                    )
+                else:
+                    current_drawdown_duration = 0
+            maximum_drawdown = min(drawdowns, default=Decimal(0))
+            ulcer_index = (
+                sum((drawdown**2 for drawdown in drawdowns), Decimal(0))
+                / Decimal(len(drawdowns))
+            ).sqrt()
+
+        metric_calculation_basis = basis
+        values = (
+            _value(
+                "rolling_net_pnl",
+                net_pnl,
+                unit=f"currency:{intervals[0].base_currency}",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "sum of ending-minus-starting equity less complete external cash flows; "
+                    f"{metric_calculation_basis}"
+                ),
+                null_reason=net_pnl_null_reason,
+            ),
+            _value(
+                "rolling_return",
+                rolling_return,
+                unit="fraction",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "last close equity divided by first interval opening equity minus one; "
+                    f"{metric_calculation_basis}"
+                ),
+                null_reason=equity_metric_null_reason,
+            ),
+            _value(
+                "rolling_annualized_volatility",
+                annualized_volatility,
+                unit="fraction",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                annualization_basis=annualization_basis,
+                calculation_basis=(
+                    "sample standard deviation of simple session returns multiplied by the square root "
+                    f"of sessions per year; {metric_calculation_basis}"
+                ),
+                null_reason=risk_null_reason,
+            ),
+            _value(
+                "rolling_sharpe_ratio",
+                sharpe_ratio,
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                annualization_basis=annualization_basis,
+                calculation_basis=(
+                    "mean simple return less the explicit periodic risk-free target, divided by sample "
+                    f"standard deviation and annualized; {metric_calculation_basis}"
+                ),
+                null_reason=sharpe_null_reason,
+            ),
+            _value(
+                "rolling_sortino_ratio",
+                sortino_ratio,
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                annualization_basis=annualization_basis,
+                calculation_basis=(
+                    "mean simple return less the explicit periodic risk-free target, divided by RMS "
+                    f"downside and annualized; {metric_calculation_basis}"
+                ),
+                null_reason=sortino_null_reason,
+            ),
+            _value(
+                "rolling_maximum_drawdown",
+                maximum_drawdown,
+                unit="fraction",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "minimum sampled close drawdown with the opening equity as initial peak; "
+                    f"{metric_calculation_basis}"
+                ),
+                null_reason=equity_metric_null_reason,
+            ),
+            _value(
+                "rolling_maximum_drawdown_duration",
+                None
+                if maximum_drawdown_duration is None
+                else Decimal(maximum_drawdown_duration),
+                unit="sessions",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "longest consecutive count of sampled closes below the running peak; "
+                    f"{metric_calculation_basis}"
+                ),
+                null_reason=equity_metric_null_reason,
+            ),
+            _value(
+                "rolling_ulcer_index",
+                ulcer_index,
+                unit="fraction",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "square root of mean squared close-to-close drawdown fractions; "
+                    f"{metric_calculation_basis}"
+                ),
+                null_reason=equity_metric_null_reason,
+            ),
+        )
+        points.append(
+            RollingMetricPoint(
+                portfolio_fingerprint=portfolio_fingerprint,
+                run_attempt_id=run_attempt_id,
+                calendar_fingerprint=calendar_fingerprint,
+                window_sessions=window_sessions,
+                observed_sessions=observed_sessions,
+                window_start_session_label=start_label,
+                window_end_session_label=endpoint.session_label,
+                window_start_point=window_start_point,
+                window_end_point=endpoint.end_point,
+                coverage_complete=coverage_complete,
+                observation_digest=observation_digest,
+                metrics=values,
+            )
+        )
+    return tuple(points)
 
 
 @deterministic_decimal_math

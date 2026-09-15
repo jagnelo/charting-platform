@@ -60,6 +60,14 @@ class CostReportStatus(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
+class ExternalCashFlowReportStatus(StrEnum):
+    """Completeness of native account external-cash-flow reporting."""
+
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    UNAVAILABLE = "unavailable"
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionCostComponent:
     """One engine-reported fill cash effect in native and account currency.
@@ -189,9 +197,13 @@ class AccountEquityIntervalObservation:
     """One engine-reported prior-mark-to-session-close account interval.
 
     External cash flow uses account-cash signs: deposits are positive and
-    withdrawals negative. The interval's net P&L is reconciled as ending equity
-    minus starting equity minus this flow. Return calculations remain undefined
-    for intervals with external flows until a time-weighted method is selected.
+    withdrawals negative. A complete report must provide an authoritative net
+    amount, including explicit zero, and state whether any flow events occurred;
+    this distinguishes a verified no-flow interval from offsetting flows whose
+    net amount is zero. Partial reports may provide a known subtotal and positive
+    occurrence evidence, while unavailable reports provide neither. Net P&L is
+    trusted only for complete reports. Return calculations remain undefined for
+    intervals with external flows until a time-weighted method is selected.
     """
 
     portfolio_fingerprint: str
@@ -202,7 +214,9 @@ class AccountEquityIntervalObservation:
     end_point: ObservationPoint
     starting_equity: Decimal
     ending_equity: Decimal
-    external_cash_flow: Decimal
+    external_cash_flow: Decimal | None
+    external_cash_flow_occurred: bool | None
+    external_cash_flow_report_status: ExternalCashFlowReportStatus
     base_currency: str
     engine_evidence_digest: str
 
@@ -220,10 +234,53 @@ class AccountEquityIntervalObservation:
             raise TypeError("end_point must be an ObservationPoint")
         if self.end_point <= self.start_point:
             raise ValueError("equity interval end_point must follow start_point")
-        for name in ("starting_equity", "ending_equity", "external_cash_flow"):
+        for name in ("starting_equity", "ending_equity"):
             value = getattr(self, name)
             if not isinstance(value, Decimal) or not value.is_finite():
                 raise ValueError(f"{name} must be a finite Decimal")
+        if self.external_cash_flow is not None and (
+            not isinstance(self.external_cash_flow, Decimal)
+            or not self.external_cash_flow.is_finite()
+        ):
+            raise ValueError("external_cash_flow must be a finite Decimal or None")
+        if not isinstance(
+            self.external_cash_flow_report_status, ExternalCashFlowReportStatus
+        ):
+            raise TypeError(
+                "external_cash_flow_report_status must be an ExternalCashFlowReportStatus"
+            )
+        if self.external_cash_flow_occurred is not None and not isinstance(
+            self.external_cash_flow_occurred, bool
+        ):
+            raise TypeError("external_cash_flow_occurred must be a bool or None")
+        if (
+            self.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+            and self.external_cash_flow is None
+        ):
+            raise ValueError("complete external cash-flow reports must include an amount")
+        if (
+            self.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+            and self.external_cash_flow_occurred is None
+        ):
+            raise ValueError(
+                "complete external cash-flow reports must state whether flows occurred"
+            )
+        if (
+            self.external_cash_flow is not None
+            and self.external_cash_flow != 0
+            and self.external_cash_flow_occurred is not True
+        ):
+            raise ValueError("a nonzero external cash flow requires flow-occurrence evidence")
+        if (
+            self.external_cash_flow_report_status is ExternalCashFlowReportStatus.PARTIAL
+            and self.external_cash_flow_occurred is False
+        ):
+            raise ValueError("partial external cash-flow reports cannot prove that no flows occurred")
+        if (
+            self.external_cash_flow_report_status is ExternalCashFlowReportStatus.UNAVAILABLE
+            and (self.external_cash_flow is not None or self.external_cash_flow_occurred is not None)
+        ):
+            raise ValueError("unavailable external cash-flow reports must not include flow evidence")
         if self.starting_equity <= 0 or self.ending_equity < 0:
             raise ValueError("starting_equity must be positive and ending_equity non-negative")
         object.__setattr__(

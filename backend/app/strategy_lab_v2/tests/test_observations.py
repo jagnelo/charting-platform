@@ -18,12 +18,14 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     ProductRiskModel,
     RiskExposureMeasure,
+    RollingMetricPoint,
 )
 from app.strategy_lab_v2.metrics import (
     calculate_calendar_period_metrics,
     calculate_component_attribution_metrics,
     calculate_execution_cost_metrics,
     calculate_exposure_utilization_metrics,
+    calculate_rolling_equity_metrics,
 )
 from app.strategy_lab_v2.observations import (
     AccountEquityIntervalObservation,
@@ -31,6 +33,7 @@ from app.strategy_lab_v2.observations import (
     CostReportStatus,
     ExecutionCostComponent,
     ExecutionCostKind,
+    ExternalCashFlowReportStatus,
     FillCostObservation,
     ObservationPoint,
     PortfolioPnlObservation,
@@ -107,9 +110,20 @@ def _equity_interval(
     starting_equity: str,
     ending_equity: str,
     *,
-    flow: str = "0",
+    flow: str | None = "0",
+    flow_status: ExternalCashFlowReportStatus = ExternalCashFlowReportStatus.COMPLETE,
+    flow_occurred: bool | None = None,
     attempt_id: str = "attempt-1",
 ) -> AccountEquityIntervalObservation:
+    flow_amount = None if flow is None else Decimal(flow)
+    if flow_occurred is None:
+        if flow_status is ExternalCashFlowReportStatus.COMPLETE:
+            flow_occurred = flow_amount != 0
+        elif (
+            flow_status is ExternalCashFlowReportStatus.PARTIAL
+            and flow_amount not in (None, Decimal(0))
+        ):
+            flow_occurred = True
     return AccountEquityIntervalObservation(
         portfolio_fingerprint=PORTFOLIO,
         run_attempt_id=attempt_id,
@@ -119,10 +133,76 @@ def _equity_interval(
         end_point=end_point,
         starting_equity=Decimal(starting_equity),
         ending_equity=Decimal(ending_equity),
-        external_cash_flow=Decimal(flow),
+        external_cash_flow=flow_amount,
+        external_cash_flow_occurred=flow_occurred,
+        external_cash_flow_report_status=flow_status,
         base_currency="USD",
         engine_evidence_digest=EVIDENCE,
     )
+
+
+def test_account_equity_interval_requires_explicit_cash_flow_evidence_status() -> None:
+    calendar = _january_calendar()
+    interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2),
+        "100000",
+        "101000",
+    )
+
+    with pytest.raises(ValueError, match="complete external cash-flow reports"):
+        replace(interval, external_cash_flow=None)
+    with pytest.raises(ValueError, match="must state whether flows occurred"):
+        replace(interval, external_cash_flow_occurred=None)
+    with pytest.raises(ValueError, match="requires flow-occurrence evidence"):
+        replace(
+            interval,
+            external_cash_flow=Decimal("100"),
+            external_cash_flow_occurred=False,
+        )
+    with pytest.raises(ValueError, match="partial external cash-flow reports"):
+        replace(
+            interval,
+            external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+            external_cash_flow_occurred=False,
+        )
+    with pytest.raises(ValueError, match="unavailable external cash-flow reports"):
+        replace(
+            interval,
+            external_cash_flow_report_status=ExternalCashFlowReportStatus.UNAVAILABLE,
+        )
+
+    partial = replace(
+        interval,
+        external_cash_flow=Decimal("100"),
+        external_cash_flow_occurred=True,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+    )
+    partial_unknown = replace(
+        interval,
+        external_cash_flow=None,
+        external_cash_flow_occurred=None,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+    )
+    net_zero_offsetting = replace(
+        interval,
+        external_cash_flow=Decimal(0),
+        external_cash_flow_occurred=True,
+    )
+    unavailable = replace(
+        interval,
+        external_cash_flow=None,
+        external_cash_flow_occurred=None,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.UNAVAILABLE,
+    )
+    assert partial.external_cash_flow_report_status is ExternalCashFlowReportStatus.PARTIAL
+    assert partial_unknown.external_cash_flow_occurred is None
+    assert interval.external_cash_flow_occurred is False
+    assert net_zero_offsetting.external_cash_flow == 0
+    assert net_zero_offsetting.external_cash_flow_occurred is True
+    assert unavailable.external_cash_flow is None
 
 
 def _snapshot(
@@ -361,7 +441,7 @@ def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> N
         calendar.fingerprint
         in metrics["calendar_period_net_pnl:monthly:month:2024-01"].calculation_basis
     )
-    assert all(item.definition_version == "strategy-lab.metrics.v4" for item in metrics.values())
+    assert all(item.definition_version == "strategy-lab.metrics.v5" for item in metrics.values())
 
 
 def test_calendar_period_partial_and_external_flow_returns() -> None:
@@ -418,6 +498,437 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
     assert flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
         "period contains external cash flows; time-weighted return is not implemented"
     )
+
+    net_zero_flow_intervals = (
+        replace(
+            flow_intervals[0],
+            external_cash_flow=Decimal(0),
+            external_cash_flow_occurred=True,
+        ),
+        flow_intervals[1],
+    )
+    net_zero_flow_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            net_zero_flow_intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+    assert net_zero_flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"].value == (
+        Decimal(7000)
+    )
+    assert net_zero_flow_metrics["calendar_period_return:monthly:month:2024-01"].value is None
+    assert net_zero_flow_metrics[
+        "calendar_period_return:monthly:month:2024-01"
+    ].null_reason == (
+        "period contains external cash flows; time-weighted return is not implemented"
+    )
+
+    incomplete_flow_intervals = (
+        replace(
+            flow_intervals[0],
+            external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+        ),
+        flow_intervals[1],
+    )
+    incomplete_flow_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            incomplete_flow_intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+    net_pnl_metric = incomplete_flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"]
+    return_metric = incomplete_flow_metrics["calendar_period_return:monthly:month:2024-01"]
+    assert net_pnl_metric.value is None
+    assert net_pnl_metric.null_reason == "one or more external cash-flow reports are incomplete"
+    assert return_metric.value is None
+    assert return_metric.null_reason == "one or more external cash-flow reports are incomplete"
+
+    unavailable_flow_intervals = (
+        replace(
+            flow_intervals[0],
+            external_cash_flow=None,
+            external_cash_flow_occurred=None,
+            external_cash_flow_report_status=ExternalCashFlowReportStatus.UNAVAILABLE,
+        ),
+        flow_intervals[1],
+    )
+    unavailable_flow_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            unavailable_flow_intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+    assert unavailable_flow_metrics[
+        "calendar_period_net_pnl:monthly:month:2024-01"
+    ].null_reason == "one or more external cash-flow reports are incomplete"
+    assert unavailable_flow_metrics[
+        "calendar_period_return:monthly:month:2024-01"
+    ].null_reason == "one or more external cash-flow reports are incomplete"
+
+
+def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> None:
+    calendar = _january_calendar()
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    intervals = (
+        _equity_interval(
+            calendar,
+            date(2024, 1, 2),
+            ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+            first_close,
+            "100000",
+            "101000",
+        ),
+        _equity_interval(
+            calendar,
+            date(2024, 1, 3),
+            first_close,
+            second_close,
+            "101000",
+            "99990",
+        ),
+    )
+
+    points = calculate_rolling_equity_metrics(
+        intervals,
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )
+
+    assert all(isinstance(point, RollingMetricPoint) for point in points)
+    first_point, complete_point = points
+    assert not first_point.coverage_complete
+    assert first_point.observed_sessions == 1
+    assert _metric_map(first_point.metrics)["rolling_return"].value is None
+    assert complete_point.coverage_complete
+    assert complete_point.observed_sessions == 2
+    assert complete_point.window_start_session_label == date(2024, 1, 2)
+    assert complete_point.window_start_point == intervals[0].start_point
+    assert complete_point.window_end_point == second_close
+    assert complete_point.observation_digest == content_digest(intervals)
+    assert complete_point.fingerprint == calculate_rolling_equity_metrics(
+        intervals,
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1].fingerprint
+    with pytest.raises(ValueError, match="start label must not follow"):
+        replace(
+            complete_point,
+            window_start_session_label=date(2024, 1, 4),
+        )
+    with pytest.raises(ValueError, match="sample sizes must match"):
+        replace(
+            complete_point,
+            metrics=(replace(complete_point.metrics[0], sample_size=1),)
+            + complete_point.metrics[1:],
+        )
+
+    metrics = _metric_map(complete_point.metrics)
+    assert metrics["rolling_net_pnl"].value == Decimal(-10)
+    assert metrics["rolling_return"].value == Decimal("-0.0001")
+    assert Decimal("0.22") < metrics["rolling_annualized_volatility"].value < Decimal("0.23")
+    assert metrics["rolling_annualized_volatility"].annualization_basis == (
+        "sample session-return convention: 252 sessions per year"
+    )
+    assert metrics["rolling_sharpe_ratio"].value == Decimal(0)
+    assert metrics["rolling_sortino_ratio"].value == Decimal(0)
+    assert metrics["rolling_maximum_drawdown"].value == Decimal("-0.01")
+    assert metrics["rolling_maximum_drawdown_duration"].value == Decimal(1)
+    assert Decimal("0.007") < metrics["rolling_ulcer_index"].value < Decimal("0.008")
+    assert all(item.definition_version == "strategy-lab.metrics.v5" for item in metrics.values())
+
+    risk_free_target = Decimal("0.001")
+    targeted_metrics = _metric_map(
+        calculate_rolling_equity_metrics(
+            intervals,
+            calendar=calendar,
+            window_sessions=2,
+            periods_per_year=252,
+            risk_free_return_per_period=risk_free_target,
+        )[-1].metrics
+    )
+    with localcontext() as context:
+        context.prec = 34
+        expected_sharpe = (
+            -risk_free_target / Decimal("0.0002").sqrt() * Decimal(252).sqrt()
+        )
+        expected_sortino = (
+            -risk_free_target / Decimal("0.0000605").sqrt() * Decimal(252).sqrt()
+        )
+    assert targeted_metrics["rolling_sharpe_ratio"].value == expected_sharpe
+    assert targeted_metrics["rolling_sortino_ratio"].value == expected_sortino
+
+
+def test_rolling_equity_metrics_fail_closed_for_missing_sessions_and_marks() -> None:
+    calendar = _january_calendar()
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    only_second = _equity_interval(
+        calendar,
+        date(2024, 1, 3),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2),
+        second_close,
+        "101000",
+        "102000",
+    )
+    missing = calculate_rolling_equity_metrics(
+        (only_second,),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[0]
+    missing_metrics = _metric_map(missing.metrics)
+    assert not missing.coverage_complete
+    assert missing.observed_sessions == 1
+    assert missing_metrics["rolling_return"].value is None
+    assert missing_metrics["rolling_return"].null_reason == (
+        "one or more expected session-close observations are missing"
+    )
+
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    wrong_open = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 20, 0, tzinfo=UTC), 1),
+        first_close,
+        "100000",
+        "101000",
+    )
+    second = replace(only_second, start_point=first_close, starting_equity=Decimal("101000"))
+    mismatched = calculate_rolling_equity_metrics(
+        (wrong_open, second),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1]
+    assert not mismatched.coverage_complete
+    assert _metric_map(mismatched.metrics)["rolling_return"].null_reason == (
+        "rolling window opening mark does not match the preceding session close"
+    )
+
+
+def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() -> None:
+    calendar = _january_calendar()
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    first = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        first_close,
+        "100000",
+        "106000",
+        flow="5000",
+    )
+    second = _equity_interval(
+        calendar,
+        date(2024, 1, 3),
+        first_close,
+        second_close,
+        "106000",
+        "107000",
+    )
+    point = calculate_rolling_equity_metrics(
+        (first, second),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1]
+    metrics = _metric_map(point.metrics)
+    assert point.coverage_complete
+    assert metrics["rolling_net_pnl"].value == Decimal(2000)
+    assert metrics["rolling_return"].value is None
+    assert metrics["rolling_return"].null_reason == (
+        "rolling window contains external cash flows; time-weighted return is not implemented"
+    )
+    assert metrics["rolling_annualized_volatility"].value is None
+    assert metrics["rolling_maximum_drawdown"].value is None
+
+    net_zero_first = replace(
+        first,
+        external_cash_flow=Decimal(0),
+        external_cash_flow_occurred=True,
+    )
+    net_zero_metrics = _metric_map(
+        calculate_rolling_equity_metrics(
+            (net_zero_first, second),
+            calendar=calendar,
+            window_sessions=2,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(0),
+        )[-1].metrics
+    )
+    assert net_zero_metrics["rolling_net_pnl"].value == Decimal(7000)
+    assert net_zero_metrics["rolling_return"].value is None
+    assert net_zero_metrics["rolling_return"].null_reason == (
+        "rolling window contains external cash flows; time-weighted return is not implemented"
+    )
+
+    withdrawal_first = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        first_close,
+        "100000",
+        "96000",
+        flow="-5000",
+    )
+    withdrawal_second = _equity_interval(
+        calendar,
+        date(2024, 1, 3),
+        first_close,
+        second_close,
+        "96000",
+        "97000",
+    )
+    withdrawal_metrics = _metric_map(
+        calculate_rolling_equity_metrics(
+            (withdrawal_first, withdrawal_second),
+            calendar=calendar,
+            window_sessions=2,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(0),
+        )[-1].metrics
+    )
+    assert withdrawal_metrics["rolling_net_pnl"].value == Decimal(2000)
+
+    partial_flow = replace(
+        first,
+        external_cash_flow=Decimal("5000"),
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.PARTIAL,
+    )
+    incomplete_flow = calculate_rolling_equity_metrics(
+        (partial_flow, second),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1]
+    incomplete_metrics = _metric_map(incomplete_flow.metrics)
+    assert incomplete_flow.coverage_complete
+    assert incomplete_metrics["rolling_net_pnl"].value is None
+    assert incomplete_metrics["rolling_net_pnl"].null_reason == (
+        "one or more external cash-flow reports are incomplete"
+    )
+    assert incomplete_metrics["rolling_return"].null_reason == (
+        "one or more external cash-flow reports are incomplete"
+    )
+
+    unavailable_first = replace(
+        first,
+        external_cash_flow=None,
+        external_cash_flow_occurred=None,
+        external_cash_flow_report_status=ExternalCashFlowReportStatus.UNAVAILABLE,
+    )
+    unavailable_flow = calculate_rolling_equity_metrics(
+        (unavailable_first, second),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1]
+    unavailable_metrics = _metric_map(unavailable_flow.metrics)
+    assert unavailable_metrics["rolling_net_pnl"].value is None
+    assert unavailable_metrics["rolling_return"].null_reason == (
+        "one or more external cash-flow reports are incomplete"
+    )
+    assert unavailable_metrics["rolling_annualized_volatility"].null_reason == (
+        "one or more external cash-flow reports are incomplete"
+    )
+
+
+def test_rolling_equity_metrics_apply_minimum_sample_and_zero_risk_rules() -> None:
+    calendar = _january_calendar()
+    first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
+    single_interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        first_close,
+        "100000",
+        "101000",
+    )
+    one_session = calculate_rolling_equity_metrics(
+        (single_interval,),
+        calendar=calendar,
+        window_sessions=1,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[0]
+    one_session_metrics = _metric_map(one_session.metrics)
+    assert one_session.coverage_complete
+    assert one_session_metrics["rolling_return"].value == Decimal("0.01")
+    assert one_session_metrics["rolling_annualized_volatility"].null_reason == (
+        "at least 2 return observations are required"
+    )
+
+    second_close = ObservationPoint(datetime(2024, 1, 3, 21, 0, tzinfo=UTC), 3)
+    next_interval = _equity_interval(
+        calendar,
+        date(2024, 1, 3),
+        first_close,
+        second_close,
+        "101000",
+        "102010",
+    )
+    zero_risk = calculate_rolling_equity_metrics(
+        (single_interval, next_interval),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal("0.01"),
+    )[-1]
+    zero_risk_metrics = _metric_map(zero_risk.metrics)
+    assert zero_risk_metrics["rolling_annualized_volatility"].value == Decimal(0)
+    assert zero_risk_metrics["rolling_sharpe_ratio"].null_reason == (
+        "return observations have zero sample variance"
+    )
+    assert zero_risk_metrics["rolling_sortino_ratio"].null_reason == (
+        "no downside deviation below the periodic risk-free target"
+    )
+
+    with pytest.raises(ValueError, match="window_sessions"):
+        calculate_rolling_equity_metrics(
+            (single_interval,),
+            calendar=calendar,
+            window_sessions=True,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(0),
+        )
+    with pytest.raises(ValueError, match="periods_per_year"):
+        calculate_rolling_equity_metrics(
+            (single_interval,),
+            calendar=calendar,
+            window_sessions=1,
+            periods_per_year=0,
+            risk_free_return_per_period=Decimal(0),
+        )
+    with pytest.raises(ValueError, match="risk_free_return_per_period"):
+        calculate_rolling_equity_metrics(
+            (single_interval,),
+            calendar=calendar,
+            window_sessions=1,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(-1),
+        )
+    with pytest.raises(ValueError, match="minimum_risk_observations"):
+        calculate_rolling_equity_metrics(
+            (single_interval,),
+            calendar=calendar,
+            window_sessions=1,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(0),
+            minimum_risk_observations=1,
+        )
 
 
 def test_calendar_period_metrics_reject_mixed_runs_unmatched_marks_and_wrong_calendar() -> None:
