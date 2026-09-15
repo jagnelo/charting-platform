@@ -5,30 +5,300 @@ parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The final branch changes backend APIs, additive persistence, Redis-backed workers,
+  content-addressed artifacts, and isolated Nautilus runtime services. The initial
+  parallel-safe core can use unit validation, but branch completion changes the
+  Compose stack and requires the repository's full-stack browser profile plus
+  Docker-backed PostgreSQL/Redis, migration, worker, and backend API gates.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
-migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
+goal: >-
+  Implement the production-grade, local-first Strategy Lab v2 backend for
+  reproducible portfolio backtesting, walk-forward and search experiments, and
+  persistent broker-free shadow testing. Keep the strategy SDK engine-neutral,
+  use Nautilus as the only authoritative simulator after stable v2 conformance,
+  and respect provider-platform, ETF, and TC2000 workstream ownership.
+scope:
+  - >-
+    Deliver an engine-neutral Strategy Lab v2 domain and strategy SDK for
+    immutable strategy versions/packages, portfolio compositions, frozen data
+    snapshots, experiments, scientific trials, infrastructure run attempts,
+    artifact manifests, metric sets, and persistent forward instances.
+  - >-
+    Deliver reproducible experiment construction and execution contracts:
+    capability-cell preflight, acquire-verify-freeze data flow, deterministic
+    grid/random/Latin-hypercube and scenario expansion, anchored/rolling
+    walk-forward windows with leakage controls, typed order intents, portfolio
+    allocation/risk boundaries, and rich versioned result metrics.
+  - >-
+    After upstream dependencies reach staging, integrate the shared canonical
+    provider/coverage and point-in-time ETF/universe contracts plus immutable
+    TC2000 CodeVersion/Study Lab outputs. Do not duplicate provider governance,
+    data acquisition, membership history, code authoring, or research execution.
+  - >-
+    Add authoritative Nautilus BacktestNode execution only when a stable
+    Nautilus v2 release passes the platform conformance suite. Keep its version,
+    Python environment, and runtime image isolated from the legacy Nautilus
+    1.226 installation. Release candidates are CI compatibility evidence only.
+  - >-
+    Add isolated serial backtest workers and separately reserved persistent
+    forward workers; PostgreSQL metadata/state, Redis durable dispatch and
+    canonical event stream with database outbox/reconciliation, and
+    content-addressed Parquet/Arrow artifacts on Compose-managed NAS-mountable
+    storage. Scale replicas on one host; keep job/artifact contracts host-neutral.
+  - >-
+    Add machine-first REST resources under /api/v1/strategy-lab/v2, idempotent
+    asynchronous submissions, resumable progress streams, cursor pagination,
+    cancellation/retry, capability reporting, and read-only access to legacy
+    results with explicit compatible-definition import.
+  - >-
+    Persistent forward instances replay immutable historical warm-up once,
+    consume only newly arriving canonical events, persist orders/positions/cash,
+    record corrections append-only, and never submit broker orders. Activation
+    must declare flat start or synthetic historical carry-in.
+  - >-
+    Stop this branch at ready_for_human_review. The full dockable TC2000-native
+    Strategy Lab UI is a later separately authorized frontend branch after
+    backend integration and TC2000 semantic reconciliation.
+  - >-
+    Initially add only new engine-neutral package paths, their focused tests,
+    and this branch's workstream documentation. Do not modify active provider,
+    ETF, or TC2000 paths, current Strategy Lab routes/services, global runtime
+    dependencies, migrations, application registration, Compose, or frontend
+    until upstream branches have reached staging and exact shared-path
+    reconciliation is recorded.
+owned_paths:
+  - backend/app/strategy_lab_v2/
+  - backend/tests/unit/strategy_lab_v2/
+  - backend/strategy_runtime/
+  - backend/tests/integration/strategy_lab_v2/
+  - backend/tests/strategy_runtime/
+  - docs/strategy-lab-v2.md
+  - ops/workstreams/feat-strategy-lab-v2/
+shared_path_gates:
+  - path: backend/app/models/
+    gate: Wait for provider, ETF, and TC2000 work to reach staging; reconcile model registration and migration ownership first.
+  - path: backend/alembic/versions/
+    gate: Add only additive v2 tables after reviewing the combined staging migration graph and prior-schema compatibility.
+  - path: backend/app/main.py
+    gate: Register the new v2 router only after reconciling TC2000's router changes on staging.
+  - path: backend/app/workers/
+    gate: Add dedicated simulation worker entrypoints without changing or loading Nautilus in FastAPI or the general ARQ worker.
+  - path: backend/app/tasks/
+    gate: Add data-acquisition coordination only after consuming the provider platform's staged coverage/acquisition API.
+  - path: backend/pyproject.toml
+    gate: Keep Nautilus v2 in an isolated runtime environment; do not alter the legacy backend pin unless an explicit combined dependency review requires it.
+  - path: backend/uv.lock
+    gate: Update only after the runtime environment split and Python/Rust version matrix are validated.
+  - path: docker-compose.yml
+    gate: Add isolated worker/artifact services after checking provider and TC2000 Compose changes on staging.
+  - path: docs/project-todos.md
+    gate: Update only after reconciling the TC2000 roadmap and current shared todo document on staging.
+execution_plan:
+  phases:
+    - >-
+      Implement the parallel-safe pure core in new paths: immutable domain
+      contracts, SDK dependency declarations and order intents, capability
+      preflight/degraded labeling, experiment and walk-forward expansion,
+      versioned metrics, and deterministic fixtures.
+    - >-
+      After provider, ETF, and TC2000 work reaches staging, reconcile shared
+      contracts and then add additive persistence, API registration, acquisition
+      coordination, artifact storage, Redis/outbox orchestration, and Compose
+      services.
+    - >-
+      Once stable Nautilus v2 is published, add the isolated Rust canonical-data
+      adapter and authoritative serial backtest/forward worker images; pass the
+      conformance suite before any runtime is enabled.
+    - >-
+      Complete full branch integration/security/reproducibility validation and
+      hand off at ready_for_human_review. The UI and any deployed shadow soak
+      remain separately authorized follow-on gates.
+dependencies:
+  - >-
+    feat/market-data-provider-platform owns canonical identity, market series,
+    capability/entitlement, acquisition, coverage, and repair contracts. Consume
+    only after its reviewed work reaches staging; do not duplicate providers or
+    provider runtime policy.
+  - >-
+    feat/etf-holdings-constituents owns ETF holdings adapters and point-in-time
+    holdings history. Consume its staged membership and known-at contracts; do
+    not implement ETF source adapters or holdings refresh.
+  - >-
+    feat/tc2000-frontend-rework owns the workstation, unified Python/DSL,
+    immutable CodeVersion, Study Lab, and current Strategy Lab paths. Consume
+    staged code/output contracts; do not edit its active files before staging or
+    create a parallel editor/research runner.
+  - >-
+    Nautilus stable v2 is a runtime enablement gate. Verify the official release
+    and pin exact Python/Rust versions only after stable publication; run
+    release-candidate compatibility checks without production enablement.
+acceptance_criteria:
+  - id: AC-DOMAIN
+    text: >-
+      Immutable, typed, versioned public contracts distinguish strategy versions,
+      packages, portfolio compositions, data snapshots, experiments, trials,
+      run attempts, artifact manifests, metric sets, and forward instances;
+      execution retries create attempts against the same immutable trial.
+  - id: AC-SDK
+    text: >-
+      Strategy code uses a versioned engine-neutral SDK, declares all data/model/
+      library dependencies, receives only frozen declared inputs, emits typed
+      order or target-position intents, and cannot access providers, network,
+      database, secrets, arbitrary files, or wall-clock time.
+  - id: AC-DATA
+    text: >-
+      Preflight represents support by asset/product, event granularity,
+      timeframe/history, adjustment/corporate-action semantics, session/feed,
+      and execution/account model. Missing rigorous requirements fail closed;
+      explicitly requested degraded trials are separately labelled with all
+      substitutions and excluded from rigorous rankings by default.
+  - id: AC-REPRODUCIBILITY
+    text: >-
+      Data is acquired through the shared platform before execution, verified,
+      frozen as a content-addressed snapshot, and never fetched inside the
+      simulator. A result manifest identifies strategy, portfolio, data,
+      capability contract, engine/build, dependency catalog, assumptions, seed,
+      and metric version sufficiently to reproduce the run.
+  - id: AC-SEARCH
+    text: >-
+      Deterministic grid, seeded random/Latin-hypercube, scenario-matrix, and
+      walk-forward trials are resumable and cancellable; walk-forward selection
+      uses training data only, supports rolling/anchored windows and gap/embargo,
+      freezes OOS evaluation, and aggregates OOS results only.
+  - id: AC-PORTFOLIO
+    text: >-
+      A trial simulates all instruments and strategies together in one shared
+      account. Immutable portfolio composition defines capital budgets, weights,
+      rebalancing, priority/contention, shared risk, and component attribution;
+      supported order intents are routed through platform allocation/risk before
+      the engine and unsupported capability combinations fail preflight.
+  - id: AC-METRICS
+    text: >-
+      Official results use native simulator orders, fills, positions, accounts,
+      and equity. Versioned metrics cover return/P&L, risk/drawdown, risk-adjusted
+      performance, trade quality, exposure/capital, execution costs, attribution,
+      rolling series, distributions, sensitivity, and calendar periods. Every
+      metric records units, calculation version, annualization/calendar basis,
+      gross/net basis, sample size, and null reason; no profitability verdict is
+      issued.
+  - id: AC-ARTIFACTS
+    text: >-
+      PostgreSQL stores authoritative metadata/state/lineage/leases/compact
+      metrics; Redis is dispatch/event transport only and is reconciled through a
+      transactional outbox. Large inputs and outputs use immutable compressed
+      content-addressed Parquet/Arrow artifacts with deduplication, pins, and
+      tiered retention; manifests and metric summaries are retained permanently.
+  - id: AC-WORKERS
+    text: >-
+      Backtests run in isolated, serial Nautilus worker processes scalable as
+      Compose replicas. Forward workers have separately reserved capacity and
+      obey one concurrent Nautilus node per process. Lease expiry, heartbeat,
+      cancellation, crash recovery, idempotency, engine disposal, and artifact
+      atomicity are covered; no Nautilus job runs in FastAPI or the general ARQ
+      worker.
+  - id: AC-NAUTILUS
+    text: >-
+      A pinned stable Nautilus v2 release passes a platform conformance suite for
+      multi-instrument accounting, native order/fill/cost models, reports,
+      deterministic replay, engine lifecycle, and backtest/forward event-tape
+      parity before it can publish authoritative results. The platform owns a
+      Rust data adapter for canonical forward events; provider adapters are not
+      used as a second data source.
+  - id: AC-FORWARD
+    text: >-
+      Persistent broker-free shadow instances use immutable historical warm-up
+      followed only by new canonical events; activation declares flat start or
+      synthetic carry-in. Orders, positions, cash, metrics, and events survive
+      restart; duplicate, missing, late, corrected, stale, and out-of-order data
+      are observable, and corrections create separately identified counterfactual
+      replay without rewriting prior decisions.
+  - id: AC-API
+    text: >-
+      Versioned REST APIs under /api/v1/strategy-lab/v2 support strategy/package
+      validation, portfolios, capability preflight, snapshots, experiments,
+      trials, attempts, metrics/artifacts, and forward instances with
+      Idempotency-Key, 202 submissions, resumable progress, cursor pagination,
+      and stable typed errors. Existing routes remain available during migration.
+  - id: AC-LEGACY
+    text: >-
+      Legacy definitions and results remain inspectable. Explicit import returns
+      a conversion/compatibility report for supported definitions, preserves
+      original records, and makes no replay-equivalence claim.
+  - id: AC-SECURITY
+    text: >-
+      Trusted local Python strategies and custom metrics execute in constrained
+      isolated containers with no network, read-only root, dropped capabilities,
+      resource/time/output limits, vetted pinned libraries, and no runtime
+      secrets; malformed or escaping code is rejected by adversarial tests.
+  - id: AC-COMPOSE
+    text: >-
+      The local Compose deployment uses existing PostgreSQL and Redis, separate
+      simulation worker services, and bind-mountable content-addressed artifact
+      storage. Single-host replicas scale independently; no cloud execution,
+      Kubernetes, Kafka, MinIO, broker order route, or external testing service
+      is required.
+  - id: AC-UPSTREAM
+    text: >-
+      Provider-platform, ETF, and TC2000 dependencies are consumed only after
+      their approved work reaches staging. Every overlapping path and contract
+      receives line-level semantic reconciliation before shared-path changes;
+      no other worktree is mutated and no branch is directly merged.
+  - id: AC-UI-BOUNDARY
+    text: >-
+      Backend APIs and saved object identities support the later dockable
+      TC2000-native Strategy Library/Builder, Experiment Designer, Run Queue,
+      Results/Compare, Portfolio Composer, and Forward Monitor. Frontend product
+      implementation remains a separate branch and authorization.
+  - id: AC-VALIDATION
+    text: >-
+      Focused deterministic tests, database/Redis integration, migration
+      compatibility, worker restart/retry/cancel, artifact integrity, API
+      contracts, Nautilus stable conformance, security/resource isolation,
+      Compose scaling, and full exact-tip branch validation pass. Deployment,
+      live shadow activation, human closure, integration, and promotion remain
+      separately authorized.
+branch_tests:
+  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric unit tests.
+  - Database and migration tests for fresh install and prior staging schema compatibility.
+  - PostgreSQL/Redis integration for outbox, leases, idempotency, retries, cancellation, and recovery.
+  - Nautilus stable-v2 conformance and deterministic multi-instrument portfolio fixtures.
+  - Worker/container security, no-network, resource-bound, artifact-hash, and Compose scaling tests.
+  - Forward event-stream parity, restart, duplicate/gap/order/correction, and graceful shutdown tests.
+  - API contract and legacy import/read-only compatibility tests.
+  - Full exact-tip backend, migration, Compose, research-runner, and repository integration gates; frontend/browser checks only after a separately authorized frontend branch.
+branch_tests_reason: >-
+  The completed backend work changes persistence, HTTP contracts, Redis work
+  queues, isolated Python execution, Rust/Nautilus integration, and Docker
+  services. Initial engine-neutral packages can be validated with unit tests,
+  but branch completion requires PostgreSQL/Redis and Compose-backed integration.
+live_test_impact: >-
+  No real broker, broker paper account, or external test service is used. Forward
+  validation consumes platform canonical events; activating a long-running
+  deployed shadow instance is a separate human-authorized operational gate.
+migration_impact: >-
+  Additive Strategy Lab v2 tables and indexes only. Preserve current Strategy Lab
+  rows and routes; do not rewrite historical results or claim replay parity.
+deployment_impact: >-
+  Add local Compose backtest/forward worker services and a persistent artifact
+  volume with conservative defaults. No deployment, worker activation against
+  real data, provider secret distribution, or broker connectivity is authorized.
+status: in_progress
+remaining_gaps:
+  - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
+  - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
+  - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
+  - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and conformance.
 progress:
-  completed: []
-  total: 0
-  current_phase: plan
+  completed: [workstream-plan]
+  total: 18
+  current_phase: engine-neutral-core
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: implement isolated domain, capability, deterministic experiment, and metric contracts while upstream branches progress
