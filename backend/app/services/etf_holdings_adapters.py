@@ -27075,7 +27075,12 @@ class ArlingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
-            raw_json={"source_format": "csv", "row_count": len(rows)},
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+            },
             source_url=str(response.url),
             source_identifier=normalized_symbol,
             legal_metadata={
@@ -27084,33 +27089,40 @@ class ArlingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
                 "route_resolution": "arlington_issuer_linked_daily_holdings_csv",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "arlington_native_daily_holdings_csv",
                 "terms_note": self.config.terms_note,
             },
         )
 
     @staticmethod
-    def _parse_holdings_csv(
-        raw_csv: str, *, symbol: str
-    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date]:
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = False
         for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
             if (_clean(raw.get("Account")) or "").upper() != symbol:
                 continue
             row_date = _clean(raw.get("Date"))
-            if row_date:
-                try:
-                    composition_date = datetime.strptime(row_date, "%m/%d/%Y").date()
-                except ValueError:
-                    pass
             ticker = _clean(raw.get("Stock Ticker"))
             cusip = _clean(raw.get("CUSIP"))
             name = _clean(raw.get("Security Name"))
             is_cash = "cash" in " ".join(part.lower() for part in (ticker, name) if part)
             if not any([ticker, cusip, name, raw.get("Market Value")]):
                 continue
+            parsed_date: date | None = None
+            if row_date:
+                try:
+                    parsed_date = datetime.strptime(row_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            if parsed_date is None:
+                invalid_or_missing_dates = True
+            else:
+                composition_dates.add(parsed_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash else (ticker.upper() if ticker else None),
@@ -27122,13 +27134,20 @@ class ArlingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if is_cash else None,
                     holding_type="cash" if is_cash else "equity",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    source_row_id=(
+                        f"{symbol}:{parsed_date.isoformat() if parsed_date else 'undated'}:{index}"
+                    ),
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
             )
-        return rows, composition_date
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "Arlington holdings CSV must publish exactly one parseable composition date "
+                f"for {symbol}."
+            )
+        return rows, next(iter(composition_dates))
 
 
 class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):

@@ -20522,6 +20522,36 @@ async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
     assert result.rows[0].cusip == "037833100"
     assert result.rows[0].weight == Decimal("0.0199")
     assert result.rows[1].row_type == "cash"
+    assert result.raw_json["composition_date"] == "2026-07-13"
+    assert result.raw_json["as_of_date"] == "2026-07-13"
+    assert result.raw_json["row_count"] == 2
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["as_of_date"] == "2026-07-13"
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert result.legal_metadata["snapshot_provenance"] == "arlington_native_daily_holdings_csv"
+    assert result.rows[0].source_row_id == "AQEC:2026-07-13:1"
+
+
+def test_arlington_holdings_require_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("arlington")
+    assert adapter is not None
+    header = "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets"
+    valid_row = "07/13/2026,AQEC,AAPL,037833100,Apple Inc,37334,,11772156.88,1.99%,592295336.2"
+    second_row = "07/13/2026,AQEC,NVDA,67066G104,NVIDIA Corp,10,180,1800,0.01%,592295336.2"
+    dated_rows = f"{header}\n{valid_row}\n{second_row}"
+
+    rows, composition_date = adapter._parse_holdings_csv(dated_rows, symbol="AQEC")
+
+    assert len(rows) == 2
+    assert composition_date == date(2026, 7, 13)
+    assert rows[0].source_row_id == "AQEC:2026-07-13:1"
+    for invalid_rows in (
+        f"{header}\n{valid_row.replace('07/13/2026', '')}",
+        f"{header}\n{valid_row.replace('07/13/2026', 'not-a-date')}",
+        f"{header}\n{valid_row}\n{second_row.replace('07/13/2026', '07/14/2026')}",
+    ):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_holdings_csv(invalid_rows, symbol="AQEC")
 
 
 @pytest.mark.asyncio
