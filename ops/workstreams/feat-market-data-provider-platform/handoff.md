@@ -57,18 +57,37 @@
   `scripts/agent-session.py`, `scripts/run-live-provider-probes.py`, and
   `tests/workflow/test_agent_session.py`. No frontend or ETF-adapter path is
   included.
-- Pre-commit evidence: focused configuration/runtime/runner/session suite
-  `197 passed`; Ruff, workstream validation (`30` records), and `git diff
-  --check` pass; authoritative Docker-backed backend gate `2,533 passed`,
-  81.75% coverage, 89 warnings. The earlier FINRA OTC directory focused live
-  probe passed `1/1` against pre-change source and is not current-SHA acceptance
-  evidence. A full current-source provider matrix is the next validation and
-  may consume the configured accounts' real quotas.
-- Exact next action: stage and inspect only the listed implementation/docs,
-  approved plan, and this handoff; commit and push the source checkpoint, then
-  run the lock-protected complete live matrix against that exact source SHA.
-  Keep `session.json` and `validation.jsonl` out of this source commit; update
-  them in the required separate operational checkpoint after matrix results.
+- Validation: focused configuration/runtime/runner/session suite `197 passed`;
+  Ruff and workstream validation (`30` records) pass; authoritative Docker-
+  backed backend gate `2,533 passed`, 81.75% coverage, 89 warnings. Source
+  checkpoint `ffdf26b1a6ca390cced69a36c38613aed947a37a` is pushed and matches
+  `origin/feat/market-data-provider-platform`.
+- Exact-source live matrix: 46 selected, 43 passed, 3 failed, 0 skipped; three
+  approved deferrals (Tradier, IBKR, Ondo) were excluded. All three failures
+  were Alpha Vantage IPO/earnings reads returning its documented free-key
+  25-requests/day capacity response. The runner incorrectly labeled the receipt
+  `not_current_source`: its `.strip()` removed the first leading status byte
+  from Git porcelain output, making an `ops/...` path appear as `ps/...`. A
+  separate read-only status check confirmed only `session.json` and
+  `validation.jsonl` were dirty; the implementation source at the recorded SHA
+  was clean. Preserve the append-only original receipt and this correction in
+  the handoff; never turn these capacity outcomes into passes or retry them
+  before the provider reset.
+- Exact next action: complete the separate session/validation metadata
+  checkpoint, then fix and test whitespace-safe source-dirty detection in the
+  live runner. That runner change invalidates the current live evidence, so do
+  not claim acceptance until the full matrix is rerun against the resulting
+  exact SHA after quotas permit. Other SEC, provider-contract, universe,
+  secret-store, and final shadow gates remain open.
+- This separate operational checkpoint updates exactly
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+  `ops/workstreams/feat-market-data-provider-platform/session.json`, and
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+  `agent-session-checkpoint` currently reports that the committed plan changed
+  since its last session boundary. After this metadata commit is synchronized,
+  refresh the committed plan boundary with `plan-ready`, restore the existing
+  session goal to `active`, and checkpoint the resulting session record before
+  opening the parser-correction context.
 - Remaining gates are not cleared by this changeset or its unit/backend tests:
   full live matrix (including honest Alpha Vantage capacity outcomes), SEC scan
   bound/materialization execution, complete NMS/OTC reconciliation and source
