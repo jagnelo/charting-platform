@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-15 - Verified Killir GARY dated holdings
+
+Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
+issuer-declared GARY dated SEI text route. Every retained row must have one
+parseable date and all rows must share it; missing, invalid, and mixed dates
+fail closed, and the row date must match the selected report filename. The live
+public route returned 41 rows dated 2026-09-14, with no missing or mismatched
+dates.
+
+Focused Killir tests passed 5/5; the complete holdings-adapter module passed
+584/584; the opt-in GARY live route test passed 1/1; Ruff, formatting, and diff
+checks passed. After authorized Docker access, full integration completed all
+pre-visual stages: backend units 1618/1618, integration 405/405 at 82.23%
+combined coverage, frontend Vitest 1067/1067, type-check/build, Compose and
+research-runner checks, and functional Playwright 165 passed with 107
+documented skips. The visual stage exited 1 at 98/104 with exactly the six
+established protected watchlist-column-editor-open/workspace-floating diffs.
+The optional branch-tests suffix was not reached. Post-run resource audit
+found zero containers, volumes, sessions, or known attributable bytes. No
+provider/fallback or visual acceptance policy changed. Continue R1 family-wide
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified Kingsview dated holdings
 
 Product commit `b375a4782` hardens Kingsview/Monarch's fund-ID-scoped
