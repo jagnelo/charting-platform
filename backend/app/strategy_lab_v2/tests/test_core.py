@@ -1,0 +1,728 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+
+import pytest
+
+from app.strategy_lab_v2.canonical import canonical_json, content_digest
+from app.strategy_lab_v2.capabilities import (
+    CapabilityCell,
+    CapabilityRequirement,
+    Degradation,
+    PreflightClass,
+    preflight_capabilities,
+)
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    ArtifactManifest,
+    AttemptState,
+    DataSeriesManifest,
+    DataSnapshot,
+    EventGranularity,
+    MetricBasis,
+    MetricSet,
+    MetricValue,
+    PortfolioComponent,
+    PortfolioComposition,
+    ProductClass,
+    RunAttempt,
+    RunResultManifest,
+    ScientificTrial,
+    StrategyPackage,
+    StrategyPackageFormat,
+    StrategyVersion,
+)
+from app.strategy_lab_v2.experiments import (
+    ExpansionMethod,
+    SearchDesign,
+    SearchDimension,
+    WalkForwardMode,
+    WalkForwardSpec,
+    aggregate_out_of_sample,
+    build_trial_designs,
+    build_walk_forward_folds,
+    expand_parameter_sets,
+    expand_scenario_matrix,
+)
+from app.strategy_lab_v2.lifecycle import (
+    CanonicalForwardEvent,
+    ForwardCursor,
+    ForwardEventDisposition,
+    create_retry_attempt,
+    observe_forward_event,
+    transition_attempt,
+)
+from app.strategy_lab_v2.metrics import calculate_performance_metrics, calculate_trade_metrics
+from app.strategy_lab_v2.sdk import (
+    MarketEvent,
+    OrderIntent,
+    OrderSide,
+    OrderType,
+    PositionSnapshot,
+    StrategyDataDependency,
+    StrategySdkManifest,
+    TargetPositionIntent,
+    build_strategy_context,
+    validate_strategy_output,
+)
+
+START = datetime(2020, 1, 1, tzinfo=UTC)
+END = datetime(2022, 1, 1, tzinfo=UTC)
+SOURCE_DIGEST = content_digest({"source": "strategy"})
+EVIDENCE_DIGEST = content_digest({"provider": "fixture"})
+
+
+def _requirement(
+    *, session: str = "regular", corporate_action_semantics: str = "split-adjusted-v1"
+) -> CapabilityRequirement:
+    return CapabilityRequirement(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.BAR,
+        event_type="ohlcv",
+        timeframe="1d",
+        start=START,
+        end=END,
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        session=session,
+        feed="consolidated",
+        execution_model="bar-close-v1",
+        account_model="cash-equity-v1",
+        corporate_action_semantics=corporate_action_semantics,
+    )
+
+
+def _cell(
+    *,
+    sessions: frozenset[str] = frozenset({"regular"}),
+    corporate_action_semantics: str = "split-adjusted-v1",
+) -> CapabilityCell:
+    return CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=sessions,
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        corporate_action_semantics=frozenset({corporate_action_semantics}),
+        history_start=START,
+        history_end=END,
+        evidence_digest=EVIDENCE_DIGEST,
+    )
+
+
+def test_canonical_content_is_order_independent_and_recursively_immutable() -> None:
+    first = {"parameters": {"z": Decimal("1.2500"), "a": [1, 2]}}
+    second = {"parameters": {"a": [1, 2], "z": Decimal("1.25")}}
+    assert content_digest(first) == content_digest(second)
+    assert canonical_json({"x": 1, "set": frozenset({"b", "a"})}) == canonical_json(
+        {"set": frozenset({"a", "b"}), "x": 1}
+    )
+    assert content_digest(Decimal("1")) == content_digest(Decimal("1.000"))
+    assert content_digest(Decimal("1")) != content_digest("1")
+    assert content_digest(True) != content_digest(1)
+
+    strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST, default_parameters=first)
+    with pytest.raises(TypeError):
+        strategy.default_parameters["new"] = 2  # type: ignore[index]
+    assert strategy.default_parameters["parameters"]["z"] == Decimal("1.2500")
+
+
+def test_scientific_trial_identity_is_stable_across_mapping_order() -> None:
+    experiment = content_digest({"experiment": 1})
+    snapshot = content_digest({"snapshot": 1})
+    preflight = preflight_capabilities((_requirement(),), (_cell(),))
+    first = ScientificTrial.create(
+        experiment_fingerprint=experiment,
+        snapshot_fingerprint=snapshot,
+        preflight_report=preflight,
+        parameter_set={"lookback": 20, "threshold": Decimal("0.03")},
+        seed=19,
+    )
+    second = ScientificTrial.create(
+        experiment_fingerprint=experiment,
+        snapshot_fingerprint=snapshot,
+        preflight_report=preflight,
+        parameter_set={"threshold": Decimal("0.030"), "lookback": 20},
+        seed=19,
+    )
+    assert first.trial_id == second.trial_id
+    assert first.parameter_set["threshold"] == Decimal("0.03")
+    assert first.preflight_label == "rigorous"
+    assert first.ranking_eligible
+
+    degraded_report = preflight_capabilities(
+        (_requirement(session="extended"),),
+        (_cell(),),
+        allow_degraded=True,
+        degradations=(
+            Degradation("US.AAPL", "session", "regular", "extended session unavailable"),
+        ),
+    )
+    degraded_trial = ScientificTrial.create(
+        experiment_fingerprint=experiment,
+        snapshot_fingerprint=snapshot,
+        preflight_report=degraded_report,
+        parameter_set={},
+    )
+    assert degraded_trial.preflight_label == "degraded"
+    assert not degraded_trial.ranking_eligible
+
+    with pytest.raises(ValueError, match="trial_id does not match"):
+        # A mismatched caller-supplied trial id cannot pair a rigorous report with
+        # altered ranking semantics; those semantics are derived from the report.
+        type(first)(
+            trial_id=first.trial_id,
+            experiment_fingerprint=experiment,
+            snapshot_fingerprint=snapshot,
+            preflight_report=degraded_report,
+            parameter_set={},
+            scenario={},
+            seed=0,
+        )
+    unsupported = preflight_capabilities((_requirement(session="extended"),), (_cell(),))
+    with pytest.raises(ValueError, match="unsupported preflight"):
+        ScientificTrial.create(
+            experiment_fingerprint=experiment,
+            snapshot_fingerprint=snapshot,
+            preflight_report=unsupported,
+            parameter_set={},
+        )
+
+
+def test_capability_preflight_fails_closed_and_labels_explicit_degradation() -> None:
+    rigorous = preflight_capabilities((_requirement(),), (_cell(),))
+    assert rigorous.classification is PreflightClass.RIGOROUS
+    assert rigorous.ranking_eligible
+
+    missing = preflight_capabilities((_requirement(session="extended"),), (_cell(),))
+    assert missing.classification is PreflightClass.UNSUPPORTED
+    assert not missing.executable
+
+    wrong_event_type = preflight_capabilities(
+        (_requirement(),), (replace(_cell(), event_types=frozenset({"trades"})),)
+    )
+    assert wrong_event_type.classification is PreflightClass.UNSUPPORTED
+    assert wrong_event_type.decisions[0].gaps == ("event_type",)
+
+    declared = Degradation("US.AAPL", "session", "regular", "extended session unavailable")
+    degraded = preflight_capabilities(
+        (_requirement(session="extended"),),
+        (_cell(),),
+        allow_degraded=True,
+        degradations=(declared,),
+    )
+    assert degraded.classification is PreflightClass.DEGRADED
+    assert degraded.executable
+    assert not degraded.ranking_eligible
+    assert degraded.decisions[0].degradations == (declared,)
+    with pytest.raises(ValueError, match="match the decision substitutions"):
+        replace(rigorous, degradations=(declared,))
+
+    alternate_cell = preflight_capabilities(
+        (_requirement(session="extended"),),
+        (_cell(), _cell(sessions=frozenset({"extended"}))),
+    )
+    assert alternate_cell.classification is PreflightClass.RIGOROUS
+    regular_requirement = _requirement()
+    extended_requirement = _requirement(session="extended")
+    extended_cell = _cell(sessions=frozenset({"extended"}))
+    ordered = preflight_capabilities(
+        (regular_requirement, extended_requirement),
+        (_cell(), extended_cell),
+    )
+    reversed_inputs = preflight_capabilities(
+        (extended_requirement, regular_requirement),
+        (extended_cell, _cell()),
+    )
+    assert ordered.fingerprint == reversed_inputs.fingerprint
+    with pytest.raises(ValueError, match="must match values supported"):
+        preflight_capabilities(
+            (_requirement(session="extended"),),
+            (_cell(),),
+            allow_degraded=True,
+            degradations=(Degradation("US.AAPL", "session", "overnight", "use overnight data"),),
+        )
+
+
+def test_search_grid_random_and_latin_hypercube_are_deterministic() -> None:
+    design = SearchDesign(
+        (
+            SearchDimension("lookback", minimum=Decimal(5), maximum=Decimal(15), grid_steps=3),
+            SearchDimension("side", choices=("long", "short")),
+        )
+    )
+    grid = expand_parameter_sets(design, ExpansionMethod.GRID)
+    assert len(grid) == 6
+    assert {row["lookback"] for row in grid} == {Decimal(5), Decimal(10), Decimal(15)}
+
+    random_a = expand_parameter_sets(design, ExpansionMethod.RANDOM, count=12, seed=41)
+    random_b = expand_parameter_sets(design, ExpansionMethod.RANDOM, count=12, seed=41)
+    assert random_a == random_b
+
+    lhs = expand_parameter_sets(design, ExpansionMethod.LATIN_HYPERCUBE, count=8, seed=41)
+    assert lhs == expand_parameter_sets(design, ExpansionMethod.LATIN_HYPERCUBE, count=8, seed=41)
+    strata = {int((row["lookback"] - Decimal(5)) / Decimal(10) * Decimal(8)) for row in lhs}
+    assert len(lhs) == 8
+    assert all(Decimal(5) <= row["lookback"] < Decimal(15) for row in lhs)
+    assert strata == set(range(8))
+
+    scenarios = expand_scenario_matrix({"regime": ("calm", "stress"), "cost_bps": (0, 5)})
+    plans = build_trial_designs(({"lookback": 5}, {"lookback": 10}), scenarios, seed=41)
+    repeated = build_trial_designs(({"lookback": 5}, {"lookback": 10}), scenarios, seed=41)
+    assert len(plans) == 8
+    assert plans == repeated
+    assert len({item.seed for item in plans}) == len(plans)
+
+
+def test_walk_forward_gaps_embargo_and_oos_aggregation_are_explicit() -> None:
+    spec = WalkForwardSpec(
+        train_periods=5,
+        test_periods=2,
+        step_periods=2,
+        gap_periods=1,
+        embargo_periods=1,
+        mode=WalkForwardMode.ROLLING,
+    )
+    folds = build_walk_forward_folds(16, spec)
+    assert folds[0].train_indices == (0, 1, 2, 3, 4)
+    assert folds[0].excluded_indices == (5,)
+    assert folds[0].test_indices == (6, 7)
+    assert folds[1].train_indices == (1, 2, 3, 4, 5)
+    assert 6 in folds[1].excluded_indices and 7 in folds[1].excluded_indices
+    observations = tuple(range(16))
+    assert aggregate_out_of_sample(folds, observations) == (6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    with pytest.raises(ValueError, match="history is too short"):
+        build_walk_forward_folds(6, spec)
+
+
+def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
+    requirement = _requirement()
+    strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
+    dependency = StrategyDataDependency("daily-bars", requirement, ("close",), lookback_periods=0)
+    manifest = StrategySdkManifest(strategy, (dependency,))
+    market_event = MarketEvent(
+        "daily-bars",
+        "bar-1",
+        "US.AAPL",
+        END,
+        10,
+        {"close": Decimal("190.25")},
+    )
+    context = build_strategy_context(
+        manifest,
+        event_time=END,
+        event_sequence=10,
+        random_seed=7,
+        parameters={"fast": 4},
+        market_events={"daily-bars": (market_event,)},
+        positions={
+            "US.AAPL": PositionSnapshot("US.AAPL", Decimal(2), Decimal(180), Decimal(360))
+        },
+    )
+    assert context.parameters["fast"] == 4
+    assert context.market_events["daily-bars"][0].values["close"] == Decimal("190.25")
+    assert context.positions["US.AAPL"].quantity == Decimal(2)
+    with pytest.raises(TypeError):
+        context.market_events["daily-bars"][0].values["close"] = Decimal(0)  # type: ignore[index]
+    with pytest.raises(ValueError, match="missing required fields"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=10,
+            random_seed=7,
+            parameters={},
+            market_events={"daily-bars": (replace(market_event, values={}),)},
+        )
+    with pytest.raises(ValueError, match="undeclared fields"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=10,
+            random_seed=7,
+            parameters={},
+            market_events={
+                "daily-bars": (
+                    MarketEvent(
+                        "daily-bars",
+                        "bar-2",
+                        "US.AAPL",
+                        END,
+                        11,
+                        {"close": Decimal("190.25"), "secret": Decimal(7)},
+                    ),
+                )
+            },
+        )
+    with pytest.raises(ValueError, match="cannot expose events"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=10,
+            random_seed=7,
+            parameters={},
+            market_events={
+                "daily-bars": (
+                    MarketEvent(
+                        "daily-bars",
+                        "bar-future-sequence",
+                        "US.AAPL",
+                        END,
+                        11,
+                        {"close": Decimal("190.25")},
+                    ),
+                )
+            },
+        )
+    intents = validate_strategy_output(
+        manifest,
+        (
+            OrderIntent("US.AAPL", OrderSide.BUY, Decimal("2"), OrderType.MARKET),
+            TargetPositionIntent("US.AAPL", Decimal("0.5")),
+        ),
+    )
+    assert len(intents) == 2
+    with pytest.raises(ValueError, match="undeclared instrument"):
+        validate_strategy_output(manifest, (TargetPositionIntent("US.MSFT", Decimal("0.5")),))
+    with pytest.raises(ValueError, match="limit orders require"):
+        OrderIntent("US.AAPL", OrderSide.BUY, Decimal(1), OrderType.LIMIT)
+
+
+def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
+    metrics = calculate_performance_metrics(
+        (Decimal(110), Decimal(100), Decimal(120)),
+        initial_capital=Decimal(100),
+        periods_per_year=252,
+        basis=MetricBasis.NET,
+    )
+    by_name = {item.name: item for item in metrics}
+    assert by_name["total_return"].value == Decimal("0.2")
+    assert by_name["total_return"].basis is MetricBasis.NET
+    assert by_name["sharpe_ratio"].value is not None
+    assert by_name["sharpe_ratio"].annualization_basis == "252 observed periods per year"
+    assert all(item.definition_version == "strategy-lab.metrics.v1" for item in metrics)
+
+    trade_metrics = {
+        item.name: item for item in calculate_trade_metrics((Decimal(10), Decimal(-5)))
+    }
+    assert trade_metrics["profit_factor"].value == Decimal(2)
+    no_trades = {item.name: item for item in calculate_trade_metrics(())}
+    assert no_trades["win_rate"].value is None
+    assert no_trades["win_rate"].null_reason == "no completed trades"
+
+    created = datetime(2024, 1, 1, tzinfo=UTC)
+    metric_set = MetricSet(
+        "metrics-1", "trial-1", "attempt-1", metrics[0].definition_version, metrics, created
+    )
+    assert len(metric_set.values) == len(metrics)
+    with pytest.raises(ValueError, match="must match their metric-set"):
+        MetricSet("metrics-2", "trial-1", "attempt-1", "other-version", metrics, created)
+
+
+def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_addressed() -> None:
+    strategy = StrategyVersion("s-1", "v1", "2.0", SOURCE_DIGEST)
+    component = PortfolioComponent(
+        "component-1", strategy.fingerprint, ("US.AAPL",), Decimal("0.60"), priority=1
+    )
+    portfolio = PortfolioComposition(
+        "portfolio-1",
+        "v1",
+        Decimal("100000"),
+        "usd",
+        (component,),
+        rebalance_policy={"frequency": "monthly"},
+        shared_risk_policy={"gross_limit": "1.0"},
+    )
+    assert portfolio.base_currency == "USD"
+    assert portfolio.fingerprint == content_digest(portfolio)
+
+    package = StrategyPackage(
+        package_id="package-s1-v1",
+        strategy_fingerprint=strategy.fingerprint,
+        package_format=StrategyPackageFormat.SOURCE_ARCHIVE,
+        archive_digest=content_digest({"package": "strategy archive"}),
+        manifest_digest=content_digest({"manifest": "v1"}),
+        dependency_lock_digest=content_digest({"dependencies": []}),
+        archive_byte_length=512,
+        entrypoint="strategy.main:Strategy",
+        sdk_version="2.0",
+        runtime_abi="cpython-312",
+    )
+    with pytest.raises(ValueError, match="entrypoint must use"):
+        replace(package, entrypoint="not-an-entrypoint")
+
+    series = DataSeriesManifest(
+        instrument_id="US.AAPL",
+        event_type="ohlcv",
+        event_granularity=EventGranularity.BAR,
+        timeframe="1d",
+        session="regular",
+        feed="consolidated",
+        start=START,
+        end=END,
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        corporate_action_semantics="split-adjusted-v1",
+        coverage_evidence_digest=content_digest({"coverage": "verified fixture"}),
+        content_digest=content_digest({"bars": 1}),
+        row_count=100,
+    )
+    report = preflight_capabilities((_requirement(),), (_cell(),))
+    snapshot = DataSnapshot(
+        "snapshot-1",
+        "provider-snapshot-1",
+        report,
+        (series,),
+        datetime(2024, 1, 1, tzinfo=UTC),
+    )
+    snapshot_copy = DataSnapshot(
+        "snapshot-2",
+        "provider-snapshot-2",
+        report,
+        (series,),
+        datetime(2024, 1, 2, tzinfo=UTC),
+    )
+    assert snapshot.fingerprint == snapshot_copy.fingerprint
+    assert snapshot.fingerprint == content_digest(
+        {
+            "capability_contract_digest": snapshot.capability_contract_digest,
+            "series": snapshot.series,
+        }
+    )
+
+    with pytest.raises(ValueError, match="does not cover preflight requirement"):
+        DataSnapshot(
+            "snapshot-wrong-schema",
+            "provider-snapshot-wrong-schema",
+            report,
+            (replace(series, event_type="trades"),),
+            datetime(2024, 1, 5, tzinfo=UTC),
+        )
+
+    total_return_semantics = "total-return-v1"
+    semantic_report = preflight_capabilities(
+        (
+            _requirement(),
+            _requirement(corporate_action_semantics=total_return_semantics),
+        ),
+        (_cell(), _cell(corporate_action_semantics=total_return_semantics)),
+    )
+    alternate_semantics = replace(
+        series,
+        corporate_action_semantics=total_return_semantics,
+        content_digest=content_digest({"bars": 2}),
+    )
+    semantic_snapshot = DataSnapshot(
+        "snapshot-semantics",
+        "provider-snapshot-semantics",
+        semantic_report,
+        (series, alternate_semantics),
+        datetime(2024, 1, 5, tzinfo=UTC),
+    )
+    reversed_semantic_snapshot = DataSnapshot(
+        "snapshot-semantics-reversed",
+        "provider-snapshot-semantics-reversed",
+        semantic_report,
+        (alternate_semantics, series),
+        datetime(2024, 1, 6, tzinfo=UTC),
+    )
+    assert semantic_snapshot.fingerprint == reversed_semantic_snapshot.fingerprint
+    with pytest.raises(ValueError, match="row_count must be positive"):
+        replace(series, row_count=True)
+
+    midpoint = datetime(2021, 1, 1, tzinfo=UTC)
+    segmented = DataSnapshot(
+        "snapshot-segmented",
+        "provider-snapshot-segmented",
+        report,
+        (
+            replace(series, end=midpoint, content_digest=content_digest({"bars": 1})),
+            replace(series, start=midpoint, content_digest=content_digest({"bars": 2})),
+        ),
+        datetime(2024, 1, 3, tzinfo=UTC),
+    )
+    assert len(segmented.series) == 2
+    broad_series = replace(
+        series,
+        start=datetime(2019, 1, 1, tzinfo=UTC),
+        end=datetime(2023, 1, 1, tzinfo=UTC),
+    )
+    broad_snapshot = DataSnapshot(
+        "snapshot-broad",
+        "provider-snapshot-broad",
+        report,
+        (broad_series,),
+        datetime(2024, 1, 3, tzinfo=UTC),
+    )
+    assert broad_snapshot.series[0] == broad_series
+    with pytest.raises(ValueError, match="does not cover preflight requirement"):
+        DataSnapshot(
+            "snapshot-short",
+            "provider-snapshot-short",
+            report,
+            (replace(series, end=datetime(2021, 12, 31, tzinfo=UTC)),),
+            datetime(2024, 1, 4, tzinfo=UTC),
+        )
+    overlap_start = datetime(2020, 12, 31, tzinfo=UTC)
+    with pytest.raises(ValueError, match="overlapping series coverage"):
+        DataSnapshot(
+            "snapshot-overlap",
+            "provider-snapshot-overlap",
+            report,
+            (
+                replace(series, end=midpoint),
+                replace(series, start=overlap_start),
+            ),
+            datetime(2024, 1, 4, tzinfo=UTC),
+        )
+    with pytest.raises(TypeError, match="typed PreflightReport"):
+        DataSnapshot(
+            "snapshot-unchecked",
+            "provider-snapshot-unchecked",
+            content_digest({"capability": 1}),  # type: ignore[arg-type]
+            (series,),
+            datetime(2024, 1, 5, tzinfo=UTC),
+        )
+
+    trial = ScientificTrial.create(
+        experiment_fingerprint=content_digest({"experiment": 1}),
+        snapshot_fingerprint=snapshot.fingerprint,
+        preflight_report=report,
+        parameter_set={"lookback": 20},
+        seed=11,
+    )
+    created = datetime(2024, 1, 1, tzinfo=UTC)
+    attempt = RunAttempt("attempt-result-1", trial.trial_id, 1, AttemptState.SUCCEEDED, created)
+    metric_value = MetricValue(
+        "total_return",
+        Decimal("0.15"),
+        "fraction",
+        "strategy-lab.metrics.v1",
+        MetricBasis.NET,
+        252,
+    )
+    metric_set = MetricSet(
+        "result-metrics-1",
+        trial.trial_id,
+        attempt.attempt_id,
+        "strategy-lab.metrics.v1",
+        (metric_value,),
+        created,
+    )
+    equity_digest = content_digest({"equity": "parquet"})
+    result = RunResultManifest(
+        trial=trial,
+        attempt=attempt,
+        strategy_packages=(package,),
+        portfolio=portfolio,
+        snapshot=snapshot,
+        engine_name="nautilus",
+        engine_version="2.0.0",
+        engine_build_digest=content_digest({"engine-build": 1}),
+        dependency_catalog_digest=content_digest({"catalog": 1}),
+        assumptions_digest=content_digest({"assumptions": 1}),
+        metric_set=metric_set,
+        output_artifacts=(
+            ArtifactManifest(equity_digest, 1024, "application/parquet", "1", equity_digest),
+        ),
+        created_at=created,
+    )
+    retry_attempt = RunAttempt(
+        "attempt-result-2", trial.trial_id, 2, AttemptState.SUCCEEDED, created + timedelta(days=1)
+    )
+    retry_metrics = replace(
+        metric_set,
+        metric_set_id="result-metrics-2",
+        attempt_id=retry_attempt.attempt_id,
+        created_at=retry_attempt.created_at,
+    )
+    retry_result = replace(
+        result,
+        attempt=retry_attempt,
+        metric_set=retry_metrics,
+        created_at=retry_attempt.created_at,
+    )
+    assert result.reproduction_fingerprint == retry_result.reproduction_fingerprint
+    assert result.fingerprint != retry_result.fingerprint
+    unrelated_package = replace(
+        package,
+        strategy_fingerprint=content_digest({"strategy": "unrelated"}),
+    )
+    with pytest.raises(ValueError, match="packages must match the portfolio"):
+        replace(result, strategy_packages=(unrelated_package,))
+
+    digest = content_digest({"artifact": "parquet bytes"})
+    artifact = ArtifactManifest(digest, 512, "application/vnd.apache.parquet", "1", digest)
+    assert artifact.storage_key == artifact.content_digest
+    with pytest.raises(ValueError, match="storage_key must equal"):
+        ArtifactManifest(digest, 512, "application/vnd.apache.parquet", "1", "arbitrary-key")
+
+
+def test_attempt_retry_preserves_trial_and_forward_events_are_auditable() -> None:
+    created = datetime(2024, 1, 1, tzinfo=UTC)
+    first = RunAttempt("attempt-1", "same-trial", 1, AttemptState.QUEUED, created)
+    running = transition_attempt(first, AttemptState.RUNNING, now=created + timedelta(seconds=1))
+    assert running.updated_at == created + timedelta(seconds=1)
+    with pytest.raises(ValueError, match="cannot move backwards"):
+        transition_attempt(running, AttemptState.FAILED, now=created + timedelta(milliseconds=500))
+    failed = transition_attempt(running, AttemptState.FAILED, now=created + timedelta(seconds=2))
+    retry = create_retry_attempt(
+        (failed,), attempt_id="attempt-2", created_at=created + timedelta(seconds=3)
+    )
+    assert retry.trial_id == first.trial_id
+    assert retry.ordinal == 2
+
+    cursor = ForwardCursor(last_sequence=3, last_event_id="e3", last_event_time=created)
+    gap_event = CanonicalForwardEvent(
+        "e6", 6, created + timedelta(seconds=3), created + timedelta(seconds=3), EVIDENCE_DIGEST
+    )
+    gap = observe_forward_event(cursor, gap_event)
+    assert gap.disposition is ForwardEventDisposition.GAP
+    assert (gap.missing_sequence_start, gap.missing_sequence_end) == (4, 5)
+    assert gap.buffer_event
+    assert gap.next_cursor == cursor
+
+    event4 = CanonicalForwardEvent(
+        "e4", 4, created + timedelta(seconds=1), created + timedelta(seconds=1), EVIDENCE_DIGEST
+    )
+    event5 = CanonicalForwardEvent(
+        "e5", 5, created + timedelta(seconds=2), created + timedelta(seconds=2), EVIDENCE_DIGEST
+    )
+    accepted4 = observe_forward_event(cursor, event4)
+    accepted5 = observe_forward_event(accepted4.next_cursor, event5)
+    recovered6 = observe_forward_event(accepted5.next_cursor, gap_event)
+    assert accepted4.disposition is ForwardEventDisposition.ACCEPTED
+    assert accepted5.disposition is ForwardEventDisposition.ACCEPTED
+    assert recovered6.disposition is ForwardEventDisposition.ACCEPTED
+    assert recovered6.next_cursor.last_sequence == 6
+
+    duplicate = observe_forward_event(
+        recovered6.next_cursor,
+        CanonicalForwardEvent(
+            "e6", 6, created + timedelta(seconds=3), created + timedelta(seconds=4), EVIDENCE_DIGEST
+        ),
+        processed_event_ids=frozenset({"e6"}),
+    )
+    assert duplicate.disposition is ForwardEventDisposition.DUPLICATE
+    assert duplicate.next_cursor == recovered6.next_cursor
+
+    correction = observe_forward_event(
+        recovered6.next_cursor,
+        CanonicalForwardEvent(
+            "e6-correction",
+            7,
+            created + timedelta(seconds=3),
+            created + timedelta(minutes=6),
+            EVIDENCE_DIGEST,
+            correction_of="e6",
+        ),
+    )
+    assert correction.disposition is ForwardEventDisposition.CORRECTION
+    assert correction.stale
+    assert correction.correction_requires_counterfactual_replay
+    assert correction.next_cursor == recovered6.next_cursor
