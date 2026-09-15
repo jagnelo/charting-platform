@@ -73,9 +73,11 @@ def _snapshot(
 ) -> PortfolioExposureSnapshot:
     return PortfolioExposureSnapshot(
         portfolio_fingerprint=portfolio.fingerprint,
+        run_attempt_id="allocation-test-attempt",
         event_time=EVENT_TIME,
         event_sequence=event_sequence,
         account_equity=account_equity,
+        account_cash_balance=Decimal("50000"),
         base_currency="USD",
         valuation_evidence_digest=VALUATION_DIGEST,
         positions=positions,
@@ -365,9 +367,11 @@ def test_allocator_rejects_wrong_event_or_portfolio_and_undeclared_current_instr
             portfolio,
             PortfolioExposureSnapshot(
                 content_digest("different-portfolio"),
+                "allocation-test-attempt",
                 EVENT_TIME,
                 10,
                 Decimal("100000"),
+                Decimal("50000"),
                 "USD",
                 VALUATION_DIGEST,
             ),

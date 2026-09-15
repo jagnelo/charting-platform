@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 
@@ -76,9 +76,11 @@ class PortfolioExposureSnapshot:
     """
 
     portfolio_fingerprint: str
+    run_attempt_id: str
     event_time: datetime
     event_sequence: int
     account_equity: Decimal
+    account_cash_balance: Decimal
     base_currency: str
     valuation_evidence_digest: str
     positions: tuple[ComponentPositionExposure, ...] = ()
@@ -86,10 +88,13 @@ class PortfolioExposureSnapshot:
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
         require_sha256_digest(
             self.valuation_evidence_digest, field_name="valuation_evidence_digest"
         )
         _aware(self.event_time, "event_time")
+        object.__setattr__(self, "event_time", self.event_time.astimezone(UTC))
         if (
             not isinstance(self.event_sequence, int)
             or isinstance(self.event_sequence, bool)
@@ -102,6 +107,11 @@ class PortfolioExposureSnapshot:
             or self.account_equity <= 0
         ):
             raise ValueError("account_equity must be a finite positive Decimal")
+        if (
+            not isinstance(self.account_cash_balance, Decimal)
+            or not self.account_cash_balance.is_finite()
+        ):
+            raise ValueError("account_cash_balance must be a finite Decimal")
         if (
             not isinstance(self.base_currency, str)
             or len(self.base_currency) != 3
@@ -122,7 +132,11 @@ class PortfolioExposureSnapshot:
         if len(risk_instruments) != len(set(risk_instruments)):
             raise ValueError("instrument risk models must be unique per instrument")
         object.__setattr__(self, "base_currency", self.base_currency.upper())
-        object.__setattr__(self, "positions", positions)
+        object.__setattr__(
+            self,
+            "positions",
+            tuple(sorted(positions, key=lambda item: (item.component_id, item.instrument_id))),
+        )
         object.__setattr__(
             self,
             "instrument_risk_models",

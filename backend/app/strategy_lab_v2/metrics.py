@@ -5,10 +5,24 @@ from __future__ import annotations
 from collections.abc import Sequence
 from decimal import ROUND_CEILING, Decimal
 
-from app.strategy_lab_v2.contracts import MetricBasis, MetricValue
+from app.strategy_lab_v2.allocation import PortfolioExposureSnapshot
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    MetricBasis,
+    MetricValue,
+)
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
+from app.strategy_lab_v2.observations import (
+    ComponentPnlObservation,
+    CostReportStatus,
+    ExecutionCostKind,
+    FillCostObservation,
+    ObservationPoint,
+    PortfolioPnlObservation,
+)
 
-METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v2"
+METRIC_DEFINITION_VERSION = "strategy-lab.metrics.v3"
 _METRIC_FORMULAS = {
     "total_pnl": "terminal equity minus initial capital; external cash flows are not modeled",
     "total_return": "terminal equity divided by initial capital minus one",
@@ -710,3 +724,467 @@ def calculate_trade_metrics(
             sample_size=count,
         ),
     )
+
+
+@deterministic_decimal_math
+def calculate_exposure_utilization_metrics(
+    observations: Sequence[PortfolioExposureSnapshot],
+) -> tuple[MetricValue, ...]:
+    """Summarize event-sampled cash-equity notional exposure to account equity.
+
+    These are equally sample-weighted event marks, not time-weighted utilization
+    or margin usage. The registered cash-equity valuation must be present for
+    each observed instrument; other product risk models fail closed.
+    """
+
+    marks = tuple(observations)
+    if not marks:
+        raise ValueError("at least one portfolio exposure observation is required")
+    if any(not isinstance(item, PortfolioExposureSnapshot) for item in marks):
+        raise TypeError("observations must contain PortfolioExposureSnapshot values")
+    portfolio_fingerprint = marks[0].portfolio_fingerprint
+    run_attempt_id = marks[0].run_attempt_id
+    base_currency = marks[0].base_currency
+    points = tuple(ObservationPoint(item.event_time, item.event_sequence) for item in marks)
+    if any(item.portfolio_fingerprint != portfolio_fingerprint for item in marks):
+        raise ValueError("all exposure observations must belong to the same portfolio version")
+    if any(item.run_attempt_id != run_attempt_id for item in marks):
+        raise ValueError("all exposure observations must belong to the same run attempt")
+    if any(item.base_currency != base_currency for item in marks):
+        raise ValueError("all exposure observations must use the same base currency")
+    if any(current <= previous for previous, current in zip(points, points[1:])):
+        raise ValueError("exposure observations must be strictly ordered by event time and sequence")
+    observation_digest = content_digest(marks)
+
+    gross_ratios: list[Decimal] = []
+    net_ratios: list[Decimal] = []
+    cash_ratios: list[Decimal] = []
+    for mark in marks:
+        risk_models = {item.instrument_id: item.risk_model for item in mark.instrument_risk_models}
+        required_instruments = {item.instrument_id for item in mark.positions}
+        for instrument_id in required_instruments:
+            risk_model = risk_models.get(instrument_id)
+            if risk_model is None:
+                raise ValueError(f"instrument {instrument_id!r} has no risk-model evidence")
+            if risk_model != CASH_EQUITY_NOTIONAL_RISK_MODEL:
+                raise ValueError(
+                    f"instrument {instrument_id!r} uses an unsupported exposure risk model"
+                )
+        gross = sum(
+            (abs(item.signed_base_risk_exposure) for item in mark.positions), Decimal(0)
+        )
+        net = sum(
+            (item.signed_base_risk_exposure for item in mark.positions), Decimal(0)
+        )
+        gross_ratios.append(gross / mark.account_equity)
+        net_ratios.append(net / mark.account_equity)
+        cash_ratios.append(mark.account_cash_balance / mark.account_equity)
+
+    sample_size = len(marks)
+    return (
+        _value(
+            "average_gross_notional_to_equity",
+            sum(gross_ratios, Decimal(0)) / Decimal(sample_size),
+            unit="ratio",
+            basis=MetricBasis.GROSS,
+            sample_size=sample_size,
+            calculation_basis=(
+                "equally sample-weighted mean of cash-equity gross signed-base-notional "
+                "exposure divided by contemporaneous account equity; not margin usage; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "maximum_gross_notional_to_equity",
+            max(gross_ratios),
+            unit="ratio",
+            basis=MetricBasis.GROSS,
+            sample_size=sample_size,
+            calculation_basis=(
+                "maximum observed cash-equity gross signed-base-notional exposure "
+                "divided by contemporaneous account equity; not margin usage; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "average_net_notional_to_equity",
+            sum(net_ratios, Decimal(0)) / Decimal(sample_size),
+            unit="ratio",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "equally sample-weighted mean of signed account exposure divided by "
+                f"contemporaneous account equity; observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "maximum_absolute_net_notional_to_equity",
+            max((abs(item) for item in net_ratios), default=Decimal(0)),
+            unit="ratio",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "maximum absolute observed signed account exposure divided by "
+                f"contemporaneous account equity; observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "average_cash_balance_to_equity",
+            sum(cash_ratios, Decimal(0)) / Decimal(sample_size),
+            unit="ratio",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "equally sample-weighted mean account cash balance divided by "
+                f"contemporaneous account equity; observations {observation_digest}"
+            ),
+        ),
+    )
+
+
+@deterministic_decimal_math
+def calculate_execution_cost_metrics(
+    fills: Sequence[FillCostObservation],
+    *,
+    base_currency: str,
+) -> tuple[MetricValue, ...]:
+    """Aggregate engine-reported fill notional and signed cash-effect costs.
+
+    Cost effects are signed account cash flows: expenses are negative, rebates
+    positive, and slippage must cite its explicit benchmark definition. Net cost
+    is the negated total cash effect. Basis points use the supplied base-currency
+    fill notionals as denominator; no costs or slippage are inferred here.
+    """
+
+    fill_values = tuple(fills)
+    if any(not isinstance(item, FillCostObservation) for item in fill_values):
+        raise TypeError("fills must contain FillCostObservation values")
+    fill_ids = [item.fill_id for item in fill_values]
+    if len(fill_ids) != len(set(fill_ids)):
+        raise ValueError("fill ids must be unique in an execution-cost sample")
+    fill_values = tuple(sorted(fill_values, key=lambda item: (item.point, item.fill_id)))
+    currency = _currency_code(base_currency)
+    if fill_values:
+        portfolio_fingerprint = fill_values[0].portfolio_fingerprint
+        run_attempt_id = fill_values[0].run_attempt_id
+        if any(item.portfolio_fingerprint != portfolio_fingerprint for item in fill_values):
+            raise ValueError("all fill observations must belong to the same portfolio version")
+        if any(item.run_attempt_id != run_attempt_id for item in fill_values):
+            raise ValueError("all fill observations must belong to the same run attempt")
+        if any(item.base_currency != currency for item in fill_values):
+            raise ValueError("all fills must use the requested account base currency")
+    observation_digest = content_digest(fill_values)
+
+    notional = sum((item.traded_base_notional for item in fill_values), Decimal(0))
+    cash_effects: dict[ExecutionCostKind, Decimal] = {
+        kind: Decimal(0) for kind in ExecutionCostKind
+    }
+    category_counts: dict[ExecutionCostKind, int] = {kind: 0 for kind in ExecutionCostKind}
+    component_effects: dict[str, Decimal] = {}
+    component_notionals: dict[str, Decimal] = {}
+    component_cost_counts: dict[str, int] = {}
+    component_cost_complete: dict[str, bool] = {}
+    all_cost_count = 0
+    complete_fill_count = 0
+    partial_fill_count = 0
+    unavailable_fill_count = 0
+    for fill in fill_values:
+        component_notionals[fill.component_id] = (
+            component_notionals.get(fill.component_id, Decimal(0)) + fill.traded_base_notional
+        )
+        component_effects.setdefault(fill.component_id, Decimal(0))
+        component_cost_counts.setdefault(fill.component_id, 0)
+        component_cost_complete[fill.component_id] = (
+            component_cost_complete.get(fill.component_id, True)
+            and fill.cost_report_status is CostReportStatus.COMPLETE
+        )
+        if fill.cost_report_status is CostReportStatus.COMPLETE:
+            complete_fill_count += 1
+        elif fill.cost_report_status is CostReportStatus.PARTIAL:
+            partial_fill_count += 1
+        else:
+            unavailable_fill_count += 1
+        for cost in fill.costs:
+            cash_effects[cost.kind] += cost.base_cash_effect
+            category_counts[cost.kind] += 1
+            all_cost_count += 1
+            component_effects[fill.component_id] -= cost.base_cash_effect
+            component_cost_counts[fill.component_id] += 1
+
+    cost_reporting_complete = partial_fill_count == 0 and unavailable_fill_count == 0
+    net_cost = (
+        -sum(cash_effects.values(), Decimal(0)) if cost_reporting_complete else None
+    )
+    cost_bps = (
+        None
+        if notional == 0 or net_cost is None
+        else net_cost / notional * Decimal(10000)
+    )
+    metrics = [
+        _value(
+            "fill_count",
+            Decimal(len(fill_values)),
+            unit="fills",
+            basis=MetricBasis.NET,
+            sample_size=len(fill_values),
+            calculation_basis=(
+                f"count of unique engine-reported fills; observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "complete_cost_report_fill_count",
+            Decimal(complete_fill_count),
+            unit="fills",
+            basis=MetricBasis.NET,
+            sample_size=len(fill_values),
+            calculation_basis="count of fills with explicitly complete engine cost reports",
+        ),
+        _value(
+            "partial_cost_report_fill_count",
+            Decimal(partial_fill_count),
+            unit="fills",
+            basis=MetricBasis.NET,
+            sample_size=len(fill_values),
+            calculation_basis="count of fills with explicitly partial engine cost reports",
+        ),
+        _value(
+            "unavailable_cost_report_fill_count",
+            Decimal(unavailable_fill_count),
+            unit="fills",
+            basis=MetricBasis.NET,
+            sample_size=len(fill_values),
+            calculation_basis="count of fills with unavailable engine cost reports",
+        ),
+        _value(
+            "traded_base_notional",
+            notional,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.GROSS,
+            sample_size=len(fill_values),
+            calculation_basis=(
+                "sum of engine-reported absolute fill notionals in account base currency; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "net_execution_cost",
+            net_cost,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=all_cost_count,
+            calculation_basis=(
+                "negative sum of engine-reported fill cash effects converted to account base currency; "
+                f"observations {observation_digest}"
+            ),
+            null_reason=(
+                "one or more fill cost reports are incomplete"
+                if net_cost is None
+                else None
+            ),
+        ),
+        _value(
+            "execution_cost_basis_points",
+            cost_bps,
+            unit="basis_points",
+            basis=MetricBasis.NET,
+            sample_size=len(fill_values),
+            calculation_basis=(
+                "net execution cost divided by engine-reported traded base notional times 10000; "
+                f"observations {observation_digest}"
+            ),
+            null_reason=(
+                "no traded fill notional"
+                if notional == 0
+                else "one or more fill cost reports are incomplete"
+                if cost_bps is None
+                else None
+            ),
+        ),
+    ]
+    for kind in ExecutionCostKind:
+        metrics.append(
+            _value(
+                f"reported_{kind.value}_cash_effect",
+                cash_effects[kind],
+                unit=f"currency:{currency}",
+                basis=MetricBasis.NET,
+                sample_size=category_counts[kind],
+                calculation_basis=(
+                    f"sum of engine-reported {kind.value} cash effects in account base currency; "
+                    f"negative is expense and positive is credit; incomplete reports may omit amounts; "
+                    f"observations {observation_digest}"
+                ),
+            )
+        )
+    for component_id in sorted(component_effects):
+        component_cost = (
+            component_effects[component_id]
+            if component_cost_complete[component_id]
+            else None
+        )
+        component_notional = component_notionals[component_id]
+        component_bps = (
+            None
+            if component_cost is None
+            else component_cost / component_notional * Decimal(10000)
+        )
+        metrics.extend(
+            (
+                _value(
+                    f"component_execution_cost:{component_id}",
+                    component_cost,
+                    unit=f"currency:{currency}",
+                    basis=MetricBasis.NET,
+                    sample_size=component_cost_counts[component_id],
+                    calculation_basis=(
+                        "negative sum of engine-reported fill cash effects attributed to this component; "
+                        f"observations {observation_digest}"
+                    ),
+                    null_reason=(
+                        "one or more component fill cost reports are incomplete"
+                        if component_cost is None
+                        else None
+                    ),
+                ),
+                _value(
+                    f"component_execution_cost_basis_points:{component_id}",
+                    component_bps,
+                    unit="basis_points",
+                    basis=MetricBasis.NET,
+                    sample_size=len(
+                        [item for item in fill_values if item.component_id == component_id]
+                    ),
+                    calculation_basis=(
+                        "component net execution cost divided by component traded base notional times 10000; "
+                        f"observations {observation_digest}"
+                    ),
+                    null_reason=(
+                        "one or more component fill cost reports are incomplete"
+                        if component_bps is None
+                        else None
+                    ),
+                ),
+            )
+        )
+    return tuple(metrics)
+
+
+@deterministic_decimal_math
+def calculate_component_attribution_metrics(
+    portfolio_pnl: PortfolioPnlObservation,
+    component_pnl: Sequence[ComponentPnlObservation],
+) -> tuple[MetricValue, ...]:
+    """Calculate reconciled run-level component attribution from engine output.
+
+    The components must cover the portfolio gross and net P&L exactly, including
+    an explicit `__unallocated__` observation when any result is unassigned.
+    Component P&L and its attributed costs/rebates are never inferred from
+    position sizes or static capital weights.
+    """
+
+    if not isinstance(portfolio_pnl, PortfolioPnlObservation):
+        raise TypeError("portfolio_pnl must be a PortfolioPnlObservation")
+    components = tuple(component_pnl)
+    if not components:
+        raise ValueError("component P&L attribution observations are required")
+    if any(not isinstance(item, ComponentPnlObservation) for item in components):
+        raise TypeError("component_pnl must contain ComponentPnlObservation values")
+    component_ids = [item.component_id for item in components]
+    if len(component_ids) != len(set(component_ids)):
+        raise ValueError("run-level component attribution must be unique per component")
+    components = tuple(sorted(components, key=lambda item: item.component_id))
+    expected_ids = set(portfolio_pnl.component_ids)
+    observed_ids = set(component_ids)
+    if not expected_ids.issubset(observed_ids):
+        raise ValueError("component P&L attribution is missing declared portfolio components")
+    if observed_ids - expected_ids - {"__unallocated__"}:
+        raise ValueError("component P&L attribution contains an undeclared portfolio component")
+    for item in components:
+        if item.portfolio_fingerprint != portfolio_pnl.portfolio_fingerprint:
+            raise ValueError("component P&L must belong to the account portfolio version")
+        if item.run_attempt_id != portfolio_pnl.run_attempt_id:
+            raise ValueError("component P&L must belong to the same run attempt")
+        if item.point != portfolio_pnl.point:
+            raise ValueError("component and portfolio P&L must use the same result event point")
+        if item.base_currency != portfolio_pnl.base_currency:
+            raise ValueError("component P&L must use the portfolio account base currency")
+        if item.result_bundle_digest != portfolio_pnl.result_bundle_digest:
+            raise ValueError("component P&L must bind the portfolio result evidence bundle")
+    component_gross = sum((item.gross_pnl for item in components), Decimal(0))
+    component_net = sum((item.net_pnl for item in components), Decimal(0))
+    if component_gross != portfolio_pnl.gross_pnl:
+        raise ValueError("component gross P&L does not reconcile to portfolio gross P&L")
+    if component_net != portfolio_pnl.net_pnl:
+        raise ValueError("component net P&L does not reconcile to portfolio net P&L")
+
+    currency = portfolio_pnl.base_currency
+    metrics = [
+        _value(
+            "portfolio_attributed_gross_pnl",
+            component_gross,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.GROSS,
+            sample_size=1,
+            calculation_basis=(
+                "sum of engine-attributed component gross P&L, exactly reconciled to "
+                f"portfolio result evidence {portfolio_pnl.engine_evidence_digest}; "
+                f"result bundle {portfolio_pnl.result_bundle_digest}"
+            ),
+        ),
+        _value(
+            "portfolio_attributed_net_pnl",
+            component_net,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=1,
+            calculation_basis=(
+                "sum of engine-attributed component net P&L, exactly reconciled to "
+                f"portfolio result evidence {portfolio_pnl.engine_evidence_digest}; "
+                f"result bundle {portfolio_pnl.result_bundle_digest}"
+            ),
+        ),
+    ]
+    for item in sorted(components, key=lambda value: value.component_id):
+        method_digest = item.attribution_method_digest
+        metrics.extend(
+            (
+                _value(
+                    f"component_gross_pnl:{item.component_id}",
+                    item.gross_pnl,
+                    unit=f"currency:{currency}",
+                    basis=MetricBasis.GROSS,
+                    sample_size=1,
+                    calculation_basis=(
+                        "engine-reported run-level gross P&L using attribution method "
+                        f"{method_digest}; evidence {item.engine_evidence_digest}"
+                    ),
+                ),
+                _value(
+                    f"component_net_pnl:{item.component_id}",
+                    item.net_pnl,
+                    unit=f"currency:{currency}",
+                    basis=MetricBasis.NET,
+                    sample_size=1,
+                    calculation_basis=(
+                        "engine-reported run-level net P&L after the explicitly attributed "
+                        f"costs and rebates; method {method_digest}; evidence {item.engine_evidence_digest}"
+                    ),
+                ),
+                _value(
+                    f"component_net_pnl_contribution:{item.component_id}",
+                    None
+                    if portfolio_pnl.net_pnl == 0
+                    else item.net_pnl / portfolio_pnl.net_pnl,
+                    unit="fraction",
+                    basis=MetricBasis.NET,
+                    sample_size=1,
+                    calculation_basis=(
+                        "engine-attributed component net P&L divided by reconciled portfolio net P&L"
+                    ),
+                    null_reason=(
+                        "portfolio net P&L is zero" if portfolio_pnl.net_pnl == 0 else None
+                    ),
+                ),
+            )
+        )
+    return tuple(metrics)

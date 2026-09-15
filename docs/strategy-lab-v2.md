@@ -86,21 +86,38 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   snapshots bind opaque valuation evidence which the future adapter must verify;
   futures, options, FX, crypto, and other models are not currently supported.
   This pure module does not create or route engine orders.
+- `observations.py` defines normalized event-time/sequence points, native
+  fill-cost cash effects with explicit currency-conversion and slippage-benchmark
+  evidence, explicit complete/partial/unavailable cost-report coverage, and
+  account/component P&L records. Event and fill observations are scoped to one
+  run attempt so metrics cannot silently combine separate retries. Engine adapters must provide the
+  evidence; the core does not perform FX conversion, infer costs, or infer P&L
+  attribution from position weights.
 - `experiments.py` expands deterministic search/scenario plans and
   leakage-aware walk-forward folds.
-- `metrics.py` v2 computes Decimal account P&L/return, drawdown duration, Ulcer,
+- `metrics.py` v3 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
   equally spaced post-start marks only (not the opening balance), and
   `periods_per_year` must match that cadence; timestamped/irregular observations
-  are not yet modeled. Currency is explicit;
+  are not yet modeled for annualized time-series metrics. Currency is explicit;
   calculation/annualization basis, gross/net basis, samples, and null reasons
   travel with each metric. Tail calculations use an explicitly versioned
-  nearest-rank empirical convention. These remain only part of the planned
-  catalog; exposure/capital, fees/slippage, attribution, rolling, distribution,
-  sensitivity, and calendar-period metrics need additional authoritative input
-  contracts.
+  nearest-rank empirical convention. Exposure metrics are equally
+  sample-weighted signed cash-equity notional relative to contemporaneous equity;
+  they are not time-weighted exposure or margin/capital requirements. Fill-cost
+  totals and basis points are null when any fill cost report is partial or
+  unavailable; category values are explicitly reported amounts, not asserted
+  complete totals. Complete reports may explicitly state zero cost. Cost metrics
+  use engine-reported signed cash effects, explicit base-currency conversions,
+  and named slippage benchmarks, with fill notional as the stated basis-points
+  denominator. Run-level component P&L attribution reconciles
+  exactly to portfolio gross/net P&L and requires an explicit unallocated
+  component when residual results exist. These remain only part of the planned
+  catalog; irregular-time/capital utilization, financing outside fill reports,
+  rolling, distributions, sensitivity, and calendar-period metrics still need
+  additional authoritative input contracts.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active
