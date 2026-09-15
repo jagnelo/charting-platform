@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Study Lab occurrence keyboard accessibility
+
+Product checkpoint `27698c9608f89d480f609df2d716e75eaa34a292` keeps each
+structured event occurrence inside a semantic list item and exposes the
+action as a named native button. The workstation's Space-to-next-symbol
+shortcut no longer consumes Space while the occurrence button is focused, so
+keyboard activation follows the same linked symbol/timestamp path as a click.
+
+Authenticated headless F8o passed 1/1 with Enter and Space; Study Lab unit
+coverage passed 31/31; full frontend Vitest passed 1,074/1,074; frontend
+type-check and Docker production build passed. No screenshot baseline, mask,
+threshold, skip, provider/ETF behavior, or acceptance policy changed. The
+isolated stack was removed with zero retained containers, volumes, sessions,
+or known bytes. The six known visual mismatches and upstream staging boundary
+remain open; this is not an exact-tip or visual-matrix pass.
+
 ## 2026-09-15 - Headless TC workstation and Study Lab browser checkpoint
 
 At product tip d4b288375dac, the branch-scoped Docker frontend was exercised
@@ -11430,6 +11446,15 @@ found no retained containers, volumes, or test sessions. This is a focused R1
 receipt, not a fresh exact-tip gate; the latest exact gate remains `e93de4af`,
 with `98/104` visual assertions and the same six protected diffs. No screenshot
 baseline, mask, threshold, skip, or acceptance policy changed.
+
+Latest R1/R6 accessibility receipt at product/test tip
+`27698c9608f89d480f609df2d716e75eaa34a292`: Study Lab event occurrences are
+semantic list items containing named native buttons; Enter and Space both
+activate the linked event without triggering symbol traversal. Authenticated
+F8o passed 1/1, full frontend Vitest passed 1,074/1,074, component coverage
+31/31, `vue-tsc` and the Docker production build passed. Scope validation and
+the 6/6 scope self-tests passed. No visual oracle changed. This does not resolve
+the six protected screenshot diffs or refresh the exact-tip integration gate.
 
 ### R2 — Consume the market-data provider platform
 

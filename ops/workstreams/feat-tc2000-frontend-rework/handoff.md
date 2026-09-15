@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Study Lab occurrence keyboard accessibility
+
+Product commit `27698c9608f89d480f609df2d716e75eaa34a292` restores native
+button semantics to structured Study Lab event occurrences while preserving
+their containing list/listitem structure. The named button now stops the
+workstation-level keydown handler from consuming Space as symbol traversal, so
+both Enter and Space perform native activation and follow the linked
+occurrence.
+
+The authenticated headless F8o flow passed 1/1 after exercising Enter and
+Space against the same valid SPY event while the active symbol was QQQ. The
+full frontend Vitest suite passed 1,074/1,074; Study Lab component tests passed
+31/31; `vue-tsc --noEmit`, production build, workstream validation, scope guard
+(22 paths), its self-tests (6/6), and diff checks passed. An initial test draft
+emitted a QQQ event from an SPY-only dataset and was correctly rejected by the
+backend; the fixture now retains the SPY dataset and moves the active chart
+before each key activation. A later browser run exposed the real Space-key
+conflict (the global shortcut advanced to DIA); the final F8o run passed after
+the occurrence button isolated native key activation. No provider/ETF behavior
+or visual baseline, mask, threshold, skip, or acceptance policy changed.
+
+The branch-scoped Compose stack was torn down; cleanup removed its containers,
+volumes, network, and four generated images, leaving zero containers, volumes,
+test sessions, and known retained bytes. This is a focused R1/R6 receipt, not
+the exact-tip integration or four-project visual gate. Continue independent
+TC-owned UI and Study/Strategy work; keep provider/ETF responsibilities outside
+TC until their changes reach staging.
+
+The durable record is in `docs/tc2000-roadmap.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`,
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
 ## 2026-09-15 - Verified Liberty One dated holdings
 
 Product commit 67a2fd65 hardens Liberty One's native fund-scoped holdings API

@@ -51,7 +51,12 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -111,11 +116,11 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "304f5063fa7812ab70748fcf5bf3a1377690f2ad",
+  "head": "27698c9608f89d480f609df2d716e75eaa34a292",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T15:16:55.530386+00:00",
-  "last_human_progress_update": "2026-09-15T15:13:45.375565+00:00",
+  "last_checkpoint": "2026-09-15T15:47:47.000465+00:00",
+  "last_human_progress_update": "2026-09-15T15:47:04.936999+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
   "plan_hash": "67ab16443085495207320e5010addb54c979e336a554370cc7203da3d6914d74",
@@ -130,11 +135,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Known visual matrix remains 98/104; focused 1080p watchlist column editor diff reproduced at 13,844 pixels. Provider and ETF tips are not in staging.",
-    "current_phase": "R1_headless_study_lab_visual_diagnostic",
-    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work; preserve visual oracles; make only evidenced corrections; recheck staging before integration.",
+    "current_blocker": "Six protected visual diffs remain; provider and ETF tips are not in staging.",
+    "current_phase": "R1_study_lab_occurrence_keyboard_accessibility",
+    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work; investigate visual mismatches against source evidence without weakening oracles, and recheck staging before consumer integration.",
     "total": 9,
-    "updated_at": "2026-09-15T15:13:45.375496+00:00"
+    "updated_at": "2026-09-15T15:47:04.936920+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
