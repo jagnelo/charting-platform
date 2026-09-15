@@ -522,7 +522,10 @@ describe('StudyLabTool', () => {
     expect(metric.attributes('aria-live')).toBe('polite')
     expect(metric.attributes('aria-atomic')).toBe('true')
     expect(wrapper.get('[aria-label="records table result"] caption').text()).toBe('records table')
-    expect(wrapper.get('[aria-label="events occurrences"] [role="listitem"]').attributes('aria-label')).toBe('SPY 2026-01-02 streak')
+    const eventListItem = wrapper.get('[aria-label="events occurrences"] [role="listitem"]')
+    const eventButton = eventListItem.get('button')
+    expect(eventButton.attributes('aria-label')).toBe('SPY 2026-01-02 streak')
+    expect(eventButton.attributes('type')).toBe('button')
   })
 
   it('offers threshold fan-out for a finite named scalar in a structured Study run', async () => {
