@@ -1140,7 +1140,7 @@ describe('VirtualWatchlistTool', () => {
       props: { label: 'Momentum', rows, selected: 'XLK' },
     })
     const row = wrapper.find('.watchlist__row')
-    await row.trigger('contextmenu', { clientX: 20, clientY: 24 })
+    await row.trigger('keydown', { key: 'F10', shiftKey: true })
     const items = wrapper.findAll('button[role="menuitem"]')
     await vi.waitFor(() => expect(document.activeElement).toBe(items[0].element))
     await items[0].trigger('keydown', { key: 'ArrowDown' })
@@ -1148,6 +1148,13 @@ describe('VirtualWatchlistTool', () => {
     await items[1].trigger('keydown', { key: 'End' })
     expect(document.activeElement).toBe(items[items.length - 1].element)
     await items[items.length - 1].trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(row.element)
+
+    await row.trigger('keydown', { key: 'ContextMenu', code: 'ContextMenu' })
+    const reopenedItems = wrapper.findAll('button[role="menuitem"]')
+    await vi.waitFor(() => expect(document.activeElement).toBe(reopenedItems[0].element))
+    await reopenedItems[0].trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
     expect(document.activeElement).toBe(row.element)
     wrapper.unmount()

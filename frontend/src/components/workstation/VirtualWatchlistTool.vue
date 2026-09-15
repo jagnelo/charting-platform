@@ -81,6 +81,7 @@
           :draggable="reorderable && filteredRows[virtualRow.index].itemId != null"
           :style="rowStyle(virtualRow)"
           @click="selectRow(filteredRows[virtualRow.index], $event)"
+          @keydown="handleRowKeydown($event, filteredRows[virtualRow.index])"
           @dragstart="dragStart(filteredRows[virtualRow.index])"
           @dragover.prevent
           @drop.prevent="dropRow(filteredRows[virtualRow.index])"
@@ -1356,12 +1357,23 @@ function selectRow(row: WatchlistRow, event: MouseEvent) {
   emit('select', row)
 }
 
-function openContextMenu(event: MouseEvent, row: WatchlistRow) {
-  const bounds = (event.currentTarget as HTMLElement).closest('.watchlist')?.getBoundingClientRect()
-  contextRowElement.value = event.currentTarget as HTMLElement
+function handleRowKeydown(event: KeyboardEvent, row: WatchlistRow) {
+  if (event.key !== 'ContextMenu' && event.code !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) return
+  event.preventDefault()
+  event.stopPropagation()
+  openContextMenu(event, row)
+}
+
+function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow) {
+  const rowElement = event.currentTarget as HTMLElement
+  const bounds = rowElement.closest('.watchlist')?.getBoundingClientRect()
+  const rowBounds = rowElement.getBoundingClientRect()
+  const clientX = event.type === 'keydown' ? rowBounds.left : (event as MouseEvent).clientX
+  const clientY = event.type === 'keydown' ? rowBounds.bottom : (event as MouseEvent).clientY
+  contextRowElement.value = rowElement
   membershipTargetId.value = ''
   membershipInspectionOpen.value = false
-  contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
+  contextMenu.value = { row, left: Math.max(2, clientX - (bounds?.left ?? 0)), top: Math.max(2, clientY - (bounds?.top ?? 0)) }
   void nextTick(() => focusContextMenuItem(0))
 }
 

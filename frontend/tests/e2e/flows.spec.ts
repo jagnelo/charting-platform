@@ -663,6 +663,13 @@ test.describe('Chart', () => {
     await items.last().press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(row).toBeFocused()
+
+    await row.press('Shift+F10')
+    await expect(menu).toBeVisible()
+    await expect(items.first()).toBeFocused()
+    await items.first().press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(row).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
