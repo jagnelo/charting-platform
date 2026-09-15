@@ -33,7 +33,8 @@
       </ul>
       <footer>
         <button type="button" @click="reset">Reset chart defaults</button>
-        <label><input ref="importInput" type="file" accept="application/json" @change="importItem" />Import</label>
+        <input ref="importInput" class="chart-template__file-input" type="file" accept="application/json" @change="importItem" />
+        <button type="button" class="chart-template__import" aria-label="Import chart template" @click="openImportPicker">Import</button>
       </footer>
     </div>
   </section>
@@ -271,6 +272,9 @@ async function importItem(event: Event) {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import chart template' }
   finally { if (importInput.value) importInput.value.value = '' }
 }
+function openImportPicker() {
+  importInput.value?.click()
+}
 onMounted(() => {
   mounted = true
   void load()
@@ -284,6 +288,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chart-template{position:relative}.chart-template>button,.chart-template button,.chart-template input,.chart-template label{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-template>button{height:18px;padding:0 5px;cursor:pointer}.chart-template__menu{z-index:120;display:grid;gap:4px;max-height:300px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-template__menu header,.chart-template__save,.chart-template__menu footer,.chart-template__menu li{display:flex;align-items:center;gap:4px}.chart-template__menu header button{margin-left:auto}.chart-template__save input{min-width:0;flex:1;padding:2px 4px}.chart-template__menu ul{display:grid;gap:2px;max-height:154px;margin:0;padding:0;overflow:auto;list-style:none}.chart-template__menu li{min-width:0}.chart-template__apply{min-width:0;flex:1;padding:2px 4px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-template__apply small{color:#8296a4}.chart-template__menu footer{justify-content:space-between;padding-top:3px;border-top:1px solid #2f3c45}.chart-template__menu footer label{padding:2px 4px;cursor:pointer}.chart-template__menu footer input{display:none}.chart-template__state,.chart-template__error{margin:2px 0;color:#8da0ab}.chart-template__error{color:#ef9b9b}
+.chart-template{position:relative}.chart-template>button,.chart-template button,.chart-template input,.chart-template label{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-template>button{height:18px;padding:0 5px;cursor:pointer}.chart-template__menu{z-index:120;display:grid;gap:4px;max-height:300px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-template__menu header,.chart-template__save,.chart-template__menu footer,.chart-template__menu li{display:flex;align-items:center;gap:4px}.chart-template__menu header button{margin-left:auto}.chart-template__save input{min-width:0;flex:1;padding:2px 4px}.chart-template__menu ul{display:grid;gap:2px;max-height:154px;margin:0;padding:0;overflow:auto;list-style:none}.chart-template__menu li{min-width:0}.chart-template__apply{min-width:0;flex:1;padding:2px 4px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-template__apply small{color:#8296a4}.chart-template__menu footer{justify-content:space-between;padding-top:3px;border-top:1px solid #2f3c45}.chart-template__menu footer .chart-template__import{padding:2px 4px;cursor:pointer}.chart-template__menu footer .chart-template__file-input{display:none}.chart-template__state,.chart-template__error{margin:2px 0;color:#8da0ab}.chart-template__error{color:#ef9b9b}
 .chart-template__bar-type{display:grid;grid-template-columns:54px minmax(0,1fr);align-items:center;gap:4px;color:#94a5b0}.chart-template__bar-type select{min-width:0;padding:1px 3px}
 </style>

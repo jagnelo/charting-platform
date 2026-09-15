@@ -158,7 +158,22 @@ describe('ChartTemplateControl', () => {
     await trigger.trigger('keydown', { key: 'ArrowUp' })
 
     expect(wrapper.get('[role="menu"]').exists()).toBe(true)
-    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('footer button').element))
+    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Import chart template"]').element))
+    wrapper.unmount()
+  })
+
+  it('opens the file picker from a keyboard-accessible import button', async () => {
+    const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('keydown', { key: 'ArrowDown' })
+
+    const importButton = wrapper.get('button[aria-label="Import chart template"]')
+    const fileInput = wrapper.get('input[type="file"]').element as HTMLInputElement
+    const click = vi.spyOn(fileInput, 'click')
+    importButton.element.focus()
+    expect(document.activeElement).toBe(importButton.element)
+    await importButton.trigger('click')
+
+    expect(click).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
 

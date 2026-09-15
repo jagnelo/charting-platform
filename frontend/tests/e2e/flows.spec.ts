@@ -623,7 +623,11 @@ test.describe('Chart', () => {
     await templateMenu.getByRole('button', { name: `Delete ${templateName}` }).click()
     await expect(savedTemplate).toHaveCount(0)
 
-    await templateMenu.locator('input[type="file"]').setInputFiles(exportPath!)
+    const importButton = templateMenu.getByRole('button', { name: 'Import chart template' })
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await importButton.press('Enter')
+    const fileChooser = await fileChooserPromise
+    await fileChooser.setFiles(exportPath!)
     await expect(templateMenu.locator('.chart-template__apply').filter({ hasText: templateName })).toBeVisible({ timeout: 15_000 })
     await templateMenu.locator('.chart-template__apply').filter({ hasText: templateName }).click()
     await expect(symbolEntry).toHaveValue('SPY')
