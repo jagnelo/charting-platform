@@ -97,7 +97,7 @@ acceptance_criteria:
   - id: AC-DURABLE-CROSS-SESSION-USAGE
     text: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.
   - id: AC-UNIVERSE-COMPLETE
-    text: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use FINRA otcSecurityMaster with Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.
+    text: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.
   - id: AC-SEC-PRELISTING-POLICY
     text: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.
   - id: AC-INTEGRATION-WORKFLOW
@@ -124,7 +124,8 @@ approved_execution_decisions:
     marketstack: Keep the existing Free plan and its 100 monthly calls; do not ask again about upgrading unless measured unmet demand justifies a proposal.
   identity_and_universe:
     nms_source: Nasdaq Trader official nasdaqlisted.txt and otherlisted.txt; fetch once per completed market day with conditional validators and immediate 429/reset handling.
-    otc_source: FINRA otcSecurityMaster complete snapshot plus FINRA Daily List lifecycle deltas.
+    otc_source: FINRA Daily List lifecycle deltas plus a future documented and authorized complete OTC snapshot; otcSecurityMaster remains only a candidate.
+    otc_source_validation_gate: Current public FINRA dataset documentation does not list otcSecurityMaster; do not query or route this configured endpoint as an authoritative snapshot until FINRA documentation or written provider confirmation establishes it as current and authorized. Daily List alone is not a complete security master; keep the source gap explicit and fail closed pending the user's source decision.
     sec_issuers: First complete bounded SEC directory cycle with issuer materialization disabled, review its report, then create only missing validated CIK/name Issuer rows.
     prelisting: After the staged SEC gate, create inactive provisional instruments only for strong, unambiguous identity/venue evidence; quarantine the rest.
     delisting: Require three consecutive complete daily authoritative snapshot misses; incomplete runs do not count and authoritative reappearance reactivates the listing.
@@ -1721,17 +1722,43 @@ progress:
       passed, and the authoritative Docker-backed gate passed `2,410/2,410`
       at `81.38%` coverage with 89 warnings. Source checkpoint: `6992d1096`;
       no provider, frontend, or ETF-provider files changed.
+    - >-
+      The browser-test overlay now places application/data services on an
+      internal-only network; a separate no-credential relay exposes only the
+      fixed local frontend/backend ports for Playwright. A raw backend HTTPS
+      socket was blocked, relayed local health checks returned 200, and the
+      focused browser case passed `1/1`. The full suite passed `151/260` with
+      zero failures and 109 declared skips; the deny-proxy log stayed empty and
+      only this worktree's test resources were cleaned. Compose-contract
+      validation passed. This evidence is uncommitted at HEAD
+      `73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3`.
+    - >-
+      FINRA OTC source admission now requires the independent non-secret
+      `FINRA_OTC_SOURCE_REVIEWED` and `FINRA_OTC_SOURCE_EVIDENCE` controls in
+      addition to cost, terms, completeness, redistribution, and polling
+      gates. Wiring covers backend settings, local/RPi Compose, GitHub's manual
+      provider-live environment, examples, diagnostics, and the runner
+      preflight. Focused registry/runtime/secret-wiring/live-runner tests pass
+      `96/96`; the exact FINRA live case was explicitly run with review false
+      and skipped before network I/O. This is a safety implementation, not
+      source-validation or complete-OTC acceptance evidence. The authoritative
+      Docker-backed backend gate then passed `2,551/2,551` at `81.79%` line
+      coverage; Compose/RPi/E2E contracts passed and all `45` workflow tests
+      passed. Exact receipts are appended in `validation.jsonl`.
   total: 22
   current_phase: provider_contract_and_quota_audit
   current_blocker: >-
-    No unresolved human product decisions remain for the accepted current
-    implementation phase. The approved decisions are recorded in
-    approved_execution_decisions above. Implementation must close provider
-    contract discovery/accounting gaps, complete NMS/OTC reconciliation,
-    isolate the four secret domains, and prove provider integrations through
-    current-SHA live tests. Staging/master/prod credentials require later owner
-    provisioning, and the 30-day shadow run is intentionally the final phase
-    after all other controllable gates pass.
+    A material source/documentation discrepancy remains: the initial plan
+    selected FINRA otcSecurityMaster, but current public FINRA docs do not list
+    that dataset. Separate source-review controls now keep its endpoint
+    non-routable and its live test skips before any request; do not spend
+    credentials until the user selects a source-confirmation or
+    alternative-provider path. Other gates include provider-contract and usage
+    accounting, complete NMS/OTC reconciliation, staged SEC evidence, four
+    isolated secret domains, Dinari Sandbox isolation, and exact-current-source
+    live tests. Staging/master/production credentials require owner
+    provisioning; the 30-day shadow run remains the final separately
+    authorized phase after all other controllable gates pass.
     required before promotion. Provider live-ledger receipts
     now preserve provider-scoped failures separately from the process-wide
     matrix status, so historical usage diagnostics no longer overstate failed
@@ -2611,4 +2638,4 @@ progress:
       workstream's resources. Source checkpoint `bbaf83789` contains no
       frontend or ETF-provider adapter changes and no provider calls were
       needed.
-  next_action: Complete the provider-by-provider official-documentation/account-header audit; fix native limit, scope, reset, quota-unit, response-byte, and cursor accounting; then complete NMS/OTC and SEC staged lifecycle gates, four-domain secrets/CI wiring, future-integration enforcement, and exhaustive current-source live validation. Do not start the 30-day shadow run until all other controllable gates pass.
+  next_action: Continue the provider-by-provider official-documentation/account-header audit and exact quota/usage corrections; keep FINRA otcSecurityMaster quarantined pending the user's source decision; finish NMS and staged SEC lifecycle evidence, secret-domain and future-integration enforcement, then commit/push the settled source and run the exhaustive current-source live suite. Do not start the 30-day shadow run until every other controllable gate passes.
