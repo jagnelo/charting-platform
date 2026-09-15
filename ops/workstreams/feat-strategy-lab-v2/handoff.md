@@ -254,3 +254,46 @@ This checkpoint updates only these dirty branch-owned records:
 - `ops/workstreams/feat-strategy-lab-v2/handoff.md`
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+## 2026-09-15 - Rolling and calendar-period equity metrics checkpoint
+
+The implementation changeset is committed locally as
+`2d9d8865bc69292dcd1c48719fa6ab803686af3f`. It adds typed rolling session-close
+metric points, exact session-window coverage, explicit annualization and
+risk-free assumptions, and rolling P&L/return/volatility/Sharpe/Sortino/drawdown/
+duration/Ulcer metrics. Calendar-period and rolling aggregators now require
+complete external-flow reports for adjusted net P&L and explicit flow-occurrence
+evidence for return/risk eligibility. Independent review found and resolved the
+zero-net offsetting-flow case; a zero net amount with any flow event now withholds
+return and equity-path risk metrics. An intermediate focused run also exposed an
+unavailable-flow test fixture that retained stale occurrence evidence; the
+fixture was corrected to omit both amount and occurrence, and the final exact-tip
+checks pass.
+
+Exact-tip focused validation passed: 56 package tests, Ruff, MyPy (18 source
+files), and `git diff --check`. Independent review found no remaining concrete
+defect. This is package-only evidence, not the planned full-stack/DB/Redis/API/
+worker/Compose/Nautilus completion gates.
+
+The implementation commit remains pending publication at
+`2d9d8865bc69292dcd1c48719fa6ab803686af3f`; the separate ops checkpoint is
+being committed on top of it. The recorded remote tip is
+`d2497f43084d52d3e66b40a91be25dd2678620be`. No push of the current range was
+attempted because the prior private-repository egress review rejected a payload
+and the exact current range has not been authorized. Do not retry through an
+alternate route. Verify the enclosing ops commit with `git rev-parse` after
+commit rather than creating a self-referential hash update. No parallel worktree
+or shared/provider/frontend path was modified.
+
+Next bounded slice: run-scoped session-return distribution metrics over the
+validated account-equity intervals and exact session calendar. Keep sensitivity
+analysis deferred until common-random-seed/matched-trial semantics are defined.
+Continue to preserve provider, ETF, TC2000, shared runtime, migration, API,
+worker, Compose, and frontend boundaries. Maintain `in_progress`; closure,
+integration, promotion, and deployment remain unauthorized.
+
+This checkpoint updates only these branch-owned records:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
