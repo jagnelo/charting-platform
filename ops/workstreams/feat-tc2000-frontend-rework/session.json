@@ -111,11 +111,11 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "74b049c62425f326cdf2171ecb5bcebe047b2260",
+  "head": "5eedbb0ebace9507367d7d3c56c5931cd54d49fb",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T14:16:42.000000+00:00",
-  "last_human_progress_update": "2026-09-15T14:16:42.000000+00:00",
+  "last_checkpoint": "2026-09-15T14:46:08.549977+00:00",
+  "last_human_progress_update": "2026-09-15T14:45:17.814774+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
   "plan_hash": "67ab16443085495207320e5010addb54c979e336a554370cc7203da3d6914d74",
@@ -130,11 +130,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Local provider tip da06e560b1aaa0e5399e1e9565f174abe925bda8 and ETF tip 52814f95bd0ef62968ba1af4018ff9ef5049d3d6 are not ancestors of staging 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35; these are local refs, not fresh remote confirmation. Historical visual parity is 98/104 with six protected diffs. The committed range 63d64bfe95c98bfe6e550bf69c213ae1cd64a629..74b049c62425f326cdf2171ecb5bcebe047b2260 is committed_locally_pending_push; no current-range push was attempted, prior payloads hit the private-origin authorization safeguard, and the last remote read failed DNS.",
-    "current_phase": "R1_chart_menu_bidirectional_keyboard_navigation_complete",
-    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy implementation; preserve the visual oracles and recheck upstream staging before consumer integration.",
+    "current_blocker": "The latest exact-tip gate remains e93de4af with visual 98/104 and six protected diffs. Local provider and ETF tips are not ancestors of local staging; these are stale ref snapshots. The local feature range remains committed_locally_pending_push after prior exact-payload authorization rejection and a DNS failure; do not push without fresh authorization.",
+    "current_phase": "R1_keyboard_accessible_template_import",
+    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy slices; preserve all visual oracles; do not resume the Dreyfus/ETF parser task; wait to consume provider-platform then ETF work until staged; recheck staging and push state before integration.",
     "total": 9,
-    "updated_at": "2026-09-15T14:16:42.000000+00:00"
+    "updated_at": "2026-09-15T14:45:17.814708+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
