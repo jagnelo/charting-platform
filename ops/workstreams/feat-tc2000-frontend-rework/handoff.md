@@ -1,5 +1,87 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 - Completed context: V25 chart Ctrl+wheel timeframe navigation
+
+This independent R6 workstation slice corrects a direct V25 interaction mismatch.
+The official TC2000 help describes Ctrl+mouse-wheel over a chart as timeframe
+navigation and Ctrl+mouse-wheel over a WatchList as symbol traversal. The current
+shell capture handler instead traverses the global symbol universe for every
+pointer target before uPlot can interpret the same chart gesture as pinch zoom.
+The reference ledger records both behaviors at
+`tests/visual/references/tc2000-v25/manifest.yaml` (`v25-official-hotkeys-behavior`)
+and does not establish wheel direction. The implementation will cycle the chart's
+existing timeframe choices in selector order (down advances, up reverses), keep
+the active symbol unchanged, use the existing timeframe-link store contract, and
+leave WatchList-local Ctrl+wheel ownership intact. This direction is an explicit
+UI-order inference, not a claim made by TC2000's help page.
+
+Start checkpoint: clean TC-only worktree at
+`04b5b64730aebd0bb41bb2fc37c5857a8efb311b`; origin tracking tip is
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. No provider/ETF source worktree or
+contract is being changed or consumed in this slice.
+
+Owned paths:
+- `frontend/src/views/WorkstationView.vue`
+- `frontend/src/components/workstation/WorkstationToolContent.vue`
+- `frontend/src/stores/workspace.ts`
+- `frontend/tests/unit/views/test_workstation_popout_bindings.test.ts`
+- `frontend/tests/unit/stores/test_workspace_store.test.ts`
+- `frontend/tests/e2e/flows.spec.ts`
+- `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`
+- `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`
+- `ops/workstreams/feat-tc2000-frontend-rework/session.json`
+- `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`
+
+Implementation: chart-plot Ctrl+wheel now cycles that chart's existing
+timeframe choices (wheel down advances in ascending selector order; wheel up
+reverses). The update goes through the existing timeframe-link group contract,
+so linked charts follow while grey-linked charts remain isolated. WatchList
+rows retain their local symbol-traversal handler; other non-chart surfaces are
+untouched. The shell help now documents both target-specific behaviors. A live
+store lookup keeps an isolated chart's displayed timeframe reactive after its
+own timeframe changes instead of reading a detached layout config snapshot.
+The selector-order wheel direction is an explicit inference because TC2000's
+official help defines the gesture but not its direction.
+
+Product commit `5c3da621c1c9202b924d89d32cd2522561533377`
+(`feat(tc2000): route chart ctrl-wheel to timeframe`) contains the six
+implementation/test files. Full frontend Vitest passed `1,079/1,079` across 123
+files; focused workspace/store and WorkstationView suites passed `102/102`;
+frontend type-check and production build passed with the pre-existing
+WorkstationView large-chunk warning. Authenticated headless Chromium passed
+`5/5`: F8n timeframe links, F8n-gesture wheel zoom/trackpad pan/recovery, F8k
+linked chart timeframe, F8k-grey isolation, and F8k-watchlist row-to-row
+traversal. TC scope self-tests passed `6/6`; the scope guard accepted 42 paths
+since its recorded baseline; workstream validation and `git diff --check`
+passed. The exact branch-scoped Compose stack was rebuilt with the registered
+default builder, all services became healthy, then only this worktree's stack,
+four volumes, network, and four generated images were removed. Final resource
+accounting reports zero containers, volumes, test sessions, known bytes, or
+unknown components. No screenshot baseline, mask, threshold, skip, provider/ETF
+behavior, or acceptance policy changed. Validation receipt is appended to
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`.
+
+This is a focused R6 interaction slice, not closure of the screenshot-backed
+four-project visual matrix or exact-tip full integration. The six protected
+visual diffs and the provider/ETF staging boundary remain later gates. The
+private-origin push safeguard remains a synchronization hold; do not retry the
+same rejected payload without newly accepted exact-payload authorization.
+
+The local product commit advances the branch beyond the last-known origin tip
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. The previously rejected private-
+origin payload was not retried; synchronization remains an operational hold,
+not a product blocker. `session.json` records the product HEAD before this
+operational checkpoint; after committing these workstream records separately,
+verify the enclosing checkpoint's exact hash externally with `git rev-parse`
+rather than creating a self-referential metadata commit.
+
+Next: diagnose the `workspace-floating` V25 visual mismatch in
+`frontend/tests/e2e/tc2000_visual.spec.ts` and its pop-out rendering path. Fix
+the product cause without changing screenshot baselines, masks, thresholds,
+skips, or acceptance policy; retain the six known diffs until the unchanged
+four-project matrix proves otherwise. Provider/ETF behavior remains deferred
+until both upstream branches reach staging.
+
 ## 2026-09-15 - Promoted Python signal lineage in Strategy Lab
 
 Product commit `7c4bd3ba494706b517d496ca63770055b88f9b3e` preserves Study Lab

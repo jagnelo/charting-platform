@@ -253,12 +253,14 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_research_results_shape_promotion
+  current_phase: R6_workspace_floating_visual_root_cause
   next_action: >-
-    Continue the R5 compatibility audit for a distinct TC-owned
-    Study/Strategy/workstation shape or lineage gap. Keep provider and ETF
-    integration deferred until both reach staging; then reconcile shared paths
-    semantically and run the exact-tip gate.
+    Diagnose and fix the product cause of the workspace-floating V25 screenshot
+    mismatch in the unchanged four-project visual matrix. Preserve all baseline,
+    mask, threshold, skip, and acceptance rules; run the relevant visual/browser
+    regressions and scope/workstream validation. Continue TC-owned UI and R5 work
+    independently while provider/ETF integration remains deferred until both
+    upstream branches reach staging.
   current_blocker: >-
     Integration remains externally gated: remote staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
     provider is 73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3, and ETF is
