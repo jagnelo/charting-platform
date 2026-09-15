@@ -1,5 +1,27 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-15 - Verified Archer Investment dated holdings
+
+Product commit `556926982` hardens Archer Investment's product-page-linked
+daily CSV route for `ARWG`. Retained rows now require exactly one parseable
+snapshot date; undated, invalid, and mixed-date exports fail closed; source IDs
+are date-scoped; and complete composition/as-of, row-count, and
+`archer_investment_native_daily_holdings_csv` provenance metadata is recorded.
+The direct public export returned 42 complete rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+42 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1612/1612, integration 405/405 at
+82.21% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified Advent Capital dated holdings
 
 Product commit `e9bb8b476` hardens Advent Capital's issuer-native daily CSV
