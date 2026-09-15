@@ -12409,3 +12409,55 @@ Next: continue independent TC-owned workstation UI and Study/Strategy work,
 investigate the remaining visual mismatches with the existing oracles intact,
 and keep provider/ETF implementation and integration outside TC until their
 contracts reach staging.
+
+## 2026-09-15 - Blocked pop-out retry and source recovery
+
+Product commit `81b0b258c965883f05d8caf80fec456e78f32dc1`
+(`fix(tc2000): recover cleanly after blocked pop-outs`) closes the retry loop
+for the required `blocked_popout` interaction. `WorkstationView.vue` now clears
+only its own transient “Browser blocked” message after a later successful
+window open, preserving unrelated workspace errors. F8k-a now blocks the
+first `window.open`, retries successfully, verifies saved geometry through the
+workspace API, closes the child browser page, and checks that the source tool
+is usable again without stale recovery text.
+
+The first focused Chromium run passed 1/1; repeating the pre-fix flow exposed
+the stale footer race in 1/3 runs. After the targeted fix, the same authenticated
+headless flow passed 3/3, including `browserDiagnostics.expectNoCriticalIssues()`.
+Frontend Vitest passed 1,076/1,076, `vue-tsc --noEmit` passed, and production
+build passed with only the existing large-chunk warning. Workstream validation
+passed, the TC scope guard passed for 29 paths with its six self-tests, and
+`git diff --check` passed.
+
+The isolated branch stack was rebuilt and then stopped through
+`make test-stack-down`; its scoped resource audit reports zero containers,
+volumes, test sessions, retained bytes, or unknown components. One initial
+rebuild attempt encountered the worktree's stale Buildx registration and
+automatically tore down its exact TC Compose project; retrying the normal repo
+helper succeeded. The Docker log probe returned no lines. No visible browser or
+user tab was opened. No screenshot baseline, mask, threshold, skip, provider or
+ETF behavior, or acceptance policy changed. Acceptance flexibility used: None.
+
+The earlier two preflight failures recorded in
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl` were caused by
+the default sandbox denying the local Docker socket. Docker readiness and the
+browser run succeeded through the separately authorized path; no Docker
+installation or restart occurred. The active session claim and goal were
+resumed rather than creating another session. This checkpoint is recorded in
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`,
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`, and this
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`.
+
+This is functional `F8k-a` evidence, not closure of the screenshot-backed
+`blocked_popout` visual references or the four-project matrix. The six known
+visual differences remain protected, and exact-tip integration remains
+outstanding. Provider-platform and ETF changes still have not reached staging;
+TC has not implemented or integrated their owned behavior. The last-known local
+origin-tracking SHA remains `63d64bfe95c98bfe6e550bf69c213ae1cd64a629` while
+the branch advances locally; no push was attempted for the current range under
+the previously recorded private-origin safeguard. The enclosing operational
+checkpoint commit is verified externally with `git rev-parse`.
+
+Next: continue the next independent TC-owned R1/R5/R6 workstation or
+Study/Strategy slice, preserving all visual oracles and consuming provider/ETF
+work only after its promotion through staging.
