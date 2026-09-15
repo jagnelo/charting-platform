@@ -1,4 +1,24 @@
 ## 2026-09-15 - Verified Archer Investment dated holdings
+## 2026-09-15 - Verified Liberty One dated holdings
+
+- [x] Harden Liberty One's native fund-scoped holdings API route for SPCT;
+      require exactly one parseable asOfDate, fail closed for undated, invalid,
+      or mixed-date snapshots, date-scope row IDs, and record complete route
+      provenance/row-count metadata (67a2fd65). The public endpoint returned
+      53 complete rows dated 2026-09-11.
+- [x] Focused assertions passed 2/2 including missing/invalid/mixed-date
+      regressions; opt-in live assertion passed 1/1; direct probe, Ruff,
+      formatting, and diff checks passed. Exact gate backend units 1613/1613,
+      integration 405/405, Vitest 1067/1067, type-check/build, Compose and
+      research-runner probes passed. Functional E2E passed 165 with 107 skips.
+- [x] The first exact gate run hit one F8u-boolean final-header timeout (164
+      passed, 107 skipped), with its visual matrix at 98/104 and the same six
+      protected diffs. The unchanged-code full rerun passed F8u and all functional
+      scenarios; Docker cleanup verified zero containers,
+      volumes, and test-container sessions. No baseline, mask, threshold, skip,
+      provider/fallback, migration, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
 
 - [x] Harden Archer Investment's product-page-linked daily CSV route for
       `ARWG`; require exactly one parseable snapshot date, fail closed for

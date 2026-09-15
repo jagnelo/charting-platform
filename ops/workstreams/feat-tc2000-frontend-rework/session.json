@@ -56,25 +56,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -114,11 +97,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "8fbcd76f8cd95281d6f99920dd802398ecef1e84",
+  "head": "67a2fd65e91cf1fcdadd420ecbd0d4d8232c8821",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-15T00:55:24.026596+00:00",
-  "last_human_progress_update": "2026-09-15T00:54:45.357086+00:00",
+  "last_human_progress_update": "2026-09-15T02:02:11.792112+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
   "plan_hash": "747bb85a7e30fef79c6ede9b3c6178fee792e2d17ff96bbf24c4dbe02593a997",
@@ -134,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Latest Archer Investment dated holdings seam is verified at branch tip 556926982; the next R1 family-wide canonical population/history seam remains open.",
-    "current_phase": "R1_verified_archer_investment_dated_holdings",
-    "next_action": "Continue the next bounded R1 family-wide canonical population/history seam while preserving dated completeness evidence and the six protected visual diffs; rerun focused deterministic coverage and the exact branch-scoped gate at the next coherent tip",
+    "current_blocker": "Liberty One dated holdings and the exact functional suite are verified at 67a2fd65; the gate has only the six established visual state-oracle diffs, while R1 family-wide population/history and D1/W1/MN continuity remain open.",
+    "current_phase": "R1_verified_liberty_one_dated_holdings",
+    "next_action": "Continue the next bounded R1 canonical provider/history family seam; retain native-date completeness evidence and rerun focused checks plus the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-15T00:54:45.356386+00:00"
+    "updated_at": "2026-09-15T02:02:11.792037+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

@@ -1,5 +1,30 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Verified Liberty One dated holdings
+
+Product commit 67a2fd65 hardens Liberty One's native fund-scoped holdings API
+route for SPCT. Retained rows require exactly one parseable asOfDate; undated,
+invalid, or mixed-date snapshots fail closed; row IDs are date-scoped; and
+composition/as-of date, row count, completeness, and
+liberty_one_native_fund_scoped_holdings_api provenance are recorded. The direct
+public endpoint returned 53 complete rows dated 2026-09-11.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions;
+the opt-in live route assertion passed 1/1; direct probe, Ruff, formatting, and
+diff checks passed. The first exact gate attempt failed at the functional stage on F8u-boolean's
+final promoted-header visibility assertion (one failed, 164 passed, 107
+skipped); its visual matrix was 98/104 with the same six protected diffs.
+Without code changes, a complete rerun passed the functional suite
+165/165 with 107 skipped; backend unit tests passed 1613/1613, integration
+405/405, and frontend Vitest 1067/1067; type-check/build, Compose contracts,
+and research-runner probes passed. Visual E2E passed 98/104 with exactly the
+same six protected watchlist-column-editor/workspace-floating diffs, so the
+gate ended at its visual stage. Docker cleanup verified zero containers,
+volumes, or test-container sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide canonical population/history, D1/W1/MN floors, rebalance
+continuity, and AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified Archer Investment dated holdings
 
 Product commit `556926982` hardens Archer Investment's product-page-linked
