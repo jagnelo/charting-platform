@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def _runner_module():
@@ -35,3 +36,19 @@ def test_focused_parameterized_provider_selection_does_not_select_siblings():
     selection = arguments[arguments.index("-k") + 1]
     assert "tiingo" in selection
     assert "optional_credentialed_provider_small_read" not in selection
+
+
+def test_workstream_only_porcelain_changes_do_not_taint_live_source_receipt(monkeypatch):
+    runner = _runner_module()
+    porcelain = (
+        " M ops/workstreams/feat-market-data-provider-platform/session.json\n"
+        " M backend/app/providers/alpaca.py\n"
+    )
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout=porcelain),
+    )
+
+    assert runner._git_output("status", "--porcelain") == porcelain.rstrip("\r\n")
+    assert runner._dirty_source_paths() == ["backend/app/providers/alpaca.py"]

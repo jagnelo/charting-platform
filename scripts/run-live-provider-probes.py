@@ -743,7 +743,10 @@ def _git_output(*arguments: str) -> str:
     result = subprocess.run(
         ["git", *arguments], cwd=ROOT, text=True, capture_output=True, check=False
     )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    # Keep leading porcelain status columns intact. ``strip()`` corrupts the
+    # first status line and can turn an ops/workstream path into a false source
+    # modification during exact-SHA validation.
+    return result.stdout.rstrip("\r\n") if result.returncode == 0 else ""
 
 
 def _source_sha() -> str:

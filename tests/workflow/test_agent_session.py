@@ -235,3 +235,29 @@ def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -
     assert module.external_service_path("docs/data-providers.md")
     assert module.external_service_path(".env.example")
     assert not module.external_service_path("frontend/src/views/Workstation.vue")
+
+
+def test_dirty_paths_preserves_leading_porcelain_status_column(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_dirty_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    porcelain = (
+        " M ops/workstreams/feat-market-data-provider-platform/session.json\n"
+        " M backend/app/config.py\n"
+    )
+    monkeypatch.setattr(
+        module,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=porcelain),
+    )
+
+    assert module.dirty_paths(tmp_path) == [
+        "ops/workstreams/feat-market-data-provider-platform/session.json",
+        "backend/app/config.py",
+    ]

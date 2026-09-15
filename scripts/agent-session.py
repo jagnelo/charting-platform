@@ -47,9 +47,10 @@ def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
 
 def dirty_paths(path: Path) -> list[str]:
     """Return porcelain paths without the two-column status prefix."""
+    status = run("git", "status", "--porcelain", cwd=path).stdout.rstrip("\r\n")
     return [
         line[3:] if len(line) >= 3 else line
-        for line in git("status", "--porcelain", cwd=path).splitlines()
+        for line in status.splitlines()
     ]
 
 

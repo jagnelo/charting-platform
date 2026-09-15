@@ -73,21 +73,39 @@
   was clean. Preserve the append-only original receipt and this correction in
   the handoff; never turn these capacity outcomes into passes or retry them
   before the provider reset.
-- Exact next action: complete the separate session/validation metadata
-  checkpoint, then fix and test whitespace-safe source-dirty detection in the
-  live runner. That runner change invalidates the current live evidence, so do
-  not claim acceptance until the full matrix is rerun against the resulting
-  exact SHA after quotas permit. Other SEC, provider-contract, universe,
-  secret-store, and final shadow gates remain open.
+- Exact next action at that checkpoint: fix and test whitespace-safe
+  source-dirty detection in both the live runner and session workflow. That
+  runner change invalidates the current live evidence, so do not claim
+  acceptance until the full matrix is rerun against the resulting exact SHA
+  after quotas permit. Other SEC, provider-contract, universe, secret-store,
+  and final shadow gates remain open.
 - This separate operational checkpoint updates exactly
   `ops/workstreams/feat-market-data-provider-platform/handoff.md`,
   `ops/workstreams/feat-market-data-provider-platform/session.json`, and
   `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
   `agent-session-checkpoint` currently reports that the committed plan changed
-  since its last session boundary. After this metadata commit is synchronized,
-  refresh the committed plan boundary with `plan-ready`, restore the existing
-  session goal to `active`, and checkpoint the resulting session record before
-  opening the parser-correction context.
+  since its last session boundary. This was resolved by committing the approved
+  plan, refreshing the plan hash, restoring the active goal, and checkpointing
+  the session; the worktree is clean and synchronized at `30ee0fa98ae6`.
+
+## 2026-09-15 corrective changeset context: whitespace-safe status parsing
+
+- Scope: preserve leading Git porcelain status columns in both the live-matrix
+  receipt classifier and the agent-session dirty-path classifier. Regression
+  tests cover an ops-only first status line followed by a source path, preventing
+  false `not_current_source` results and false checkpoint path names.
+- Owned files: `scripts/run-live-provider-probes.py`,
+  `scripts/agent-session.py`, `backend/tests/unit/test_live_provider_runner.py`,
+  `tests/workflow/test_agent_session.py`, and this handoff.
+- Validation: focused runner/workflow/secret-wiring tests passed `40/40`; Ruff
+  and `git diff --check` pass. The full provider suite is not being repeated
+  during the same Alpha Vantage quota window. The previous 43/46 result remains
+  a failure (three Alpha Vantage capacity responses, no skips); this code fix
+  makes that old source-SHA evidence non-current.
+- Exact next action: inspect and commit/push only these five files, then
+  continue other controllable provider/universe gates. Run one complete
+  lock-protected live matrix only after provider source changes are complete
+  and the affected free-tier usage windows have reset.
 - Remaining gates are not cleared by this changeset or its unit/backend tests:
   full live matrix (including honest Alpha Vantage capacity outcomes), SEC scan
   bound/materialization execution, complete NMS/OTC reconciliation and source
