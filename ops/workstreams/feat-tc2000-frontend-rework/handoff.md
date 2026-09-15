@@ -11865,3 +11865,26 @@ this coherent product tip; the preceding run stopped at Docker readiness. No
 visual baseline, mask, threshold, skip, provider, fallback, or acceptance
 policy changed. Rerun the exact gate now, then continue the next bounded
 provider/history or compatible chart/list/gauge seam.
+
+## 2026-09-15 - Verified Arlington dated holdings
+
+Product commit `654bfe7e5` tightens Arlington's issuer-linked AQEC daily CSV:
+all retained rows must share exactly one parseable composition date; missing,
+invalid, and mixed dates fail closed; source IDs are date-scoped; and raw plus
+normalized metadata records composition/as-of date, row count, completeness,
+and `arlington_native_daily_holdings_csv` provenance. The public route probe
+passed with the live suite's 20-row minimum and asserted date/route metadata.
+
+The focused Arlington contract passed 2/2, the full holdings-adapter unit
+module passed 580/580, the opt-in public route probe passed 1/1, and Ruff,
+formatting, and diff checks passed. The exact branch gate at product tip
+`654bfe7e5` passed backend units 1614/1614, integration 405/405 at 82.22%
+combined coverage, frontend Vitest 1067/1067, type-check/build, Compose and
+research-runner checks, and functional E2E 165 passed with 107 documented
+skips. Visual E2E remains 98/104 with only the six established
+watchlist-column-editor/workspace-floating state-oracle diffs. Docker resource
+audit found zero containers, volumes, test-container sessions, or known
+attributable bytes; four generated images were removed. No fallback/provider,
+visual baseline, mask, threshold, skip, or acceptance policy changed. Continue
+R1 family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
