@@ -20470,11 +20470,49 @@ async def test_kingsview_adapter_verifies_monarch_resources_and_parses_json(monk
     assert equity_row.cusip == "037833100"
     assert equity_row.weight == Decimal("0.05")
     assert len(result.rows) == 2
+    assert result.raw_json["composition_date"] == "2026-07-24"
+    assert result.raw_json["as_of_date"] == "2026-07-24"
+    assert result.raw_json["row_count"] == 2
     assert result.legal_metadata["composition_date"] == "2026-07-24"
+    assert result.legal_metadata["as_of_date"] == "2026-07-24"
+    assert result.legal_metadata["row_count"] == 2
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert (
+        result.legal_metadata["snapshot_provenance"]
+        == "kingsview_native_fund_scoped_filepoint_holdings_json"
+    )
+    assert cash_row.source_row_id == "MVFD:2026-07-24:1"
+    assert equity_row.source_row_id == "MVFD:2026-07-24:2"
     assert (
         result.legal_metadata["route_resolution"]
         == "monarch_resources_page_declared_filepoint_holdings_json"
     )
+
+
+def test_kingsview_holdings_require_one_parseable_snapshot_date():
+    adapter = get_holdings_adapter("kingsview")
+    assert adapter is not None
+    row = {
+        "asOfDate": "2026-07-24T00:00:00Z",
+        "portfolioName": "Monarch Volume Factor Dividend Tree Index ETF",
+        "securityIdentifier": "037833100",
+        "securityTicker": "AAPL US",
+        "securityDescriptionShort": "Apple Inc.",
+        "marketValueBase": 20000,
+    }
+
+    rows, composition_date = adapter._parse_holdings_payload([row], symbol="MVFD")
+
+    assert len(rows) == 1
+    assert composition_date == date(2026, 7, 24)
+    assert rows[0].source_row_id == "MVFD:2026-07-24:1"
+    for invalid_payload in (
+        [{**row, "asOfDate": None}],
+        [{**row, "asOfDate": "not-a-date"}],
+        [row, {**row, "asOfDate": "2026-07-25T00:00:00Z", "securityIdentifier": "594918104"}],
+    ):
+        with pytest.raises(ValueError, match="exactly one parseable composition date"):
+            adapter._parse_holdings_payload(invalid_payload, symbol="MVFD")
 
 
 @pytest.mark.asyncio

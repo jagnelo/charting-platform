@@ -2195,6 +2195,20 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert metadata["completeness_status"] == "complete"
         assert metadata["snapshot_provenance"] == "arlington_native_daily_holdings_csv"
         assert result.rows[0].source_row_id.startswith(f"{symbol}:")
+    if adapter_key == "kingsview":
+        metadata = result.legal_metadata or {}
+        assert (
+            metadata["route_resolution"]
+            == "monarch_resources_page_declared_filepoint_holdings_json"
+        )
+        assert metadata["composition_date"]
+        assert metadata["as_of_date"] == metadata["composition_date"]
+        assert metadata["row_count"] == len(result.rows)
+        assert metadata["completeness_status"] == "complete"
+        assert metadata["snapshot_provenance"] == (
+            "kingsview_native_fund_scoped_filepoint_holdings_json"
+        )
+        assert result.rows[0].source_row_id.startswith(f"{symbol}:")
     if adapter_key == "optimize":
         metadata = result.legal_metadata or {}
         assert (

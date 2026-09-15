@@ -27252,6 +27252,10 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Kingsview/Monarch holdings JSON did not expose complete current rows for {normalized_symbol}."
             )
+        if composition_date is None:
+            raise ValueError(
+                f"Kingsview/Monarch holdings JSON did not expose a dated snapshot for {normalized_symbol}."
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
@@ -27261,6 +27265,8 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "bundle_url": str(bundle_response.url),
                 "fund_id": fund_id,
                 "row_count": len(rows),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
             },
             source_url=str(holdings_response.url),
             source_identifier=fund_id,
@@ -27273,8 +27279,11 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_page_url": str(resources_response.url),
                 "bundle_url": str(bundle_response.url),
                 "fund_id": fund_id,
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "row_count": len(rows),
+                "completeness_status": "complete",
+                "snapshot_provenance": "kingsview_native_fund_scoped_filepoint_holdings_json",
                 "terms_note": self.config.terms_note,
             },
         )
@@ -27335,7 +27344,8 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not isinstance(payload, list):
             return [], None
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        invalid_or_missing_dates = False
         expected_name = cls.portfolio_name_fragments[symbol]
         for index, raw in enumerate(payload, start=1):
             if not isinstance(raw, dict):
@@ -27343,14 +27353,6 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             portfolio_name = _clean(raw.get("portfolioName") or raw.get("portoflioName"))
             if portfolio_name and expected_name not in portfolio_name.upper():
                 continue
-            as_of_date = _clean(raw.get("asOfDate"))
-            if as_of_date:
-                try:
-                    parsed_date = datetime.fromisoformat(as_of_date.replace("Z", "+00:00")).date()
-                    if composition_date is None or parsed_date > composition_date:
-                        composition_date = parsed_date
-                except ValueError:
-                    pass
             raw_ticker = _clean(raw.get("securityTicker") or raw.get("ticker"))
             ticker, exchange = cls._split_ticker(raw_ticker)
             identifier = _clean(raw.get("securityIdentifier"))
@@ -27364,6 +27366,17 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             if not any([ticker, identifier, name, raw.get("marketValueBase")]):
                 continue
+            as_of_date = _clean(raw.get("asOfDate"))
+            parsed_date: date | None = None
+            if as_of_date:
+                try:
+                    parsed_date = datetime.fromisoformat(as_of_date.replace("Z", "+00:00")).date()
+                except ValueError:
+                    pass
+            if parsed_date is None:
+                invalid_or_missing_dates = True
+            else:
+                composition_dates.add(parsed_date)
             rows.append(
                 CanonicalHoldingRow(
                     symbol=None if is_cash or is_fixed_income else ticker,
@@ -27379,13 +27392,20 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     if is_cash
                     else ("fixed_income" if is_fixed_income else "equity"),
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    source_row_id=(
+                        f"{symbol}:{parsed_date.isoformat() if parsed_date else 'undated'}:{index}"
+                    ),
                     extra_data={
                         key: value for key, value in raw.items() if value not in (None, "")
                     },
                 )
             )
-        return rows, composition_date
+        if invalid_or_missing_dates or len(composition_dates) != 1:
+            raise ValueError(
+                "Kingsview/Monarch holdings JSON must publish exactly one parseable composition "
+                f"date for {symbol}."
+            )
+        return rows, next(iter(composition_dates))
 
     @staticmethod
     def _split_ticker(raw_ticker: str | None) -> tuple[str | None, str | None]:
