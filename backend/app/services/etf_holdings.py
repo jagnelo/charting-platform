@@ -691,7 +691,16 @@ async def _provider_enriched_constituent_instrument(
 
     symbol = _normalize_symbol(row.symbol)
     if not symbol:
-        return None, None, None
+        return (
+            None,
+            None,
+            (
+                "Stable-identifier profile rejected by holding identity checks; "
+                "no canonical profile was promoted."
+                if identifier_profile_rejected
+                else None
+            ),
+        )
 
     extra_identifiers: list[IdentifierRecord] = []
     for provider in get_identifier_providers():
@@ -1088,6 +1097,8 @@ async def _resolve_or_create_constituent(
                         promoted_confidence or Decimal("0.9500"),
                         promoted_note or f"Matched by {identifier_type.upper()}.",
                     )
+                if promoted_note:
+                    return found, Decimal("0.5000"), promoted_note
             return found, Decimal("0.9500"), f"Matched by {identifier_type.upper()}."
 
     symbol = _normalize_symbol(row.symbol)
@@ -1122,8 +1133,11 @@ async def _resolve_or_create_constituent(
                         promoted_confidence or Decimal("0.8000"),
                         promoted_note or "Matched by canonical symbol.",
                     )
+                if promoted_note:
+                    return found, Decimal("0.5000"), promoted_note
             return found, Decimal("0.8000"), "Matched by canonical symbol."
 
+    unresolved_note = None
     if allow_provider_enrichment:
         (
             enriched_instrument,
@@ -1136,6 +1150,7 @@ async def _resolve_or_create_constituent(
         )
         if enriched_instrument is not None:
             return enriched_instrument, enriched_confidence, enriched_note
+        unresolved_note = enriched_note
 
     if not symbol and not row.name:
         return None, None, "No symbol/name/identifier was available to resolve this holding."
@@ -1197,7 +1212,7 @@ async def _resolve_or_create_constituent(
             except Exception:
                 continue
 
-    return instrument, Decimal("0.5000"), None
+    return instrument, Decimal("0.5000"), unresolved_note
 
 
 async def _reconcile_existing_snapshot_rows(

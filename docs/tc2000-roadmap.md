@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Historical EA identifier disposition
+
+The QQQ SEC N-PORT filings for 2025-09-30 and 2025-12-31 each retain an
+Electronic Arts Inc. equity row with CUSIP 285512109 and ISIN US2855121099,
+without a source ticker. The filing accessions are
+[0001067839-25-000007](https://www.sec.gov/Archives/edgar/data/1067839/000106783925000007/0001067839-25-000007-index.htm)
+and
+[0001067839-26-000016](https://www.sec.gov/Archives/edgar/data/1067839/000106783926000016/0001067839-26-000016-index.htm).
+OpenFIGI currently maps those identifiers to EA* on MM, which does not satisfy
+the configured supported-US-listing guard. EA is not promoted or relabelled as
+an active US listing; both source rows remain noncanonical placeholders until
+point-in-time listing lifecycle support can represent the historical EA listing.
+The SEC 8-K records EA common stock under ticker EA on Nasdaq and the Aug 4,
+2026 merger close and delisting request:
+[Electronic Arts 8-K](https://www.sec.gov/Archives/edgar/data/712515/000114036126031157/ef20079099_8k.htm).
+
+The resolver now preserves a specific `resolution_note` when a stable-identifier
+profile is rejected and no canonical profile is promoted, including on later
+reconciliation of an existing placeholder. Focused resolver tests passed 31/31;
+Ruff, formatting, and diff checks passed. This explicitly dispositions the two
+EA rows without counting them as canonical. The Dreyfus government-cash row is
+still unclassified and remains open, as do W1/MN history, rebalance continuity,
+and the remaining R1-R7 evidence.
+
 ## 2026-09-15 - Verified Killir GARY dated holdings
 
 Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
@@ -11638,13 +11662,15 @@ search-precision fix only: it does not guess symbols or relax the US-listing gua
 On the rebuilt branch stack, follow-up reconciliation promoted `INSMED` from its
 placeholder instrument. The exact SEC snapshots now contain `100` and `101`
 non-placeholder canonical rows (`102` canonical instruments in the union); three
-rows remain explicit placeholders: Electronic Arts in both snapshots (the current
-SEC directory exposes no matching EA issuer entry) and a Dreyfus government cash row.
+rows remain explicit placeholders. The two Electronic Arts rows are now explicitly
+dispositioned as historical equities with CUSIP/ISIN identity but no accepted
+current US listing; they remain outside canonical counts pending point-in-time
+listing lifecycle support. The Dreyfus government-cash row is still unclassified.
 The queue selected `107` canonical instruments, queued one new member job, and
 reported three unresolved exclusions; the new INSM D1 job returned `2,344` adjusted
 bars through `2025-12-31`, with expected MN/W1 no-data outcomes. Aggregate D1
 coverage is `102` instruments / `220,106` bars; W1/MN remain unavailable. This is
-bounded R1 evidence, not family readiness: residual disposition, W1/MN floors,
+bounded R1 evidence, not family readiness: cash-row disposition, W1/MN floors,
 rebalance continuity, and remaining families/roots remain open. No visual or
 acceptance policy changed.
 

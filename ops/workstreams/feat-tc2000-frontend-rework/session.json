@@ -55,6 +55,10 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
+    "backend/app/services/etf_holdings.py",
+    "backend/tests/unit/services/test_etf_holdings_resolution.py",
+    "docs/project-todos.md",
+    "docs/tc2000-roadmap.md",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -119,14 +123,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bb70fff142a7f4b247664ce4047f93ac37343523",
+  "head": "b03cbba37dd919c0ad916f7a823aac519c3dd324",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
   "last_checkpoint": "2026-09-15T00:55:24.026596+00:00",
-  "last_human_progress_update": "2026-09-15T04:08:58.690121+00:00",
+  "last_human_progress_update": "2026-09-15T09:15:26.978368+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded canonical provider/history seam while preserving the six visual state-oracle assertions and unchanged provider/fallback policy; rerun the exact gate at each coherent tip.",
-  "plan_hash": "f609527aa1b85999b89db1abe04c4522cbd3df8df71f945020a0d2bf384411a7",
+  "plan_hash": "0336412f690a9f1ba0999eb5ec1769b1891ebd11ba84b5aa027bcc008e4c5c84",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -139,11 +143,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The exact gate exits 1 at e2e-visual with six established protected screenshot mismatches; 98/104 visual cases pass, all earlier gate stages pass, and the resource audit is clean.",
-    "current_phase": "R1_verified_killir_gary_dated_holdings",
-    "next_action": "Continue the next bounded R1 family-wide population/history seam using verified sources and explicit member dispositions; preserve native-date completeness, fail-closed mapping, the cold-navigation Add-tool regression, the undated-backfill guard, and the six visual diffs without weakening their assertions.",
+    "current_blocker": "Previous exact gate at bb70fff passed all non-visual stages and still has six protected visual mismatches; the exact gate for this change is pending.",
+    "current_phase": "R1_auditable_historical_holding_disposition",
+    "next_action": "Rerun the exact full integration gate at this coherent tip, then investigate the exact QQQE source row for Dreyfus government cash.",
     "total": 10,
-    "updated_at": "2026-09-15T04:08:58.690055+00:00"
+    "updated_at": "2026-09-15T09:15:26.978290+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",

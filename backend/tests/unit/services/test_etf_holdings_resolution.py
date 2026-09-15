@@ -187,6 +187,36 @@ class ForeignListingIdentifierProvider(FakeIdentifierProvider):
         )
 
 
+class DelistedEAIdentifierProvider(FakeIdentifierProvider):
+    """Model the current OTC-style EA* result for the historical row."""
+
+    def resolve_instrument_profile(
+        self,
+        *,
+        isin: str | None = None,
+        cusip: str | None = None,
+        sedol: str | None = None,
+    ) -> InstrumentProfile | None:
+        if (isin or "").strip().upper() != "US2855121099":
+            return None
+        return InstrumentProfile(
+            provider="openfigi",
+            symbol="EA*",
+            canonical_symbol="EA*",
+            name="ELECTRONIC ARTS INC",
+            quote_type="EQUITY",
+            exchange="MM",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="ISIN",
+                    identifier_value="US2855121099",
+                    source="openfigi",
+                ),
+            ],
+            listings=[ListingRecord(provider_symbol="EA*", exchange_code="MM")],
+        )
+
+
 class FakeNameSearchProvider:
     def __init__(self, results: list[ProviderSearchResult]):
         self.results = results
@@ -412,6 +442,67 @@ async def test_resolver_rejects_foreign_listing_for_us_isin_and_uses_us_search_b
     assert confidence == Decimal("0.8600")
     assert note == "Matched through unique provider-backed name search."
     assert search_provider.calls == [("AstraZeneca PLC", 8)]
+
+
+@pytest.mark.asyncio
+async def test_historical_ea_mapping_stays_placeholder_and_audits_rejection(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [DelistedEAIdentifierProvider({})],
+    )
+    search_provider = FakeNameSearchProvider([])
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_search_provider_chain", lambda: [search_provider]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: pytest.fail("a rejected current-market mapping must not reach metadata fallback"),
+    )
+    row = CanonicalHoldingRow(
+        symbol=None,
+        name="Electronic Arts Inc.",
+        cusip="285512109",
+        isin="US2855121099",
+        currency="USD",
+        holding_type="equity",
+        row_type="security",
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        row,
+        source_provider="sec",
+    )
+
+    assert instrument is not None
+    assert instrument.symbol.startswith("HOLDING-")
+    assert instrument.symbol != "EA*"
+    assert confidence == Decimal("0.5000")
+    assert note == (
+        "Stable-identifier profile rejected by holding identity checks; "
+        "no canonical profile was promoted."
+    )
+
+    reconciled, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        row,
+        source_provider="sec",
+    )
+    assert reconciled is instrument
+    assert confidence == Decimal("0.5000")
+    assert note == (
+        "Stable-identifier profile rejected by holding identity checks; "
+        "no canonical profile was promoted."
+    )
+    assert search_provider.calls == [
+        ("Electronic Arts Inc.", 8),
+        ("Electronic Arts Inc.", 8),
+    ]
+    assert (
+        await async_db.execute(select(Instrument).where(Instrument.symbol == "EA*"))
+    ).scalar_one_or_none() is None
 
 
 @pytest.mark.asyncio

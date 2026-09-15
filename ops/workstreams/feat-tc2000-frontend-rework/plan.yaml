@@ -148,14 +148,18 @@ progress:
     - AC8
     - AC9
   total: 10
-  current_phase: R1_verified_killir_gary_dated_holdings
+  current_phase: R1_auditable_historical_holding_disposition
   next_action: >-
-    Continue the next bounded R1 family-wide population/history seam using
-    verified sources and explicit member dispositions. Preserve native-date
-    completeness, fail-closed mapping, the cold-navigation Add-tool regression,
-    and the undated-backfill guard. Keep the six protected visual diffs visible;
-    do not weaken their baselines, thresholds, masks, skips, or assertions. Rerun
-    focused coverage and the exact branch gate at the next coherent tip.
+    Inspect the exact QQQE source row for Dreyfus government cash and record its
+    classification or explicit disposition. The two EA rows are identity-confirmed
+    historical equities but intentionally remain noncanonical: OpenFIGI returns
+    EA* / MM, which fails the supported US-listing guard, and temporal listing
+    lifecycle support is not yet available. Then continue W1/MN floors, dated
+    rebalance continuity, and remaining R1 family population/history. Preserve
+    native-date completeness, fail-closed mapping, the cold-navigation Add-tool
+    regression, and the undated-backfill guard. Keep all six protected visual
+    diffs visible; rerun focused coverage and the exact branch gate at the next
+    coherent tip.
   current_blocker: >-
     Latest product tip bb70fff142a7f4b247664ce4047f93ac37343523 hardens
     Killir/KKM GARY issuer-declared dated SEI text: every retained row must
@@ -302,7 +306,7 @@ remaining_gaps:
     watchlist-column-editor-open (13844 pixels at 1080p-100/125) and workspace-floating (12097/
     9770/12097/12097 pixels at 1080p-100/125/1440p-100/125)."
   - "Historical R0/R7 receipts: the seeded Chromium suite executes 261 specs with 155 passes and 106 documented skips; focused structured-event F8o and persisted Research Results F8t-results flows pass 1/1 for their named filter/alert actions at product tips 6f575a34 and 24287f3c, scalar/series promotions pass at f8d68d3f, the Boolean matrix passes at 68856251, the range-center chart adapter passes at 397c554a, and latest-series column promotion passes at a6301f0f. The primary Study Lab now has the latest-series target with an explicit single-output contract fix at 2ee80c3, the range-center target at a12c428c, and the explicit events_to_signal lineage fix at 3a7e4861; focused Study Lab coverage is 25/25 and direct F9i/F8o browser coverage passes 1/1 on rebuilt stacks. Market Map benchmark-family history readiness renders all returned D1/W1/MN legs at 0712951, surfaces observed oldest/newest bounds at 6fa41b81, and the generalized source-history strip renders every returned timeframe at ad90b988, with direct F8s browser coverage 1/1. The exact-tip gate at metadata tip 70d99baf (product tip ad90b988) completed all non-visual stages; a transient F8r discovery failure was cleared by an isolated 1/1 plus 3/3 retry, and the full functional rerun passed. The four-project visual matrix remains 98/104 with six concentrated screenshot diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (11,901/12,097/12,097/5,512 pixels by viewport)."
-  - "R1-R2: the frontend surfaces the provider-neutral benchmark-family readiness matrix, but canonical population/history and the live-data top-down trader workflow remain incomplete. The 2026-09-09 bounded QQQ/QQQE reconciliation reached 100/101 canonical members (102 canonical instruments in union) with three explicit residual placeholders (Electronic Arts in both snapshots and a Dreyfus government-cash row); adjusted D1 coverage reached 102 instruments / 220,106 bars, while W1/MN, multiple dated rebalance continuity, full population across remaining family roles, and the live-data top-down workflow remain open."
+  - "R1-R2: the frontend surfaces the provider-neutral benchmark-family readiness matrix, but canonical population/history and the live-data top-down trader workflow remain incomplete. The 2026-09-09 bounded QQQ/QQQE reconciliation reached 100/101 canonical members (102 canonical instruments in union) with three explicit residual placeholders. The two Electronic Arts rows are now dispositioned as historical equities with CUSIP/ISIN identity but no accepted current US listing; OpenFIGI returns EA* / MM, so they remain noncanonical pending point-in-time listing lifecycle support. The Dreyfus government-cash row remains unclassified. Adjusted D1 coverage reached 102 instruments / 220,106 bars; W1/MN, dated rebalance continuity, full population across remaining family roles, and the live-data top-down workflow remain open."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies. Product tip 22fd676e adds the named structured-event Strategy signal cell in Research Results, and 3a7e4861 extends the same explicit events_to_signal asset adapter with source/output/run lineage to the primary Study Lab for direct and named multi-output events. Structured scalar/series/Boolean/range outputs cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible; numeric Study series use latest_series_to_scalar, range centers use range_center_to_series for chart plots and range_center_to_scalar for latest-value watchlist columns. The explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
   - "R7: the exact-tip gate at prior product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remained 98/104 with the same six state-oracle diffs. The exact-tip gate at metadata tip 098546be (product tip 928bf8ae) passed all non-visual stages and functional Playwright 157/157 with 106 documented skips; its unchanged visual matrix is 98/104 with six state-oracle diffs. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."

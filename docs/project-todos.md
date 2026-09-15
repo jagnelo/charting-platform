@@ -1,3 +1,17 @@
+## 2026-09-15 - Historical EA identifier disposition
+
+- [x] Preserve an auditable resolution note when a stable-identifier profile is
+      rejected and no canonical profile can be promoted; retain the note when
+      reconciling the existing placeholder again (`31/31` resolver tests).
+- [x] Explicitly disposition both EA rows as historical equities identified by
+      the 2025-09-30 and 2025-12-31 QQQ N-PORT records, CUSIP `285512109`, and
+      ISIN `US2855121099`. OpenFIGI currently returns `EA*` / `MM`, which fails
+      the supported US listing guard. Keep them noncanonical until temporal
+      listing lifecycle evidence can represent their historical EA listing.
+- [ ] Inspect and disposition the Dreyfus government-cash row from its exact
+      source snapshot. W1/MN history, dated rebalance continuity, and remaining
+      R1-R7 evidence remain open; no current listing or history is fabricated.
+
 ## 2026-09-15 - Verified Killir GARY dated holdings
 
 - [x] Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
@@ -24188,7 +24202,10 @@ The current source also passes the focused authenticated top-down browser slice 
       MN/W1 no-data outcomes. The snapshots now hold `100` and `101` canonical
       rows (`102` in union) and three explicit residual placeholders (EA twice,
       Dreyfus government cash).
-- [ ] Resolve or explicitly disposition the EA/cash residuals, add W1/MN history,
+- [x] Explicitly disposition the two EA residuals as historical equities with
+      stable CUSIP/ISIN identity but no accepted current US listing; they remain
+      noncanonical until point-in-time listing lifecycle support is available.
+- [ ] Identify/disposition the Dreyfus government-cash row, add W1/MN history,
       prove dated rebalance continuity, and complete remaining R1–R7 acceptance evidence.
 
 ### 2026-09-09 — Dated family refresh transaction isolation

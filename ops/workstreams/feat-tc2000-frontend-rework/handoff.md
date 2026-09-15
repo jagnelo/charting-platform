@@ -11941,3 +11941,27 @@ Post-gate resource audit confirmed zero containers, volumes, test-container
 sessions, or known attributable bytes. No provider/fallback, visual baseline,
 threshold, mask, skip, or acceptance policy changed. Continue R1 family-wide
 population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-15 - Historical EA identifier disposition
+
+The QQQ N-PORT provider path was rerun with the curated CIK, series, class, and
+ticker identity. SEC filings for 2025-09-30 (accession 0001067839-25-000007)
+and 2025-12-31 (0001067839-26-000016) each retain Electronic Arts Inc. as a
+security row with CUSIP 285512109 and ISIN US2855121099; the parser reports no
+source ticker for either row. Direct OpenFIGI lookup for both stable identifiers
+returns `EA*` on `MM`, which is rejected for these US-ISIN holdings by the
+supported-US-listing check. The official [EA 8-K](https://www.sec.gov/Archives/edgar/data/712515/000114036126031157/ef20079099_8k.htm)
+identifies EA common stock on Nasdaq and records the 2026-08-04 merger close and
+Nasdaq delisting request. Therefore neither row is mapped to `EA*` or a new
+active `EA` listing; both remain placeholders pending temporal listing lifecycle
+support. This is an explicit historical-identity disposition, not canonical
+resolution or a readiness-count increase.
+
+Product code now preserves a `resolution_note` for a rejected stable-identifier
+profile when no canonical profile is promoted, both on initial placeholder
+creation and subsequent reconciliation. Focused resolver tests passed 31/31;
+Ruff, format-check, and `git diff --check` passed. No provider precedence,
+fallback, listing acceptance, visual baseline, or acceptance policy changed.
+The Dreyfus government-cash row still requires exact source-row investigation;
+W1/MN floors, dated rebalance continuity, family population, and R2-R7 evidence
+remain open. Full exact-tip validation is pending after this change.
