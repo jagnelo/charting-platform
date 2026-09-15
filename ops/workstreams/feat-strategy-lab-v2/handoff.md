@@ -177,6 +177,41 @@ define and test immutable calendar-versioned rebalance policy and schedule
 semantics in package-owned paths. Keep provider, ETF, TC2000, shared runtime,
 migration, API registration, Compose, and frontend ownership boundaries intact.
 
+## 2026-09-15 - Calendar-aware rebalance scheduling checkpoint
+
+The next engine-neutral slice is committed locally as
+`32019aa8518114f1ca658d2b9e9f24c8c2f53083`. `PortfolioComposition` now binds an
+optional typed, versioned `CalendarRebalancePolicy`. The new `rebalance.py`
+contract pins that policy to an immutable content-addressed session calendar
+with explicit trading/closed dates, timezone/tzdb versions, source evidence,
+venue-assigned session labels, and UTC session segments (including split
+sessions, overnight trading dates, DST, and early closes).
+
+The pure planner supports each-session, ISO-weekly, monthly, quarterly, and
+yearly cadence, first/last actual session selection, open-before-events or
+close-after-events decision boundaries, and explicit misfire policy. Weekly and
+larger cadences require complete calendar period coverage; requested ranges use
+inclusive venue session labels. No calendar is fetched or inferred. The planner
+does not map boundaries to engine event sequences, apply component capital
+weights, emit orders, or imply fills at open/close prices; those remain adapter
+and execution work.
+
+Exact-tip package validation passed: focused pytest (48 tests), Ruff, mypy (18
+files), and `git diff --check`. Independent review found no remaining actionable
+P0-P2 findings after correcting the stale rebalancing documentation. This is
+still package-only validation, not the planned full-stack browser/DB/Redis/
+worker/Compose gate.
+
+The local branch is eight commits ahead of recorded remote
+`d2497f43084d52d3e66b40a91be25dd2678620be`; no push of this current range was
+attempted, and the previous private-repository egress hold is unchanged. Next
+bounded work: add run-attempt-scoped timestamped account-equity observations
+and rigorous calendar-period metric inputs, explicitly preserving irregular
+event timing and rejecting unsupported external-cash-flow assumptions. Keep
+all parallel provider, ETF, TC2000, shared runtime, migration, API, Compose, and
+frontend boundaries unchanged. Maintain `in_progress`; closure, integration,
+promotion, and deployment remain unauthorized.
+
 This operational checkpoint updates only the following branch-owned records:
 
 - `ops/workstreams/feat-strategy-lab-v2/plan.yaml`
