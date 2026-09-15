@@ -232,6 +232,7 @@ import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
 
+const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -1674,9 +1675,13 @@ function floatTool(windowKey: string) {
   const tool = workspaceStore.workspace?.tabs.flatMap(item => item.windows).find(item => item.instance_key === windowKey)
   const popup = window.open(href, `workstation-${windowKey}`, popoutWindowFeatures(readPopoutGeometry(tool?.style, window.screen as Screen & { availLeft?: number; availTop?: number })))
   if (!popup) {
-    workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
+    workspaceStore.error = BLOCKED_POPOUT_ERROR
     return
   }
+  // A blocked first attempt is recoverable by retrying after the user grants
+  // the browser gesture permission. Clear only this transient status so a
+  // successful retry does not leave stale recovery guidance in the footer.
+  if (workspaceStore.error === BLOCKED_POPOUT_ERROR) workspaceStore.error = null
   // Record the requested geometry immediately. The browser-reported outer
   // bounds may not be readable until the popup has painted, and the debounced
   // poll below is intentionally only a refinement of this deterministic

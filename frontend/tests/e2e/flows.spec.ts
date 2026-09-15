@@ -1746,9 +1746,14 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k-a — blocked browser pop-out keeps the tool docked and reports recovery guidance', async ({ page, browserDiagnostics }) => {
+  test('F8k-a — blocked browser pop-out can be retried and recovers after close', async ({ page, context, browserDiagnostics }) => {
+    test.setTimeout(90_000)
     await page.addInitScript(() => {
-      window.open = (() => null) as typeof window.open
+      const nativeOpen = window.open
+      window.open = (() => {
+        window.open = nativeOpen
+        return null
+      }) as typeof window.open
     })
     await page.goto('/chart')
     const sourceTool = page.locator('.tool-window').first()
@@ -1757,6 +1762,36 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workstation__footer')).toContainText(/Browser blocked the pop-out/i, { timeout: 5_000 })
     await expect(sourceTool).toBeVisible()
     await expect(page.locator('.workstation__popout')).toHaveCount(0)
+
+    const popupPromise = context.waitForEvent('page')
+    await sourceTool.locator('button[title="Float"]').click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 25_000 })
+    await expect(page.locator('.workstation__footer')).not.toContainText(/Browser blocked the pop-out/i)
+
+    const windowKey = decodeURIComponent(new URL(popup.url()).pathname.split('/').at(-1) ?? '')
+    await expect.poll(async () => page.evaluate(async key => {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch('/api/v1/workspaces/default', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      if (!response.ok) return undefined
+      const body = await response.json()
+      const windows = body.tabs.flatMap((tab: { windows: Array<Record<string, unknown>> }) => tab.windows)
+      const persisted = windows.find((window: Record<string, unknown>) => window.instance_key === key)
+      return (persisted?.style as { popout?: unknown } | undefined)?.popout
+    }, windowKey), { timeout: 10_000, intervals: [250, 500, 1_000] }).toMatchObject({
+      left: expect.any(Number),
+      top: expect.any(Number),
+      width: expect.any(Number),
+      height: expect.any(Number),
+    })
+
+    const closed = popup.waitForEvent('close')
+    await popup.close()
+    await closed
+    await expect.poll(() => context.pages().length).toBe(1)
+    await expect(sourceTool.locator('button[title="Float"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.workstation__footer')).not.toContainText(/Browser blocked the pop-out/i)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
