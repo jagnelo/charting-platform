@@ -12057,16 +12057,29 @@ both required contracts have reached staging.
 
 ### R1 follow-up: column visibility accessibility names
 
-A headed local-browser inspection of the benchmark Column editor found that its
-visibility checkboxes inherited the text of the entire surrounding settings
-row as their accessible names (column label, width, format, move controls,
-stack and copy actions). Each checkbox now has a concise explicit accessible
-name, including the column label, with a component regression covering distinct
-labels. The focused watchlist suite passed 73/73; full frontend Vitest passed 1,069/1,069;
-`vue-tsc --noEmit`, production build, TC scope guard (12 changed paths), its
-6/6 self-tests, workstream validation, and `git diff --check` passed. The build
-retains the existing large-chunk warning. The change is limited to the
-TC-owned workstation UI and its unit test; it changes no styling, screenshot,
-provider/ETF behavior, or acceptance policy. Temporary browser artifacts and
-the isolated Compose stack have been cleaned up. No authenticated browser flow
-was changed by this accessibility-name-only edit.
+Product commit `795c207b09bb04d0d62be3f72a7d0420b45db372`
+(`fix(tc2000): name column visibility controls`) fixes the issue found in a
+headed local-browser inspection of the benchmark Column editor: its visibility
+checkboxes inherited the text of the entire surrounding settings row as their
+accessible names (column label, width, format, move controls, stack and copy
+actions). Each checkbox now has a concise explicit accessible name, including
+the column label, with a component regression covering distinct labels.
+
+The focused watchlist suite passed 73/73; full frontend Vitest passed
+1,069/1,069; `vue-tsc --noEmit`, production build, TC scope guard (12 changed
+paths), its 6/6 self-tests, workstream validation, and `git diff --check` passed.
+The build retains the existing large-chunk warning. The change is limited to
+the TC-owned workstation UI and its unit test; it changes no styling,
+screenshot, provider/ETF behavior, or acceptance policy. Temporary browser
+artifacts and the isolated Compose stack have been cleaned up. No authenticated
+browser flow was changed by this accessibility-name-only edit.
+
+The separate workstream checkpoint records the product commit and validation
+in `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl` and
+`ops/workstreams/feat-tc2000-frontend-rework/session.json`; this handoff is
+`ops/workstreams/feat-tc2000-frontend-rework/handoff.md`. Next: continue
+independent TC-owned workstation UI and Study/Strategy work; keep provider/ETF
+implementation out of TC and revisit staging only after upstream promotion is
+verifiable. At this product commit, the local origin ref remained
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629` (1,247 commits behind), so this
+small changeset was not pushed with the unrelated backlog.
