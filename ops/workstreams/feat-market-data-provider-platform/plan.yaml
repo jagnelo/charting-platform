@@ -4,7 +4,7 @@ base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
+human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters. The 30-day shadow run is explicitly deferred until it is the final separately planned gate before closure/integration."
 planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
@@ -19,15 +19,17 @@ scope:
   - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
   - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
   - versioned exchange sessions, holidays, early closes, timezone projections, and exchange-aware freshness
-  - provider capability/entitlement descriptors, durable quota reservations, usage accounting, health, routing, workload leases, and shadow telemetry
+  - provider capability/entitlement descriptors, exact provider-specific quota contracts, durable multi-unit quota reservations, usage accounting, health, routing, workload leases, and shadow telemetry
   - US universe/lifecycle reconciliation and backend data ingestion for events, SEC facts, earnings, FINRA short interest, options, futures, and crypto providers
   - QuantLib-backed calculated option Greeks with explicit model/input provenance and existing Black-Scholes fallback
   - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
-  - automated shadow-mode reporting and post-deployment activation evidence; no frontend or ETF constituent adapter implementation
+  - automated shadow-mode reporting and post-deployment activation evidence, with the actual 30-day run postponed to the final separately authorized phase; no frontend or ETF constituent adapter implementation
 owned_paths:
   - .env.example
   - README.md
   - .github/workflows/provider-live.yml
+  - .github/workflows/ci.yml
+  - AGENTS.md
   - backend/app/models/
   - backend/app/providers/
   - backend/app/services/
@@ -40,6 +42,7 @@ owned_paths:
   - deploy/rpi/compose.yml
   - docker-compose.yml
   - docs/architecture.md
+  - docs/agent-orchestration.md
   - docs/data-providers.md
   - docs/deployment.md
   - docs/development.md
@@ -48,6 +51,8 @@ owned_paths:
   - ops/workstreams/feat-market-data-provider-platform/
   - scripts/run-live-provider-probes.py
   - scripts/merge-provider-live-usage.py
+  - scripts/validate-workstream.py
+  - scripts/run-branch-tests.py
   - scripts/worktree-runtime.py
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
@@ -84,7 +89,21 @@ acceptance_criteria:
   - id: AC-LIVE-EVIDENCE
     text: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.
   - id: AC-SECRET-DISTRIBUTION
-    text: Local worktrees, GitHub live validation, and deployment targets use separate explicit secret stores; no credential is tracked, routine PR CI receives no provider secret, and provider credentials reach only trusted backend/worker processes.
+    text: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.
+  - id: AC-PROVIDER-CONTRACT-AUDIT
+    text: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.
+  - id: AC-DURABLE-CROSS-SESSION-USAGE
+    text: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.
+  - id: AC-UNIVERSE-COMPLETE
+    text: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use FINRA otcSecurityMaster with Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.
+  - id: AC-SEC-PRELISTING-POLICY
+    text: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.
+  - id: AC-INTEGRATION-WORKFLOW
+    text: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.
+  - id: AC-DINARI-SANDBOX-ISOLATION
+    text: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.
+  - id: AC-SHADOW-FINAL-PHASE
+    text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 branch_tests:
   - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
   - backend migration compatibility and PostgreSQL/Redis integration tests
@@ -95,7 +114,48 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: ready_for_human_review
+status: in_progress
+approved_execution_decisions:
+  provider_use:
+    rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
+    pricing: Free tiers only for now. Total future provider spend is capped at 20 per month and any paid upgrade requires a later evidence-based proposal and explicit approval.
+    marketstack: Keep the existing Free plan and its 100 monthly calls; do not ask again about upgrading unless measured unmet demand justifies a proposal.
+  identity_and_universe:
+    nms_source: Nasdaq Trader official nasdaqlisted.txt and otherlisted.txt; fetch once per completed market day with conditional validators and immediate 429/reset handling.
+    otc_source: FINRA otcSecurityMaster complete snapshot plus FINRA Daily List lifecycle deltas.
+    sec_issuers: First complete bounded SEC directory cycle with issuer materialization disabled, review its report, then create only missing validated CIK/name Issuer rows.
+    prelisting: After the staged SEC gate, create inactive provisional instruments only for strong, unambiguous identity/venue evidence; quarantine the rest.
+    delisting: Require three consecutive complete daily authoritative snapshot misses; incomplete runs do not count and authoritative reappearance reactivates the listing.
+  providers:
+    tradier: Deferred by user; keep non-routable and report exact credential preflight.
+    ibkr: Deferred by user; keep non-routable and report exact gateway/session preflight.
+    ondo: Deferred by user; keep non-routable and do not request credentials in this phase.
+    dinari: Sandbox-only, including a production-host canary isolated from canonical persistence; production API access remains disabled because the documented starting price is 2000 per month.
+    xstocks: Sole user is an eligible non-US person; public API calls need no account. Live response-header limit is 1000 per rolling minute with remaining/reset headers and must be enforced as provider-native state.
+    marketdata_app: Use observed 10000/day trial only while account-native state confirms it; automatically narrow to documented Free Forever 100/day after trial expiry, without requiring an expiry date from the user.
+    unknown_quotas: Investigate official documentation, account endpoints, and bounded live headers; do not ask the user to guess operational limits. Keep only truly undiscoverable dimensions non-routable.
+  credentials:
+    environments: [local-development, github-staging-validation, github-master-validation, live-production]
+    current_keys: Existing credentials are local-development-only and must never be copied into GitHub or deployment stores.
+    deployment: Production runtime secrets are target-owned and exposed only to backend/worker; production is not a GitHub validation environment.
+  tokenized_data:
+    audience: Private/internal, single eligible non-US user.
+    dinari_sandbox: May be probed from live host only as a canary; never persist, route, alert, or analyze its synthetic/test data.
+  validation:
+    live_policy: Every enabled registered provider capability requires fixture coverage plus bounded current-source live evidence at the exact source SHA; user-deferred providers are explicitly deferred, not falsely passed.
+    shadow: Do not start the 30-day shadow run in this phase; plan it only after all other controllable gates pass.
+execution_plan:
+  phases:
+    - provider contract, quota, bandwidth, cursor, account-usage, and dynamic-router correctness across the full roster
+    - complete venue/security-master reconciliation, SEC staging/materialization, prelisting, and ticker/lifecycle handling
+    - four-domain secret isolation, protected staging/master live CI, deployment preflight, and integration-workflow enforcement
+    - exhaustive fixtures, migration compatibility, local credentialed live matrix, and final provider-by-provider evidence report
+    - separately planned 30-day shadow run as the final gate before closure and staging integration
+  explicit_out_of_scope_until_separate_authorization:
+    - staging/master/prod credential provisioning by the human owner
+    - deploying or activating the application
+    - running the 30-day shadow phase before every other controllable gate is complete
+    - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
     The final current-head lock-protected live matrix at source `0b27192eb`
@@ -1659,38 +1719,17 @@ progress:
       passed, and the authoritative Docker-backed gate passed `2,410/2,410`
       at `81.38%` coverage with 89 warnings. Source checkpoint: `6992d1096`;
       no provider, frontend, or ETF-provider files changed.
-  total: 15
-  current_phase: credentialed_provider_followup
+  total: 22
+  current_phase: provider_contract_and_quota_audit
   current_blocker: >-
-    The latest local matrix collects 47 cases and remains 41/47: newly supplied
-    local credentials produced passing EDGAR, Alpaca, MarketData.app, and Dinari
-    Sandbox probes, including the MarketData.app expirations/option-chain
-    surface, Alpaca paper assets/corporate actions, and SEC filing/Company Facts.
-    Dinari required the
-    operator-only base URL to be corrected from the live sbt host to the
-    documented Sandbox host; the replacement pair then passed its bounded
-    credentialed case. The subsequent isolated 9-case rerun passed 9/9 after
-    resetting the SEC directory cache at the live-test boundary. Tradier, Ondo, and IBKR are explicitly deferred by the human and remain
-    intentionally unconfigured. MarketData.app routing is also intentionally
-    closed until the account plan/limit pair is explicitly reviewed; its live
-    key currently reports a 10,000-credit daily header. Alpha Vantage remains
-    at its documented 25-requests/day capacity for IPO-calendar and both
-    earnings reads after the shared key was exercised; this run records typed
-    capacity failures rather than treating them as provider success.
-    FRED,
-    FINRA OTC, Nasdaq polling, tokenized-provider terms/quota, complete
-    Tiingo/FMP byte maps, NMS/OTC reconciliation, GitHub CI secret access,
-    deployment-owned SEC contact distribution, and the separately approved
-    30-day shadow remain open review or deployment gates. Alpaca event routing is
-    additionally fail-closed until the deployment records a positive reviewed
-    `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound; direct adapter/live evidence does
-    not silently promote that control. Raw-only direct calls are now guarded
-    independently of resolver admission, so no caller can silently persist an
-    exchange or optional-provider raw response as adjusted data. Series-scoped
-    conflict identity is now covered by migration `9f0a1b2c3d4e`; the new
-    persistence semantics now include the default-series compatibility mapping
-    in migration `a0b1c2d3e4f5`; the latest authoritative PostgreSQL/full-stack
-    gate now validates these semantics, while coordinator review remains
+    No unresolved human product decisions remain for the accepted current
+    implementation phase. The approved decisions are recorded in
+    approved_execution_decisions above. Implementation must close provider
+    contract discovery/accounting gaps, complete NMS/OTC reconciliation,
+    isolate the four secret domains, and prove provider integrations through
+    current-SHA live tests. Staging/master/prod credentials require later owner
+    provisioning, and the 30-day shadow run is intentionally the final phase
+    after all other controllable gates pass.
     required before promotion. Provider live-ledger receipts
     now preserve provider-scoped failures separately from the process-wide
     matrix status, so historical usage diagnostics no longer overstate failed
@@ -2570,4 +2609,4 @@ progress:
       workstream's resources. Source checkpoint `bbaf83789` contains no
       frontend or ETF-provider adapter changes and no provider calls were
       needed.
-  next_action: obtain an operator-reviewed positive SEC directory submissions-request bound and choose the explicit issuer-materialization policy before enabling that scan; complete provider-specific quota/legal reviews and production NMS/OTC reconciliation; obtain operator approval for the Alpaca corporate-actions page bound, Massive corporate-actions page bound plus history/redistribution terms, MarketData.app option-chain bound/redistribution terms, and Dinari/Ondo historical aggregate quota/terms; verify that trusted GitHub CI/deployment secret stores contain the now-parity-mapped values and configure deferred credentials; extend the coordinator-backed preflight to future non-Strategy signal engines beyond the explicit indicator batch, direct indicator computation, seasonality, heatmap, Market Map, technical snapshot, relative strength, benchmark-family technicals, relative-rotation, group snapshot, group-breadth, benchmark-family overview, derived equal-weight, historical breadth, benchmark-family concentration, industry proxy, classified-industry snapshot, ETF constituent snapshot, and Study Lab/research dataset routes; reconcile the analysis response-field contract with `feat/etf-holdings-constituents` at staging without merging either feature branch here; keep pre-listing promotion and response-dependent routing fail-closed before any activation/integration/promotion/deployment; rerun the manifest after deferred credentials or reviewed entitlements change. Stable-identifier-aware universe/lifecycle reconciliation, strict SEC listing-array validation, complete unique-CIK directory paging, explicit audited SEC issuer materialization, durable MarketData.app account-usage observations, durable refresh-job attempt/outcome summaries, shared Strategy Lab/Radar/generic breadth/benchmark-family/alert/screener/Market Map/indicator-batch/direct-indicator/seasonality/heatmap/technical-snapshot/relative-strength/benchmark-family technical/relative-rotation/group snapshot/group breadth/benchmark-family overview/derived equal-weight/historical breadth/benchmark-family concentration/industry proxy/classified-industry snapshot/ETF constituent snapshot/Study Lab-research evaluator preflight, separate durable research evaluator status, canonical indicator history floors and parameter normalization, Alpaca native request-window reconciliation, Dinari cursor transport, symbol filtering, corporate-action capability, tokenized historical-price capability separation, tokenized action identity linkage, explicit Dinari split-page continuation, paginated UUID miss safety, API-first options-default consistency, complete SEC directory safety-control propagation, invalid local quota-limit rejection, strict local quota-acquisition validation, strict integral operation-cost admission, strict durable reservation-input validation, strict quota-settlement validation, strict workload-lease settlement validation, typed provider reset-header recovery, strict durable quota-window diagnostics, explicit reservation windows, bounded tokenized-catalog completeness and provider-failure isolation, independently scheduled bounded tokenized catalog discovery, canonical tokenized historical persistence through scoped series/observation/dataset-state rows, portable observation conflict targeting, migration graph repair, green Docker-backed backend integration validation, explicit MarketData.app trial-expiry enforcement, complete invalid trial-control diagnostics, pre-review account-usage introspection, provider-live CI configuration parity, explicit settled-versus-reserved usage accounting, provider-specific structured history-depth admission, risk-free historical-bound propagation, provider-specific latest-bar history-bound propagation, and Ondo canonical tokenized historical bridging are implemented through branch checkpoint `8890d5d880742fb01ee40f175151116c61622bb7` (backend-source checkpoint `ac7368ceb34e3db8d37f4a94f0cce6a7deff44bd`, implementation checkpoint `d041f80e5`); the exact source authoritative combined backend gate passes `2,491/2,491` at `81.72%` combined coverage with 89 warnings in `495.11s` using isolated session `fbcfc12b-98b5-438d-80b2-3034b0ac3ec1`, while provider/legal/deployment/shadow and future-evaluator coordination beyond the currently covered analysis paths remain open.
+  next_action: Complete the provider-by-provider official-documentation/account-header audit; fix native limit, scope, reset, quota-unit, response-byte, and cursor accounting; then complete NMS/OTC and SEC staged lifecycle gates, four-domain secrets/CI wiring, future-integration enforcement, and exhaustive current-source live validation. Do not start the 30-day shadow run until all other controllable gates pass.

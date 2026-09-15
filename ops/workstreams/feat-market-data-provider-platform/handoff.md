@@ -1,5 +1,36 @@
 # feat/market-data-provider-platform
 
+## 2026-09-15 implementation resumption
+
+- The user approved a complete corrective implementation phase. The current
+  plan now records all accepted operational decisions in
+  `approved_execution_decisions` and adds acceptance gates for provider
+  contract discovery, durable cross-session quota state, complete NMS/OTC
+  reconciliation, staged SEC/prelisting handling, four isolated credential
+  domains, live-validation workflow enforcement, and Dinari Sandbox isolation.
+- Confirmed choices: free providers only; aggregate future spend cap 20/month;
+  Marketstack stays Free; FINRA is the OTC security-master authority; Nasdaq
+  Trader files refresh conditionally once per completed market day; three
+  complete daily authoritative absences before listing deactivation; FINRA
+  async downloads require exact pre-reserved size; prelisting instruments are
+  inactive and created only after a clean staged scan on strong evidence;
+  Dinari Sandbox is canary-only with no production-data persistence; xStocks is
+  eligible for the sole non-US user and its observed 1000/minute rolling
+  response-header contract must be enforced; MarketData.app narrows from the
+  trial to Free Forever based on native account state.
+- Tradier, IBKR, and Ondo are explicitly deferred and remain non-routable.
+  Existing keys are local-development-only. Staging/master secrets require
+  later owner provisioning; production secrets remain target-owned. The
+  30-day shadow run is postponed until all other controllable gates pass and
+  is the final separately planned gate before closure/integration.
+- Current implementation focus: audit every provider's official contract,
+  account endpoints, and bounded live headers; eliminate arbitrary page/byte
+  controls and incorrect unknown-quota gates; finish universe reconciliation,
+  secret-domain wiring, integration policy enforcement, and current-SHA live
+  validation. Do not change frontend or ETF-provider adapter ownership.
+- Active session: `2d683fe6-c28c-4164-b66e-7dcc57cd03d5`; branch starts at
+  synchronized source `da06e560b1aaa0e5399e1e9565f174abe925bda8`.
+
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 - Direct live-provider receipts now retain validated per-operation transport
