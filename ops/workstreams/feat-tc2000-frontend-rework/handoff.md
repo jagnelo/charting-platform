@@ -12151,3 +12151,40 @@ product blocker; continue only with clean, separately committed TC-owned
 contexts. Provider and ETF consumer integration remains gated on promotion
 through staging. The enclosing operational checkpoint is verified externally
 with `git rev-parse`.
+
+## 2026-09-15 - Bidirectional chart-menu keyboard entry
+
+Product commit `f15093e1a1b84f9fc38907a38c58d4c518e543b3` completes Arrow-Up
+entry behavior in both Chart Templates and the Chart Plot Library. Each opens at
+its last enabled, visible control when Arrow-Up is pressed; Arrow-Down and click
+continue to open at their original first controls. Unit regressions were first
+confirmed red, then the two focused component suites passed 43/43. The full
+frontend Vitest suite, `vue-tsc --noEmit`, and production build passed; build
+reports only the existing large-chunk warning. Product test commit
+`74b049c62425f326cdf2171ecb5bcebe047b2260` extends the existing F9c/F9e
+authenticated headless Playwright flows to assert last-control focus and Escape
+focus recovery for both menus; the two tests passed 2/2 against the
+branch-scoped Compose stack. The first Chromium attempt was terminated before
+assertions by the default sandbox's macOS Mach permission boundary; the same
+tests passed in the authorized headless process context. No Chrome UI, user tab,
+provider/ETF behavior, screenshot baseline, mask, threshold, skip, or acceptance
+policy was changed. Stack teardown removed its containers, volumes, network,
+and four generated images; follow-up resource accounting found zero containers,
+volumes, test-container sessions, or known retained bytes.
+
+The refreshed workstream progress marks AC1 ownership enforcement complete and
+R1 keyboard navigation as the current phase. Product/test checkpoint HEAD is
+`74b049c62425f326cdf2171ecb5bcebe047b2260`; its 1,254-commit local range from
+the last known tracking ref is
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629..74b049c62425f326cdf2171ecb5bcebe047b2260`.
+This remains `committed_locally_pending_push`: no push was attempted for this
+range because prior exact payloads were rejected by the private-origin
+authorization safeguard and the last remote read failed DNS. Local staging tip
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35` still does not contain local
+provider tip `da06e560b1aaa0e5399e1e9565f174abe925bda8` or ETF tip
+`52814f95bd0ef62968ba1af4018ff9ef5049d3d6`; these are local ref snapshots,
+not fresh remote confirmations. Continue independent TC-owned UI and
+Study/Strategy work, then consume provider and ETF changes only through staging
+and perform the planned semantic reconciliation. The known 98/104 visual result
+and six protected diffs remain historical; this focused slice did not rerun the
+visual matrix or exact-tip gate.
