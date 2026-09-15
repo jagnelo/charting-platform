@@ -41,7 +41,7 @@
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
               <div><dt>Shift+Space</dt><dd>Previous symbol in the focused list</dd></div>
-              <div><dt>Ctrl+wheel</dt><dd>Traverse the active symbol universe</dd></div>
+              <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
               <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
               <div><dt>Escape</dt><dd>Close search and menus</dd></div>
             </dl>
@@ -231,8 +231,10 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import type { Timeframe } from '@/types'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
+const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -1918,27 +1920,33 @@ function handleGlobalKeydownCapture(event: KeyboardEvent) {
 function handleWheel(event: WheelEvent) {
   if (handledWheelEvents.has(event)) return
   handledWheelEvents.add(event)
-  // Ctrl+wheel is an explicit symbol-traversal gesture; unlike typed shortcuts
-  // it remains usable while the active-symbol control retains focus after Go.
   const controlPressed = event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true
-  if (!controlPressed || event.metaKey || event.altKey) return
-  event.preventDefault()
-  if (!allSymbols.value.length) return
-  // The shell input is updated synchronously by an explicit Go action while
-  // the canonical store publication completes asynchronously. Use the draft
-  // as a short-lived fallback so an immediate wheel gesture cannot select SPY
-  // again simply because the store has not hydrated the same symbol yet.
-  const currentSymbol = activeSymbol.value || symbolDraft.value.trim().toUpperCase()
-  const currentIndex = allSymbols.value.indexOf(currentSymbol)
+  if (!controlPressed || event.metaKey || event.altKey || event.deltaY === 0) return
+  const target = event.target
+  if (!(target instanceof Element)) return
+  // Ctrl+wheel belongs to a chart only when the pointer is over its plot.
+  // WatchLists keep their own row-scoped handler; every other shell surface
+  // leaves the gesture untouched.
+  const plot = target.closest('.uplot')
+  const toolWindow = plot?.closest<HTMLElement>('.tool-window[data-window-key]')
+  const windowKey = toolWindow?.dataset.windowKey
+  if (!plot || !windowKey) return
+  const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!tool || tool.tool_type !== 'chart') return
+  const currentTimeframe = workspaceStore.timeframeForTool(windowKey)
+  const currentIndex = CHART_TIMEFRAME_ORDER.indexOf(currentTimeframe as Timeframe)
+  if (currentIndex < 0) return
+  // The V25 help defines the chart gesture but not its direction. Follow the
+  // selector's ascending interval order: wheel down moves to a longer interval.
   const direction = event.deltaY > 0 ? 1 : -1
-  let nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
-  // A partially hydrated symbol can temporarily be absent from the list. Do
-  // not turn a traversal gesture into a no-op in that case; advance once more
-  // through the canonical fallback universe.
-  if (allSymbols.value.length > 1 && allSymbols.value[nextIndex] === activeSymbol.value) {
-    nextIndex = (nextIndex + direction + allSymbols.value.length) % allSymbols.value.length
-  }
-  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
+  const nextIndex = (currentIndex + direction + CHART_TIMEFRAME_ORDER.length) % CHART_TIMEFRAME_ORDER.length
+  const nextTimeframe = CHART_TIMEFRAME_ORDER[nextIndex]
+  if (!nextTimeframe || !workspaceStore.updateToolTimeframe(windowKey, nextTimeframe)) return
+  // Window capture runs before uPlot and its subpane handlers; consume the
+  // modifier gesture here so the same wheel event cannot also pinch-zoom or
+  // redispatch through another chart layer.
+  event.preventDefault()
+  event.stopPropagation()
 }
 
 watch(activeSymbol, symbol => {
@@ -1985,9 +1993,9 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 onMounted(async () => {
   componentMounted = true
   const mountSelectionGeneration = symbolSelectionGeneration
-  // Capture before chart/uPlot gesture handlers can stop propagation. The
-  // workstation-level Ctrl+wheel traversal is a shell command and must remain
-  // available even when the pointer is over a chart canvas.
+  // Capture before chart/uPlot gesture handlers can stop propagation. A chart
+  // owns Ctrl+wheel for timeframe navigation; non-chart targets pass through
+  // so WatchLists can traverse their own rows.
   window.addEventListener('wheel', handleWheel, { passive: false, capture: true })
   const handleModifierKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Control') ctrlWheelHeld.value = true

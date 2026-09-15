@@ -1528,10 +1528,10 @@ const isIndustryTool = computed(() => {
     || title.includes('industr')
     || marketGroup === 'selected-sector-industries'
 })
-const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
-  timeframeLinkGroup.value,
-  typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
-))
+// Resolve isolated Grey timeframes through the live workspace store rather
+// than the detached Golden Layout component-state object. Shared groups are
+// already reactive through the link bus; Grey must track per-tool edits too.
+const activeTimeframe = computed(() => workspaceStore.timeframeForTool(props.tool.instance_key))
 const timeframeLinkGroup = computed(() => workspaceStore.timeframeLinkGroupForTool(props.tool))
 const ratioExpression = computed(() => {
   const configuredExpression = typeof props.tool.configuration.expression === 'string'

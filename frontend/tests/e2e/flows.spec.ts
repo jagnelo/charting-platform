@@ -2077,21 +2077,159 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k — Ctrl+wheel traverses the workstation symbol universe', async ({ page, browserDiagnostics }) => {
+  test('F8k — Ctrl+wheel over a chart changes its timeframe and follows timeframe links', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
-    // Establish the starting symbol explicitly; persisted workspace hydration may leave
-    // the route-less input blank even though the canonical active symbol is SPY.
     await activeSymbol.fill('SPY')
     await page.getByRole('button', { name: 'Go', exact: true }).click()
     await expect(activeSymbol).toHaveValue('SPY')
-    await page.locator('.workstation').hover()
-    // Exercise the browser's real modifier + wheel path rather than dispatching a
-    // synthetic event with an implementation-specific target.
+
+    await page.getByRole('tab', { name: '4 Timeframe', exact: true }).click()
+    const windows = page.locator('.tool-window')
+    await expect(windows).toHaveCount(4)
+    const daily = windows.nth(1)
+    const monthly = windows.nth(3)
+    const dailyTimeframe = daily.locator('select[aria-label="Daily timeframe"]')
+    const dailyLink = daily.locator('select[aria-label="Daily timeframe link group"]')
+    const monthlyTimeframe = monthly.locator('select[aria-label="Monthly timeframe"]')
+    const monthlyLink = monthly.locator('select[aria-label="Monthly timeframe link group"]')
+
+    await dailyLink.selectOption('blue')
+    await monthlyLink.selectOption('blue')
+    await dailyTimeframe.selectOption('D1')
+    await monthlyTimeframe.selectOption('D1')
+    await expect(dailyTimeframe).toHaveValue('D1')
+    await expect(monthlyTimeframe).toHaveValue('D1')
+
+    const plot = daily.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    const box = await plot.boundingBox()
+    expect(box).not.toBeNull()
+    await plot.evaluate(element => {
+      (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = false
+      element.addEventListener('wheel', () => {
+        (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = true
+      }, { capture: true })
+    })
+    await page.evaluate(() => {
+      const pageWindow = window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }
+      pageWindow.__ctrlWheelProbe = []
+      window.addEventListener('wheel', event => {
+        if (!event.ctrlKey) return
+        const target = event.target instanceof Element ? event.target : null
+        const plotTarget = target?.closest('.uplot') ?? null
+        const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
+        pageWindow.__ctrlWheelProbe?.push({
+          ctrlKey: event.ctrlKey,
+          plot: plotTarget !== null,
+          windowKey: toolWindow?.dataset.windowKey ?? null,
+          prevented: event.defaultPrevented,
+        })
+      }, { capture: true })
+    })
+    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
     await page.keyboard.down('Control')
     await page.mouse.wheel(0, 100)
     await page.keyboard.up('Control')
-    await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
+    const wheelProbe = await page.evaluate(() => (window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }).__ctrlWheelProbe?.at(-1))
+    expect(wheelProbe).toMatchObject({ ctrlKey: true, plot: true, prevented: true })
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(activeSymbol).toHaveValue('SPY')
+    expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
+
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-grey — Ctrl+wheel over an isolated chart leaves linked charts unchanged', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('SPY')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('SPY')
+    await page.getByRole('tab', { name: '4 Timeframe', exact: true }).click()
+
+    const windows = page.locator('.tool-window')
+    await expect(windows).toHaveCount(4)
+    const daily = windows.nth(1)
+    const monthly = windows.nth(3)
+    const dailyTimeframe = daily.locator('select[aria-label="Daily timeframe"]')
+    const dailyLink = daily.locator('select[aria-label="Daily timeframe link group"]')
+    const monthlyTimeframe = monthly.locator('select[aria-label="Monthly timeframe"]')
+    const monthlyLink = monthly.locator('select[aria-label="Monthly timeframe link group"]')
+    await dailyLink.selectOption('blue')
+    await monthlyLink.selectOption('blue')
+    await dailyTimeframe.selectOption('D1')
+    await monthlyTimeframe.selectOption('D1')
+    await dailyLink.selectOption('grey')
+    await expect(dailyLink).toHaveValue('grey')
+    await expect(monthlyLink).toHaveValue('blue')
+    await expect(dailyTimeframe).toHaveValue('D1')
+    await expect(monthlyTimeframe).toHaveValue('D1')
+
+    const plot = daily.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    const box = await plot.boundingBox()
+    expect(box).not.toBeNull()
+    await plot.evaluate(element => {
+      (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = false
+      element.addEventListener('wheel', () => {
+        (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = true
+      }, { capture: true })
+    })
+    await page.evaluate(() => {
+      const pageWindow = window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }
+      pageWindow.__ctrlWheelProbe = []
+      window.addEventListener('wheel', event => {
+        if (!event.ctrlKey) return
+        const target = event.target instanceof Element ? event.target : null
+        const plotTarget = target?.closest('.uplot') ?? null
+        const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
+        pageWindow.__ctrlWheelProbe?.push({
+          ctrlKey: event.ctrlKey,
+          plot: plotTarget !== null,
+          windowKey: toolWindow?.dataset.windowKey ?? null,
+          prevented: event.defaultPrevented,
+        })
+      }, { capture: true })
+    })
+    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
+    await page.keyboard.down('Control')
+    await page.mouse.wheel(0, 100)
+    await page.keyboard.up('Control')
+    const wheelProbe = await page.evaluate(() => (window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }).__ctrlWheelProbe?.at(-1))
+    expect(wheelProbe).toMatchObject({ ctrlKey: true, plot: true, prevented: true })
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('D1')
+    await expect(activeSymbol).toHaveValue('SPY')
+    expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-watchlist — Ctrl+wheel over a WatchList traverses its own symbols', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(activeSymbol).toHaveValue('SPY')
+    const watchlist = page.getByRole('region', { name: 'Relative to SPY' }).filter({ has: page.locator('.watchlist__row') }).first()
+    const listbox = watchlist.getByRole('listbox', { name: 'Relative to SPY symbols' })
+    await expect(listbox).toBeVisible({ timeout: 15_000 })
+    const options = listbox.getByRole('option')
+    const optionCount = await options.count()
+    expect(optionCount).toBeGreaterThan(1)
+    const firstSymbol = await options.nth(0).getAttribute('aria-label').then(label => label?.split(/\s+/, 1)[0])
+    const secondSymbol = await options.nth(1).getAttribute('aria-label').then(label => label?.split(/\s+/, 1)[0])
+    expect(firstSymbol).toBeTruthy()
+    expect(secondSymbol).toBeTruthy()
+    expect(secondSymbol).not.toBe(firstSymbol)
+    await options.nth(0).click()
+    await expect(activeSymbol).toHaveValue(firstSymbol!)
+    const box = await listbox.boundingBox()
+    expect(box).not.toBeNull()
+    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
+    await page.keyboard.down('Control')
+    await page.mouse.wheel(0, 100)
+    await page.keyboard.up('Control')
+    await expect(activeSymbol).toHaveValue(secondSymbol!, { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2193,7 +2331,8 @@ test.describe('TC2000 workstation', () => {
     await helpButton.click()
     await expect(helpMenu).toBeVisible()
     await expect(helpMenu).toContainText('Shift+Space')
-    await expect(helpMenu).toContainText('Ctrl+wheel')
+    await expect(helpMenu).toContainText('Over a chart: change timeframe')
+    await expect(helpMenu).toContainText('over a WatchList: move through symbols')
 
     // Shell menus are mutually exclusive so a fixed popover cannot cover the
     // next menu or intercept a dock interaction underneath it.

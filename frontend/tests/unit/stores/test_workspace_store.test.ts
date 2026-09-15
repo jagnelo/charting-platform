@@ -1,4 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
+import { computed } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, apiPut, apiPatch, apiDelete } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn() }))
@@ -1085,8 +1086,11 @@ describe('workspace store layout tabs', () => {
       }] }],
     }
 
+    const visibleTimeframe = computed(() => store.timeframeForTool('grey-chart'))
+    expect(visibleTimeframe.value).toBe('D1')
     expect(store.updateToolTimeframe('grey-chart', 'MN')).toBe(true)
     expect(store.activeTab?.windows[0]?.configuration.timeframe).toBe('MN')
+    expect(visibleTimeframe.value).toBe('MN')
     expect(store.linkedTimeframe).toBe('D1')
     expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
   })

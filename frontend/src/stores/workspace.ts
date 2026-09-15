@@ -1435,6 +1435,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return linkedTimeframes.value[group] ?? normalizeWorkstationTimeframe(isolatedTimeframe ?? 'D1')
   }
 
+  function timeframeForTool(windowKey: string) {
+    const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
+    if (!tool || tool.tool_type !== 'chart') return 'D1'
+    const configuredTimeframe = typeof tool.configuration.timeframe === 'string' ? tool.configuration.timeframe : null
+    return timeframeForLinkGroup(timeframeLinkGroupForTool(tool), configuredTimeframe)
+  }
+
   function timeframeLinkGroupForTool(tool: WorkspaceWindowState) {
     return configuredLinkGroup(tool.configuration.timeframe_link_group, tool.link_group)
   }
@@ -3293,6 +3300,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     symbolForLinkGroup,
     timestampForLinkGroup,
     timeframeForLinkGroup,
+    timeframeForTool,
     timeframeLinkGroupForTool,
     publishTimeframe,
     loadDefault,

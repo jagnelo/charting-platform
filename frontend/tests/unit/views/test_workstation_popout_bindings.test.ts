@@ -65,6 +65,9 @@ const harness = vi.hoisted(() => {
     setActiveWindow: vi.fn(),
     updateToolLinkGroup: vi.fn(),
     updateToolTimeframe: vi.fn(),
+    timeframeLinkGroupForTool: vi.fn((_tool: unknown) => 'blue'),
+    timeframeForTool: vi.fn((_windowKey: string) => 'D1'),
+    timeframeForLinkGroup: vi.fn((_group: string, isolatedTimeframe?: string | null) => isolatedTimeframe ?? 'D1'),
     updateToolTimeframeLinkGroup: vi.fn(),
     selectIndustryProxy: vi.fn(),
     selectIndustry: vi.fn(),
@@ -119,6 +122,17 @@ function mount(component: typeof WorkstationView, options: MountingOptions<typeo
       ],
     },
   })
+}
+
+function appendChartPlotTarget(parent: Element, windowKey: string) {
+  const toolWindow = document.createElement('section')
+  toolWindow.className = 'tool-window'
+  toolWindow.dataset.windowKey = windowKey
+  const plot = document.createElement('div')
+  plot.className = 'uplot'
+  toolWindow.append(plot)
+  parent.append(toolWindow)
+  return plot
 }
 
 const ToolStub = defineComponent({
@@ -629,29 +643,40 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.activeTabKey = 'us-top-down'
   })
 
-  it('traverses the canonical workstation universe with Ctrl+wheel outside editors', async () => {
-    harness.workspace.marketGroups = {
-      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }, { instrument: { symbol: 'DIA' } }] },
-      'sp500-sectors': { members: [] },
-    }
+  it('routes Ctrl+wheel over a chart plot to its live timeframe update', async () => {
     routeState.path = '/'
     routeState.params = {}
+    harness.chartWindow.configuration = { timeframe: 'D1', timeframe_link_group: 'green' }
+    harness.workspace.timeframeLinkGroupForTool.mockReturnValue('green')
+    harness.workspace.timeframeForTool.mockReturnValueOnce('D1').mockReturnValueOnce('W1')
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     harness.workspace.publishSymbol.mockClear()
 
-    wrapper.element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
+    const plot = appendChartPlotTarget(wrapper.element, 'chart-main')
+    const plotWheel = vi.fn()
+    plot.addEventListener('wheel', plotWheel)
+    const nextEvent = new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true })
+    plot.dispatchEvent(nextEvent)
+    expect(nextEvent.defaultPrevented).toBe(true)
+    expect(plotWheel).not.toHaveBeenCalled()
+    expect(harness.workspace.timeframeForTool).toHaveBeenNthCalledWith(1, 'chart-main')
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(1, 'chart-main', 'W1')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control' }))
+    const previousEvent = new WheelEvent('wheel', { deltaY: -1, bubbles: true, cancelable: true })
+    plot.dispatchEvent(previousEvent)
+    expect(harness.workspace.timeframeForTool).toHaveBeenNthCalledWith(2, 'chart-main')
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(2, 'chart-main', 'D1')
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
     wrapper.unmount()
   })
 
-  it('retains Ctrl+wheel traversal when the wheel event omits ctrlKey', async () => {
-    harness.workspace.marketGroups = {
-      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }] },
-      'sp500-sectors': { members: [] },
-    }
+  it('leaves Ctrl+wheel on non-chart surfaces to their local owner', async () => {
     routeState.path = '/'
     routeState.params = {}
     const wrapper = mount(WorkstationView, {
@@ -660,10 +685,21 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     harness.workspace.publishSymbol.mockClear()
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control' }))
-    wrapper.element.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
-    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
+    const toolWindow = document.createElement('section')
+    toolWindow.className = 'tool-window'
+    toolWindow.dataset.windowKey = 'benchmark-list'
+    const watchlistScroll = document.createElement('div')
+    watchlistScroll.className = 'watchlist__scroll'
+    toolWindow.append(watchlistScroll)
+    wrapper.element.append(toolWindow)
+    const localWheel = vi.fn()
+    watchlistScroll.addEventListener('wheel', localWheel)
+    const event = new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true })
+    watchlistScroll.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+    expect(localWheel).toHaveBeenCalledOnce()
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 
