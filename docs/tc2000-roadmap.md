@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Headless TC workstation and Study Lab browser checkpoint
+
+At product tip d4b288375dac, the branch-scoped Docker frontend was exercised
+without opening or taking over an interactive browser. Authenticated headless
+Chromium passed F9f chart-template export/import (1/1) and F8g Study Lab
+validation, isolated scalar execution, result rendering, and watchlist-column
+promotion (1/1). The F8g Playwright trace contains authenticated page captures
+outside Git for visual inspection; no generated media was added to the branch.
+
+The unchanged watchlist-column-editor visual assertion was rerun at
+visual-1080p-100 and reproduced its known 13,844-pixel (1.0%) difference
+against the checked-in board baseline. The screenshot comparison did not reveal
+a sufficiently specific product cause for a safe edit, so the baseline,
+threshold, masks, skips, and acceptance policy remain unchanged. The exact
+named Compose project was stopped and cleaned; resource accounting found zero
+containers, volumes, test sessions, or known retained bytes.
+
+Continue independent TC-owned workstation UI and Study/Strategy work. Do not
+implement provider or ETF responsibilities in TC; consume those contracts only
+after promotion through staging and reconcile shared paths at the final
+integration step.
+
 ## 2026-09-15 - Historical EA identifier disposition
 
 The QQQ SEC N-PORT filings for 2025-09-30 and 2025-12-31 each retain an

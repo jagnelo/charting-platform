@@ -12222,3 +12222,33 @@ generated images; no branch test sessions remained. This is a focused R1/R6
 receipt, not a fresh exact-tip or four-project visual gate. No provider/ETF
 behavior, screenshot baseline, threshold, mask, skip, or acceptance policy
 changed; no Chrome UI or user tab was accessed.
+
+## 2026-09-15 - Headless Docker browser and Study Lab visual diagnosis
+
+At clean product tip d4b288375dac, I reused the branch-scoped Compose workflow
+and headless Playwright Chromium; no interactive browser or user tab was
+opened. F9f chart-template export/import passed 1/1. The TC-owned F8g Study Lab
+flow passed 1/1 through validation, isolated scalar execution, completed result
+rendering, and promotion to a reusable watchlist column. Its authenticated
+Playwright trace and extracted screenshot are temporary artifacts under
+/private/tmp/tc2000-study-f8g.Ajhfy5, not branch media.
+
+The unchanged watchlist-column-editor screenshot assertion at
+visual-1080p-100 reproduced the known 13,844-pixel, 1.0% mismatch against the
+checked-in board baseline. Actual and expected captures retain the same broad
+layout; inspection did not identify a specific safe product correction. No
+baseline, mask, threshold, skip, or acceptance policy was changed. A first
+Playwright invocation from the repository root selected the wrong config
+context and failed before any test ran; the recorded frontend-directory
+invocation passed.
+
+Both browser-test Compose runs were limited to
+charting-stack-feat-tc2000-frontend-rework-db4ca1c4. Teardown removed that
+project's containers, volumes, network, and four generated images; the
+resource audit reported zero containers, volumes, test sessions, or known
+retained bytes.
+
+Next: continue independent TC-owned workstation UI and Study/Strategy work,
+investigate the remaining visual mismatches with the existing oracles intact,
+and keep provider/ETF implementation and integration outside TC until their
+contracts reach staging.
