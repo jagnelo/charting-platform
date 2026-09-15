@@ -52,11 +52,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -116,14 +112,14 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7c4bd3ba494706b517d496ca63770055b88f9b3e",
+  "head": "ee9d437a6f1e97f84cf8d4f34edfb6e2e35d6c04",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T20:26:22.432585+00:00",
-  "last_human_progress_update": "2026-09-15T20:24:55.299279+00:00",
+  "last_checkpoint": "2026-09-15T22:02:28.302425+00:00",
+  "last_human_progress_update": "2026-09-15T22:02:15.441904+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next independent TC-owned workstation or Study/Strategy slice from the roadmap; keep provider/ETF consumers deferred until both upstream changes reach staging, then reconcile and run exact-tip validation.",
-  "plan_hash": "fba9ac81eba8ae138f62efa8f3588ecd28bb70afe4f6fa6b4fb2d7343d2fb36a",
+  "plan_hash": "63026c2201a93fe32baec76a6ebec9c0a21f5d40e4ae175186246bf58071362b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -135,11 +131,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No blocker to independent local work. Final review still requires provider and ETF staging integration plus resolution or explicit disposition of the six protected visual diffs; remote push remains an operational synchronization hold only.",
-    "current_phase": "R5_python_signal_lineage_delivered",
-    "next_action": "Continue the next independent TC-owned workstation or Study/Strategy slice from the roadmap; keep provider/ETF consumers deferred until both upstream changes reach staging, then reconcile and run exact-tip validation.",
+    "current_blocker": "None for independent local work. Final review still requires the upstream provider and ETF work to reach staging plus disposition of six protected visual diffs; the previously rejected remote push remains an operational synchronization hold.",
+    "current_phase": "R5_market_map_named_python_outputs",
+    "next_action": "Continue the TC-owned R5 compatibility matrix by auditing for the next independent Python/Study/Strategy/workstation gap. Defer provider/ETF integration until staging, preserve visual oracles, then reconcile shared paths and run exact-tip validation.",
     "total": 9,
-    "updated_at": "2026-09-15T20:24:55.299207+00:00"
+    "updated_at": "2026-09-15T22:02:15.441828+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
