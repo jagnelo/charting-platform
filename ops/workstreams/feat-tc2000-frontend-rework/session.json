@@ -51,12 +51,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -116,10 +111,10 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "d4b288375dac52d8a3ec9ed3ebdef4163380a993",
+  "head": "304f5063fa7812ab70748fcf5bf3a1377690f2ad",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T15:15:13.742678+00:00",
+  "last_checkpoint": "2026-09-15T15:16:55.530386+00:00",
   "last_human_progress_update": "2026-09-15T15:13:45.375565+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
