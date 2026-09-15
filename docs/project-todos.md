@@ -1,3 +1,26 @@
+## 2026-09-15 - Verified Kingsview dated holdings
+
+Product commit `b375a4782` hardens Kingsview/Monarch's fund-ID-scoped
+FilePoint JSON holdings route. Every retained row must have the same parseable
+`asOfDate`; missing, invalid, and mixed-date snapshots fail closed; source IDs
+are date-scoped; and raw plus normalized metadata records composition/as-of
+date, row count, completeness, and
+`kingsview_native_fund_scoped_filepoint_holdings_json` provenance. The public
+MVFD route returned 42 rows dated 2026-09-11.
+
+Focused Kingsview assertions passed 3/3, the full holdings-adapter unit module
+passed 581/581, the opt-in public route test passed 1/1, and Ruff, formatting,
+and diff checks passed. The exact branch gate at product tip `b375a4782` passed
+backend units 1615/1615, integration 405/405 at 82.23% combined coverage,
+frontend Vitest 1067/1067, type-check/build, Compose and research-runner checks,
+and functional E2E 165 passed with 107 documented skips. Visual E2E remains
+98/104 with only the six established watchlist-column-editor/workspace-floating
+state-oracle diffs. Resource accounting confirmed zero containers, volumes,
+test-container sessions, or known attributable bytes; four generated images
+were removed. No provider/fallback, visual baseline, mask, threshold, skip, or
+acceptance policy changed. Continue R1 family-wide population/history,
+D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified Arlington dated holdings
 
 Product commit `654bfe7e5` tightens Arlington's issuer-linked AQEC daily CSV:
