@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isEditorTarget } from '@/lib/workstation/keyboard'
+import { isEditorTarget, isInteractiveTarget } from '@/lib/workstation/keyboard'
 
 describe('workstation keyboard target detection', () => {
   it('recognizes native editors and contenteditable/code/search surfaces', () => {
@@ -24,5 +24,25 @@ describe('workstation keyboard target detection', () => {
     const canvas = document.createElement('canvas')
     expect(isEditorTarget(canvas)).toBe(false)
     expect(isEditorTarget(null)).toBe(false)
+  })
+
+  it('yields global shortcuts to native and ARIA interactive controls', () => {
+    const button = document.createElement('button')
+    const buttonChild = document.createElement('span')
+    button.appendChild(buttonChild)
+    const tab = document.createElement('div')
+    tab.setAttribute('role', 'tab')
+    const menuItem = document.createElement('div')
+    menuItem.setAttribute('role', 'menuitem')
+    const option = document.createElement('div')
+    option.setAttribute('role', 'option')
+    const canvas = document.createElement('canvas')
+
+    expect(isInteractiveTarget(buttonChild)).toBe(true)
+    expect(isInteractiveTarget(tab)).toBe(true)
+    expect(isInteractiveTarget(menuItem)).toBe(true)
+    expect(isInteractiveTarget(option)).toBe(true)
+    expect(isInteractiveTarget(canvas)).toBe(false)
+    expect(isInteractiveTarget(null)).toBe(false)
   })
 })

@@ -520,6 +520,8 @@ test.describe('Chart', () => {
   test('F9e-keyboard — workspace tabs support roving focus and keyboard activation', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(activeSymbol).toHaveValue('SPY')
     const tabs = page.locator('.workstation__tabs [role="tab"]')
     await expect.poll(() => tabs.count(), { timeout: 10_000 }).toBeGreaterThan(1)
     const first = tabs.nth(0)
@@ -534,6 +536,13 @@ test.describe('Chart', () => {
     await expect(first).toBeFocused()
     await first.press(' ')
     await expect(first).toHaveAttribute('aria-selected', 'true')
+    await expect(activeSymbol).toHaveValue('SPY')
+
+    const studyButton = page.getByRole('button', { name: 'Study', exact: true })
+    await studyButton.press('Space')
+    await expect(page.locator('.study-lab-tool:visible').last()).toBeVisible()
+    await expect(activeSymbol).toHaveValue('SPY')
+    await page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' }).click()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

@@ -228,6 +228,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 import { workstationFreshness } from '@/lib/workstation/freshness'
+import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
 
@@ -1853,7 +1854,7 @@ function handleKeydown(event: KeyboardEvent) {
     syncShellMenuListeners()
     return
   }
-  if (workspaceStore.isEditorTarget(event.target)) return
+  if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
   if (event.key === 'F1' || event.key === '?') {
     event.preventDefault()
     closeShellMenus('help')
