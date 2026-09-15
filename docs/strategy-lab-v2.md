@@ -79,9 +79,9 @@ no provider, ORM, FastAPI, queue, or Nautilus modules and performs no I/O.
 Run the focused suite from `backend/` with:
 
 ```sh
-uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=
-uv run ruff check app/strategy_lab_v2
-uv run mypy app/strategy_lab_v2
+rtk uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=
+rtk uv run ruff check app/strategy_lab_v2
+rtk uv run mypy app/strategy_lab_v2
 ```
 
 The override disables the repository-wide coverage threshold for this focused
