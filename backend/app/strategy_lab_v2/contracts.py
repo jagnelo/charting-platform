@@ -10,6 +10,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 
 if TYPE_CHECKING:
     from app.strategy_lab_v2.capabilities import PreflightReport
@@ -40,6 +41,16 @@ class EventGranularity(StrEnum):
 class MetricBasis(StrEnum):
     GROSS = "gross"
     NET = "net"
+
+
+class TargetConflictPolicy(StrEnum):
+    REJECT = "reject"
+    HIGHEST_PRIORITY = "highest_priority"
+    SUM_COMPONENT_TARGETS = "sum_component_targets"
+
+
+class RiskExposureMeasure(StrEnum):
+    SIGNED_BASE_NOTIONAL = "signed_base_notional"
 
 
 class ArtifactRetention(StrEnum):
@@ -195,9 +206,95 @@ class PortfolioComponent:
             raise ValueError("capital_weight must be a finite Decimal")
         if self.capital_weight <= 0 or self.capital_weight > 1:
             raise ValueError("capital_weight must be greater than zero and at most one")
-        if self.priority < 0:
-            raise ValueError("priority must be non-negative")
+        if (
+            not isinstance(self.priority, int)
+            or isinstance(self.priority, bool)
+            or self.priority < 0
+        ):
+            raise ValueError("priority must be a non-negative integer")
         object.__setattr__(self, "instrument_ids", instruments)
+
+
+@dataclass(frozen=True, slots=True)
+class ProductRiskModel:
+    product_class: ProductClass
+    exposure_measure: RiskExposureMeasure
+    definition_digest: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.product_class, ProductClass):
+            raise TypeError("product_class must be a ProductClass")
+        if not isinstance(self.exposure_measure, RiskExposureMeasure):
+            raise TypeError("exposure_measure must be a RiskExposureMeasure")
+        require_sha256_digest(self.definition_digest, field_name="definition_digest")
+
+
+CASH_EQUITY_NOTIONAL_RISK_MODEL = ProductRiskModel(
+    product_class=ProductClass.EQUITY,
+    exposure_measure=RiskExposureMeasure.SIGNED_BASE_NOTIONAL,
+    definition_digest=content_digest(
+        {"model": "cash-equity-market-value-as-signed-base-notional", "version": 1}
+    ),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SharedRiskPolicy:
+    """Versioned limits applied to component-attributed account exposure."""
+
+    max_gross_exposure_fraction: Decimal = Decimal("1.0")
+    max_net_exposure_fraction: Decimal = Decimal("1.0")
+    max_instrument_gross_exposure_fraction: Decimal = Decimal("1.0")
+    max_component_gross_exposure_fraction: Decimal = Decimal("1.0")
+    max_component_leverage: Decimal = Decimal("1.0")
+    max_open_instruments: int | None = None
+    allow_short_positions: bool = False
+    target_conflict_policy: TargetConflictPolicy = TargetConflictPolicy.REJECT
+    risk_models: tuple[ProductRiskModel, ...] = ()
+    definition_version: str = "strategy-lab.shared-risk.v1"
+
+    def __post_init__(self) -> None:
+        for name in (
+            "max_gross_exposure_fraction",
+            "max_instrument_gross_exposure_fraction",
+            "max_component_gross_exposure_fraction",
+            "max_component_leverage",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite() or value <= 0:
+                raise ValueError(f"{name} must be a finite positive Decimal")
+        if (
+            not isinstance(self.max_net_exposure_fraction, Decimal)
+            or not self.max_net_exposure_fraction.is_finite()
+            or self.max_net_exposure_fraction < 0
+        ):
+            raise ValueError("max_net_exposure_fraction must be a finite non-negative Decimal")
+        if self.max_open_instruments is not None and (
+            not isinstance(self.max_open_instruments, int)
+            or isinstance(self.max_open_instruments, bool)
+            or self.max_open_instruments < 1
+        ):
+            raise ValueError("max_open_instruments must be a positive integer when provided")
+        if not isinstance(self.allow_short_positions, bool):
+            raise TypeError("allow_short_positions must be a bool")
+        if not isinstance(self.target_conflict_policy, TargetConflictPolicy):
+            raise TypeError("target_conflict_policy must be a TargetConflictPolicy")
+        risk_models = tuple(self.risk_models)
+        if any(not isinstance(item, ProductRiskModel) for item in risk_models):
+            raise TypeError("risk_models must contain ProductRiskModel values")
+        product_classes = [item.product_class for item in risk_models]
+        if len(product_classes) != len(set(product_classes)):
+            raise ValueError("shared risk policy may declare one risk model per product class")
+        object.__setattr__(
+            self,
+            "risk_models",
+            tuple(sorted(risk_models, key=lambda item: item.product_class.value)),
+        )
+        _nonempty(self.definition_version, "definition_version")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -208,13 +305,19 @@ class PortfolioComposition:
     base_currency: str
     components: tuple[PortfolioComponent, ...]
     rebalance_policy: Mapping[str, Any] = field(default_factory=dict)
-    shared_risk_policy: Mapping[str, Any] = field(default_factory=dict)
+    shared_risk_policy: SharedRiskPolicy = field(default_factory=SharedRiskPolicy)
 
+    @deterministic_decimal_math
     def __post_init__(self) -> None:
         _nonempty(self.portfolio_id, "portfolio_id")
         _nonempty(self.version_id, "version_id")
         _positive(self.initial_capital, "initial_capital")
-        if len(self.base_currency) != 3 or not self.base_currency.isalpha():
+        if (
+            not isinstance(self.base_currency, str)
+            or len(self.base_currency) != 3
+            or not self.base_currency.isascii()
+            or not self.base_currency.isalpha()
+        ):
             raise ValueError("base_currency must be a three-letter code")
         if not self.components:
             raise ValueError("a portfolio must contain at least one component")
@@ -226,11 +329,21 @@ class PortfolioComposition:
         object.__setattr__(self, "components", tuple(self.components))
         object.__setattr__(self, "base_currency", self.base_currency.upper())
         object.__setattr__(self, "rebalance_policy", freeze_json(self.rebalance_policy))
-        object.__setattr__(self, "shared_risk_policy", freeze_json(self.shared_risk_policy))
+        if not isinstance(self.shared_risk_policy, SharedRiskPolicy):
+            raise TypeError("shared_risk_policy must be a SharedRiskPolicy")
 
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+    @property
+    @deterministic_decimal_math
+    def unallocated_capital_weight(self) -> Decimal:
+        """Share of current account equity not assigned to strategy components."""
+
+        return Decimal(1) - sum(
+            (item.capital_weight for item in self.components), Decimal(0)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -595,11 +708,14 @@ class MetricValue:
     basis: MetricBasis
     sample_size: int
     annualization_basis: str | None = None
+    calculation_basis: str | None = None
     null_reason: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("name", "unit", "definition_version"):
             _nonempty(getattr(self, name), name)
+        if not isinstance(self.basis, MetricBasis):
+            raise TypeError("basis must be a MetricBasis")
         if (
             not isinstance(self.sample_size, int)
             or isinstance(self.sample_size, bool)
@@ -615,6 +731,10 @@ class MetricValue:
             or self.null_reason is not None
         ):
             raise ValueError("metric values must be finite and cannot have a null_reason")
+        if self.annualization_basis is not None:
+            _nonempty(self.annualization_basis, "annualization_basis")
+        if self.calculation_basis is not None:
+            _nonempty(self.calculation_basis, "calculation_basis")
 
 
 @dataclass(frozen=True, slots=True)
@@ -656,6 +776,7 @@ class RunResultManifest:
     engine_name: str
     engine_version: str
     engine_build_digest: str
+    allocation_definition_version: str
     dependency_catalog_digest: str
     assumptions_digest: str
     metric_set: MetricSet
@@ -687,7 +808,7 @@ class RunResultManifest:
         require_sha256_digest(self.engine_build_digest, field_name="engine_build_digest")
         require_sha256_digest(self.dependency_catalog_digest, field_name="dependency_catalog_digest")
         require_sha256_digest(self.assumptions_digest, field_name="assumptions_digest")
-        for name in ("engine_name", "engine_version"):
+        for name in ("engine_name", "engine_version", "allocation_definition_version"):
             _nonempty(getattr(self, name), name)
         packages = tuple(self.strategy_packages)
         artifacts = tuple(self.output_artifacts)

@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.strategy_lab_v2.allocation import ALLOCATION_DEFINITION_VERSION
 from app.strategy_lab_v2.canonical import canonical_json, content_digest
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
@@ -30,6 +31,7 @@ from app.strategy_lab_v2.contracts import (
     RunAttempt,
     RunResultManifest,
     ScientificTrial,
+    SharedRiskPolicy,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -398,6 +400,7 @@ def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
     metrics = calculate_performance_metrics(
         (Decimal(110), Decimal(100), Decimal(120)),
         initial_capital=Decimal(100),
+        base_currency="USD",
         periods_per_year=252,
         basis=MetricBasis.NET,
     )
@@ -406,13 +409,16 @@ def test_metric_contracts_include_basis_sample_size_and_null_reason() -> None:
     assert by_name["total_return"].basis is MetricBasis.NET
     assert by_name["sharpe_ratio"].value is not None
     assert by_name["sharpe_ratio"].annualization_basis == "252 observed periods per year"
-    assert all(item.definition_version == "strategy-lab.metrics.v1" for item in metrics)
+    assert all(item.definition_version == "strategy-lab.metrics.v2" for item in metrics)
 
     trade_metrics = {
-        item.name: item for item in calculate_trade_metrics((Decimal(10), Decimal(-5)))
+        item.name: item
+        for item in calculate_trade_metrics((Decimal(10), Decimal(-5)), base_currency="USD")
     }
     assert trade_metrics["profit_factor"].value == Decimal(2)
-    no_trades = {item.name: item for item in calculate_trade_metrics(())}
+    no_trades = {
+        item.name: item for item in calculate_trade_metrics((), base_currency="USD")
+    }
     assert no_trades["win_rate"].value is None
     assert no_trades["win_rate"].null_reason == "no completed trades"
 
@@ -437,9 +443,10 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         "usd",
         (component,),
         rebalance_policy={"frequency": "monthly"},
-        shared_risk_policy={"gross_limit": "1.0"},
+        shared_risk_policy=SharedRiskPolicy(max_gross_exposure_fraction=Decimal("1.0")),
     )
     assert portfolio.base_currency == "USD"
+    assert portfolio.unallocated_capital_weight == Decimal("0.40")
     assert portfolio.fingerprint == content_digest(portfolio)
 
     package = StrategyPackage(
@@ -602,7 +609,7 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         "total_return",
         Decimal("0.15"),
         "fraction",
-        "strategy-lab.metrics.v1",
+        "strategy-lab.metrics.v2",
         MetricBasis.NET,
         252,
     )
@@ -610,7 +617,7 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         "result-metrics-1",
         trial.trial_id,
         attempt.attempt_id,
-        "strategy-lab.metrics.v1",
+        "strategy-lab.metrics.v2",
         (metric_value,),
         created,
     )
@@ -624,6 +631,7 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         engine_name="nautilus",
         engine_version="2.0.0",
         engine_build_digest=content_digest({"engine-build": 1}),
+        allocation_definition_version=ALLOCATION_DEFINITION_VERSION,
         dependency_catalog_digest=content_digest({"catalog": 1}),
         assumptions_digest=content_digest({"assumptions": 1}),
         metric_set=metric_set,

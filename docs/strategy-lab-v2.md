@@ -10,7 +10,25 @@ extend or reinterpret the current Strategy Lab runner.
 An immutable strategy version declares its SDK version, exact dependency
 artifacts, parameter schema/defaults, and content digest. A portfolio version
 binds strategy versions to instrument scopes, capital budgets, priorities,
-rebalancing, and shared risk policy. Before execution, a capability preflight
+and a typed/versioned shared-risk policy. Scheduled rebalancing remains
+untyped and is not applied by this engine-neutral core. A
+`TargetPositionIntent.target_fraction` is a fraction of the emitting component's
+share of current account equity; the host multiplies it by that component's
+capital weight. Targets are bounded by the component's capital budget unless an
+explicit component-leverage limit is raised in the policy. Component targets
+are resolved together at one event, conflict
+handling is explicit (`reject`, `highest_priority`, or `sum_component_targets`),
+and gross risk is calculated before same-instrument netting. Shared gross, net,
+instrument, component, open-instrument-count, and short-position limits fail the
+whole candidate batch closed; targets are never silently scaled. Raw quantity
+`OrderIntent`s remain unroutable until an engine adapter supplies authoritative
+instrument economics, FX conversion, and product-appropriate risk valuation.
+Risk calculations use a content-addressed, per-product risk-model binding. The
+current registry supports only cash-equity signed base notional; unsupported or
+unregistered products, including futures and options, fail closed. These
+notional concentration caps are not a complete market, margin, liquidity, or
+derivative-risk model, and passing them never authorizes order execution.
+Before execution, a capability preflight
 must establish the requested product, data granularity, history, adjustment,
 session/feed, corporate-action, and execution-model semantics. Missing rigorous
 support fails closed. A degraded run is possible only through an explicit,
@@ -59,13 +77,30 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `capabilities.py` implements strict/degraded capability-cell preflight.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
-  validation checks the strategy's declared instrument scope; allocation and
-  risk controls remain host responsibilities.
+  validation checks the strategy's declared instrument scope.
+- `allocation.py` resolves event-aligned component target-position intents using
+  typed policies, preserves existing component-attributed positions, records
+  deterministic conflicts, and returns proposed versus risk-approved account targets.
+  Explicit zero targets are preserved. The only registered instrument risk
+  model is cash-equity market value as signed base notional. Current exposure
+  snapshots bind opaque valuation evidence which the future adapter must verify;
+  futures, options, FX, crypto, and other models are not currently supported.
+  This pure module does not create or route engine orders.
 - `experiments.py` expands deterministic search/scenario plans and
   leakage-aware walk-forward folds.
-- `metrics.py` computes versioned Decimal summaries from authoritative engine
-  equity and trade-P&L series, recording basis, units, samples, annualization,
-  and null reasons.
+- `metrics.py` v2 computes Decimal account P&L/return, drawdown duration, Ulcer,
+  annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
+  historical VaR/expected shortfall, and trade outcome/streak summaries from
+  authoritative engine equity and trade-P&L series. The equity input contains
+  equally spaced post-start marks only (not the opening balance), and
+  `periods_per_year` must match that cadence; timestamped/irregular observations
+  are not yet modeled. Currency is explicit;
+  calculation/annualization basis, gross/net basis, samples, and null reasons
+  travel with each metric. Tail calculations use an explicitly versioned
+  nearest-rank empirical convention. These remain only part of the planned
+  catalog; exposure/capital, fees/slippage, attribution, rolling, distribution,
+  sensitivity, and calendar-period metrics need additional authoritative input
+  contracts.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active
