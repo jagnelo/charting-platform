@@ -135,12 +135,47 @@ review. No push of the current range has been attempted. Do not retry
 the exact current destination and range; continue independently scoped local
 work and never claim synchronization.
 
-Next implementation context: add typed timestamped engine account, exposure,
-fill-cost, and attribution observations plus capital-utilization/execution-cost
-metrics under package-owned paths. Then define calendar-aware rebalance
-semantics. Keep shared integration deferred until provider, ETF, and TC2000 reach
-staging and their exact contracts are reconciled. Maintain `in_progress`;
-closure, integration, promotion, and deployment are not authorized.
+The prior next-action context has been completed at the checkpoint below. Keep
+shared integration deferred until provider, ETF, and TC2000 reach staging and
+their exact contracts are reconciled. Maintain `in_progress`; closure,
+integration, promotion, and deployment are not authorized.
+
+## 2026-09-15 - Run-scoped observations and result metrics checkpoint
+
+The next engine-neutral result slice is committed locally as
+`82749796ac520a227288e7fa54dfed3a589a3983`. It adds normalized event-time and
+sequence points, account exposure snapshots, fill cost observations, and
+component P&L observations. All run observations carry a run-attempt identity;
+component P&L is bound to one common result bundle and reconciles exactly to
+portfolio gross/net P&L, including an explicit unallocated residual when needed.
+
+Metrics v3 now provides event-sampled cash-equity notional/equity and cash/equity
+ratios, run-scoped fill-cost summaries, and reconciled component P&L
+contributions. Exposure measures are sample-weighted, not time-weighted or
+margin utilization. Cost totals and bps are null unless every fill has an
+explicit complete cost report; partial/unavailable reports are counted and
+reported category values are labelled as observed rather than complete. FX,
+slippage, cost models, and attribution methods require adapter-provided evidence;
+the core infers none of them. Stable canonical observation digests travel with
+metric calculation bases. Independent review found no remaining actionable
+P0-P2 findings after the run-identity and incomplete-cost fixes.
+
+Exact-tip package validation at the implementation commit passed: focused
+package pytest (39 tests), Ruff, mypy (16 files), and `git diff --check`. This is
+not the planned full-stack validation profile. Existing deferred gaps include
+calendar-aware rebalance semantics, irregular-time/rolling/distribution/
+sensitivity/calendar metrics, product-specific risk models beyond cash
+equities, verified provider coverage evidence, persistence, APIs, workers,
+isolated strategy execution, Compose services, and authoritative Nautilus v2
+execution/conformance.
+
+The branch remains local and is six commits ahead of recorded remote
+`d2497f43084d52d3e66b40a91be25dd2678620be`; no push of this current range was
+attempted. The previous private-repository egress hold remains unchanged. Do not
+publish through another route; continue local work under this session. Next:
+define and test immutable calendar-versioned rebalance policy and schedule
+semantics in package-owned paths. Keep provider, ETF, TC2000, shared runtime,
+migration, API registration, Compose, and frontend ownership boundaries intact.
 
 This operational checkpoint updates only the following branch-owned records:
 

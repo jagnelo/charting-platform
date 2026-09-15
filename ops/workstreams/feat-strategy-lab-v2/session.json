@@ -85,7 +85,6 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -124,12 +123,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6def980311f7c5aef05ffcc13646d9beeae5c5aa",
-  "implementation_sha": "1d934e578cb3a75f37d31ec30b6d551d004452b5",
-  "last_checkpoint": "2026-09-15T21:55:46.745045+00:00",
-  "last_human_progress_update": "2026-09-15T21:52:37.734392+00:00",
+  "head": "82749796ac520a227288e7fa54dfed3a589a3983",
+  "implementation_sha": "82749796ac520a227288e7fa54dfed3a589a3983",
+  "last_checkpoint": "2026-09-15T22:25:00.512213+00:00",
+  "last_human_progress_update": "2026-09-15T22:24:48.155002+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue package-owned local implementation; retry publication only after explicit human authorization of the exact current origin, branch, and commit range.",
+  "next_action": "Define immutable calendar-versioned rebalance policies and deterministic session-based schedule semantics in package-owned paths; continue local work without crossing parallel workstream boundaries.",
   "parent_branch": "staging",
   "plan_hash": "ee98572300e3a0025bac1f87834e8bb68a0720817b5a4080b904d6eb5c7e216a",
   "planning_required": false,
@@ -139,9 +138,9 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "engine-neutral-core",
-    "next_action": "Implement typed timestamped account exposure and fill-cost observations, then add capital-utilization and execution-cost metrics in the owned package paths.",
+    "next_action": "Define immutable calendar-versioned rebalance policies and deterministic session-based schedule semantics in package-owned paths, then continue the remaining engine-neutral metrics gap without crossing parallel workstream boundaries.",
     "total": 18,
-    "updated_at": "2026-09-15T21:52:37.734276+00:00"
+    "updated_at": "2026-09-15T22:24:48.154886+00:00"
   },
   "remote": "d2497f43084d52d3e66b40a91be25dd2678620be",
   "remote_sha": "d2497f43084d52d3e66b40a91be25dd2678620be",
