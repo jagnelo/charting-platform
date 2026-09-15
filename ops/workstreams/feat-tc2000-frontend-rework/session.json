@@ -116,11 +116,11 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "27698c9608f89d480f609df2d716e75eaa34a292",
+  "head": "03bd5b103d84fcd8e03b0ce74ec944abfa711a88",
   "implementation_sha": "763946c956a5d3f9be87fa358c544926de0f56c2",
   "interrupted": false,
-  "last_checkpoint": "2026-09-15T15:47:47.000465+00:00",
-  "last_human_progress_update": "2026-09-15T15:47:04.936999+00:00",
+  "last_checkpoint": "2026-09-15T16:06:43.543578+00:00",
+  "last_human_progress_update": "2026-09-15T16:05:56.961142+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work while provider and ETF changes remain outside local staging; preserve all visual oracles and recheck staging before consumer integration.",
   "plan_hash": "67ab16443085495207320e5010addb54c979e336a554370cc7203da3d6914d74",
@@ -135,11 +135,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Six protected visual diffs remain; provider and ETF tips are not in staging.",
-    "current_phase": "R1_study_lab_occurrence_keyboard_accessibility",
-    "next_action": "Continue independent TC-owned workstation UI and Study/Strategy work; investigate visual mismatches against source evidence without weakening oracles, and recheck staging before consumer integration.",
+    "current_blocker": "Six protected visual diffs remain; upstream provider and ETF changes have not reached staging.",
+    "current_phase": "R1_research_results_occurrence_keyboard_accessibility",
+    "next_action": "Continue independent TC-owned workstation interaction/accessibility and TC-specific Study/Strategy work; preserve all visual oracles, and recheck staging before consumer integration.",
     "total": 9,
-    "updated_at": "2026-09-15T15:47:04.936920+00:00"
+    "updated_at": "2026-09-15T16:05:56.961065+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

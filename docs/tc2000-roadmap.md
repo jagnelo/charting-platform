@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-15
 
+## 2026-09-15 - Research Results occurrence keyboard accessibility
+
+Product checkpoint `03bd5b103d84fcd8e03b0ce74ec944abfa711a88` gives persisted
+Study event and historical-breadth occurrences semantic list-item wrappers
+containing named native buttons. The buttons stop the workstation shortcut
+handler from consuming Space, so mouse, Enter, and Space activate the same
+linked symbol and historical timestamp.
+
+Authenticated headless F8t passed 1/1 against the isolated branch stack,
+covering event-artifact Enter and breadth-history Space navigation and linked
+chart timestamps. The focused Research Results suite passed 39/39; full
+frontend Vitest passed 1,074/1,074; type-check, production build, scope guard
+(24 paths), all six scope self-tests, workstream validation, and diff checks
+passed. Stack teardown and resource accounting found zero retained containers,
+volumes, test sessions, or known bytes. No screenshot baseline, mask,
+threshold, skip, provider/ETF behavior, or acceptance policy changed. The six
+protected visual mismatches and upstream staging boundary remain open; this is
+not an exact-tip integration or four-project visual pass.
+
 ## 2026-09-15 - Study Lab occurrence keyboard accessibility
 
 Product checkpoint `27698c9608f89d480f609df2d716e75eaa34a292` keeps each
@@ -11454,6 +11473,15 @@ activate the linked event without triggering symbol traversal. Authenticated
 F8o passed 1/1, full frontend Vitest passed 1,074/1,074, component coverage
 31/31, `vue-tsc` and the Docker production build passed. Scope validation and
 the 6/6 scope self-tests passed. No visual oracle changed. This does not resolve
+the six protected screenshot diffs or refresh the exact-tip integration gate.
+
+Latest persisted Research Results receipt at product/test tip
+`03bd5b103d84fcd8e03b0ce74ec944abfa711a88`: event and historical-breadth
+occurrences preserve list/listitem semantics and expose named native buttons.
+Headless F8t passed 1/1, including Enter/Space linked symbol and timestamp
+navigation; full frontend Vitest passed 1,074/1,074, component coverage 39/39,
+type-check/build and scope validation passed, and the branch stack was removed
+with zero retained resources. No visual oracle changed. This does not resolve
 the six protected screenshot diffs or refresh the exact-tip integration gate.
 
 ### R2 — Consume the market-data provider platform

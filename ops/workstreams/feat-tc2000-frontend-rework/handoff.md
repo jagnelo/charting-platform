@@ -1,5 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-15 - Research Results occurrence keyboard accessibility
+
+Product commit `03bd5b103d84fcd8e03b0ce74ec944abfa711a88` fixes the persisted
+Research Results occurrence lists. Historical-breadth and structured-event
+rows now remain semantic list items with a named native button inside each;
+button keydown propagation is stopped so Enter and Space use native activation
+instead of the workstation's Space-to-next-symbol shortcut. The empty-state
+message is outside the semantic list.
+
+The authenticated headless F8t flow passed 1/1 against the branch-scoped
+Compose stack. It verified both list/button roles and accessible names, Enter
+on a persisted event and Space on a historical-breadth occurrence, each
+navigating QQQ back to SPY and publishing its distinct timestamp to the linked
+chart. The focused Research Results Vitest suite passed 39/39; full frontend
+Vitest passed 1,074/1,074; `vue-tsc --noEmit`, production build, workstream
+validation, scope guard (24 paths), its self-tests (6/6), and diff checks
+passed. The build reports only the existing large-chunk warning.
+
+The first browser launch was denied by macOS sandbox Mach-port permissions,
+and a subsequent attempt used localhost's default port instead of this
+worktree's allocated port. The authorized headless rerun used the exact runtime
+loopback URL and passed; no Chrome UI, user tab, or interactive browser was
+opened. Teardown removed the branch containers, volumes, network, and four
+generated images. Resource accounting found zero containers, volumes,
+test-container sessions, and known retained bytes. No screenshot baseline,
+mask, threshold, skip, provider/ETF behavior, or acceptance policy changed.
+This remains a focused R1/R6 receipt, not an exact-tip integration or visual
+matrix pass. The six protected visual diffs and the provider/ETF staging
+boundary remain open.
+
+Continue independent TC-owned workstation UI and Study/Strategy work; keep
+provider and ETF responsibilities outside TC until their changes reach
+staging, then consume only through the prescribed workflow.
+
 ## 2026-09-15 - Study Lab occurrence keyboard accessibility
 
 Product commit `27698c9608f89d480f609df2d716e75eaa34a292` restores native
