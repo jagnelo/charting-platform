@@ -12553,7 +12553,7 @@ and authenticated headless Chromium `F8s-market-map-python-output` passed
 `1/1`, verifying immutable version `5102`, returned `slow` series lineage, and
 snapshot save/restore. `git diff --check` passed. The TC scope guard passed for
 `40` changed paths and all six scope self-tests passed. Workstream validation
-and session checkpoint are being refreshed with this receipt.
+passed; its session checkpoint is recorded separately below.
 
 The normal stack helper encountered the stale worktree-named Buildx
 registration; its failure handler stopped the exact TC Compose project. The
@@ -12572,3 +12572,54 @@ TC-owned Study/Strategy/workstation slice. Keep upstream provider and ETF
 integration deferred until both reach staging, preserve all visual oracles,
 and do not retry the previously rejected private-origin push without trusted
 exact-payload authorization.
+
+## Active context: R5 Research Results cross-sectional series promotion
+
+Intent: align persisted Research Results with Study Lab by allowing an
+aggregate chart promotion only when its cross-sectional series payload has
+aligned timestamp/value arrays. Malformed series remain inspectable/exportable
+and receive an explicit capability limitation; no provider/ETF contract or
+visual oracle is in scope.
+
+Owned paths:
+- `frontend/src/components/workstation/ResearchResultsTool.vue`
+- `frontend/tests/unit/components/test_research_results_tool.test.ts`
+- `ops/workstreams/feat-tc2000-frontend-rework/plan.yaml`
+- `ops/workstreams/feat-tc2000-frontend-rework/handoff.md`
+- `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`
+- `ops/workstreams/feat-tc2000-frontend-rework/session.json`
+
+State: complete. Product commit
+`349ffc07cc40d7cfa6dbdfb0e02783fa894744c8`
+(`fix(tc2000): validate aggregate result series before promotion`) applies the
+existing `seriesData()` shape validator to cross-sectional aggregate chart
+promotion. Malformed series remain exportable, have no promotion control, and
+show a view/export-only explanation; the valid aggregate chart path is
+unchanged.
+
+Validation: the focused Research Results component suite passed `40/40`; full
+frontend Vitest passed `1,079/1,079`; type-check passed; production build
+passed with the existing large-chunk warning; authenticated headless Chromium
+`F8t-results` passed `1/1` against the local branch stack. The first browser
+launch was stopped before opening a page by the macOS shell sandbox's
+MachPort permission; the same local-loopback test passed on the elevated
+retry. TC scope validation passed for `40` changed paths and all six
+self-tests; workstream validation and `git diff --check` passed. Scoped
+teardown removed the branch stack and four generated images; resource status
+reports zero containers, volumes, test sessions, known bytes, or unknown
+components. No visual oracle/baseline/mask/threshold/skip, provider/ETF
+behavior, or acceptance policy changed.
+
+Git status: `committed_locally_pending_push`. Product commit
+`349ffc07cc40d7cfa6dbdfb0e02783fa894744c8` is local;
+`origin/feat/tc2000-frontend-rework` remains
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`. The previous exact push
+payload was rejected by the private-origin safeguard, so this new range was
+not pushed or retried without trusted exact-payload authorization. The earlier
+Market Map product/docs/session checkpoint is also local and remains pending
+in that same transport hold.
+
+Next: continue auditing TC-owned R5 Study/Strategy consumers for a distinct
+shape-compatibility or lineage gap. Keep upstream provider/ETF integration
+deferred until both reach staging; preserve all visual oracles and do not
+retry the private-origin push without trusted exact-payload authorization.

@@ -253,21 +253,21 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_market_map_named_python_outputs
+  current_phase: R5_research_results_shape_promotion
   next_action: >-
-    Continue R5's Python compatibility matrix after exposing every active named
-    Boolean/series CodeVersion in Market Map with immutable run/output lineage
-    and save/restore coverage. Audit the remaining TC-owned consumer gaps and
-    select the next independent Study/Strategy/workstation slice. Keep provider
-    and ETF consumer integration deferred until their work reaches staging;
-    then reconcile shared paths semantically and run the exact-tip gate.
+    Continue the R5 compatibility audit for a distinct TC-owned
+    Study/Strategy/workstation shape or lineage gap. Keep provider and ETF
+    integration deferred until both reach staging; then reconcile shared paths
+    semantically and run the exact-tip gate.
   current_blocker: >-
     Integration remains externally gated: remote staging is 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35,
     provider is 73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3, and ETF is
     52814f95bd0ef62968ba1af4018ff9ef5049d3d6; neither dependency is in staging.
-    This blocks consumer integration only. Six protected visual diffs remain;
+    This blocks consumer integration only, not this TC-owned frontend slice.
+    Six protected visual diffs remain;
     pending push is an operational synchronization hold, not a product blocker.
 historical_implementation_records:
+  - "Product commit 349ffc07 validates persisted Research Results cross-sectional series shapes before exposing an aggregate chart plot. Malformed timestamp/value alignment remains view/export-only with an explicit limitation, while valid aggregate series retain the existing lineage-preserving adapter. Focused Research Results coverage passed 40/40; full frontend Vitest 1079/1079; type-check/build and authenticated headless F8t-results passed; scoped Docker cleanup/resource audit, scope/workstream validators, and diff check passed. Six protected visual diffs, exact-tip validation, upstream staging dependencies, and private-origin push authorization remain open."
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 7333b328 adds canonical/placeholder/unresolved/excluded member dispositions to every persisted benchmark-family snapshot while keeping canonical IDs and readiness denominators scoped to resolved security/equity rows. The mixed snapshot workspace integration contract passed 57/57; focused Market Map/accessibility/pop-out frontend coverage passed 66/66; type-check, Ruff, and diff checks passed. The exact gate passed all non-visual stages and functional Playwright 165/272 (107 documented skips); visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1 history/provenance and R2-R7 evidence."
