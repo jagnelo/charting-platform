@@ -89,7 +89,8 @@ function menuItems() {
 function focusMenuItem(index: number) {
   const items = menuItems()
   if (!items.length) return
-  items[Math.max(0, Math.min(index, items.length - 1))]?.focus()
+  const resolvedIndex = index < 0 ? items.length - 1 : Math.min(index, items.length - 1)
+  items[Math.max(0, resolvedIndex)]?.focus()
 }
 
 function setMenuOpen(open: boolean, focusIndex = 0) {

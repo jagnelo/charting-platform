@@ -130,6 +130,18 @@ describe('ToolWindow', () => {
     wrapper.unmount()
   })
 
+  it('opens the menu on the last item when ArrowUp is pressed on its trigger', async () => {
+    const wrapper = mount(ToolWindow, { attachTo: document.body, props: { title: 'Chart' } })
+    const trigger = wrapper.find('[aria-label="Open tool menu"]')
+
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    const items = wrapper.findAll('[role="menuitem"]')
+    expect(items).toHaveLength(3)
+    expect(document.activeElement).toBe(items.at(-1)!.element)
+    wrapper.unmount()
+  })
+
   it('flips the action menu above a bottom-edge trigger and cleans viewport listeners', async () => {
     const addSpy = vi.spyOn(window, 'addEventListener')
     const removeSpy = vi.spyOn(window, 'removeEventListener')

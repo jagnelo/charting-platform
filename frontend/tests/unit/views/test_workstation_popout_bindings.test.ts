@@ -573,6 +573,23 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('opens the recent-symbol menu at its last item when ArrowUp is pressed', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+      attachTo: document.body,
+    })
+    const trigger = wrapper.get('button[aria-label="Recent symbols"]')
+
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    const items = wrapper.findAll('.workstation__recent-symbols [role="menuitem"]')
+    expect(items.length).toBeGreaterThan(1)
+    await vi.waitFor(() => expect(document.activeElement).toBe(items.at(-1)!.element))
+    wrapper.unmount()
+  })
+
   it('supports roving keyboard navigation and activation for workspace tabs', async () => {
     routeState.path = '/'
     routeState.params = {}

@@ -34,7 +34,7 @@
         <button type="button" title="Open Study Lab layout" @click="openStudyLab">Study</button>
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <div class="workstation__help-menu">
-          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" @click="toggleKeyboardHelp" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
+          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
           <div v-if="keyboardHelpOpen" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="menu" aria-label="Keyboard shortcuts" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
             <header><strong>Keyboard shortcuts</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
             <dl>
@@ -77,7 +77,7 @@
           :aria-expanded="recentSymbolsOpen"
           :disabled="!recentStore.recent.length"
           ref="recentSymbolsTrigger"
-          @click.stop="toggleRecentSymbols"
+          @click.stop="toggleRecentSymbols()"
           @keydown="handleShellTriggerKeydown('recent', $event)"
         ><WorkstationGlyph kind="chevron-down" /></button>
         <div v-if="recentSymbolsOpen && recentStore.recent.length" ref="recentSymbolsMenuRoot" class="workstation__recent-symbols" role="menu" aria-label="Recent symbols" :style="recentSymbolsMenuStyle" @click.stop @keydown="handleShellMenuKeydown('recent', $event)">
@@ -139,7 +139,7 @@
       >{{ tab.name }}</button>
       <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
-        <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" @click="toggleToolLibrary" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
+          <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
         <div v-if="toolLibraryOpen" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
           <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
@@ -507,32 +507,32 @@ watch(() => workspaceStore.workspaces?.length ?? 0, () => {
   })
 })
 
-function toggleToolLibrary() {
+function toggleToolLibrary(focusLast = false) {
   const open = !toolLibraryOpen.value
   closeShellMenus(open ? 'tool-library' : undefined)
   toolLibraryOpen.value = open
   if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('tool-library')
+  if (open) void focusShellMenu('tool-library', focusLast ? -1 : 0)
   else toolLibraryTrigger.value?.focus()
   syncShellMenuListeners()
 }
 
-function toggleKeyboardHelp() {
+function toggleKeyboardHelp(focusLast = false) {
   const open = !keyboardHelpOpen.value
   closeShellMenus(open ? 'help' : undefined)
   keyboardHelpOpen.value = open
   if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('help')
+  if (open) void focusShellMenu('help', focusLast ? -1 : 0)
   else keyboardHelpTrigger.value?.focus()
   syncShellMenuListeners()
 }
 
-function toggleRecentSymbols() {
+function toggleRecentSymbols(focusLast = false) {
   const open = !recentSymbolsOpen.value
   closeShellMenus(open ? 'recent' : undefined)
   recentSymbolsOpen.value = open
   if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('recent')
+  if (open) void focusShellMenu('recent', focusLast ? -1 : 0)
   else recentSymbolsTrigger.value?.focus()
   syncShellMenuListeners()
 }
@@ -553,14 +553,17 @@ const shellMenuTriggers: Record<ShellMenuRoot, ReturnType<typeof ref<HTMLButtonE
 function shellMenuItems(menu: ShellMenuRoot) {
   return Array.from(shellMenuRoots[menu].value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
 }
-async function focusShellMenu(menu: ShellMenuRoot) {
+async function focusShellMenu(menu: ShellMenuRoot, focusIndex = 0) {
   await nextTick()
   if (menu === 'workspace') {
     const list = workspaceMenuRoot.value?.querySelector<HTMLElement>('[role="listbox"]')
     list?.focus()
     return
   }
-  shellMenuItems(menu)[0]?.focus()
+  const items = shellMenuItems(menu)
+  if (!items.length) return
+  const index = focusIndex < 0 ? items.length - 1 : Math.min(focusIndex, items.length - 1)
+  items[Math.max(0, index)]?.focus()
 }
 function closeShellMenuToTrigger(menu: ShellMenuRoot) {
   closeShellMenus()
@@ -569,16 +572,17 @@ function closeShellMenuToTrigger(menu: ShellMenuRoot) {
 function handleShellTriggerKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
   event.preventDefault()
+  const focusIndex = event.key === 'ArrowUp' ? -1 : 0
   // Opening a conditional menu during this key event mounts its root before
   // the browser finishes bubbling the original event. Stop that event at the
   // trigger boundary so the newly mounted menu cannot interpret ArrowDown as
   // a request to focus its first action (the workspace listbox owns focus).
   event.stopPropagation()
   if (menu === 'workspace' && !workspaceMenuOpen.value) return toggleWorkspaceMenu()
-  if (menu === 'tool-library' && !toolLibraryOpen.value) return toggleToolLibrary()
-  if (menu === 'help' && !keyboardHelpOpen.value) return toggleKeyboardHelp()
-  if (menu === 'recent' && !recentSymbolsOpen.value) return toggleRecentSymbols()
-  void focusShellMenu(menu)
+  if (menu === 'tool-library' && !toolLibraryOpen.value) return toggleToolLibrary(focusIndex < 0)
+  if (menu === 'help' && !keyboardHelpOpen.value) return toggleKeyboardHelp(focusIndex < 0)
+  if (menu === 'recent' && !recentSymbolsOpen.value) return toggleRecentSymbols(focusIndex < 0)
+  void focusShellMenu(menu, focusIndex)
 }
 function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   if (event.key === 'Escape') {
