@@ -3,7 +3,30 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-14
+Last reconciled: 2026-09-15
+
+## 2026-09-15 - Verified Advent Capital dated holdings
+
+Product commit `e9bb8b476` hardens Advent Capital's issuer-native daily CSV
+route for `ACVT`. Retained rows now require exactly one parseable snapshot date;
+undated, invalid, and mixed-date exports fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`advent_capital_native_daily_holdings_csv` provenance metadata is recorded. The
+direct public export published 60 complete rows dated 2026-09-14.
+
+Focused Advent Capital assertions passed 2/2 including missing/invalid/mixed-
+date regressions; the escalated opt-in live route assertion passed 1/1; and the
+direct public probe returned 60 complete dated rows. Ruff, formatting, and diff
+checks passed. The exact branch-scoped Docker-backed gate passed backend units
+1611/1611, integration 405/405 with 82.20% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, research-runner
+sandbox/resource probes, and functional E2E 165 passed with 107 skipped. Visual
+E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
 
 ## 2026-09-15 - Verified ACP Horizon dated holdings
 

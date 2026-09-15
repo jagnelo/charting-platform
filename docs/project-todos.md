@@ -1,3 +1,24 @@
+## 2026-09-15 - Verified Advent Capital dated holdings
+
+- [x] Harden Advent Capital's issuer-native daily CSV route for `ACVT`; require
+      exactly one parseable snapshot date, fail closed for undated/invalid/mixed-
+      date exports, date-scope row IDs, and record complete native-route
+      provenance/row-count metadata (`e9bb8b476`). The direct public export
+      published 60 complete rows dated 2026-09-14.
+- [x] Focused Advent Capital assertions passed 2/2 including missing/invalid/
+      mixed-date regressions; opt-in live route assertion passed 1/1; direct
+      probe returned 60 complete dated rows. Ruff/format/diff passed. Exact gate
+      passed backend units 1611/1611, integration 405/405 at 82.20% combined
+      coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+      contracts, research-runner probes, and functional E2E 165 passed with
+      107 skipped.
+- [x] Visual E2E passed 98/104; only the six unchanged protected diffs remain.
+      Docker teardown removed all branch-scoped containers, volumes, network,
+      four images, and testcontainer sessions. No provider/fallback, migration,
+      visual baseline, threshold, mask, skip, or acceptance policy changed.
+- [ ] Continue R1 family-wide canonical population/history, D1/W1/MN floors,
+      rebalance continuity, and AC2-AC7/AC10.
+
 ## 2026-09-15 - Verified ACP Horizon dated holdings
 
 - [x] Harden ACP Horizon's issuer-native multi-fund daily CSV route for `HBTA`;
