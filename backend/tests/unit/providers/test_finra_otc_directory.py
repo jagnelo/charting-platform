@@ -42,6 +42,61 @@ def test_finra_otc_directory_parses_status_and_preserves_source(monkeypatch):
     get.assert_called_once()
 
 
+def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
+    response = Mock()
+    response.text = (
+        "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
+        "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n"
+        "2026-09-16|100|200|AAA|123456789|Alpha Corp|Alpha Common|common|A|A|OTCQX|2|Y|12.3456\n"
+        "2026-09-16|101|201|BBB||Beta Corp|Beta Warrant|warrant|B|H|Grey Market|30|N|0.125\n"
+    )
+    response.raise_for_status.return_value = None
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=response),
+    ):
+        page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    assert page["total"] == 2
+    assert page["quotes"][0]["security_id"] == "100"
+    assert page["quotes"][0]["cusip"] == "123456789"
+    assert page["quotes"][0]["status"] == "active"
+    assert page["quotes"][0]["overnight_eligible"] == "Y"
+    assert page["quotes"][1]["status"] == "inactive"
+    assert page["quotes"][1]["financial_status"] == "H"
+
+
+@pytest.mark.parametrize(
+    "row,match",
+    [
+        (
+            "2026-09-16|100|200|AAA|123456789|Alpha Corp|Alpha Common|common|A|A|OTCQX|2|Y|12.3456\n"
+            "2026-09-16|101|201|AAA||Beta Corp|Beta Warrant|warrant|B|H|Grey Market|30|N|0.125\n",
+            "duplicate symbol",
+        ),
+        (
+            "2026-09-16|100|200|AAA|123456789|Alpha Corp|Alpha Common|common|A|X|OTCQX|2|Y|12.3456\n",
+            "unknown security status",
+        ),
+    ],
+)
+def test_finra_otc_directory_rejects_invalid_otc_markets_rows(monkeypatch, row, match):
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
+    response = Mock()
+    response.text = (
+        "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
+        "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n"
+        + row
+    )
+    response.raise_for_status.return_value = None
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=response),
+    ):
+        with pytest.raises(ProviderResponseError, match=match):
+            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+
+
 def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypatch):
     dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)

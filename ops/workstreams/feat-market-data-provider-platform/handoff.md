@@ -3614,3 +3614,10 @@ the authoritative record for this replay; it made zero provider calls.
   entitlement. No SFTP credentials, adapter routing, or live request was
   added; the candidate remains non-routable until delivery access, quota,
   completeness, and redistribution rights are authorized.
+
+- The candidate parser now recognizes the official OTC Markets pipe-delimited
+  security-master shape in addition to the existing FINRA/DAPI and generic
+  mirror shapes. It preserves SecID, CompID, CUSIP, tier, status, reference
+  price, overnight-eligibility, and the raw row; duplicate symbols, unknown
+  status codes, and incomplete rows fail closed. Provider/parser regression
+  coverage passed `266/266`; no provider calls or credentials were used.

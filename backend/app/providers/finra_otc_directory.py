@@ -29,6 +29,7 @@ _PAGE_SIZE = 1000
 _DAPI_PAGE_SIZE = 5000
 _CACHE_TTL_SECONDS = 900
 _cache: tuple[float, list[dict[str, Any]]] | None = None
+_OTC_MARKETS_STATUS_VALUES = {"A", "S", "H", "I", "R"}
 
 
 class FINRAOTCDirectoryProvider:
@@ -232,7 +233,19 @@ def _parse_directory(text: str) -> list[dict[str, Any]]:
     reader = csv.DictReader(io.StringIO(text), delimiter="|", strict=True)
     if not reader.fieldnames:
         raise ProviderResponseError("finra_otc_directory", "legacy directory omitted CSV headers")
-    fields = {str(field).strip().lower() for field in reader.fieldnames if field}
+    fields = {
+        str(field).lstrip("\ufeff").strip().lower()
+        for field in reader.fieldnames
+        if field
+    }
+    if {
+        "date",
+        "secid",
+        "compid",
+        "symbol",
+        "security status",
+    }.issubset(fields):
+        return _parse_otc_markets_security_master(reader)
     required = {"issue_sym_id", "issue_short_nm", "status", "mkt_cat"}
     if not required.issubset(fields):
         raise ProviderResponseError(
@@ -274,6 +287,79 @@ def _parse_directory(text: str) -> list[dict[str, Any]]:
                 "oats_reportable": normalized.get("oats_rptbl_fl") or None,
                 "source_record": normalized,
             }
+        )
+    return result
+
+
+def _parse_otc_markets_security_master(reader: csv.DictReader) -> list[dict[str, Any]]:
+    """Normalize the official OTC Markets pipe-delimited security-master shape.
+
+    The OTC Markets specification defines a complete snapshot rather than a
+    FINRA Daily List delta.  Keep its SecID/CompID/CUSIP and status fields in
+    the raw record, reject malformed rows and duplicate symbols, and never
+    silently collapse a conflicting snapshot.
+    """
+
+    result: list[dict[str, Any]] = []
+    seen_symbols: set[str] = set()
+    for row in reader:
+        if None in row or any(value is None for value in row.values()):
+            raise ProviderResponseError(
+                "finra_otc_directory",
+                "OTC Markets security master returned a malformed pipe-delimited row",
+            )
+        normalized = {
+            str(key).lstrip("\ufeff").strip().lower(): str(value or "").strip()
+            for key, value in row.items()
+            if key
+        }
+        required_values = ("date", "secid", "compid", "symbol", "security status")
+        if any(not normalized.get(field) for field in required_values):
+            raise ProviderResponseError(
+                "finra_otc_directory",
+                "OTC Markets security master returned an incomplete row",
+            )
+        symbol = normalized["symbol"].upper()
+        if symbol in seen_symbols:
+            raise ProviderResponseError(
+                "finra_otc_directory",
+                f"OTC Markets security master returned duplicate symbol {symbol}",
+            )
+        seen_symbols.add(symbol)
+        status_code = normalized["security status"].upper()
+        if status_code not in _OTC_MARKETS_STATUS_VALUES:
+            raise ProviderResponseError(
+                "finra_otc_directory",
+                f"OTC Markets security master returned unknown security status {status_code}",
+            )
+        name = normalized.get("security name") or normalized.get("company name") or symbol
+        result.append(
+            {
+                "symbol": symbol,
+                "longName": name,
+                "shortName": name,
+                "exchange": "OTC",
+                "exchange_mic": "OTC",
+                "currency": "USD",
+                "quoteType": "EQUITY",
+                "instrument_type": "EQUITY",
+                "status": "active" if status_code == "A" else "inactive",
+                "financial_status": status_code,
+                "market_category": normalized.get("otc tier") or "OTC",
+                "otc_tier": normalized.get("otc tier") or None,
+                "otc_tier_id": normalized.get("tier id") or None,
+                "security_id": normalized["secid"],
+                "company_id": normalized["compid"],
+                "cusip": normalized.get("cusip") or None,
+                "as_of_date": normalized["date"],
+                "overnight_eligible": normalized.get("overnight eligible") or None,
+                "reference_price": normalized.get("reference price") or None,
+                "source_record": normalized,
+            }
+        )
+    if not result:
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets security master returned no rows"
         )
     return result
 
