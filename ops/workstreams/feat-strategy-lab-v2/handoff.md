@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Request-correlated API collection checkpoint
+
+The registration-neutral router now passes its generated request identity into
+collection adapters and rejects a collection envelope that returns a different
+identity. This closes a response-lineage gap between the API request and the
+PostgreSQL resource reader, while retaining the existing owner, cursor, and
+snapshot checks. No application registration, authentication dependency,
+migration, worker, or shared provider path was changed.
+
+The focused route/read set passed 13 tests; the complete Strategy Lab v2
+package passed 526 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed. The Docker-backed combined gate passed 2,173
+tests with 83.06% total coverage (required threshold: 75%), including setup
+and cleanup. The change is committed and published; durable submission/command
+adapters, schema migrations, application wiring, worker entrypoints, Compose,
+upstream reconciliation, and stable Nautilus execution remain open.
+
 ## 2026-09-16 - PostgreSQL resource-read adapter checkpoint
 
 `postgres_storage.py` now exposes read-only `get` and deterministic `list_type`
