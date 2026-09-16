@@ -3572,3 +3572,18 @@ the configured MarketData.app account-plan and option-chain controls were
 routable, while provider baselines/cost maps and the remaining legal/source and
 capability gates were still unresolved. The generated exact-source receipt is
 the authoritative record for this replay; it made zero provider calls.
+
+## 2026-09-16 exact-source MarketData.app live subset
+
+- With the owner-managed quota ledger and current `starter_trial` configuration,
+  the bounded MarketData.app subset passed `7/7` against exact source
+  `2f6e7384a57eafa9c284c88880d18f402a2c261e` (9 upstream requests,
+  17,241 response bytes). It covered authenticated read/latest price,
+  intraday history, option expirations/current chain, historical option quote,
+  and account usage. The response-priced unbounded historical-option policy
+  case passed with zero request as designed.
+- The provider receipt is complete and current-source; no other provider was
+  contacted. This is bounded transport/schema/quota-settlement evidence only,
+  not full-matrix acceptance or routing promotion. The trial expiry remains
+  `2026-10-11T18:09:00+01:00`, after which effective capacity falls back to
+  Free Forever/100 credits per day.
