@@ -1843,6 +1843,14 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     eodhd_costs = settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["dimension_costs"]
     assert eodhd_costs["requests_per_minute"]["get_instrument_profile"] == 1
     assert eodhd_costs["calls_per_day"]["get_instrument_profile"] == 10
+    assert (
+        settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"][
+            "fetch_account_usage"
+        ]
+        == 1
+    )
+    assert eodhd_costs["requests_per_minute"]["fetch_account_usage"] == 1
+    assert eodhd_costs["calls_per_day"]["fetch_account_usage"] == 1
 
     eodhd_entitlement = settings.PROVIDER_ENTITLEMENT_SEEDS["eodhd"]
     assert eodhd_entitlement["configured_plan"] == "free-20-day"

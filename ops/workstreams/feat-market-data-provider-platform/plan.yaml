@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    EODHD now has a provider-native `/user` account-usage adapter and live
+    manifest case. It persists the documented daily `apiRequests`/
+    `dailyRateLimit` pool and any matching minute response-header counters;
+    only a current-date daily observation with the reviewed 20-call limit can
+    reconcile the durable daily baseline. The official EODHD sources still
+    conflict on the minute limit (20 versus 1,000), so minute observations
+    remain conservative and the provider still needs an exact active-window
+    baseline before live routing.
+  - >-
     The provider contract audit found that CoinGecko's monthly Demo pool,
     Tiingo's distinct-symbol pool, Marketstack's monthly request pool, and
     FMP's daily/bandwidth pools did not publish exact reset anchors. Their

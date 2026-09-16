@@ -271,6 +271,90 @@ async def test_twelve_data_native_minute_usage_reconciles_exact_coordinator_base
 
 
 @pytest.mark.asyncio
+async def test_eodhd_native_daily_usage_reconciles_exact_coordinator_baseline(
+    db, monkeypatch, tmp_path
+):
+    source = DataSource(name="eodhd", base_url="https://eodhd.com/api")
+    db.add(source)
+    db.flush()
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    reset_at = datetime(
+        observed_at.year,
+        observed_at.month,
+        observed_at.day,
+        tzinfo=UTC,
+    ) + timedelta(days=1)
+    execution = SimpleNamespace(
+        provider_name="eodhd",
+        data_source=source,
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "calls_per_day",
+                        "limit": 20,
+                        "window_seconds": 86400,
+                        "unit": "calls",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                    }
+                ],
+                "reset": "calendar_day_gmt",
+            },
+            quota_scope="api_key",
+        ),
+        result=ProviderAccountUsage(
+            provider="eodhd",
+            observed_at=observed_at,
+            unit="calls",
+            account_plan="monthly",
+            dimensions=(
+                ProviderAccountUsageDimension(
+                    name="calls_per_day",
+                    unit="calls",
+                    limit=20,
+                    remaining=13,
+                    consumed=7,
+                    reset_at=reset_at,
+                ),
+                ProviderAccountUsageDimension(
+                    name="requests_per_minute",
+                    unit="requests",
+                    limit=20,
+                    remaining=19,
+                    consumed=1,
+                    reset_at=None,
+                ),
+            ),
+        ),
+    )
+
+    async def fake_chain(*args, **kwargs):
+        return [SimpleNamespace(provider_name="eodhd")]
+
+    async def fake_execute(*args, **kwargs):
+        return execution
+
+    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "quota.sqlite3"),
+    )
+
+    result = await provider_account_usage.refresh_provider_account_usage(
+        AsyncSessionAdapter(db), provider_name="eodhd"
+    )
+
+    assert result["baseline_reconciliations"][0]["dimension"] == "calls_per_day"
+    assert result["baseline_reconciliations"][0]["used_units"] == 7
+    assert result["baseline_reconciliations"][0]["source"] == (
+        "provider_account_observation"
+    )
+
+
+@pytest.mark.asyncio
 async def test_native_usage_does_not_seed_baseline_when_limit_does_not_match_reviewed_contract(
     db, monkeypatch, tmp_path
 ):

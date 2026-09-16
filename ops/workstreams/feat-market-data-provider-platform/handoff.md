@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD account-usage integration checkpoint
+
+- Added the documented EODHD `/user` account-usage adapter. It retains the
+  daily `apiRequests`/`dailyRateLimit` counters as a named `calls_per_day`
+  dimension, records matching `X-RateLimit-Limit`/`Remaining` headers as a
+  separate minute dimension when present, and never invents a reset timestamp
+  for a stale reported usage date.
+- Native daily baseline reconciliation is allow-listed only when the returned
+  date is the current UTC date, the next-midnight-GMT reset is explicit, and
+  the limit matches the reviewed contract. The unresolved official 20 versus
+  1,000 requests/minute conflict remains conservative and fail-closed.
+- Focused adapter, account-usage, quota-contract, live-manifest, secret-wiring,
+  and runner checks passed (`196` tests total); Ruff and diff checks pass. The
+  new live case is manifest-covered but was not executed because the current
+  EODHD account baseline remains unavailable. No frontend, ETF adapter,
+  deployment, or routing activation changed.
+
 ## 2026-09-16 exact-source MarketData.app live checkpoint
 
 - The bounded credentialed MarketData.app matrix was rerun at commit

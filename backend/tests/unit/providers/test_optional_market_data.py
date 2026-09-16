@@ -639,6 +639,70 @@ def test_eodhd_uses_documented_weekly_and_monthly_periods(timeframe, period):
     assert get.call_args.kwargs["params"]["period"] == period
 
 
+def test_eodhd_fetches_documented_daily_usage_and_current_reset_boundary():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "subscriptionType": "monthly",
+            "apiRequests": 7,
+            "apiRequestsDate": datetime.now(UTC).date().isoformat(),
+            "dailyRateLimit": 20,
+        }
+    )
+    response.status_code = 200
+    response.headers = {
+        "X-RateLimit-Limit": "20",
+        "X-RateLimit-Remaining": "19",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "eodhd"
+    assert usage.account_plan == "monthly"
+    assert usage.limit == 20
+    assert usage.consumed == 7
+    assert usage.remaining == 13
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert dimensions["calls_per_day"].reset_at is not None
+    assert dimensions["calls_per_day"].reset_at > usage.observed_at
+    assert dimensions["requests_per_minute"].limit == 20
+    assert dimensions["requests_per_minute"].consumed == 1
+    assert dimensions["requests_per_minute"].reset_at is None
+    assert get.call_args.args[0] == "https://eodhd.com/api/user"
+    assert get.call_args.kwargs["params"] == {"api_token": "demo"}
+
+
+def test_eodhd_stale_usage_date_does_not_invent_current_reset_boundary():
+    provider = EODHDProvider()
+    response = _response(
+        {
+            "apiRequests": 7,
+            "apiRequestsDate": (datetime.now(UTC) - timedelta(days=1)).date().isoformat(),
+            "dailyRateLimit": 20,
+        }
+    )
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.EODHD_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.dimensions[0].name == "calls_per_day"
+    assert usage.dimensions[0].reset_at is None
+
+
 def test_eodhd_fundamentals_uses_documented_v11_endpoint():
     provider = EODHDProvider()
     payload = {

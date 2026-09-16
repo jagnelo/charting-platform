@@ -113,6 +113,7 @@ def _account_integer(
     body_keys: tuple[str, ...],
     header_keys: tuple[str, ...],
     field: str,
+    provider_name: str = "marketdata_app",
 ) -> int | None:
     """Read one provider-declared account counter without coercive defaults."""
 
@@ -134,7 +135,7 @@ def _account_integer(
         return None
     if isinstance(raw, bool):
         raise ProviderResponseError(
-            "marketdata_app", f"provider returned an invalid account {field}"
+            provider_name, f"provider returned an invalid account {field}"
         )
     if isinstance(raw, int):
         value = raw
@@ -142,11 +143,11 @@ def _account_integer(
         value = int(raw.strip())
     else:
         raise ProviderResponseError(
-            "marketdata_app", f"provider returned an invalid account {field}"
+            provider_name, f"provider returned an invalid account {field}"
         )
-    if value < 0 and field in {"limit", "consumed"}:
+    if value < 0:
         raise ProviderResponseError(
-            "marketdata_app", f"provider returned an invalid account {field}"
+            provider_name, f"provider returned an invalid account {field}"
         )
     return value
 
@@ -2369,6 +2370,126 @@ class EODHDProvider(_RESTProvider):
         Timeframe.W1: "w",
         Timeframe.MN: "m",
     }
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None:
+        """Read EODHD's documented daily API-call usage snapshot.
+
+        The User API reports the number of calls on the latest active usage
+        date and the account's daily call limit.  EODHD documents that this
+        daily counter resets at midnight GMT, but may continue displaying the
+        previous active date until a request after midnight; therefore a
+        reset timestamp is exposed only when the returned date is the current
+        UTC date.  The separate minute request headers are retained as a
+        provider-native observation when both counters are present, without
+        inferring a reset timestamp from the header alone.
+        """
+
+        payload, headers = self._get_with_headers("user")
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "provider returned an invalid user usage object")
+
+        used = _account_integer(
+            payload,
+            headers,
+            body_keys=("apiRequests",),
+            header_keys=(),
+            field="calls",
+            provider_name=self.name,
+        )
+        daily_limit = _account_integer(
+            payload,
+            headers,
+            body_keys=("dailyRateLimit",),
+            header_keys=(),
+            field="daily limit",
+            provider_name=self.name,
+        )
+        usage_date_raw = payload.get("apiRequestsDate")
+        if not isinstance(usage_date_raw, str) or not usage_date_raw.strip():
+            raise ProviderResponseError(
+                self.name, "provider omitted the documented apiRequestsDate field"
+            )
+        try:
+            usage_date = date.fromisoformat(usage_date_raw.strip()[:10])
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid apiRequestsDate field"
+            ) from exc
+        if used is None or daily_limit is None or daily_limit <= 0 or used > daily_limit:
+            raise ProviderResponseError(
+                self.name, "provider returned invalid daily account-usage counters"
+            )
+
+        observed_at = datetime.now(UTC)
+        reset_at: datetime | None = None
+        if usage_date == observed_at.date():
+            next_day = usage_date + timedelta(days=1)
+            reset_at = datetime(next_day.year, next_day.month, next_day.day, tzinfo=UTC)
+
+        dimensions = [
+            ProviderAccountUsageDimension(
+                name="calls_per_day",
+                unit="calls",
+                limit=daily_limit,
+                remaining=daily_limit - used,
+                consumed=used,
+                reset_at=reset_at,
+            )
+        ]
+        minute_limit = _account_integer(
+            {},
+            headers,
+            body_keys=(),
+            header_keys=("x-ratelimit-limit",),
+            field="minute limit",
+            provider_name=self.name,
+        )
+        minute_remaining = _account_integer(
+            {},
+            headers,
+            body_keys=(),
+            header_keys=("x-ratelimit-remaining",),
+            field="minute remaining",
+            provider_name=self.name,
+        )
+        if minute_limit is not None or minute_remaining is not None:
+            if (
+                minute_limit is None
+                or minute_remaining is None
+                or minute_limit <= 0
+                or minute_remaining > minute_limit
+            ):
+                raise ProviderResponseError(
+                    self.name, "provider returned incomplete minute rate-limit headers"
+                )
+            dimensions.append(
+                ProviderAccountUsageDimension(
+                    name="requests_per_minute",
+                    unit="requests",
+                    limit=minute_limit,
+                    remaining=minute_remaining,
+                    consumed=minute_limit - minute_remaining,
+                )
+            )
+
+        subscription_type = payload.get("subscriptionType")
+        if subscription_type is not None and not isinstance(subscription_type, str):
+            raise ProviderResponseError(self.name, "provider returned an invalid subscriptionType")
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="calls",
+            limit=daily_limit,
+            remaining=daily_limit - used,
+            consumed=used,
+            reset_at=reset_at,
+            account_plan=(
+                subscription_type.strip()
+                if isinstance(subscription_type, str) and subscription_type.strip()
+                else None
+            ),
+            dimensions=tuple(dimensions),
+        )
 
     def fetch_ohlcv(
         self,

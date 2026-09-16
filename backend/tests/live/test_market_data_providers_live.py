@@ -1014,6 +1014,29 @@ def test_twelve_data_credentialed_account_usage_snapshot():
     assert minute.reset_at is not None and minute.reset_at.tzinfo is not None
 
 
+def test_eodhd_credentialed_account_usage_snapshot():
+    """Exercise EODHD's documented daily-call usage endpoint."""
+
+    _require("EODHD_API_KEY")
+    usage, measurement = _observed_read(
+        lambda: EODHDProvider().fetch_account_usage(),
+        "eodhd",
+        "fetch_account_usage",
+    )
+    assert usage is not None
+    assert usage.provider == "eodhd"
+    assert usage.account_plan
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert "calls_per_day" in dimensions
+    daily = dimensions["calls_per_day"]
+    assert daily.limit is not None and daily.limit > 0
+    assert daily.remaining is not None and daily.remaining >= 0
+    assert daily.consumed is not None and daily.consumed >= 0
+    if daily.reset_at is not None:
+        assert daily.reset_at.tzinfo is not None
+
+
 def test_eodhd_free_plan_profile_entitlement_is_explicit():
     """The configured free EODHD key is EOD-only; do not treat 403 as no data."""
 

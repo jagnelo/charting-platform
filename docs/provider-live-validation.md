@@ -572,6 +572,15 @@ every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
 `FMP_OPERATION_BYTE_BOUNDS` JSON maps. When complete maps are present, the
 runtime reserves the documented bandwidth pool before execution and settles it
 to measured response bytes; incomplete or invalid maps remain fail-closed.
+EODHD now exposes its documented `/user` account snapshot as two named
+observations when available: the daily `apiRequests`/`dailyRateLimit` pool and
+the response-header minute request pool. The daily observation is eligible to
+seed the durable `calls_per_day` baseline only when the returned
+`apiRequestsDate` is the current UTC date and the reset is the next midnight
+GMT; a stale date or a mismatched reviewed limit remains observation-only. The
+official EODHD sources still conflict between 20 and 1,000 requests/minute,
+so the branch continues enforcing the conservative reviewed 20/minute policy
+until that conflict is resolved.
 Per-dimension operation maps follow the same fail-closed rule: an explicitly
 empty map is a reviewed zero-cost exclusion for that dimension (for example, a
 synchronous FINRA read against the separate asynchronous-dataset pool), while

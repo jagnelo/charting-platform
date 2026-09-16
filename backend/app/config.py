@@ -1244,6 +1244,10 @@ class Settings(BaseSettings):
                 "bulk_fetch": 1,
                 "get_instrument_profile": 10,
                 "discover_universe_page": 1,
+                # The documented /user endpoint itself consumes one API call
+                # and one request. Keep it explicitly metered; its response
+                # may then reconcile the current daily baseline.
+                "fetch_account_usage": 1,
             },
             # EODHD's endpoint rate limit is measured in HTTP requests, while
             # Fundamentals endpoints consume provider-call credits. Keep the
@@ -1257,6 +1261,7 @@ class Settings(BaseSettings):
                     "bulk_fetch": 1,
                     "get_instrument_profile": 1,
                     "discover_universe_page": 1,
+                    "fetch_account_usage": 1,
                 },
                 "calls_per_day": {
                     "fetch_ohlcv": 1,
@@ -1265,6 +1270,7 @@ class Settings(BaseSettings):
                     "bulk_fetch": 1,
                     "get_instrument_profile": 10,
                     "discover_universe_page": 1,
+                    "fetch_account_usage": 1,
                 },
             },
         },

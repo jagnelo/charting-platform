@@ -214,6 +214,10 @@ LIVE_PROVIDER_CASES = {
         ),
         (
             "test_market_data_providers_live.py",
+            "test_eodhd_credentialed_account_usage_snapshot",
+        ),
+        (
+            "test_market_data_providers_live.py",
             "test_eodhd_free_plan_profile_entitlement_is_explicit",
         ),
     ),
@@ -394,6 +398,7 @@ LIVE_REQUIRED_OPERATIONS = {
         "get_instrument_profile",
         "get_current_price",
         "discover_universe_page",
+        "fetch_account_usage",
     },
     "fmp": {"fetch_ohlcv", "get_instrument_profile", "fetch_market_events"},
     "tradier": {"fetch_ohlcv", "list_option_expirations", "fetch_option_chain"},

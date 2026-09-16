@@ -27,6 +27,12 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 # counters use different windows, units, or endpoint pools.
 _NATIVE_BASELINE_DIMENSIONS: dict[str, tuple[str, str]] = {
     "marketdata_app": ("credits_per_day", ProviderCapability.ACCOUNT_USAGE.value),
+    # EODHD's documented /user endpoint reports the current daily-call
+    # counter and the account's daily limit.  Its midnight-GMT boundary is
+    # accepted only when the response identifies the current UTC usage date;
+    # minute-rate observations remain observation-only while the provider's
+    # official sources disagree on the exact plan limit.
+    "eodhd": ("calls_per_day", ProviderCapability.ACCOUNT_USAGE.value),
     # Twelve Data's /api_usage response exposes the current minute pool via
     # provider-native used/left headers.  Reconcile only that exact reviewed
     # dimension; the separate daily pool remains an observation until Twelve
