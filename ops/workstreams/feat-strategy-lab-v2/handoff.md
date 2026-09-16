@@ -219,6 +219,67 @@ This operational checkpoint updates only the following branch-owned records:
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
 
+## Active changeset - Trial seed-sharing and replicate provenance
+
+This next implementation context owns only
+`backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/experiments.py`,
+`backend/app/strategy_lab_v2/tests/test_core.py`, and
+`docs/strategy-lab-v2.md`. Preserve the existing per-candidate seed output as
+the default, and add an explicit shared-seed-per-scenario-and-replicate policy
+plus typed trial randomization provenance (master seed, effective seed,
+replicate index, seed-group fingerprint, derivation version). This is a seed
+assignment contract only: equal initial seeds do not prove event-level paired
+randomness or statistical comparability when an engine consumes sequential or
+otherwise unkeyed random streams. One-factor paired sensitivity, engine RNG
+attestation, API/persistence, workers, and runtime integration remain deferred.
+Keep provider, ETF, TC2000, shared runtime, migration, route, Compose, and
+frontend ownership unchanged.
+
+Compatibility review: preserve the old `ScientificTrial.trial_id` for the
+default per-candidate, single-replicate, unscoped schedule. Its typed assignment
+retains master/effective seed, seed-group fingerprint, and derivation version,
+but excludes the legacy schedule metadata from trial identity. Explicit shared,
+scoped, or replicated schedules bind the group provenance and replicate count
+into trial identity. The regression compares builder output with the prior
+explicit-effective-seed construction. A subsequent independent review also
+found that callers could pair a valid digest with the wrong effective seed; the
+contract now checks derived seeds against supported versioned digests and
+rejects unknown derivation versions. Explicit-seed records are separately
+validated and cannot claim generated schedule provenance.
+
+The implementation is committed locally as
+`6ec5074e696a4333dd9fe5b59ec0f693fb0477f9`. It preserves legacy default seed
+values and trial IDs, adds deterministic shared-per-scenario/replicate seed
+assignments, carries replicate count and seed-group provenance, validates the
+effective seed against the supported digest version, and rejects unsupported or
+inconsistent assignments. Equal initial seeds still do not claim paired draws.
+
+Exact focused validation passed: 60 package tests, Ruff, MyPy (18 source files),
+`git diff --check`, and `make branch-validate` (30 workstream records).
+Independent review found no remaining P0-P2 issue. This is package-level
+evidence only; the full-stack/DB/Redis/API/worker/Compose/Nautilus completion
+gates remain outstanding.
+
+Publication state is `committed_locally_pending_push`. At the implementation
+commit boundary, `HEAD` is `6ec5074e696a4333dd9fe5b59ec0f693fb0477f9` and
+`origin/feat/strategy-lab-v2` is
+`d2497f43084d52d3e66b40a91be25dd2678620be`; the exact range is
+`d2497f43084d52d3e66b40a91be25dd2678620be..6ec5074e696a4333dd9fe5b59ec0f693fb0477f9`.
+No push of this range was attempted because exact-payload authorization for the
+private origin is unavailable. Do not use an alternate transport. Exact next
+action: finish this separate operational checkpoint, then continue with an
+engine-neutral sensitivity result model that distinguishes independent,
+shared-seed-only, and genuinely paired evidence; keyed-stream eligibility stays
+deferred to engine conformance.
+
+The soft-stop `agent-session-checkpoint` completed under the existing session
+claim. Its `dirty_paths` capture dropped the leading `b` from the first modified
+path (`backend/...` appeared as `ackend/...`), because the helper strips leading
+status whitespace before removing the porcelain prefix. Raw `git status` confirms
+the correct path. I corrected only this workstream's `session.json`; the helper
+implementation is outside this branch's owned scope and was not changed.
+
 ## 2026-09-15 - Calendar-period equity metrics checkpoint
 
 The next engine-neutral slice is committed locally as
