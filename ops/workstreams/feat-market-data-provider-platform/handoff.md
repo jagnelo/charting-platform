@@ -3778,3 +3778,9 @@ the authoritative record for this replay; it made zero provider calls.
   unresolved capability live dispositions. The redacted receipt is committed
   in `validation.jsonl`; this run made zero provider requests and does not
   claim a partial full-matrix pass.
+- After the current-source MarketData.app replay, the durable coordinator
+  reports `289` locally settled trial credits and `9,711` remaining from the
+  configured `10,000` daily limit. The native observation remains the same
+  provider snapshot; these additional units are local reservations settled by
+  the live tests and are intentionally not treated as a global provider-account
+  total for uncoordinated clients.
