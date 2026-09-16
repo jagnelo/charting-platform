@@ -132,6 +132,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   snapshots bind opaque valuation evidence which the future adapter must verify;
   futures, options, FX, crypto, and other models are not currently supported.
   This pure module does not create or route engine orders.
+- `order_routing.py` converts explicit `OrderIntent` quantities into
+  digest-bound, adapter-supplied cash-equity base-notional estimates, validates
+  lot/tick/currency/model evidence, and applies the same all-or-nothing shared
+  risk gate before exposing an engine-neutral routed order. Estimates are not
+  fills and no order is submitted; futures, options, FX, crypto, and other
+  unregistered product models remain fail-closed.
 - `rebalance.py` validates complete local-date calendar coverage with explicit
   trading/closed days, official trading-date labels, UTC session segments,
   timezone and tzdb versions, and source evidence. It deterministically schedules

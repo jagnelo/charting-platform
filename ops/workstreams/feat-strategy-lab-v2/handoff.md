@@ -2198,3 +2198,24 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Cash-equity order sizing and routing checkpoint
+
+`order_routing.py` now accepts explicit `OrderIntent` values only after an
+adapter supplies digest-bound instrument economics. It validates base/quote
+currency, lot and tick alignment, minimum quantity, supported product risk
+model, snapshot/economics identity, and declared component scope, then computes
+an auditable estimated signed base notional. The pre-order exposure is combined
+with all order deltas and passed through the shared all-or-nothing gross, net,
+concentration, leverage, open-instrument, and short-position gate. A risk
+breach withholds every routed order; approved values remain engine-neutral
+estimates and never imply a fill or submit an order. Only the registered
+cash-equity market-value model is supported; futures, options, FX, crypto, and
+other product models remain explicitly rejected pending their own semantics.
+
+The exact implementation tree passed all 451 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.
