@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-17 — Exact-source OpenFIGI anonymous matrix
+
+- [x] After an initial anonymous HTTP 429 was preserved as a typed rate-limit
+      failure, one provider-window delay was observed and exactly one retry was
+      made. At source `a76955954`, the native usage bootstrap passed `1/1`,
+      followed immediately by the bounded OpenFIGI matrix passing `3/3` with
+      three upstream requests and `87,895` response bytes.
+- [ ] This proves anonymous-mode mapping/profile transport and native-header
+      accounting only; keyed-mode limits remain unproven because no OpenFIGI
+      key is configured.
+
 ### 2026-09-17 — Binance fixed-window live-ordering correction
 
 - [x] Retain the first Binance replay's genuine reset-boundary admission

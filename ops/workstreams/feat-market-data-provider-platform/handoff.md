@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Exact-source OpenFIGI anonymous matrix
+
+- The first current-source OpenFIGI native-usage attempt returned HTTP 429 and
+  was retained as a typed provider-rate-limit failure with aggregate `429`
+  telemetry; no retry loop or guessed reset was used.
+- After one provider-window delay, exactly one retry was made at source
+  `a76955954f0cf84dc87f0d37a447faf3ae200d7f`. The native usage bootstrap
+  passed `1/1`, then the anonymous bounded mapping/profile/account matrix
+  passed `3/3` with three requests and 87,895 response bytes.
+- This is anonymous-mode transport/header evidence only. Keyed-mode limits
+  remain unproven because no OpenFIGI key is configured; receipts contain no
+  credentials or payloads.
+
 ## 2026-09-17 Current-source Twelve Data and EODHD usage snapshots
 
 - The exact committed source `6047a59858e34b41122c511f30987f6b27fee64d`

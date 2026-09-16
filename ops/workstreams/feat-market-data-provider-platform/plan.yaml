@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current-source OpenFIGI anonymous validation: the first
+      account-usage attempt returned a typed HTTP 429 and was not retried in a
+      loop. After one provider-window delay, the native usage bootstrap passed
+      `1/1`, followed immediately by the bounded anonymous mapping/profile/
+      account matrix passing `3/3` at source `a76955954` with three requests
+      and 87,895 response bytes. Keyed-mode limits remain unproven because no
+      OpenFIGI key is configured; no reset was inferred from the 429.
+    - >-
       2026-09-17 Binance fixed-window live-ordering correction: the first
       replay exposed a genuine reset-boundary race and was retained as a
       failed receipt. Commit `f9172617a` now orders native account-usage
