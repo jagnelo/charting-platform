@@ -1790,3 +1790,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic Redis dispatch transport checkpoint
+
+`redis_transport.py` adds the transport-side Redis Streams adapter for dispatch
+envelopes. A Lua compare-and-set script binds each idempotency key to the exact
+envelope content and appends one stream entry atomically; retries replay,
+changed content conflicts, and failed stream writes roll back their marker.
+Redis carries transport evidence only—the authoritative outbox and aggregate
+state remain PostgreSQL adapter responsibilities.
+
+The exact implementation tree passed all 372 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
