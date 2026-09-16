@@ -3470,4 +3470,17 @@ progress:
       formatting sweep was applied. The exact staged-source live matrix and
       all owner-controlled provider, legal, universe, secret-store, deferred
       provider, and shadow gates remain open.
+    - >-
+      2026-09-16 current-tree validation and replacement Dinari Sandbox canary:
+      the authoritative backend unit gate passed 2,358/2,358 with 70.78%
+      coverage and 37 warnings; `make branch-validate` validated 30 workstream
+      records. The explicit Dinari Sandbox canary passed 1/1 with 14 bounded
+      upstream requests and 180,169 response bytes using a transient local
+      20-request cap. No payload or authorization control entered Git. This
+      updates transport evidence for the replacement Sandbox pair only; Dinari
+      numeric quota/reset, commercial/redistribution rights, provider baselines,
+      target secret stores, complete NMS/OTC reconciliation, deferred-provider
+      decisions, exact-current-SHA full live evidence, and final shadow gates
+      remain open. Local Docker-backed session preflight remains blocked by the
+      host Docker socket permission boundary.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
