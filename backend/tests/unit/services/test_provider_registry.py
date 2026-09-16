@@ -312,6 +312,10 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_SERIES_RIGHTS_EVIDENCE", {})
         monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "")
         monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "")
+        monkeypatch.setattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "")
+        monkeypatch.setattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "")
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", False)
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
@@ -471,6 +475,18 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("alpha_vantage") == [
             "ALPHA_VANTAGE_REVIEWED_RESET",
             "ALPHA_VANTAGE_QUOTA_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("finnhub") == (
+            "FINNHUB_REVIEWED_MINUTE_RESET",
+            "FINNHUB_REVIEWED_SECOND_RESET",
+            "FINNHUB_MINUTE_QUOTA_EVIDENCE",
+            "FINNHUB_SECOND_QUOTA_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("finnhub") == [
+            "FINNHUB_REVIEWED_MINUTE_RESET",
+            "FINNHUB_REVIEWED_SECOND_RESET",
+            "FINNHUB_MINUTE_QUOTA_EVIDENCE",
+            "FINNHUB_SECOND_QUOTA_EVIDENCE",
         ]
         assert provider_routing_control_settings("coinbase") == (
             "COINBASE_MARKET_DATA_USE_AUTHORIZED",
@@ -711,6 +727,17 @@ class TestProviderRegistry:
         assert alpha_seed["quota_contract"]["reset"] == "calendar_day_utc"
         assert alpha_seed["quota_contract"]["unknown_dimensions"] == []
         assert alpha_seed["quota_contract"]["dimensions"][0]["reset"] == "calendar_day_utc"
+        monkeypatch.setattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "fixed_minute")
+        monkeypatch.setattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "rolling")
+        monkeypatch.setattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "minute review")
+        monkeypatch.setattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "second review")
+        assert provider_missing_routing_controls("finnhub") == []
+        finnhub_seed = provider_rate_limit_seed("finnhub")
+        assert finnhub_seed["quota_contract"]["reset"] == "per_dimension"
+        assert finnhub_seed["quota_contract"]["unknown_dimensions"] == []
+        assert {
+            dimension["reset"] for dimension in finnhub_seed["quota_contract"]["dimensions"]
+        } == {"fixed_minute", "rolling"}
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", True)
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
         monkeypatch.setattr(

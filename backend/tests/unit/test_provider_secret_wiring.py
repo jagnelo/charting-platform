@@ -90,6 +90,10 @@ PROVIDER_SAFETY_SETTINGS = {
     "FINRA_OTC_POLL_INTERVAL_SECONDS",
     "ALPHA_VANTAGE_REVIEWED_RESET",
     "ALPHA_VANTAGE_QUOTA_EVIDENCE",
+    "FINNHUB_REVIEWED_MINUTE_RESET",
+    "FINNHUB_REVIEWED_SECOND_RESET",
+    "FINNHUB_MINUTE_QUOTA_EVIDENCE",
+    "FINNHUB_SECOND_QUOTA_EVIDENCE",
     "FRED_REVIEWED_LIMIT_SCOPE",
     "FRED_REVIEWED_REQUESTS_PER_MINUTE",
     "FRED_REVIEWED_QUOTA_EVIDENCE",
@@ -417,6 +421,22 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         in workflow
     )
     assert (
+        "FINNHUB_REVIEWED_MINUTE_RESET: ${{ vars.FINNHUB_REVIEWED_MINUTE_RESET || '' }}"
+        in workflow
+    )
+    assert (
+        "FINNHUB_REVIEWED_SECOND_RESET: ${{ vars.FINNHUB_REVIEWED_SECOND_RESET || '' }}"
+        in workflow
+    )
+    assert (
+        "FINNHUB_MINUTE_QUOTA_EVIDENCE: ${{ vars.FINNHUB_MINUTE_QUOTA_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert (
+        "FINNHUB_SECOND_QUOTA_EVIDENCE: ${{ vars.FINNHUB_SECOND_QUOTA_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert (
         "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}"
         in workflow
     )
@@ -526,6 +546,10 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "ALPHA_VANTAGE_REVIEWED_RESET=" in example
     assert "ALPHA_VANTAGE_QUOTA_EVIDENCE=" in example
+    assert "FINNHUB_REVIEWED_MINUTE_RESET=" in example
+    assert "FINNHUB_REVIEWED_SECOND_RESET=" in example
+    assert "FINNHUB_MINUTE_QUOTA_EVIDENCE=" in example
+    assert "FINNHUB_SECOND_QUOTA_EVIDENCE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
     assert "FRED_PERSISTED_STORAGE_AUTHORIZED=false" in example
@@ -617,6 +641,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setenv("ALPHA_VANTAGE_REVIEWED_RESET", "")
     monkeypatch.setenv("ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("FINNHUB_REVIEWED_MINUTE_RESET", "")
+    monkeypatch.setenv("FINNHUB_REVIEWED_SECOND_RESET", "")
+    monkeypatch.setenv("FINNHUB_MINUTE_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("FINNHUB_SECOND_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
@@ -656,6 +684,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["alpha_vantage"].startswith("non-routable:")
+    assert statuses["finnhub"].startswith("non-routable:")
     assert statuses["coinbase market-data use"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("routable:")
     assert statuses["dinari sandbox canary quota"].startswith("non-routable:")

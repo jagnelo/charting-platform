@@ -2063,6 +2063,13 @@ class Settings(BaseSettings):
     FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
     TWELVE_DATA_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
+    # Finnhub publishes independent minute and second request ceilings. Keep
+    # each reset boundary separately fail-closed until its current semantics
+    # are reviewed; never collapse the two pools into one generic window.
+    FINNHUB_REVIEWED_MINUTE_RESET: str = ""
+    FINNHUB_REVIEWED_SECOND_RESET: str = ""
+    FINNHUB_MINUTE_QUOTA_EVIDENCE: str = ""
+    FINNHUB_SECOND_QUOTA_EVIDENCE: str = ""
     MARKETSTACK_API_KEY: str = ""
     # Marketstack ticker discovery is venue-scoped. Do not silently default
     # to one exchange or claim a whole-US universe without operator scope.
@@ -2969,6 +2976,50 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             seed["quota_scope"] = "api_key"
             seed["quota_source"] = (
                 "Alpha Vantage support allowance plus operator-reviewed reset evidence"
+            )
+        return seed
+    if provider_name == "finnhub":
+        # Finnhub's free account exposes separate minute and second request
+        # ceilings. Promote the seed only when both dimensions have explicit,
+        # calculable reset labels and independent evidence. The provider's
+        # unresolved combined label remains visible in the default contract;
+        # no rolling/fixed interpretation is invented here.
+        minute_reset = str(
+            getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or ""
+        ).strip()
+        second_reset = str(
+            getattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "") or ""
+        ).strip()
+        minute_evidence = str(
+            getattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        second_evidence = str(
+            getattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            provider_quota_reset_is_admission_safe(minute_reset)
+            and provider_quota_reset_is_admission_safe(second_reset)
+            and minute_evidence
+            and second_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = "per_dimension"
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if not isinstance(dimension, dict):
+                    continue
+                if dimension.get("name") == "calls_per_minute":
+                    dimension["reset"] = minute_reset
+                elif dimension.get("name") == "hard_calls_per_second":
+                    dimension["reset"] = second_reset
+            contract["source"] = (
+                f"{contract.get('source', 'Finnhub API documentation')} plus "
+                "independent operator-reviewed minute/second reset evidence"
+            )
+            seed["quota_scope"] = "api_key"
+            seed["quota_source"] = (
+                "Finnhub account limits plus independent operator-reviewed reset evidence"
             )
         return seed
     if provider_name == "fred":

@@ -1455,6 +1455,26 @@ def routing_safety_preflight() -> dict[str, str]:
         + ", ".join(alpha_missing)
     )
 
+    finnhub_minute_reset = os.getenv("FINNHUB_REVIEWED_MINUTE_RESET", "").strip()
+    finnhub_second_reset = os.getenv("FINNHUB_REVIEWED_SECOND_RESET", "").strip()
+    finnhub_minute_evidence = os.getenv("FINNHUB_MINUTE_QUOTA_EVIDENCE", "").strip()
+    finnhub_second_evidence = os.getenv("FINNHUB_SECOND_QUOTA_EVIDENCE", "").strip()
+    finnhub_missing: list[str] = []
+    if not provider_quota_reset_is_admission_safe(finnhub_minute_reset):
+        finnhub_missing.append("FINNHUB_REVIEWED_MINUTE_RESET")
+    if not provider_quota_reset_is_admission_safe(finnhub_second_reset):
+        finnhub_missing.append("FINNHUB_REVIEWED_SECOND_RESET")
+    if not finnhub_minute_evidence:
+        finnhub_missing.append("FINNHUB_MINUTE_QUOTA_EVIDENCE")
+    if not finnhub_second_evidence:
+        finnhub_missing.append("FINNHUB_SECOND_QUOTA_EVIDENCE")
+    result["finnhub"] = (
+        "routable"
+        if not finnhub_missing
+        else "non-routable: independent minute and second reset boundaries require current review evidence; missing/invalid "
+        + ", ".join(finnhub_missing)
+    )
+
     # These providers have a useful live read but still lack one or more
     # provider-specific admission dimensions. Keep the gap visible next to
     # the byte-bound controls rather than letting a passing probe imply safe

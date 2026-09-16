@@ -582,6 +582,12 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "ALPHA_VANTAGE_REVIEWED_RESET",
         "ALPHA_VANTAGE_QUOTA_EVIDENCE",
     ),
+    "finnhub": (
+        "FINNHUB_REVIEWED_MINUTE_RESET",
+        "FINNHUB_REVIEWED_SECOND_RESET",
+        "FINNHUB_MINUTE_QUOTA_EVIDENCE",
+        "FINNHUB_SECOND_QUOTA_EVIDENCE",
+    ),
     "coinbase": (
         "COINBASE_MARKET_DATA_USE_AUTHORIZED",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
@@ -866,6 +872,29 @@ def provider_missing_routing_controls(
             missing.append("ALPHA_VANTAGE_REVIEWED_RESET")
         if not quota_evidence:
             missing.append("ALPHA_VANTAGE_QUOTA_EVIDENCE")
+        return missing
+    if name == "finnhub":
+        minute_reset = str(
+            getattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "") or ""
+        ).strip()
+        second_reset = str(
+            getattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "") or ""
+        ).strip()
+        minute_evidence = str(
+            getattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        second_evidence = str(
+            getattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        missing: list[str] = []
+        if not provider_quota_reset_is_admission_safe(minute_reset):
+            missing.append("FINNHUB_REVIEWED_MINUTE_RESET")
+        if not provider_quota_reset_is_admission_safe(second_reset):
+            missing.append("FINNHUB_REVIEWED_SECOND_RESET")
+        if not minute_evidence:
+            missing.append("FINNHUB_MINUTE_QUOTA_EVIDENCE")
+        if not second_evidence:
+            missing.append("FINNHUB_SECOND_QUOTA_EVIDENCE")
         return missing
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()

@@ -99,6 +99,11 @@ bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
 poll controls, the MarketData.app reviewed account-plan/credit pair and
 operation-specific option-chain symbol bound, and the operation-level
 Tiingo/FMP byte-bound maps. A direct adapter read can therefore be green while
+Finnhub is treated similarly: its observed 60/minute and 30/second ceilings
+remain two independent dimensions, and the live runner blocks before transport
+until each reset boundary and its evidence are configured. No shared rolling or
+fixed window is inferred for either dimension.
+The same preflight also reports
 its provider remains non-routable:
 missing, invalid, partial, or non-positive safety controls are reported
 explicitly and never guessed.

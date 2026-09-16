@@ -2675,6 +2675,7 @@ async def test_rolling_thirty_day_reservation_expires_at_exact_fmp_boundary(db):
 def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finnhub = settings.PROVIDER_RATE_LIMIT_SEEDS["finnhub"]["quota_contract"]
     assert {item["limit"] for item in finnhub["dimensions"]} == {30, 60}
+    assert finnhub["reset"] == "provider_defined_minute_and_rolling_second"
 
     finra = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"]
     finra_otc = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]["quota_contract"]
@@ -2712,6 +2713,31 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert fmp["untracked_constraints"][0]["reset"] == "provider_defined"
+
+
+def test_finnhub_reviewed_reset_boundaries_promote_each_dimension_only_with_evidence(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "fixed_minute")
+    monkeypatch.setattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "rolling")
+    monkeypatch.setattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "minute review")
+    monkeypatch.setattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "second review")
+
+    contract = provider_rate_limit_seed("finnhub")["quota_contract"]
+    assert contract["reset"] == "per_dimension"
+    assert contract["unknown_dimensions"] == []
+    assert {
+        dimension["name"]: dimension["reset"]
+        for dimension in contract["dimensions"]
+    } == {
+        "calls_per_minute": "fixed_minute",
+        "hard_calls_per_second": "rolling",
+    }
+
+    monkeypatch.setattr(settings, "FINNHUB_SECOND_QUOTA_EVIDENCE", "")
+    contract = provider_rate_limit_seed("finnhub")["quota_contract"]
+    assert contract["reset"] == "provider_defined_minute_and_rolling_second"
+    assert all("reset" not in dimension for dimension in contract["dimensions"])
 
 
 def test_finnhub_rate_windows_require_explicit_operation_costs_for_each_dimension():
