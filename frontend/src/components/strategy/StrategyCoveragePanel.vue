@@ -1,8 +1,8 @@
 <template>
   <div class="coverage-panel">
-    <div v-if="loading" class="coverage-panel__empty">Refreshing coverage…</div>
-    <div v-else-if="error" class="coverage-panel__empty coverage-panel__empty--error">{{ error }}</div>
-    <div v-else-if="!coverage" class="coverage-panel__empty">{{ emptyLabel }}</div>
+    <div v-if="loading" class="coverage-panel__empty" role="status" aria-live="polite" aria-atomic="true">Refreshing coverage…</div>
+    <div v-else-if="error" class="coverage-panel__empty coverage-panel__empty--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
+    <div v-else-if="!coverage" class="coverage-panel__empty" role="status" aria-live="polite" aria-atomic="true">{{ emptyLabel }}</div>
     <template v-else>
       <div class="coverage-summary-grid">
         <div class="coverage-summary-card">

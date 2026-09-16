@@ -71,6 +71,33 @@ const baseCoverage = {
 }
 
 describe('StrategyCoveragePanel', () => {
+  it('announces loading and empty coverage states politely', () => {
+    const loadingWrapper = mount(StrategyCoveragePanel, {
+      props: { coverage: null, loading: true },
+    })
+    const loading = loadingWrapper.get('[role="status"]')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    const emptyWrapper = mount(StrategyCoveragePanel, {
+      props: { coverage: null, emptyLabel: 'Choose a Strategy run.' },
+    })
+    const empty = emptyWrapper.get('[role="status"]')
+    expect(empty.text()).toBe('Choose a Strategy run.')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces coverage failures assertively', () => {
+    const wrapper = mount(StrategyCoveragePanel, {
+      props: { coverage: null, error: 'Coverage request failed.' },
+    })
+    const error = wrapper.get('[role="alert"]')
+    expect(error.text()).toBe('Coverage request failed.')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+  })
+
   it('shows only requested-range coverage issues in the timeline', async () => {
     const wrapper = mount(StrategyCoveragePanel, {
       props: { coverage: baseCoverage },
