@@ -30,6 +30,17 @@
 - Receipts are aggregate-only and redacted in `validation.jsonl`; no
   credentials or provider payloads were persisted.
 
+## 2026-09-17 Current-SHA full safety preflight
+
+- The complete manifest preflight at source
+  `0de1e9f9e50565cd88f4637897c6037dc3f4eba3` stopped before network access
+  with `0/0` cases and zero provider requests. It reports the current
+  provider-specific quota/baseline, capability-disposition, legal/source,
+  complete-universe, and target secret-store blockers.
+- This confirms fail-closed behavior only; it is not live acceptance and does
+  not authorize routing promotion, deployment, deferred-provider activation,
+  or the final shadow run.
+
 ## 2026-09-17 Binance fixed-window live-ordering correction
 
 - The first current-window Binance replay exposed a real boundary race: a

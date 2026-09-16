@@ -17837,3 +17837,13 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] These are bounded transport/accounting receipts only; provider-specific
       terms, complete universe, target secret stores, deferred providers,
       routing promotion, and the final shadow gate remain open.
+
+### 2026-09-17 — Current-SHA full safety preflight
+
+- [x] The complete live manifest preflight at source `0de1e9f9e` stopped before
+      network access with `0/0` cases and zero provider requests. It recorded
+      the current provider-specific quota/baseline, capability, legal/source,
+      complete-universe, and target secret-store blockers.
+- [ ] This is fail-closed safety evidence, not provider acceptance; no routing
+      promotion, deployment, deferred-provider activation, or shadow run is
+      authorized from this receipt.
