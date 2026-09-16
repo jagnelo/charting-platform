@@ -2070,6 +2070,40 @@ class TestAlphaVantageProvider:
                 )
         get.assert_not_called()
 
+    def test_compact_history_rejects_a_range_older_than_the_100_point_window(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "Time Series (Daily)": {
+                (datetime(2024, 1, 1, tzinfo=UTC) + timedelta(days=offset))
+                .date()
+                .isoformat(): {
+                    "1. open": "101",
+                    "2. high": "103",
+                    "3. low": "100",
+                    "4. close": "102",
+                    "5. volume": "1000",
+                }
+                for offset in range(100)
+            }
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(
+                ProviderResponseError,
+                match="compact history is capped at the latest 100 daily points",
+            ):
+                AlphaVantageProvider().fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2023, 12, 1, tzinfo=UTC),
+                    datetime(2024, 4, 1, tzinfo=UTC),
+                    adjusted=False,
+                )
+
     def test_unsupported_timeframe_is_typed_before_transport(self):
         provider = AlphaVantageProvider()
         with patch("app.providers.alpha_vantage.httpx.get") as get:

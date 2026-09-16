@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpha Vantage compact-history completeness guard
+
+- Alpha Vantage's free `TIME_SERIES_DAILY` `compact` response is capped at the
+  latest 100 daily observations. The adapter now parses the returned dates
+  before normalization and raises a typed provider error when a full-size
+  compact response does not reach the requested start. This prevents a
+  bounded history read from silently persisting a partial range; routing may
+  fall back to another eligible provider or surface the explicit gap.
+- Focused Alpha Vantage provider coverage passed `29/29`. The change does not
+  alter the reviewed 25-requests/day contract, adjusted-history restriction,
+  or any provider routing entitlement. No live request was made and no
+  frontend or ETF-provider adapter file changed.
+
 ## 2026-09-16 account-usage focused live validation
 
 - The orchestrated clean-source focused EODHD account-usage case passed `1/1`

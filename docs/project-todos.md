@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-16 — Alpha Vantage compact-history completeness guard
+
+- [x] Reject a requested daily range that predates Alpha Vantage's full-size
+      free `compact` response (latest 100 points) instead of silently returning
+      only the newer partial slice. The adapter raises a typed provider error,
+      allowing provider routing to fall back or report the bounded-history gap;
+      focused Alpha Vantage coverage passes 29/29. This does not promote the
+      provider's free plan or widen its documented 25-requests/day quota.
+
 ### 2026-09-16 — Massive free-plan use-scope gate
 
 - [x] Record Massive's official Stocks Basic restriction that free access is

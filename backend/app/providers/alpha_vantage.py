@@ -181,6 +181,28 @@ class AlphaVantageProvider:
         series = payload.get("Time Series (Daily)", {})
         if not isinstance(series, dict):
             raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid daily-series object")
+        # The free ``compact`` response is capped at the latest 100 daily
+        # observations.  If the requested range starts before the oldest row
+        # in a full-sized compact response, returning the newer subset would
+        # silently fabricate complete history for a range the provider did
+        # not serve.  Refuse that partial result so routing can fall back to
+        # another provider or report the bounded-history gap explicitly.
+        parsed_dates: list[datetime] = []
+        for date_text in series:
+            try:
+                parsed_dates.append(datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=UTC))
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    self.name, "Alpha Vantage returned an invalid daily-series date"
+                ) from exc
+        if len(parsed_dates) >= 100:
+            oldest_available = min(parsed_dates)
+            if start < oldest_available:
+                raise ProviderResponseError(
+                    self.name,
+                    "Alpha Vantage free compact history is capped at the latest 100 "
+                    "daily points; the requested range predates the available window",
+                )
         bars: list[OHLCVBar] = []
         for date_text, row in series.items():
             if not isinstance(row, dict):
