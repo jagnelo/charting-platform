@@ -2,7 +2,7 @@
 
 ## 2026-09-16 OpenFIGI keyed/anonymous quota contract audit
 
-- Current official OpenFIGI documentation distinguishes anonymous and keyed
+- Current official [OpenFIGI documentation](https://www.openfigi.com/api/documentation) distinguishes anonymous and keyed
   mapping traffic: anonymous is limited to 25 requests/minute and five
   jobs/request; keyed mapping is 25 requests/6 seconds and 100 jobs/request.
   Native `ratelimit-limit`, `ratelimit-remaining`, and `ratelimit-reset`
