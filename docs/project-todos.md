@@ -15,6 +15,9 @@
 - [x] The exact-current-source preflight at `701964c80` stopped before
       transport with zero SEC requests and recorded the new reset/evidence
       blockers plus the missing durable IP baseline.
+- [x] Include the EDGAR quota status in the provider-to-safety-control map so
+      future live runs cannot bypass the gate through a direct manifest path;
+      the focused wiring test and full backend suite remain green.
 - [ ] Obtain current SEC/account evidence for the reset boundary and run the
       bounded EDGAR live matrix only after that pair and the durable IP baseline
       are available.

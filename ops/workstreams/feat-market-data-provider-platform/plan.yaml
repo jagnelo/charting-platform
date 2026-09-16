@@ -3522,9 +3522,9 @@ progress:
       `requests_per_second_reset_boundary` dimension. New
       `EDGAR_REVIEWED_RESET` and `EDGAR_QUOTA_EVIDENCE` controls are wired
       through settings, examples, Compose/RPi, GitHub live validation,
-      diagnostics, and focused tests; a reviewed pair is required before
-      routing. The full backend unit gate passed `2,360/2,360` with 70.80%
-      coverage and 37 warnings.
+      diagnostics, the live provider-to-safety-control map, and focused tests;
+      a reviewed pair is required before routing. The full backend unit gate
+      passed `2,360/2,360` with 70.80% coverage and 37 warnings.
     - >-
       The exact-current-source EDGAR preflight at `701964c80` stopped before
       transport with zero provider requests. It reports the new explicit

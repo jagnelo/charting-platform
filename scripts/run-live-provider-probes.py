@@ -955,6 +955,7 @@ LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "fred": ("fred",),
     "coinbase": ("coinbase market-data use",),
     "massive": ("massive market-data use",),
+    "edgar": ("edgar quota",),
     "nasdaq": ("nasdaq",),
     "finra_otc_directory": ("finra otc directory",),
     "dinari": ("dinari sandbox canary quota",),

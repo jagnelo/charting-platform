@@ -769,6 +769,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
     assert statuses["marketdata.app option quote history"].startswith("non-routable:")
     assert "xstocks" in _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS
+    assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["edgar"] == ("edgar quota",)
 
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "120")
