@@ -25,11 +25,12 @@ disposal, queue publication, migration application, or shared runtime wiring is
 performed by this package-local adapter.
 
 The focused worker-state suite passed 4 tests. The complete Strategy Lab v2
-package passed 548 tests with Ruff, MyPy, and `git diff --check` clean. The
-Docker-backed combined gate and five declared branch checks remain to be run
-after this checkpoint; schema migrations, application wiring, worker
-entrypoints, Compose integration, upstream reconciliation, and stable Nautilus
-execution remain open shared-path gates.
+package passed 548 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed, and the Docker-backed combined gate passed 2,195
+tests with 83.14% total coverage (required threshold: 75%), with setup and
+cleanup successful. Schema migrations, application wiring, worker entrypoints,
+Compose integration, upstream reconciliation, and stable Nautilus execution
+remain open shared-path gates.
 
 ## 2026-09-17 - Durable execution-state checkpoint
 
