@@ -1418,3 +1418,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 execution-audit/event-journal contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Execution audit journal checkpoint
+
+`audit.py` adds immutable aggregate-scoped `AuditEntry` and `AuditJournal`
+records plus `append_audit_entry()`. Entries bind typed audit kinds, payload
+digests, actor/correlation identity, timestamps, and contiguous sequence
+numbers. Exact entries replay idempotently; missing sequence numbers produce a
+gap, same-sequence content conflicts remain explicit, and foreign aggregates
+or timestamp regressions reject without changing the journal. The contract is
+storage/outbox neutral and does not claim that an audit record was durably
+written or transported.
+
+The exact implementation tree passed all 242 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable-adapter boundary for this journal; preserve all shared-path and
+execution-authorization gates.

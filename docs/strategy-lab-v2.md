@@ -416,6 +416,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   correction identity, warm-up receipt, and immutable pre-correction
   checkpoint basis; exact retries replay, changed content conflicts, and
   unadmitted/mismatched corrections fail closed without rewriting live state.
+- `audit.py` defines an immutable aggregate-scoped execution audit journal.
+  Entries carry typed event kinds, content-addressed payloads, actor and
+  correlation identity, and contiguous sequence numbers. Exact appends replay;
+  gaps, stale sequence content, same-sequence conflicts, foreign aggregates,
+  and timestamp regressions remain explicit without mutating the journal. A
+  future PostgreSQL/outbox adapter must persist the returned decision
+  atomically; this contract never writes or transports audit records.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
