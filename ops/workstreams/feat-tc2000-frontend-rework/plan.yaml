@@ -262,18 +262,20 @@ progress:
     safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned validation blocker: the exact make validate-integration
-    gate passed at documentation/product tip 04903e6ff, including functional
-    browser flows and all four visual projects, and its branch-scoped stack
-    cleanup completed; the post-gate R6 clone-layout, chart-comparison, and
-    Strategy Lab symbol accessibility slices pass their focused suites,
-    type-check/build, browser or unit evidence, scope guard, and workstream
-    checks.
+    gate passed at product/checkpoint tip 2153991e4, including functional
+    browser flows, all four visual projects, and the expected research-runner
+    sandbox/resource probes; its branch-scoped stack cleanup completed. The
+    post-gate R6 dense Market Map performance slice and the R6 clone-layout,
+    chart-comparison, and Strategy Lab symbol accessibility slices pass their
+    focused suites, type-check/build, browser or unit evidence, scope guard,
+    and workstream checks.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Exact make validate-integration gate passed at product/checkpoint tip 2153991e4: backend unit/integration coverage 1,619 passed, frontend Vitest 1,102/1,102, lint/format/type-check/build, Compose contracts, expected research-runner sandbox/resource probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Stack teardown removed the assigned containers, volumes, network, four generated images, and test sessions. A focused retry classified the earlier runner restart as transient; an intermediate stack build hit Docker storage exhaustion and a full-gate retry hit stale custom-builder registration, both recovered with exact TC2000 builder cleanup. No provider/ETF, visual-oracle, baseline, threshold, mask, skip, or acceptance-policy behavior changed."
   - "Product commit c17962ef2 replaces dense canvas Market Map hover/click linear scans with a fixed normalized-space spatial hit-test index while preserving source-order first-match semantics at shared edges. Focused Market Map utility/component coverage passed 59/59, full frontend Vitest passed 1,102/1,102, type-check and production build passed with the existing large-chunk warning, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit f23cb77f6 gives manually added Strategy Lab symbol-removal controls explicit accessible names (Remove <symbol>) while preserving the visible glyph and click handler. Focused Strategy Lab coverage passed 31/31 with named-control and removal assertions; frontend type-check and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit e11ce1f47 gives the chart comparison add and remove controls explicit accessible names (Add comparison and Remove <symbol>), preserves title/visible/click behavior, and updates F9c to use role/name locators. Focused workstation/pop-out coverage passed 31/31; frontend type-check and production build passed; authenticated branch-scoped Chromium confirmed add/remove semantics; Docker stack teardown removed only the assigned resources; and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."

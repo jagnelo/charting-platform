@@ -1,5 +1,26 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — Exact-tip integration gate refreshed at Market Map performance tip
+
+The exact `make validate-integration` gate passed at product tip
+`2153991e4` (the checkpoint for the Market Map hit-test performance slice).
+Backend unit/integration coverage passed `1,619` tests; frontend coverage passed
+`1,102/1,102`; lint, formatting, type-check, build, Compose contracts, and the
+expected isolated research-runner sandbox/resource probes passed. Authenticated
+functional Chromium passed `170` with `107` documented skips, and all four
+TC2000 visual projects passed `104/104`. The branch-scoped stack teardown
+removed its containers, volumes, network, four generated images, and test
+sessions. A focused retry confirmed the earlier runner-container restart was
+transient; two intervening attempts stopped only on Docker storage and stale
+BuildKit registration, both recovered by removing exact TC2000 builders and
+retrying. No product, visual-oracle, provider-platform, ETF, or acceptance
+policy behavior changed.
+
+The broader goal remains active/in progress: no TC-owned validation blocker is
+present, provider/ETF consumer integration remains deferred until both upstream
+branches reach staging, and origin synchronization remains a separate
+operational hold under the recorded private-origin safeguard.
+
 ## 2026-09-16 — R6 dense Market Map hit-test performance
 
 Product commit `c17962ef2` replaces the dense canvas Market Map's per-pointer
