@@ -177,6 +177,10 @@ remaining_gaps:
     anchors explicitly unknown and excludes the affected providers from
     routing until provider/account evidence supplies the boundary; no
     provider-defined label is converted into an invented rolling window.
+    CoinGecko's official `/key` usage endpoint was bounded-probed on
+    2026-09-16 and returned HTTP 401 error code 10005 because it is Pro-only,
+    so the Demo key cannot supply a native monthly baseline through that
+    endpoint.
   - >-
     Exact clean-source checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
     passed the full backend unit suite (`2,294/2,294`, 37 warnings) and the
