@@ -138,6 +138,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   futures, delta-adjusted underlying notional for options, and marked pair
   notional for FX. It returns a digest-bound signed base-notional receipt and
   deliberately omits margin, liquidity, settlement, and engine-fill claims.
+- `margin_risk.py` layers an event-aligned, adapter-supplied initial/maintenance
+  requirement and capacity gate over routed orders. Utilization and capacity
+  breaches withhold the entire batch; the contract never infers margin from
+  notional exposure or issues a solvency verdict.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared
