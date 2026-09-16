@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-source Dinari Sandbox canary
+
+- The exact current source `67dc4e3736caceb3464f6f42de75a38e5933e813`
+  passed the isolated Dinari Sandbox canary (`1/1`) with the transient
+  application cap of 32 requests. It made 14 bounded upstream requests and
+  recorded 187,388 response bytes across catalogue/identity, price, quote,
+  DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and corporate actions.
+- The canary receipt is marked `dinari_sandbox`, records only aggregate
+  telemetry, and does not enter canonical persistence or ordinary routing.
+  Dinari's numeric Sandbox quota/reset and commercial/redistribution terms
+  remain deliberately non-routable.
+
 ## 2026-09-17 Current-source MarketData.app bounded matrix
 
 - The exact current source `37a95bcc161ccf11a0435438bc7f730a589bd5eb`

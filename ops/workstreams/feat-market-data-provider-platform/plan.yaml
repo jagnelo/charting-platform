@@ -723,6 +723,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current Dinari Sandbox canary at source
+      `67dc4e3736caceb3464f6f42de75a38e5933e813` passed `1/1` under the
+      transient 32-request application cap. It made 14 bounded requests and
+      recorded 187,388 response bytes across catalogue/identity, price, quote,
+      DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and corporate
+      actions. The receipt is aggregate-only and Sandbox-isolated; Dinari's
+      numeric quota/reset and commercial/redistribution terms remain
+      non-routable.
+    - >-
       2026-09-17 exact-current MarketData.app bounded matrix at source
       `37a95bcc161ccf11a0435438bc7f730a589bd5eb` passed all seven selected
       cases with nine upstream requests and 20,960 response bytes. It covered

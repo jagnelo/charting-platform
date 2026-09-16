@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-source Dinari Sandbox canary
+
+- [x] Run the isolated Dinari Sandbox canary at source
+      `67dc4e3736caceb3464f6f42de75a38e5933e813` with the transient
+      32-request cap. The canary passed `1/1`, made 14 bounded requests, and
+      recorded 187,388 response bytes across catalogue, identity, prices,
+      quotes, four history windows, news, dividends, splits, and corporate
+      actions. Only aggregate telemetry was retained.
+- [ ] Keep Sandbox data out of canonical persistence and ordinary routing;
+      Dinari's numeric quota/reset and commercial/redistribution terms remain
+      unresolved.
+
 ### 2026-09-17 — Current-source MarketData.app bounded matrix
 
 - [x] Re-run the complete bounded MarketData.app provider matrix at source
