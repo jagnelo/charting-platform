@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current preflight after Alpaca history contract
+
+- At committed source `0220ae07e`, the owner-local durable-ledger preflight
+  stopped before transport with exit `2`, `0/0` cases, and zero provider
+  requests. The coordinator health/locking path passed; the receipt is
+  appended to `validation.jsonl`.
+- The report remains `94` provider-specific quota/cost/baseline blockers,
+  `7` required live capability-safety blockers, and `22` unresolved
+  capability dispositions. The new Alpaca fixed history start changes only
+  bounded history admission; it does not bypass the unresolved quota baseline
+  or legal/terms controls.
+- This is current fail-closed safety evidence only, not provider transport
+  acceptance, routing activation, deployment authorization, or shadow-run
+  authorization.
+
 ## 2026-09-16 Alpaca fixed historical-start contract
 
 - Alpaca's official Basic market-data plan publishes US stock/ETF historical

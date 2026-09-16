@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact-current preflight at committed source `0220ae07e` stopped before
+    transport with exit `2`, `0/0` cases, and zero provider requests after the
+    Alpaca fixed-history contract. It records `94` provider-specific
+    quota/cost/baseline blockers, `7` required live capability-safety blockers,
+    and `22` unresolved capability dispositions. The owner-local durable-ledger
+    health/locking path passed; live provider acceptance, legal/source
+    admission, target secret stores, routing activation, and the final shadow
+    gate remain open.
+  - >-
     Alpaca Basic's official stock/ETF history start is now represented as a
     fixed `earliest_date=2016-01-01` entitlement bound, shared by normal
     routing and bulk hydration. Focused routing/bulk coverage passed `43/43`
