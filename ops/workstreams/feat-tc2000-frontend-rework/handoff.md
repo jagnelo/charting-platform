@@ -13273,7 +13273,17 @@ request failures are assertive atomic alerts.
 
 Focused StrategyCoveragePanel coverage passed `4/4`; full frontend Vitest
 passed `1,116/1,116`; vue-tsc and the production build passed with the existing
-large-chunk warning; TC scope/self-tests and `git diff --check` passed. The
-exact full-stack/browser gate is pending at this product tip. Provider/ETF
-consumer integration remains deferred until both upstream branches reach
-staging.
+large-chunk warning; TC scope/self-tests and `git diff --check` passed.
+
+The exact `validate-integration` target exited `0` at product tip `0b3349424`
+through repository validation, authenticated functional Chromium, and all four
+TC2000 visual projects. The installed CommandLineTools Make binary was used
+because this host's `/usr/bin/make` currently exits with the unchanged
+Xcode-license status 69; no system state was changed. Branch-scoped teardown
+removed the assigned containers, volumes, network, generated images, and test
+sessions; post-gate resource accounting reported zero resources with accounting
+complete. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
+integration remains deferred until both upstream branches reach staging, and
+this is a complete exact-gate receipt for the slice, not closure of the overall
+workstream.
