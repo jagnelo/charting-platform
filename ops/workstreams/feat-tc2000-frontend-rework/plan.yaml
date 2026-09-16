@@ -245,8 +245,8 @@ branch_tests:
   - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
   - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework/plan.yaml"
-  - "make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework"
-branch_tests_reason: "The scope guard protects the branch boundary; focused/full frontend, TC analysis and Study/Strategy tests, authenticated browser flows, all four visual projects, staged consumer-contract checks, and the exhaustive integration gate run as their phases become ready."
+  - "make validate-integration"
+branch_tests_reason: "The scope guard protects the branch boundary; focused/full frontend, TC analysis and Study/Strategy tests, authenticated browser flows, all four visual projects, staged consumer-contract checks, and the exhaustive integration gate run as their phases become ready. The declared gate omits INTEGRATION_BRANCH so it does not recursively invoke this branch-test list."
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
@@ -254,22 +254,26 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_direct_range_promotion_compatibility
+  current_phase: R6_clone_layout_accessibility
   next_action: >-
     Continue the next unfinished TC-owned roadmap item. Keep provider/ETF
     consumer work deferred until both upstream branches reach staging, and do
     not retry origin synchronization under the existing private-origin
     safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
-    No active TC-owned validation blocker: the full make validate-integration
-    gate passed on the current product tree, including functional browser flows
-    and all four visual projects, and its branch-scoped stack cleanup completed.
-    Provider-platform and ETF consumer integration remains a sequencing gate
-    until both upstream branches reach staging; that does not stop independent
-    TC-owned work. Origin synchronization remains a separate operational hold
-    under the recorded private-origin safeguard, not a product or validation
-    blocker.
+    No active TC-owned validation blocker: the exact make validate-integration
+    gate passed at documentation/product tip 04903e6ff, including functional
+    browser flows and all four visual projects, and its branch-scoped stack
+    cleanup completed; the post-gate R6 clone-layout accessibility slice also
+    passes its focused 31-test workstation suite, type-check, scope guard, and
+    workstream validation. Provider-platform and ETF consumer integration
+    remains a sequencing gate until both upstream branches reach staging; that
+    does not stop independent TC-owned work. Origin synchronization remains a
+    separate operational hold under the recorded private-origin safeguard, not
+    a product or validation blocker.
 historical_implementation_records:
+  - "Product commit a624ffaf5 gives the compact WorkstationView layout-clone '+' control the explicit accessible name 'Clone active layout' while preserving its title and activation. Focused workstation/pop-out coverage passed 31/31, including clone activation and accessible-name assertions; frontend type-check, TC scope guard, workstream validation, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
+  - "Exact-tip full_stack_browser gate at documentation/product tip 04903e6ff passed: backend unit+integration coverage 1,619 tests, frontend coverage, type-check/build, compose contracts, expected research-runner sandbox/resource probes, authenticated functional Playwright 170 passed with 107 skipped, and all four visual projects 104/104 passed. The branch-scoped stack teardown removed its containers, volumes, network, four generated images, and test sessions. The first same-tip attempt failed only because the helper reused an existing builder; the successful retry used a fresh branch-scoped builder with Docker API access. The declared branch-test full-gate command now omits INTEGRATION_BRANCH to prevent recursive invocation."
   - "Product commit 361cdcb54 fixes direct single-output Study Lab range promotion: valid aligned finite centers now resolve their durable named artifact for chart-plot and latest-column adapters, while malformed or centerless ranges remain view/export-only. Focused Study Lab coverage passed 39/39; full frontend Vitest passed 1,099/1,099; type-check and production build passed; authenticated F9j-range passed 1/1 with lineage assertions; TC scope guard passed 52 paths and six self-tests; diff checks passed; and the branch-scoped stack/resource cleanup completed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, or acceptance-policy behavior changed."
   - "Product commit 349ffc07 validates persisted Research Results cross-sectional series shapes before exposing an aggregate chart plot. Malformed timestamp/value alignment remains view/export-only with an explicit limitation, while valid aggregate series retain the existing lineage-preserving adapter. Focused Research Results coverage passed 40/40; full frontend Vitest 1079/1079; type-check/build and authenticated headless F8t-results passed; scoped Docker cleanup/resource audit, scope/workstream validators, and diff check passed. Six protected visual diffs, exact-tip validation, upstream staging dependencies, and private-origin push authorization remain open."
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."

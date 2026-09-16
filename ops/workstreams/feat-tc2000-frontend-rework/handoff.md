@@ -1,5 +1,33 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R6 clone-layout accessibility and exact-tip gate receipt
+
+Product commit `a624ffaf5` gives the compact WorkstationView layout-clone `+`
+control the explicit accessible name `Clone active layout`, preserving its
+existing title and activation. Focused workstation/pop-out coverage passed
+`31/31`, including accessible-name and clone-activation assertions;
+`vue-tsc`, the TC scope guard (52 changed paths plus six self-tests),
+workstream validation, and `git diff --check` passed. No provider-platform,
+ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy
+behavior changed.
+
+The exact `make validate-integration` gate passed at documentation/product tip
+`04903e6ff`: backend unit+integration coverage `1,619` passed, frontend
+coverage, type-check/build, compose contracts, expected isolated
+research-runner probes, authenticated functional Playwright `170` passed with
+`107` skipped, and all four visual projects passed `104/104`. Teardown removed
+only this branch's containers, volumes, network, four generated images, and
+test sessions. The initial same-tip attempt failed because the helper reused an
+existing Buildx builder; the successful retry used a fresh branch-scoped
+builder with Docker API access. The workstream's declared full-gate command
+now omits `INTEGRATION_BRANCH` so it cannot recursively invoke its own branch
+tests.
+
+The broader goal remains active/in progress: no TC-owned validation blocker is
+present, provider/ETF consumer integration remains deferred until both
+upstream branches reach staging, and origin synchronization remains a separate
+operational hold under the recorded private-origin safeguard.
+
 ## 2026-09-16 — R5 direct single-output range promotion
 
 Product commit `361cdcb54` fixes the direct Study Lab range path. A valid
