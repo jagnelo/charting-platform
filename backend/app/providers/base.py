@@ -159,6 +159,24 @@ class OptionQuotePointRecord:
 
 
 @dataclass(slots=True)
+class ProviderAccountUsageDimension:
+    """One provider-native account usage pool.
+
+    Providers may expose multiple independently-reset pools (for example
+    minute and daily credits). Keep the dimension name and its raw counters
+    together so persistence and diagnostics never collapse them into one
+    generic request limit.
+    """
+
+    name: str
+    unit: str
+    limit: int | None = None
+    remaining: int | None = None
+    consumed: int | None = None
+    reset_at: datetime | None = None
+
+
+@dataclass(slots=True)
 class ProviderAccountUsage:
     """Provider-native account quota and entitlement observation.
 
@@ -178,6 +196,8 @@ class ProviderAccountUsage:
     consumed: int | None = None
     reset_at: datetime | None = None
     options_data_permissions: str | None = None
+    account_plan: str | None = None
+    dimensions: tuple[ProviderAccountUsageDimension, ...] = ()
 
 
 @dataclass(slots=True)

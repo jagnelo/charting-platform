@@ -208,7 +208,11 @@ class Settings(BaseSettings):
         "ondo_global_markets",
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
-        "account_usage": ["marketdata_app"],
+        # Provider-native usage surfaces are selected by the same exact
+        # capability/quota gates as data reads.  Both adapters remain
+        # opt-in at the worker level; this list only makes them resolvable
+        # when an operator explicitly requests a snapshot.
+        "account_usage": ["marketdata_app", "twelve_data"],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
@@ -1065,6 +1069,9 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "search_instruments": 1,
                 "discover_universe_page": 1,
+                # Twelve Data documents /api_usage as a one-credit API call;
+                # its response headers expose the post-call minute pool.
+                "fetch_account_usage": 1,
             },
         },
         # Alpha Vantage's adapter performs exactly one ``query`` request for

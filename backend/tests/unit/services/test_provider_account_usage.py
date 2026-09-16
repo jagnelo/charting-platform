@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderAccountUsageObservation
-from app.providers.base import ProviderAccountUsage
+from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
 from app.services import provider_account_usage
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -61,6 +61,7 @@ async def test_refresh_persists_provider_native_counters_and_stops_after_first_p
         )
     ).scalar_one()
     assert row.limit == 10000
+    assert row.dimension == "credits_per_day"
     assert row.remaining == 9994
     assert row.consumed == 6
     assert row.reset_at.replace(tzinfo=UTC) == reset_at
@@ -126,6 +127,68 @@ async def test_marketdata_native_usage_reconciles_exact_coordinator_baseline(
 
     assert result["baseline_reconciliations"][0]["used_units"] == 25
     assert result["baseline_reconciliations"][0]["source"] == ("provider_account_observation")
+
+
+@pytest.mark.asyncio
+async def test_named_provider_usage_dimensions_persist_as_separate_rows(db, monkeypatch):
+    source = DataSource(name="twelve_data", base_url="https://api.twelvedata.com")
+    db.add(source)
+    db.flush()
+    observed_at = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    execution = SimpleNamespace(
+        provider_name="twelve_data",
+        data_source=source,
+        result=ProviderAccountUsage(
+            provider="twelve_data",
+            observed_at=observed_at,
+            unit="credits",
+            account_plan="Basic",
+            dimensions=(
+                ProviderAccountUsageDimension(
+                    name="credits_per_minute",
+                    unit="credits",
+                    limit=8,
+                    remaining=5,
+                    consumed=3,
+                    reset_at=observed_at.replace(second=0) + timedelta(minutes=1),
+                ),
+                ProviderAccountUsageDimension(
+                    name="credits_per_day",
+                    unit="credits",
+                    limit=800,
+                    remaining=None,
+                    consumed=None,
+                    reset_at=None,
+                ),
+            ),
+        ),
+    )
+
+    async def fake_chain(*args, **kwargs):
+        return [SimpleNamespace(provider_name="twelve_data")]
+
+    async def fake_execute(*args, **kwargs):
+        return execution
+
+    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
+
+    result = await provider_account_usage.refresh_provider_account_usage(
+        AsyncSessionAdapter(db), provider_name="twelve_data"
+    )
+
+    assert result["status"] == "refreshed"
+    assert {item["dimension"] for item in result["observations"]} == {
+        "credits_per_minute",
+        "credits_per_day",
+    }
+    rows = db.execute(
+        select(ProviderAccountUsageObservation).where(
+            ProviderAccountUsageObservation.data_source_id == source.id
+        )
+    ).scalars().all()
+    assert {row.dimension for row in rows} == {"credits_per_minute", "credits_per_day"}
+    assert {row.account_plan for row in rows} == {"Basic"}
 
 
 @pytest.mark.asyncio

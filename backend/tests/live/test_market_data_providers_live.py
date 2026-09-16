@@ -992,6 +992,28 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert all(contract.right in {"call", "put"} for contract in contracts)
 
 
+def test_twelve_data_credentialed_account_usage_snapshot():
+    """Exercise Twelve Data's native minute-credit usage endpoint."""
+
+    _require("TWELVE_DATA_API_KEY")
+    usage, measurement = _observed_read(
+        lambda: TwelveDataProvider().fetch_account_usage(),
+        "twelve_data",
+        "fetch_account_usage",
+    )
+    assert usage is not None
+    assert usage.provider == "twelve_data"
+    assert usage.account_plan
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert set(dimensions) == {"credits_per_minute"}
+    minute = dimensions["credits_per_minute"]
+    assert minute.limit is not None and minute.limit > 0
+    assert minute.remaining is not None and minute.remaining >= 0
+    assert minute.consumed is not None and minute.consumed >= 0
+    assert minute.reset_at is not None and minute.reset_at.tzinfo is not None
+
+
 def test_eodhd_free_plan_profile_entitlement_is_explicit():
     """The configured free EODHD key is EOD-only; do not treat 403 as no data."""
 

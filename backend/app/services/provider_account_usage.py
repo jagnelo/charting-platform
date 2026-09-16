@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderAccountUsageObservation, ProviderCapability
-from app.providers.base import ProviderAccountUsage
+from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
 from app.providers.errors import bounded_redact_provider_message
 from app.services.provider_quota_coordinator import reconcile_provider_quota_baseline
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
@@ -34,6 +34,7 @@ def _usage_payload(observation: ProviderAccountUsageObservation, provider: str) 
     return {
         "id": observation.id,
         "provider": provider,
+        "dimension": observation.dimension,
         "observed_at": observation.observed_at,
         "unit": observation.unit,
         "limit": observation.limit,
@@ -41,27 +42,79 @@ def _usage_payload(observation: ProviderAccountUsageObservation, provider: str) 
         "consumed": observation.consumed,
         "reset_at": observation.reset_at,
         "options_data_permissions": observation.options_data_permissions,
+        "account_plan": observation.account_plan,
     }
 
 
-def _validate_usage(usage: ProviderAccountUsage) -> None:
-    if not str(usage.unit or "").strip():
+def _validate_dimension(dimension: ProviderAccountUsageDimension) -> None:
+    if not str(dimension.name or "").strip():
+        raise ValueError("provider returned an empty account-usage dimension")
+    if not str(dimension.unit or "").strip():
         raise ValueError("provider returned an empty account-usage unit")
     for field in ("limit", "remaining", "consumed"):
-        value = getattr(usage, field)
+        value = getattr(dimension, field)
         if value is not None and (
             isinstance(value, bool) or not isinstance(value, int) or value < 0
         ):
             raise ValueError(f"provider returned an invalid account-usage {field}")
-    if usage.limit is not None and usage.remaining is not None and usage.remaining > usage.limit:
+    if (
+        dimension.limit is not None
+        and dimension.remaining is not None
+        and dimension.remaining > dimension.limit
+    ):
         raise ValueError("provider returned account-usage remaining above limit")
+    if dimension.reset_at is not None and dimension.reset_at.tzinfo is None:
+        raise ValueError("provider returned a timezone-naive account-usage reset")
+
+
+def _usage_dimensions(
+    usage: ProviderAccountUsage, provider_name: str
+) -> tuple[ProviderAccountUsageDimension, ...]:
+    """Return named dimensions while preserving legacy adapter contracts."""
+
+    dimensions = tuple(usage.dimensions or ())
+    if dimensions:
+        return dimensions
+    # MarketData.app was the first account endpoint and its legacy typed
+    # object represented the one reviewed daily credit pool at the top level.
+    # Give that existing shape its provider-specific name during migration;
+    # unknown legacy providers remain explicitly ``default``.
+    name = "credits_per_day" if provider_name == "marketdata_app" else "default"
+    return (
+        ProviderAccountUsageDimension(
+            name=name,
+            unit=usage.unit,
+            limit=usage.limit,
+            remaining=usage.remaining,
+            consumed=usage.consumed,
+            reset_at=usage.reset_at,
+        ),
+    )
+
+
+def _validate_usage(usage: ProviderAccountUsage, provider_name: str) -> tuple[ProviderAccountUsageDimension, ...]:
+    dimensions = _usage_dimensions(usage, provider_name)
+    names: set[str] = set()
+    for dimension in dimensions:
+        _validate_dimension(dimension)
+        normalized_name = dimension.name.strip()
+        if normalized_name in names:
+            raise ValueError("provider returned duplicate account-usage dimensions")
+        names.add(normalized_name)
+    if not str(usage.unit or "").strip():
+        # ``unit`` is retained for backward-compatible top-level consumers;
+        # named providers are validated through each dimension above.
+        if usage.dimensions:
+            raise ValueError("provider returned an empty account-usage unit")
     if usage.reset_at is not None and usage.reset_at.tzinfo is None:
         raise ValueError("provider returned a timezone-naive account-usage reset")
+    return dimensions
 
 
 def _native_baseline_candidate(
     execution: Any,
-    usage: ProviderAccountUsage,
+    dimension: ProviderAccountUsageDimension,
+    observed_at: datetime,
 ) -> tuple[str, str, int, datetime, str] | None:
     """Return an exact native baseline candidate, or refuse to infer one.
 
@@ -88,19 +141,18 @@ def _native_baseline_candidate(
     ]
     if len(dimensions) != 1 or contract.get("unknown_dimensions"):
         return None
-    dimension = dimensions[0]
-    limit = dimension.get("limit")
+    policy_dimension = dimensions[0]
+    limit = policy_dimension.get("limit")
     if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
         return None
-    if usage.limit != limit or usage.reset_at is None:
+    if dimension.limit != limit or dimension.reset_at is None:
         return None
-    observed_at = usage.observed_at
-    reset_at = usage.reset_at
+    reset_at = dimension.reset_at
     if observed_at.tzinfo is None or reset_at.tzinfo is None or reset_at <= observed_at:
         return None
-    consumed = usage.consumed
-    if consumed is None and usage.remaining is not None:
-        consumed = limit - usage.remaining
+    consumed = dimension.consumed
+    if consumed is None and dimension.remaining is not None:
+        consumed = limit - dimension.remaining
     if (
         isinstance(consumed, bool)
         or not isinstance(consumed, int)
@@ -154,53 +206,56 @@ async def refresh_provider_account_usage(
             usage = execution.result
             if not isinstance(usage, ProviderAccountUsage):
                 raise TypeError("provider returned an invalid account-usage observation")
-            _validate_usage(usage)
+            dimensions = _validate_usage(usage, execution.provider_name)
             observed_at = usage.observed_at
             if observed_at.tzinfo is None:
                 observed_at = observed_at.replace(tzinfo=UTC)
-            row = ProviderAccountUsageObservation(
-                data_source_id=execution.data_source.id,
-                observed_at=observed_at,
-                unit=usage.unit,
-                limit=usage.limit,
-                remaining=usage.remaining,
-                consumed=usage.consumed,
-                reset_at=usage.reset_at,
-                options_data_permissions=usage.options_data_permissions,
-            )
-            db.add(row)
-            await db.flush()
-            observations.append(_usage_payload(row, execution.provider_name))
-            baseline_candidate = _native_baseline_candidate(execution, usage)
-            if baseline_candidate is not None:
-                (
-                    dimension_name,
-                    baseline_capability,
-                    used_units,
-                    observed_at,
-                    evidence_reference,
-                ) = baseline_candidate
-                try:
-                    baseline_reconciliations.append(
-                        reconcile_provider_quota_baseline(
-                            provider_name=execution.provider_name,
-                            capability=baseline_capability,
-                            policy=execution.policy,
-                            dimension_name=dimension_name,
-                            used_units=used_units,
-                            observed_at=observed_at,
-                            evidence_reference=evidence_reference,
-                            source="provider_account_observation",
+            for dimension in dimensions:
+                row = ProviderAccountUsageObservation(
+                    data_source_id=execution.data_source.id,
+                    dimension=dimension.name.strip(),
+                    observed_at=observed_at,
+                    unit=dimension.unit,
+                    limit=dimension.limit,
+                    remaining=dimension.remaining,
+                    consumed=dimension.consumed,
+                    reset_at=dimension.reset_at,
+                    options_data_permissions=usage.options_data_permissions,
+                    account_plan=usage.account_plan,
+                )
+                db.add(row)
+                await db.flush()
+                observations.append(_usage_payload(row, execution.provider_name))
+                baseline_candidate = _native_baseline_candidate(execution, dimension, observed_at)
+                if baseline_candidate is not None:
+                    (
+                        dimension_name,
+                        baseline_capability,
+                        used_units,
+                        baseline_observed_at,
+                        evidence_reference,
+                    ) = baseline_candidate
+                    try:
+                        baseline_reconciliations.append(
+                            reconcile_provider_quota_baseline(
+                                provider_name=execution.provider_name,
+                                capability=baseline_capability,
+                                policy=execution.policy,
+                                dimension_name=dimension_name,
+                                used_units=used_units,
+                                observed_at=baseline_observed_at,
+                                evidence_reference=evidence_reference,
+                                source="provider_account_observation",
+                            )
                         )
-                    )
-                except Exception as exc:  # noqa: BLE001 - preserve observation, expose redacted admission failure.
-                    failures.append(
-                        {
-                            "provider": execution.provider_name,
-                            "error": "native baseline reconciliation: "
-                            + bounded_redact_provider_message(exc, max_length=500),
-                        }
-                    )
+                    except Exception as exc:  # noqa: BLE001 - preserve observation, expose redacted admission failure.
+                        failures.append(
+                            {
+                                "provider": execution.provider_name,
+                                "error": "native baseline reconciliation: "
+                                + bounded_redact_provider_message(exc, max_length=500),
+                            }
+                        )
             # One provider is selected by the runtime for this account-scoped
             # observation. Do not call lower-priority providers in the same
             # request and spend another account quota window.

@@ -37,6 +37,7 @@ from app.providers.base import (
     OptionContractRecord,
     OptionQuotePointRecord,
     ProviderAccountUsage,
+    ProviderAccountUsageDimension,
     ProviderSearchResult,
 )
 from app.providers.errors import (
@@ -1187,6 +1188,76 @@ class TwelveDataProvider(_RESTProvider):
         Timeframe.MN: "1month",
     }
 
+    @staticmethod
+    def _usage_header_integer(headers: dict[str, str], name: str) -> int | None:
+        raw = headers.get(name) or headers.get(name.title())
+        if raw in (None, ""):
+            return None
+        if isinstance(raw, bool) or not str(raw).strip().lstrip("+-").isdigit():
+            raise ProviderResponseError(
+                "twelve_data", f"provider returned an invalid {name} account counter"
+            )
+        value = int(str(raw).strip())
+        if value < 0:
+            raise ProviderResponseError(
+                "twelve_data", f"provider returned an invalid {name} account counter"
+            )
+        return value
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None:
+        """Read Twelve Data's documented API-credit usage endpoint.
+
+        Twelve Data documents ``/api_usage`` as the real-time plan/usage
+        surface and guarantees ``api-credits-used``/``api-credits-left``
+        headers on API responses. Those headers describe the current minute
+        pool; the endpoint itself costs one API credit. Daily Basic-plan
+        usage is not synthesized here because the public contract does not
+        expose a stable response shape for that separate pool. The native
+        minute observation is still retained with its exact reset boundary.
+        """
+
+        payload, headers = self._get_with_headers("api_usage")
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid API-usage object"
+            )
+        plan = payload.get("plan")
+        if plan is not None and not isinstance(plan, str):
+            raise ProviderResponseError(self.name, "provider returned an invalid account plan")
+        used = self._usage_header_integer(headers, "api-credits-used")
+        remaining = self._usage_header_integer(headers, "api-credits-left")
+        if used is None or remaining is None:
+            raise ProviderResponseError(
+                self.name,
+                "provider omitted documented api-credits-used/api-credits-left headers",
+            )
+        observed_at = datetime.now(UTC)
+        reset_at = observed_at.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        limit = used + remaining
+        if limit <= 0:
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid zero API-credit limit"
+            )
+        dimension = ProviderAccountUsageDimension(
+            name="credits_per_minute",
+            unit="credits",
+            limit=limit,
+            remaining=remaining,
+            consumed=used,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="credits",
+            limit=limit,
+            remaining=remaining,
+            consumed=used,
+            reset_at=reset_at,
+            account_plan=plan.strip() if isinstance(plan, str) and plan.strip() else None,
+            dimensions=(dimension,),
+        )
+
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -1639,6 +1710,17 @@ class MarketDataAppProvider(_RESTProvider):
                 self.name,
                 "provider omitted documented account-usage fields",
             )
+        account_plan = payload.get("plan")
+        if account_plan is not None and not isinstance(account_plan, str):
+            raise ProviderResponseError(self.name, "provider returned invalid account plan")
+        dimension = ProviderAccountUsageDimension(
+            name="credits_per_day",
+            unit="credits",
+            limit=limit,
+            remaining=remaining,
+            consumed=consumed,
+            reset_at=_account_reset_at(payload, headers),
+        )
         return ProviderAccountUsage(
             provider=self.name,
             observed_at=datetime.now(UTC),
@@ -1646,8 +1728,14 @@ class MarketDataAppProvider(_RESTProvider):
             limit=limit,
             remaining=remaining,
             consumed=consumed,
-            reset_at=_account_reset_at(payload, headers),
+            reset_at=dimension.reset_at,
             options_data_permissions=options,
+            account_plan=(
+                account_plan.strip()
+                if isinstance(account_plan, str) and account_plan.strip()
+                else None
+            ),
+            dimensions=(dimension,),
         )
 
     def fetch_ohlcv(

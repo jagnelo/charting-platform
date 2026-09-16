@@ -190,6 +190,10 @@ LIVE_PROVIDER_CASES = {
             "test_market_data_providers_live.py",
             "test_optional_credentialed_provider_small_read",
         ),
+        (
+            "test_market_data_providers_live.py",
+            "test_twelve_data_credentialed_account_usage_snapshot",
+        ),
     ),
     "finnhub": (
         (
@@ -372,6 +376,7 @@ LIVE_REQUIRED_OPERATIONS = {
         "search_instruments",
         "get_current_price",
         "discover_universe_page",
+        "fetch_account_usage",
     },
     # The credentialed Finnhub probe exercises both the profile and the
     # instrument/market-event surfaces. Keep every metered operation in the
@@ -576,8 +581,7 @@ LIVE_OPERATION_DISPOSITIONS = {
         "search_instruments": "deferred: bounded search case not yet approved",
         "get_current_price": "deferred: bounded quote case not yet approved",
     },
-    "twelve_data": {
-    },
+    "twelve_data": {},
     "finnhub": {
         "fetch_ohlcv": "expected_entitlement_denial: the observed free-plan key returned HTTP 403 for the stock-candle endpoint",
         "get_current_price": "deferred: observed free-plan quote entitlement is not yet admitted",

@@ -55,6 +55,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
         "fmp",
     }
     assert "price_history" in list_provider_capabilities("twelve_data")
+    assert "account_usage" in list_provider_capabilities("twelve_data")
     assert "adjusted_price_history" not in list_provider_capabilities("twelve_data")
     assert "instrument_metadata" in list_provider_capabilities("finnhub")
     assert "instrument_search" in list_provider_capabilities("tiingo")
@@ -236,6 +237,52 @@ def test_twelve_data_discovery_requests_explicit_bounded_pages():
             "outputsize": 500,
         },
     )
+
+
+def test_twelve_data_fetches_documented_minute_account_usage_headers():
+    provider = TwelveDataProvider()
+    response = _response({"status": "ok", "plan": "Basic"})
+    response.status_code = 200
+    response.headers = {
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=response,
+        ) as get,
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        usage = provider.fetch_account_usage()
+
+    assert usage is not None
+    assert usage.provider == "twelve_data"
+    assert usage.account_plan == "Basic"
+    assert usage.dimensions[0].name == "credits_per_minute"
+    assert usage.dimensions[0].limit == 8
+    assert usage.dimensions[0].consumed == 3
+    assert usage.dimensions[0].remaining == 5
+    assert usage.dimensions[0].reset_at is not None
+    assert usage.dimensions[0].reset_at.second == 0
+    assert usage.dimensions[0].reset_at > usage.observed_at
+    assert get.call_args.args[0] == "https://api.twelvedata.com/api_usage"
+    assert get.call_args.kwargs["params"] == {"apikey": "demo"}
+
+
+def test_twelve_data_account_usage_requires_documented_credit_headers():
+    provider = TwelveDataProvider()
+    response = _response({"status": "ok", "plan": "Basic"})
+    response.status_code = 200
+    response.headers = {}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError, match="api-credits-used/api-credits-left"):
+            provider.fetch_account_usage()
 
 
 @pytest.mark.parametrize(

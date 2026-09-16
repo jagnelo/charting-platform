@@ -310,6 +310,12 @@ class ProviderAccountUsageObservation(Base, TimestampMixin):
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # Provider-native account endpoints can expose several independent pools
+    # (for example minute and daily credits). ``default`` preserves the
+    # schema meaning of observations written before named dimensions existed.
+    dimension: Mapped[str] = mapped_column(
+        String(80), nullable=False, server_default="default", index=True
+    )
     observed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
@@ -319,6 +325,7 @@ class ProviderAccountUsageObservation(Base, TimestampMixin):
     consumed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     options_data_permissions: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    account_plan: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     data_source: Mapped["DataSource"] = relationship(
         back_populates="provider_account_usage_observations"
@@ -326,6 +333,12 @@ class ProviderAccountUsageObservation(Base, TimestampMixin):
 
     __table_args__ = (
         Index("ix_provider_account_usage_source_observed", "data_source_id", "observed_at"),
+        Index(
+            "ix_provider_account_usage_source_dimension_observed",
+            "data_source_id",
+            "dimension",
+            "observed_at",
+        ),
     )
 
 

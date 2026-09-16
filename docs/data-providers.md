@@ -185,7 +185,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v1 documents up to 120 requests/minute before HTTP 429, but does not publish the enforcement scope; provider-adjusted limits and series-specific rights apply. Current terms also restrict specified AI/ML development/training uses and storing/caching/archiving data | provider-defined scope / rolling minute; adjustable | **non-routable by default** until quota scope, actual application use, persistent-storage authority, and per-series rights are evidenced; the separate v2 2-requests/second rule is not applied to this v1 adapter |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | Nasdaq publishes no numeric quota for these files. The client imposes a strict maximum of two HTTP requests per calendar day (one conditional request per official file); this is a local safety ceiling, not a vendor allowance | public service / client-imposed deployment-wide daily cap | bounded directory retrieval can route under the local cap; diagnostics must not describe the cap as a Nasdaq-published quota, and two-file results remain NMS-focused rather than complete OTC coverage |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | Free Starter: 500 unique symbols in a conservative rolling 31-day window (the plan gives no exact symbol-pool reset anchor), 50 requests/hour, 1,000/day, and 1 GB/month bandwidth; the bandwidth reset is modeled at midnight Eastern on the first of the month | API key / rolling 31-day symbol pool, hourly/daily request windows, monthly bandwidth | EOD live-proven; response bytes and distinct provider-symbol claims are durable; routing still requires a complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` map (the 500-symbol pool is not request-count accounting). Fundamentals is not assumed included: verify the account's add-on entitlement before routing it |
-| Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; time-series responses cap at 5,000 points and each request costs one credit | API key / minute + day | bounded history is explicitly paged by start/end range and reserves `ceil(requested points / 5,000)` credits; `/stocks` discovery now sends the documented `page` + `outputsize=500` bounds and filters one asset type per page; configured live evidence remains required |
+| Twelve Data | multi-timeframe candles, quote, search, US universe, and native account-usage snapshot | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; time-series responses cap at 5,000 points and each request costs one credit; documented `/api_usage` costs one credit and returns the current plan plus `api-credits-used`/`api-credits-left` headers | API key / fixed minute + UTC calendar day | bounded history is explicitly paged by start/end range and reserves `ceil(requested points / 5,000)` credits; `/stocks` discovery now sends the documented `page` + `outputsize=500` bounds and filters one asset type per page; account snapshots persist the exact named minute pool and plan without inferring the separate daily pool; configured live evidence remains required |
 | Finnhub | profile/search, historical earnings, forward earnings calendar, and universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | profile, historical earnings, and forward calendar live-proven; both earnings surfaces are registered under `earnings`; every reviewed operation is explicitly charged against both rate dimensions, while an operation absent from the reviewed cost profile fails closed; free stock candles returned 403 and are explicitly non-routable |
 | Marketstack | daily EOD history and venue-scoped ticker discovery | `MARKETSTACK_API_KEY`, `MARKETSTACK_DISCOVERY_EXCHANGE` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling; EOD responses expose 100-row pagination metadata | key / rolling 30-day window (pricing does not publish the monthly reset anchor) | history follows returned pagination and reserves a conservative page count before execution; discovery is fail-closed until an explicit MIC/exchange code is configured, and is supplementary rather than complete US venue reconciliation; daily history live-proven |
 | EODHD | daily EOD history (daily/weekly/monthly aggregation), fixture-covered Fundamentals/profile adapter, US exchange-symbol list | `EODHD_API_KEY` | [Free Starter plan](https://eodhd.com/lp/historical-eod-api) says 20 API-call credits/day and 20 requests/minute; EOD history is limited to one year. **Official-source conflict:** EODHD's [general API limits](https://eodhd.com/financial-apis/api-limits) and [Quick Start](https://eodhd.com/financial-apis/quick-start-with-our-financial-data-apis) state 1,000 requests/minute. Until EODHD clarifies which applies to this free account, the client enforces the narrower 20/minute. Daily credits reset at midnight GMT; Fundamentals/profile is non-routable unless the plan grants it (the supplied free key returned HTTP 403); fundamentals/options cost 10 credits and intraday/technical/news 5 when entitled | API key / conservative rolling 60-second 20-request cap + GMT calendar-day call-credit budget | EOD daily/weekly/monthly history and exchange-symbol list are free-plan paths; the provider's conflicting per-minute statements remain documented and the stricter limit is enforced |
@@ -1043,6 +1043,35 @@ date must not be presented as an exact listing date.
 **Rate limit**: max 10 requests/second per SEC guidelines.
 
 ---
+
+### Twelve Data (`twelve_data`)
+
+**Role**: Optional multi-timeframe US candles, latest price, symbol search,
+and bounded US equity/ETF catalogue discovery.
+**Auth**: `TWELVE_DATA_API_KEY` (query parameter).
+
+The adapter requests at most 5,000 points per `/time_series` page and reserves
+the exact calculated page count before transport. It requests intraday output
+in UTC, preserves the provider's exchange timezone for daily bars, and rejects
+adjusted-history requests because the adapter exposes raw observations only.
+Universe discovery is explicitly page- and asset-type-scoped; a missing or
+contradictory provider count is an error, not permission to infer completion.
+
+Twelve Data documents two distinct Basic-plan credit pools: 8 credits per
+fixed minute and 800 credits per UTC calendar day. Endpoint weights are
+provider-specific and must remain in the checked-in usage profile; the runtime
+does not substitute one request for an unknown endpoint weight. The optional
+native `fetch_account_usage` operation calls the documented `/api_usage`
+endpoint (itself charged one credit), records the returned plan, and persists
+the exact `api-credits-used`/`api-credits-left` minute pool as a named
+`credits_per_minute` observation with the next fixed-minute reset. The public
+contract does not provide a stable daily-counter response shape, so the adapter
+does not fabricate a `credits_per_day` observation from the minute headers.
+Native observations are telemetry until an exact provider-specific baseline
+mapping is reviewed; they never widen routing automatically. See the official
+[usage-control](https://support.twelvedata.com/en/articles/5713553-control-over-api-usage)
+and [credits](https://support.twelvedata.com/en/articles/5615854-credits)
+documentation.
 
 ### MarketData.app (`marketdata_app`)
 

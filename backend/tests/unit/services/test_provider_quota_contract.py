@@ -1169,6 +1169,29 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     ) == {"credits_per_day": 0, "concurrent_requests": 1}
 
 
+def test_twelve_data_account_usage_uses_one_reviewed_credit_per_native_snapshot():
+    profile = get_provider_usage_profile("twelve_data")
+    assert profile["operation_costs"]["fetch_account_usage"] == 1
+    seed = provider_rate_limit_seed("twelve_data")
+    dimensions = seed["quota_contract"]["dimensions"]
+    assert [item["name"] for item in dimensions] == [
+        "credits_per_minute",
+        "credits_per_day",
+    ]
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+        quota_scope=seed["quota_scope"],
+        quota_source=seed["quota_source"],
+        quota_contract=seed["quota_contract"],
+    )
+    source = DataSource(name="twelve_data", config={"usage_tracking": profile})
+    assert provider_contract_operation_cost_known(policy, source, "fetch_account_usage")
+    assert _dimension_costs_for_operation(
+        policy, source, "fetch_account_usage", default_units=1
+    ) == {"credits_per_minute": 1, "credits_per_day": 1}
+
+
 def test_account_and_ip_scoped_provider_contracts_declare_cross_capability_groups():
     grouped_providers = {
         "alpaca",
