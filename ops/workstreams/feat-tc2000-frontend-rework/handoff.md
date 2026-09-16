@@ -13263,3 +13263,17 @@ or acceptance-policy behavior changed. Provider/ETF consumer integration
 remains deferred until both upstream branches reach staging; this is a complete
 exact-gate receipt for the CodeLibrary slice, not closure of the overall
 workstream.
+
+## 2026-09-16 - Strategy Coverage state announcements
+
+Product commit `0b3349424` gives `StrategyCoveragePanel`
+explicit live-region semantics without changing coverage calculations or
+rendering: loading and no-data states are polite atomic statuses, and coverage
+request failures are assertive atomic alerts.
+
+Focused StrategyCoveragePanel coverage passed `4/4`; full frontend Vitest
+passed `1,116/1,116`; vue-tsc and the production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The
+exact full-stack/browser gate is pending at this product tip. Provider/ETF
+consumer integration remains deferred until both upstream branches reach
+staging.
