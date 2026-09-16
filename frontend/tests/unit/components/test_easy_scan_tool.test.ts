@@ -14,6 +14,51 @@ function mount(component: typeof EasyScanTool, options: Parameters<typeof vueMou
 }
 
 describe('EasyScanTool', () => {
+  it('announces the idle EasyScan state politely', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+
+    const state = wrapper.get('.easy-scan__state')
+    expect(state.text()).toContain('Save a price/volume condition')
+    expect(state.attributes('role')).toBe('status')
+    expect(state.attributes('aria-live')).toBe('polite')
+    expect(state.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('announces condition-loading failures assertively', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Condition library unavailable'))
+    const wrapper = mount(EasyScanTool)
+    await vi.waitFor(() => expect(wrapper.get('.easy-scan__error').text()).toBe('Condition library unavailable'))
+
+    const error = wrapper.get('.easy-scan__error')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('announces condition-save progress politely', async () => {
+    let resolveSave!: (value: unknown) => void
+    apiGet.mockResolvedValue([])
+    apiPut.mockImplementationOnce(() => new Promise(resolve => { resolveSave = resolve }))
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('input[aria-label="Condition name"]').setValue('Close condition')
+    await wrapper.get('input[aria-label="Condition threshold"]').setValue('100')
+    await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
+
+    const state = wrapper.get('.easy-scan__state')
+    expect(state.text()).toContain('Saving condition…')
+    expect(state.attributes('role')).toBe('status')
+    expect(state.attributes('aria-live')).toBe('polite')
+    expect(state.attributes('aria-atomic')).toBe('true')
+    resolveSave({ stable_key: 'close-condition', name: 'Close condition', version: 1, payload: { condition: {} } })
+    await flushPromises()
+    wrapper.unmount()
+  })
+
   it('opens the advanced condition builder with semantic state and restores toggle focus', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool, { attachTo: document.body })

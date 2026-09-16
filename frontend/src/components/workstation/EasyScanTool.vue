@@ -39,15 +39,15 @@
       <input v-model.trim="scanName" :disabled="busy || (!selectedKey && !selectedPythonVersion)" aria-label="Scan name" placeholder="EasyScan name" />
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
-    <p v-if="error" class="easy-scan__error">{{ error }}</p>
+    <p v-if="error" class="easy-scan__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status" aria-live="polite" aria-atomic="true">{{ plotDropStatus }}</p>
-    <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
+    <p v-else-if="busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
       <span><b>{{ result.matched_ids?.length ?? 0 }}</b> matches · {{ coverageText }}</span>
       <span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span>
     </div>
-    <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
+    <p v-else class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
 </template>
 
