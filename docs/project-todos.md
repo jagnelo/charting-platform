@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-17 — Binance fixed-window live-ordering correction
+
+- [x] Retain the first Binance replay's genuine reset-boundary admission
+      failure rather than retrying blindly. Add a manifest-runner-only ordering
+      hook and regression so native account-usage snapshots run before metered
+      operations; ordinary collection is unchanged.
+- [x] At committed source `f9172617a`, refresh the current Binance weight
+      window and pass the bounded matrix `3/3` with seven requests and
+      17,616,639 response bytes across latest/history, price, discovery, and
+      native usage. No credentials or payloads were persisted.
+- [ ] Keep Binance's native one-minute observation short-lived and require a
+      fresh baseline before later transport; this does not widen any other
+      provider's quota or legal gates.
+
 ### 2026-09-17 — Current-source OpenFIGI keyless matrix
 
 - [x] Refresh OpenFIGI's anonymous native rate-limit state (`1/1`, one

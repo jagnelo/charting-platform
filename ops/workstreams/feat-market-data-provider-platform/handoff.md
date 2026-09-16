@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Binance fixed-window live-ordering correction
+
+- The first current-window Binance replay exposed a real boundary race: a
+  separately run native usage bootstrap rolled over before the matrix's first
+  metered operation, producing a typed coordinator admission failure rather
+  than an unsafe request. The failed receipt remains in `validation.jsonl`.
+- Commit `f9172617a` adds a manifest-runner-only pytest collection hook that
+  executes all native `account_usage` snapshots before metered live cases, plus
+  a regression test. Ordinary unit/integration collection is unchanged.
+- After a fresh current-window snapshot, the exact committed source passed the
+  Binance matrix `3/3`, with seven requests and 17,616,639 response bytes
+  across latest/history, current price, discovery, and native weight usage.
+  No credentials or payloads were persisted.
+
 ## 2026-09-17 Current-source OpenFIGI keyless matrix
 
 - After a fresh native rate-limit observation (`1/1`, one request, 8,812

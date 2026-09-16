@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 Binance fixed-window live-ordering correction: the first
+      replay exposed a genuine reset-boundary race and was retained as a
+      failed receipt. Commit `f9172617a` now orders native account-usage
+      snapshots before metered cases during manifest runs and adds a regression
+      test. After a fresh current-window snapshot, the exact source passed the
+      Binance matrix `3/3` with seven requests and 17,616,639 response bytes
+      across latest/history, current price, discovery, and native usage.
+    - >-
       2026-09-17 exact-current OpenFIGI keyless validation at source
       `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`: a fresh native usage
       observation passed `1/1` with one request and 8,812 response bytes;
