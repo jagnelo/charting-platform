@@ -12,9 +12,9 @@
           <option v-for="type in barTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
         </select>
       </label>
-      <p v-if="error" class="chart-template__error">{{ error }}</p>
-      <p v-else-if="loading" class="chart-template__state">Loading templates…</p>
-      <p v-else-if="!items.length" class="chart-template__state">No saved templates.</p>
+      <p v-if="error" class="chart-template__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+      <p v-else-if="loading" class="chart-template__state" role="status" aria-live="polite" aria-atomic="true">Loading templates…</p>
+      <p v-else-if="!items.length" class="chart-template__state" role="status" aria-live="polite" aria-atomic="true">No saved templates.</p>
       <ul v-else>
         <li v-for="item in items" :key="item.stable_key">
           <template v-if="renamingKey === item.stable_key">

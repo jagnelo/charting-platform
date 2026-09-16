@@ -140,6 +140,40 @@ describe('ChartTemplateControl', () => {
     second.unmount()
   })
 
+  it('announces loading and empty template states politely', async () => {
+    let resolveTemplates!: (value: unknown[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+
+    const loading = wrapper.get('.chart-template__state')
+    expect(loading.text()).toBe('Loading templates…')
+    expect(loading.attributes('role')).toBe('status')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    resolveTemplates([])
+    await vi.waitFor(() => expect(wrapper.get('.chart-template__state').text()).toBe('No saved templates.'))
+    const empty = wrapper.get('.chart-template__state')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces template load failures assertively', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Template service unavailable'))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('.chart-template__error').text()).toBe('Template service unavailable'))
+
+    const error = wrapper.get('.chart-template__error')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+  })
+
   it('opens from the keyboard, focuses the editor, and returns focus on Escape', async () => {
     const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
     const trigger = wrapper.get('button[aria-label="Chart templates"]')
