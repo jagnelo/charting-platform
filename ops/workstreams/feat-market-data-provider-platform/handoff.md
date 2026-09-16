@@ -75,6 +75,18 @@
   quota/baseline, legal/source, universe, deployment-secret, and shadow gates
   remain open.
 
+## 2026-09-16 Alpaca credentialed preflight
+
+- The configured Alpaca paper credential was checked through the protected
+  live runner with the owner-managed durable quota ledger. The run stopped
+  before network access (`0/0` cases) because the reviewed provider contract
+  still lacks admission-safe quota/baseline evidence for universe discovery,
+  instrument events, OHLCV history, latest price, and profile operations.
+- No Alpaca request or shared-key quota was consumed. The receipt is redacted
+  in `validation.jsonl`; this is a confirmed fail-closed blocker, not a live
+  transport failure. The implementation must not infer a 200/minute allowance
+  from documentation alone without the required current reset/baseline proof.
+
 - At committed source `4d1ed8622`, the just-in-time native usage refresh and
   expanded Binance matrix both passed. The matrix covered latest history,
   direct 30-day daily history, current price, universe discovery, and native
