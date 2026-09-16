@@ -14,6 +14,10 @@
 - Added a general regression invariant requiring every
   `LIVE_PREFLIGHT_ROUTING_CONTROLS` alias to resolve to a status emitted by
   `routing_safety_preflight`; focused secret-wiring coverage now passes `26/26`.
+- The current-source Bybit-specific preflight now reports the concrete missing
+  terms/jurisdiction controls and stops before network access (`0/0` cases,
+  zero provider requests), while separately retaining the unknown native
+  five-second baseline blocker.
 
 ## 2026-09-17 Exact-source OpenFIGI anonymous matrix
 

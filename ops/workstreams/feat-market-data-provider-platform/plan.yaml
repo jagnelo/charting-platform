@@ -737,6 +737,11 @@ progress:
       from degrading to generic missing-status diagnostics. Focused coverage
       passed 26/26; Ruff, diff, and workstream checks passed.
     - >-
+      2026-09-17 current-source Bybit-specific preflight at `aa70df331` now
+      reports the concrete missing terms/jurisdiction controls and stops before
+      network access with `0/0` cases and zero provider requests. The native
+      five-second usage baseline remains independently unknown and fail-closed.
+    - >-
       2026-09-17 exact-current-source OpenFIGI anonymous validation: the first
       account-usage attempt returned a typed HTTP 429 and was not retried in a
       loop. After one provider-window delay, the native usage bootstrap passed
