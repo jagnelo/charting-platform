@@ -3515,3 +3515,16 @@ tests/e2e/
   baseline or an explicitly admitted native snapshot path before quota-spending
   live operations. The full live matrix and the other provider/legal/source,
   reconciliation, deployment-secret, and shadow gates remain open.
+
+## 2026-09-16 complete-OTC source audit
+
+- The complete OTC universe gap is now tied to a concrete official candidate:
+  OTC Markets publishes Overnight and US Security Master specifications with
+  SFTP delivery details. Those documents specify file shape, not access,
+  quota, cadence, redistribution rights, or a free-use grant. No adapter or
+  live call was added from the specification alone.
+- FINRA's public catalog remains lifecycle-only for this purpose: its OTC
+  Daily List supports additions, deletions, symbol/name changes, and related
+  events, but it does not establish a complete current OTC security master.
+  The existing FINRA OTC candidate therefore stays fail-closed until an
+  authorized complete source and terms are supplied.

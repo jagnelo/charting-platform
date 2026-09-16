@@ -172,6 +172,14 @@ remaining_gaps:
     Dinari, and FINRA OTC; and CI/deployment stores plus the final shadow gate
     remain unverified.
   - >-
+    Complete OTC universe admission still needs an authorized, current
+    security-master source. FINRA's public catalog establishes the OTC Daily
+    List lifecycle dataset but not a complete `otcSecurityMaster` feed. OTC
+    Markets' official Overnight/US Security Master specifications are now
+    recorded as the concrete candidate path; access delivery, quota/cadence,
+    complete-coverage evidence, and redistribution rights remain owner- and
+    provider-controlled, so no OTC master adapter or routing is enabled.
+  - >-
     The final current-head lock-protected live matrix at source `0b27192eb`
     collected 49 manifest cases and passed 43/49, including both the Alpaca
     AAPL and BTC-USD authenticated asset-profile probes. The three Alpha
