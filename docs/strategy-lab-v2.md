@@ -436,6 +436,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   adapter cannot commit one side alone. A successful resolution provides the
   journal and outbox states for one PostgreSQL transaction, while a repeated
   pair replays idempotently.
+- `legacy.py` defines digest-only preservation and explicit import reports for
+  legacy definitions and results. Adapter-supplied mapping assessments are
+  retained with the original record; unsupported imports remain inspectable,
+  supported imports expose a converted identity, exact retries replay, and
+  changed payload or mapping content conflicts. Reports permanently reject any
+  replay-equivalence claim.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

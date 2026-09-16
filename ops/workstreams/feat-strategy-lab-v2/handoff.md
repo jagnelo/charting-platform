@@ -1471,3 +1471,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable adapter implementation only after upstream shared-path reconciliation;
 preserve all execution-authorization and ownership gates.
+
+## 2026-09-16 - Legacy preservation/import checkpoint
+
+`legacy.py` adds digest-only `LegacyRecord` preservation, explicit import
+requests, adapter-supplied compatibility assessments, an immutable import
+registry, and `LegacyImportReport` results. Supported definitions/results retain
+the original record and expose a converted identity; unsupported records remain
+inspectable with explicit notes. Exact retries replay, changed payload or
+mapping content conflicts, preservation cannot be disabled, and reports reject
+any replay-equivalence claim. The contract never replays legacy strategies or
+reads legacy storage.
+
+The exact implementation tree passed all 263 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable adapter implementation only after upstream shared-path reconciliation;
+preserve all execution-authorization and ownership gates.
