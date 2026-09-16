@@ -291,7 +291,15 @@ A compliant
 Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
-and remains gated on account/terms review. The explicit
+and remains gated on account/terms review. Marketstack counts one request per
+ticker even when a request contains multiple symbols, does not count API errors,
+and documents notifications at 75%, 90%, and 100% of the allowance. Its
+[overage documentation](https://marketstack.com/billing-overages-documentation)
+describes a maximum 5% overdraft and disabling at 120% unless overage billing
+is enabled. Those are account-billing behaviors, not permission to route: the
+monthly reset instant is still unpublished, so the provider remains
+fail-closed until the reset boundary and account overage setting are reviewed.
+The explicit
 `MARKETSTACK_DISCOVERY_EXCHANGE` requirement is operation-scoped: ticker
 discovery/reconciliation stays disabled without a reviewed MIC, while EOD
 history and quote reads may route with the API key alone.

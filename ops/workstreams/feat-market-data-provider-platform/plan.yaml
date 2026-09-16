@@ -370,6 +370,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 Marketstack usage-semantics audit: current official pricing,
+      FAQ, and overage documentation still do not publish the monthly reset
+      timestamp, so the 100-request/month lower published ceiling remains
+      fail-closed and no routing admission was widened. The quota contract now
+      records the provider-specific per-symbol charging, API-error exclusion,
+      75/90/100% notifications, 5% overdraft, and 120% disable behavior as
+      audit metadata; account overage configuration and reset-boundary review
+      remain explicit gates. Focused quota tests and workstream validation are
+      required evidence for this documentation-only correction.
+    - >-
       2026-09-16 exact-source CoinGecko preflight at `40801db55` stopped before
       network access with exit `2`. The corrected calendar-month contract was
       accepted; only the Demo-key active `calls_per_minute` and

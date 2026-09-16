@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Marketstack usage-semantics audit
+
+- Current official Marketstack pricing/FAQ/overage sources still do not state
+  the monthly reset timestamp, so the 100-request/month seed remains
+  fail-closed with `monthly_cap_reset_boundary` unknown. No live request was
+  made and no routing admission was widened.
+- The quota contract now records the provider-specific semantics that must not
+  be reduced to a generic request counter: a multi-symbol request consumes one
+  request per ticker, API errors are not counted, notifications occur at 75%,
+  90%, and 100%, and the account may permit a 5% overdraft/120% disable rule
+  when overage billing is not enabled. These are audit metadata only; the
+  account's overage setting and reset boundary remain operator/provider review
+  gates.
+- Focused quota-contract tests and the workstream validator must pass before
+  this metadata is treated as current-source evidence. No frontend or ETF
+  provider adapter file changed.
+
 ## 2026-09-16 CoinGecko exact-source preflight
 
 - At source `40801db55`, the selected CoinGecko live runner stopped before

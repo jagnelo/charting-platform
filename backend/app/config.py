@@ -1045,6 +1045,20 @@ class Settings(BaseSettings):
                         "conflicts_with": "https://marketstack.com/pricing",
                     }
                 ],
+                # Marketstack meters each ticker in a multi-symbol request as
+                # one monthly request, does not count API errors, and may
+                # permit account-configured overages.  Preserve these
+                # provider-specific semantics as audit metadata without
+                # treating them as a safe entitlement or reset boundary.
+                "usage_semantics": {
+                    "multi_symbol_request": "one_request_per_symbol",
+                    "api_errors_counted": False,
+                    "notifications_at_fraction": [0.75, 0.90, 1.00],
+                    "maximum_overdraft_fraction": 0.05,
+                    "disable_at_fraction_without_overage_billing": 1.20,
+                    "overage_billing": "account_configurable",
+                    "source": "https://marketstack.com/faq",
+                },
                 "reset": "provider_defined",
             },
             "quota_scope": "api_key",
