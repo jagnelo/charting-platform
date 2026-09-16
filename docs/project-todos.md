@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-16 — Alpaca independent reset-boundary admission control
+
+- [x] Keep Alpaca's documented 200-requests/minute account ceiling separate
+      from its native account-usage bootstrap. Commit `8808f6ba` adds
+      `ALPACA_REVIEWED_RESET` and `ALPACA_QUOTA_EVIDENCE`; ordinary market-data
+      and metadata routing remains fail-closed until both are configured with
+      an admission-safe reset label and current evidence. The one
+      `fetch_account_usage` control-plane read remains eligible to observe
+      native `X-RateLimit-*` headers without guessing a window.
+- [x] Keep cursor-paginated corporate actions independently bounded by
+      `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`; wire all three controls through
+      local/RPi Compose, GitHub CI, diagnostics, live preflight, and examples.
+- [x] Focused Alpaca/registry/quota/runtime/wiring coverage passed `423/423`;
+      complete backend unit coverage passed `2,355/2,355` with 37 warnings and
+      70.76% coverage; Ruff and diff checks passed. No provider request or
+      credential was used.
+- [ ] Obtain current Alpaca reset-boundary evidence, configure the reviewed
+      pair per environment, and run the bounded credentialed live matrix; do
+      not promote ordinary routing from fixture or header observations alone.
+
 ### 2026-09-16 — Finnhub independent reset-boundary admission control
 
 - [x] Preserve Finnhub's 60/minute and 30/second ceilings as independent

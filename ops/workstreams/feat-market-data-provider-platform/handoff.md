@@ -1,5 +1,32 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpaca independent reset-boundary admission control
+
+- Alpaca's documented 200-requests/minute account pool remains
+  `provider_defined` by default because the current plan documentation does
+  not establish a fixed or rolling initial reset boundary. The implementation
+  adds provider-specific `ALPACA_REVIEWED_RESET` and
+  `ALPACA_QUOTA_EVIDENCE` controls and only promotes the quota contract when
+  both are admission-safe/evidenced; no generic rate-limit fallback was added.
+- `fetch_account_usage` is deliberately exempt from the reset pair because it
+  is the explicit one-request bootstrap path that observes native
+  `X-RateLimit-*` headers. Ordinary history/latest/metadata/discovery routes
+  still fail closed until the reviewed pair is configured. Corporate-actions
+  pagination separately requires the positive
+  `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` bound.
+- Controls are wired through local and backend examples, Docker Compose, RPi
+  Compose, the manual GitHub workflow, registry diagnostics, and the live
+  safety preflight. Documentation records the independent controls and keeps
+  Alpaca UUIDs provider-native rather than treating them as canonical FIGI/CIK.
+- Focused coverage passed `423/423`; the complete backend unit gate passed
+  `2,355/2,355` with 37 warnings and 70.76% coverage. Ruff and
+  `git diff --check` passed. No provider request or credential was used.
+- The current gate remains open: obtain current reset-boundary evidence,
+  populate the pair in each authorized environment, run the bounded live
+  Alpaca matrix, and reconcile the native observations before any routing or
+  shadow activation. This feature branch still does not modify frontend or
+  ETF constituent adapters.
+
 ## 2026-09-16 Finnhub independent reset-boundary admission control
 
 - Finnhub's observed free-account ceilings remain two distinct dimensions:
