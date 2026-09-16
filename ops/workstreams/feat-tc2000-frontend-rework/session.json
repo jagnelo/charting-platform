@@ -52,7 +52,10 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -112,14 +115,14 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "540f19abf97bc76deec74530f0d7689e9121abd8",
-  "implementation_sha": "5ee18b567e50ffdd0f1ad6c0309e8e8533c94593",
+  "head": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+  "implementation_sha": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
   "interrupted": false,
-  "last_checkpoint": "2026-09-16T20:47:30.928113+00:00",
-  "last_human_progress_update": "2026-09-16T20:45:24.312562+00:00",
+  "last_checkpoint": "2026-09-16T22:17:02.488131+00:00",
+  "last_human_progress_update": "2026-09-16T22:16:01.988864+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "3fc65741d2a3a8019889c76d3286b32d026ca783ef7c189d3dc3707863e224f6",
+  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Signal Replay exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
+  "plan_hash": "f8b7770841db4667390a009eb73af96eedb66bbca7f643f2bd35a00c660059aa",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -131,20 +134,20 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "No active TC-owned product or validation blocker; provider/ETF staging and private-origin synchronization remain separate holds.",
-    "current_phase": "R6_walk_forward_empty_state_accessibility_exact_gate_passed",
-    "next_action": "Select and implement the next bounded TC-owned R1/R5/R6 roadmap item; keep provider and ETF consumer work deferred until both upstream branches reach staging.",
+    "current_blocker": "No active TC-owned product or validation blocker. The exact Signal Replay gate passed with clean branch-scoped teardown; provider/ETF staging and private-origin synchronization remain separate holds.",
+    "current_phase": "R6_signal_replay_empty_state_accessibility_exact_gate_passed",
+    "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Signal Replay exact-gate receipt and keep provider/ETF consumer work deferred until both branches reach staging.",
     "total": 9,
-    "updated_at": "2026-09-16T20:45:24.312488+00:00"
+    "updated_at": "2026-09-16T22:16:01.988804+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "540f19abf97bc76deec74530f0d7689e9121abd8",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..540f19abf97bc76deec74530f0d7689e9121abd8",
+    "current_local_head": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..49e643a8c0c664daedddeac82334a6fd60f5b8eb",
     "failure_category": "a previous exact payload was rejected by the private-origin safeguard; this updated pending range was not retried without trusted exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "540f19abf97bc76deec74530f0d7689e9121abd8",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..540f19abf97bc76deec74530f0d7689e9121abd8",
+    "head_at_product_checkpoint": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..49e643a8c0c664daedddeac82334a6fd60f5b8eb",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"

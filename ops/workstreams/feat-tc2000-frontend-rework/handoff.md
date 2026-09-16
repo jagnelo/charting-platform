@@ -13464,3 +13464,73 @@ Focused WalkForwardSegments coverage passed `2/2`; full frontend Vitest passed
 large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
 full-stack/browser gate is pending at this product tip. Provider/ETF consumer
 integration remains deferred until both branches reach staging.
+
+## 2026-09-16 - Run Comparison empty-state accessibility
+
+Product commit `ccb816529` gives the no-comparison state an explicit polite,
+atomic status announcement. Comparison rows, lead/lag counts, visible text, and
+layout are unchanged.
+
+Focused RunComparisonTable coverage passed `2/2`; full frontend Vitest passed
+`1,123/1,123`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.
+
+## 2026-09-16 - Run Comparison exact gate and isolated F8s retry
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate at
+product tip `ccb816529` reached the complete branch-scoped browser run after
+all locked dependency, migration, workstream, lint/format, backend, frontend,
+build, Compose, provider-probe, stack-health, and research-runner stages passed.
+The exhaustive Playwright run reported `169 passed`, `107 skipped`, and one
+failure in the unchanged `F8s-breadth-family-ratio` flow at
+`frontend/tests/e2e/flows.spec.ts:4665`: the fixture occurrence is dated
+`2026-06-27T00:00:00Z`, but the chart retained seeded
+`2025-12-29T21:00:00Z` in `data-linked-timestamp`. A fresh branch-scoped stack
+retry of that exact flow passed `1/1` without source changes. Teardown removed
+the assigned containers, volumes, network, generated images, and test sessions;
+resource accounting is clean. This is recorded as a seeded-workspace/browser
+validation instability, not a TC-owned product defect. No provider-platform,
+ETF, visual-oracle, baseline, threshold, mask, skip, V25-media, or
+acceptance-policy behavior changed. Rerun the exact gate at the next checkpoint
+before marking this slice's receipt passed.
+
+## 2026-09-16 - Signal Replay empty-state accessibility
+
+Product commit `49e643a8c` gives Signal Replay's empty state explicit polite,
+atomic status semantics. Summary chips, setup breakdown rows, pinned detail
+behavior, and visible layout are unchanged.
+
+Focused SignalReplayBreakdown coverage passed `2/2`; full frontend Vitest passed
+`1,124/1,124`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The
+exact full-stack/browser gate is pending at this product tip. The preceding
+gate's isolated F8s retry remains recorded as a seeded-workspace/browser
+validation instability. Provider/ETF consumer integration remains deferred
+until both branches reach staging.
+
+## 2026-09-16 - Signal Replay exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+exited `0` at product tip `49e643a8c`. It completed the repository/workstream
+and locked dependency stages, migration compatibility, lint/format, backend
+unit/integration coverage, frontend Vitest `1,124/1,124`, type-check/build,
+Compose/provider contracts, branch-scoped Docker stack health,
+research-runner probes, authenticated functional Chromium, and the separate
+four-project TC2000 visual matrix with no failure markers. The host
+`/usr/bin/make` wrapper still exits with Xcode-license status `69`, so the
+equivalent installed CommandLineTools Make binary ran the same target without
+changing system state. Branch-scoped teardown and post-gate resource
+accounting reported zero containers, volumes, test sessions, known bytes, and
+unknown components with accounting complete. The preceding F8s seeded
+timestamp mismatch did not reproduce in this full run and remains classified as
+a transient browser/fixture instability. No provider-platform, ETF,
+visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
+changed. Provider/ETF consumer integration remains deferred until both branches
+reach staging; this is a complete exact-gate receipt for the Signal Replay
+slice, not closure of the overall workstream.

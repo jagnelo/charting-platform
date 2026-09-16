@@ -20,13 +20,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  No active TC-owned validation blocker: the latest full integration gate passed
-  on the current product tree, including functional browser flows and all four
-  visual projects, and its branch-scoped cleanup completed. Provider-platform
-  and ETF consumer integration remains a sequencing gate until both upstream
-  branches reach staging; that does not stop independent TC-owned work. Origin
-  synchronization remains a separate operational hold under the recorded
-  private-origin safeguard, not a product or validation blocker.
+  No active TC-owned product or validation blocker: the exact gate at product
+  tip 49e643a8c0c664daedddeac82334a6fd60f5b8eb passed the repository stages,
+  functional browser flows, and all four visual projects with clean
+  branch-scoped teardown. The preceding F8s timestamp mismatch remains
+  documented as a transient seeded-workspace/browser instability. Provider-
+  platform and ETF consumer integration remains a sequencing gate until both
+  upstream branches reach staging; that does not stop independent TC-owned
+  work. Origin synchronization remains a separate operational hold under the
+  recorded private-origin safeguard, not a product or validation blocker.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -255,19 +257,19 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_walk_forward_empty_state_accessibility_gate_pending
+  current_phase: R6_signal_replay_empty_state_accessibility_exact_gate_passed
   next_action: >-
-    Run the exact validate-integration target at product tip
-    5ee18b567e50ffdd0f1ad6c0309e8e8533c94593, record clean teardown, then
-    checkpoint the Walk-Forward empty-state accessibility receipt. Keep
-    provider/ETF consumer work deferred until both upstream branches reach
-    staging, and do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Select the next bounded TC-owned R1/R5/R6 item, preserve the exact-gate
+    receipt, and keep provider/ETF consumer work deferred until both upstream
+    branches reach staging. Do not retry origin synchronization under the
+    existing private-origin safeguard without newly accepted exact-payload
+    authorization.
   current_blocker: >-
-    No active TC-owned product or validation blocker: the Walk-Forward
-    empty-state accessibility slice passed focused validation and its exact
-    full_stack_browser gate is pending at product tip
-    5ee18b567e50ffdd0f1ad6c0309e8e8533c94593.
+    No active TC-owned product or validation blocker. The exact
+    full_stack_browser gate at product tip 49e643a8c0c664daedddeac82334a6fd60f5b8eb
+    passed and branch-scoped cleanup/resource accounting are clean. The
+    preceding F8s timestamp mismatch is retained as a transient seeded-
+    workspace/browser instability only.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
