@@ -17,6 +17,19 @@
   open. The complete backend replay for this commit passed `2,778` tests with
   `473` expected skips.
 
+## 2026-09-16 native usage refresh at current source
+
+- The existing provider-native usage paths for EODHD, Twelve Data,
+  MarketData.app, and Binance each passed their exact focused manifest case
+  `1/1` at source `7e96bc9a8` with one bounded request per provider. Redacted
+  receipts are appended to `validation.jsonl`; no payloads or credentials were
+  persisted.
+- These observations refresh durable cross-session usage state only. EODHD's
+  conflicting published minute limits and stale/current-date daily semantics,
+  Twelve Data's separate daily pool, MarketData.app's configured trial expiry,
+  and Binance's provider-specific weight window remain governed by their
+  existing contracts; no new generic quota was inferred.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses

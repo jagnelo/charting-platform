@@ -178,6 +178,13 @@ remaining_gaps:
     because the provider documentation does not establish the reset-window
     semantics needed for reservations; no rolling/fixed boundary is inferred.
   - >-
+    Exact current-source native usage refreshes for EODHD, Twelve Data,
+    MarketData.app, and Binance each passed their focused manifest case 1/1
+    with one bounded request. Their redacted receipts are durable in
+    `validation.jsonl`; provider-specific conflicting limits, separate pools,
+    trial expiry, and weight-window semantics remain enforced as documented
+    rather than replaced by a generic quota.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and
