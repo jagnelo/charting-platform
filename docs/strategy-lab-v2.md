@@ -95,6 +95,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   processed, buffered, correction, duplicate, and out-of-order evidence.
   Accepted/gap/correction records are idempotent when replayed, while anomaly
   counts remain observable for each newly observed event.
+- `dispatch.py` defines immutable queue requests/envelopes and pure idempotency
+  resolution. A repeated key with the same attempt/payload/queue replays the
+  existing request; a reused key with different content is an explicit
+  conflict. Redis/outbox publication still requires an atomic adapter.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
   validation checks the strategy's declared instrument scope.

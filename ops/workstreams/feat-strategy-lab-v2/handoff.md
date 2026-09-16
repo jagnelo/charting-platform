@@ -1063,3 +1063,17 @@ The exact implementation tree passed all 120 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Worker dispatch/idempotency, database/API,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Worker dispatch idempotency checkpoint
+
+`dispatch.py` adds immutable `DispatchRequest` and content-addressed
+`DispatchEnvelope` records plus `resolve_idempotent_dispatch()`. Identical
+idempotency keys replay the same attempt/payload/queue request; differing
+payload or queue content returns an explicit conflict, and contradictory prior
+records fail closed. The contract performs no Redis, outbox, or worker I/O;
+atomic compare-and-set remains an adapter responsibility.
+
+The exact implementation tree passed all 125 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Progress/cancellation, database/API,
+workers, artifact-store, Compose, Nautilus, frontend, integration, promotion,
+and deployment paths remain unchanged.
