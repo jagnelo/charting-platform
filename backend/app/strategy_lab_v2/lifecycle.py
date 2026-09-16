@@ -112,6 +112,8 @@ class ExecutionAttemptLease:
     def status_at(self, now: datetime) -> AttemptLeaseStatus:
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("lease status time must be timezone-aware")
+        if now < self.leased_at:
+            raise ValueError("lease status time cannot precede lease acquisition")
         if self.released_at is not None and now >= self.released_at:
             return AttemptLeaseStatus.RELEASED
         return AttemptLeaseStatus.ACTIVE if now < self.expires_at else AttemptLeaseStatus.EXPIRED

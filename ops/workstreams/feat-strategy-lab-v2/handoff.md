@@ -1035,3 +1035,17 @@ The exact implementation tree passed all 113 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Forward-state persistence/idempotency,
 database/API, workers, artifact-store, Compose, Nautilus, frontend,
 integration, promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Execution authorization-gate checkpoint
+
+`execution.py` adds `authorize_execution()`, which composes accepted static
+source validation, trial-bound capability evidence, matching running-attempt
+identity, and an active worker lease into one immutable authorization record.
+The gate fails closed on unsupported capability, mismatched trial/lease, bad
+source, non-running attempts, expired leases, or non-monotonic timestamps. It
+does not import or invoke an engine, access storage, or carry secrets.
+
+The exact implementation tree passed all 116 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Forward-state persistence/idempotency,
+database/API, workers, artifact-store, Compose, Nautilus, frontend,
+integration, promotion, and deployment paths remain unchanged.
