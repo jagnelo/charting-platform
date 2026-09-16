@@ -158,7 +158,11 @@ describe('SymbolPerformanceBars', () => {
     await nextTick()
 
     expect(vi.mocked(uPlot)).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('No per-symbol attribution yet.')
+    const emptyState = wrapper.get('.symbol-bars__empty')
+    expect(emptyState.text()).toContain('No per-symbol attribution yet.')
+    expect(emptyState.attributes('role')).toBe('status')
+    expect(emptyState.attributes('aria-live')).toBe('polite')
+    expect(emptyState.attributes('aria-atomic')).toBe('true')
     expect(wrapper.find('[data-testid="symbol-pnl-point"]').exists()).toBe(false)
   })
 })

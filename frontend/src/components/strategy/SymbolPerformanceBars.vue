@@ -51,7 +51,15 @@
       </div>
     </Teleport>
   </div>
-  <div v-else class="symbol-bars__empty">{{ emptyLabel }}</div>
+  <div
+    v-else
+    class="symbol-bars__empty"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {{ emptyLabel }}
+  </div>
 </template>
 
 <script setup lang="ts">
