@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R5 direct single-output range promotion
+
+Product commit `361cdcb54` fixes the direct Study Lab range path. A valid
+single-output range run now resolves its durable named range artifact when the
+user selects `Save center as chart plot` or `Save latest center column`, so the
+existing `range_center_to_series` and `range_center_to_scalar` adapters retain
+the output name and run lineage just like the named multi-output path. A range
+without a valid aligned finite center remains inspectable/exportable but does
+not expose promotion controls.
+
+Focused Study Lab coverage passed `39/39`; full frontend Vitest passed
+`1,099/1,099`; `vue-tsc` and the production build passed (with the existing
+large-chunk warning); and authenticated headless `F9j-range` passed `1/1` with
+plot/column lineage assertions. TC scope validation passed for `52` changed
+paths and all six self-tests; `git diff --check` passed. The exact branch stack
+was started using Docker's existing `default` builder after the helper's stale
+branch-builder registration error, then only this worktree's containers,
+volumes, network, generated images, and test sessions were removed. No provider
+or ETF behavior, visual oracle, threshold, mask, skip, V25 media, or acceptance
+policy changed.
+
+The broader goal remains active/in progress: no TC-owned validation blocker is
+present, while provider/ETF consumer integration remains deferred until both
+upstream branches reach staging. Origin synchronization remains a separate
+operational hold under the recorded private-origin safeguard.
+
 ## 2026-09-16 — R5 series shapes and R6 visual parity: full gate green
 
 Product commit `92876519f839f6341d9ff073c8a60e043996697a`

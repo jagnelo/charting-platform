@@ -20,13 +20,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact full gate at e93de4af43766a85242958e30702d32f231df8ee passed every
-  pre-visual stage and functional Playwright (165 passed, 107 documented skips);
-  visual parity remains 98/104 with the six protected watchlist-column-editor
-  and workspace-floating diffs. The provider-platform branch is at
-  ready_for_human_review but is not in staging, and the ETF branch is waiting
-  for that dependency. TC must continue independent UI and TC-owned Study/
-  Strategy work without implementing their provider/ETF responsibilities.
+  No active TC-owned validation blocker: the latest full integration gate passed
+  on the current product tree, including functional browser flows and all four
+  visual projects, and its branch-scoped cleanup completed. Provider-platform
+  and ETF consumer integration remains a sequencing gate until both upstream
+  branches reach staging; that does not stop independent TC-owned work. Origin
+  synchronization remains a separate operational hold under the recorded
+  private-origin safeguard, not a product or validation blocker.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
@@ -254,14 +254,12 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_research_series_shape_compatibility
+  current_phase: R5_direct_range_promotion_compatibility
   next_action: >-
-    Preserve the validated R5 series-shape compatibility and R6 visual-parity
-    slice in its local product commit and checkpoint the passing full-gate
-    evidence. Then continue the next unfinished TC-owned roadmap item; keep
-    provider/ETF consumer work deferred until both upstream branches reach
-    staging, and do not retry origin synchronization under the existing private-
-    origin safeguard without newly accepted exact-payload authorization.
+    Continue the next unfinished TC-owned roadmap item. Keep provider/ETF
+    consumer work deferred until both upstream branches reach staging, and do
+    not retry origin synchronization under the existing private-origin
+    safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned validation blocker: the full make validate-integration
     gate passed on the current product tree, including functional browser flows
@@ -272,6 +270,7 @@ progress:
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit 361cdcb54 fixes direct single-output Study Lab range promotion: valid aligned finite centers now resolve their durable named artifact for chart-plot and latest-column adapters, while malformed or centerless ranges remain view/export-only. Focused Study Lab coverage passed 39/39; full frontend Vitest passed 1,099/1,099; type-check and production build passed; authenticated F9j-range passed 1/1 with lineage assertions; TC scope guard passed 52 paths and six self-tests; diff checks passed; and the branch-scoped stack/resource cleanup completed. No provider-platform, ETF, visual-oracle, threshold, mask, skip, or acceptance-policy behavior changed."
   - "Product commit 349ffc07 validates persisted Research Results cross-sectional series shapes before exposing an aggregate chart plot. Malformed timestamp/value alignment remains view/export-only with an explicit limitation, while valid aggregate series retain the existing lineage-preserving adapter. Focused Research Results coverage passed 40/40; full frontend Vitest 1079/1079; type-check/build and authenticated headless F8t-results passed; scoped Docker cleanup/resource audit, scope/workstream validators, and diff check passed. Six protected visual diffs, exact-tip validation, upstream staging dependencies, and private-origin push authorization remain open."
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
