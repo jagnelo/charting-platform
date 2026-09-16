@@ -500,6 +500,8 @@ async def test_provider_routing_emergency_switch_keeps_all_adapters_out_of_chain
 async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "reviewed test fixture")
     # The live Alpha Vantage contract intentionally keeps its daily reset
     # boundary unknown. This resolver test supplies an explicit reviewed test
     # fixture so it can isolate the raw-vs-adjusted capability filter without

@@ -18,6 +18,7 @@ from app.config import (
     marketdata_app_trial_expiry_is_valid,
     massive_market_data_use_authority_missing,
     provider_positive_integer,
+    provider_quota_reset_is_admission_safe,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
     provider_reviewed_flag,
@@ -577,6 +578,10 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
         "FRED_SERIES_RIGHTS_EVIDENCE",
     ),
+    "alpha_vantage": (
+        "ALPHA_VANTAGE_REVIEWED_RESET",
+        "ALPHA_VANTAGE_QUOTA_EVIDENCE",
+    ),
     "coinbase": (
         "COINBASE_MARKET_DATA_USE_AUTHORIZED",
         "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
@@ -848,6 +853,19 @@ def provider_missing_routing_controls(
             missing.append("FRED_REVIEWED_QUOTA_EVIDENCE")
         missing.extend(fred_data_use_controls_missing())
         missing.extend(fred_series_rights_missing())
+        return missing
+    if name == "alpha_vantage":
+        reviewed_reset = str(
+            getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        missing: list[str] = []
+        if not provider_quota_reset_is_admission_safe(reviewed_reset):
+            missing.append("ALPHA_VANTAGE_REVIEWED_RESET")
+        if not quota_evidence:
+            missing.append("ALPHA_VANTAGE_QUOTA_EVIDENCE")
         return missing
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()

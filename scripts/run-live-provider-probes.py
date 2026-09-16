@@ -1268,6 +1268,7 @@ def routing_safety_preflight() -> dict[str, str]:
         FRED_MAPPED_SERIES_IDS,
         coinbase_market_data_use_authority_missing,
         massive_market_data_use_authority_missing,
+        provider_quota_reset_is_admission_safe,
         xstocks_market_data_use_authority_missing,
     )
 
@@ -1438,6 +1439,20 @@ def routing_safety_preflight() -> dict[str, str]:
         if not finra_otc_missing
         else "non-routable: missing/invalid "
         + ", ".join(dict.fromkeys(finra_otc_missing))
+    )
+
+    alpha_reset = os.getenv("ALPHA_VANTAGE_REVIEWED_RESET", "").strip()
+    alpha_quota_evidence = os.getenv("ALPHA_VANTAGE_QUOTA_EVIDENCE", "").strip()
+    alpha_missing: list[str] = []
+    if not provider_quota_reset_is_admission_safe(alpha_reset):
+        alpha_missing.append("ALPHA_VANTAGE_REVIEWED_RESET")
+    if not alpha_quota_evidence:
+        alpha_missing.append("ALPHA_VANTAGE_QUOTA_EVIDENCE")
+    result["alpha_vantage"] = (
+        "routable"
+        if not alpha_missing
+        else "non-routable: documented 25-requests/day allowance has no provider-published reset boundary; missing/invalid "
+        + ", ".join(alpha_missing)
     )
 
     # These providers have a useful live read but still lack one or more

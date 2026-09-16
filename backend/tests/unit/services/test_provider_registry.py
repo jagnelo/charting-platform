@@ -310,6 +310,8 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORIZED", False)
         monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "")
         monkeypatch.setattr(settings, "FRED_SERIES_RIGHTS_EVIDENCE", {})
+        monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "")
+        monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", False)
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
@@ -461,6 +463,14 @@ class TestProviderRegistry:
             "FRED_AUTOMATED_USE_AUTHORIZED",
             "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
             "FRED_SERIES_RIGHTS_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("alpha_vantage") == (
+            "ALPHA_VANTAGE_REVIEWED_RESET",
+            "ALPHA_VANTAGE_QUOTA_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("alpha_vantage") == [
+            "ALPHA_VANTAGE_REVIEWED_RESET",
+            "ALPHA_VANTAGE_QUOTA_EVIDENCE",
         ]
         assert provider_routing_control_settings("coinbase") == (
             "COINBASE_MARKET_DATA_USE_AUTHORIZED",
@@ -694,6 +704,13 @@ class TestProviderRegistry:
         assert fred_seed["quota_contract"]["unknown_dimensions"] == []
         assert fred_seed["quota_contract"]["dimensions"][0]["limit"] == 120
         assert fred_seed["quota_contract"]["dimensions"][0]["scope"] == "api_key"
+        monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "calendar_day_utc")
+        monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "operator review")
+        assert provider_missing_routing_controls("alpha_vantage") == []
+        alpha_seed = provider_rate_limit_seed("alpha_vantage")
+        assert alpha_seed["quota_contract"]["reset"] == "calendar_day_utc"
+        assert alpha_seed["quota_contract"]["unknown_dimensions"] == []
+        assert alpha_seed["quota_contract"]["dimensions"][0]["reset"] == "calendar_day_utc"
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", True)
         monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
         monkeypatch.setattr(

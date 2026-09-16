@@ -2045,6 +2045,12 @@ class Settings(BaseSettings):
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MASSIVE_API_KEY: str = ""
     ALPHA_VANTAGE_API_KEY: str = ""
+    # Alpha Vantage publishes the free-key 25-requests/day allowance but does
+    # not publish a reset boundary/timezone. Keep routing fail-closed until an
+    # operator records a reviewed boundary and its evidence. This remains
+    # configurable so a future plan can update the quota without code changes.
+    ALPHA_VANTAGE_REVIEWED_RESET: str = ""
+    ALPHA_VANTAGE_QUOTA_EVIDENCE: str = ""
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
     TIINGO_API_KEY: str = ""
@@ -2931,6 +2937,39 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                     for dimension in contract.get("dimensions") or []
                 ]
                 seed["quota_contract"] = contract
+        return seed
+    if provider_name == "alpha_vantage":
+        # Alpha Vantage documents the free-key daily allowance but does not
+        # publish the reset boundary/timezone. Never reinterpret that as a
+        # rolling 24-hour window. An operator may promote the seed only after
+        # recording a reviewed, calculable reset label and evidence; the
+        # setting is intentionally provider-specific so plan changes remain
+        # configuration-only.
+        reviewed_reset = str(
+            getattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if isinstance(dimension, dict) and dimension.get("name") == "requests_per_day":
+                    dimension["reset"] = reviewed_reset
+            contract["source"] = (
+                f"{contract.get('source', 'Alpha Vantage support documentation')} plus "
+                "operator-reviewed reset-boundary evidence"
+            )
+            seed["quota_scope"] = "api_key"
+            seed["quota_source"] = (
+                "Alpha Vantage support allowance plus operator-reviewed reset evidence"
+            )
         return seed
     if provider_name == "fred":
         # A reviewed API limit alone is not enough: this application persists

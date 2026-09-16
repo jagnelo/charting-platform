@@ -88,6 +88,8 @@ PROVIDER_SAFETY_SETTINGS = {
     "FINRA_OTC_COMPLETENESS_REVIEWED",
     "FINRA_OTC_REDISTRIBUTION_REVIEWED",
     "FINRA_OTC_POLL_INTERVAL_SECONDS",
+    "ALPHA_VANTAGE_REVIEWED_RESET",
+    "ALPHA_VANTAGE_QUOTA_EVIDENCE",
     "FRED_REVIEWED_LIMIT_SCOPE",
     "FRED_REVIEWED_REQUESTS_PER_MINUTE",
     "FRED_REVIEWED_QUOTA_EVIDENCE",
@@ -407,6 +409,14 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     )
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
     assert (
+        "ALPHA_VANTAGE_REVIEWED_RESET: ${{ vars.ALPHA_VANTAGE_REVIEWED_RESET || '' }}"
+        in workflow
+    )
+    assert (
+        "ALPHA_VANTAGE_QUOTA_EVIDENCE: ${{ vars.ALPHA_VANTAGE_QUOTA_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert (
         "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}"
         in workflow
     )
@@ -514,6 +524,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
     assert "MASSIVE_MARKET_DATA_USE_EXPIRES_AT=" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
+    assert "ALPHA_VANTAGE_REVIEWED_RESET=" in example
+    assert "ALPHA_VANTAGE_QUOTA_EVIDENCE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
     assert "FRED_PERSISTED_STORAGE_AUTHORIZED=false" in example
@@ -603,6 +615,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_REVIEWED_AT", "")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_EXPIRES_AT", "")
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
+    monkeypatch.setenv("ALPHA_VANTAGE_REVIEWED_RESET", "")
+    monkeypatch.setenv("ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
@@ -641,6 +655,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["massive market-data use"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
+    assert statuses["alpha_vantage"].startswith("non-routable:")
     assert statuses["coinbase market-data use"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("routable:")
     assert statuses["dinari sandbox canary quota"].startswith("non-routable:")

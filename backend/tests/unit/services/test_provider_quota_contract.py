@@ -179,6 +179,26 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
     assert massive["reset"] == "provider_defined"
     assert massive["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
 
+    alpha = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
+    assert alpha["dimensions"][0]["limit"] == 25
+    assert alpha["reset"] == "provider_defined"
+    assert alpha["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
+
+
+def test_alpha_vantage_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "calendar_day_utc")
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "operator review")
+    contract = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
+    assert contract["reset"] == "calendar_day_utc"
+    assert contract["unknown_dimensions"] == []
+    assert contract["dimensions"][0]["reset"] == "calendar_day_utc"
+
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
+    contract = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
+    assert contract["reset"] == "provider_defined"
+    assert contract["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
+
 
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkeypatch):

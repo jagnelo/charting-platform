@@ -84,6 +84,15 @@ the adjusted daily endpoint is premium-only. A future credentialed live case
 may select one weekly or monthly range, but this fixture evidence does not
 change the unresolved 25-requests/day reset boundary or promote Alpha Vantage
 routing.
+Alpha Vantage's daily allowance is therefore represented as
+`provider_defined` with an explicit unknown reset dimension. Operators must
+not enter a guessed rolling window: if a current provider confirmation or
+reviewed account observation establishes a calculable boundary, set
+`ALPHA_VANTAGE_REVIEWED_RESET` to an admission-safe reset label and record the
+source in `ALPHA_VANTAGE_QUOTA_EVIDENCE`. Both values are wired through
+local/RPi Compose and the manual GitHub workflow; blank or unresolved values
+continue to block routing. This also lets a future Alpha plan change update
+the reviewed contract without code changes.
 It also prints a routing-safety preflight for Alpaca's paginated corporate-actions
 page bound, FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
