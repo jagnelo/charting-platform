@@ -12951,3 +12951,43 @@ Next: continue auditing TC-owned R5 Study/Strategy consumers for a distinct
 shape-compatibility or lineage gap. Keep upstream provider/ETF integration
 deferred until both reach staging; preserve all visual oracles and do not
 retry the private-origin push without trusted exact-payload authorization.
+
+## 2026-09-16 - Virtual watchlist row accessibility semantics
+
+Product commits `a39fea41d`, `5e59e0ea5`, and `543e021fb` complete a narrow
+TC-owned R6 accessibility slice for the virtualized workstation watchlist.
+Each option keeps its existing symbol/name prefix and row text while its
+accessible name now includes the filtered position, every visible column's
+formatted value, cell warnings, and flagged state. `aria-setsize` and
+`aria-posinset` describe the complete filtered universe even when only a
+virtual window is mounted. No provider, ETF, data-acquisition, refresh, or
+visual-oracle behavior changed.
+
+Focused `VirtualWatchlistTool` coverage passed 74/74. Full frontend Vitest
+passed 1,103/1,103; frontend type-check and production build passed with the
+existing large-chunk warning; and authenticated headless Chromium passed the
+new F8d accessibility assertions plus the affected F8e drilldown flows 5/5.
+The TC scope guard passed for 57 changed paths with all six self-tests,
+workstream validation passed 30 records, and `git diff --check` passed.
+
+The first full-gate attempt exposed two F8e assertions receiving the hidden
+summary's `Position` token because the initial implementation put the summary
+inside each option. The markup was revised and the final accessible-name
+implementation keeps option `innerText` unchanged. The definitive
+`make validate-integration` run at product tip `543e021fb` then passed backend
+unit/integration coverage 1,621/408, frontend Vitest 1,103/1,103, authenticated
+functional Chromium 170 with 107 documented skips, and all four visual
+projects 104/104. Branch-scoped teardown removed the assigned containers,
+volumes, network, four generated images, and test sessions; no visual
+baseline, mask, threshold, skip, provider, ETF, or acceptance policy changed.
+
+The branch remains `committed_locally_pending_push`; origin still points to
+`63d64bfe95c98bfe6e550bf69c213ae1cd64a629`, and the private-origin safeguard
+continues to hold push synchronization. Provider-platform and ETF consumer
+integration remains deferred until their branches reach staging. This is a
+complete product slice and exact-gate receipt, not closure of the overall
+workstream.
+
+Next: select the next bounded TC-owned R1/R5/R6 item, preserve the visual
+oracles, and consume provider/ETF contracts only after their staging
+promotion.

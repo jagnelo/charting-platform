@@ -255,25 +255,25 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R5_python_breadth_strategy_signal_promotion
+  current_phase: R6_virtual_watchlist_accessibility
   next_action: >-
-    Select and implement the next bounded TC-owned roadmap item now that the
-    breadth-signal product tip has passed exact full_stack_browser validation.
-    Keep provider/ETF consumer work deferred until both upstream branches reach
-    staging, and do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Select and implement the next bounded TC-owned R1/R5/R6 roadmap item now
+    that the virtual-watchlist accessibility slice has passed the exact
+    full_stack_browser gate. Keep provider/ETF consumer work deferred until
+    both upstream branches reach staging, and do not retry origin
+    synchronization under the existing private-origin safeguard without newly
+    accepted exact-payload authorization.
   current_blocker: >-
-    No active TC-owned product blocker: the breadth-history Strategy signal
-    slice and the exact make validate-integration gate pass at product tip
-    61c4ae34a (documentation tip 31894da50). The first exact attempt stopped
-    only at functional Chromium on F8k after 169 passes and 107 documented
-    skips; a fresh-stack F8k retry passed 1/1 and the exact rerun passed 170
-    functional cases with 107 documented skips plus all four visual projects.
-    Provider-platform and ETF consumer integration remains a sequencing gate
-    until both upstream branches reach staging; that does not stop independent
-    TC-owned work. Origin synchronization remains a separate operational hold
-    under the recorded private-origin safeguard, not a product or validation
-    blocker.
+    No active TC-owned product or validation blocker: the exact
+    make validate-integration gate passed at product tip 543e021fb after the
+    virtual-watchlist accessibility correction, with backend unit/integration
+    coverage 1621/408, frontend Vitest 1103/1103, authenticated functional
+    Chromium 170 passed with 107 documented skips, all four visual projects
+    104/104, and clean branch-scoped teardown. Provider-platform and ETF
+    consumer integration remains a sequencing gate until both upstream
+    branches reach staging; that does not stop independent TC-owned work.
+    Origin synchronization remains a separate operational hold under the
+    recorded private-origin safeguard, not a product or validation blocker.
 historical_implementation_records:
   - "Product commit 61c4ae34a adds a dedicated historical Python breadth-to-Strategy signal promotion path. Research Results no longer routes this action through an EasyScan condition: the TC endpoint creates a separate immutable signal asset and Strategy definition atomically, preserving source run, member IDs, dataset-manifest fingerprint/summary, source output name, threshold adapter, recursive member tree, and point-in-time lineage. Cross-sectional trees are rejected as aggregate-only. Legacy and canonical promotion diagnostics are normalized into queued Strategy research jobs, including condition-tree execution. Focused frontend Research Results coverage passed 48/48; full frontend Vitest passed 1,102/1,102; type-check and production build passed with the existing large-chunk warning; Strategy Lab API coverage passed 29/29; breadth workspace integration passed 2/2 for Boolean, numeric-series, and recursive-tree paths; Strategy queue unit coverage passed 16/16; Ruff/format and diff checks passed. The initial exact gate attempt had one transient F8k popup-recovery failure; a fresh-stack retry passed 1/1 and the exact rerun then passed functional Chromium 170 with 107 documented skips plus all four visual projects 104/104. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance policy changed."
   - "Exact make validate-integration gate passed at product/checkpoint tip 2153991e4: backend unit/integration coverage 1,619 passed, frontend Vitest 1,102/1,102, lint/format/type-check/build, Compose contracts, expected research-runner sandbox/resource probes, authenticated functional Chromium 170 passed with 107 documented skips, and all four visual projects 104/104. Stack teardown removed the assigned containers, volumes, network, four generated images, and test sessions. A focused retry classified the earlier runner restart as transient; an intermediate stack build hit Docker storage exhaustion and a full-gate retry hit stale custom-builder registration, both recovered with exact TC2000 builder cleanup. No provider/ETF, visual-oracle, baseline, threshold, mask, skip, or acceptance-policy behavior changed."
@@ -412,6 +412,7 @@ historical_implementation_records_continued:
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies. Product tip 22fd676e adds the named structured-event Strategy signal cell in Research Results, and 3a7e4861 extends the same explicit events_to_signal asset adapter with source/output/run lineage to the primary Study Lab for direct and named multi-output events. Structured scalar/series/Boolean/range outputs cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible; numeric Study series use latest_series_to_scalar, range centers use range_center_to_series for chart plots and range_center_to_scalar for latest-value watchlist columns. The explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
   - "R7: the exact-tip gate at prior product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remained 98/104 with the same six state-oracle diffs. The exact-tip gate at metadata tip 098546be (product tip 928bf8ae) passed all non-visual stages and functional Playwright 157/157 with 106 documented skips; its unchanged visual matrix is 98/104 with six state-oracle diffs. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."
+  - "Product commits a39fea41d, 5e59e0ea5, and 543e021fb complete the TC-owned virtual-watchlist accessibility slice. Virtual options retain their existing symbol/name prefix while their accessible name adds filtered position, visible column values, warning text, and flagged state; aria-setsize/aria-posinset describe the full filtered universe without changing row text or virtualization. Focused VirtualWatchlistTool coverage passed 74/74; full frontend Vitest passed 1103/1103; type-check and production build passed with the existing large-chunk warning; authenticated F8d plus the affected F8e drilldown flows passed 5/5; scope validation passed for 57 changed paths with all six self-tests; and workstream/diff checks passed. The first full-gate attempt exposed two F8e assertions receiving the hidden summary's Position token, so the implementation was revised to keep option innerText unchanged before the final gate. The exact make validate-integration gate then passed backend unit/integration coverage 1621/408, frontend Vitest 1103/1103, functional Chromium 170 with 107 documented skips, and all four visual projects 104/104; branch-scoped teardown removed containers, volumes, network, four generated images, and test sessions. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
