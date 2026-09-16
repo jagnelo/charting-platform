@@ -2099,6 +2099,23 @@ deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
 
+## 2026-09-16 - Atomic worker-terminal settlement checkpoint
+
+`worker_terminal.py` composes terminal outcome/progress materialization with
+worker pool and lease settlement. It returns one committed storage-neutral
+proposal only when both sides accept, preserving every original state when a
+result is missing, a lease has expired, capacity conflicts, or the handoff has
+no runtime terminal evidence. Exact retries replay only when the terminal
+public states and worker settlement receipts both match; pre-process worker
+rejections remain owned by recovery.
+
+The exact implementation tree passed all 433 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
+
 ## 2026-09-16 - Lease-aware idempotent recovery checkpoint
 
 The recovery ledger now binds an ordered lease-release observation as well as

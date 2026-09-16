@@ -608,6 +608,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   already-released reservation and lease; changed evidence, an active pool with
   an existing receipt, an expired lease, or a missing/mismatched reservation
   fails closed and leaves recovery to the retry path.
+- `worker_terminal.py` composes the terminal public outcome/progress projection
+  with worker pool and lease settlement. It returns a committed proposal only
+  when both terminal evidence and capacity release accept; a missing result,
+  expired lease, settlement conflict, or pre-process worker rejection leaves
+  every original state unchanged for the recovery or adapter path. Exact
+  terminal retries replay only when both public and worker receipts match.
 - `result_materialization.py` binds engine-neutral result evidence to an
   immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
   output-artifact identities must agree; exact retries replay an existing
