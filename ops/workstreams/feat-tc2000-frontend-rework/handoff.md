@@ -13452,3 +13452,15 @@ visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
 changed. Provider/ETF consumer integration remains deferred until both branches
 reach staging; this is a complete exact-gate receipt for the Distribution Bars
 slice, not closure of the overall workstream.
+
+## 2026-09-16 - Walk-Forward empty-state accessibility
+
+Product commit `5ee18b567` gives the empty Walk-Forward Segments state an
+explicit polite, atomic status announcement. Segment summaries, selection
+behavior, and visible layout are unchanged.
+
+Focused WalkForwardSegments coverage passed `2/2`; full frontend Vitest passed
+`1,122/1,122`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.
