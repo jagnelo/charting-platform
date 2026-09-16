@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-source MarketData.app bounded matrix
+
+- The exact current source `37a95bcc161ccf11a0435438bc7f730a589bd5eb`
+  passed all seven selected MarketData.app cases. The run made nine bounded
+  upstream requests and recorded 20,960 response bytes across account usage,
+  daily/five-minute candles, latest price, option expirations, current option
+  chain, and bounded historical option quotes.
+- The response-priced unbounded-history guard passed without making a request.
+  The receipt is redacted in `validation.jsonl`; no credentials or provider
+  payloads were persisted. This is exact-source transport evidence for the
+  configured trial policy, not a promotion of any other provider or of
+  response-priced history.
+
 ## 2026-09-17 Current-head full-matrix safety preflight
 
 - The complete manifest preflight at source `8a0bac156fdc3e7bf399ac44065703c50223a9c5`

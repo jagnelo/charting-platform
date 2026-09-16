@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-source MarketData.app bounded matrix
+
+- [x] Re-run the complete bounded MarketData.app provider matrix at source
+      `37a95bcc161ccf11a0435438bc7f730a589bd5eb`. All `7/7` selected cases
+      passed with nine upstream requests and 20,960 response bytes, covering
+      account usage, candles, latest price, option expirations/chain, and
+      bounded option history. The response-priced unbounded-history guard made
+      zero requests.
+- [ ] Keep response-priced history non-routable until a reviewed hard result
+      or credit ceiling exists; this receipt does not close the other provider,
+      legal/source, universe, secret-store, deployment, or shadow gates.
+
 ### 2026-09-17 — Current-head full-matrix safety preflight
 
 - [x] Run the complete provider manifest preflight at source
