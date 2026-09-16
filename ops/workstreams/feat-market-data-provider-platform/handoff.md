@@ -3551,3 +3551,16 @@ tests/e2e/
   live matrix, provider baselines, complete OTC source, target-owned secret
   stores, and final shadow gate remain open. No frontend or ETF-provider
   adapter files changed.
+
+## 2026-09-16 exact-source Massive preflight
+
+- After commit `6dab6d08bb2f50809a3ad1d5e0bd5a677741c6b7`, the lock-protected
+  full live runner stopped before network access with exit `2`. Its safety
+  report showed the owner-configured MarketData.app Starter Trial as routable
+  and reported Massive as non-routable for the four missing use-attestation
+  fields. Durable quota admission, provider-account baselines, other legal /
+  source controls, unresolved capability cases, and the final staged live
+  matrix remain blocked as expected.
+- This exact-source preflight consumed no provider quota and is not transport
+  acceptance. No deployment, routing activation, integration, or shadow run
+  occurred.
