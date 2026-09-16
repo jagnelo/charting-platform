@@ -11,6 +11,25 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Durable submission/dispatch staging checkpoint
+
+`postgres_submission.py` now maps owner-scoped idempotent submission receipts
+and dispatch intents to one async PostgreSQL transaction. It authenticates
+canonical payload digests, revalidates stored request/dispatch fingerprints,
+replays exact retries without writes, repairs a missing dispatch from an
+existing receipt, isolates principals by owner key, and returns typed API
+conflicts for content drift. The adapter only stages a durable dispatch intent;
+Redis publication, worker effects, migrations, application wiring, and route
+registration remain outside this package-owned slice. The API router now passes
+the generated request ID into submission and command adapters for error lineage.
+
+The focused submission adapter suite passed 5 tests; the full Strategy Lab v2
+package passed 531 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed. The Docker-backed combined gate passed 2,178
+tests with 83.09% total coverage (required threshold: 75%), with setup and
+cleanup successful. Shared migrations/application wiring, worker entrypoints,
+Compose, upstream reconciliation, and stable Nautilus execution remain open.
+
 ## 2026-09-16 - Persisted revision-bound resource identity checkpoint
 
 Resource projection now derives a missing API `revision_digest` from the
