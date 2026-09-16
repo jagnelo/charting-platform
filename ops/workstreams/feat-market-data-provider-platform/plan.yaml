@@ -372,6 +372,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      At source `cf934faa6`, bounded native account-usage refreshes passed
+      `1/1` for EODHD and `1/1` for Twelve Data. The Twelve Data response
+      reconciled a fresh 8-credit fixed-minute baseline with one credit used;
+      EODHD remained observation-only because its provider usage date was still
+      stale. Two authenticated requests were made and only redacted receipts
+      were persisted.
+    - >-
       At branch source `64c81f3be`, the complete isolated backend unit suite
       passed `2,319/2,319` in 181.62 seconds with 70.66% total coverage, above
       the configured 55% threshold, and 37 warnings. This is a current unit

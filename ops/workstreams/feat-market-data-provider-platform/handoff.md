@@ -55,6 +55,18 @@
   after the usage-accounting changes; it is not PostgreSQL/Redis integration,
   external-provider acceptance, deployment, or shadow-run evidence.
 
+## 2026-09-16 current native account-usage refresh
+
+- At source `cf934faa6`, the bounded EODHD and Twelve Data account-usage cases
+  each passed `1/1` through the normal runner and durable coordinator. The
+  Twelve Data snapshot reconciled a fresh `credits_per_minute=8` baseline
+  (`used=1`) for the current fixed-minute window. EODHD returned a valid
+  observation but still did not reconcile its daily pool because the provider
+  date remains stale; no daily limit was fabricated.
+- These runs made two authenticated requests total and recorded only redacted
+  receipts. The full matrix remains separately blocked by unresolved
+  provider-specific controls.
+
 ## 2026-09-16 current isolated unit gate
 
 - The complete backend unit suite passed `2,317/2,317` at source
