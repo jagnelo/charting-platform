@@ -1384,3 +1384,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 capability/report projection contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Capability/report projection checkpoint
+
+`capability_summary.py` adds `CapabilitySummary` and
+`build_capability_summary()`, composing the existing data `PreflightReport`
+with `ExecutionCapabilityPreflight`. Instrument-scoped data gaps and engine
+model gaps remain separate, degradation evidence is retained, and executable,
+ranking-eligible, and authoritative-publication flags are derived only from
+the underlying fail-closed decisions. Report identity mismatches reject before
+projection; no providers or engines are invoked.
+
+The exact implementation tree passed all 229 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+forward correction/replay command contract; preserve all shared-path and
+execution-authorization gates.

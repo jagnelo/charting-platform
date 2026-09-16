@@ -406,6 +406,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   outcome/progress preconditions hold; terminal cancellation, non-failed
   retry, identity mismatch, and reused command content fail closed. Applying a
   cancellation or scheduling a retry remains an adapter responsibility.
+- `capability_summary.py` projects data and engine preflight into one stable
+  machine-facing summary. It preserves instrument-scoped data gaps,
+  engine-model gaps, degradation evidence, executable/ranking flags, and
+  authoritative-publication eligibility without recomputing or weakening the
+  underlying fail-closed checks.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
