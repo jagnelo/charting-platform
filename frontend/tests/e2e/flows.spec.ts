@@ -1089,6 +1089,82 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9j-range — a direct Study Lab range promotes its center with preserved lineage', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    const studyName = `E2E direct range ${Date.now()}`
+    let codeAssetPosts = 0
+    await page.route('**/api/v1/code/validate', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] }) })
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() === 'GET') return route.continue()
+      const body = route.request().postDataJSON() as { kind?: string; initial_version?: { output_contract?: string; output_name?: string; lineage?: Record<string, unknown> } }
+      codeAssetPosts += 1
+      if (codeAssetPosts === 1) {
+        // Range is a structured Study result; the runner keeps the source
+        // asset's execution contract as `study` and the UI applies the
+        // explicit center adapters only when a target is selected.
+        expect(body).toMatchObject({ kind: 'study', initial_version: { output_contract: 'study' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1211, versions: [{ id: 1211 }] }) })
+        return
+      }
+      if (codeAssetPosts === 2) {
+        expect(body).toMatchObject({
+          kind: 'plot',
+          initial_version: {
+            output_contract: 'series',
+            output_name: 'confidence',
+            lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' },
+          },
+        })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1212, versions: [{ id: 1212 }] }) })
+        return
+      }
+      expect(body).toMatchObject({
+        kind: 'column',
+        initial_version: {
+          output_contract: 'scalar',
+          output_name: 'confidence',
+          lineage: { output_adapter: 'range_center_to_scalar', semantics: 'study_range_center_result_as_latest_watchlist_column' },
+        },
+      })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1213, versions: [{ id: 1213 }] }) })
+    })
+    await page.route('**/api/v1/research/runs', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      expect(route.request().postDataJSON()).toMatchObject({ code_version_id: 1211, run_config: { symbol: 'SPY', timeframe: 'D1' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+        id: 1214,
+        code_version_id: 1211,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:study-range-center',
+        artifacts: [{ id: 1, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      }) })
+    })
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
+    if (await studyLayoutTab.count()) await studyLayoutTab.click()
+    const studyTab = page.locator('.lm_tab:visible').filter({ hasText: 'Study Lab' }).last()
+    if (await studyTab.count()) await studyTab.click()
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save center as chart plot' }).click()
+    await expect(study).toContainText('Saved as a reusable chart plot.', { timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save latest center column' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 // ── TC2000 workstation window mechanics ──────────────────────────────────────

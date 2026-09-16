@@ -1103,6 +1103,83 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/156', {})
   })
 
+  it('promotes direct single-output range centers as chart plots and latest columns', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 161 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 162,
+        code_version_id: 160,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 4, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #162'))
+
+    const plotButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save center as chart plot')
+    expect(plotButton).toBeDefined()
+    await plotButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 162,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
+
+    const columnButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save latest center column')
+    expect(columnButton).toBeDefined()
+    await columnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 162,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
+  })
+
+  it('keeps a range without a finite aligned center view/export only', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/163'
+      ? Promise.resolve({
+        id: 163,
+        status: 'completed',
+        artifacts: [{ id: 5, name: 'uncertain_range', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [null, 3] } } }],
+      })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { study_run_id: 163, study_run_source: "output.range('uncertain_range', [1, 2], [3, 4], [None, 3])", study_run_contract: 'range' },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #163'))
+
+    expect(wrapper.find('[aria-label="Promote study result"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Export uncertain_range"]').exists()).toBe(true)
+    expect(wrapper.find('.range-chart').exists()).toBe(true)
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiGet.mockImplementation((path: string) => path === '/code/assets'
       ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])

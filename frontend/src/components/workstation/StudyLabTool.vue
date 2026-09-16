@@ -389,6 +389,10 @@ const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'ra
     const series = run.value.artifacts?.find(item => item.artifact_type === 'series')
     if (!series || latestSeriesValue(series) == null) return null
   }
+  if (runContract.value === 'range') {
+    const range = run.value.artifacts?.find(item => item.artifact_type === 'range')
+    if (!range || !rangeCenterCanBePromoted(range)) return null
+  }
   const eventCount = (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length
   return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'range'
     || (runContract.value === 'events' && eventCount === 1)
@@ -529,9 +533,9 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
       if (seriesCanBePlotted(artifact)) promotions.push({ artifact, target: 'plot', label: 'Save plot' })
       if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
     }
-    else if (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null) {
+    else if (artifact.artifact_type === 'range' && rangeCenterCanBePromoted(artifact)) {
       promotions.push({ artifact, target: 'plot', label: 'Save center plot' })
-      if (rangeData(artifact)?.center?.some(value => Number.isFinite(value))) promotions.push({ artifact, target: 'column', label: 'Save latest center column' })
+      promotions.push({ artifact, target: 'column', label: 'Save latest center column' })
     }
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
@@ -744,6 +748,10 @@ function rangeData(artifact: Artifact): { timestamps: string[]; lower: number[];
   const center = candidate.center == null ? null : Array.isArray(candidate.center) && candidate.center.length === candidate.lower.length && candidate.center.every(item => typeof item === 'number' && Number.isFinite(item)) ? candidate.center : null
   return { timestamps: candidate.timestamps, lower: candidate.lower, upper: candidate.upper, center }
 }
+function rangeCenterCanBePromoted(artifact: Artifact) {
+  const center = rangeData(artifact)?.center
+  return Boolean(center?.length && center.some(value => Number.isFinite(value)))
+}
 function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: number; count: number }>; current: number | null } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -866,6 +874,15 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   if (disposed) return
   const selectedArtifact = selectedOutputName ? (run.value?.artifacts ?? []).find(artifact => artifact.name === selectedOutputName) : null
   const contract = selectedArtifact ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events' | 'range') : promotableKind.value
+  // A single-output range run has no named-artifact picker, but its center is
+  // still a named artifact in the durable result. Resolve that artifact here
+  // so the direct controls use the same lineage-preserving adapters as the
+  // named multi-output path.
+  const promotionArtifact = selectedArtifact ?? (
+    !selectedOutputName && contract === 'range'
+      ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'range')
+      : undefined
+  )
   if (!contract || promotionBusy.value) return
   const seriesPlotArtifact = selectedArtifact?.artifact_type === 'series'
     ? selectedArtifact
@@ -971,8 +988,8 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         ? latestSeriesValue(selectedArtifact) != null
         : contract === 'series' && latestSeriesObservation.value != null
     )
-    const rangeCenterPlot = target === 'plot' && selectedArtifact?.artifact_type === 'range' && rangeData(selectedArtifact)?.center != null
-    const rangeCenterColumn = target === 'column' && selectedArtifact?.artifact_type === 'range' && rangeData(selectedArtifact)?.center?.some(value => Number.isFinite(value)) === true
+    const rangeCenterPlot = target === 'plot' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
+    const rangeCenterColumn = target === 'column' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
     if (target === 'column' && contract === 'series' && !latestSeriesColumn) {
       throw new Error('A numeric Study series needs a finite observation before it can become a latest-value column.')
     }
@@ -982,9 +999,13 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     if (target === 'column' && contract === 'range' && !rangeCenterColumn) {
       throw new Error('A Study range needs an aligned finite center series before it can become a latest-value column.')
     }
-    const promotionOutputName = selectedOutputName ?? (latestSeriesColumn
-      ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
-      : undefined)
+    const promotionOutputName = selectedOutputName ?? (
+      latestSeriesColumn
+        ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
+        : rangeCenterPlot || rangeCenterColumn
+          ? promotionArtifact?.name
+          : undefined
+    )
     const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : rangeCenterPlot || aggregateSeriesPlot ? 'series' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
