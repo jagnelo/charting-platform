@@ -1238,3 +1238,23 @@ The exact implementation tree passed all 170 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus runtime, frontend, integration, promotion,
 and deployment paths remain unchanged.
+
+## 2026-09-16 - Worker lifecycle and serial-capacity checkpoint
+
+`workers.py` adds immutable `WorkerProfile`, `WorkerReservation`, and
+`WorkerPoolState` records for separately typed backtest and forward workers.
+Each process is constrained to one concurrent engine node and must declare
+runtime isolation and engine disposal. `reserve_worker_slot()` returns explicit
+accept/replay/saturated/reject decisions with content-addressed reservation
+identities; `release_worker_slot()` is idempotent and deterministically reopens
+capacity. Unsafe profiles, reused identities, foreign reservations, and invalid
+timestamps fail closed. Scheduling, durable compare-and-set, heartbeats,
+restart recovery, process interruption, and actual engine disposal remain
+adapter-owned.
+
+The exact implementation tree passed all 174 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is
+artifact retention/pinning semantics; preserve all shared-path and
+execution-authorization gates.

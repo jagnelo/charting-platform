@@ -365,6 +365,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   state; exact repeats replay, gaps wait for missing updates, and stale or
   conflicting updates fail closed. Durable storage and stream transport remain
   outside this pure contract.
+- `workers.py` defines serial backtest and separately typed forward worker
+  profiles, content-addressed reservations, deterministic capacity decisions,
+  and idempotent release. Unsafe profiles, reused reservation identities, and
+  concurrent attempts fail closed; process scheduling, lease heartbeats,
+  restart recovery, and engine disposal remain adapter responsibilities.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
