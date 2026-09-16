@@ -131,6 +131,39 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('describes visible row metrics, warnings, and virtual position to assistive technology', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key: 'name', label: 'Name' },
+          { key: 'relative_1m', label: '1M' },
+          { key: 'coverage', label: 'Coverage' },
+        ],
+        reorderable: true,
+        rows: [{
+          ...rows[0],
+          values: { relative_1m: 0.12, coverage: null },
+          warnings: { coverage: 'Coverage pending' },
+          flagged: true,
+        }, rows[1]],
+      },
+    })
+
+    const option = wrapper.get('[role="option"]')
+    const descriptionId = option.attributes('aria-describedby')
+    expect(descriptionId).toBeTruthy()
+    expect(option.attributes('aria-setsize')).toBe('2')
+    expect(option.attributes('aria-posinset')).toBe('1')
+    const description = wrapper.get(`#${descriptionId}`)
+    expect(description.classes()).toContain('watchlist__row-description')
+    expect(description.text()).toContain('Position 1 of 2')
+    expect(description.text()).toContain('Flagged.')
+    expect(description.text()).toContain('1M: 12.00%')
+    expect(description.text()).toContain('Coverage: — (Coverage pending)')
+  })
+
   it('keeps a 10,000-row universe virtualized instead of creating one DOM row per instrument', () => {
     const largeRows = Array.from({ length: 10_000 }, (_, index) => ({
       instrumentId: index + 1,
@@ -147,6 +180,8 @@ describe('VirtualWatchlistTool', () => {
     expect(Number(wrapper.get('.watchlist').attributes('data-rendered-row-count'))).toBeLessThan(100)
     expect(wrapper.findAll('.watchlist__row').length).toBeLessThan(100)
     expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('height:')
+    expect(wrapper.get('[role="option"]').attributes('aria-setsize')).toBe('10000')
+    expect(wrapper.get('[role="option"]').attributes('aria-posinset')).toBe('1')
   })
 
   it('marks a row universe above the dense-workstation budget without truncating it', () => {
