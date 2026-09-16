@@ -372,6 +372,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      At committed source `c6b7b42de`, the lock-protected full provider live
+      runner completed its safety preflight and stopped before transport with
+      exit `2`. The receipt enumerates provider-specific unknown quota/reset,
+      byte, source, terms, and jurisdiction controls, plus the explicit
+      Tradier/IBKR/Ondo deferrals; no request was sent under an unresolved
+      control. This is current fail-closed evidence, not a provider failure or
+      acceptance result.
+    - >-
       At committed source `8176e820ae11013409602aa2a2ec1f0045d3157b`, focused
       account-usage live validation passed `1/1` for MarketData.app, Twelve
       Data, and EODHD. The direct live-test path now reconciles exact native
