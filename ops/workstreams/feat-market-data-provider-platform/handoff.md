@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD bounded bootstrap live verification
+
+- Commit `d190251d1` closes the planner gap identified by the first safety
+  preflight: the explicitly allow-listed EODHD `/user` account-usage operation
+  can reserve only its reviewed daily/concurrency dimensions while the
+  unresolved minute pool is excluded; ordinary EODHD operations remain
+  fail-closed.
+- The committed-source bounded live case passed `1/1` with exactly one
+  authenticated upstream request and 304 response bytes. The receipt is
+  current at source `d190251d1` in `validation.jsonl`; no history, quote,
+  profile, or discovery request was admitted.
+- The complete backend unit gate passed `2,362/2,362` with 70.82% coverage and
+  37 warnings; focused coordinator/runtime coverage passed `92/92`; Ruff,
+  compileall, and diff checks passed. The remaining owner gate is current
+  evidence for the exact EODHD minute limit/reset, after which ordinary routing
+  may be reviewed for promotion.
+
 ## 2026-09-16 EODHD conflicting minute-pool admission control
 
 - EODHD's 20/minute Free Starter publication conflicts with the official

@@ -233,8 +233,13 @@ remaining_gaps:
     be present before ordinary history/profile/quote/discovery routing can be
     admitted. The native `/user` bootstrap remains eligible only for the
     independently documented daily pool; its explicitly allow-listed unknown
-    minute dimensions are never treated as zero. Focused quota/registry/runtime/
-    wiring coverage passes 214/214; no provider request was made.
+    minute dimensions are never treated as zero. Commit `d190251d1` also fixes
+    the live reservation planner so this bounded exception is actually
+    executable without widening ordinary routing. Focused coordinator/runtime
+    coverage passes 92/92, the complete unit gate passes 2,362/2,362 with 37
+    warnings and 70.82% coverage, and the committed-source account-usage live
+    case passes 1/1 with one request and 304 response bytes. The minute limit,
+    reset, and evidence controls remain the owner gate for ordinary routing.
   - >-
     Alpha Vantage's free-key 25-requests/day quota still has no provider-published
     reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
