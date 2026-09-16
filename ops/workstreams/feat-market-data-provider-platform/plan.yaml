@@ -3526,6 +3526,12 @@ progress:
       routing. The full backend unit gate passed `2,360/2,360` with 70.80%
       coverage and 37 warnings.
     - >-
+      The exact-current-source EDGAR preflight at `701964c80` stopped before
+      transport with zero provider requests. It reports the new explicit
+      `EDGAR_REVIEWED_RESET`/`EDGAR_QUOTA_EVIDENCE` blockers alongside the
+      still-required durable IP baseline, confirming that no SEC request is
+      admitted from the documented ceiling alone.
+    - >-
       2026-09-16 exact-current-source refresh: the configured MarketData.app
       Starter Trial matrix passed `7/7` at source `5e2bfa102`, including
       daily/five-minute candles, latest price, option expirations/chain,

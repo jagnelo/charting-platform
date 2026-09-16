@@ -9,7 +9,12 @@
 - [x] Add `EDGAR_REVIEWED_RESET` and `EDGAR_QUOTA_EVIDENCE` through settings,
       diagnostics, local/RPi Compose, GitHub live validation, examples, and
       focused tests. A reviewed pair is required before routing; User-Agent
-      configuration and an IP baseline alone are insufficient.
+      configuration and an IP baseline alone are insufficient. Focused
+      coverage passed `134/134`; the full backend unit gate passed
+      `2,360/2,360` with 70.80% coverage and 37 warnings.
+- [x] The exact-current-source preflight at `701964c80` stopped before
+      transport with zero SEC requests and recorded the new reset/evidence
+      blockers plus the missing durable IP baseline.
 - [ ] Obtain current SEC/account evidence for the reset boundary and run the
       bounded EDGAR live matrix only after that pair and the durable IP baseline
       are available.
