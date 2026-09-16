@@ -3602,3 +3602,15 @@ the authoritative record for this replay; it made zero provider calls.
 - CI and environment-example assertions now explicitly require the expiry
   mapping as well; the focused wiring/registry suite passes `48/48` after this
   test hardening.
+
+## 2026-09-16 OTC Markets source-contract detail
+
+- The complete-OTC candidate contract now records the official OTC Markets
+  delivery specifics: pipe-delimited security-master plus validation file,
+  approximately 5 MB, 5:20 PM and 7:20 PM ET trading-session deliveries via
+  `sftp.otcmarkets.com`, CUSIP and no-CUSIP variants, and the specification's
+  separate CUSIP redistribution-license warning.
+- This strengthens source-contract evidence without pretending access or
+  entitlement. No SFTP credentials, adapter routing, or live request was
+  added; the candidate remains non-routable until delivery access, quota,
+  completeness, and redistribution rights are authorized.
