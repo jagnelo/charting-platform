@@ -147,10 +147,11 @@ class AlpacaProvider:
         self._require_configured()
         url = f"{_DATA_BASE}/stocks/bars/latest"
         params = {"symbols": "AAPL", "feed": settings.ALPACA_DATA_FEED}
-        # Capture the observation instant before transport. Alpaca's reset
-        # epoch may be crossed while the response is in flight; comparing it
-        # only with post-response wall time would reject a valid boundary that
-        # was still future when the provider evaluated the request.
+        # Capture the observation instant before transport. Alpaca's native
+        # reset header is retained as an observation even when it denotes the
+        # current/previous window boundary rather than a future timestamp;
+        # the quota coordinator will only reconcile a future boundary and will
+        # keep ordinary routing fail-closed otherwise.
         observed_at = datetime.now(UTC)
         try:
             response = httpx.get(url, params=params, headers=self._headers(), timeout=30)
@@ -183,7 +184,6 @@ class AlpacaProvider:
             or remaining < 0
             or remaining > limit
             or reset_epoch <= 0
-            or reset_at <= observed_at
         ):
             raise ProviderResponseError(
                 self.name, "Alpaca returned invalid native request-window counters"

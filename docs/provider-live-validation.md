@@ -96,8 +96,10 @@ the reviewed contract without code changes.
 Alpaca is handled independently: its documented 200-requests/minute account
 ceiling remains `provider_defined` until `ALPACA_REVIEWED_RESET` and
 `ALPACA_QUOTA_EVIDENCE` are both supplied. The native `X-RateLimit-*` headers
-are retained as observations, but a successful header read alone does not
-promote ordinary routing. `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains a
+are retained even when `X-RateLimit-Reset` denotes the current/previous
+boundary; only a future boundary can reconcile the durable quota baseline, and
+a successful header read alone does not promote ordinary routing.
+`ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains a
 separate bound for cursor-paginated event reads.
 It also prints routing-safety preflights for Alpaca's reviewed market-data reset
 boundary/evidence pair and paginated corporate-actions page bound, FINRA's asynchronous result-byte

@@ -359,6 +359,29 @@ class TestAlpacaCredentialWarning:
         assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
         assert get.call_args.args[0] == "https://data.alpaca.markets/v2/stocks/bars/latest"
 
+    def test_account_usage_retains_current_boundary_without_promoting_it(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.headers = {
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+            "x-ratelimit-reset": str(int(datetime.now(UTC).timestamp()) - 1),
+        }
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"bars": {"AAPL": {"c": 1}}}
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            usage = AlpacaProvider().fetch_account_usage()
+
+        assert usage is not None
+        assert usage.reset_at is not None
+        assert usage.reset_at <= usage.observed_at
+
     @pytest.mark.parametrize(
         "headers",
         [
