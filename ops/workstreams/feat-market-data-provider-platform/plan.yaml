@@ -723,6 +723,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 current-head full-matrix safety preflight at source
+      `8a0bac156fdc3e7bf399ac44065703c50223a9c5` stopped before network with
+      `0/0` cases and zero provider requests. The receipt retains the
+      provider-specific quota/baseline/reset, legal/source,
+      capability-disposition, complete-universe, and target secret-store
+      blockers. This is fail-closed safety evidence, not live acceptance.
+    - >-
       2026-09-17 exact-current native account-usage refresh at source
       `79b87e71dfc5cf001362e1d87985dc04d089b60b`: the bounded MarketData.app
       account-usage case passed `1/1` with one request and 135 response bytes,

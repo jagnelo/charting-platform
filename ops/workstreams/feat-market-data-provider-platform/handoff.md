@@ -1,5 +1,13 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-head full-matrix safety preflight
+
+- The complete manifest preflight at source `8a0bac156fdc3e7bf399ac44065703c50223a9c5`
+  stopped before network access with `0/0` cases and zero provider requests.
+  It reported the expected provider-specific quota/baseline/reset, legal and
+  source, capability-disposition, complete-universe, and target secret-store
+  blockers. This confirms fail-closed behavior; it is not live acceptance.
+
 ## 2026-09-17 Current-source native usage refresh
 
 - The exact current committed source `79b87e71dfc5cf001362e1d87985dc04d089b60b`

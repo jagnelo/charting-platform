@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-head full-matrix safety preflight
+
+- [x] Run the complete provider manifest preflight at source
+      `8a0bac156fdc3e7bf399ac44065703c50223a9c5`. It stopped before any
+      network call with `0/0` cases and zero provider requests, retaining the
+      expected quota/baseline/reset, legal/source, capability, universe, and
+      target secret-store blockers.
+- [ ] Do not treat this safety receipt as live acceptance; the provider,
+      source/terms, universe, target-secret, deployment, and final shadow gates
+      remain separately open.
+
 ### 2026-09-17 — Current-source native usage refresh
 
 - [x] Re-run the bounded native account-usage cases at the exact committed
