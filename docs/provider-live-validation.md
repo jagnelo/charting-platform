@@ -49,6 +49,21 @@ Omitting `--provider` always runs the complete registered live matrix; provider
 selection is diagnostic evidence only and never substitutes for the full
 current-source acceptance run.
 
+When a provider's native account-usage endpoint is the only currently safe
+operation (for example, before its first durable pool baseline exists), use
+the narrowly scoped account snapshot mode. It requires exactly one provider
+and still performs credential, durable-ledger, quota, lock, redaction, and
+same-run receipt checks:
+
+```sh
+PROVIDER_LIVE_USAGE_SCOPE=local-dev-account-bootstrap RUN_LIVE_PROVIDER_TESTS=1 \
+  rtk uv run --project backend python scripts/run-live-provider-probes.py \
+  --provider eodhd --account-usage-only
+```
+
+This always produces a focused receipt; it cannot be mistaken for full
+provider capability coverage or a full-matrix acceptance pass.
+
 Providers explicitly deferred by the user in the active branch workstream are
 excluded from that executable matrix only when their plan records the deferral;
 the redacted receipt records the exact provider and rationale. Their adapters

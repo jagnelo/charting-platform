@@ -1036,7 +1036,11 @@ def durable_quota_preflight() -> tuple[bool, str | None]:
     return True, None
 
 
-def live_operation_quota_preflight(providers: set[str]) -> dict[str, list[str]]:
+def live_operation_quota_preflight(
+    providers: set[str],
+    *,
+    operations_override: dict[str, set[str]] | None = None,
+) -> dict[str, list[str]]:
     """Check every selected manifest operation before the first provider call.
 
     This is a read-only check of reviewed quota plans and current account
@@ -1062,7 +1066,11 @@ def live_operation_quota_preflight(providers: set[str]) -> dict[str, list[str]]:
     blockers: dict[str, list[str]] = {}
     now = datetime.now(UTC)
     for provider in sorted(providers):
-        operations = LIVE_REQUIRED_OPERATIONS.get(provider, set())
+        operations = (
+            operations_override.get(provider, set())
+            if operations_override is not None
+            else LIVE_REQUIRED_OPERATIONS.get(provider, set())
+        )
         for operation in sorted(operations):
             label = f"{provider}/{operation}"
             try:
@@ -1700,6 +1708,7 @@ def selected_live_test_arguments(
     providers: list[str] | None,
     *,
     deferred_providers: set[str] | None = None,
+    account_usage_only: bool = False,
 ) -> list[str]:
     """Return exact manifest nodes for a provider subset, or the full matrix."""
     deferred = deferred_providers or set()
@@ -1710,22 +1719,26 @@ def selected_live_test_arguments(
     unknown = sorted(selected - set(LIVE_PROVIDER_CASES))
     if unknown:
         raise ValueError(f"providers have no live manifest cases: {', '.join(unknown)}")
+    cases = {
+        (relative_path, function_name)
+        for provider in selected
+        for relative_path, function_name in LIVE_PROVIDER_CASES[provider]
+        if not account_usage_only or "account_usage" in function_name
+    }
     nodes = sorted(
-        {
-            f"tests/live/{relative_path}::{function_name}"
-            for provider in selected
-            for relative_path, function_name in LIVE_PROVIDER_CASES[provider]
-        }
+        f"tests/live/{relative_path}::{function_name}"
+        for relative_path, function_name in cases
     )
     # Several optional adapters intentionally share a parameterized live test.
     # Pytest's -k expression selects just the requested provider case while
     # keeping all cases for providers with dedicated functions.
-    filter_terms = set(selected)
+    filter_terms = set() if account_usage_only else set(selected)
     shared_parameterized_cases = {"test_optional_credentialed_provider_small_read"}
     filter_terms.update(
         function_name.removeprefix("test_")
         for provider in selected
         for _relative_path, function_name in LIVE_PROVIDER_CASES[provider]
+        if not account_usage_only or "account_usage" in function_name
         if function_name not in shared_parameterized_cases
     )
     if not nodes:
@@ -2606,13 +2619,34 @@ def _arguments() -> argparse.Namespace:
             "to the workstream until the tested tree is committed"
         ),
     )
+    parser.add_argument(
+        "--account-usage-only",
+        action="store_true",
+        help=(
+            "run only the provider's dedicated native account-usage case; "
+            "requires exactly one --provider and remains a focused receipt"
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     arguments = _arguments()
     selected_providers = set(arguments.provider or [])
-    if arguments.allow_staged_candidate and arguments.provider:
+    account_usage_only = bool(getattr(arguments, "account_usage_only", False))
+    if account_usage_only and selected_providers not in (
+        {"marketdata_app"},
+        {"twelve_data"},
+        {"eodhd"},
+    ):
+        print(
+            "account-usage-only requires exactly one of --provider marketdata_app, "
+            "--provider twelve_data, or --provider eodhd"
+        )
+        return 2
+    if arguments.allow_staged_candidate and (
+        arguments.provider or account_usage_only
+    ):
         print(
             "staged candidate preflight blocked: candidate acceptance requires the full matrix"
         )
@@ -2694,7 +2728,15 @@ def main() -> int:
         ]
     print("live provider credential/usage preflight:")
     if quota_coordinator_ready:
-        live_quota_missing = live_operation_quota_preflight(selected_for_run)
+        if account_usage_only:
+            live_quota_missing = live_operation_quota_preflight(
+                selected_for_run,
+                operations_override={
+                    provider: {"fetch_account_usage"} for provider in selected_for_run
+                },
+            )
+        else:
+            live_quota_missing = live_operation_quota_preflight(selected_for_run)
         if live_quota_missing:
             missing["provider-specific quota/cost/baseline admission"] = [
                 f"{provider}: {reason}"
@@ -2702,7 +2744,7 @@ def main() -> int:
                 for reason in reasons
             ]
     unresolved_live_coverage = False
-    if not arguments.provider:
+    if not arguments.provider and not account_usage_only:
         unresolved_operations = [
             f"{provider}/{operation}: {reason}"
             for provider in sorted(set(selected_for_run) & set(LIVE_OPERATION_DISPOSITIONS))
@@ -2834,6 +2876,7 @@ def main() -> int:
                                 if not arguments.provider
                                 else set()
                             ),
+                            account_usage_only=account_usage_only,
                         ),
                         "-m",
                         "live",

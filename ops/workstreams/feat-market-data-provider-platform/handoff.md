@@ -21,6 +21,11 @@
   explain the native-baseline handoff. No provider request, deployment,
   routing activation, frontend change, or ETF-provider adapter change was made
   in this checkpoint.
+- Added the runner's `--account-usage-only --provider <marketdata_app|twelve_data|eodhd>`
+  mode so a safe native snapshot can be live-validated without preflighting
+  unrelated provider operations that are still baseline-gated. The mode is
+  explicitly focused and cannot produce a full-matrix receipt; runner tests
+  pass `37/37`.
 
 ## 2026-09-16 exact-source receipts after reset hardening
 
