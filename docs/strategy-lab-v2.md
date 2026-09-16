@@ -618,6 +618,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   preconditions with typed API errors, and verifies receipt fingerprints before
   use. The adapter persists no worker side effect; migrations, wiring, and
   execution dispatch remain gated.
+- `postgres_event_transaction.py` maps the canonical execution-event,
+  append-only audit, transactional-outbox, and stream-cursor contract to one
+  SQLAlchemy async transaction. It locks and re-authenticates existing rows,
+  enforces contiguous sequence/cursor identity, persists all four linked rows
+  atomically, supports exact replay and caller cursor compare-and-set, and
+  leaves Redis publication and worker effects to later adapters; migrations
+  and application registration remain gated.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

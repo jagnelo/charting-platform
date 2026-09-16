@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Atomic execution-event transaction staging checkpoint
+
+`postgres_event_transaction.py` now maps the canonical execution-event,
+append-only audit, transactional-outbox, and stream-cursor contracts to one
+SQLAlchemy async transaction. It locks the attempt stream, re-authenticates
+stored event/audit/outbox/cursor fingerprints, enforces contiguous sequence
+and cursor identity, persists all linked rows atomically, and supports exact
+replay plus an optional caller cursor compare-and-set witness. Malformed state,
+sequence gaps, stale cursors, and uniqueness races fail closed; Redis
+publication and worker effects remain outside this adapter. The explicit DDL
+is additive and registration-neutral, so migrations and application wiring
+remain gated behind upstream reconciliation.
+
+The focused adapter suite passed 4 tests; the full Strategy Lab v2 package
+passed 540 tests with Ruff, MyPy, and `git diff --check` clean. The branch and
+combined coverage gates will be rerun after the documentation checkpoint.
+
 ## 2026-09-16 - Durable command-receipt staging checkpoint
 
 `postgres_commands.py` now maps retry/cancellation intents to an owner-scoped
