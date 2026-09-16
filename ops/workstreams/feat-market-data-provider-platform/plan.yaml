@@ -191,6 +191,12 @@ remaining_gaps:
     legal/source, byte/cost, universe, secret-store, and shadow blockers;
     bounded native usage passes are not treated as broader acceptance.
   - >-
+    A fresh Binance native weight snapshot followed immediately by its bounded
+    full provider matrix passed 3/3 current-source cases at `e511c15b7`.
+    Ordinary history used four requests, the reviewed 30-day daily case used
+    two, and native usage used one; the one-minute baseline is intentionally
+    short-lived and must be refreshed before later transport.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and

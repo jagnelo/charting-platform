@@ -41,6 +41,17 @@
 - This receipt is safety evidence only. Passing the bounded native usage cases
   does not promote any provider beyond the exact dimensions they proved.
 
+## 2026-09-16 Binance short-window live matrix
+
+- A fresh native Binance weight snapshot was taken immediately before the
+  provider matrix, then the bounded current-price/discovery/history cases ran
+  successfully: `3/3` manifest cases passed at source `e511c15b7`.
+- The matrix used four requests for the keyless ordinary history case, two for
+  the reviewed 30-day daily case, and one native usage request. The result is
+  current transport and weight-accounting evidence only; the one-minute native
+  baseline is intentionally allowed to expire and must be refreshed before a
+  later run.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses
