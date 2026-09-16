@@ -85,6 +85,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
   validation checks the strategy's declared instrument scope.
+- `strategy_validation.py` performs deterministic static source preflight before
+  a strategy package can reach a future runtime. It rejects disallowed imports,
+  relative imports, dynamic-code/file/network calls, and private-object
+  introspection, while binding the result to the exact source digest. This is
+  an early rejection layer only; it is not a substitute for the separately
+  required isolated runtime and resource controls.
 - `allocation.py` resolves event-aligned component target-position intents using
   typed policies, preserves existing component-attributed positions, records
   deterministic conflicts, and returns proposed versus risk-approved account targets.
@@ -268,10 +274,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
-This SDK is not a security boundary. Trusted local Python strategies still need
-the separately implemented isolated runtime (no network, read-only filesystem,
-no secrets, and enforced resource/time/output limits). The new package imports
-no provider, ORM, FastAPI, queue, or Nautilus modules and performs no I/O.
+This SDK and static preflight are not a security boundary. Trusted local Python
+strategies still need the separately implemented isolated runtime (no network,
+read-only filesystem, no secrets, and enforced resource/time/output limits).
+The new package imports no provider, ORM, FastAPI, queue, or Nautilus modules and
+performs no I/O.
 
 Run the focused suite from `backend/` with:
 
