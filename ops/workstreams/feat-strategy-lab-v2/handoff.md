@@ -1545,3 +1545,19 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable adapter implementation only after upstream shared-path reconciliation;
 preserve all execution-authorization and ownership gates.
+
+## 2026-09-16 - Conformance fixture evidence checkpoint
+
+`conformance_fixtures.py` adds typed expected/observed digest observations and a
+deterministically ordered fixture suite for all required engine checks. Passed
+checks require matching identities, failed checks require differing identities,
+duplicate/partial suites fail closed, and complete suites build the existing
+`EngineConformanceEvidence` with a suite-bound fingerprint. This strengthens the
+Nautilus stable-release gate without importing, starting, or enabling an engine.
+
+The exact implementation tree passed all 301 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable adapter implementation only after upstream shared-path reconciliation;
+preserve all execution-authorization and ownership gates.

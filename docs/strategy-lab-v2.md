@@ -462,6 +462,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   retries replay, terminal conflicts fail closed, and successful output size is
   checked against the declared limit. This is a protocol and receipt boundary,
   not container enforcement or an engine invocation.
+- `conformance_fixtures.py` defines typed expected/observed digest evidence for
+  every required engine check. Suites reject duplicate checks and untruthful
+  pass claims, require complete coverage before evidence construction, and feed
+  the existing stable-release gate without importing or starting Nautilus.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
