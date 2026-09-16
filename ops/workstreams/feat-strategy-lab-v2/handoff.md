@@ -869,6 +869,23 @@ MyPy, and `git diff --check`. Trusted paired-stream inference remains the next
 metric gap. No provider, ETF, TC2000, persistence, API, worker, Compose,
 Nautilus, frontend, integration, promotion, or deployment paths were changed.
 
+## 2026-09-16 - Aligned paired-observation metrics checkpoint
+
+The next metric slice adds `PairedMetricObservation` and
+`calculate_paired_metric_metrics()`. A verified keyed-stream receipt is
+required; observations are keyed, deduplicated, canonically ordered, and
+validated as finite Decimal baseline/variant values. The calculator emits
+descriptive baseline/variant means, signed mean delta, nearest-rank median,
+minimum/maximum delta, and sample standard deviation with receipt and input
+digests. It intentionally does not rank candidates, estimate significance, or
+claim an inferential model.
+
+The exact implementation tree passed 91 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Metric-scope completeness, risk/stress evidence,
+and all persistence/API/worker/runtime gates remain open. No provider, ETF,
+TC2000, persistence, API, worker, Compose, Nautilus, frontend, integration,
+promotion, or deployment paths were changed.
+
 ## 2026-09-16 - Keyed common-random stream verification checkpoint
 
 The next engine-neutral slice adds `pairing.py` with typed
