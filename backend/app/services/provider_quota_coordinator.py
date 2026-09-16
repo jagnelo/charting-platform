@@ -1761,7 +1761,7 @@ def _reservation_plan_for_live_probe(
     allowed_bootstrap_unknown = {
         str(item or "").strip()
         for item in (
-            bootstrap.get("allowed_unknown_dimensions")
+            (bootstrap.get("allowed_unknown_dimensions") or [])
             if isinstance(bootstrap, dict)
             else []
         )
