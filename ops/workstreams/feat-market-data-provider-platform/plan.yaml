@@ -370,6 +370,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 Tiingo account-usage endpoint verification: the current
+      official documentation confirms the Starter request/bandwidth pools but
+      does not expose a current machine-readable usage endpoint. The older
+      `/account/usage` path was bounded-probed with the configured key and
+      returned 301 to `www.tiingo.com/account/usage`, then 404 after the
+      redirect. No data endpoint or usage counter was consumed/inferred; the
+      500-unique-symbol pool therefore remains explicitly non-routable until
+      Tiingo publishes a current account snapshot or confirms its reset anchor.
+    - >-
       2026-09-16 Marketstack usage-semantics audit: current official pricing,
       FAQ, and overage documentation still do not publish the monthly reset
       timestamp, so the 100-request/month lower published ceiling remains

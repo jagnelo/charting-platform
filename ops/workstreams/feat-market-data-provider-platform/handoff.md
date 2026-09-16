@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Tiingo account-usage endpoint verification
+
+- Tiingo's current official general/pricing documentation confirms the Starter
+  request and bandwidth pools but does not document a machine-readable usage
+  response. The older provider blog mentions `/account/usage`; a bounded
+  authenticated probe at the current source time returned `301` to
+  `https://www.tiingo.com/account/usage`, then `404 Not Found` after following
+  the redirect.
+- No data endpoint was called and no usage counter was inferred. The adapter
+  therefore remains unchanged: Tiingo's hourly/daily/bandwidth pools are
+  documented, but the 500-unique-symbol pool still has no current native
+  account snapshot or confirmed reset anchor and remains fail-closed. This is
+  a negative live-validation result, not acceptance evidence.
+
 ## 2026-09-16 Marketstack usage-semantics audit
 
 - Current official Marketstack pricing/FAQ/overage sources still do not state
