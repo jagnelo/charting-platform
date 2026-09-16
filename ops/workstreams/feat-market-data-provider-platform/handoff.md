@@ -3762,3 +3762,9 @@ the authoritative record for this replay; it made zero provider calls.
   because its active public-IP `mapping_requests_per_minute` baseline is
   unknown. Its redacted zero-request preflight receipt is also committed;
   no generic limit or zero-usage assumption was introduced.
+- After the handoff receipts were committed, the same MarketData.app matrix
+  was rerun using only the persisted owner configuration and again passed
+  `7/7` (`9` requests, `17,241` bytes). The receipt records source
+  `430e01ae7d8d37e5d39e1432fecfb7466ff195f1`; it is transport/quota evidence
+  for that tested source, not a claim that the receipt-commit SHA itself has
+  undergone the full matrix.
