@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
@@ -600,6 +601,15 @@ def _dimension_specs(
     for raw_dimension in dimensions:
         dimension = dict(raw_dimension)
         name = str(dimension["name"])
+        applies_to = dimension.get("applies_to_operations")
+        if applies_to is not None:
+            if not isinstance(applies_to, list) or not applies_to:
+                continue
+            family = operation.split(":", 1)[0].strip() or operation
+            if operation not in {str(item) for item in applies_to} and family not in {
+                str(item) for item in applies_to
+            }:
+                continue
         units = dimension_units.get(name)
         if isinstance(units, bool) or not isinstance(units, int) or units < 0:
             raise ProviderQuotaAdmissionError(
@@ -1743,6 +1753,39 @@ def _reservation_plan_for_live_probe(
             f"provider quota contract remains incomplete for live operation {provider_name}/{operation}"
         )
     profile = get_provider_usage_profile(provider_name)
+    bootstrap_unknown: set[str] = set()
+    bootstrap = contract.get("account_usage_bootstrap")
+    if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
+        "enabled"
+    ) is True:
+        policy = SimpleNamespace(
+            quota_contract=contract,
+            quota_scope=seed.get("quota_scope", ""),
+        )
+        for item in contract.get("dimensions", []) or []:
+            if not isinstance(item, dict):
+                continue
+            unit = str(item.get("unit") or "").strip().lower()
+            if unit in {"concurrent_requests", "concurrency"}:
+                continue
+            applies_to = item.get("applies_to_operations")
+            if applies_to is not None:
+                if not isinstance(applies_to, list) or not applies_to:
+                    continue
+                family = operation.split(":", 1)[0].strip() or operation
+                if operation not in {str(value) for value in applies_to} and family not in {
+                    str(value) for value in applies_to
+                }:
+                    continue
+            status = provider_quota_baseline_status(
+                provider_name=provider_name,
+                capability="account_usage",
+                policy=policy,
+                dimension_name=str(item.get("name") or ""),
+                now=now,
+            )
+            if status.get("status") != "verified":
+                bootstrap_unknown.add(str(item.get("name") or ""))
     family = operation.split(":", 1)[0].strip() or operation
     costs = profile.get("operation_costs") or contract.get("operation_costs") or {}
     cost = (
@@ -1767,6 +1810,14 @@ def _reservation_plan_for_live_probe(
         if not isinstance(dimension, dict):
             raise ProviderQuotaAdmissionError("provider quota dimension is malformed")
         name = str(dimension.get("name") or "")
+        applies_to = dimension.get("applies_to_operations")
+        if applies_to is not None:
+            if not isinstance(applies_to, list) or not applies_to:
+                continue
+            if operation not in {str(value) for value in applies_to} and family not in {
+                str(value) for value in applies_to
+            }:
+                continue
         if "reset" in dimension and not provider_quota_reset_is_known(
             dimension.get("reset")
         ):
@@ -1774,6 +1825,11 @@ def _reservation_plan_for_live_probe(
                 f"provider dimension reset semantics are unreviewed for live operation {provider_name}/{operation}/{name}"
             )
         unit = str(dimension.get("unit") or "").lower()
+        if name in bootstrap_unknown:
+            amount = 0
+            zero_cost_exclusion = True
+        else:
+            zero_cost_exclusion = False
         raw_cost_map = (
             {family: dimension_cost_overrides[name]}
             if dimension_cost_overrides and name in dimension_cost_overrides
@@ -1781,8 +1837,9 @@ def _reservation_plan_for_live_probe(
             if isinstance(dimension_costs, dict)
             else None
         )
-        zero_cost_exclusion = False
-        if isinstance(raw_cost_map, dict):
+        if name in bootstrap_unknown:
+            amount = 0
+        elif isinstance(raw_cost_map, dict):
             # An empty per-dimension map is an explicit reviewed exclusion.
             # This is used, for example, when a synchronous operation is not
             # charged against a provider's separate asynchronous-dataset

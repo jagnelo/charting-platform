@@ -781,6 +781,70 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_name", "setting_name", "usage"),
+    [
+        (
+            "twelve_data",
+            "TWELVE_DATA_API_KEY",
+            ProviderAccountUsage(
+                provider="twelve_data",
+                observed_at=datetime.now(UTC),
+                unit="credits",
+                account_plan="Basic",
+                dimensions=(),
+            ),
+        ),
+        (
+            "eodhd",
+            "EODHD_API_KEY",
+            ProviderAccountUsage(
+                provider="eodhd",
+                observed_at=datetime.now(UTC),
+                unit="calls",
+                account_plan="free",
+                dimensions=(),
+            ),
+        ),
+    ],
+)
+async def test_native_account_usage_bootstraps_unknown_provider_pools(
+    db, monkeypatch, tmp_path, provider_name, setting_name, usage
+):
+    """A provider-native snapshot is the only accepted first-pool observation."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, setting_name, "configured-key")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / f"{provider_name}.sqlite3"),
+    )
+    await seed_provider_runtime(async_db)
+
+    result = await execute_provider_call(
+        async_db,
+        ProviderCapability.ACCOUNT_USAGE,
+        "fetch_account_usage",
+        provider_name=provider_name,
+        invoke=lambda _provider, _symbol: usage,
+        response_items=lambda value: 1 if value is not None else 0,
+        treat_empty_as_failure=True,
+    )
+
+    assert result.provider_name == provider_name
+    summary = provider_quota_coordinator_summary(provider_name=provider_name)
+    assert any(
+        row["dimension"] == "account_usage_probe_concurrency"
+        for row in summary["windows"]
+    )
+    assert all(
+        row["dimension"] not in {"credits_per_minute", "credits_per_day", "requests_per_minute", "calls_per_day"}
+        for row in summary["windows"]
+    )
+
+
+@pytest.mark.asyncio
 async def test_marketstack_history_route_requires_monthly_reset_review(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")

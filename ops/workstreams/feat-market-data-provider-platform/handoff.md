@@ -1,5 +1,27 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 provider-native account-usage bootstrap hardening
+
+- Twelve Data and EODHD account snapshots now have an explicit,
+  provider-declared bootstrap path. If a finite provider pool has no active
+  durable baseline, the first `fetch_account_usage` reservation excludes only
+  that unknown pool and reserves a deployment-scoped serialized probe slot;
+  it never treats the unknown provider allowance as zero or invents a rate.
+- Operation-scoped quota dimensions are now supported throughout runtime,
+  application reservations, and direct live-probe reservations. Once a native
+  snapshot reconciles a pool, subsequent account snapshots charge the normal
+  reviewed provider cost. Malformed, stale, or unavailable baseline state
+  remains fail-closed.
+- Added regression coverage for both providers, direct live preflight plans,
+  operation-scoped dimensions, and normal-read exclusion. The complete
+  isolated backend unit suite passed `2,315/2,315`; focused quota/runtime
+  coverage passed `198/198`; Ruff, compile, and diff checks passed.
+- Updated `docs/data-providers.md` and `docs/provider-live-validation.md` to
+  distinguish the local bootstrap safety slot from provider entitlement and to
+  explain the native-baseline handoff. No provider request, deployment,
+  routing activation, frontend change, or ETF-provider adapter change was made
+  in this checkpoint.
+
 ## 2026-09-16 exact-source receipts after reset hardening
 
 - Replayed the bounded MarketData.app suite at source

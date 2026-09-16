@@ -368,6 +368,26 @@ def _usage_tracking_config(data_source: DataSource) -> dict[str, Any]:
     return tracking if isinstance(tracking, dict) else {}
 
 
+def _dimension_applies_to_operation(dimension: dict[str, Any], operation: str) -> bool:
+    """Return whether a reviewed quota dimension covers this operation.
+
+    Provider contracts occasionally contain an application-control dimension
+    for one control-plane operation (for example a serialized account-usage
+    bootstrap probe).  The declaration is explicit and operation-scoped; no
+    caller may infer that a missing dimension map means zero usage.
+    """
+
+    applies_to = dimension.get("applies_to_operations")
+    if applies_to is None:
+        return True
+    if not isinstance(applies_to, list) or not applies_to:
+        return False
+    family = _operation_family(operation)
+    return operation in {str(item) for item in applies_to} or family in {
+        str(item) for item in applies_to
+    }
+
+
 def _usage_cost_for_operation(
     data_source: DataSource,
     operation: str,
@@ -421,6 +441,9 @@ def _dimension_costs_for_operation(
     family = _operation_family(operation)
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
+        if not _dimension_applies_to_operation(dimension, operation):
+            result[name] = 0
+            continue
         unit = str(dimension.get("unit") or "").strip().lower()
         raw_map = explicit.get(name) if isinstance(explicit, dict) else None
         if unit in {"concurrent_requests", "concurrency"} and raw_map is None:
@@ -470,6 +493,81 @@ def _dimension_costs_for_operation(
     if contract.get("dimension_costs_required") and not explicit:
         return {}
     return result
+
+
+def _account_usage_bootstrap_dimension_costs(
+    *,
+    provider_name: str,
+    capability: str,
+    operation: str,
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    default_units: Decimal,
+) -> dict[str, int] | None:
+    """Return an explicit first-snapshot plan when provider pools are unknown.
+
+    This is intentionally opt-in per provider contract.  It does not invent a
+    provider allowance: finite dimensions with no active native baseline are
+    excluded for this one control-plane request, while the provider-declared
+    account-usage probe concurrency dimension remains reserved.  The response
+    must then reconcile the native counter before ordinary reads can consume
+    that pool.
+    """
+
+    if operation != "fetch_account_usage":
+        return None
+    contract = dict(policy.quota_contract or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return None
+    dimensions = quota_dimensions(policy)
+    finite = [
+        dimension
+        for dimension in dimensions
+        if _dimension_applies_to_operation(dimension, operation)
+        and str(dimension.get("unit") or "").strip().lower()
+        not in {"concurrent_requests", "concurrency"}
+    ]
+    if not finite:
+        return None
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        ProviderQuotaCoordinatorError,
+        provider_quota_baseline_status,
+    )
+
+    unknown: set[str] = set()
+    for dimension in finite:
+        try:
+            status = provider_quota_baseline_status(
+                provider_name=provider_name,
+                capability=capability,
+                policy=policy,
+                dimension_name=str(dimension["name"]),
+            )
+        except (
+            ProviderQuotaAdmissionError,
+            ProviderQuotaCoordinatorError,
+            ValueError,
+            TypeError,
+        ) as exc:
+            raise ProviderQuotaUnknownError(
+                f"provider account-usage baseline status is unavailable for "
+                f"{provider_name}/{dimension['name']}"
+            ) from exc
+        if status.get("status") != "verified":
+            unknown.add(str(dimension["name"]))
+    if not unknown:
+        return None
+    costs = _dimension_costs_for_operation(
+        policy,
+        data_source,
+        operation,
+        default_units,
+    )
+    for name in unknown:
+        costs[name] = 0
+    return costs
 
 
 def _consumed_dimension_costs(
@@ -826,6 +924,8 @@ def provider_contract_operation_cost_known(
         if not isinstance(dimension_costs, dict):
             return False
         for dimension in quota_dimensions(policy):
+            if not _dimension_applies_to_operation(dimension, operation):
+                continue
             raw = dimension_costs.get(str(dimension["name"]))
             unit = str(dimension.get("unit") or "").lower()
             if unit in {"concurrent_requests", "concurrency"}:
@@ -1926,12 +2026,21 @@ async def execute_provider_call(
             resolved.policy,
             operation_cost_override=override,
         )
-        dimension_units = _dimension_costs_for_operation(
-            resolved.policy,
-            resolved.data_source,
-            operation,
-            usage_units,
+        dimension_units = _account_usage_bootstrap_dimension_costs(
+            provider_name=resolved.provider_name,
+            capability=capability.value,
+            operation=operation,
+            policy=resolved.policy,
+            data_source=resolved.data_source,
+            default_units=usage_units,
         )
+        if dimension_units is None:
+            dimension_units = _dimension_costs_for_operation(
+                resolved.policy,
+                resolved.data_source,
+                operation,
+                usage_units,
+            )
         if quota_dimensions(resolved.policy) and not dimension_units:
             continue
         distinct_dimensions = {

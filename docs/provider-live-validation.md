@@ -184,6 +184,17 @@ contains only observed usage and a non-secret evidence locator; the reviewed
 limit, unit, reset boundary, account scope, and quota group come from the
 provider contract:
 
+Twelve Data and EODHD explicitly declare a first-snapshot bootstrap control.
+When one of their finite pools has no active durable baseline, the account
+usage operation reserves only a deployment-scoped serialized probe slot; it
+does not pretend that the unknown provider pool has zero usage. A successful
+native response must reconcile the exact matching pool before ordinary reads
+can reserve it. If the response is malformed, stale, or the baseline ledger is
+unavailable, the operation remains fail-closed. Once a pool is verified, later
+account snapshots reserve the normal provider-specific cost for that pool.
+The bootstrap slot is an application safety control, not a provider quota and
+must not be reported as provider entitlement.
+
 ```sh
 curl -X POST "$APP_ORIGIN/api/v1/market-data/quota-coordinator/baselines" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \

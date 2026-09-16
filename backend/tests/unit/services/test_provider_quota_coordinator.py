@@ -1281,6 +1281,57 @@ def test_sqlite_reservations_are_atomic_across_processes(tmp_path, monkeypatch):
     assert sorted(result for _, result in outcomes) == [False, True]
 
 
+def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_RATE_LIMIT_SEEDS",
+        {
+            "fixture": {
+                "quota_contract": {
+                    "reset": "per_dimension",
+                    "account_usage_bootstrap": {"enabled": True},
+                    "dimensions": [
+                        {
+                            "name": "credits_per_day",
+                            "limit": 100,
+                            "window_seconds": 86400,
+                            "unit": "credits",
+                            "scope": "api_key",
+                            "quota_group": "api_key",
+                            "source": "unit-test provider contract",
+                        },
+                        {
+                            "name": "account_usage_probe_concurrency",
+                            "limit": 1,
+                            "window_seconds": 1,
+                            "unit": "concurrent_requests",
+                            "scope": "deployment",
+                            "quota_group": "account_usage_probe",
+                            "source": "application_policy:provider_native_baseline_bootstrap",
+                            "reset": "rolling",
+                            "applies_to_operations": ["fetch_account_usage"],
+                        },
+                    ],
+                },
+                "quota_scope": "api_key",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_USAGE_PROFILE_SEEDS",
+        {"fixture": {"operation_costs": {"fetch_account_usage": 1}}},
+    )
+
+    _reset, dimension_units, specs = _reservation_plan_for_live_probe(
+        "fixture", "fetch_account_usage", "identity", datetime.now(UTC)
+    )
+
+    assert dimension_units == {"account_usage_probe_concurrency": 1}
+    assert [spec["dimension"] for spec in specs] == ["account_usage_probe_concurrency"]
+
+
 def test_live_probe_operation_cost_comes_from_provider_profile(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(

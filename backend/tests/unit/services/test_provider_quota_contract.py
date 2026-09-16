@@ -1214,6 +1214,7 @@ def test_twelve_data_account_usage_uses_one_reviewed_credit_per_native_snapshot(
     assert [item["name"] for item in dimensions] == [
         "credits_per_minute",
         "credits_per_day",
+        "account_usage_probe_concurrency",
     ]
     policy = ProviderPolicy(
         data_source_id=1,
@@ -1226,7 +1227,14 @@ def test_twelve_data_account_usage_uses_one_reviewed_credit_per_native_snapshot(
     assert provider_contract_operation_cost_known(policy, source, "fetch_account_usage")
     assert _dimension_costs_for_operation(
         policy, source, "fetch_account_usage", default_units=1
-    ) == {"credits_per_minute": 1, "credits_per_day": 1}
+    ) == {
+        "credits_per_minute": 1,
+        "credits_per_day": 1,
+        "account_usage_probe_concurrency": 1,
+    }
+    assert _dimension_costs_for_operation(
+        policy, source, "fetch_ohlcv", default_units=1
+    )["account_usage_probe_concurrency"] == 0
 
 
 def test_account_and_ip_scoped_provider_contracts_declare_cross_capability_groups():
@@ -1851,15 +1859,21 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert [item["reset"] for item in twelve["dimensions"]] == [
         "fixed_minute",
         "calendar_day_utc",
+        "rolling",
     ]
 
     eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
     assert [item["reset"] for item in eodhd["dimensions"]] == [
         "rolling",
         "calendar_day_gmt",
+        "rolling",
     ]
-    assert [item["limit"] for item in eodhd["dimensions"]] == [20, 20]
-    assert [item["unit"] for item in eodhd["dimensions"]] == ["requests", "calls"]
+    assert [item["limit"] for item in eodhd["dimensions"]] == [20, 20, 1]
+    assert [item["unit"] for item in eodhd["dimensions"]] == [
+        "requests",
+        "calls",
+        "concurrent_requests",
+    ]
     assert eodhd["dimensions"][0]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert (
