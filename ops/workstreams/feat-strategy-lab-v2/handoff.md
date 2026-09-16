@@ -297,3 +297,64 @@ This checkpoint updates only these branch-owned records:
 - `ops/workstreams/feat-strategy-lab-v2/handoff.md`
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+## Scope recorded before implementation - Run-scoped session-return distributions
+
+The implementation context owned only
+`backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/metrics.py`,
+`backend/app/strategy_lab_v2/tests/test_core.py`,
+`backend/app/strategy_lab_v2/tests/test_observations.py`, and
+`docs/strategy-lab-v2.md`. It added typed, run-scoped close-to-close return
+quantiles and empirical VaR/expected-shortfall outputs, using explicit inclusive
+session-label bounds, exact calendar adjacency and predecessor-close evidence,
+minimum sample rules, and the current external-flow fail-closed contract. The
+global metric catalog advanced to v6 without changing the v5 equity-curve
+estimator semantics. No histogram bins, sensitivity ranking, APIs, persistence,
+workers, runtime, Compose, frontend, provider, ETF, TC2000, or shared paths are
+in scope. The prior private-repository egress hold remains: continue locally
+from the verified clean boundary; do not publish without exact-payload
+authorization.
+
+## 2026-09-16 - Run-scoped session-return distribution checkpoint
+
+The implementation is committed locally as
+`444193415f0236536767892d6f28effaec39d4ec`. It adds a typed, run-scoped
+distribution summary and exact-calendar-bounded close-to-close session-return
+quantiles, empirical VaR, and expected shortfall. Inclusive trading-session
+bounds require every actual session observation and its preceding actual
+session-close mark. Nearest-rank calculations record their effective ranks/tail
+counts and use exact integer-rational ceiling arithmetic so high-precision
+probabilities cannot move a rank at a Decimal rounding boundary. Incomplete
+coverage, incomplete flow reports, or any flow event (including zero-net
+offsetting flows) withholds the entire distribution. The catalog is v6; existing
+equity-curve estimator semantics are unchanged. Histogram bins and sensitivity
+analysis remain out of scope for this slice.
+
+Exact implementation-commit validation passed: focused package pytest (59
+tests), Ruff, MyPy (18 source files), and `git diff --check`. Independent
+read-only review found no remaining concrete defect. `make branch-validate`
+passed all 30 records on an elevated retry after the default sandbox denied UV
+cache metadata access; the retry ran only that repository validator. These
+package checks do not satisfy the final full-stack/DB/Redis/API/worker/Compose/
+Nautilus acceptance gates.
+
+Publication remains a transport hold. Local HEAD is
+`444193415f0236536767892d6f28effaec39d4ec`; recorded
+`origin/feat/strategy-lab-v2` remains
+`d2497f43084d52d3e66b40a91be25dd2678620be`, so this branch is 14 commits ahead.
+No push of this exact current range was attempted. The earlier private-repository
+egress review rejected a prior payload, and the current remote/range does not
+have exact-payload authorization; do not publish through another route.
+
+Next bounded context: define and test deterministic common-random-seed and
+replicate semantics for matched one-factor sensitivity analysis. Only after
+those semantics are pinned should the comparison contract be added; do not
+silently compare trials with independently derived seeds. Keep all active
+provider, ETF, TC2000, shared runtime, persistence, API, worker, Compose, and
+frontend ownership boundaries unchanged. This separate checkpoint updates only
+the branch-owned handoff, session state, and validation journal below.
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
