@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-16 — Alpha Vantage weekly/monthly history coverage
+
+- [x] Extend the Alpha Vantage adapter beyond its daily-only restriction to
+      parse the documented raw `TIME_SERIES_WEEKLY` and
+      `TIME_SERIES_MONTHLY` endpoints. Each remains a one-query operation in
+      the reviewed quota profile; daily `compact` history keeps its explicit
+      100-point completeness guard, and all three aggregations reject adjusted
+      requests before transport because adjusted history is premium-only.
+      Fixture coverage passes `262/262` for the provider suite; no provider
+      request or credential was used by this change.
+- [ ] Add one bounded weekly or monthly credentialed live case when the
+      current Alpha Vantage daily-capacity window and exact-source live gate
+      permit it; this code change does not resolve the provider's unpublished
+      25-requests/day reset boundary.
+
 ### 2026-09-16 — Tiingo reset-semantics correction
 
 - [x] Reconcile Tiingo against its current primary documentation: daily

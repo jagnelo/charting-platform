@@ -31,10 +31,19 @@ _BASE = "https://www.alphavantage.co/query"
 _DAILY_CAPACITY_RE = re.compile(r"\b(?:requests?|calls?)\s+per\s+day\b", re.IGNORECASE)
 
 
+_TIME_SERIES_CONFIG: dict[Timeframe, tuple[str, str, str | None]] = {
+    Timeframe.D1: ("TIME_SERIES_DAILY", "Time Series (Daily)", "compact"),
+    Timeframe.W1: ("TIME_SERIES_WEEKLY", "Weekly Time Series", None),
+    Timeframe.MN: ("TIME_SERIES_MONTHLY", "Monthly Time Series", None),
+}
+
+
 class AlphaVantageProvider:
     name = "alpha_vantage"
     base_url = "https://www.alphavantage.co"
-    description = "Alpha Vantage free-quota daily history, earnings, and symbol search"
+    description = (
+        "Alpha Vantage free-quota daily/weekly/monthly history, earnings, and symbol search"
+    )
 
     def _key(self) -> str:
         return settings.ALPHA_VANTAGE_API_KEY
@@ -162,25 +171,41 @@ class AlphaVantageProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        if timeframe is not Timeframe.D1:
+        series_config = _TIME_SERIES_CONFIG.get(timeframe)
+        if series_config is None:
             raise ProviderResponseError(
                 self.name, f"Alpha Vantage does not support timeframe {timeframe.value}"
             )
         if adjusted:
-            # The free ``TIME_SERIES_DAILY`` endpoint returns raw OHLCV. The
-            # adjusted daily endpoint is a premium surface, so never let a
-            # raw response enter the platform's adjusted dataset silently.
+            # The documented weekly/monthly endpoints and the free daily
+            # endpoint return raw OHLCV. The adjusted daily endpoint is a
+            # premium surface, so never let a raw response enter the
+            # platform's adjusted dataset silently.
             raise ProviderResponseError(
                 self.name,
-                "Alpha Vantage free daily history is raw; request adjusted=False",
+                (
+                    "Alpha Vantage free daily history is raw; request adjusted=False"
+                    if timeframe is Timeframe.D1
+                    else "Alpha Vantage free weekly/monthly history is raw; request adjusted=False"
+                ),
             )
-        # Alpha Vantage's free key currently rejects ``outputsize=full`` as a
-        # premium-only feature. ``compact`` is the documented free response
-        # (latest 100 daily points); older history must use another provider.
-        payload = self._get("TIME_SERIES_DAILY", symbol=symbol, outputsize="compact")
-        series = payload.get("Time Series (Daily)", {})
+        function, series_name, output_size = series_config
+        params: dict[str, Any] = {"symbol": symbol}
+        if output_size is not None:
+            # Alpha Vantage's free key currently rejects ``outputsize=full`` as
+            # a premium-only feature. ``compact`` is the documented free
+            # response (latest 100 daily points); older daily history must use
+            # another provider. Weekly/monthly endpoints are full historical
+            # series on the documented public surface and have no outputsize
+            # parameter.
+            params["outputsize"] = output_size
+        payload = self._get(function, **params)
+        series = payload.get(series_name, {})
         if not isinstance(series, dict):
-            raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid daily-series object")
+            raise ProviderResponseError(
+                self.name,
+                f"Alpha Vantage returned an invalid {timeframe.value} series object",
+            )
         # The free ``compact`` response is capped at the latest 100 daily
         # observations.  If the requested range starts before the oldest row
         # in a full-sized compact response, returning the newer subset would
@@ -193,9 +218,10 @@ class AlphaVantageProvider:
                 parsed_dates.append(datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=UTC))
             except (TypeError, ValueError) as exc:
                 raise ProviderResponseError(
-                    self.name, "Alpha Vantage returned an invalid daily-series date"
+                    self.name,
+                    f"Alpha Vantage returned an invalid {timeframe.value} series date",
                 ) from exc
-        if len(parsed_dates) >= 100:
+        if timeframe is Timeframe.D1 and len(parsed_dates) >= 100:
             oldest_available = min(parsed_dates)
             if start < oldest_available:
                 raise ProviderResponseError(
@@ -214,7 +240,7 @@ class AlphaVantageProvider:
                 values = [row[f"{index}. {field}"] for index, field in ((1, "open"), (2, "high"), (3, "low"), (4, "close"), (5, "volume"))]
                 numbers = [float(value) for value in values]
                 if not all(isfinite(value) for value in numbers):
-                    raise ValueError("non-finite Alpha Vantage daily value")
+                    raise ValueError(f"non-finite Alpha Vantage {timeframe.value} value")
                 bars.append(
                     OHLCVBar(
                         instrument_id=instrument_id,
@@ -231,15 +257,18 @@ class AlphaVantageProvider:
                         adjustment_version="provider-native",
                         provenance={
                             "provider": self.name,
-                            "endpoint": "TIME_SERIES_DAILY",
+                            "endpoint": function,
                             "provider_symbol": symbol,
-                            "outputsize": "compact",
+                            **({"outputsize": output_size} if output_size is not None else {}),
                             "provider_payload": row,
                         },
                     )
                 )
             except (KeyError, TypeError, ValueError) as exc:
-                raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid daily-series row") from exc
+                raise ProviderResponseError(
+                    self.name,
+                    f"Alpha Vantage returned an invalid {timeframe.value} series row",
+                ) from exc
         return sorted(bars, key=lambda bar: bar.ts)
 
     def fetch_latest_ohlcv(
@@ -264,11 +293,16 @@ class AlphaVantageProvider:
         )[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        if timeframe is not Timeframe.D1:
+        if timeframe is Timeframe.D1:
+            return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))
+        if timeframe is Timeframe.W1:
+            return datetime.now(UTC) - timedelta(days=max(limit * 14, 56))
+        if timeframe is Timeframe.MN:
+            return datetime.now(UTC) - timedelta(days=max(limit * 62, 372))
+        else:
             raise ProviderResponseError(
                 self.name, f"Alpha Vantage does not support timeframe {timeframe.value}"
             )
-        return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))
 
     def get_current_price(self, symbol: str) -> float | None:
         bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1, adjusted=False)

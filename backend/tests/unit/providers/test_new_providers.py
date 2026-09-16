@@ -2139,6 +2139,83 @@ class TestAlphaVantageProvider:
         assert bars[0].adjustment_version == "provider-native"
         assert bars[0].provenance["provider"] == "alpha_vantage"
 
+    @pytest.mark.parametrize(
+        ("timeframe", "function", "series_name", "date_texts"),
+        [
+            (
+                Timeframe.W1,
+                "TIME_SERIES_WEEKLY",
+                "Weekly Time Series",
+                ("2024-01-05", "2023-12-29"),
+            ),
+            (
+                Timeframe.MN,
+                "TIME_SERIES_MONTHLY",
+                "Monthly Time Series",
+                ("2024-01-31", "2023-12-29"),
+            ),
+        ],
+    )
+    def test_weekly_and_monthly_history_use_documented_series_endpoints(
+        self, timeframe, function, series_name, date_texts
+    ):
+        response = MagicMock()
+        response.json.return_value = {
+            series_name: {
+                date_texts[0]: {
+                    "1. open": "101",
+                    "2. high": "103",
+                    "3. low": "100",
+                    "4. close": "102",
+                    "5. volume": "1000",
+                },
+                date_texts[1]: {
+                    "1. open": "99",
+                    "2. high": "100",
+                    "3. low": "98",
+                    "4. close": "99",
+                    "5. volume": "900",
+                },
+            }
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            bars = AlphaVantageProvider().fetch_ohlcv(
+                "AAPL",
+                timeframe,
+                datetime(2023, 12, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+                adjusted=False,
+            )
+
+        assert [bar.close for bar in bars] == [99.0, 102.0]
+        assert all(bar.timeframe is timeframe for bar in bars)
+        assert all(bar.provenance["endpoint"] == function for bar in bars)
+        assert get.call_args.kwargs["params"] == {"function": function, "apikey": "key", "symbol": "AAPL"}
+
+    @pytest.mark.parametrize("timeframe", [Timeframe.W1, Timeframe.MN])
+    def test_non_daily_history_rejects_adjusted_surface(self, timeframe):
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get") as get,
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(
+                ProviderResponseError,
+                match="free weekly/monthly history is raw; request adjusted=False",
+            ):
+                AlphaVantageProvider().fetch_ohlcv(
+                    "AAPL",
+                    timeframe,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 3, 1, tzinfo=UTC),
+                )
+        get.assert_not_called()
+
     def test_adjusted_history_is_rejected_on_free_raw_endpoint(self):
         with (
             patch("app.providers.alpha_vantage.settings") as configured,
@@ -2203,6 +2280,14 @@ class TestAlphaVantageProvider:
                     adjusted=False,
                 )
         get.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("timeframe", "minimum_days"),
+        [(Timeframe.W1, 56), (Timeframe.MN, 372)],
+    )
+    def test_latest_window_start_supports_weekly_and_monthly(self, timeframe, minimum_days):
+        start = AlphaVantageProvider().latest_window_start(timeframe, 1)
+        assert datetime.now(UTC) - start >= timedelta(days=minimum_days - 1)
 
     def test_listing_status_becomes_paginated_universe_evidence(self):
         response = MagicMock()

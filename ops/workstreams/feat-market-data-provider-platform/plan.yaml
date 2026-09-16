@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Alpha Vantage now parses the documented raw weekly and monthly time-series
+    endpoints in addition to its bounded daily compact endpoint. Each history
+    aggregation remains a one-query operation in the explicit usage profile;
+    adjusted requests fail closed before transport for all three surfaces.
+    Fixture coverage passes 262/262 for the provider suite. This closes the
+    adapter aggregation gap only; the provider's 25-requests/day reset
+    boundary remains unpublished and routing remains subject to that existing
+    quota gate and current-source live evidence.
+  - >-
     OpenFIGI native usage accounting is now implemented without a generic
     fallback: one bounded mapping job reads the provider's exact
     `ratelimit-limit`, `ratelimit-remaining`, and response-relative

@@ -792,6 +792,48 @@ def test_alpha_vantage_credentialed_daily():
     assert rows and rows[-1].close > 0
 
 
+def test_alpha_vantage_credentialed_weekly():
+    """Exercise the documented raw weekly series with one bounded request."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    end = datetime.now(UTC)
+    rows, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_ohlcv(
+            "AAPL",
+            Timeframe.W1,
+            end - timedelta(days=90),
+            end,
+            adjusted=False,
+        ),
+        "alpha_vantage",
+        "fetch_ohlcv",
+        usage_identity="AAPL:W1",
+    )
+    assert rows and rows[-1].close > 0
+    assert all(row.timeframe is Timeframe.W1 for row in rows)
+
+
+def test_alpha_vantage_credentialed_monthly():
+    """Exercise the documented raw monthly series with one bounded request."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    end = datetime.now(UTC)
+    rows, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_ohlcv(
+            "AAPL",
+            Timeframe.MN,
+            end - timedelta(days=740),
+            end,
+            adjusted=False,
+        ),
+        "alpha_vantage",
+        "fetch_ohlcv",
+        usage_identity="AAPL:MN",
+    )
+    assert rows and rows[-1].close > 0
+    assert all(row.timeframe is Timeframe.MN for row in rows)
+
+
 def test_alpha_vantage_credentialed_ipo_calendar():
     """Exercise the separate IPO-calendar operation in a fresh live window."""
 

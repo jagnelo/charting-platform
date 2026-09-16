@@ -155,6 +155,14 @@ LIVE_PROVIDER_CASES = {
         ("test_market_data_providers_live.py", "test_alpha_vantage_credentialed_daily"),
         (
             "test_market_data_providers_live.py",
+            "test_alpha_vantage_credentialed_weekly",
+        ),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpha_vantage_credentialed_monthly",
+        ),
+        (
+            "test_market_data_providers_live.py",
             "test_alpha_vantage_credentialed_ipo_calendar",
         ),
         (

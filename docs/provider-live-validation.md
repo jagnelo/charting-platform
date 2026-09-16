@@ -74,6 +74,16 @@ registered provider must name at least one bounded live test, or carry an
 explicit exclusion rationale for an internal, legacy, or descriptor-only
 entry. This prevents a provider from being added with fixtures but no live
 acceptance surface.
+
+Alpha Vantage's raw-history fixture matrix now covers all three documented
+free time-series aggregations: `TIME_SERIES_DAILY` (the bounded 100-point
+`compact` window), `TIME_SERIES_WEEKLY`, and `TIME_SERIES_MONTHLY`. The latter
+two are full native series endpoints and still reserve one provider query each;
+the adapter rejects adjusted requests for all three before transport because
+the adjusted daily endpoint is premium-only. A future credentialed live case
+may select one weekly or monthly range, but this fixture evidence does not
+change the unresolved 25-requests/day reset boundary or promote Alpha Vantage
+routing.
 It also prints a routing-safety preflight for Alpaca's paginated corporate-actions
 page bound, FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/

@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpha Vantage weekly/monthly history coverage
+
+- The Alpha Vantage adapter now uses the documented raw
+  `TIME_SERIES_DAILY`, `TIME_SERIES_WEEKLY`, and `TIME_SERIES_MONTHLY`
+  payloads. Daily requests retain the free `compact` 100-point completeness
+  guard; weekly/monthly requests parse their native long-history series. All
+  three reject adjusted requests before transport because the adjusted daily
+  endpoint is premium-only.
+- The explicit Alpha Vantage usage profile continues to reserve one provider
+  query for each history operation; no generic cost or quota was introduced.
+  Provider fixture coverage passed `262/262`, and no provider request or
+  credential was used. A bounded weekly/monthly live case remains a separate
+  gate because the 25-requests/day reset boundary is still unpublished.
+
 ## 2026-09-16 exact-current full live preflight after Tiingo correction
 
 - The current-source full provider runner at `feff096d8` completed its
