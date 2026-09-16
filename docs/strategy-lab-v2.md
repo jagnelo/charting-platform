@@ -587,6 +587,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   versioned REST surface. Collection items, resource types, opaque cursors, and
   snapshot digests must agree before a page can be returned; attributes,
   relationships, and metadata are frozen and content-addressed.
+- `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
+  router factory. It serializes resources, exact Decimal/timestamp values, and
+  typed errors; validates cursor ownership at the collection boundary; exposes
+  static strategy-source validation; and delegates idempotent submissions plus
+  retry/cancellation commands to an injected adapter. The adapter must scope
+  reads to the authenticated principal and atomically persist receipts before
+  returning them. Router registration, authentication dependency selection,
+  PostgreSQL compare-and-set, Redis dispatch, and worker effects remain shared
+  integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
@@ -706,8 +715,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 This SDK and static preflight are not a security boundary. Trusted local Python
 strategies still need the separately implemented isolated runtime (no network,
 read-only filesystem, no secrets, and enforced resource/time/output limits).
-The new package imports no provider, ORM, FastAPI, queue, or Nautilus modules and
-performs no I/O.
+The package-local API router imports FastAPI only to expose a registration-neutral
+factory; it imports no provider, ORM, queue, or Nautilus modules and performs no
+persistence, dispatch, or engine I/O.
 
 Run the focused suite from `backend/` with:
 
@@ -738,7 +748,10 @@ global dependencies, lockfile changes, Compose services, or frontend work until
 the provider-platform, ETF, and TC2000 branches reach staging and their shared
 paths are semantically reconciled. Consume their canonical acquisition,
 point-in-time membership, and immutable CodeVersion/Study Lab contracts rather
-than building duplicate adapters or authoring flows.
+than building duplicate adapters or authoring flows. The package-local router
+factory is intentionally unregistered until that reconciliation; its injected
+adapter remains the only place allowed to authorize, persist, enqueue, or
+execute a request.
 
 Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
 environment. Production execution remains disabled until a stable v2 version is

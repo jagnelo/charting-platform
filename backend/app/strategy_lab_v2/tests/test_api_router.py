@@ -1,0 +1,265 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.strategy_lab_v2.api_resources import (
+    ApiResourceType,
+    ResourceCollection,
+    ResourceDocument,
+    ResourceIdentifier,
+)
+from app.strategy_lab_v2.api_router import (
+    SubmissionServiceResult,
+    create_strategy_lab_router,
+    serialize_resource,
+)
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.commands import (
+    CommandEffect,
+    ExecutionCommandDecision,
+    ExecutionCommandKind,
+    ExecutionCommandLedger,
+    ExecutionCommandReceipt,
+    ExecutionCommandResolution,
+)
+from app.strategy_lab_v2.submissions import (
+    SubmissionDecision,
+    SubmissionResolution,
+    create_submission_receipt,
+)
+
+NOW = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+SNAPSHOT = content_digest({"snapshot": "one"})
+
+
+def _document(resource_id: str = "trial-1") -> ResourceDocument:
+    return ResourceDocument(
+        ResourceIdentifier(
+            ApiResourceType.TRIAL,
+            resource_id,
+            revision_digest=content_digest({"trial": resource_id}),
+        ),
+        attributes={"name": "mean-reversion", "ratio": Decimal("1.25")},
+        relationships={
+            "experiment": (ResourceIdentifier(ApiResourceType.EXPERIMENT, "experiment-1"),)
+        },
+        meta={"source": "test"},
+    )
+
+
+class FakeAdapter:
+    def __init__(self) -> None:
+        self.submissions: list[tuple[str, str, dict[str, Any]]] = []
+        self.commands: list[tuple[str, str]] = []
+        self.document = _document()
+
+    async def list_resources(self, **kwargs: Any) -> ResourceCollection:
+        return ResourceCollection(
+            request_id="collection-request",
+            resource_type=kwargs["resource_type"],
+            snapshot_digest=SNAPSHOT,
+            items=(self.document,),
+            has_more=False,
+        )
+
+    async def get_resource(self, **kwargs: Any) -> ResourceDocument | None:
+        if kwargs["resource_id"] == self.document.id:
+            return self.document
+        return None
+
+    async def submit(self, **kwargs: Any) -> SubmissionServiceResult:
+        request = kwargs["request"]
+        payload = dict(kwargs["payload"])
+        self.submissions.append((request.idempotency_key, request.operation, payload))
+        receipt = create_submission_receipt(request, accepted_at=NOW)
+        return SubmissionServiceResult(
+            SubmissionResolution(SubmissionDecision.ACCEPT, request.fingerprint), receipt
+        )
+
+    async def command(self, **kwargs: Any) -> ExecutionCommandResolution:
+        command = kwargs["command"]
+        self.commands.append((kwargs["idempotency_key"], command.kind.value))
+        receipt = ExecutionCommandReceipt(
+            command_id=command.command_id,
+            command_fingerprint=command.fingerprint,
+            attempt_id=command.attempt_id,
+            kind=command.kind,
+            effect=(
+                CommandEffect.CANCELLATION_REQUESTED
+                if command.kind is ExecutionCommandKind.CANCEL
+                else CommandEffect.RETRY_REQUESTED
+            ),
+            accepted_at=NOW,
+        )
+        return ExecutionCommandResolution(
+            ExecutionCommandDecision.ACCEPT,
+            ledger=ExecutionCommandLedger((receipt,)),
+            command_fingerprint=command.fingerprint,
+            receipt=receipt,
+        )
+
+
+class ConflictAdapter(FakeAdapter):
+    async def submit(self, **kwargs: Any) -> SubmissionServiceResult:
+        request = kwargs["request"]
+        previous_request = type(request)(
+            idempotency_key=request.idempotency_key,
+            operation=request.operation,
+            attempt_id=request.attempt_id,
+            payload_digest=content_digest({"previous": True}),
+            submitted_at=NOW,
+        )
+        previous_receipt = create_submission_receipt(previous_request, accepted_at=NOW)
+        return SubmissionServiceResult(
+            SubmissionResolution(
+                SubmissionDecision.IDEMPOTENCY_CONFLICT,
+                request.fingerprint,
+                previous_receipt,
+            ),
+            previous_receipt,
+        )
+
+
+def _client(adapter: FakeAdapter) -> TestClient:
+    async def get_adapter() -> FakeAdapter:
+        return adapter
+
+    async def get_principal() -> str:
+        return "user-1"
+
+    app = FastAPI()
+    app.include_router(
+        create_strategy_lab_router(
+            adapter_dependency=get_adapter,
+            principal_dependency=get_principal,
+            request_id_factory=lambda: "request-generated",
+            clock=lambda: NOW,
+        ),
+        prefix="/api/v1",
+    )
+    return TestClient(app)
+
+
+def test_resource_serialization_preserves_decimal_as_exact_string() -> None:
+    serialized = serialize_resource(_document())
+    assert serialized["attributes"]["ratio"] == "1.25"
+    assert serialized["relationships"]["experiment"]["data"] == [
+        {"type": "experiments", "id": "experiment-1"}
+    ]
+    assert serialized["meta"]["schema_version"] == 1
+
+
+def test_router_lists_and_reads_cursor_bound_resources() -> None:
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        response = client.get("/api/v1/strategy-lab/v2/trials?limit=1")
+        assert response.status_code == 200
+        assert response.json()["data"][0]["id"] == "trial-1"
+        assert response.json()["data"][0]["attributes"]["ratio"] == "1.25"
+
+        found = client.get("/api/v1/strategy-lab/v2/trials/trial-1")
+        assert found.status_code == 200
+        assert found.headers["content-type"].startswith("application/json")
+
+        missing = client.get("/api/v1/strategy-lab/v2/trials/missing")
+        assert missing.status_code == 404
+        assert missing.json()["errors"][0]["code"] == "not_found"
+
+
+def test_router_rejects_invalid_cursor_and_unknown_resource_with_typed_errors() -> None:
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        invalid = client.get("/api/v1/strategy-lab/v2/trials?cursor=not-a-cursor")
+        assert invalid.status_code == 400
+        assert invalid.json()["errors"][0]["code"] == "validation_error"
+
+        unknown = client.get("/api/v1/strategy-lab/v2/not-a-resource")
+        assert unknown.status_code == 404
+        assert unknown.json()["errors"][0]["details"]["resource"] == "not-a-resource"
+
+        too_large = client.get("/api/v1/strategy-lab/v2/trials?limit=101")
+        assert too_large.status_code == 400
+
+
+def test_strategy_validation_route_is_static_and_authenticated_by_injected_dependency() -> None:
+    with _client(FakeAdapter()) as client:
+        accepted = client.post(
+            "/api/v1/strategy-lab/v2/strategies/validate",
+            json={"source": "def signal(inputs):\n    return inputs.close > 0\n"},
+        )
+        assert accepted.status_code == 200
+        assert accepted.json()["data"]["attributes"]["accepted"] is True
+
+        rejected = client.post(
+            "/api/v1/strategy-lab/v2/strategies/validate",
+            json={"source": "import os\nnow = datetime.now()\n"},
+        )
+        assert rejected.status_code == 200
+        assert rejected.json()["data"]["attributes"]["accepted"] is False
+        violations = rejected.json()["data"]["attributes"]["violations"]
+        assert any("forbidden_import" in item for item in violations)
+        assert any("forbidden_wall_clock" in item for item in violations)
+
+        malformed = client.post(
+            "/api/v1/strategy-lab/v2/strategies/validate",
+            json=["source"],
+        )
+        assert malformed.status_code == 422
+        assert malformed.json()["errors"][0]["code"] == "validation_error"
+
+
+def test_submission_requires_idempotency_and_returns_accepted_receipt() -> None:
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        missing = client.post(
+            "/api/v1/strategy-lab/v2/submissions",
+            json={"operation": "backtest", "attempt_id": "attempt-1", "payload": {}},
+        )
+        assert missing.status_code == 400
+        assert missing.json()["errors"][0]["code"] == "validation_error"
+
+        response = client.post(
+            "/api/v1/strategy-lab/v2/submissions",
+            headers={"Idempotency-Key": "submission-key", "X-Request-ID": "request-1"},
+            json={"operation": "backtest", "attempt_id": "attempt-1", "payload": {"x": 1}},
+        )
+        assert response.status_code == 202
+        assert response.headers["x-request-id"] == "request-1"
+        assert response.json()["data"]["type"] == "submissions"
+        assert response.json()["data"]["attributes"]["payload_digest"] == content_digest({"x": 1})
+        assert adapter.submissions == [("submission-key", "backtest", {"x": 1})]
+
+
+def test_submission_conflict_is_exposed_as_typed_idempotency_error() -> None:
+    with _client(ConflictAdapter()) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/submissions",
+            headers={"Idempotency-Key": "submission-key"},
+            json={"operation": "backtest", "attempt_id": "attempt-1", "payload": {"x": 1}},
+        )
+        assert response.status_code == 409
+        assert response.json()["errors"][0]["code"] == "idempotency_conflict"
+
+
+def test_command_route_constructs_typed_intent_and_returns_accepted_receipt() -> None:
+    adapter = FakeAdapter()
+    command_id = content_digest({"command": "cancel"})
+    with _client(adapter) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/attempts/attempt-1/commands",
+            headers={"Idempotency-Key": "command-key"},
+            json={
+                "command_id": command_id,
+                "kind": "cancel",
+                "reason": "user requested stop",
+                "requested_at": NOW.isoformat(),
+            },
+        )
+        assert response.status_code == 202
+        assert response.json()["data"]["attributes"]["effect"] == "cancellation_requested"
+        assert adapter.commands == [("command-key", "cancel")]
