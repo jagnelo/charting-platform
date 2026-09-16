@@ -160,6 +160,12 @@ def test_degraded_results_are_excluded_by_default_and_labeled_when_explicitly_in
     assert ranking.exclusions[0].reason is RankingExclusionReason.INELIGIBLE_PREFLIGHT
     assert ranking.exclusions[0].trial_id == degraded.trial_id
 
+    explicit = descriptive_rank_results(
+        (degraded,), metric_name="return", include_degraded=True
+    )
+    assert explicit.eligible_results == 1
+    assert explicit.entries[0].preflight_label == "degraded"
+
 
 def test_missing_null_unversioned_and_incompatible_results_are_explicitly_excluded() -> None:
     valid = _rankable_result("0.10", parameter=1, attempt_id="attempt-valid")
