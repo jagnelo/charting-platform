@@ -7,6 +7,8 @@ from pathlib import Path
 from app.strategy_lab_v2.admission import ExecutionAdmission
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.tests.test_execution_orchestration import _fixtures
 from app.strategy_lab_v2.tests.test_worker_execution import _fake_binary
 from app.strategy_lab_v2.worker_execution import (
@@ -48,6 +50,19 @@ def _admitted_pool(values: tuple) -> tuple[WorkerPoolState, ExecutionAdmission]:
     return pool, admission
 
 
+def _lease(admission: ExecutionAdmission) -> LeaseObservationState:
+    return LeaseObservationState(
+        ExecutionAttemptLease(
+            admission.attempt_id,
+            admission.worker_id,
+            "lease-1",
+            NOW,
+            NOW,
+            NOW + timedelta(seconds=30),
+        )
+    )
+
+
 def _execution(values: tuple, tmp_path: Path) -> WorkerExecutionResolution:
     orchestration = plan_execution_orchestration(*values)
     return execute_worker_handoff(
@@ -69,6 +84,7 @@ def test_settlement_releases_serial_slot_and_exact_retry_replays(tmp_path: Path)
         pool,
         admission,
         execution,
+        lease_state=_lease(admission),
         released_at=NOW + timedelta(seconds=2),
     )
     assert settled.decision is WorkerSettlementDecision.RELEASED
@@ -80,6 +96,7 @@ def test_settlement_releases_serial_slot_and_exact_retry_replays(tmp_path: Path)
         settled.pool,
         admission,
         execution,
+        lease_state=settled.lease_state,
         released_at=NOW + timedelta(seconds=2),
     )
     assert replay.decision is WorkerSettlementDecision.REPLAY_EXISTING
@@ -91,6 +108,7 @@ def test_settlement_releases_serial_slot_and_exact_retry_replays(tmp_path: Path)
         pool,
         admission,
         execution,
+        lease_state=_lease(admission),
         released_at=NOW + timedelta(seconds=2),
     )
     assert inconsistent.decision is WorkerSettlementDecision.REJECT
@@ -108,6 +126,7 @@ def test_settlement_conflicts_on_changed_release_evidence(tmp_path: Path) -> Non
         pool,
         admission,
         execution,
+        lease_state=_lease(admission),
         released_at=NOW + timedelta(seconds=2),
     )
 
@@ -116,6 +135,7 @@ def test_settlement_conflicts_on_changed_release_evidence(tmp_path: Path) -> Non
         settled.pool,
         admission,
         execution,
+        lease_state=settled.lease_state,
         released_at=NOW + timedelta(seconds=3),
     )
     assert conflict.decision is WorkerSettlementDecision.CONFLICT
@@ -139,6 +159,7 @@ def test_settlement_rejects_unbound_or_missing_reservations(tmp_path: Path) -> N
         pool,
         admission,
         unbound,
+        lease_state=_lease(admission),
         released_at=NOW + timedelta(seconds=2),
     )
     assert rejected.decision is WorkerSettlementDecision.REJECT
@@ -149,6 +170,7 @@ def test_settlement_rejects_unbound_or_missing_reservations(tmp_path: Path) -> N
         WorkerPoolState(pool.profile),
         admission,
         execution,
+        lease_state=_lease(admission),
         released_at=NOW + timedelta(seconds=2),
     )
     assert missing.decision is WorkerSettlementDecision.REJECT
@@ -164,7 +186,34 @@ def test_settlement_rejects_release_before_acquisition(tmp_path: Path) -> None:
         pool,
         admission,
         execution,
+        lease_state=_lease(admission),
         released_at=NOW - timedelta(seconds=1),
     )
     assert rejected.decision is WorkerSettlementDecision.REJECT
     assert rejected.rejection_reason == "release cannot precede reservation acquisition"
+
+
+def test_settlement_routes_expired_lease_to_recovery(tmp_path: Path) -> None:
+    values = _fixtures()
+    pool, admission = _admitted_pool(values)
+    execution = _execution(values, tmp_path)
+    expired = LeaseObservationState(
+        ExecutionAttemptLease(
+            admission.attempt_id,
+            admission.worker_id,
+            "lease-1",
+            NOW,
+            NOW,
+            NOW + timedelta(seconds=1),
+        )
+    )
+    rejected = settle_worker_execution(
+        WorkerSettlementLedger(),
+        pool,
+        admission,
+        execution,
+        lease_state=expired,
+        released_at=NOW + timedelta(seconds=2),
+    )
+    assert rejected.decision is WorkerSettlementDecision.REJECT
+    assert rejected.rejection_reason == "expired leases require worker recovery"

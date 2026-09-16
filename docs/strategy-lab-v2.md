@@ -596,10 +596,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   before it can be settled.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
-  plan is still bound to the admission and pool profile, releases the matching
-  reservation only once, and records content-addressed evidence. Exact retries
-  replay an already-released reservation; changed evidence, an active pool
-  with an existing receipt, or a missing/mismatched reservation fails closed.
+  plan is still bound to the admission and pool profile, applies a deterministic
+  ordered lease-release observation, releases the matching reservation only
+  once, and records content-addressed evidence. Exact retries replay an
+  already-released reservation and lease; changed evidence, an active pool with
+  an existing receipt, an expired lease, or a missing/mismatched reservation
+  fails closed and leaves recovery to the retry path.
 - `result_materialization.py` binds engine-neutral result evidence to an
   immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
   output-artifact identities must agree; exact retries replay an existing

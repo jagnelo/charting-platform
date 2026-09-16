@@ -2047,3 +2047,20 @@ preserve the execution-admission and ownership gates.
 The worker resolution contract also now rejects a contradictory terminal
 decision/runtime-result pair, so a forged success/failure label cannot reach
 capacity settlement or later result publication.
+
+## 2026-09-16 - Atomic lease-release settlement checkpoint
+
+Worker settlement now also applies a deterministic ordered
+`LeaseObservationKind.RELEASE` to the supplied `LeaseObservationState` and
+returns that state alongside the released pool and settlement ledger. Exact
+retries require both the pool reservation and lease observation to be already
+released with matching evidence. Expired or already-released leases are
+rejected and left for the existing recovery path, preventing a late process
+from presenting itself as an authoritative normal completion.
+
+The exact implementation tree passed all 428 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
