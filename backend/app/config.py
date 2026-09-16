@@ -516,14 +516,12 @@ class Settings(BaseSettings):
                         "scope": "demo_api_key",
                         "quota_group": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
-                        # CoinGecko publishes a monthly cap but does not
-                        # define the reset boundary in the pricing contract.
-                        # Keep admission conservative until the account's
-                        # provider-native usage endpoint proves the boundary.
-                        "reset": "provider_defined",
+                        # CoinGecko explicitly documents that monthly call
+                        # credits reset on the first day of each month,
+                        # regardless of subscription/billing date.
+                        "reset": "calendar_month_utc",
                     },
                 ],
-                "unknown_dimensions": ["monthly_cap_reset_boundary"],
                 "reset": "per_dimension",
             },
             "tokens_per_minute": 100,

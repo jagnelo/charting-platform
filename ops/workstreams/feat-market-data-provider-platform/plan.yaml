@@ -183,17 +183,15 @@ remaining_gaps:
     remain conservative and the provider still needs an exact active-window
     baseline before live routing.
   - >-
-    The provider contract audit found that CoinGecko's monthly Demo pool,
     Tiingo's distinct-symbol pool, Marketstack's monthly request pool, and
-    FMP's daily/bandwidth pools did not publish exact reset anchors. Their
-    dimensions remain recorded, but the implementation now marks those reset
-    anchors explicitly unknown and excludes the affected providers from
-    routing until provider/account evidence supplies the boundary; no
-    provider-defined label is converted into an invented rolling window.
-    CoinGecko's official `/key` usage endpoint was bounded-probed on
+    FMP's daily/bandwidth pools still lack exact reset anchors and remain
+    explicitly non-routable for those dimensions. CoinGecko's prior monthly
+    reset gap is closed from the provider's current official pricing/support
+    documentation: Demo monthly credits reset on the first day of each UTC
+    calendar month. Its official `/key` usage endpoint was bounded-probed on
     2026-09-16 and returned HTTP 401 error code 10005 because it is Pro-only,
-    so the Demo key cannot supply a native monthly baseline through that
-    endpoint.
+    so the Demo key still needs an operator/account baseline before routing;
+    no usage counter is fabricated.
   - >-
     Exact clean-source checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
     passed the full backend unit suite (`2,294/2,294`, 37 warnings) and the
@@ -371,6 +369,15 @@ remaining_gaps:
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      2026-09-16 CoinGecko monthly reset contract correction: current official
+      pricing/support documentation states that Demo monthly call credits reset
+      on the first day of each month regardless of billing date. The 10,000-call
+      dimension now uses `calendar_month_utc` and no longer carries an unknown
+      reset marker. The Pro-only `/key` endpoint remains unavailable to the
+      Demo key, so active account usage still requires an operator baseline;
+      no counter was inferred. Quota-contract coverage passed `99/99` and no
+      provider request was made for this source-backed correction.
     - >-
       2026-09-16 current-source native account-usage refresh: the four
       supported account snapshots (MarketData.app, Twelve Data, EODHD, and

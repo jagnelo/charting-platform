@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 CoinGecko monthly reset contract correction
+
+- Current official CoinGecko pricing/support documentation explicitly states
+  that monthly call credits reset on the first day of each month, regardless
+  of billing date. The contract now records `calendar_month_utc` for the
+  10,000-call Demo pool and no longer marks that reset dimension unknown.
+- The official `/key` usage endpoint remains Pro-only; the earlier bounded Demo
+  request returned HTTP 401 error `10005`. Therefore the monthly reset contract
+  is now exact, but the active Demo account baseline is still required before
+  routing and no usage counter is inferred.
+- Quota-contract regression coverage passed `99/99`; no provider request was
+  made for this documentation-driven correction and no frontend or ETF adapter
+  file changed.
+
 ## 2026-09-16 current-source native usage refresh
 
 - The four supported native account-usage probes were replayed separately at

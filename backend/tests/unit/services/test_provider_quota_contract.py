@@ -1854,9 +1854,9 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
     assert [item["reset"] for item in coingecko["dimensions"]] == [
         "rolling",
-        "provider_defined",
+        "calendar_month_utc",
     ]
-    assert coingecko["unknown_dimensions"] == ["monthly_cap_reset_boundary"]
+    assert "unknown_dimensions" not in coingecko
 
     twelve = settings.PROVIDER_RATE_LIMIT_SEEDS["twelve_data"]["quota_contract"]
     assert [item["reset"] for item in twelve["dimensions"]] == [
