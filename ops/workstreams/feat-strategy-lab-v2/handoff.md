@@ -572,3 +572,74 @@ the branch-owned handoff, session state, and validation journal below.
 - `ops/workstreams/feat-strategy-lab-v2/handoff.md`
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+## 2026-09-16 - Descriptive one-factor metric delta (in progress)
+
+The bounded implementation context owns only
+`backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/sensitivity.py`,
+`backend/app/strategy_lab_v2/tests/test_core.py`,
+`backend/app/strategy_lab_v2/tests/test_sensitivity.py`, and
+`docs/strategy-lab-v2.md`. It adds a run-scoped descriptive delta that requires
+exactly one canonical parameter change, a matching structured metric
+calculation fingerprint, and identical projected measurement-scope identities.
+The scope binds the frozen snapshot and its referenced coverage claims,
+experiment/scenario, portfolio currency, execution context, formula identity,
+and applicable session-calendar evidence. It does not authenticate upstream
+coverage claims. Null/incompatible cases are explicit unavailable outcomes;
+sample sizes and the existing unpaired/shared-seed/unverified-pairing labels
+are preserved. This context makes no significance, ranking, replicate-aggregate,
+or paired-inference claim.
+
+The product changeset is committed locally as
+`9da8d667e327aca619cc93bd8d22eac123e688a5`. Post-commit focused validation
+passed at this exact SHA: 75 Strategy Lab v2 tests, Ruff, focused Ruff formatting
+checks for the new comparator/test files, MyPy (20 source files), and
+`git diff --check`. Independent read-only review found two missing contract
+invariants; both were fixed with direct-construction tests, and the re-review
+found no remaining concrete issue. This is package-level evidence, not the final
+database/Redis/API/worker/Compose/Nautilus/full-stack acceptance gates.
+
+The ordinary sandbox denied creation of the worktree `.git/index.lock` on the
+first commit attempt. Read-only checks found the worktree index owned by the
+current user and no stale lock. The repository's narrow elevated Git retry then
+committed the already-reviewed staged changeset successfully. No sandbox setting
+was changed. This is the documented workflow recovery, not a product blocker.
+
+The required schema-4 session checkpoint initially needed the repository
+`agent-session-goal-state` helper to move the takeover marker from
+`resumed_after_takeover` to `active`, matching the still-active thread goal.
+The checkpoint then passed on the narrow elevated retry after default UV cache
+metadata access was denied. Its known dirty-path helper bug removed the leading
+`o` from the first path; raw `git status` showed the exact three branch-owned ops
+files, and `session.json` was corrected manually. No other path is dirty.
+
+The local branch was 22 commits ahead of
+`origin/feat/strategy-lab-v2` at `d2497f43084d52d3e66b40a91be25dd2678620be`
+after the product commit. No push was attempted: the private-origin exact-payload
+authorization hold remains, and this agent will not use an alternate transport.
+The separate ops checkpoint will add one commit above the last recorded
+pre-checkpoint SHA; verify the enclosing final SHA externally with `git
+rev-parse` rather than chasing a self-referential session hash.
+
+`make branch-validate` passed all 30 workstream records on the narrow elevated
+retry after the default sandbox denied UV cache metadata access, including a
+final pass after the checkpoint refresh, exact dirty-path correction, and
+validation-journal update. The required schema-4 session checkpoint is current
+for the product SHA, with the active goal recorded. Exact next action: stage and
+review only the three branch-owned ops files, commit the separate checkpoint,
+then verify clean status and the exact final `HEAD`/remote hashes externally.
+Do not publish the branch while the exact-payload hold remains.
+
+Next bounded action after this ops checkpoint: from a verified clean local
+boundary, inspect remaining parallel-safe Strategy Lab v2 core gaps and choose
+the next backend-owned slice. Keep paired inference/profitability ranking
+deferred until trusted aligned observations exist. This ops checkpoint updates
+only these branch-owned files:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+Do not mutate another worktree or provider, ETF, TC2000, shared runtime, API,
+persistence, Compose, or frontend path.

@@ -73,13 +73,16 @@
       "text": "Focused deterministic tests, database/Redis integration, migration compatibility, worker restart/retry/cancel, artifact integrity, API contracts, Nautilus stable conformance, security/resource isolation, Compose scaling, and full exact-tip branch validation pass. Deployment, live shadow activation, human closure, integration, and promotion remain separately authorized."
     }
   ],
-  "active_session_id": "603da09c-b640-4018-9f40-c62f4564b074",
+  "active_session_id": "e2731935-179c-4c35-b5d2-aadf7b4857f7",
   "branch": "feat/strategy-lab-v2",
   "claim": {
     "branch": "feat/strategy-lab-v2",
+    "displaced_session_id": "603da09c-b640-4018-9f40-c62f4564b074",
     "host": "Joaos-MacBook-Air-M4.local",
-    "session_id": "603da09c-b640-4018-9f40-c62f4564b074",
+    "session_id": "e2731935-179c-4c35-b5d2-aadf7b4857f7",
     "started_at": "2026-09-15T19:49:29.619410+00:00",
+    "taken_over_at": "2026-09-16T01:47:41.916851+00:00",
+    "takeover_request": "Continue working toward the active thread goal in the assigned feat/strategy-lab-v2 worktree.",
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-a4470b6785"
   },
@@ -116,39 +119,41 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/strategy-lab-v2: Implement the production-grade, local-first Strategy Lab v2 backend for reproducible portfolio backtesting, walk-forward and search experiments, and persistent broker-free shadow testing. Keep the strategy SDK engine-neutral, use Nautilus as the only authoritative simulator after stable v2 conformance, and respect provider-platform, ETF, and TC2000 workstream ownership.. Acceptance criteria: AC-DOMAIN: Immutable, typed, versioned public contracts distinguish strategy versions, packages, portfolio compositions, data snapshots, experiments, trials, run attempts, artifact manifests, metric sets, and forward instances; execution retries create attempts against the same immutable trial.; AC-SDK: Strategy code uses a versioned engine-neutral SDK, declares all data/model/ library dependencies, receives only frozen declared inputs, emits typed order or target-position intents, and cannot access providers, network, database, secrets, arbitrary files, or wall-clock time.; AC-DATA: Preflight represents support by asset/product, event granularity, timeframe/history, adjustment/corporate-action semantics, session/feed, and execution/account model. Missing rigorous requirements fail closed; explicitly requested degraded trials are separately labelled with all substitutions and excluded from rigorous rankings by default.; AC-REPRODUCIBILITY: Data is acquired through the shared platform before execution, verified, frozen as a content-addressed snapshot, and never fetched inside the simulator. A result manifest identifies strategy, portfolio, data, capability contract, engine/build, dependency catalog, assumptions, seed, and metric version sufficiently to reproduce the run.; AC-SEARCH: Deterministic grid, seeded random/Latin-hypercube, scenario-matrix, and walk-forward trials are resumable and cancellable; walk-forward selection uses training data only, supports rolling/anchored windows and gap/embargo, freezes OOS evaluation, and aggregates OOS results only.; AC-PORTFOLIO: A trial simulates all instruments and strategies together in one shared account. Immutable portfolio composition defines capital budgets, weights, rebalancing, priority/contention, shared risk, and component attribution; supported order intents are routed through platform allocation/risk before the engine and unsupported capability combinations fail preflight.; AC-METRICS: Official results use native simulator orders, fills, positions, accounts, and equity. Versioned metrics cover return/P&L, risk/drawdown, risk-adjusted performance, trade quality, exposure/capital, execution costs, attribution, rolling series, distributions, sensitivity, and calendar periods. Every metric records units, calculation version, annualization/calendar basis, gross/net basis, sample size, and null reason; no profitability verdict is issued.; AC-ARTIFACTS: PostgreSQL stores authoritative metadata/state/lineage/leases/compact metrics; Redis is dispatch/event transport only and is reconciled through a transactional outbox. Large inputs and outputs use immutable compressed content-addressed Parquet/Arrow artifacts with deduplication, pins, and tiered retention; manifests and metric summaries are retained permanently.; AC-WORKERS: Backtests run in isolated, serial Nautilus worker processes scalable as Compose replicas. Forward workers have separately reserved capacity and obey one concurrent Nautilus node per process. Lease expiry, heartbeat, cancellation, crash recovery, idempotency, engine disposal, and artifact atomicity are covered; no Nautilus job runs in FastAPI or the general ARQ worker.; AC-NAUTILUS: A pinned stable Nautilus v2 release passes a platform conformance suite for multi-instrument accounting, native order/fill/cost models, reports, deterministic replay, engine lifecycle, and backtest/forward event-tape parity before it can publish authoritative results. The platform owns a Rust data adapter for canonical forward events; provider adapters are not used as a second data source.; AC-FORWARD: Persistent broker-free shadow instances use immutable historical warm-up followed only by new canonical events; activation declares flat start or synthetic carry-in. Orders, positions, cash, metrics, and events survive restart; duplicate, missing, late, corrected, stale, and out-of-order data are observable, and corrections create separately identified counterfactual replay without rewriting prior decisions.; AC-API: Versioned REST APIs under /api/v1/strategy-lab/v2 support strategy/package validation, portfolios, capability preflight, snapshots, experiments, trials, attempts, metrics/artifacts, and forward instances with Idempotency-Key, 202 submissions, resumable progress, cursor pagination, and stable typed errors. Existing routes remain available during migration.; AC-LEGACY: Legacy definitions and results remain inspectable. Explicit import returns a conversion/compatibility report for supported definitions, preserves original records, and makes no replay-equivalence claim.; AC-SECURITY: Trusted local Python strategies and custom metrics execute in constrained isolated containers with no network, read-only root, dropped capabilities, resource/time/output limits, vetted pinned libraries, and no runtime secrets; malformed or escaping code is rejected by adversarial tests.; AC-COMPOSE: The local Compose deployment uses existing PostgreSQL and Redis, separate simulation worker services, and bind-mountable content-addressed artifact storage. Single-host replicas scale independently; no cloud execution, Kubernetes, Kafka, MinIO, broker order route, or external testing service is required.; AC-UPSTREAM: Provider-platform, ETF, and TC2000 dependencies are consumed only after their approved work reaches staging. Every overlapping path and contract receives line-level semantic reconciliation before shared-path changes; no other worktree is mutated and no branch is directly merged.; AC-UI-BOUNDARY: Backend APIs and saved object identities support the later dockable TC2000-native Strategy Library/Builder, Experiment Designer, Run Queue, Results/Compare, Portfolio Composer, and Forward Monitor. Frontend product implementation remains a separate branch and authorization.; AC-VALIDATION: Focused deterministic tests, database/Redis integration, migration compatibility, worker restart/retry/cancel, artifact integrity, API contracts, Nautilus stable conformance, security/resource isolation, Compose scaling, and full exact-tip branch validation pass. Deployment, live shadow activation, human closure, integration, and promotion remain separately authorized.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-15T20:00:01.242815+00:00",
+  "goal_recorded_at": "2026-09-16T02:19:11.995272+00:00",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Implement the production-grade, local-first Strategy Lab v2 backend for reproducible portfolio backtesting, walk-forward and search experiments, and persistent broker-free shadow testing. Keep the strategy SDK engine-neutral, use Nautilus as the only authoritative simulator after stable v2 conformance, and respect provider-platform, ETF, and TC2000 workstream ownership."
   },
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f34fb2564d62c8721f1b518ca093876271f3e3ca",
-  "implementation_sha": "f34fb2564d62c8721f1b518ca093876271f3e3ca",
-  "last_checkpoint": "2026-09-16T01:39:55.520456+00:00",
-  "last_human_progress_update": "2026-09-16T01:30:24.669822+00:00",
+  "head": "9da8d667e327aca619cc93bd8d22eac123e688a5",
+  "implementation_sha": "9da8d667e327aca619cc93bd8d22eac123e688a5",
+  "last_checkpoint": "2026-09-16T02:27:34.499812+00:00",
+  "last_human_progress_update": "2026-09-16T01:53:17.038415+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish validation and commit only the three branch-owned workstream records as the separate ops checkpoint, verify the enclosing SHA externally, then stop at the soft stop. Next implementation context: add descriptive one-factor metric deltas using stable calculation fingerprints; keep statistical inference deferred.",
+  "next_action": "Stage and review only the three branch-owned workstream files, commit them as the separate ops checkpoint, then verify the clean worktree and exact HEAD/origin hashes; do not push while the exact-payload export hold is active. From that clean local checkpoint, continue with the recorded bounded core-gap review.",
   "parent_branch": "staging",
   "pending_push": {
     "attempted": false,
     "branch": "feat/strategy-lab-v2",
     "command": "rtk git push origin feat/strategy-lab-v2",
-    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..f34fb2564d62c8721f1b518ca093876271f3e3ca",
-    "reason": "Exact-payload authorization for the private origin is unavailable.",
+    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..9da8d667e327aca619cc93bd8d22eac123e688a5",
+    "reason": "Exact-payload authorization for the private origin is unavailable; this is the last known pre-ops-checkpoint range and the enclosing ops SHA is verified externally with git rev-parse.",
     "remote": "origin"
   },
   "plan_hash": "ee98572300e3a0025bac1f87834e8bb68a0720817b5a4080b904d6eb5c7e216a",
   "planning_required": false,
   "planning_state": "ready",
-  "previous_session_ids": [],
+  "previous_session_ids": [
+    "603da09c-b640-4018-9f40-c62f4564b074"
+  ],
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "metric-calculation-identity",
-    "next_action": "Finish validation and commit only the three branch-owned workstream records as the separate ops checkpoint, verify the enclosing SHA externally, then stop at the soft stop. Next implementation context: add descriptive one-factor metric deltas using stable calculation fingerprints; keep statistical inference deferred.",
+    "current_phase": "metric-delta-comparison",
+    "next_action": "From a verified clean local checkpoint, inspect remaining parallel-safe Strategy Lab v2 core gaps and select the next bounded backend-owned slice; preserve the no-inference/no-ranking boundary and keep other worktrees untouched.",
     "total": 18,
-    "updated_at": "2026-09-16T01:36:56+00:00"
+    "updated_at": "2026-09-16T02:17:16+00:00"
   },
   "publication_state": "committed_locally_pending_push",
   "remote": "d2497f43084d52d3e66b40a91be25dd2678620be",
@@ -156,8 +161,16 @@
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
-  "session_id": "603da09c-b640-4018-9f40-c62f4564b074",
+  "session_id": "e2731935-179c-4c35-b5d2-aadf7b4857f7",
   "state": "checkpointed",
+  "takeover_history": [
+    {
+      "at": "2026-09-16T01:47:41.916851+00:00",
+      "displaced_session_id": "603da09c-b640-4018-9f40-c62f4564b074",
+      "new_session_id": "e2731935-179c-4c35-b5d2-aadf7b4857f7",
+      "reason": "Continue working toward the active thread goal in the assigned feat/strategy-lab-v2 worktree."
+    }
+  ],
   "validation_tier": "full_integration",
   "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
