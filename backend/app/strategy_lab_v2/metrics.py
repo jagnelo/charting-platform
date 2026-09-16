@@ -22,6 +22,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.observations import (
+    AccountCapitalMarginObservation,
     AccountEquityIntervalObservation,
     ComponentPnlObservation,
     CostReportStatus,
@@ -78,6 +79,14 @@ _METRIC_FORMULAS = {
     "profit_factor": "sum of positive trade P&L divided by absolute sum of negative trade P&L",
     "max_consecutive_wins": "longest contiguous sequence of positive trade P&L observations",
     "max_consecutive_losses": "longest contiguous sequence of negative trade P&L observations",
+    "average_initial_margin_utilization": "equally sample-weighted mean of initial margin requirement divided by supplied initial margin capacity",
+    "maximum_initial_margin_utilization": "maximum observed initial margin requirement divided by supplied initial margin capacity",
+    "average_maintenance_margin_utilization": "equally sample-weighted mean of maintenance margin requirement divided by supplied maintenance margin capacity",
+    "maximum_maintenance_margin_utilization": "maximum observed maintenance margin requirement divided by supplied maintenance margin capacity",
+    "average_initial_margin_requirement_to_equity": "equally sample-weighted mean of initial margin requirement divided by contemporaneous account equity",
+    "maximum_initial_margin_requirement_to_equity": "maximum observed initial margin requirement divided by contemporaneous account equity",
+    "average_maintenance_margin_requirement_to_equity": "equally sample-weighted mean of maintenance margin requirement divided by contemporaneous account equity",
+    "maximum_maintenance_margin_requirement_to_equity": "maximum observed maintenance margin requirement divided by contemporaneous account equity",
 }
 
 
@@ -1015,6 +1024,164 @@ def calculate_exposure_utilization_metrics(
             "risk_model": CASH_EQUITY_NOTIONAL_RISK_MODEL,
             "valuation_basis": "signed_base_notional_over_contemporaneous_account_equity",
         },
+    )
+
+
+@deterministic_decimal_math
+def calculate_capital_margin_utilization_metrics(
+    observations: Sequence[AccountCapitalMarginObservation],
+) -> tuple[MetricValue, ...]:
+    """Summarize engine-reported margin requirements and capital capacity.
+
+    The ratios are equally sample-weighted event marks. Requirements and
+    capacities must be supplied by the authoritative account/product adapter;
+    this calculator deliberately does not infer margin, leverage, or buying
+    power from position notionals. Ratios above one remain diagnostic values
+    and are not converted into a breach or profitability verdict.
+    """
+
+    marks = tuple(observations)
+    if not marks:
+        raise ValueError("at least one capital and margin observation is required")
+    if any(not isinstance(item, AccountCapitalMarginObservation) for item in marks):
+        raise TypeError("observations must contain AccountCapitalMarginObservation values")
+    portfolio_fingerprint = marks[0].portfolio_fingerprint
+    run_attempt_id = marks[0].run_attempt_id
+    base_currency = marks[0].base_currency
+    points = tuple(item.point for item in marks)
+    if any(item.portfolio_fingerprint != portfolio_fingerprint for item in marks):
+        raise ValueError("all capital and margin observations must use the same portfolio version")
+    if any(item.run_attempt_id != run_attempt_id for item in marks):
+        raise ValueError("all capital and margin observations must belong to the same run attempt")
+    if any(item.base_currency != base_currency for item in marks):
+        raise ValueError("all capital and margin observations must use the same base currency")
+    if any(current <= previous for previous, current in zip(points, points[1:])):
+        raise ValueError(
+            "capital and margin observations must be strictly ordered by event time and sequence"
+        )
+
+    observation_digest = content_digest(marks)
+    initial_utilization = [
+        item.initial_margin_requirement / item.initial_margin_capacity for item in marks
+    ]
+    maintenance_utilization = [
+        item.maintenance_margin_requirement / item.maintenance_margin_capacity for item in marks
+    ]
+    initial_to_equity = [
+        item.initial_margin_requirement / item.account_equity for item in marks
+    ]
+    maintenance_to_equity = [
+        item.maintenance_margin_requirement / item.account_equity for item in marks
+    ]
+    sample_size = len(marks)
+
+    def average(values: Sequence[Decimal]) -> Decimal:
+        return sum(values, Decimal(0)) / Decimal(sample_size)
+
+    calculation_parameters = {
+        "valuation_basis": "engine_reported_margin_requirements_and_capacities",
+        "sample_weighting": "equal_event_marks",
+        "notional_inference": "forbidden",
+    }
+    return _finalize_metric_values(
+        (
+            _value(
+                "average_initial_margin_utilization",
+                average(initial_utilization),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of engine-reported initial margin "
+                    "requirement divided by supplied initial margin capacity; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_initial_margin_utilization",
+                max(initial_utilization),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum observed engine-reported initial margin requirement divided "
+                    f"by supplied initial margin capacity; observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "average_maintenance_margin_utilization",
+                average(maintenance_utilization),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of engine-reported maintenance margin "
+                    "requirement divided by supplied maintenance margin capacity; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_maintenance_margin_utilization",
+                max(maintenance_utilization),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum observed engine-reported maintenance margin requirement divided "
+                    f"by supplied maintenance margin capacity; observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "average_initial_margin_requirement_to_equity",
+                average(initial_to_equity),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of engine-reported initial margin "
+                    "requirement divided by contemporaneous account equity; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_initial_margin_requirement_to_equity",
+                max(initial_to_equity),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum observed engine-reported initial margin requirement divided "
+                    f"by contemporaneous account equity; observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "average_maintenance_margin_requirement_to_equity",
+                average(maintenance_to_equity),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of engine-reported maintenance margin "
+                    "requirement divided by contemporaneous account equity; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_maintenance_margin_requirement_to_equity",
+                max(maintenance_to_equity),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum observed engine-reported maintenance margin requirement divided "
+                    f"by contemporaneous account equity; observations {observation_digest}"
+                ),
+            ),
+        ),
+        evidence_references=(
+            MetricEvidenceReference("capital_margin_observations", observation_digest),
+        ),
+        common_calculation_parameters=calculation_parameters,
     )
 
 

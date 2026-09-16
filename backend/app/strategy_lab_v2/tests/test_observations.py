@@ -25,6 +25,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.metrics import (
     calculate_calendar_period_metrics,
+    calculate_capital_margin_utilization_metrics,
     calculate_component_attribution_metrics,
     calculate_execution_cost_metrics,
     calculate_exposure_utilization_metrics,
@@ -33,6 +34,7 @@ from app.strategy_lab_v2.metrics import (
     calculate_time_weighted_return_metrics,
 )
 from app.strategy_lab_v2.observations import (
+    AccountCapitalMarginObservation,
     AccountEquityIntervalObservation,
     ComponentPnlObservation,
     CostReportStatus,
@@ -271,6 +273,31 @@ def _snapshot(
     )
 
 
+def _capital_margin(
+    sequence: int,
+    *,
+    equity: str,
+    initial_requirement: str,
+    maintenance_requirement: str,
+    initial_capacity: str,
+    maintenance_capacity: str,
+    run_attempt_id: str = "attempt-1",
+    base_currency: str = "USD",
+) -> AccountCapitalMarginObservation:
+    return AccountCapitalMarginObservation(
+        portfolio_fingerprint=PORTFOLIO,
+        run_attempt_id=run_attempt_id,
+        point=ObservationPoint(START + timedelta(minutes=sequence), sequence),
+        account_equity=Decimal(equity),
+        initial_margin_requirement=Decimal(initial_requirement),
+        maintenance_margin_requirement=Decimal(maintenance_requirement),
+        initial_margin_capacity=Decimal(initial_capacity),
+        maintenance_margin_capacity=Decimal(maintenance_capacity),
+        base_currency=base_currency,
+        valuation_evidence_digest=EVIDENCE,
+    )
+
+
 def _cost(
     cost_id: str,
     kind: ExecutionCostKind,
@@ -451,6 +478,76 @@ def test_exposure_metrics_reject_reordered_and_unsupported_product_marks() -> No
     )
     with pytest.raises(ValueError, match="unsupported exposure risk model"):
         calculate_exposure_utilization_metrics((unsupported,))
+
+
+def test_capital_margin_metrics_use_authoritative_requirements_and_capacities() -> None:
+    marks = (
+        _capital_margin(
+            1,
+            equity="100000",
+            initial_requirement="20000",
+            maintenance_requirement="10000",
+            initial_capacity="50000",
+            maintenance_capacity="40000",
+        ),
+        _capital_margin(
+            2,
+            equity="110000",
+            initial_requirement="30000",
+            maintenance_requirement="20000",
+            initial_capacity="60000",
+            maintenance_capacity="40000",
+        ),
+    )
+
+    metrics = _metric_map(calculate_capital_margin_utilization_metrics(marks))
+    assert metrics["average_initial_margin_utilization"].value == Decimal("0.45")
+    assert metrics["maximum_initial_margin_utilization"].value == Decimal("0.5")
+    assert metrics["average_maintenance_margin_utilization"].value == Decimal("0.375")
+    assert metrics["maximum_maintenance_margin_utilization"].value == Decimal("0.5")
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_initial_to_equity = (Decimal("0.2") + Decimal(3) / Decimal(11)) / Decimal(2)
+        expected_maintenance_to_equity = (Decimal("0.1") + Decimal(2) / Decimal(11)) / Decimal(2)
+        expected_max_initial_to_equity = Decimal(3) / Decimal(11)
+        expected_max_maintenance_to_equity = Decimal(2) / Decimal(11)
+    assert metrics["average_initial_margin_requirement_to_equity"].value == expected_initial_to_equity
+    assert metrics["maximum_initial_margin_requirement_to_equity"].value == expected_max_initial_to_equity
+    assert metrics["average_maintenance_margin_requirement_to_equity"].value == expected_maintenance_to_equity
+    assert metrics["maximum_maintenance_margin_requirement_to_equity"].value == expected_max_maintenance_to_equity
+    assert metrics["average_initial_margin_utilization"].basis is MetricBasis.NET
+    assert metrics["average_initial_margin_utilization"].sample_size == 2
+    assert "notional_inference" in metrics[
+        "average_initial_margin_utilization"
+    ].calculation_definition.parameters
+    assert metrics["average_initial_margin_utilization"].evidence_references == (
+        MetricEvidenceReference("capital_margin_observations", content_digest(marks)),
+    )
+
+
+def test_capital_margin_metrics_reject_mixed_scope_or_unordered_marks() -> None:
+    first = _capital_margin(
+        1,
+        equity="100000",
+        initial_requirement="20000",
+        maintenance_requirement="10000",
+        initial_capacity="50000",
+        maintenance_capacity="40000",
+    )
+    second = _capital_margin(
+        2,
+        equity="100000",
+        initial_requirement="20000",
+        maintenance_requirement="10000",
+        initial_capacity="50000",
+        maintenance_capacity="40000",
+    )
+    with pytest.raises(ValueError, match="same run attempt"):
+        calculate_capital_margin_utilization_metrics((first, replace(second, run_attempt_id="attempt-2")))
+    with pytest.raises(ValueError, match="strictly ordered"):
+        calculate_capital_margin_utilization_metrics((second, first))
+    with pytest.raises(ValueError, match="margin capacities must be positive"):
+        replace(first, initial_margin_capacity=Decimal(0))
 
 
 def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> None:

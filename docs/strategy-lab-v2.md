@@ -199,6 +199,16 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   external-flow event withholds the entire distribution; simple close-to-close
   returns are not presented as flow-adjusted time-weighted returns. Histogram
   bins and sensitivity ranking/inference are not part of this summary.
+  `calculate_capital_margin_utilization_metrics()` adds an engine-neutral,
+  run-scoped summary of event-sampled initial and maintenance margin
+  requirements relative to their supplied capacities and contemporaneous
+  account equity. Requirements, capacities, currency, and valuation evidence
+  are authoritative adapter inputs; the calculator never infers margin,
+  leverage, or buying power from notional exposure. It reports equally
+  sample-weighted means and observed maxima as diagnostic ratios, including
+  ratios above one, without turning them into a breach or profitability
+  verdict. Financing costs outside fill reports and trusted paired inference
+  remain deferred.
   `calculate_time_weighted_return_metrics()` now provides a strict,
   engine-neutral flow-adjusted return path. Each reported external event must
   carry explicit pre-flow and post-flow equity boundary marks whose difference
@@ -216,9 +226,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   mean, nearest-rank median/minimum/maximum, and configured nearest-rank
   quantiles. The result exposes only the signed difference of arm means; it does
   not rank candidates, estimate significance, or claim independence or paired
-  inference. Remaining gaps include true margin/capital utilization beyond
-  supported cash-equity notional exposure, financing outside fill reports, and
-  trusted paired inference.
+  inference. Remaining gaps include financing outside fill reports and trusted
+  paired inference.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.

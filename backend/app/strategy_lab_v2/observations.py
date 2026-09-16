@@ -230,6 +230,54 @@ class FillCostObservation:
 
 
 @dataclass(frozen=True, slots=True)
+class AccountCapitalMarginObservation:
+    """One engine-reported capital and margin capacity valuation.
+
+    Requirement and capacity values are supplied by the account/product
+    adapter. The metrics layer never estimates margin from notional exposure;
+    capacities may therefore represent portfolio rules, broker buying power, or
+    a product-specific clearing model without changing the contract.
+    """
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    point: ObservationPoint
+    account_equity: Decimal
+    initial_margin_requirement: Decimal
+    maintenance_margin_requirement: Decimal
+    initial_margin_capacity: Decimal
+    maintenance_margin_capacity: Decimal
+    base_currency: str
+    valuation_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.point, ObservationPoint):
+            raise TypeError("point must be an ObservationPoint")
+        for name in (
+            "account_equity",
+            "initial_margin_requirement",
+            "maintenance_margin_requirement",
+            "initial_margin_capacity",
+            "maintenance_margin_capacity",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite():
+                raise ValueError(f"{name} must be a finite Decimal")
+        if self.account_equity <= 0:
+            raise ValueError("account_equity must be positive")
+        if self.initial_margin_requirement < 0 or self.maintenance_margin_requirement < 0:
+            raise ValueError("margin requirements must be non-negative")
+        if self.initial_margin_capacity <= 0 or self.maintenance_margin_capacity <= 0:
+            raise ValueError("margin capacities must be positive")
+        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        require_sha256_digest(self.valuation_evidence_digest, field_name="valuation_evidence_digest")
+
+
+@dataclass(frozen=True, slots=True)
 class AccountEquityIntervalObservation:
     """One engine-reported prior-mark-to-session-close account interval.
 
