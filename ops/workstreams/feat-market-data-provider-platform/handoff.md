@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current preflight after `per_dimension` hardening
+
+- At committed source `620b96701`, the owner-local durable-ledger
+  preflight stopped before transport with exit `2`, `0/0` cases, and zero
+  provider requests. The receipt is appended to `validation.jsonl`; the
+  coordinator health/locking path passed.
+- The report contains `94` provider-specific quota/cost/baseline blockers,
+  `7` required live capability-safety blockers, and `22` unresolved
+  capability dispositions. `per_dimension` is now explicitly reported as an
+  unresolved reset when a chargeable dimension lacks its own boundary, while
+  the intentional account-usage bootstrap exclusion remains zero-cost.
+- This is current fail-closed safety evidence only. It does not establish
+  provider transport acceptance, legal/source admission, deployment-secret
+  verification, routing activation, or shadow-run authorization.
+
 ## 2026-09-16 `per_dimension` reset admission and preflight classification
 
 - A `per_dimension` root reset is now treated as a meta-label, not as a
