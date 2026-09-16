@@ -697,6 +697,12 @@ The contract records that conflict and uses the documented Free Starter
 20/minute value as the conservative reviewed ceiling; it does not substitute
 the broader 1,000/minute claim until the plan and reset semantics are clarified
 with provider/account evidence.
+The exact current-source account probes on 2026-09-16 passed for Twelve Data
+and EODHD. Twelve Data reconciled its native 8-credit minute pool after one
+`/api_usage` request, while its documented 800-credit UTC-day pool remained
+unreconciled because the endpoint exposes no cumulative daily counter. EODHD's
+`/user` response was also valid, but its reported usage date was stale; the
+daily baseline therefore remained observation-only and no reset was invented.
 Per-dimension operation maps follow the same fail-closed rule: an explicitly
 empty map is a reviewed zero-cost exclusion for that dimension (for example, a
 synchronous FINRA read against the separate asynchronous-dataset pool), while
