@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 full-stack and local secret-contract checkpoint
+
+- The exact committed implementation passed the Docker-backed combined backend
+  unit/integration gate: `2,680` tests passed, total coverage `81.94%`, with
+  89 warnings. The isolated testcontainer session was cleaned without a
+  host-wide prune and generated coverage artifacts were removed.
+- Compose and RPi deployment contract checks passed. They validate routing
+  disabled-by-default, egress isolation, secret-boundary wiring, and the
+  branch-scoped RPi configuration without deploying or contacting providers.
+- The local owner-managed environment file is present with mode `0600` and
+  owner `jagnelo`; all required configured provider variable names were found
+  without printing values. GitHub and remote deployment secret stores remain
+  unverified because they are separate owner-controlled environments.
+
 ## 2026-09-16 clean checkpoint and exact-source gate
 
 - The validated implementation was committed on the isolated feature branch at

@@ -320,6 +320,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      The exact committed implementation passed the Docker-backed combined
+      backend unit/integration gate: `2,680` tests, `81.94%` total coverage,
+      and 89 warnings. The isolated testcontainer session was cleaned without
+      host-wide pruning. Compose and RPi deployment-contract checks also
+      passed, and the owner-managed local `app.env` was verified as mode `0600`
+      with all required provider variable names present without exposing values.
+      GitHub and remote deployment secret stores remain owner-controlled and
+      unverified.
+    - >-
       Created clean feature checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
       after the provider-platform implementation passed repository validation.
       The exact-source backend unit replay passed `2,294/2,294` with 37
