@@ -312,6 +312,8 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_SERIES_RIGHTS_EVIDENCE", {})
         monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "")
         monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "ALPACA_REVIEWED_RESET", "")
+        monkeypatch.setattr(settings, "ALPACA_QUOTA_EVIDENCE", "")
         monkeypatch.setattr(settings, "FINNHUB_REVIEWED_MINUTE_RESET", "")
         monkeypatch.setattr(settings, "FINNHUB_REVIEWED_SECOND_RESET", "")
         monkeypatch.setattr(settings, "FINNHUB_MINUTE_QUOTA_EVIDENCE", "")
@@ -348,14 +350,31 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("finra", "fetch_market_events") == []
         assert provider_routing_control_settings("alpaca") == (
             "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
         )
         assert provider_missing_routing_controls("alpaca") == [
-            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
         ]
-        assert provider_missing_routing_controls("alpaca", "fetch_ohlcv:D1") == []
+        assert provider_routing_control_settings("alpaca", "fetch_ohlcv:D1") == (
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("alpaca", "fetch_ohlcv:D1") == [
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
+        ]
         assert provider_missing_routing_controls(
             "alpaca", "fetch_instrument_events"
-        ) == ["ALPACA_CORPORATE_ACTIONS_MAX_PAGES"]
+        ) == [
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("alpaca", "fetch_account_usage") == ()
+        assert provider_missing_routing_controls("alpaca", "fetch_account_usage") == []
         assert provider_routing_control_settings("massive") == (
             "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
             "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
@@ -390,9 +409,17 @@ class TestProviderRegistry:
         ]
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", True)
         assert provider_missing_routing_controls("alpaca") == [
-            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
+            "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
         ]
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 4)
+        assert provider_missing_routing_controls("alpaca") == [
+            "ALPACA_REVIEWED_RESET",
+            "ALPACA_QUOTA_EVIDENCE",
+        ]
+        monkeypatch.setattr(settings, "ALPACA_REVIEWED_RESET", "fixed_minute")
+        monkeypatch.setattr(settings, "ALPACA_QUOTA_EVIDENCE", "operator review")
         assert provider_missing_routing_controls("alpaca") == []
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", True)
         assert provider_missing_routing_controls("finra") == [

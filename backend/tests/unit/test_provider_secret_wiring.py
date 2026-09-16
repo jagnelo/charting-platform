@@ -71,6 +71,8 @@ PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
 }
 PROVIDER_SAFETY_SETTINGS = {
     "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+    "ALPACA_REVIEWED_RESET",
+    "ALPACA_QUOTA_EVIDENCE",
     "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
     "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
     "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
@@ -539,6 +541,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
     assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0" in example
+    assert "ALPACA_REVIEWED_RESET=" in example
+    assert "ALPACA_QUOTA_EVIDENCE=" in example
     assert "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "MASSIVE_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
@@ -631,6 +635,8 @@ def test_dinari_compose_and_live_workflow_defaults_use_documented_sandbox_host()
 
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
+    monkeypatch.setenv("ALPACA_REVIEWED_RESET", "")
+    monkeypatch.setenv("ALPACA_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "false")
@@ -679,6 +685,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["finra async result bytes"].startswith("non-routable:")
     assert statuses["alpaca corporate actions"].startswith("non-routable:")
+    assert statuses["alpaca market-data quota"].startswith("non-routable:")
     assert statuses["massive corporate actions"].startswith("non-routable:")
     assert statuses["massive market-data use"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
@@ -761,8 +768,11 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["bybit_xstocks"] == "routable: anonymous public calls are bounded by the documented 600/5-second/IP ceiling"
 
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "4")
+    monkeypatch.setenv("ALPACA_REVIEWED_RESET", "rolling")
+    monkeypatch.setenv("ALPACA_QUOTA_EVIDENCE", "current provider documentation")
     statuses = routing_safety_preflight()
     assert statuses["alpaca corporate actions"] == "routable"
+    assert statuses["alpaca market-data quota"] == "routable"
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "2")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "true")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "Massive personal-use terms review")

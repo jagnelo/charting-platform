@@ -2148,6 +2148,14 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
+    # Alpaca publishes the 200/minute market-data ceiling and emits reset
+    # headers, but its plan documentation does not establish whether the
+    # account pool resets on a fixed or rolling boundary. Keep routing
+    # fail-closed until an operator records the reviewed boundary and its
+    # evidence. This is provider-specific so plan changes remain configuration
+    # only and cannot be mistaken for a generic limiter default.
+    ALPACA_REVIEWED_RESET: str = ""
+    ALPACA_QUOTA_EVIDENCE: str = ""
     # Paper accounts use the paper trading host for the authenticated assets
     # directory. Production credentials must opt into the live host explicitly;
     # market-data history/latest endpoints continue to use data.alpaca.markets.
@@ -2976,6 +2984,40 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             seed["quota_scope"] = "api_key"
             seed["quota_source"] = (
                 "Alpha Vantage support allowance plus operator-reviewed reset evidence"
+            )
+        return seed
+    if provider_name == "alpaca":
+        # Alpaca exposes a documented account ceiling and native reset
+        # headers, but the published plan documentation does not define the
+        # initial reset boundary. Promote the seed only after an operator
+        # records an explicit calculable reset label and current evidence.
+        reviewed_reset = str(
+            getattr(settings, "ALPACA_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "ALPACA_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if (
+                    isinstance(dimension, dict)
+                    and dimension.get("name") == "market_data_requests_per_minute"
+                ):
+                    dimension["reset"] = reviewed_reset
+            contract["source"] = (
+                f"{contract.get('source', 'Alpaca market data API documentation')} plus "
+                "operator-reviewed reset-boundary evidence"
+            )
+            seed["quota_scope"] = "account"
+            seed["quota_source"] = (
+                "Alpaca market-data allowance plus operator-reviewed reset evidence"
             )
         return seed
     if provider_name == "finnhub":

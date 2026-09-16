@@ -1375,6 +1375,19 @@ def routing_safety_preflight() -> dict[str, str]:
         if alpaca_pages > 0
         else "non-routable: positive reviewed ALPACA_CORPORATE_ACTIONS_MAX_PAGES required"
     )
+    alpaca_reset = os.getenv("ALPACA_REVIEWED_RESET", "").strip()
+    alpaca_quota_evidence = os.getenv("ALPACA_QUOTA_EVIDENCE", "").strip()
+    alpaca_missing: list[str] = []
+    if not provider_quota_reset_is_admission_safe(alpaca_reset):
+        alpaca_missing.append("ALPACA_REVIEWED_RESET")
+    if not alpaca_quota_evidence:
+        alpaca_missing.append("ALPACA_QUOTA_EVIDENCE")
+    result["alpaca market-data quota"] = (
+        "routable"
+        if not alpaca_missing
+        else "non-routable: the documented 200-requests/minute account pool has no provider-published initial reset boundary; missing/invalid "
+        + ", ".join(alpaca_missing)
+    )
     raw_massive_pages = (
         os.getenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
     )

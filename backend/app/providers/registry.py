@@ -548,7 +548,11 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     # reviewed maximum number of pages rather than an invented one-request
     # default. The adapter remains directly testable while routing is closed
     # until this non-secret bound is configured.
-    "alpaca": ("ALPACA_CORPORATE_ACTIONS_MAX_PAGES",),
+    "alpaca": (
+        "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
+        "ALPACA_REVIEWED_RESET",
+        "ALPACA_QUOTA_EVIDENCE",
+    ),
     "massive": (
         "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
         "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
@@ -699,12 +703,24 @@ def provider_routing_control_settings(
 ) -> tuple[str, ...]:
     """Return non-secret routing-safety setting names for operator diagnostics.
 
-    Alpaca's page bound is specific to corporate actions; it is not a
-    prerequisite for the provider's history, latest-price, or discovery
-    operations.
+    Alpaca's page bound is specific to corporate actions; its account-pool
+    reset review applies to every metered market-data operation.
     """
 
-    if name == "alpaca" and operation is not None and operation != "fetch_instrument_events":
+    if (
+        name == "alpaca"
+        and operation is not None
+        and operation not in {"fetch_instrument_events", "fetch_account_usage"}
+    ):
+        return tuple(
+            control
+            for control in _ROUTING_CONTROL_SETTINGS[name]
+            if control != "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
+        )
+    if name == "alpaca" and operation == "fetch_account_usage":
+        # The native usage snapshot is the explicit bootstrap mechanism for
+        # observing Alpaca's reset-bearing headers. Requiring the reviewed
+        # reset pair before that one control-plane read would be circular.
         return ()
     if name == "massive" and operation is not None and operation != "fetch_instrument_events":
         return tuple(
@@ -766,12 +782,24 @@ def provider_missing_routing_controls(
         )
         return [] if configured is not None else list(required)
     if name == "alpaca":
-        if operation is not None and operation != "fetch_instrument_events":
-            return []
-        configured = provider_positive_integer(
-            getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
-        )
-        return [] if configured is not None else list(required)
+        missing: list[str] = []
+        if operation is None or operation == "fetch_instrument_events":
+            configured = provider_positive_integer(
+                getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
+            )
+            if configured is None:
+                missing.append("ALPACA_CORPORATE_ACTIONS_MAX_PAGES")
+        reviewed_reset = str(
+            getattr(settings, "ALPACA_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "ALPACA_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        if not provider_quota_reset_is_admission_safe(reviewed_reset):
+            missing.append("ALPACA_REVIEWED_RESET")
+        if not quota_evidence:
+            missing.append("ALPACA_QUOTA_EVIDENCE")
+        return list(dict.fromkeys(missing))
     if name == "massive":
         missing = massive_market_data_use_authority_missing()
         configured = provider_positive_integer(

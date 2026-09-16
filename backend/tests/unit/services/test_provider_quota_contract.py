@@ -185,6 +185,24 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
     assert alpha["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
 
 
+def test_alpaca_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "ALPACA_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "ALPACA_QUOTA_EVIDENCE", "operator review")
+    contract = provider_rate_limit_seed("alpaca")["quota_contract"]
+    assert contract["reset"] == "rolling"
+    assert contract["unknown_dimensions"] == []
+    assert contract["dimensions"][0]["reset"] == "rolling"
+
+    monkeypatch.setattr(settings, "ALPACA_REVIEWED_RESET", "fixed_minute")
+    monkeypatch.setattr(settings, "ALPACA_QUOTA_EVIDENCE", "")
+    contract = provider_rate_limit_seed("alpaca")["quota_contract"]
+    assert contract["reset"] == "provider_defined"
+    assert "requests_per_minute_reset_boundary" not in contract.get(
+        "unknown_dimensions", []
+    )
+    assert contract["dimensions"][0].get("reset") is None
+
+
 def test_alpha_vantage_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_REVIEWED_RESET", "calendar_day_utc")
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_QUOTA_EVIDENCE", "operator review")

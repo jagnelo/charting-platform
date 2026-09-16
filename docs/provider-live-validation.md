@@ -93,8 +93,14 @@ source in `ALPHA_VANTAGE_QUOTA_EVIDENCE`. Both values are wired through
 local/RPi Compose and the manual GitHub workflow; blank or unresolved values
 continue to block routing. This also lets a future Alpha plan change update
 the reviewed contract without code changes.
-It also prints a routing-safety preflight for Alpaca's paginated corporate-actions
-page bound, FINRA's asynchronous result-byte
+Alpaca is handled independently: its documented 200-requests/minute account
+ceiling remains `provider_defined` until `ALPACA_REVIEWED_RESET` and
+`ALPACA_QUOTA_EVIDENCE` are both supplied. The native `X-RateLimit-*` headers
+are retained as observations, but a successful header read alone does not
+promote ordinary routing. `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains a
+separate bound for cursor-paginated event reads.
+It also prints routing-safety preflights for Alpaca's reviewed market-data reset
+boundary/evidence pair and paginated corporate-actions page bound, FINRA's asynchronous result-byte
 bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
 poll controls, the MarketData.app reviewed account-plan/credit pair and
 operation-specific option-chain symbol bound, and the operation-level
@@ -401,7 +407,7 @@ GitHub uses the separate manually dispatched
 environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmation)
 `FINRA_OTC_SOURCE_KIND`, `FINRA_OTC_SYMBOL_DIRECTORY_URL`, and (for the documented ORF pair)
 `FINRA_OTC_INACTIVE_SECURITY_MASTER_URL` environment variables. Put the reviewed non-secret safety settings
-`ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_MARKET_DATA_USE_AUTHORIZED`,
+`ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE`, `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_MARKET_DATA_USE_AUTHORIZED`,
 `MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE`, `MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE`,
 `MASSIVE_MARKET_DATA_USE_REVIEWED_AT`, `MASSIVE_MARKET_DATA_USE_EXPIRES_AT`, `FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
 `FINRA_OTC_SOURCE_REVIEWED`, `FINRA_OTC_SOURCE_EVIDENCE`,
