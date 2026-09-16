@@ -3564,3 +3564,11 @@ tests/e2e/
 - This exact-source preflight consumed no provider quota and is not transport
   acceptance. No deployment, routing activation, integration, or shadow run
   occurred.
+
+The same preflight was replayed with approved access to the owner-managed
+durable quota ledger. The coordinator health check then passed, and the runner
+advanced to the provider-specific admission stage before stopping at exit `2`:
+the configured MarketData.app account-plan and option-chain controls were
+routable, while provider baselines/cost maps and the remaining legal/source and
+capability gates were still unresolved. The generated exact-source receipt is
+the authoritative record for this replay; it made zero provider calls.
