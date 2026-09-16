@@ -87,6 +87,17 @@
   transport failure. The implementation must not infer a 200/minute allowance
   from documentation alone without the required current reset/baseline proof.
 
+## 2026-09-16 Dinari sandbox preflight
+
+- The replacement Dinari sandbox key pair is recognized by the live runner,
+  but all nine Dinari operations stopped before network access (`0/0` cases).
+  Dinari publishes no numeric Sandbox request quota/reset or reviewed canary
+  admission, so quota routing remains fail-closed; no request or sandbox
+  allowance was consumed.
+- The redacted receipt records both the unreviewed reset semantics and the
+  missing canary admission. This is an explicit provider-specific blocker,
+  not an integration-success claim.
+
 - At committed source `4d1ed8622`, the just-in-time native usage refresh and
   expanded Binance matrix both passed. The matrix covered latest history,
   direct 30-day daily history, current price, universe discovery, and native
