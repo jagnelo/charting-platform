@@ -628,6 +628,11 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "FMP_DAILY_QUOTA_EVIDENCE",
         "FMP_BANDWIDTH_QUOTA_EVIDENCE",
     ),
+    "marketstack": (
+        "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
+        "MARKETSTACK_REVIEWED_MONTHLY_RESET",
+        "MARKETSTACK_QUOTA_EVIDENCE",
+    ),
     # MarketData.app account plans have distinct daily credit pools.  Native
     # response headers are telemetry; admission uses only this explicit
     # operator-reviewed plan/limit pair.
@@ -989,6 +994,20 @@ def provider_missing_routing_controls(
             getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
         ).strip():
             missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
+        return list(dict.fromkeys(missing))
+    if name == "marketstack":
+        missing: list[str] = []
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 0)
+        )
+        if reviewed_limit is None:
+            missing.append("MARKETSTACK_REVIEWED_MONTHLY_LIMIT")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+        ):
+            missing.append("MARKETSTACK_REVIEWED_MONTHLY_RESET")
+        if not str(getattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "") or "").strip():
+            missing.append("MARKETSTACK_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()

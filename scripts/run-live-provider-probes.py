@@ -1583,6 +1583,27 @@ def routing_safety_preflight() -> dict[str, str]:
         if os.getenv("MARKETSTACK_DISCOVERY_EXCHANGE", "").strip()
         else "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
+    try:
+        marketstack_limit = int(
+            os.getenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "0").strip() or "0"
+        )
+    except ValueError:
+        marketstack_limit = 0
+    marketstack_missing: list[str] = []
+    if marketstack_limit <= 0:
+        marketstack_missing.append("MARKETSTACK_REVIEWED_MONTHLY_LIMIT")
+    if not provider_quota_reset_is_admission_safe(
+        os.getenv("MARKETSTACK_REVIEWED_MONTHLY_RESET", "").strip()
+    ):
+        marketstack_missing.append("MARKETSTACK_REVIEWED_MONTHLY_RESET")
+    if not os.getenv("MARKETSTACK_QUOTA_EVIDENCE", "").strip():
+        marketstack_missing.append("MARKETSTACK_QUOTA_EVIDENCE")
+    result["marketstack quota"] = (
+        "routable"
+        if not marketstack_missing
+        else "non-routable: conflicting monthly cap/reset semantics require current account review; missing/invalid "
+        + ", ".join(marketstack_missing)
+    )
     marketdata_plan = os.getenv("MARKETDATA_APP_REVIEWED_PLAN", "").strip().lower()
     marketdata_limits = {
         "free_forever": 100,

@@ -559,6 +559,27 @@ def test_fmp_byte_pool_requires_independent_reset_review(monkeypatch):
     assert promoted["_byte_reservation_bounds"] == bounds
 
 
+def test_marketstack_monthly_limit_and_reset_require_account_review(monkeypatch):
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 0)
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
+    blocked = provider_rate_limit_seed("marketstack")["quota_contract"]
+    assert blocked["unknown_dimensions"] == [
+        "published_monthly_limit_conflict",
+        "monthly_cap_reset_boundary",
+    ]
+
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 10_000)
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "current paid-plan review")
+    promoted = provider_rate_limit_seed("marketstack")["quota_contract"]
+    assert promoted["unknown_dimensions"] == []
+    assert promoted["reset"] == "calendar_month_utc"
+    dimension = next(item for item in promoted["dimensions"] if item["name"] == "requests_per_month")
+    assert dimension["limit"] == 10_000
+    assert dimension["reset"] == "calendar_month_utc"
+
+
 def test_finra_async_download_requires_positive_bound_for_monthly_reservation(monkeypatch):
     source = DataSource(
         name="finra",

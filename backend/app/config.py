@@ -2087,6 +2087,12 @@ class Settings(BaseSettings):
     FINNHUB_MINUTE_QUOTA_EVIDENCE: str = ""
     FINNHUB_SECOND_QUOTA_EVIDENCE: str = ""
     MARKETSTACK_API_KEY: str = ""
+    # Marketstack's published monthly cap conflicts across official pages and
+    # its reset boundary is not stated. Keep routing fail-closed until the
+    # current account plan, monthly limit, boundary, and evidence are reviewed.
+    MARKETSTACK_REVIEWED_MONTHLY_LIMIT: int = 0
+    MARKETSTACK_REVIEWED_MONTHLY_RESET: str = ""
+    MARKETSTACK_QUOTA_EVIDENCE: str = ""
     # Marketstack ticker discovery is venue-scoped. Do not silently default
     # to one exchange or claim a whole-US universe without operator scope.
     MARKETSTACK_DISCOVERY_EXCHANGE: str = ""
@@ -3155,6 +3161,41 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             "Tiingo plan allowance plus operator-reviewed distinct-symbol/hourly reset evidence"
         )
         seed["_byte_reservation_bounds"] = bounds
+        return seed
+    if provider_name == "marketstack":
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 0)
+        )
+        reviewed_reset = str(
+            getattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            reviewed_limit is not None
+            and provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if (
+                    isinstance(dimension, dict)
+                    and dimension.get("name") == "requests_per_month"
+                ):
+                    dimension["limit"] = reviewed_limit
+                    dimension["reset"] = reviewed_reset
+            contract["source"] = (
+                f"{contract.get('source', 'Marketstack pricing/FAQ')} plus "
+                "operator-reviewed account limit/reset evidence"
+            )
+            seed["quota_contract"] = contract
+            seed["quota_source"] = (
+                "Marketstack account allowance plus operator-reviewed monthly reset evidence"
+            )
         return seed
     if provider_name == "fmp":
         # FMP exposes independent daily-call and bandwidth pools. Neither

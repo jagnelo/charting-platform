@@ -581,6 +581,16 @@ class TestProviderRegistry:
             "FMP_DAILY_QUOTA_EVIDENCE",
             "FMP_BANDWIDTH_QUOTA_EVIDENCE",
         ]
+        assert provider_routing_control_settings("marketstack") == (
+            "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
+            "MARKETSTACK_REVIEWED_MONTHLY_RESET",
+            "MARKETSTACK_QUOTA_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("marketstack") == [
+            "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
+            "MARKETSTACK_REVIEWED_MONTHLY_RESET",
+            "MARKETSTACK_QUOTA_EVIDENCE",
+        ]
         assert provider_routing_control_settings("marketdata_app") == (
             "MARKETDATA_APP_REVIEWED_PLAN",
             "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
@@ -626,6 +636,9 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
         monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "daily review")
         monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "bandwidth review")
+        monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 100)
+        monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
+        monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "current account review")
         assert provider_missing_routing_controls("finra") == []
         monkeypatch.setattr(
             settings,

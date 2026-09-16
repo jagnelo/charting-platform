@@ -26,6 +26,19 @@
       `155/155`; the full backend unit suite passes `2,357/2,357` with 37
       warnings. No Tiingo provider request was made by this change.
 
+### 2026-09-16 — Marketstack monthly-cap admission review
+
+- [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,
+      `MARKETSTACK_REVIEWED_MONTHLY_RESET`, and
+      `MARKETSTACK_QUOTA_EVIDENCE` controls. The pricing/FAQ conflict (100
+      versus 1,000 requests/month) remains visible; no value is silently
+      promoted and blank controls keep routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and live preflight while preserving the separate discovery
+      MIC gate. Focused coverage passes `156/156`; the full backend unit suite
+      passes `2,358/2,358` with 37 warnings. No Marketstack request was made
+      by this change.
+
 ### 2026-09-16 — Native account-usage baseline refresh
 
 - [x] Re-run the provider-specific account-usage-only live cases for Alpaca,

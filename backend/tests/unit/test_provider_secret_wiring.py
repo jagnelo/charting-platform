@@ -61,6 +61,9 @@ PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
     "FINRA_SHORT_INTEREST_URL",
     "FINRA_OTC_DAILY_LIST_URL",
     "MARKETSTACK_DISCOVERY_EXCHANGE",
+    "MARKETSTACK_REVIEWED_MONTHLY_LIMIT",
+    "MARKETSTACK_REVIEWED_MONTHLY_RESET",
+    "MARKETSTACK_QUOTA_EVIDENCE",
     "IBKR_READ_ONLY_URL",
     "IBKR_READ_ONLY_VERIFY_TLS",
     "IBKR_READ_ONLY_TIMEOUT_SECONDS",
@@ -549,6 +552,9 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}"
         in workflow
     )
+    assert "MARKETSTACK_REVIEWED_MONTHLY_LIMIT: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_LIMIT || '0' }}" in workflow
+    assert "MARKETSTACK_REVIEWED_MONTHLY_RESET: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_RESET || '' }}" in workflow
+    assert "MARKETSTACK_QUOTA_EVIDENCE: ${{ vars.MARKETSTACK_QUOTA_EVIDENCE || '' }}" in workflow
 
 
 def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
@@ -591,6 +597,9 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example
     assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0" in example
+    assert "MARKETSTACK_REVIEWED_MONTHLY_LIMIT=0" in example
+    assert "MARKETSTACK_REVIEWED_MONTHLY_RESET=" in example
+    assert "MARKETSTACK_QUOTA_EVIDENCE=" in example
     assert "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=false" in example
     assert "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS=[]" in example
     assert "XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false" in example
@@ -711,6 +720,9 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "")
     monkeypatch.setenv("FMP_DAILY_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "0")
+    monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+    monkeypatch.setenv("MARKETSTACK_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0")
@@ -732,6 +744,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert (
         statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
+    assert statuses["marketstack quota"].startswith("non-routable:")
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
     assert (
@@ -872,12 +885,16 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["tiingo"].startswith("non-routable: missing reviewed controls for")
 
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
+    monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_LIMIT", "100")
+    monkeypatch.setenv("MARKETSTACK_REVIEWED_MONTHLY_RESET", "calendar_month_utc")
+    monkeypatch.setenv("MARKETSTACK_QUOTA_EVIDENCE", "current account review")
     monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "starter")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "10000")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "25")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"
+    assert statuses["marketstack quota"] == "routable"
     assert statuses["marketdata.app account plan"] == "routable: paid plan reviewed"
     assert statuses["marketdata.app option chain"] == "routable"
     monkeypatch.delenv("ALLOW_PAID_PROVIDER_ROUTING", raising=False)

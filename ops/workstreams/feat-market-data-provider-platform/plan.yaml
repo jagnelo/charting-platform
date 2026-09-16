@@ -214,6 +214,17 @@ remaining_gaps:
     155/155 and the complete backend unit gate passes 2,357/2,357 with 37
     warnings at 70.77% coverage.
   - >-
+    Marketstack's conflicting 100-versus-1,000 requests/month claims now have
+    an explicit account-review gate. Routing requires positive
+    `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`, an admission-safe
+    `MARKETSTACK_REVIEWED_MONTHLY_RESET`, and `MARKETSTACK_QUOTA_EVIDENCE`;
+    the reviewed limit replaces the conservative seed only when all three are
+    present. The separate `MARKETSTACK_DISCOVERY_EXCHANGE` venue scope remains
+    required for discovery. Controls are wired through local/RPi Compose,
+    GitHub live CI, diagnostics, and live preflight. Focused coverage passes
+    156/156 and the complete backend unit gate passes 2,358/2,358 with 37
+    warnings at 70.78% coverage.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no provider-published
     reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
     makes this an explicit provider-specific admission control rather than a

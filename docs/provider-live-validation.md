@@ -125,6 +125,9 @@ before making a request.
 The same preflight reports whether the non-secret
 `MARKETSTACK_DISCOVERY_EXCHANGE` venue scope is configured; history can still
 be probed with only the key, but discovery remains non-routable without it.
+The separate Marketstack quota preflight also requires the reviewed monthly
+limit/reset/evidence controls; the conflicting provider pages are never
+resolved by a generic default.
 Coinbase's live case is blocked before transport until its exact internal,
 automated, persistent, non-redistributed use has current written authority
 recorded in the scoped `COINBASE_MARKET_DATA_USE_*` settings. FRED remains
@@ -424,7 +427,9 @@ environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmat
 `PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_FRESHNESS_SEEDS`,
 `PROVIDER_USAGE_PROFILE_SEEDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
-`MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans, and
+`MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans,
+`MARKETSTACK_REVIEWED_MONTHLY_LIMIT`, `MARKETSTACK_REVIEWED_MONTHLY_RESET`,
+and `MARKETSTACK_QUOTA_EVIDENCE`, and
 `ALLOW_PAID_PROVIDER_ROUTING` (default `false`),
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
 configuration variables. The SEC directory controls
@@ -901,7 +906,9 @@ The provider's current pricing page states 100 requests/month, while its FAQ
 still states 1,000 requests/month. The contract therefore keeps the lower
 value only as a conservative reservation ceiling, records both source URLs and
 the conflict, and keeps all Marketstack routing non-routable until the account
-plan and reset boundary are clarified. No value is silently selected as the
+plan and reset boundary are clarified. The reviewed controls are
+`MARKETSTACK_REVIEWED_MONTHLY_LIMIT`, `MARKETSTACK_REVIEWED_MONTHLY_RESET`,
+and `MARKETSTACK_QUOTA_EVIDENCE`; no value is silently selected as the
 provider's confirmed allowance.
 
 The latest network-enabled rerun at `2026-09-10T03:16:52Z`, using the existing
