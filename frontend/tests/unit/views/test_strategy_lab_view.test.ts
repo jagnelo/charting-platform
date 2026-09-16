@@ -942,6 +942,22 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('names manual-universe symbol removal controls and removes the selected symbol', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'NVDA')
+
+    const removeButton = wrapper.get('button[aria-label="Remove NVDA"]')
+    expect(removeButton.text()).toBe('×')
+    await removeButton.trigger('click')
+
+    expect(wrapper.find('button[aria-label="Remove NVDA"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No symbols added yet.')
+  })
+
   it('can save an ETF holdings snapshot as the strategy universe', async () => {
     const wrapper = mountView()
 

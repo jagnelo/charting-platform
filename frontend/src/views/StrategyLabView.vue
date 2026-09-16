@@ -342,7 +342,7 @@
                 <div class="chip-row">
                   <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
                     {{ symbol }}
-                    <button type="button" @click="removeSymbol(symbol)">×</button>
+                    <button type="button" :aria-label="`Remove ${symbol}`" @click="removeSymbol(symbol)">×</button>
                   </span>
                   <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
                 </div>
