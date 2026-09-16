@@ -161,6 +161,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Finnhub's observed 60-calls/minute and 30-calls/second ceilings are
+    independent pools, but the provider does not supply a reviewed reset
+    contract in the current branch evidence. Commit
+    `dd60e653237ccd4b8c24566fa4d5917fc6239971` adds separate
+    `FINNHUB_REVIEWED_MINUTE_RESET` / `FINNHUB_REVIEWED_SECOND_RESET` and
+    dimension-specific evidence settings. Both must be admission-safe and
+    evidenced before the seed changes from its unresolved combined label to
+    `per_dimension`; otherwise every Finnhub operation remains fail-closed.
+    Focused coverage is 153/153 and the full backend unit gate is 2,354/2,354
+    with 37 warnings at 70.75% coverage. No provider request was made.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no provider-published
     reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
     makes this an explicit provider-specific admission control rather than a

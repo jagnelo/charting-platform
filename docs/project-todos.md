@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-16 — Finnhub independent reset-boundary admission control
+
+- [x] Preserve Finnhub's 60/minute and 30/second ceilings as independent
+      quota dimensions and add separate reviewed reset/evidence controls for
+      each. Commit `dd60e653` wires the controls through runtime diagnostics,
+      live preflight, local/RPi Compose, GitHub CI, and examples; defaults stay
+      fail-closed and do not infer rolling or fixed windows.
+- [x] Validate focused provider registry/quota/secret wiring `153/153` and
+      the complete backend unit gate `2,354/2,354` (37 warnings, 70.75%
+      coverage), plus Ruff and diff checks. No provider request or credential
+      was used.
+- [ ] Obtain current Finnhub reset-boundary evidence for both pools, then run
+      the bounded live cases; do not promote the provider from fixture evidence.
+
 ### 2026-09-16 — Alpha Vantage reset-boundary admission control
 
 - [x] Replace the unresolved Alpha Vantage reset boundary with an explicit

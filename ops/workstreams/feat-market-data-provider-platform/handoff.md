@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Finnhub independent reset-boundary admission control
+
+- Finnhub's observed free-account ceilings remain two distinct dimensions:
+  60 calls/minute and a 30 calls/second hard cap. Commit
+  `dd60e653237ccd4b8c24566fa4d5917fc6239971` adds independent reviewed reset
+  and evidence controls for both dimensions instead of applying one generic
+  window. The default contract remains unresolved and non-routable.
+- `FINNHUB_REVIEWED_MINUTE_RESET`, `FINNHUB_REVIEWED_SECOND_RESET`,
+  `FINNHUB_MINUTE_QUOTA_EVIDENCE`, and `FINNHUB_SECOND_QUOTA_EVIDENCE` are
+  wired through local/RPi Compose, the manual GitHub workflow, diagnostics,
+  live preflight, and environment examples. Promotion requires both
+  admission-safe reset labels and non-empty dimension-specific evidence;
+  otherwise the original provider-defined contract is retained.
+- Focused registry/quota/wiring coverage passed `153/153`; the complete backend
+  unit gate passed `2,354/2,354` with 37 warnings and 70.75% coverage. Ruff
+  and `git diff --check` passed. No provider request or credential was used.
+- A Finnhub live case remains blocked before transport until current reset
+  evidence is supplied; this change does not promote routing or shadow mode.
+
 ## 2026-09-16 Alpha Vantage reset-boundary admission control
 
 - Alpha Vantage's documented free-key allowance remains 25 requests/day, but
