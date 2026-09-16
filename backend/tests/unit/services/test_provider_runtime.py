@@ -490,6 +490,15 @@ async def test_provider_routing_emergency_switch_keeps_all_adapters_out_of_chain
 async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
+    # The live Alpha Vantage contract intentionally keeps its daily reset
+    # boundary unknown. This resolver test supplies an explicit reviewed test
+    # fixture so it can isolate the raw-vs-adjusted capability filter without
+    # pretending that the production daily pool is routable.
+    seeds = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS)
+    alpha_seed = seeds["alpha_vantage"]
+    alpha_seed["quota_contract"]["reset"] = "rolling"
+    alpha_seed["quota_contract"].pop("unknown_dimensions", None)
+    monkeypatch.setattr(settings, "PROVIDER_RATE_LIMIT_SEEDS", seeds)
     await seed_provider_runtime(async_db)
 
     raw_chain = await resolve_provider_chain(
