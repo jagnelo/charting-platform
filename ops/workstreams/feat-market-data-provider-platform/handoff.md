@@ -4685,3 +4685,21 @@ the authoritative record for this replay; it made zero provider calls.
 - The redacted receipt is in `validation.jsonl`; no credentials or provider
   payloads were persisted. This confirms current transport/schema and local
   accounting only; paid-plan changes still require explicit configuration.
+
+## 2026-09-16 Binance native usage and bounded crypto matrix
+
+- Binance's account-usage-only bootstrap passed `1/1` at source
+  `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, observing the native
+  request-weight window before any data read. A subsequent bounded Binance
+  matrix passed `3/3`, making `7` upstream requests and recording `17,616,646`
+  response bytes across universe discovery, latest/current price, ordinary
+  crypto history, bounded 30-day daily history, and the usage snapshot.
+- The first full-provider attempt was correctly stopped before transport while
+  the active weight baseline was unknown. The explicit usage bootstrap then
+  reconciled the durable local window, allowing the bounded matrix to run
+  without a guessed limit or request-count substitution.
+- A follow-up no-network audit now reports Binance and MarketData.app as the
+  only currently admission-safe providers, with `91` provider-operation
+  blockers remaining. This changes routing eligibility only for the observed
+  Binance request-weight window; other Binance contract, universe, or future
+  windows remain subject to the same fail-closed controls.

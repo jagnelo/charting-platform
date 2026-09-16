@@ -161,6 +161,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
+    bounded manifest matrix passed 3/3 at source
+    `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and
+    recording 17,616,646 response bytes across discovery, latest/current price,
+    ordinary crypto history, bounded 30-day daily history, and native weight
+    usage. The first full attempt stopped before transport while the active
+    weight baseline was unknown; the native snapshot reconciled the durable
+    window without guessing. A follow-up no-network audit now reports Binance
+    and MarketData.app as the only admission-safe providers, with 91
+    provider-operation blockers remaining.
+  - >-
     The configured MarketData.app Starter Trial account was revalidated at
     source `898e3e97cff453c7c958b78316ffb2cc25db24a`: 7/7 focused manifest
     cases passed, with 9 upstream requests and 19,618 response bytes. The
