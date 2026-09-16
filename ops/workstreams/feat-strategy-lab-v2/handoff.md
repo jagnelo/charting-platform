@@ -2356,3 +2356,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Combined backend coverage audit
+
+`make test-backend-coverage` completed all 1,647 unit/integration tests, but the
+repository's required 75% combined coverage gate failed at 58.77%. The new
+`app/strategy_lab_v2` tests are deliberately kept in their package-owned test
+tree and are not collected by the existing `tests/unit` plus `tests/integration`
+target, so the v2 package is reported as uncovered by that command. This is a
+real shared-gate reconciliation item; no coverage exclusion or product-code
+change was made to conceal it. The focused v2 evidence remains 493 passing tests
+with Ruff, MyPy, and diff checks green.
+
+The next implementation context must reconcile how package-owned v2 tests enter
+the full backend coverage gate without violating provider/ETF/TC2000 ownership
+or changing the required coverage meaning. Until then, the branch remains
+ready-for-human-review only, not full-integration green.

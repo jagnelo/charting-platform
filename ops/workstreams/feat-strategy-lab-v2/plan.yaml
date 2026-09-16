@@ -300,9 +300,10 @@ remaining_gaps:
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
   - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and the new conformance evidence gate.
+  - The combined `make test-backend-coverage` target currently runs 1,647 unit/integration tests successfully but reports 58.77% coverage because package-owned `app/strategy_lab_v2/tests` are outside its collection paths; reconcile collection with the declared 75% gate without exclusions before claiming full-integration green.
 progress:
   completed: [workstream-plan]
   total: 18
   current_phase: composed-pre-engine-risk-admission
-  current_blocker: stable Nautilus release, schema migration, application wiring, and other shared-path gates remain open
-  next_action: inspect and implement the next bounded engine-neutral contract slice; preserve the execution-admission/authorization gate, static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates
+  current_blocker: stable Nautilus release, schema migration, application wiring, and combined backend coverage collection remain open
+  next_action: reconcile package-owned v2 test collection with the full backend coverage gate, then continue the next bounded engine-neutral contract while preserving execution-admission/authorization and all upstream/shared-path gates
