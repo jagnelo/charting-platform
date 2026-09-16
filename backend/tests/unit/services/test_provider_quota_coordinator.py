@@ -1299,8 +1299,22 @@ def test_live_account_usage_bootstrap_excludes_only_unknown_pools(tmp_path, monk
             "fixture": {
                 "quota_contract": {
                     "reset": "per_dimension",
-                    "account_usage_bootstrap": {"enabled": True},
+                    "account_usage_bootstrap": {
+                        "enabled": True,
+                        "allowed_unknown_dimensions": ["provider_minute_pool"],
+                    },
+                    "unknown_dimensions": ["provider_minute_pool"],
                     "dimensions": [
+                        {
+                            "name": "provider_minute_pool",
+                            "limit": 20,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "api_key",
+                            "quota_group": "api_key",
+                            "source": "unit-test provider contract",
+                            "reset": "provider_defined",
+                        },
                         {
                             "name": "credits_per_day",
                             "limit": 100,

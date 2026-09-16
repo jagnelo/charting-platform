@@ -1752,13 +1752,36 @@ def _reservation_plan_for_live_probe(
         raise ProviderQuotaAdmissionError(
             f"provider quota reset semantics are unreviewed for live operation {provider_name}/{operation}"
         )
-    if contract.get("unknown_dimensions") or contract.get("untracked_constraints"):
+    bootstrap = contract.get("account_usage_bootstrap")
+    unknown_dimensions = {
+        str(item or "").strip()
+        for item in (contract.get("unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    allowed_bootstrap_unknown = {
+        str(item or "").strip()
+        for item in (
+            bootstrap.get("allowed_unknown_dimensions")
+            if isinstance(bootstrap, dict)
+            else []
+        )
+        if str(item or "").strip()
+    }
+    bootstrap_unknown_contract = (
+        operation == "fetch_account_usage"
+        and isinstance(bootstrap, dict)
+        and bootstrap.get("enabled") is True
+        and unknown_dimensions
+        and unknown_dimensions <= allowed_bootstrap_unknown
+    )
+    if (unknown_dimensions and not bootstrap_unknown_contract) or contract.get(
+        "untracked_constraints"
+    ):
         raise ProviderQuotaAdmissionError(
             f"provider quota contract remains incomplete for live operation {provider_name}/{operation}"
         )
     profile = get_provider_usage_profile(provider_name)
     bootstrap_unknown: set[str] = set()
-    bootstrap = contract.get("account_usage_bootstrap")
     if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
         "enabled"
     ) is True:
