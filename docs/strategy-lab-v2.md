@@ -411,6 +411,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   engine-model gaps, degradation evidence, executable/ranking flags, and
   authoritative-publication eligibility without recomputing or weakening the
   underlying fail-closed checks.
+- `forward_corrections.py` defines additive counterfactual replay commands for
+  admitted correction events. Plans retain the original event identity,
+  correction identity, warm-up receipt, and immutable pre-correction
+  checkpoint basis; exact retries replay, changed content conflicts, and
+  unadmitted/mismatched corrections fail closed without rewriting live state.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
