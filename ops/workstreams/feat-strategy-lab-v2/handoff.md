@@ -2391,3 +2391,18 @@ reconciliation, frontend work, promotion, and deployment remain deferred.
 The next bounded slice remains inside the engine-neutral package-owned boundary;
 the Makefile change is shared-path material that must be reconciled line by line
 when this branch enters staging.
+
+## 2026-09-16 - Branch-declared test runner repaired
+
+The workstream `branch_tests` entries were previously prose descriptions, but
+`scripts/run-branch-tests.py` executes each entry as a shell command. That made
+the branch CI test stage fail before reaching any Strategy Lab checks. The plan
+now declares only executable checks for the implemented scope: the 493-test v2
+package suite, Ruff, MyPy, `git diff --check`, and workstream validation. The
+deferred database/migration, API, worker, Nautilus, Compose, and full exact-tip
+integration requirements remain documented as gates rather than pretending to
+be runnable branch commands.
+
+`make branch-tests INTEGRATION_BRANCH=feat/strategy-lab-v2` now passes all five
+checks. This repair changes only the branch-owned plan metadata; no provider,
+ETF, TC2000, or runtime source paths were modified.

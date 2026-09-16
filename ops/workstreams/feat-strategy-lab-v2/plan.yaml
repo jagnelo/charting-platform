@@ -268,21 +268,18 @@ acceptance_criteria:
       live shadow activation, human closure, integration, and promotion remain
       separately authorized.
 branch_tests:
-  - Engine-neutral domain, SDK, state-machine, capability, deterministic search, walk-forward, and metric tests live in backend/app/strategy_lab_v2/tests and are run explicitly with `cd backend && rtk uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=`; do not add to the provider-owned backend/tests tree.
-  - Database and migration tests for fresh install and prior staging schema compatibility.
-  - PostgreSQL/Redis integration for outbox, leases, idempotency, retries, cancellation, and recovery.
-  - Nautilus stable-v2 conformance and deterministic multi-instrument portfolio fixtures.
-  - Worker/container security, no-network, resource-bound, artifact-hash, and Compose scaling tests.
-  - Forward event-stream parity, restart, duplicate/gap/order/correction, and graceful shutdown tests.
-  - API contract and legacy import/read-only compatibility tests.
-  - Full exact-tip backend, migration, Compose, research-runner, and repository integration gates; frontend/browser checks only after a separately authorized frontend branch.
+  - cd backend && uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=
+  - cd backend && uv run ruff check app/strategy_lab_v2
+  - cd backend && uv run mypy app/strategy_lab_v2
+  - git diff --check
+  - uv run --project backend python scripts/validate-workstream.py ops/workstreams
 branch_tests_reason: >-
-  The completed backend work changes persistence, HTTP contracts, Redis work
-  queues, isolated Python execution, Rust/Nautilus integration, and Docker
-  services. The active provider workstream owns backend/tests, so v2-focused
-  tests stay beside the new package and use an explicit pytest path. Initial
-  engine-neutral packages can be validated with unit tests, but branch
-  completion requires PostgreSQL/Redis and Compose-backed integration.
+  The active provider workstream owns backend/tests, so v2-focused tests stay
+  beside the new package and use an explicit pytest path. The executable branch
+  checks cover the implemented engine-neutral package and durable workstream
+  records; database/migration, PostgreSQL/Redis, isolated runtime, Nautilus,
+  worker, API, Compose, and full exact-tip integration commands remain deferred
+  until their shared-path gates are open.
 live_test_impact: >-
   No real broker, broker paper account, or external test service is used. Forward
   validation consumes platform canonical events; activating a long-running
