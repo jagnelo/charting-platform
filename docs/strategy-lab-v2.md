@@ -462,6 +462,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   retries replay, terminal conflicts fail closed, and successful output size is
   checked against the declared limit. This is a protocol and receipt boundary,
   not container enforcement or an engine invocation.
+- `admission.py` composes an execution authorization, accepted runtime
+  preflight, and serial worker profile into one idempotent admission decision.
+  It binds the worker reservation to the attempt, runtime profile, and request
+  identity; exact retries replay only while the receipt's reservation remains
+  active. Saturation, conflicting attempt content, profile/worker drift, and a
+  reservation without a matching receipt fail closed. Ledger and worker-pool
+  updates are returned together for a future adapter transaction; no queue,
+  persistence, process, or engine I/O occurs here.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

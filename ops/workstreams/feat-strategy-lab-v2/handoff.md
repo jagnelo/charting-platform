@@ -1561,3 +1561,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable adapter implementation only after upstream shared-path reconciliation;
 preserve all execution-authorization and ownership gates.
+
+## 2026-09-16 - Execution admission checkpoint
+
+`admission.py` adds an immutable admission intent, receipt, ledger, and
+resolution that compose the existing execution authorization, accepted strategy
+runtime preflight, and serial worker-capacity contracts. An admission binds one
+attempt to one worker profile and reservation, preserves authoritative-result
+eligibility, and returns ledger/pool states together for an adapter-side atomic
+write. Exact retries replay only when the matching reservation remains active;
+capacity saturation, profile or worker drift, conflicting attempt content, an
+unaccepted runtime, and a reservation without a receipt fail closed. No queue,
+persistence, process, or engine I/O is performed.
+
+The exact implementation tree passed all 306 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
