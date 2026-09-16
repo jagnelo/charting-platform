@@ -255,10 +255,10 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_relative_rotation_plot_accessibility
+  current_phase: R6_ratio_tool_state_accessibility
   next_action: >-
     Select and implement the next bounded TC-owned R1/R5/R6 roadmap item now
-    that the Relative Rotation plot accessibility slice has passed the exact
+    that the RatioUPlot state accessibility slice has passed the exact
     full_stack_browser gate. Keep provider/ETF consumer work deferred until
     both upstream branches reach staging, and do not retry origin
     synchronization under the existing private-origin safeguard without newly
@@ -421,6 +421,8 @@ historical_implementation_records_continued:
   - "Exact combined full-stack gate at product tip 9778511ef (documentation tip 3868df1c1) passed with exit 0 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
   - "Product commit e72e7a4 adds the semantic image role to the Relative Rotation uPlot host while preserving its existing label, pointer selection, layout, and data requests. Focused RelativeRotationTool coverage passed 10/10; full frontend Vitest passed 1106/1106; vue-tsc and production build passed with the existing large-chunk warning; TC scope validation passed for 63 changed paths with all six self-tests; workstream validation and git diff checks passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration gate passed at product tip e72e7a4 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
+  - "Product commit f043091 adds atomic live-region semantics to RatioUPlot empty and request-error states: no aligned bars is a polite status and request failures are assertive alerts. Focused RatioUPlot coverage passed 13/13; full frontend Vitest passed 1108/1108; vue-tsc and production build passed with the existing large-chunk warning; TC scope validation passed for 65 changed paths with all six self-tests; workstream validation and git diff checks passed. Ratio requests, warning text, layout, and provider/ETF/visual/acceptance policy were unchanged."
+  - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration gate passed at product tip f043091 with exit 0 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
