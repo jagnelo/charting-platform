@@ -3768,3 +3768,13 @@ the authoritative record for this replay; it made zero provider calls.
   `430e01ae7d8d37e5d39e1432fecfb7466ff195f1`; it is transport/quota evidence
   for that tested source, not a claim that the receipt-commit SHA itself has
   undergone the full matrix.
+
+## 2026-09-16 current full-matrix preflight
+
+- The complete manifest preflight was rerun at source
+  `3bac98639261651a3cee99b966d601a70e730f4c` and exited `2` before network
+  access. It recorded the exact three blocker groups: provider-specific
+  quota/cost/baseline admission, required legal/source/safety controls, and
+  unresolved capability live dispositions. The redacted receipt is committed
+  in `validation.jsonl`; this run made zero provider requests and does not
+  claim a partial full-matrix pass.
