@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 current-source MarketData.app live receipt
+
+- The bounded credentialed MarketData.app matrix passed `7/7` at source
+  `b022e8762180d0dcb4f46ead3f75de17dcf897f7` using the shared owner-managed
+  environment and durable local quota ledger. The run covered account usage,
+  latest price, intraday candles, option expirations/chain, historical option
+  quote data, and the explicit no-request response-priced-history policy.
+- The runner recorded the redacted reservation-linked receipt and measured
+  transport usage. The provider's response-priced historical option path
+  remains intentionally non-routable without a reviewed hard result/credit
+  ceiling. No other provider was selected, and no frontend, ETF adapter,
+  deployment, or routing activation changed.
+
 ## 2026-09-16 exact-source EODHD preflight receipt
 
 - Replayed `scripts/run-live-provider-probes.py --provider eodhd` at source
