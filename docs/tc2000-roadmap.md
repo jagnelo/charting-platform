@@ -11663,6 +11663,22 @@ diffs and upstream provider/ETF staging boundary remain open. No output can
 cause Market Map to acquire data, and no visual oracle or acceptance policy
 changed.
 
+Updated focused receipt at product tip `61c4ae34a` (2026-09-16): historical
+Python breadth now has a dedicated Strategy-signal fan-out. Research Results
+creates a separate immutable `signal` asset and Strategy definition atomically,
+rather than reusing the EasyScan `condition` asset. The promotion retains the
+source run/member IDs, dataset-manifest fingerprint/summary, source output
+name, threshold adapter, recursive member tree, and point-in-time lineage;
+cross-sectional trees remain aggregate-only. Strategy queue normalization reads
+both canonical and legacy promotion diagnostics and carries adapter, target,
+tree, and output identity into the isolated runner. Research Results passed
+`48/48`, full frontend Vitest `1,102/1,102`, type-check/build, Strategy Lab API
+`29/29`, breadth workspace integration `2/2` across Boolean/numeric/tree paths,
+and Strategy queue unit coverage `16/16`; Ruff, formatting, and diff checks
+passed. The exact full-stack/browser gate is pending at this new product tip.
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
+or acceptance-policy behavior changed.
+
 ### R6 — Close visual, resilience, accessibility and performance evidence
 
 - Validate missing/partial/stale/error/loading, dense treemap, Study, tools,

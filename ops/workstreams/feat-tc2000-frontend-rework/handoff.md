@@ -1,5 +1,29 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R5 historical breadth to Strategy signal promotion
+
+Product commit `61c4ae34a` closes the Python breadth-history Strategy signal
+fan-out gap. Research Results now calls the dedicated
+`/analysis/breadth/python/runs/{run_id}/promote-signal` route. That route
+creates a separate immutable `signal` CodeAsset and the Strategy definition in
+one request; it does not retag or reuse the EasyScan `condition` asset. The
+source run's member IDs, manifest fingerprint/summary, output name, target
+adapter, recursive member tree, and point-in-time lineage are retained in the
+canonical promotion diagnostic and Strategy metadata/snapshot. Cross-sectional
+trees remain aggregate-only and are rejected for per-instrument signals.
+
+Strategy queue normalization now reads both canonical and legacy promotion
+diagnostic shapes and carries `output_adapter`, `series_target`,
+`condition_tree`, and source output identity into the isolated research job.
+Focused Research Results coverage passed `48/48`; full frontend Vitest passed
+`1,102/1,102`; `vue-tsc` and the production build passed with the existing
+large-chunk warning; Strategy Lab API coverage passed `29/29`; breadth
+workspace integration passed `2/2` across Boolean, numeric-series, and
+recursive-tree paths; Strategy queue unit coverage passed `16/16`; Ruff,
+formatting, and diff checks passed. The exact full-stack/browser gate is
+pending at this new product tip. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, V25 media, or acceptance-policy behavior changed.
+
 ## 2026-09-16 — Exact-tip integration gate refreshed at Market Map performance tip
 
 The exact `make validate-integration` gate passed at product tip
