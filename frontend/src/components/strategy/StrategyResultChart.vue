@@ -5,7 +5,7 @@
     :class="{ 'result-chart--hovering': !!tooltip }"
     @mouseleave="clearHover"
   >
-    <div v-if="!hasValidData" class="result-chart__empty">
+    <div v-if="!hasValidData" class="result-chart__empty" role="status" aria-live="polite" aria-atomic="true">
       {{ emptyLabel }}
     </div>
     <template v-else>

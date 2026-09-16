@@ -69,6 +69,8 @@ describe('StrategyResultChart', () => {
     })
 
     expect(wrapper.text()).toContain('Nothing here yet')
+    expect(wrapper.get('[role="status"]').attributes('aria-live')).toBe('polite')
+    expect(wrapper.get('[role="status"]').attributes('aria-atomic')).toBe('true')
     expect(instances).toHaveLength(0)
   })
 
