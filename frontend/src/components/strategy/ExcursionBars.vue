@@ -9,7 +9,7 @@
       {{ sampleSize }} trades with intratrade bars · average MAE {{ formatPercent(averageMae) }} · average MFE {{ formatPercent(averageMfe) }}
     </p>
   </div>
-  <div v-else class="excursion-bars__empty">{{ emptyLabel }}</div>
+  <div v-else class="excursion-bars__empty" role="status" aria-live="polite" aria-atomic="true">{{ emptyLabel }}</div>
 </template>
 
 <script setup lang="ts">
