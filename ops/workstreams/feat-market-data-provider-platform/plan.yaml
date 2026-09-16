@@ -164,7 +164,8 @@ remaining_gaps:
     Alpaca's documented 200-requests/minute account pool still lacks a
     provider-published fixed/rolling reset boundary in the current evidence.
     The new provider-specific `ALPACA_REVIEWED_RESET` and
-    `ALPACA_QUOTA_EVIDENCE` controls (commit pending) keep ordinary routing
+    `ALPACA_QUOTA_EVIDENCE` controls (commits `8808f6ba` and `582931f1`)
+    keep ordinary routing
     fail-closed until an admission-safe label and current evidence are
     configured. Commits `8808f6ba` and `582931f1` implement the gate and CI
     wiring. The explicit `fetch_account_usage` bootstrap remains eligible
