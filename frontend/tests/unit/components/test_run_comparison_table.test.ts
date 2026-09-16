@@ -4,6 +4,22 @@ import { describe, expect, it } from 'vitest'
 import RunComparisonTable from '@/components/strategy/RunComparisonTable.vue'
 
 describe('RunComparisonTable', () => {
+  it('announces the empty state politely', () => {
+    const wrapper = mount(RunComparisonTable, {
+      props: {
+        currentLabel: 'Current',
+        compareLabel: 'Previous',
+        rows: [],
+      },
+    })
+
+    const empty = wrapper.get('.comparison-panel__empty')
+    expect(empty.text()).toBe('No comparison selected.')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
   it('renders comparison rows and lead/lag counts', () => {
     const wrapper = mount(RunComparisonTable, {
       props: {
