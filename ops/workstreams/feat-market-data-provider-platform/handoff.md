@@ -33,6 +33,20 @@
   plan and option-chain controls currently routable; the full matrix remains
   intentionally fail-closed and the 30-day shadow phase remains disabled.
 
+## 2026-09-16 native account-usage snapshots
+
+- Dedicated manifest-enforced account-usage probes passed for Twelve Data,
+  EODHD, and Binance (one request each; redacted receipts are in
+  `validation.jsonl`). Twelve Data and EODHD observations were retained but
+  did not widen routing because their other chargeable pools still lack an
+  exact current baseline/reset proof. Binance's native weight observation
+  successfully removed its prior active request-weight baseline blockers from
+  the subsequent full preflight.
+- The subsequent exact full preflight again stopped before ordinary provider
+  transport with zero data-operation requests. This confirms that passing a
+  native usage endpoint is not being misrepresented as complete provider
+  acceptance; only the exact eligible Binance dimension changed state.
+
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 
 - At committed source `0220ae07e`, the owner-local durable-ledger preflight
