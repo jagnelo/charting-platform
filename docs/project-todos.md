@@ -12,7 +12,7 @@
       configuration and an IP baseline alone are insufficient. Focused
       coverage passed `134/134`; the full backend unit gate passed
       `2,360/2,360` with 70.80% coverage and 37 warnings.
-- [x] The exact-current-source preflight at `701964c80` stopped before
+- [x] The exact-current-source preflight at `f68fdc0d7` stopped before
       transport with zero SEC requests and recorded the new reset/evidence
       blockers plus the missing durable IP baseline.
 - [x] Include the EDGAR quota status in the provider-to-safety-control map so

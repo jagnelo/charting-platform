@@ -3526,7 +3526,7 @@ progress:
       a reviewed pair is required before routing. The full backend unit gate
       passed `2,360/2,360` with 70.80% coverage and 37 warnings.
     - >-
-      The exact-current-source EDGAR preflight at `701964c80` stopped before
+      The exact-current-source EDGAR preflight at `f68fdc0d7` stopped before
       transport with zero provider requests. It reports the new explicit
       `EDGAR_REVIEWED_RESET`/`EDGAR_QUOTA_EVIDENCE` blockers alongside the
       still-required durable IP baseline, confirming that no SEC request is
