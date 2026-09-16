@@ -2484,3 +2484,19 @@ completed successfully and reports 83.03% total coverage (required threshold:
 75%), with the existing setup/cleanup path intact. Provider/API/database/worker/
 Compose integration and stable Nautilus execution remain deferred behind the
 existing gates.
+
+## 2026-09-16 - Hardened sandbox argv execution checkpoint
+
+`SandboxCommandPlan` values are now revalidated at the execution boundary,
+not only when built by the convenience factory. The validator requires the
+complete network-disabled, read-only, capability-dropped, unprivileged,
+resource-bounded invocation shape, pinned image/input identities, and explicit
+read-only input plus writable output mounts. A manually forged plan therefore
+cannot introduce privileged Docker flags or bypass the declared output limit.
+
+The focused isolation/worker regression set passed 35 tests, and the complete
+Strategy Lab v2 package passed 511 tests with Ruff, MyPy, and `git diff --check`.
+The Docker-backed combined gate then completed 2,158 tests with 83.02% total
+coverage (required threshold: 75%), with setup and cleanup successful.
+Schema/API/worker/Compose integration and stable Nautilus execution remain
+deferred behind the existing gates.

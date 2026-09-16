@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import SandboxCommandPlan, validate_sandbox_command_plan
 
 
 class SandboxRunStatus(StrEnum):
@@ -95,6 +95,7 @@ def run_sandbox_command(
 
     if not isinstance(plan, SandboxCommandPlan):
         raise TypeError("plan must be a SandboxCommandPlan")
+    validate_sandbox_command_plan(plan)
     if not isinstance(docker_binary, str) or not docker_binary.strip():
         raise ValueError("docker_binary must not be empty")
     if any(character in docker_binary for character in "\x00\r\n"):

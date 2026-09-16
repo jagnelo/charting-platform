@@ -22,6 +22,21 @@ from app.strategy_lab_v2.runtime_execution import (
     preflight_strategy_runtime,
 )
 
+_HARDENED_ARG_PREFIX = (
+    "docker",
+    "run",
+    "--rm",
+    "--init",
+    "--network=none",
+    "--read-only",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges:true",
+    "--user=65532:65532",
+    "--workdir=/workspace",
+)
+_HARDENED_TMPFS = "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864"
+_HARDENED_PIDS_LIMIT = "--pids-limit=256"
+
 
 def _safe_text(value: str, field_name: str) -> None:
     if not isinstance(value, str) or not value.strip():
@@ -68,6 +83,86 @@ class SandboxCommandPlan:
     @property
     def fingerprint(self) -> str:
         return content_digest(self)
+
+
+def validate_sandbox_command_plan(plan: SandboxCommandPlan) -> None:
+    """Fail closed unless a command plan contains every isolation control.
+
+    ``SandboxCommandPlan`` is intentionally a public immutable value object so
+    adapters can persist and compare it.  That also means callers can bypass
+    :func:`build_sandbox_command` by constructing one directly.  The executor
+    must therefore validate the serialized argv again immediately before
+    process creation; a digest alone proves identity, not safety.
+    """
+
+    if not isinstance(plan, SandboxCommandPlan):
+        raise TypeError("plan must be a SandboxCommandPlan")
+    argv = plan.argv
+    if len(argv) < len(_HARDENED_ARG_PREFIX) + 10:
+        raise ValueError("sandbox command plan is not a complete hardened invocation")
+    if argv[: len(_HARDENED_ARG_PREFIX)] != _HARDENED_ARG_PREFIX:
+        raise ValueError("sandbox command plan is missing required isolation controls")
+
+    memory_flag = argv[10]
+    cpu_flag = argv[11]
+    file_size_flag = argv[12]
+    if not memory_flag.startswith("--memory="):
+        raise ValueError("sandbox command plan must declare a memory limit")
+    _require_positive_option(memory_flag.removeprefix("--memory="), "memory limit")
+    if not cpu_flag.startswith("--ulimit=cpu="):
+        raise ValueError("sandbox command plan must declare a CPU limit")
+    _require_positive_option(cpu_flag.removeprefix("--ulimit=cpu="), "CPU limit")
+    if file_size_flag != f"--ulimit=fsize={plan.output_limit_bytes}":
+        raise ValueError("sandbox command plan file-size limit must match its output limit")
+    _require_positive_option(file_size_flag.removeprefix("--ulimit=fsize="), "file-size limit")
+    if argv[13] != _HARDENED_PIDS_LIMIT or argv[14] != _HARDENED_TMPFS:
+        raise ValueError("sandbox command plan is missing bounded process controls")
+
+    input_mount = argv[15]
+    output_mount = argv[16]
+    _validate_mount(input_mount, "/inputs/bundle", "readonly")
+    _validate_mount(output_mount, "/outputs/result", "rw")
+    if not argv[17].startswith("--env=STRATEGY_ATTEMPT_ID="):
+        raise ValueError("sandbox command plan must bind the attempt identity")
+    attempt_value = argv[17].removeprefix("--env=STRATEGY_ATTEMPT_ID=")
+    _safe_text(attempt_value, "strategy attempt identity")
+    if not argv[18].startswith("--env=STRATEGY_INPUT_BUNDLE_DIGEST="):
+        raise ValueError("sandbox command plan must bind the input bundle digest")
+    require_sha256_digest(
+        argv[18].removeprefix("--env=STRATEGY_INPUT_BUNDLE_DIGEST="),
+        field_name="input bundle digest",
+    )
+
+    image = argv[19]
+    image_name, separator, image_digest = image.rpartition("@")
+    if not separator or not image_name or any(char.isspace() for char in image_name):
+        raise ValueError("sandbox command plan must pin its runtime image digest")
+    require_sha256_digest(image_digest, field_name="runtime image digest")
+    command = argv[20:]
+    if not command or command[0].startswith("-"):
+        raise ValueError("sandbox command plan must contain an executable command")
+    if any(
+        not isinstance(value, str)
+        or not value
+        or any(character in value for character in "\x00\r\n")
+        for value in command
+    ):
+        raise ValueError("sandbox command arguments must be non-empty and control-free")
+
+
+def _require_positive_option(value: str, label: str) -> None:
+    if not value.isdecimal() or int(value) <= 0:
+        raise ValueError(f"sandbox {label} must be a positive integer")
+
+
+def _validate_mount(value: str, destination: str, mode: str) -> None:
+    prefix = "--mount=type=bind,src="
+    suffix = f",dst={destination},{mode}"
+    if not value.startswith(prefix) or not value.endswith(suffix):
+        raise ValueError(f"sandbox command plan must contain a {mode} {destination} mount")
+    source = value[len(prefix) : -len(suffix)]
+    if not source.startswith("/") or "," in source or not source.strip():
+        raise ValueError("sandbox command mount sources must be absolute and comma-free")
 
 
 def build_sandbox_command(

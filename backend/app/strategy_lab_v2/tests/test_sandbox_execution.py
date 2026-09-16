@@ -18,7 +18,30 @@ def _plan(*, timeout: int = 2, output_limit: int = 64) -> SandboxCommandPlan:
     return SandboxCommandPlan(
         content_digest("request"),
         content_digest("profile"),
-        ("docker", "run", "--rm"),
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--init",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges:true",
+            "--user=65532:65532",
+            "--workdir=/workspace",
+            "--memory=536870912",
+            f"--ulimit=cpu={timeout}",
+            f"--ulimit=fsize={output_limit}",
+            "--pids-limit=256",
+            "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
+            "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--env=STRATEGY_ATTEMPT_ID=attempt-1",
+            f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            f"runtime@{content_digest('image')}",
+            "python",
+            "runner",
+        ),
         timeout,
         output_limit,
     )
@@ -76,3 +99,15 @@ def test_invalid_plan_or_binary_arguments_fail_closed() -> None:
         run_sandbox_command("bad")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="docker_binary"):
         run_sandbox_command(_plan(), docker_binary="\n")
+
+
+def test_forged_plan_with_missing_or_unsafe_docker_controls_is_rejected(tmp_path) -> None:
+    unsafe = SandboxCommandPlan(
+        content_digest("request"),
+        content_digest("profile"),
+        ("docker", "run", "--rm", "--network=host", "--privileged"),
+        2,
+        64,
+    )
+    with pytest.raises(ValueError, match="complete hardened|isolation controls"):
+        run_sandbox_command(unsafe, docker_binary=os.fspath(tmp_path / "missing"))

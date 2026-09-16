@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,30 @@ def _sandbox() -> SandboxCommandPlan:
     return SandboxCommandPlan(
         content_digest("request"),
         content_digest("profile"),
-        ("docker", "run", "--rm"),
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--init",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges:true",
+            "--user=65532:65532",
+            "--workdir=/workspace",
+            "--memory=536870912",
+            "--ulimit=cpu=2",
+            "--ulimit=fsize=1024",
+            "--pids-limit=256",
+            "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
+            "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--env=STRATEGY_ATTEMPT_ID=attempt-1",
+            f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            f"runtime@{content_digest('image')}",
+            "python",
+            "runner",
+        ),
         2,
         1024,
     )
@@ -91,13 +115,7 @@ def test_ready_plan_maps_sandbox_success_and_preserves_authority(tmp_path: Path)
 )
 def test_ready_plan_preserves_non_success_sandbox_status(tmp_path: Path, body: str, status: NautilusRunStatus) -> None:
     request_digest = content_digest("request")
-    sandbox = SandboxCommandPlan(
-        request_digest,
-        content_digest("profile"),
-        ("docker", "run", "--rm"),
-        1,
-        1024,
-    )
+    sandbox = replace(_sandbox(), request_fingerprint=request_digest, wall_timeout_seconds=1)
     result = run_nautilus_plan(
         _engine_plan(sandbox, authoritative=True),
         sandbox,

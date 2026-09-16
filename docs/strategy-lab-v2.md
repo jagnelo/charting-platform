@@ -606,9 +606,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   execution remains a worker adapter responsibility.
 - `sandbox_execution.py` executes only those validated argv plans with
   `shell=False`, a minimal secret-free environment, process-group cleanup,
-  explicit wall-time enforcement, and bounded stdout/stderr capture. Typed
-  results distinguish success, non-zero exit, timeout, output overflow, and
-  process-start failure; Docker remains the production command boundary.
+  explicit wall-time enforcement, and bounded stdout/stderr capture. The
+  executor revalidates the complete hardened argv immediately before spawn so
+  manually forged plans cannot add host networking, privilege, writable-root,
+  or unbounded-process controls. Typed results distinguish success, non-zero
+  exit, timeout, output overflow, and process-start failure; Docker remains the
+  production command boundary.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, and complete conformance evidence. Only a compatible Nautilus
