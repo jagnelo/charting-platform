@@ -3483,4 +3483,13 @@ progress:
       decisions, exact-current-SHA full live evidence, and final shadow gates
       remain open. Local Docker-backed session preflight remains blocked by the
       host Docker socket permission boundary.
+    - >-
+      2026-09-16 quota-source reconciliation: Alpaca's official market-data
+      OpenAPI defines `X-RateLimit-Reset` as the epoch when remaining quota
+      changes, but does not establish fixed versus rolling window semantics;
+      ordinary Alpaca routing therefore remains gated. FMP's current official
+      pricing page states a 500 MB trailing-30-day free-plan bandwidth pool,
+      while the configured account reports 512 MB; the source/account conflict
+      and both reset anchors remain unresolved. Documentation now records both
+      facts and no routing control was widened.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
