@@ -4672,3 +4672,16 @@ the authoritative record for this replay; it made zero provider calls.
 
 - The no-network provider admission audit at source `0a6a92070de9bf8e22ca74b3db99e70dd31970f6` found `marketdata_app` as the only provider with every currently required operation dimension admission-safe; the remaining registered operations have `95` provider-specific quota, baseline, byte-cost, entitlement, or reset blockers.
 - This audit made no provider requests and is not live acceptance. It confirms that the successful Dinari Sandbox canary is intentionally outside ordinary routing admission, while the normal market-data chain remains fail-closed for every provider whose account-wide usage or provider contract is not independently reconciled.
+
+## 2026-09-16 current-source MarketData.app live matrix replay
+
+- The configured MarketData.app Starter Trial account was revalidated at source
+  `898e3e97cff453c7c958b78316ffb2cc25db24a`. The focused manifest matrix
+  passed `7/7`, with `9` upstream requests and `19,618` response bytes.
+- Successful operations covered account usage, daily/five-minute OHLCV,
+  latest price, option expirations, current option chain, and bounded
+  historical option quotes. The deliberate response-priced unbounded-history
+  guard also passed without making a request.
+- The redacted receipt is in `validation.jsonl`; no credentials or provider
+  payloads were persisted. This confirms current transport/schema and local
+  accounting only; paid-plan changes still require explicit configuration.
