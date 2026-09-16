@@ -1330,3 +1330,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 result-artifact commit/finalization contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Result-artifact commit/finalization checkpoint
+
+`artifact_commit.py` adds immutable `ArtifactCommitRecord` and
+`ArtifactCommitLedger` records plus `finalize_artifact_commit()`. A verified
+create-if-absent plan commits one content-addressed storage key; the same
+manifest/content retries replay the committed record independent of timestamp.
+Storage-key collisions with another manifest conflict, and a reuse-existing
+plan fails closed until a committed record is present. Ledger ordering and
+commit keys are deterministic; no bytes, storage metadata, or retention state
+are mutated by the pure contract.
+
+The exact implementation tree passed all 209 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+execution-summary/read-model contract; preserve all shared-path and
+execution-authorization gates.

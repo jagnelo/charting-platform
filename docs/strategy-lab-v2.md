@@ -391,6 +391,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   out-of-order, correction, conflict, and exact-replay outcomes stay explicit.
   A completed warm-up cursor is seeded into the admission state so historical
   events cannot be silently replayed.
+- `artifact_commit.py` defines an immutable commit ledger for verified
+  publication plans. Create-if-absent finalization records one content key,
+  exact retries replay it, storage-key collisions conflict, and
+  reuse-existing plans fail closed until a committed record is observed. No
+  bytes are written or deleted by this contract.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
