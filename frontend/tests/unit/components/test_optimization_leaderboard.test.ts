@@ -4,6 +4,18 @@ import { describe, expect, it } from 'vitest'
 import OptimizationLeaderboard from '@/components/strategy/OptimizationLeaderboard.vue'
 
 describe('OptimizationLeaderboard', () => {
+  it('announces an empty leaderboard state to assistive technology', () => {
+    const wrapper = mount(OptimizationLeaderboard, {
+      props: { rows: [] },
+    })
+
+    const emptyState = wrapper.get('.optimization-panel__empty')
+    expect(emptyState.text()).toContain('No optimization leaderboard yet.')
+    expect(emptyState.attributes('role')).toBe('status')
+    expect(emptyState.attributes('aria-live')).toBe('polite')
+    expect(emptyState.attributes('aria-atomic')).toBe('true')
+  })
+
   it('renders ranked optimization rows and a detail state', async () => {
     const wrapper = mount(OptimizationLeaderboard, {
       props: {
