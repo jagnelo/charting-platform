@@ -960,7 +960,7 @@ LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "finra_otc_directory": ("finra otc directory",),
     "dinari": ("dinari sandbox canary quota",),
     "xstocks": ("xstocks",),
-    "bybit_xstocks": ("bybit xstocks egress",),
+    "bybit_xstocks": ("bybit_xstocks",),
 }
 
 BYTE_BOUND_OPERATIONS = {

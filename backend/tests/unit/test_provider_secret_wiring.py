@@ -773,6 +773,9 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["dinari sandbox canary quota"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
     assert statuses["bybit_xstocks"].startswith("non-routable:")
+    assert _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS["bybit_xstocks"] == (
+        "bybit_xstocks",
+    )
     assert (
         statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
