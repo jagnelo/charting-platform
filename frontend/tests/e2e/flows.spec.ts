@@ -1924,9 +1924,7 @@ test.describe('TC2000 workstation', () => {
     await expect(firstSectorOption).toBeVisible({ timeout: 25_000 })
     await expect(firstSectorOption).toHaveAttribute('aria-setsize', /\d+/)
     await expect(firstSectorOption).toHaveAttribute('aria-posinset', '1')
-    const accessibilityDescriptionId = await firstSectorOption.getAttribute('aria-describedby')
-    expect(accessibilityDescriptionId).toBeTruthy()
-    await expect(page.locator(`#${accessibilityDescriptionId}`)).toContainText(/Position 1 of \d+/)
+    await expect(firstSectorOption).toHaveAttribute('aria-label', /Position 1 of \d+/)
     await expect(sectorList.getByRole('option', { name: /XLK/ }).first()).toBeVisible({ timeout: 25_000 })
 
     // The opt-in deterministic market fixture may hydrate the data-dependent tools;

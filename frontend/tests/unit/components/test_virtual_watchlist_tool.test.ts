@@ -117,13 +117,13 @@ describe('VirtualWatchlistTool', () => {
       props: { label: 'Sectors', rows, selected: 'XLE' },
     })
     const listbox = wrapper.get('[role="listbox"]')
-    const activeOption = wrapper.get('[role="option"][aria-label="XLE Energy"]')
+    const activeOption = wrapper.get('[role="option"][aria-label^="XLE Energy"]')
     expect(listbox.attributes('aria-activedescendant')).toBe(activeOption.attributes('id'))
     expect(activeOption.attributes('id')).toMatch(/^watchlist-[a-z0-9-]+-row-2$/)
 
     await listbox.trigger('keydown', { key: 'Home' })
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
-    expect(listbox.attributes('aria-activedescendant')).toBe(wrapper.get('[role="option"][aria-label="XLE Energy"]').attributes('id'))
+    expect(listbox.attributes('aria-activedescendant')).toBe(wrapper.get('[role="option"][aria-label^="XLE Energy"]').attributes('id'))
 
     await listbox.trigger('keydown', { key: 'End' })
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLV', instrumentId: 3 })
@@ -152,16 +152,14 @@ describe('VirtualWatchlistTool', () => {
     })
 
     const option = wrapper.get('[role="option"]')
-    const descriptionId = option.attributes('aria-describedby')
-    expect(descriptionId).toBeTruthy()
+    const description = option.attributes('aria-label')
+    expect(description).toBeTruthy()
     expect(option.attributes('aria-setsize')).toBe('2')
     expect(option.attributes('aria-posinset')).toBe('1')
-    const description = wrapper.get(`#${descriptionId}`)
-    expect(description.classes()).toContain('watchlist__row-description')
-    expect(description.text()).toContain('Position 1 of 2')
-    expect(description.text()).toContain('Flagged.')
-    expect(description.text()).toContain('1M: 12.00%')
-    expect(description.text()).toContain('Coverage: — (Coverage pending)')
+    expect(description).toContain('Position 1 of 2')
+    expect(description).toContain('Flagged.')
+    expect(description).toContain('1M: 12.00%')
+    expect(description).toContain('Coverage: — (Coverage pending)')
   })
 
   it('keeps a 10,000-row universe virtualized instead of creating one DOM row per instrument', () => {
@@ -454,8 +452,8 @@ describe('VirtualWatchlistTool', () => {
     expect(listbox.attributes('aria-label')).toBe('Sectors symbols')
     expect(listbox.attributes('aria-multiselectable')).toBe('true')
     const options = wrapper.findAll('[role="option"]')
-    const technology = options.find(option => option.attributes('aria-label') === 'XLK Technology')!
-    const energy = options.find(option => option.attributes('aria-label') === 'XLE Energy')!
+    const technology = options.find(option => option.attributes('aria-label')?.startsWith('XLK Technology'))!
+    const energy = options.find(option => option.attributes('aria-label')?.startsWith('XLE Energy'))!
     expect(technology.attributes('aria-selected')).toBe('false')
     expect(energy.attributes('aria-selected')).toBe('true')
 

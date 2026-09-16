@@ -73,8 +73,7 @@
           type="button"
           role="option"
           :id="rowDomId(filteredRows[virtualRow.index])"
-          :aria-label="`${filteredRows[virtualRow.index].symbol} ${filteredRows[virtualRow.index].name}`"
-          :aria-describedby="rowAccessibilityDescriptionId(filteredRows[virtualRow.index])"
+          :aria-label="rowAccessibilityLabel(filteredRows[virtualRow.index], virtualRow.index)"
           :aria-setsize="filteredRows.length"
           :aria-posinset="virtualRow.index + 1"
           :aria-selected="selectedSymbols.includes(filteredRows[virtualRow.index].symbol) || filteredRows[virtualRow.index].symbol === selected"
@@ -94,7 +93,6 @@
             <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
           </button>
-          <span :id="rowAccessibilityDescriptionId(filteredRows[virtualRow.index])" class="watchlist__row-description">{{ rowAccessibilityDescription(filteredRows[virtualRow.index], virtualRow.index) }}</span>
         </template>
       </div>
     </div>
@@ -367,10 +365,7 @@ function rowDomId(row: WatchlistRow) {
   const identity = row.instrumentId != null ? String(row.instrumentId) : row.symbol
   return `${watchlistDomId}-row-${identity.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 }
-function rowAccessibilityDescriptionId(row: WatchlistRow) {
-  return `${rowDomId(row)}-description`
-}
-function rowAccessibilityDescription(row: WatchlistRow, filteredIndex: number) {
+function rowAccessibilityLabel(row: WatchlistRow, filteredIndex: number) {
   const position = filteredIndex + 1
   const cells = visibleColumns.value.map(column => {
     const warning = cellWarning(row, column.key)
@@ -378,7 +373,7 @@ function rowAccessibilityDescription(row: WatchlistRow, filteredIndex: number) {
     return `${column.label}: ${value}${warning ? ` (${warning})` : ''}`
   })
   const flag = row.flagged ? ' Flagged.' : ''
-  return `Position ${position} of ${filteredRows.value.length}.${flag} ${cells.join('. ')}`
+  return `${row.symbol} ${row.name}. Position ${position} of ${filteredRows.value.length}.${flag} ${cells.join('. ')}`
 }
 const activeDescendantId = computed(() => {
   const symbol = keyboardActiveSymbol.value || props.selected
@@ -1576,7 +1571,6 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
-.watchlist__row-description { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 .watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
 .watchlist__loading-status { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #4d7084; background: #193040eF; color: #c7e4f4; text-align: center; pointer-events: none; }
 .watchlist__data-error { position: absolute; z-index: 3; inset: 25px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; text-align: center; pointer-events: none; }
