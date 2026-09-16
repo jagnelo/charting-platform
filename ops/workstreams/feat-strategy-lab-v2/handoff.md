@@ -24,10 +24,10 @@ tampering, and uniqueness races fail closed. No process scheduling, engine
 disposal, queue publication, migration application, or shared runtime wiring is
 performed by this package-local adapter.
 
-The focused worker-state suite passed 4 tests. The complete Strategy Lab v2
-package passed 548 tests with Ruff, MyPy, and `git diff --check` clean. All five
-declared branch checks passed, and the Docker-backed combined gate passed 2,195
-tests with 83.14% total coverage (required threshold: 75%), with setup and
+The focused worker-state suite passed 5 tests. The complete Strategy Lab v2
+package passed 549 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed, and the Docker-backed combined gate passed 2,196
+tests with 83.16% total coverage (required threshold: 75%), with setup and
 cleanup successful. Schema migrations, application wiring, worker entrypoints,
 Compose integration, upstream reconciliation, and stable Nautilus execution
 remain open shared-path gates.
