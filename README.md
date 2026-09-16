@@ -182,7 +182,7 @@ MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0
 MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=
 # Leave provider chains at the backend's reviewed defaults unless changing them
 # deliberately; yfinance is not an implicit market-data fallback.
-PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_historical_prices":["dinari","ondo_global_markets"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
+PROVIDER_CHAIN_SEEDS={"account_usage":["marketdata_app","twelve_data","eodhd","binance"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"universe_discovery":["alpaca","edgar","massive","nasdaq","finra_otc_directory","alpha_vantage"],"instrument_events":["alpaca","massive","edgar","finnhub","alpha_vantage"],"instrument_metadata":["edgar","massive"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["marketdata_app"],"tokenized_historical_prices":["dinari","ondo_global_markets"],"tokenized_corporate_actions":["robinhood_tokens","xstocks","dinari"]}
 # Use __CODE_DEFAULT__ when no replacement map is intended. An explicit {}
 # remains a deliberate empty override that removes routable provider policies.
 PROVIDER_RATE_LIMIT_SEEDS=__CODE_DEFAULT__

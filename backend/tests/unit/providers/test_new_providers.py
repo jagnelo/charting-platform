@@ -171,6 +171,7 @@ class TestRegistryCapabilities:
 
     def test_binance_capabilities(self):
         caps = set(list_provider_capabilities("binance"))
+        assert "account_usage" in caps
         assert "price_history" in caps
         assert "adjusted_price_history" not in caps
         assert "latest_price" in caps
@@ -851,6 +852,35 @@ class TestBinanceSymbolHelpers:
                     adjusted=True,
                 )
         get.assert_not_called()
+
+    def test_account_usage_parses_native_weight_header(self):
+        response = httpx.Response(
+            200,
+            json={"serverTime": 1_726_000_000_000},
+            headers={"X-MBX-USED-WEIGHT-1M": "37"},
+            request=httpx.Request("GET", "https://api.binance.com/api/v3/time"),
+        )
+        with patch("app.providers.binance.httpx.get", return_value=response) as get:
+            usage = BinanceProvider().fetch_account_usage()
+
+        get.assert_called_once_with("https://api.binance.com/api/v3/time", timeout=10)
+        assert usage.provider == "binance"
+        assert usage.unit == "weight"
+        assert usage.limit == 6000
+        assert usage.remaining == 5963
+        assert usage.consumed == 37
+        assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
+        assert usage.dimensions[0].name == "request_weight_per_minute"
+
+    def test_account_usage_rejects_missing_native_weight_header(self):
+        response = httpx.Response(
+            200,
+            json={"serverTime": 1_726_000_000_000},
+            request=httpx.Request("GET", "https://api.binance.com/api/v3/time"),
+        )
+        with patch("app.providers.binance.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError, match="USED-WEIGHT-1M"):
+                BinanceProvider().fetch_account_usage()
 
 
 # ── Binance OHLCV bar parsing ─────────────────────────────────────────────────

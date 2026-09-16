@@ -485,6 +485,29 @@ def test_binance_keyless_crypto_history():
     assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
 
 
+def test_binance_keyless_account_usage_snapshot():
+    """Exercise Binance's native fixed-minute request-weight counter."""
+
+    usage, measurement = _observed_read(
+        lambda: BinanceProvider().fetch_account_usage(),
+        "binance",
+        "fetch_account_usage",
+    )
+    assert usage is not None
+    assert usage.provider == "binance"
+    assert usage.unit == "weight"
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert set(dimensions) == {"request_weight_per_minute"}
+    weight = dimensions["request_weight_per_minute"]
+    assert weight.limit == 6000
+    assert weight.remaining is not None and weight.remaining >= 0
+    assert weight.consumed is not None and weight.consumed >= 0
+    assert weight.reset_at is not None and weight.reset_at.tzinfo is not None
+    reconciliation = reconcile_native_account_usage("binance", usage)
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
+
+
 def test_coinbase_keyless_crypto_history():
     from app.providers.registry import provider_missing_routing_controls
 

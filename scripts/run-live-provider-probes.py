@@ -108,6 +108,10 @@ LIVE_PROVIDER_CASES = {
     ),
     "binance": (
         ("test_market_data_providers_live.py", "test_binance_keyless_crypto_history"),
+        (
+            "test_market_data_providers_live.py",
+            "test_binance_keyless_account_usage_snapshot",
+        ),
     ),
     "coinbase": (
         ("test_market_data_providers_live.py", "test_coinbase_keyless_crypto_history"),
@@ -343,6 +347,7 @@ LIVE_REQUIRED_OPERATIONS = {
         "fetch_latest_ohlcv",
         "get_current_price",
         "discover_universe_page",
+        "fetch_account_usage",
     },
     "coinbase": {"fetch_latest_ohlcv"},
     "kraken": {
@@ -2655,10 +2660,11 @@ def main() -> int:
         {"marketdata_app"},
         {"twelve_data"},
         {"eodhd"},
+        {"binance"},
     ):
         print(
             "account-usage-only requires exactly one of --provider marketdata_app, "
-            "--provider twelve_data, or --provider eodhd"
+            "--provider twelve_data, --provider eodhd, or --provider binance"
         )
         return 2
     if arguments.allow_staged_candidate and (

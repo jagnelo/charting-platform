@@ -100,7 +100,9 @@ but they cannot know a provider's account-side counters unless that provider
 publishes an introspection endpoint.  Such counters therefore have a separate
 `account_usage` capability and observation table. The current concrete
 implementations are MarketData.app's authenticated `GET /user/` endpoint,
-Twelve Data's `/api_usage` endpoint, and EODHD's `/user` endpoint:
+Twelve Data's `/api_usage` endpoint, EODHD's `/user` endpoint, and Binance's
+public `/api/v3/time` endpoint (which exposes its native one-minute request
+weight header):
 
 ```sh
 POST /api/v1/providers/usage/account/refresh   # admin-only, explicit poll
@@ -112,12 +114,14 @@ quota, operation-cost, and circuit-breaker checks as any other request.  The
 MarketData.app account-usage operation is the one deliberate exception to the
 plan-review gate: it may be polled with the conservative seed contract before
 the operator has recorded the plan, so the native response can inform that
-review.  It cannot admit market-data or options routing. Twelve Data and EODHD
-also declare an explicit first-snapshot bootstrap: when a finite provider pool
+review.  It cannot admit market-data or options routing. Binance, Twelve Data,
+and EODHD also declare an explicit first-snapshot bootstrap: when a finite provider pool
 has no active durable baseline, only a deployment-scoped serialized probe slot
 is reserved; the native response must establish the exact pool before ordinary
 reads can reserve it. This is an application safety control, not a provider
-quota or entitlement. The returned
+quota or entitlement. Binance's first snapshot uses the same explicit
+serialized bootstrap slot and accepts only `X-MBX-USED-WEIGHT-1M` plus the
+reviewed fixed-minute boundary. The returned
 limit/remaining/consumed/reset/options values are stored verbatim as
 observations; they never replace the reviewed local plan, infer a reset window,
 or widen routing. Providers without a documented native usage surface remain
@@ -188,7 +192,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | Alpha Vantage | Raw daily OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` and adjusted daily history are premium; `EARNINGS` is one query per symbol | API key / provider-defined day | compact raw daily history and the bounded AAPL earnings normalization are live-proven; adjusted history is rejected explicitly; a range older than the 100-point compact window now fails closed instead of returning a partial slice; IPO-calendar remains subject to its documented capacity response |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
-| Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations admitted only when the calculated weight fits |
+| Binance | public crypto OHLCV, ticker, USDT universe, native request-weight usage snapshot | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution. The bounded `/api/v3/time` account-usage probe reads `X-MBX-USED-WEIGHT-1M` and proves the current fixed-minute counter; response `Retry-After`/weight headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations remain baseline-gated until the native usage probe establishes the active fixed-minute window; no empty-ledger assumption |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / rolling | route and live-read blocked by default: written Coinbase authority must cover this application's automated/AI use and persistent storage; non-redistribution remains required; rate-limit compliance alone is not legal authorization |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply; OHLC responses cap at 720 bars | IP/pair / rolling | history follows the provider `last` cursor and reserves `ceil(requested candles / 720)` calls; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month; the monthly reset boundary is not published and is therefore unresolved. CoinGecko's official [`/key` usage endpoint](https://docs.coingecko.com/reference/api-usage) is restricted to Pro subscribers; a bounded 2026-09-16 request with the configured Demo key returned the documented HTTP 401 `10005` plan restriction, so it cannot provide a Demo-account usage baseline | Demo key / minute + provider-defined monthly pool | credentialed search live-proven; the provider-native usage endpoint is unavailable on Demo and monthly-pool operations remain non-routable until the reset boundary is confirmed through provider/account evidence |
@@ -990,6 +994,12 @@ Repeated 429 violations can produce an HTTP 418 IP ban; response usage and reset
 headers are captured when capacity failures occur.
 
 **No configuration required.**
+
+The provider also exposes a bounded `account_usage` capability. It uses the
+one-weight `/api/v3/time` call and accepts only the provider's native
+`X-MBX-USED-WEIGHT-1M` counter plus the reviewed 6,000-weight ceiling and next
+UTC-minute reset. Missing or malformed headers remain non-reconcilable; the
+client never treats an empty local ledger as zero Binance usage.
 
 ---
 

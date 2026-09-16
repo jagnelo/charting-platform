@@ -164,19 +164,21 @@ payloads.
 Provider-native account-usage snapshots may reconcile a baseline automatically
 only when the provider adapter has an explicit exact mapping for the reviewed
 dimension. The current implementation permits this for MarketData.app's
-`credits_per_day` pool, EODHD's `calls_per_day` pool, and Twelve Data's
-`credits_per_minute` pool when the provider response returns the matching
+`credits_per_day` pool, EODHD's `calls_per_day` pool, Twelve Data's
+`credits_per_minute` pool, and Binance's `request_weight_per_minute` pool when the provider response returns the matching
 reviewed limit, a current reset timestamp, and a valid consumed counter (or an
 exact `limit - remaining` equivalent). Each reconciliation is labelled
 `provider_account_observation` and uses the same durable coordinator. A plan,
 limit, window, or reset mismatch remains observation-only and cannot widen
 routing. Other provider pools still require operator attestation because their
-native usage surfaces do not establish an equivalent dimension safely.
+native usage surfaces do not establish an equivalent dimension safely. Binance
+uses the explicit one-weight `/api/v3/time` probe; it never treats an empty
+local ledger as zero usage.
 
 The direct live-test account snapshot cases use this same reconciliation path
 after the provider response has been durably settled. This is important across
 sessions: a successful `/user` or `/api_usage` test is not merely a receipt; it
-can establish the exact active baseline for the three allow-listed pools before
+can establish the exact active baseline for the four allow-listed pools before
 the next run. EODHD remains intentionally observation-only when its `/user`
 response reports a stale `apiRequestsDate`, because no current daily reset has
 been proven. The live receipt records the provider-native observation and the
@@ -209,7 +211,8 @@ contains only observed usage and a non-secret evidence locator; the reviewed
 limit, unit, reset boundary, account scope, and quota group come from the
 provider contract:
 
-Twelve Data and EODHD explicitly declare a first-snapshot bootstrap control.
+Binance, Twelve Data, and EODHD explicitly declare a first-snapshot bootstrap
+control.
 When one of their finite pools has no active durable baseline, the account
 usage operation reserves only a deployment-scoped serialized probe slot; it
 does not pretend that the unknown provider pool has zero usage. A successful

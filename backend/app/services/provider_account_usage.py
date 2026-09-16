@@ -38,6 +38,10 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, tuple[str, str]] = {
     # dimension; the separate daily pool remains an observation until Twelve
     # Data publishes a stable daily counter shape.
     "twelve_data": ("credits_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    # Binance's public /api/v3/time response exposes the cumulative request
+    # weight for the current fixed one-minute window.  The adapter supplies
+    # the exact next-minute reset boundary and the reviewed 6,000-weight cap.
+    "binance": ("request_weight_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
 }
 
 

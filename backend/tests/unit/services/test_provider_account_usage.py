@@ -12,6 +12,47 @@ from app.services import provider_account_usage
 from tests.unit.conftest import AsyncSessionAdapter
 
 
+def test_binance_native_weight_snapshot_is_an_exact_baseline_candidate():
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    execution = SimpleNamespace(
+        provider_name="binance",
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "request_weight_per_minute",
+                        "limit": 6000,
+                        "window_seconds": 60,
+                        "unit": "weight",
+                        "scope": "ip",
+                        "quota_group": "ip",
+                        "reset": "fixed_minute",
+                    }
+                ],
+                "reset": "per_dimension",
+            }
+        ),
+    )
+    candidate = provider_account_usage._native_baseline_candidate(
+        execution,
+        ProviderAccountUsageDimension(
+            name="request_weight_per_minute",
+            unit="weight",
+            limit=6000,
+            remaining=5942,
+            consumed=58,
+            reset_at=observed_at.replace(second=0) + timedelta(minutes=1),
+        ),
+        observed_at,
+    )
+    assert candidate is not None
+    assert candidate[:3] == (
+        "request_weight_per_minute",
+        "account_usage",
+        58,
+    )
+
+
 @pytest.mark.asyncio
 async def test_refresh_persists_provider_native_counters_and_stops_after_first_provider(
     db, monkeypatch

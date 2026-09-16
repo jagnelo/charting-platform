@@ -31,6 +31,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
 from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
@@ -89,6 +90,86 @@ class BinanceProvider:
         "Binance public API — crypto OHLCV (all timeframes), "
         "current prices, and USDT-quoted universe discovery"
     )
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Read Binance's native one-minute request-weight counter.
+
+        ``/api/v3/time`` is the provider's smallest public REST probe.  The
+        response's ``X-MBX-USED-WEIGHT-1M`` header is cumulative for the
+        current fixed one-minute window; the documented 6,000 weight ceiling
+        and the next UTC minute boundary are retained as an explicit,
+        provider-specific account-usage dimension.  Missing or malformed
+        headers are rejected rather than treated as an unused account.
+        """
+
+        try:
+            response = httpx.get(f"{_BASE}/time", timeout=10)
+            observe_response(response)
+            response.raise_for_status()
+            payload = response.json()
+            raise_for_provider_error_envelope(
+                self.name,
+                payload,
+                response.status_code,
+                headers=provider_response_headers(response),
+            )
+        except httpx.HTTPStatusError as exc:
+            response = exc.response
+            if response is not None and response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"Binance request rejected for capacity (HTTP {response.status_code})",
+                    status_code=response.status_code,
+                    headers=provider_response_headers(response),
+                ) from exc
+            status_code = response.status_code if response is not None else None
+            raise ProviderResponseError(
+                self.name,
+                f"Binance request failed with HTTP {status_code}",
+                status_code=status_code,
+            ) from exc
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, "Binance account-usage transport failure") from exc
+        except (TypeError, ValueError, KeyError) as exc:
+            raise ProviderResponseError(self.name, "Binance returned invalid account-usage JSON") from exc
+
+        if not isinstance(payload, dict) or not isinstance(payload.get("serverTime"), int):
+            raise ProviderResponseError(self.name, "Binance returned an invalid server-time payload")
+        headers = {
+            str(key).lower(): str(value)
+            for key, value in provider_response_headers(response).items()
+        }
+        try:
+            used = int(headers["x-mbx-used-weight-1m"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "Binance omitted the native X-MBX-USED-WEIGHT-1M counter",
+            ) from exc
+        if used < 0 or used > 6000:
+            raise ProviderResponseError(self.name, "Binance returned an invalid request-weight counter")
+
+        observed_at = datetime.now(UTC)
+        reset_at = observed_at.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        dimension = ProviderAccountUsageDimension(
+            name="request_weight_per_minute",
+            unit="weight",
+            limit=6000,
+            remaining=6000 - used,
+            consumed=used,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="weight",
+            limit=dimension.limit,
+            remaining=dimension.remaining,
+            consumed=dimension.consumed,
+            reset_at=dimension.reset_at,
+            account_plan="public",
+            dimensions=(dimension,),
+        )
 
     # ── Price History ─────────────────────────────────────────────────────────
 

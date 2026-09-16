@@ -95,6 +95,15 @@ def test_account_usage_only_selection_keeps_only_the_dedicated_case():
         "eodhd_credentialed_account_usage_snapshot",
     ]
 
+    binance_arguments = runner.selected_live_test_arguments(
+        ["binance"], account_usage_only=True
+    )
+    assert binance_arguments == [
+        "tests/live/test_market_data_providers_live.py::test_binance_keyless_account_usage_snapshot",
+        "-k",
+        "binance_keyless_account_usage_snapshot",
+    ]
+
 
 def test_manifest_has_exact_operation_evidence_for_every_provider():
     runner = _runner_module()

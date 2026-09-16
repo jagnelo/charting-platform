@@ -209,10 +209,10 @@ class Settings(BaseSettings):
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
         # Provider-native usage surfaces are selected by the same exact
-        # capability/quota gates as data reads.  Both adapters remain
-        # opt-in at the worker level; this list only makes them resolvable
-        # when an operator explicitly requests a snapshot.
-        "account_usage": ["marketdata_app", "twelve_data", "eodhd"],
+        # capability/quota gates as data reads. These adapters remain opt-in
+        # at the worker level; this list only makes them resolvable when an
+        # operator explicitly requests a snapshot.
+        "account_usage": ["marketdata_app", "twelve_data", "eodhd", "binance"],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
@@ -541,10 +541,26 @@ class Settings(BaseSettings):
                         "scope": "ip",
                         "quota_group": "ip",
                         "source": "https://developers.binance.com/en/docs/products/spot/rest-api",
+                        "reset": "fixed_minute",
+                    },
+                    {
+                        "name": "account_usage_probe_concurrency",
+                        "limit": 1,
+                        "window_seconds": 1,
+                        "unit": "concurrent_requests",
+                        "scope": "deployment",
+                        "quota_group": "account_usage_probe",
+                        "source": "application_policy:provider_native_baseline_bootstrap",
+                        "reset": "rolling",
+                        "applies_to_operations": ["fetch_account_usage"],
                     }
                 ],
-                "reset": "fixed_minute",
+                "reset": "per_dimension",
                 "dynamic_endpoint_weights": True,
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "source": "application_policy:provider_native_baseline_bootstrap",
+                },
             },
             "tokens_per_minute": 6000,
             "quota_scope": "ip",
@@ -1137,6 +1153,8 @@ class Settings(BaseSettings):
                 "get_current_price": 2,
                 "discover_universe_page": 20,
                 "reconcile_universe_page": 20,
+                # /api/v3/time is a one-weight native account-usage probe.
+                "fetch_account_usage": 1,
             },
         },
         "twelve_data": {

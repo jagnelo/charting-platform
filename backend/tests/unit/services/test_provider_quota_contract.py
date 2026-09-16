@@ -1114,6 +1114,9 @@ def test_binance_seed_tracks_current_spot_ceiling_but_stays_dynamic_cost_gated()
     assert contract["dimensions"][0]["limit"] == 6000
     assert contract["dimensions"][0]["unit"] == "weight"
     assert contract["dynamic_endpoint_weights"] is True
+    assert contract["reset"] == "per_dimension"
+    assert contract["account_usage_bootstrap"]["enabled"] is True
+    assert contract["dimensions"][1]["name"] == "account_usage_probe_concurrency"
 
 
 def test_binance_only_admits_operations_with_exact_documented_weights():
