@@ -77,7 +77,7 @@ class EngineResultEvidence:
         if len(artifacts) != len(set(artifacts)):
             raise ValueError("engine result artifact digests must be unique")
         _aware(self.observed_at, "observed_at")
-        object.__setattr__(self, "artifact_content_digests", artifacts)
+        object.__setattr__(self, "artifact_content_digests", tuple(sorted(artifacts)))
 
     @property
     def fingerprint(self) -> str:
@@ -188,6 +188,8 @@ def materialize_run_result(
         raise TypeError("strategy_packages must contain StrategyPackage values")
     if any(not isinstance(item, ArtifactManifest) for item in artifacts):
         raise TypeError("output_artifacts must contain ArtifactManifest values")
+    packages = tuple(sorted(packages, key=lambda item: item.fingerprint))
+    artifacts = tuple(sorted(artifacts, key=lambda item: item.content_digest))
     _aware(created_at, "created_at")
 
     candidate_fingerprint = content_digest(

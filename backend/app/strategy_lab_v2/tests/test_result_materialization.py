@@ -125,3 +125,23 @@ def test_result_materialization_validates_types_and_time() -> None:
         materialize_run_result("bad", result.attempt, result.strategy_packages, result.portfolio, result.snapshot, evidence, result.metric_set, result.output_artifacts, created_at=NOW)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="timezone-aware"):
         materialize_run_result(result.trial, result.attempt, result.strategy_packages, result.portfolio, result.snapshot, evidence, result.metric_set, result.output_artifacts, created_at=datetime(2024, 1, 1))
+
+
+def test_engine_evidence_canonicalizes_artifact_order() -> None:
+    result, _ = _inputs()
+    first = content_digest("first-artifact")
+    second = content_digest("second-artifact")
+    evidence = EngineResultEvidence(
+        result.trial_id,
+        result.attempt_id,
+        result.engine_name,
+        result.engine_version,
+        result.engine_build_digest,
+        result.allocation_definition_version,
+        result.dependency_catalog_digest,
+        result.assumptions_digest,
+        result.metric_set.fingerprint,
+        (second, first),
+        NOW,
+    )
+    assert evidence.artifact_content_digests == tuple(sorted((first, second)))
