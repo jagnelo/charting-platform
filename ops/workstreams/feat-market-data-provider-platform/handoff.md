@@ -33,6 +33,20 @@
   legal/source controls, deferred providers, and response-byte maps recorded in
   the plan; this run does not promote routing or authorize deployment/shadow.
 
+## 2026-09-16 current full-matrix safety preflight
+
+- At committed source `c6b7b42de`, the normal lock-protected full provider
+  runner stopped before transport with exit `2`. It preserved the exact
+  provider-by-provider blockers instead of spending credentials under unknown
+  active-window, byte, cost, source, or legal controls. No provider request was
+  issued by this run.
+- The durable receipt records the three intentional user deferrals (Tradier,
+  IBKR, and Ondo), unresolved finite-pool baselines (including EODHD's stale
+  daily account date and Twelve Data's naturally expired minute window), and
+  the remaining source/terms/jurisdiction controls for FINRA OTC, FRED,
+  Massive, Coinbase, xStocks, Bybit, and tokenized venues. This is current
+  fail-closed evidence, not a provider failure or acceptance result.
+
 ## 2026-09-16 current isolated unit gate
 
 - The complete backend unit suite passed `2,317/2,317` at source
