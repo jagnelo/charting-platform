@@ -233,7 +233,8 @@ remaining_gaps:
     be present before ordinary history/profile/quote/discovery routing can be
     admitted. The native `/user` bootstrap remains eligible only for the
     independently documented daily pool; its explicitly allow-listed unknown
-    minute dimensions are never treated as zero. Commit `d190251d1` also fixes
+    minute dimensions are never treated as zero. Commits `d190251d1` and
+    `b97533bf8` also fix
     the live reservation planner so this bounded exception is actually
     executable without widening ordinary routing. Focused coordinator/runtime
     coverage passes 92/92, the complete unit gate passes 2,362/2,362 with 37

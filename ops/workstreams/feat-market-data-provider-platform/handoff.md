@@ -2,14 +2,14 @@
 
 ## 2026-09-16 EODHD bounded bootstrap live verification
 
-- Commit `d190251d1` closes the planner gap identified by the first safety
+- Commits `d190251d1` and `b97533bf8` close the planner gap identified by the first safety
   preflight: the explicitly allow-listed EODHD `/user` account-usage operation
   can reserve only its reviewed daily/concurrency dimensions while the
   unresolved minute pool is excluded; ordinary EODHD operations remain
   fail-closed.
 - The committed-source bounded live case passed `1/1` with exactly one
   authenticated upstream request and 304 response bytes. The receipt is
-  current at source `d190251d1` in `validation.jsonl`; no history, quote,
+  current at source `b97533bf8` in `validation.jsonl`; no history, quote,
   profile, or discovery request was admitted.
 - The complete backend unit gate passed `2,362/2,362` with 70.82% coverage and
   37 warnings; focused coordinator/runtime coverage passed `92/92`; Ruff,
