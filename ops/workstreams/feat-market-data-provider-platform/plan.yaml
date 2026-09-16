@@ -379,6 +379,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 exact-current full-matrix preflight at source
+      `467b755dd535a0f4c4002f621e83dd6b3c0855bf` passed the owner-local
+      durable-ledger health/lock/write check and then stopped before transport
+      with exit 2 and zero provider requests. It retained the updated
+      OpenFIGI keyed/anonymous contract plus all remaining provider-specific
+      baseline, capability, legal/source, byte, deferred-provider, deployment,
+      universe, and shadow blockers. This is current safety evidence only;
+      no routing or shadow activation was implied.
+    - >-
       2026-09-16 OpenFIGI quota audit and runtime correction: current official
       documentation distinguishes anonymous mapping (25 requests/minute,
       five jobs/request) from keyed mapping (25 requests/6 seconds, 100

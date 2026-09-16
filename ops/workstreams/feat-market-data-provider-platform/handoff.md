@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current OpenFIGI/full-matrix preflight
+
+- The lock-protected full provider runner at source `467b755dd` exited `2`
+  before transport with zero provider requests. The owner-local durable
+  ledger health/lock/write path passed, then the runner preserved the current
+  provider-specific baseline, capability, legal/source, byte, and deferred
+  provider blockers. The new OpenFIGI contract is therefore represented in
+  current diagnostics without spending the anonymous pool.
+- Routing safety still reports the configured MarketData.app account-plan and
+  option-chain controls as routable; all other unresolved controls remain
+  fail-closed. This receipt is safety evidence, not live acceptance or
+  routing/shadow activation.
+
 ## 2026-09-16 OpenFIGI keyed/anonymous quota contract audit
 
 - Current official [OpenFIGI documentation](https://www.openfigi.com/api/documentation) distinguishes anonymous and keyed
