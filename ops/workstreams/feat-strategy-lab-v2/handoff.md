@@ -2308,3 +2308,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Adapter-supplied settlement-cash gate checkpoint
+
+`settlement_risk.py` now layers an explicit settlement gate over liquidity,
+stress, margin, and order routing. Adapters bind each exact routed order to a
+signed settlement cash delta, currency, settlement time, and valuation evidence,
+alongside per-currency free-cash capacity. The gate withholds the complete
+batch on missing estimates/capacity, gross debit exhaustion, or a configured
+minimum remaining-cash buffer while preserving upstream rejection. It does not
+infer product cash flows, conversions, or settlement behavior.
+
+The exact implementation tree passed all 484 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.

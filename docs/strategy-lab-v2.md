@@ -150,6 +150,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   slippage evidence over stress, margin, and routing. Per-instrument batch
   participation and slippage ceilings are evaluated all-or-nothing; missing
   capacity is explicit and the contract makes no fill-quality guarantee.
+- `settlement_risk.py` layers adapter-supplied per-order settlement cash deltas
+  and per-currency free-cash evidence over liquidity, stress, margin, and
+  routing. Gross settlement debits and minimum remaining-cash buffers withhold
+  the entire batch; missing order estimates or currency capacity fail closed.
+  Product cash flows, conversions, and settlement timing remain adapter-owned.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared
