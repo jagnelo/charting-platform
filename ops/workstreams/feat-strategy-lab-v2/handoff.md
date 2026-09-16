@@ -852,3 +852,19 @@ MyPy, and `git diff --check`. Financing evidence outside fill reports and
 trusted paired inference remain open metric gaps. No provider, ETF, TC2000,
 persistence, API, worker, Compose, Nautilus, frontend, integration,
 promotion, or deployment paths were changed.
+
+## 2026-09-16 - Explicit financing-cost evidence checkpoint
+
+The next package-owned metric slice adds immutable
+`FinancingCostObservation` events and bounded `FinancingCostReport` records.
+`calculate_financing_cost_metrics()` keeps financing outside fill-cost reports,
+tracks complete/partial/unavailable coverage explicitly, and publishes the
+signed reported cash effect for all supplied events. It publishes derived net
+financing cost only when every supplied report is complete; incomplete coverage
+cannot be interpreted as zero financing. Report and event digests, model
+identity, base currency, ordered points, and scope are bound to the metrics.
+
+The exact implementation tree passed 88 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Trusted paired-stream inference remains the next
+metric gap. No provider, ETF, TC2000, persistence, API, worker, Compose,
+Nautilus, frontend, integration, promotion, or deployment paths were changed.
