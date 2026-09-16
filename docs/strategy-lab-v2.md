@@ -329,6 +329,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `ApiError` carries a typed code, HTTP status, retryability, request identity,
   and recursively frozen details. Cursor checksums are not authentication;
   authorization and snapshot ownership remain route responsibilities.
+- `submissions.py` defines idempotent asynchronous submission requests and
+  receipts. Request fingerprints bind the operation, attempt, idempotency key,
+  and payload digest while excluding transport timestamps; resolution returns
+  202 acceptance/replay or 409 conflict, and contradictory prior receipts fail
+  closed. Receipt creation performs no queue, database, or worker I/O.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

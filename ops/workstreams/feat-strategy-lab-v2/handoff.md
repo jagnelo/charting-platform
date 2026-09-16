@@ -1139,3 +1139,17 @@ The exact implementation tree passed all 142 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Asynchronous submission/idempotency checkpoint
+
+`submissions.py` adds immutable `SubmissionRequest`, `SubmissionReceipt`, and
+`SubmissionResolution` contracts. Request fingerprints bind operation, attempt,
+idempotency key, and payload digest while excluding submission timestamps, so a
+transport retry replays the same accepted request. Resolution distinguishes
+202 acceptance/replay from 409 idempotency conflict and fails closed when prior
+receipts disagree; durable compare-and-set and dispatch remain adapter work.
+
+The exact implementation tree passed all 147 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.
