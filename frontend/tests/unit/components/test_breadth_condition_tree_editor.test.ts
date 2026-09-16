@@ -7,6 +7,30 @@ function leaf(kind = 'above_moving_average') {
 }
 
 describe('BreadthConditionTreeEditor', () => {
+  it('announces Python series asset readiness politely', () => {
+    const loadingWrapper = mount(BreadthConditionTreeEditor, {
+      props: {
+        modelValue: { kind: 'python_series', params: { code_version_id: 0, scope: 'member', operator: 'gte', threshold: 0 } },
+        pythonSeriesAssetsLoading: true,
+      },
+    })
+    const loading = loadingWrapper.get('[role="status"]')
+    expect(loading.text()).toBe('Loading Python assets…')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    const emptyWrapper = mount(BreadthConditionTreeEditor, {
+      props: {
+        modelValue: { kind: 'python_series_comparison', params: { left_code_version_id: 0, right_code_version_id: 0, relation: 'difference', operator: 'gte', threshold: 0 } },
+        pythonSeriesAssets: [],
+      },
+    })
+    const empty = emptyWrapper.get('[role="status"]')
+    expect(empty.text()).toBe('No numeric-series condition assets available.')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
   it('serializes arbitrary nested groups and keeps NOT to one child', async () => {
     const wrapper = mount(BreadthConditionTreeEditor, {
       props: {
