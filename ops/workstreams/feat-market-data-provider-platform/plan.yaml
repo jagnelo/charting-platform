@@ -161,6 +161,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The explicit Dinari Sandbox canary was validated at the current source with
+    transient owner controls and a 32-request per-process cap. Its compound
+    manifest case passed 1/1, with 14 bounded upstream requests covering
+    catalogue/identity, price and quote, all four aggregate windows, news,
+    dividends, splits, and corporate actions. The one-request trial stopped at
+    the transport guard before the second operation, confirming the cap is
+    enforced per actual request. This proves the isolated Sandbox adapter and
+    canary path only; Dinari's numeric Sandbox quota/reset, commercial terms,
+    redistribution rights, and production routing remain non-routable.
+  - >-
     The complete backend suite was replayed against the current checkout after
     the live-admission fixes and provider-usage evidence updates: `2,727/2,727`
     executable tests passed, with `464` expected skips, `89` warnings, and

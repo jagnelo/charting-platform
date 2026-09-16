@@ -4647,3 +4647,21 @@ the authoritative record for this replay; it made zero provider calls.
   recorded separately in `validation.jsonl`. This suite result does not close
   the provider-native baseline, source/legal, deployment-secret, Docker, or
   final shadow gates.
+
+## 2026-09-16 Dinari Sandbox canary validation
+
+- The explicit Dinari Sandbox canary was rerun with transient owner controls
+  and a per-process cap of `32` requests. The manifest compound case passed
+  `1/1`, making `14` bounded upstream requests and recording `160,813` response
+  bytes across catalogue discovery, UUID/symbol resolution, price, quote,
+  DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, splits, and
+  corporate actions.
+- The first trial with a one-request cap stopped before the second operation,
+  proving that the cap is enforced at the actual HTTP transport boundary. The
+  successful run used no persistent canary authorization, wrote no sandbox
+  payload into canonical data, and retained only redacted aggregate telemetry
+  in `validation.jsonl` and the owner-managed local ledger.
+- This closes the implementation/live-schema evidence for the isolated Sandbox
+  canary path only. Dinari's numeric Sandbox quota/reset, commercial terms,
+  redistribution rights, and production routing remain intentionally
+  non-routable and require provider/owner evidence.

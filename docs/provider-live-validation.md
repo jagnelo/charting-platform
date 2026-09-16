@@ -1716,3 +1716,15 @@ The receipt is exact committed provider-source evidence for
 `2f6e7384a57eafa9c284c88880d18f402a2c261e`; the later `d59819476` commit only
 records the receipt and handoff. The Starter Trial `10,000/day` plan and its
 configured expiry remain the authoritative local quota contract.
+
+On 2026-09-16, the explicit Dinari Sandbox canary was run with transient
+owner controls and a per-process request cap of `32`. Its compound manifest
+case passed `1/1` with `14` upstream requests and `160,813` response bytes,
+covering catalogue/identity, price, quote, DAY/WEEK/MONTH/YEAR aggregate
+history, news, dividends, splits, and corporate actions. A preceding
+one-request trial stopped at the transport guard before the second operation,
+confirming that the cap applies to every actual HTTP request rather than only
+to test cases. No sandbox payload was persisted to canonical data and no
+authorization control was stored in Git. This is isolated Sandbox
+transport/schema evidence only; Dinari's numeric quota/reset, commercial
+terms, redistribution rights, and production routing remain non-routable.
