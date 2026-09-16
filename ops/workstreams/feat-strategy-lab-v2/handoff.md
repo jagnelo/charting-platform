@@ -803,3 +803,17 @@ package tests, Ruff checks for the changed files, MyPy for the package, and
 Compose, Nautilus, frontend, integration, promotion, or deployment paths were
 changed. The next bounded slice is the boundary-aware wiring for those existing
 calendar/rolling/distribution aggregators.
+
+## 2026-09-16 - Calendar-period boundary wiring checkpoint
+
+Product commit `88cc14dda12aa43f49a18e5199248ec25e05283e` wires the explicit
+flow-boundary path into `calculate_calendar_period_metrics()`. Complete
+flow-bearing periods now report the geometrically linked return when all
+pre/post marks are present; missing boundary evidence remains an explicit null
+reason. Net P&L continues to reconcile the reported flow independently.
+
+The exact package tree still passes all 83 tests, Ruff, and MyPy. The remaining
+boundary-aware metric work is limited to rolling-window and session-distribution
+aggregators; no shared provider, ETF, TC2000, persistence, API, worker,
+Compose, Nautilus, frontend, integration, promotion, or deployment paths were
+changed.
