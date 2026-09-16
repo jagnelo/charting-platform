@@ -2660,9 +2660,10 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert finra["dimension_costs_required"] is True
     assert finra_otc["dimensions"] == []
     assert {
-        "current_dataset_source",
-        "authentication_and_quota_applicability",
+        "orf_product_entitlement_and_mfa",
+        "file_download_quota_and_reset",
         "data_use_terms",
+        "redistribution_rights",
     } <= set(finra_otc["unknown_dimensions"])
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500

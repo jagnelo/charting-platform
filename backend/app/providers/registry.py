@@ -101,7 +101,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
-    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # Candidate parser; source-review gates control routing
+    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # DAPI/OTC Markets legacy and documented ORF pair; source-review gates control routing
     # Optional low-cost adapters. They remain absent from default chains and
     # entitlement seeds until credentials, quotas, and redistribution terms
     # are reviewed by operations.
@@ -531,7 +531,7 @@ _AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
 # credential settings so a missing URL is visible as ``not configured`` rather
 # than being mistaken for a valid keyless provider.
 _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
-    "finra_otc_directory": ("FINRA_OTC_SYMBOL_DIRECTORY_URL",),
+    "finra_otc_directory": ("FINRA_OTC_SOURCE_KIND", "FINRA_OTC_SYMBOL_DIRECTORY_URL"),
     # A Marketstack ticker read must be explicitly scoped to a provider MIC.
     # Without this, a single-venue default could be mistaken for US coverage.
     "marketstack": ("MARKETSTACK_API_KEY", "MARKETSTACK_DISCOVERY_EXCHANGE"),
@@ -654,6 +654,16 @@ def provider_required_settings(name: str, operation: str | None = None) -> tuple
         required.append("MARKETDATA_API_KEY")
     if name == "edgar":
         required.append("EDGAR_USER_AGENT")
+    if name == "finra_otc_directory" and str(
+        getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or ""
+    ).strip().lower() == "finra_orf_security_master":
+        required.extend(
+            (
+                "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+                "FINRA_CLIENT_ID",
+                "FINRA_CLIENT_SECRET",
+            )
+        )
     return tuple(dict.fromkeys(required))
 
 
@@ -709,7 +719,16 @@ def provider_routing_control_settings(
     if name == "marketdata_app" and operation == "fetch_account_usage":
         return ()
 
-    return _ROUTING_CONTROL_SETTINGS.get(name, ())
+    controls = _ROUTING_CONTROL_SETTINGS.get(name, ())
+    if name == "finra_otc_directory" and str(
+        getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or ""
+    ).strip().lower() == "finra_orf_security_master":
+        controls = (
+            *controls,
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL",
+        )
+    return controls
 
 
 def provider_missing_routing_controls(
@@ -772,6 +791,9 @@ def provider_missing_routing_controls(
             getattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "") or ""
         ).strip():
             missing.append("FINRA_OTC_SOURCE_EVIDENCE")
+        source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        if source_kind not in {"legacy_candidate", "finra_orf_security_master"}:
+            missing.append("FINRA_OTC_SOURCE_KIND")
         configured_source = _normalized_reviewed_https_source(
             getattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
         )
@@ -780,6 +802,17 @@ def provider_missing_routing_controls(
         )
         if configured_source is None or reviewed_source != configured_source:
             missing.append("FINRA_OTC_REVIEWED_SOURCE_URL")
+        if source_kind == "finra_orf_security_master":
+            inactive_source = _normalized_reviewed_https_source(
+                getattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
+            )
+            reviewed_inactive_source = _normalized_reviewed_https_source(
+                getattr(settings, "FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL", "")
+            )
+            if inactive_source is None:
+                missing.append("FINRA_OTC_INACTIVE_SECURITY_MASTER_URL")
+            if inactive_source is None or reviewed_inactive_source != inactive_source:
+                missing.append("FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL")
         if not provider_reviewed_flag(
             getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
         ):

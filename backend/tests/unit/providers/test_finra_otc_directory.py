@@ -22,6 +22,17 @@ _OTC_MARKETS_SECURITY_MASTER = (
     "2026-09-16|101|201|BBB||Beta Corp|Beta Warrant|warrant|B|H|Grey Market|30|N|0.125\n"
 )
 
+_ORF_SECURITY_MASTER = (
+    "FINRA_OTC_ID|CUSIP_ID|SYM_CD|SYM_SUF_CD|SCRTY_DS|RND_LOT_QT|CPN_RT|"
+    "DTC_ELGBL_FL|SCRTY_TYPE_CD|WIS_DSTRD_CD|STTS_CD|NACTV_DT|TEST_SCRTY_FL|"
+    "PRICE_CK_FL|SCRTY_EFCTV_TS|SIP_SYM_ID|OTCBB_QUOTE_FL|CLASS_TX|OFRNG_TYPE_CD\n"
+    "100|123456789|AAA||Alpha Corp|100|||||A||N|Y|20260916120000|AAA|Y|A|\n"
+)
+_ORF_INACTIVE_SECURITY_MASTER = _ORF_SECURITY_MASTER.replace(
+    "100|123456789|AAA||Alpha Corp|100|||||A||N|Y|20260916120000|AAA|Y|A|",
+    "101||BBB|P|Beta Corp|100|||||I|20250916120000|N|Y|20250916120000|BBB|Y|B|",
+)
+
 
 def test_finra_otc_directory_requires_explicit_source(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
@@ -74,6 +85,59 @@ def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeyp
     assert page["quotes"][0]["overnight_eligible"] == "Y"
     assert page["quotes"][1]["status"] == "inactive"
     assert page["quotes"][1]["financial_status"] == "H"
+
+
+def test_finra_otc_directory_fetches_documented_orf_active_and_inactive_masters(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    active = Mock(text=_ORF_SECURITY_MASTER, status_code=200)
+    active.headers = {}
+    active.raise_for_status.return_value = None
+    inactive = Mock(text=_ORF_INACTIVE_SECURITY_MASTER, status_code=200)
+    inactive.headers = {}
+    inactive.raise_for_status.return_value = None
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory._access_token", return_value="token"),
+        patch(
+            "app.providers.finra_otc_directory.httpx.get",
+            side_effect=[active, inactive],
+        ) as get,
+    ):
+        page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    assert page["total"] == 2
+    assert [row["symbol"] for row in page["quotes"]] == ["AAA", "BBB"]
+    assert page["quotes"][0]["status"] == "active"
+    assert page["quotes"][1]["status"] == "inactive"
+    assert page["quotes"][1]["symbol_suffix"] == "P"
+    assert page["source_files"] == [
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERIN&facility=ORF",
+    ]
+    assert all(call.kwargs["headers"]["Authorization"] == "Bearer token" for call in get.call_args_list)
+
+
+def test_finra_otc_directory_orf_requires_inactive_master(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF",
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
+    with pytest.raises(ProviderNotConfiguredError, match="INACTIVE"):
+        FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 
 
 def test_parse_otc_markets_security_master_verifies_validation_record_count():

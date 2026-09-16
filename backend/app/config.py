@@ -506,21 +506,24 @@ class Settings(BaseSettings):
         },
         "finra_otc_directory": {
             "quota_contract": {
-                # FINRA's current public catalog does not establish that the
-                # configured otcSecurityMaster/DAPI candidate is active or
-                # that Query API limits and terms apply to it.
+                # ORF file downloads have a documented platform ceiling, but
+                # product entitlement, MFA, file-download cadence, and the
+                # exact account/credential scope remain operator-controlled.
+                # Never turn the platform ceiling into a guessed operation
+                # cost or reset boundary.
                 "dimensions": [],
                 "unknown_dimensions": [
-                    "current_dataset_source",
-                    "authentication_and_quota_applicability",
+                    "orf_product_entitlement_and_mfa",
+                    "file_download_quota_and_reset",
                     "data_use_terms",
+                    "redistribution_rights",
                 ],
                 "reset": "provider_defined",
                 "operation_costs_required": True,
-                "source": "https://developer.finra.org/catalog",
+                "source": "https://www.finra.org/sites/default/files/2024-08/Equity_API_File_Downloads_ORF.pdf",
             },
             "quota_scope": "unknown",
-            "quota_source": "FINRA public dataset catalog; candidate source not established",
+            "quota_source": "FINRA ORF file-download specification; entitlement and account limits unresolved",
         },
         "coingecko": {
             "quota_contract": {
@@ -1663,18 +1666,17 @@ class Settings(BaseSettings):
         "finra_otc_directory": {
             "configured_plan": "unreviewed",
             "is_free": True,
-            "authentication_required": False,
+            "authentication_required": True,
             "usage_terms": (
-                "Public FINRA OTC Security Master DAPI; current FINRA API Terms of Service "
-                "restrict licensed materials to authorized users/permitted uses and prohibit "
-                "bulk-distributor/service-bureau use. Source terms, polling allowance, "
-                "completeness/retention, and redistribution boundary require operator review: "
-                "https://developer.finra.org/finra-api-terms-service"
+                "FINRA ORF active/inactive security-master files require a product entitlement, "
+                "ORF Web Access Agreement, MFA, and review of the specific equity-data and "
+                "API terms; redistribution and bulk-service use are not inferred. "
+                "https://www.finra.org/filing-reporting/orf/technical-notices/reminder-otc-trade-reporting-facility-orf-migration"
             ),
-            "history_depth": "Current as-of-date OTC security-master snapshot",
-            "venue_coverage": "FINRA OTC securities represented by the configured DAPI source",
-            "freshness_semantics": "Provider as-of-date partition and response time",
-            "live_probe_status": "passed",
+            "history_depth": "Current active and inactive ORF security-master snapshots",
+            "venue_coverage": "OTC equity securities represented by FINRA ORF files",
+            "freshness_semantics": "Provider file publication time and effective/inactive timestamps",
+            "live_probe_status": "blocked_until_orf_entitlement",
         },
         "openfigi": {
             "configured_plan": "free-api",
@@ -2147,10 +2149,15 @@ class Settings(BaseSettings):
     FINRA_API_BASE_URL: str = "https://api.finra.org"
     FINRA_SHORT_INTEREST_URL: str = ""
     FINRA_OTC_DAILY_LIST_URL: str = ""
-    # Candidate OTC Security Master URL only. Current public FINRA dataset docs
-    # do not list otcSecurityMaster; keep empty until current docs or written
-    # provider confirmation establishes that the source is available/authorized.
+    # ``legacy_candidate`` preserves the historical DAPI/pipe-delimited
+    # adapter for explicitly reviewed sources. ``finra_orf_security_master``
+    # selects FINRA's currently documented ORF file-download pair and requires
+    # both active and inactive snapshots plus the FINRA OAuth credentials.
+    # The source remains fail-closed until the ORF Web Access Agreement, MFA,
+    # terms, completeness, and redistribution reviews are recorded below.
+    FINRA_OTC_SOURCE_KIND: str = "legacy_candidate"
     FINRA_OTC_SYMBOL_DIRECTORY_URL: str = ""
+    FINRA_OTC_INACTIVE_SECURITY_MASTER_URL: str = ""
     # A partitioned directory source's cold refresh is response/page-count
     # dependent. A deployment must provide a reviewed conservative request
     # charge per operation instead of inheriting a one-request default.
@@ -2162,6 +2169,7 @@ class Settings(BaseSettings):
     FINRA_OTC_SOURCE_EVIDENCE: str = ""
     # Must exactly identify the URL whose availability and rights were reviewed.
     FINRA_OTC_REVIEWED_SOURCE_URL: str = ""
+    FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL: str = ""
     FINRA_OTC_TERMS_REVIEWED: bool = False
     FINRA_OTC_COMPLETENESS_REVIEWED: bool = False
     FINRA_OTC_REDISTRIBUTION_REVIEWED: bool = False

@@ -207,6 +207,40 @@ class TestProviderRegistry:
         )
         assert provider_is_configured("finra_otc_directory") is True
 
+    def test_orf_otc_source_requires_complete_pair_and_finra_credentials(self, monkeypatch):
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_KIND", "finra_orf_security_master")
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://apidownload.finratrags.org/active",
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "")
+        monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "")
+        monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "")
+        assert provider_required_settings("finra_otc_directory") == (
+            "FINRA_OTC_SOURCE_KIND",
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "FINRA_CLIENT_ID",
+            "FINRA_CLIENT_SECRET",
+        )
+        assert provider_missing_settings("finra_otc_directory") == [
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "FINRA_CLIENT_ID",
+            "FINRA_CLIENT_SECRET",
+        ]
+        assert "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL" in provider_routing_control_settings(
+            "finra_otc_directory"
+        )
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "https://apidownload.finratrags.org/inactive",
+        )
+        monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+        monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+        assert provider_missing_settings("finra_otc_directory") == []
+
     def test_marketstack_discovery_configuration_is_fail_closed(self, monkeypatch):
         monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "demo")
         monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")

@@ -2054,8 +2054,25 @@ def staged_secret_findings(
     """Return redacted names of configured or credential-shaped additions."""
 
     findings: list[str] = []
+    added_diff = "\n".join(
+        line
+        for line in staged_diff.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
     secret_names = {name for names in CREDENTIALS.values() for name in names}
     secret_names.update(workflow_secret_environment_names())
+    # These settings are live-test configuration/endpoint selectors, not
+    # credentials.  Their URLs may legitimately appear in checked-in fixtures
+    # and documentation, so scanning their configured values as secrets would
+    # reject an otherwise safe staged candidate whenever an operator has a
+    # matching local endpoint configured.
+    secret_names.difference_update(
+        {
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "IBKR_READ_ONLY_URL",
+        }
+    )
     for name in secret_names:
         value = os.getenv(name, "")
         if len(value) >= 6 and (
@@ -2063,8 +2080,11 @@ def staged_secret_findings(
         ):
             findings.append(name)
 
-    if re.search(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", staged_diff) or (
-        b"-----BEGIN " in staged_content and b"PRIVATE KEY-----" in staged_content
+    private_key_marker = re.compile(
+        r"(?m)^\s*\+?\s*-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\s*$"
+    )
+    if private_key_marker.search(added_diff) or private_key_marker.search(
+        staged_content.decode("latin-1")
     ):
         findings.append("private-key material")
 
@@ -2089,19 +2109,54 @@ def staged_secret_findings(
         r"CONNECTION[_-]?STRING|POSTGRES[_-]?URL))\b[\"']?\s*[:=]\s*"
         r"[\"']?([^\s\"'#]{12,})"
     )
-    for match in dsn_assignment.finditer(staged_diff):
+    def is_local_example_dsn(value: str) -> bool:
+        return bool(
+            # Ignore the scanner's own regex literals; they contain URL-like
+            # syntax and regex groups, but are not executable DSN values.
+            "(?:" in value
+            or "\\s" in value
+            or "[" in value
+            or '"' in value
+            or "'" in value
+            or re.fullmatch(
+                r"(?i)(?:postgres(?:ql)?(?:\+[a-z0-9_]+)?)://postgres:postgres@(?:postgres|localhost|127\.0\.0\.1)(?::\d+)?/[^\s\"'<>]+",
+                value,
+            )
+            or (
+                "${POSTGRES_USER" in value
+                and "${POSTGRES_PASSWORD" in value
+                and "@postgres" in value
+            )
+        )
+
+    for match in dsn_assignment.finditer(added_diff):
         variable, value = match.groups()
         if re.search(r"(?i)://[^/@:\s]+:[^/@\s]+@", value):
+            if is_local_example_dsn(value):
+                continue
             findings.append(variable)
 
     # Also catch an accidentally committed DSN in a binary/serialized blob or
     # an unlabelled line. Only report a finding label; never retain the URL.
-    if re.search(
+    dsn_pattern = re.compile(
         r"(?i)\b(?:postgres(?:ql)?(?:\+[a-z0-9_]+)?|mysql|mariadb|mongodb(?:\+srv)?|redis(?:s)?)://"
-        r"[^/@:\s]+:[^/@\s]+@[^\s\"'<>]+",
-        scanned_text,
-    ):
+        r"[^/@:\s]+:[^/@\s]+@[^\s\"'<>]+"
+    )
+    # Text additions are fully visible in the diff and are the authoritative
+    # place to detect a newly introduced DSN.  Scan the full staged blob only
+    # when it contains binary bytes; otherwise checked-in development examples
+    # from unrelated files would be mistaken for newly added credentials.
+    dsn_scan_text = added_diff
+    if b"\x00" in staged_content:
+        dsn_scan_text += "\n" + staged_content.decode("latin-1")
+    for dsn in dsn_pattern.findall(dsn_scan_text):
+        # The repository's checked-in development examples intentionally use
+        # the Docker-local postgres/postgres credential.  It is not a runtime
+        # secret; keep rejecting every other credentialed DSN.
+        if is_local_example_dsn(dsn):
+            continue
         findings.append("credentialed database URL")
+        break
     return list(dict.fromkeys(findings))
 
 

@@ -11,7 +11,7 @@ import csv
 import io
 import time
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 
@@ -23,6 +23,7 @@ from app.providers.errors import (
     provider_response_headers,
     provider_retry_at_from_headers,
 )
+from app.providers.finra import _access_token
 from app.providers.telemetry import observe_response
 
 _PAGE_SIZE = 1000
@@ -30,6 +31,8 @@ _DAPI_PAGE_SIZE = 5000
 _CACHE_TTL_SECONDS = 900
 _cache: tuple[float, list[dict[str, Any]]] | None = None
 _OTC_MARKETS_STATUS_VALUES = {"A", "S", "H", "I", "R"}
+_ORF_SOURCE_KIND = "finra_orf_security_master"
+_ORF_ACTIVE_STATUSES = {"A", "ACTIVE"}
 
 
 class FINRAOTCDirectoryProvider:
@@ -46,7 +49,7 @@ class FINRAOTCDirectoryProvider:
             "total": len(rows),
             "quotes": page,
             "next_offset": offset + _PAGE_SIZE if offset + _PAGE_SIZE < len(rows) else None,
-            "source_files": [self._source_url()],
+            "source_files": [url for url in self._source_urls() if url],
         }
 
     def supported_discovery_types(self) -> list[str]:
@@ -62,14 +65,59 @@ class FINRAOTCDirectoryProvider:
             )
         return url
 
+    @staticmethod
+    def _source_urls() -> tuple[str, str | None]:
+        """Return configured complete-source snapshot URLs.
+
+        ORF's documented complete universe is an active/inactive file pair.
+        The historical single-URL adapter remains available for explicitly
+        reviewed legacy sources, but an active-only ORF file is never treated
+        as a complete universe.
+        """
+
+        active = FINRAOTCDirectoryProvider._source_url()
+        source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+        if source_kind != _ORF_SOURCE_KIND:
+            return active, None
+        inactive = str(
+            getattr(settings, "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL", "") or ""
+        ).strip()
+        if not inactive:
+            raise ProviderNotConfiguredError(
+                "finra_otc_directory ORF mode requires FINRA_OTC_INACTIVE_SECURITY_MASTER_URL"
+            )
+        _validate_orf_source_url(active, expected_file="EQUITYMASTERAC")
+        _validate_orf_source_url(inactive, expected_file="EQUITYMASTERIN")
+        return active, inactive
+
+
+def _validate_orf_source_url(url: str, *, expected_file: str) -> None:
+    parsed = urlsplit(url)
+    query = parse_qs(parsed.query)
+    if parsed.scheme.lower() != "https" or parsed.netloc.lower() != "apidownload.finratrags.org":
+        raise ProviderNotConfiguredError(
+            "finra_otc_directory ORF source must use FINRA's apidownload.finratrags.org HTTPS host"
+        )
+    if str(query.get("action", [""])[0]).upper() != "DOWNLOAD":
+        raise ProviderNotConfiguredError("finra_otc_directory ORF source requires action=DOWNLOAD")
+    if str(query.get("facility", [""])[0]).upper() != "ORF":
+        raise ProviderNotConfiguredError("finra_otc_directory ORF source requires facility=ORF")
+    if str(query.get("file", [""])[0]).upper() != expected_file:
+        raise ProviderNotConfiguredError(
+            f"finra_otc_directory ORF source requires file={expected_file}"
+        )
+
 
 def _directory_rows() -> list[dict[str, Any]]:
     global _cache
     now = time.monotonic()
     if _cache and now - _cache[0] < _CACHE_TTL_SECONDS:
         return list(_cache[1])
-    url = FINRAOTCDirectoryProvider._source_url()
-    if _is_dapi_source(url):
+    url, inactive_url = FINRAOTCDirectoryProvider._source_urls()
+    source_kind = str(getattr(settings, "FINRA_OTC_SOURCE_KIND", "") or "").strip().lower()
+    if source_kind == _ORF_SOURCE_KIND:
+        rows = _fetch_orf_rows(url, inactive_url)
+    elif _is_dapi_source(url):
         try:
             rows = _fetch_dapi_rows(url)
         except ValueError as exc:
@@ -95,6 +143,119 @@ def _directory_rows() -> list[dict[str, Any]]:
         raise ProviderResponseError("finra_otc_directory", "directory returned no valid rows")
     _cache = (now, rows)
     return list(rows)
+
+
+def _fetch_orf_rows(active_url: str, inactive_url: str | None) -> list[dict[str, Any]]:
+    """Fetch FINRA's documented ORF active/inactive security masters."""
+
+    if not inactive_url:
+        raise ProviderNotConfiguredError(
+            "finra_otc_directory ORF mode requires an inactive security-master URL"
+        )
+    client_id = str(getattr(settings, "FINRA_CLIENT_ID", "") or "").strip()
+    client_secret = str(getattr(settings, "FINRA_CLIENT_SECRET", "") or "").strip()
+    if not client_id or not client_secret:
+        raise ProviderNotConfiguredError(
+            "finra_otc_directory ORF mode requires FINRA_CLIENT_ID and FINRA_CLIENT_SECRET"
+        )
+    token = _access_token(client_id, client_secret)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": settings.NASDAQ_USER_AGENT,
+        "Accept": "text/plain",
+    }
+    rows: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for url, expected_active in ((active_url, True), (inactive_url, False)):
+        try:
+            response = httpx.get(url, headers=headers, timeout=120)
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
+        observe_response(response)
+        _raise_for_provider_status(response)
+        try:
+            parsed = _parse_orf_security_master(response.text, expected_active=expected_active)
+        except (csv.Error, ValueError) as exc:
+            raise ProviderResponseError(
+                "finra_otc_directory", f"ORF security master returned malformed data: {exc}"
+            ) from exc
+        for row in parsed:
+            key = (str(row["symbol"]).upper(), str(row.get("symbol_suffix") or "").upper())
+            if key in seen_keys:
+                raise ProviderResponseError(
+                    "finra_otc_directory",
+                    "ORF active and inactive security masters returned a duplicate symbol/suffix",
+                )
+            seen_keys.add(key)
+        rows.extend(parsed)
+    if not rows:
+        raise ProviderResponseError("finra_otc_directory", "ORF security masters returned no rows")
+    return rows
+
+
+def _parse_orf_security_master(text: str, *, expected_active: bool) -> list[dict[str, Any]]:
+    """Normalize the documented ORF pipe-delimited security-master shape."""
+
+    if not isinstance(text, str):
+        raise ValueError("ORF security master must be text")
+    reader = csv.DictReader(io.StringIO(text), delimiter="|", strict=True)
+    if not reader.fieldnames:
+        raise ValueError("ORF security master omitted headers")
+    fields = {
+        str(field).lstrip("\ufeff").strip().upper()
+        for field in reader.fieldnames
+        if field
+    }
+    required = {"FINRA_OTC_ID", "SYM_CD", "SCRTY_DS", "STTS_CD"}
+    if not required.issubset(fields):
+        raise ValueError("ORF security master omitted required columns")
+    result: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for row in reader:
+        if None in row or any(value is None for value in row.values()):
+            raise ValueError("ORF security master returned an inconsistent row")
+        normalized = {
+            str(key).lstrip("\ufeff").strip().upper(): str(value or "").strip()
+            for key, value in row.items()
+            if key
+        }
+        identifier = normalized.get("FINRA_OTC_ID", "")
+        symbol = normalized.get("SYM_CD", "").upper()
+        description = normalized.get("SCRTY_DS", "")
+        status = normalized.get("STTS_CD", "").upper()
+        suffix = normalized.get("SYM_SUF_CD", "").upper()
+        if not identifier or not symbol or not description or not status:
+            raise ValueError("ORF security master returned an incomplete row")
+        if (status in _ORF_ACTIVE_STATUSES) is not expected_active:
+            raise ValueError("ORF active/inactive file disagreed with STTS_CD")
+        key = (symbol, suffix)
+        if key in seen_keys:
+            raise ValueError("ORF security master returned duplicate symbol/suffix")
+        seen_keys.add(key)
+        result.append(
+            {
+                "symbol": symbol,
+                "symbol_suffix": suffix or None,
+                "longName": description,
+                "shortName": description,
+                "exchange": "OTC",
+                "exchange_mic": "OTC",
+                "currency": "USD",
+                "quoteType": "EQUITY",
+                "instrument_type": "EQUITY",
+                "status": "active" if expected_active else "inactive",
+                "financial_status": status,
+                "market_category": "OTC Equity",
+                "finra_otc_id": identifier,
+                "cusip": normalized.get("CUSIP_ID") or None,
+                "inactive_at": normalized.get("NACTV_DT") or None,
+                "effective_at": normalized.get("SCRTY_EFCTV_TS") or None,
+                "source_record": normalized,
+            }
+        )
+    if not result:
+        raise ValueError("ORF security master returned no rows")
+    return result
 
 
 def _is_dapi_source(url: str) -> bool:

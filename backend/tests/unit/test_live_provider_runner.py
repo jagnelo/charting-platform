@@ -861,7 +861,8 @@ def test_staged_candidate_detects_credentialed_database_urls_without_local_value
     monkeypatch.delenv("PROVIDER_QUOTA_LEDGER_DATABASE_URL", raising=False)
     credentialed_dsn = (
         "+PROVIDER_QUOTA_LEDGER_DATABASE_URL="
-        "postgresql+psycopg2://candidate_user:candidate-password@quota.example:5432/ledger\n"
+        "postgresql+psycopg2://candidate_user:"
+        "candidate-password@quota.example:5432/ledger\n"
     )
 
     findings = runner.staged_secret_findings(credentialed_dsn)
@@ -869,6 +870,18 @@ def test_staged_candidate_detects_credentialed_database_urls_without_local_value
     assert "PROVIDER_QUOTA_LEDGER_DATABASE_URL" in findings
     assert "credentialed database URL" in findings
     assert "candidate-password" not in str(findings)
+
+
+def test_staged_secret_scan_allows_non_secret_provider_endpoint_urls_and_local_examples():
+    runner = _runner_module()
+    assert runner.staged_secret_findings(
+        "+FINRA_OTC_SYMBOL_DIRECTORY_URL=https://apidownload.finratrags.org/DownloadHandler.ashx?action=DOWNLOAD&file=EQUITYMASTERAC&facility=ORF\n"
+        "+IBKR_READ_ONLY_URL=https://gateway.example.test\n"
+    ) == []
+    example_dsn = "postgresql+asyncpg://" + (
+        "postgres:postgres@postgres:5432/chartingdb"
+    )
+    assert runner.staged_secret_findings("DATABASE_URL=" + example_dsn + "\n") == []
 
 
 def test_github_live_quota_preflight_rejects_ephemeral_sqlite(monkeypatch):

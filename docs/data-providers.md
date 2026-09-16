@@ -1259,41 +1259,43 @@ the dataset request, but the reservation never undercounts a cold process.
 
 ### FINRA OTC directory (`finra_otc_directory`)
 
-This adapter can parse a DAPI-shaped partitioned dataset, the official OTC
-Markets pipe-delimited security-master shape, or an explicitly configured
-pipe-delimited OTC/OTCBB mirror. The official-shape parser validates required
-SecID/CompID/symbol/status fields, rejects unknown statuses and duplicate
-symbols, and preserves the provider identifiers/raw record. Its parser resolves the newest
-`asOfDate` partition, pages to `record-total`, preserves raw source records,
-and exposes the source URL in each page. That implementation capability must
-not be confused with provider availability: the [current FINRA dataset
-catalog](https://developer.finra.org/docs) documents OTC datasets such as the
-Daily List but does not list `otcSecurityMaster`. An earlier bounded probe
-demonstrated that the candidate URL returned data at that time; it did not
-establish current documentation, completeness, contractual authorization, or
-redistribution rights. **Do not query or route this endpoint** until current
-FINRA documentation or written FINRA confirmation establishes the source and
-its authorized use. FINRA's [equity data terms](https://developer.finra.org/specific-terms-equity-data)
-and [API Terms of Service](https://developer.finra.org/finra-api-terms-service)
-must be assessed for the actual application and audience. FINRA Daily List is
-a lifecycle-delta dataset, not a complete security master, and cannot replace
-the missing complete-source decision. OTC Markets' own [market-data FAQ](https://www.otcmarkets.com/learn/faqs)
-states that OTC Markets does not offer market-data APIs and directs consumers
-to third-party vendors; its public FINRA-backed [Symbol Directory](https://otce.finra.org/otce/directories)
-is a search interface and does not document a complete, bulk, machine-readable
-security-master feed. These sources therefore do not justify silently enabling
-the candidate adapter or claiming complete OTC venue coverage.
+This adapter supports three explicitly separated source shapes: a legacy
+DAPI/pipe-delimited source, the official OTC Markets pipe-delimited shape, and
+FINRA's documented ORF file-download pair. The ORF pair is the complete-source
+path: `EQUITYMASTERAC` (active issues) and `EQUITYMASTERIN` (inactive issues),
+downloaded as pipe-delimited files from the endpoints in FINRA's [ORF file
+download specification](https://www.finra.org/sites/default/files/2024-08/Equity_API_File_Downloads_ORF.pdf).
+The parser validates `FINRA_OTC_ID`, symbol, description, and status, preserves
+CUSIP/suffix/effective and inactive timestamps, rejects malformed rows and
+duplicate symbol/suffix keys, and requires both snapshots before returning a
+complete universe. The Daily List remains a lifecycle delta and is not a
+replacement for the two complete masters.
 
-After source confirmation, routing still requires a non-secret evidence
-reference in `FINRA_OTC_SOURCE_EVIDENCE`, an exact `FINRA_OTC_REVIEWED_SOURCE_URL`
-match for the configured `FINRA_OTC_SYMBOL_DIRECTORY_URL`, an affirmative
-`FINRA_OTC_SOURCE_REVIEWED`, a positive reviewed
-`FINRA_OTC_OPERATION_COSTS` map for both `discover_universe_page` and
-`reconcile_universe_page`, plus independent terms, complete-universe,
-redistribution, and positive polling-interval controls. The cost map bounds
-response-dependent cold refreshes rather than assuming one request. FINRA's
-published synchronous 1,200 requests/minute/IP and 3 MB response ceilings are
-platform limits only; they do not resolve dataset availability or rights.
+ORF is not a free/public endpoint: FINRA states that an [ORF Web Access
+Agreement](https://www.finra.org/filing-reporting/orf/technical-notices/reminder-otc-trade-reporting-facility-orf-migration)
+is required, and production reference-data files require product entitlement
+and [MFA](https://www.finra.org/filing-reporting/technical-notices/finra-api-reference-data-mfa-production-access-20241209).
+The supplied FINRA OAuth pair is therefore not treated as proof that this
+specific product entitlement exists. Set `FINRA_OTC_SOURCE_KIND=finra_orf_security_master`,
+configure both `FINRA_OTC_SYMBOL_DIRECTORY_URL` and
+`FINRA_OTC_INACTIVE_SECURITY_MASTER_URL`, and keep routing disabled until the
+agreement, MFA, terms, completeness, polling, and redistribution reviews are
+recorded. Legacy/DAPI and OTC Markets parsers remain available only behind the
+same source-evidence gates; no source is silently promoted to complete OTC
+coverage.
+
+Routing requires a non-secret evidence reference in
+`FINRA_OTC_SOURCE_EVIDENCE`, exact reviewed-URL matches for both configured
+files (`FINRA_OTC_REVIEWED_SOURCE_URL` and
+`FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL` in ORF mode), an affirmative
+`FINRA_OTC_SOURCE_REVIEWED`, a positive reviewed `FINRA_OTC_OPERATION_COSTS`
+map for both `discover_universe_page` and `reconcile_universe_page`, plus
+independent terms, complete-universe, redistribution, and positive
+polling-interval controls. The cost map bounds the two-file cold refresh and
+OAuth request cost; no one-request default is inferred. FINRA's published
+synchronous 1,200 requests/minute/IP and 3 MB response ceilings are platform
+limits only and do not establish this application's product entitlement or
+redistribution rights.
 Generic universe reconciliation requires authoritative `total` metadata to be
 an actual integer; boolean, numeric-string, fractional, negative, or malformed
 totals fail closed.

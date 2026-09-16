@@ -1,5 +1,35 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 documented FINRA ORF complete-source path
+
+- The FINRA OTC adapter now supports the documented ORF complete-source pair:
+  `EQUITYMASTERAC` (active issues) and `EQUITYMASTERIN` (inactive issues).
+  ORF mode is selected explicitly with `FINRA_OTC_SOURCE_KIND=finra_orf_security_master`;
+  it requires both HTTPS URLs on FINRA's `apidownload.finratrags.org` host with
+  the exact `action=DOWNLOAD`, `facility=ORF`, and expected file query values.
+- The adapter authenticates through the shared FINRA OAuth token cache, fetches
+  both pipe-delimited files, validates required identifiers/statuses, preserves
+  suffix/CUSIP/effective/inactive fields, rejects malformed rows and duplicate
+  symbol/suffix keys, and returns both source URLs as completeness provenance.
+  Legacy DAPI/OTC Markets parsers remain available only as separately reviewed
+  source kinds; an active-only ORF file can never be treated as complete.
+- Added explicit inactive URL/review settings and local/GitHub/RPi/Compose
+  wiring, plus fixture coverage for the pair and fail-closed missing-pair/
+  credential paths. Focused FINRA/registry/secret-wiring tests passed `71/71`
+  (coverage instrumentation on a focused subset reports below the repository's
+  55% global threshold; this is not the full-suite result); provider-runtime
+  `54/54` and provider-admin/quota-contract `110` tests were replayed, with the
+  quota expectation updated to the ORF-specific unknown entitlement/reset
+  dimensions.
+- No FINRA ORF request was made. The supplied public OAuth pair is not treated
+  as proof of an ORF Web Access Agreement, product entitlement, or MFA. Routing
+  remains fail-closed until those provider/terms/redistribution decisions and
+  the two-file operation-cost/reset contract are explicitly configured.
+- The current full live-matrix safety preflight stopped before transport with
+  `0/0` cases and zero provider requests; its redacted receipt is appended to
+  `validation.jsonl`. The remaining provider-specific quota/baseline, legal,
+  live-operation, deployment-secret, and final shadow gates are unchanged.
+
 ## 2026-09-16 Alpaca native reset-header hardening and MarketData.app live proof
 
 - Alpaca native quota observations now require a positive, parseable

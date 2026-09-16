@@ -124,8 +124,8 @@ approved_execution_decisions:
     marketstack: Keep the existing Free plan and its 100 monthly calls; do not ask again about upgrading unless measured unmet demand justifies a proposal.
   identity_and_universe:
     nms_source: Nasdaq Trader official nasdaqlisted.txt and otherlisted.txt; fetch once per completed market day with conditional validators and immediate 429/reset handling.
-    otc_source: FINRA Daily List lifecycle deltas plus a future documented and authorized complete OTC snapshot; otcSecurityMaster remains only a candidate.
-    otc_source_validation_gate: Current public FINRA dataset documentation does not list otcSecurityMaster; do not query or route this configured endpoint as an authoritative snapshot until FINRA documentation or written provider confirmation establishes it as current and authorized. Daily List alone is not a complete security master; keep the source gap explicit and fail closed pending the user's source decision.
+    otc_source: FINRA Daily List lifecycle deltas plus the documented ORF active/inactive security-master pair; legacy otcSecurityMaster remains only a candidate.
+    otc_source_validation_gate: FINRA's ORF file-download specification documents EQUITYMASTERAC and EQUITYMASTERIN as the complete active/inactive pair, but access requires an ORF Web Access Agreement, product entitlement, MFA, and reviewed use/redistribution terms. Configure and route the pair only after those controls are recorded; Daily List alone is not a complete security master.
     sec_issuers: First complete bounded SEC directory cycle with issuer materialization disabled, review its report, then create only missing validated CIK/name Issuer rows.
     prelisting: After the staged SEC gate, create inactive provisional instruments only for strong, unambiguous identity/venue evidence; quarantine the rest.
     delisting: Require three consecutive complete daily authoritative snapshot misses; incomplete runs do not count and authoritative reappearance reactivates the listing.
@@ -385,14 +385,15 @@ remaining_gaps:
     remain unverified.
   - >-
     Complete OTC universe admission still needs an authorized, current
-    security-master source. FINRA's public catalog establishes the OTC Daily
-    List lifecycle dataset but not a complete `otcSecurityMaster` feed. OTC
-    Markets' official Overnight/US Security Master specifications are now
-    recorded as the concrete candidate path; access delivery, quota/cadence,
-    complete-coverage evidence, and redistribution rights remain owner- and
-    provider-controlled. The candidate parser now validates the official
-    pipe-delimited shape, but source delivery and OTC master routing remain
-    disabled until those controls are authorized.
+    security-master source. FINRA's official ORF specification now provides a
+    documented complete pair (`EQUITYMASTERAC` and `EQUITYMASTERIN`), and the
+    adapter validates/merges both pipe-delimited snapshots with duplicate and
+    status checks. The pair still requires an ORF Web Access Agreement, MFA,
+    product entitlement, exact source/terms/redistribution review, and an
+    operator-provided two-file operation-cost bound; no ORF request or routing
+    is enabled by this implementation. OTC Markets' overnight specification
+    remains a separate commercial candidate. The legacy `otcSecurityMaster`
+    parser is not promoted by the ORF support.
   - >-
     Massive's official free Stocks Basic terms are personal,
     non-business/non-commercial, and non-redistributed. The implementation now

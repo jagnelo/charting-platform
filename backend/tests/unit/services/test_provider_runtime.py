@@ -1328,7 +1328,7 @@ async def test_otc_directory_default_entitlement_remains_unreviewed(db, monkeypa
         select(ProviderEntitlement).join(DataSource).where(DataSource.name == "finra_otc_directory")
     ).scalar_one()
     assert entitlement.configured_plan == "unreviewed"
-    assert entitlement.live_probe_status == "passed"
+    assert entitlement.live_probe_status == "blocked_until_orf_entitlement"
 
 
 @pytest.mark.asyncio

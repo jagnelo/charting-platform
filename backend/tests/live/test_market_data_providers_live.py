@@ -904,6 +904,7 @@ def test_finra_credentialed_otc_daily_list():
 def test_finra_otc_directory_credentialed_source():
     """Probe OTC source only after its current availability is evidenced."""
 
+    source_kind = settings.FINRA_OTC_SOURCE_KIND.strip().lower()
     configured_source = settings.FINRA_OTC_SYMBOL_DIRECTORY_URL.strip()
     reviewed_source = settings.FINRA_OTC_REVIEWED_SOURCE_URL.strip()
     if (
@@ -911,15 +912,28 @@ def test_finra_otc_directory_credentialed_source():
         or not settings.FINRA_OTC_SOURCE_EVIDENCE.strip()
         or not configured_source
         or reviewed_source != configured_source
+        or (
+            source_kind == "finra_orf_security_master"
+            and (
+                not settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
+                or settings.FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL.strip()
+                != settings.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL.strip()
+            )
+        )
     ):
         pytest.skip(
-            "FINRA's current public dataset catalog does not list otcSecurityMaster; "
-            "no live request is permitted until current documentation or written "
-            "provider confirmation is recorded and the reviewed URL exactly matches "
-            "FINRA_OTC_SYMBOL_DIRECTORY_URL."
+            "FINRA OTC source review is incomplete; no live request is permitted "
+            "until the current source, terms, complete-pair, and reviewed URL "
+            "controls are recorded."
         )
 
     _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
+    if source_kind == "finra_orf_security_master":
+        _require(
+            "FINRA_OTC_INACTIVE_SECURITY_MASTER_URL",
+            "FINRA_CLIENT_ID",
+            "FINRA_CLIENT_SECRET",
+        )
     page, _ = _observed_read(
         lambda: FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0),
         "finra_otc_directory",
@@ -927,7 +941,10 @@ def test_finra_otc_directory_credentialed_source():
     )
     assert page["quotes"]
     assert page["total"] >= len(page["quotes"])
-    assert page["source_files"] == [os.environ["FINRA_OTC_SYMBOL_DIRECTORY_URL"].strip()]
+    expected_sources = [os.environ["FINRA_OTC_SYMBOL_DIRECTORY_URL"].strip()]
+    if source_kind == "finra_orf_security_master":
+        expected_sources.append(os.environ["FINRA_OTC_INACTIVE_SECURITY_MASTER_URL"].strip())
+    assert page["source_files"] == expected_sources
     assert all(row["exchange"] == "OTC" for row in page["quotes"])
 
 
