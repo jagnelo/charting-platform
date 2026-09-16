@@ -401,6 +401,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   terminal-phase consistency, requires authoritative publication for success,
   and exposes ready/in-progress/terminal decisions without leaking engine
   handles or mutable worker state.
+- `commands.py` defines content-addressed retry and cancellation command
+  intents with idempotent receipts. Commands are accepted only when their
+  outcome/progress preconditions hold; terminal cancellation, non-failed
+  retry, identity mismatch, and reused command content fail closed. Applying a
+  cancellation or scheduling a retry remains an adapter responsibility.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

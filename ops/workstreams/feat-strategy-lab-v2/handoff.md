@@ -1367,3 +1367,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 retry/cancellation command contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Retry and cancellation command checkpoint
+
+`commands.py` adds content-addressed `ExecutionCommand` intents,
+`ExecutionCommandReceipt` records, and an idempotent command ledger. A cancel
+command is accepted only for a non-terminal execution, while a retry command
+requires failed outcome and progress. Exact command retries replay, changed
+content conflicts, terminal/non-failed preconditions and identity mismatches
+reject, and accepted receipts describe a requested effect without claiming
+that cancellation, scheduling, or worker interruption has occurred.
+
+The exact implementation tree passed all 224 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+capability/report projection contract; preserve all shared-path and
+execution-authorization gates.
