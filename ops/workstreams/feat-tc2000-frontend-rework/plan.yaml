@@ -21,7 +21,7 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the exact gate at product
-  tip 49e643a8c0c664daedddeac82334a6fd60f5b8eb passed the repository stages,
+  tip 4effb9328a0b295de26d33774e5c2d1978cf24ee passed the repository stages,
   functional browser flows, and all four visual projects with clean
   branch-scoped teardown. The preceding F8s timestamp mismatch remains
   documented as a transient seeded-workspace/browser instability. Provider-
@@ -257,7 +257,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_signal_replay_empty_state_accessibility_exact_gate_passed
+  current_phase: R6_optimization_empty_state_accessibility_exact_gate_passed
   next_action: >-
     Select the next bounded TC-owned R1/R5/R6 item, preserve the exact-gate
     receipt, and keep provider/ETF consumer work deferred until both upstream
@@ -266,7 +266,7 @@ progress:
     authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The exact
-    full_stack_browser gate at product tip 49e643a8c0c664daedddeac82334a6fd60f5b8eb
+    full_stack_browser gate at product tip 4effb9328a0b295de26d33774e5c2d1978cf24ee
     passed and branch-scoped cleanup/resource accounting are clean. The
     preceding F8s timestamp mismatch is retained as a transient seeded-
     workspace/browser instability only.

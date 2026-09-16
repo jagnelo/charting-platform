@@ -13390,6 +13390,40 @@ changed. Provider/ETF consumer integration remains deferred until both branches
 reach staging; this is a complete exact-gate receipt for the Excursion Bars
 slice, not closure of the overall workstream.
 
+## 2026-09-16 - Optimization Leaderboard empty-state accessibility
+
+Product commit `4effb9328` gives the empty Optimization Leaderboard state
+explicit polite, atomic status semantics. Ranked rows, sorting, detail pinning,
+visible text, and layout are unchanged.
+
+Focused OptimizationLeaderboard coverage passed `2/2`; full frontend Vitest
+passed `1,125/1,125`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope validation and `git diff --check` passed. The
+exact full-stack/browser gate is complete at this product tip. Provider/ETF
+consumer integration remains deferred until both branches reach staging.
+
+## 2026-09-16 - Optimization Leaderboard exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+exited `0` at product tip `4effb9328`. It completed repository/workstream and
+locked dependency stages, migration compatibility, lint/format, backend unit
+and integration coverage, frontend Vitest `1,125/1,125`, type-check/build,
+Compose/provider contracts, branch-scoped Docker health, research-runner
+probes, authenticated functional Chromium, and the separate four-project
+TC2000 visual matrix; the final Playwright visual marker was passed with no
+failure markers. The host `/usr/bin/make` wrapper still exits with Xcode-license
+status `69`, so the equivalent installed CommandLineTools Make binary ran the
+same target without changing system state. Branch-scoped teardown and
+post-gate resource accounting reported zero containers, volumes, test sessions,
+known bytes, and unknown components with accounting complete. The preceding
+F8s seeded timestamp mismatch remains classified as a transient browser/fixture
+instability. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed. This is a complete exact-gate
+receipt for the Optimization Leaderboard slice, not closure of the overall
+workstream.
+
 ## 2026-09-16 - Strategy Coverage timeline empty-state accessibility
 
 Product commit `f379c18a0` gives the fully-covered Strategy Coverage timeline
