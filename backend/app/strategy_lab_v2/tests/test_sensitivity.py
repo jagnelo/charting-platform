@@ -40,9 +40,11 @@ from app.strategy_lab_v2.contracts import (
     TrialRandomization,
     TrialSeedPolicy,
 )
+from app.strategy_lab_v2.metrics import calculate_paired_metric_metrics
 from app.strategy_lab_v2.pairing import (
     KEYED_STREAM_VERIFIER_VERSION,
     KeyedRandomDraw,
+    PairedMetricObservation,
     verify_keyed_random_stream_pairing,
 )
 from app.strategy_lab_v2.sensitivity import (
@@ -364,6 +366,58 @@ def test_verified_pairing_receipt_upgrades_sensitivity_provenance_only() -> None
     delta = _compare(paired)
     assert isinstance(delta, OneFactorMetricDelta)
     assert delta.evidence_level is SensitivityEvidenceLevel.VERIFIED_PAIRED
+
+
+def test_paired_metric_metrics_require_receipt_and_preserve_keyed_descriptive_deltas() -> None:
+    receipt = verify_keyed_random_stream_pairing(
+        baseline_attempt_id="attempt-baseline",
+        variant_attempt_id="attempt-variant",
+        engine_build_digest=content_digest("engine-build"),
+        engine_conformance_fingerprint=content_digest("engine-conformance"),
+        stream_contract_fingerprint=content_digest("stream-contract"),
+        baseline_draws=(KeyedRandomDraw("draw-0", Decimal("0.25")),),
+        variant_draws=(KeyedRandomDraw("draw-0", Decimal("0.25")),),
+    )
+    observations = (
+        PairedMetricObservation("session-2", Decimal("20"), Decimal("18")),
+        PairedMetricObservation("session-1", Decimal("10"), Decimal("13")),
+    )
+    values = {item.name: item for item in calculate_paired_metric_metrics(
+        observations,
+        metric_name="session_return",
+        unit="fraction",
+        basis=MetricBasis.NET,
+        pairing_receipt=receipt,
+    )}
+    assert values["paired_observation_count"].value == Decimal(2)
+    assert values["paired_baseline_mean"].value == Decimal(15)
+    assert values["paired_variant_mean"].value == Decimal(15.5)
+    assert values["paired_mean_delta"].value == Decimal("0.5")
+    assert values["paired_median_delta"].value == Decimal(-2)
+    assert values["paired_minimum_delta"].value == Decimal(-2)
+    assert values["paired_maximum_delta"].value == Decimal(3)
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_stddev = (Decimal("12.5")).sqrt()
+    assert values["paired_delta_sample_stddev"].value == expected_stddev
+    paired_definition = values["paired_mean_delta"].calculation_definition
+    assert paired_definition is not None
+    assert paired_definition.parameters["inference_policy"] == (
+        "descriptive_only_no_ranking_or_significance"
+    )
+    assert len(values["paired_mean_delta"].evidence_references) == 2
+
+    with pytest.raises(ValueError, match="keys must be unique"):
+        calculate_paired_metric_metrics(
+            (
+                PairedMetricObservation("same", Decimal("1"), Decimal("1")),
+                PairedMetricObservation("same", Decimal("2"), Decimal("2")),
+            ),
+            metric_name="session_return",
+            unit="fraction",
+            basis=MetricBasis.NET,
+            pairing_receipt=receipt,
+        )
 
 
 def _replicate_result(

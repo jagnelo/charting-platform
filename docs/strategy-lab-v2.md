@@ -152,9 +152,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   snapshot binds coverage-evidence digests as claims; this engine-neutral
   comparator cannot authenticate their referenced documents.
   The scenario digest binds the declared scenario but is not a separate typed
-  evaluation-window contract. Valid paired inference still needs aligned
-  per-observation results; the receipt only establishes random-stream pairing
-  provenance and does not infer significance.
+  evaluation-window contract. `calculate_paired_metric_metrics()` consumes
+  aligned keyed observations plus a verified receipt and returns descriptive
+  baseline/variant means, nearest-rank delta median, extrema, and sample
+  deviation. The receipt and observations establish provenance/alignment but
+  no inferential model or significance claim is made.
   Replicates are explicit; infrastructure retries remain attempts of the same
   scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,

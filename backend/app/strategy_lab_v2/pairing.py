@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
 from app.strategy_lab_v2.canonical import (
@@ -31,6 +32,27 @@ class KeyedRandomDraw:
         if not isinstance(self.draw_key, str) or not self.draw_key.strip():
             raise ValueError("draw_key must not be empty")
         object.__setattr__(self, "draw_value", freeze_json(self.draw_value))
+
+
+@dataclass(frozen=True, slots=True)
+class PairedMetricObservation:
+    """One aligned baseline/variant metric observation keyed by its event."""
+
+    observation_key: str
+    baseline_value: Decimal
+    variant_value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation_key, str) or not self.observation_key.strip():
+            raise ValueError("observation_key must not be empty")
+        for name in ("baseline_value", "variant_value"):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite():
+                raise ValueError(f"{name} must be a finite Decimal")
+
+    @property
+    def delta(self) -> Decimal:
+        return self.variant_value - self.baseline_value
 
 
 def verify_keyed_random_stream_pairing(

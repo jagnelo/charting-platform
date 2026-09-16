@@ -13,6 +13,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     METRIC_CALCULATION_CONTRACT_VERSION,
+    KeyedRandomStreamPairingReceipt,
     MetricBasis,
     MetricCalculationDefinition,
     MetricEvidenceReference,
@@ -32,6 +33,9 @@ from app.strategy_lab_v2.observations import (
     FinancingCostReport,
     ObservationPoint,
     PortfolioPnlObservation,
+)
+from app.strategy_lab_v2.pairing import (
+    PairedMetricObservation,
 )
 from app.strategy_lab_v2.rebalance import (
     RebalanceCadence,
@@ -96,6 +100,14 @@ _METRIC_FORMULAS = {
     "gross_financing_cost": "absolute sum of negative engine-reported financing cash effects in account base currency",
     "reported_financing_credit": "sum of positive engine-reported financing cash effects in account base currency",
     "net_financing_cost": "negative sum of engine-reported financing cash effects in account base currency",
+    "paired_observation_count": "count of exactly aligned baseline and variant metric observations",
+    "paired_baseline_mean": "arithmetic mean of aligned baseline metric observations",
+    "paired_variant_mean": "arithmetic mean of aligned variant metric observations",
+    "paired_mean_delta": "arithmetic mean of aligned variant minus baseline metric deltas",
+    "paired_median_delta": "one-based nearest-rank median of aligned variant minus baseline metric deltas",
+    "paired_minimum_delta": "minimum aligned variant minus baseline metric delta",
+    "paired_maximum_delta": "maximum aligned variant minus baseline metric delta",
+    "paired_delta_sample_stddev": "sample standard deviation of aligned variant minus baseline metric deltas",
 }
 
 
@@ -1347,6 +1359,155 @@ def calculate_financing_cost_metrics(
         common_calculation_parameters={
             "financing_scope": "outside_fill_reports",
             "cost_report_policy": "null_net_cost_unless_all_reports_complete",
+        },
+    )
+
+
+@deterministic_decimal_math
+def calculate_paired_metric_metrics(
+    observations: Sequence[PairedMetricObservation],
+    *,
+    metric_name: str,
+    unit: str,
+    basis: MetricBasis,
+    pairing_receipt: KeyedRandomStreamPairingReceipt,
+) -> tuple[MetricValue, ...]:
+    """Summarize exactly aligned baseline/variant metric observations.
+
+    This calculator is intentionally descriptive. The required verified
+    pairing receipt establishes random-stream provenance, while the keyed
+    observations establish the metric alignment. The output does not rank
+    candidates, estimate significance, or claim an inferential model.
+    """
+
+    if not isinstance(metric_name, str) or not metric_name.strip():
+        raise ValueError("metric_name must not be empty")
+    if not isinstance(unit, str) or not unit.strip():
+        raise ValueError("unit must not be empty")
+    if not isinstance(basis, MetricBasis):
+        raise TypeError("basis must be a MetricBasis")
+    if not isinstance(pairing_receipt, KeyedRandomStreamPairingReceipt):
+        raise TypeError("pairing_receipt must use KeyedRandomStreamPairingReceipt")
+
+    values = tuple(observations)
+    if not values:
+        raise ValueError("at least one paired metric observation is required")
+    if any(not isinstance(item, PairedMetricObservation) for item in values):
+        raise TypeError("observations must contain PairedMetricObservation values")
+    ordered = tuple(sorted(values, key=lambda item: item.observation_key))
+    keys = tuple(item.observation_key for item in ordered)
+    if len(keys) != len(set(keys)):
+        raise ValueError("paired metric observation keys must be unique")
+    observation_digest = content_digest(ordered)
+    baseline_values = tuple(item.baseline_value for item in ordered)
+    variant_values = tuple(item.variant_value for item in ordered)
+    deltas = tuple(item.variant_value - item.baseline_value for item in ordered)
+    sample_size = len(ordered)
+    baseline_mean = sum(baseline_values, Decimal(0)) / Decimal(sample_size)
+    variant_mean = sum(variant_values, Decimal(0)) / Decimal(sample_size)
+    mean_delta = sum(deltas, Decimal(0)) / Decimal(sample_size)
+    sorted_deltas = tuple(sorted(deltas))
+    median_rank = max(
+        1,
+        int(
+            (Decimal(sample_size) * Decimal("0.5")).to_integral_value(
+                rounding=ROUND_CEILING
+            )
+        ),
+    )
+    median_delta = sorted_deltas[median_rank - 1]
+    sample_variance = (
+        sum(((value - mean_delta) ** 2 for value in deltas), Decimal(0))
+        / Decimal(sample_size - 1)
+        if sample_size > 1
+        else None
+    )
+    sample_stddev = None if sample_variance is None else sample_variance.sqrt()
+    common_basis = (
+        f"metric={metric_name}; exactly keyed-aligned observations {observation_digest}; "
+        f"verified pairing receipt {pairing_receipt.fingerprint}"
+    )
+    metrics = (
+        _value(
+            "paired_observation_count",
+            Decimal(sample_size),
+            unit="observations",
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"count of exactly aligned paired metric observations; {common_basis}",
+        ),
+        _value(
+            "paired_baseline_mean",
+            baseline_mean,
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"arithmetic mean of aligned baseline values; {common_basis}",
+        ),
+        _value(
+            "paired_variant_mean",
+            variant_mean,
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"arithmetic mean of aligned variant values; {common_basis}",
+        ),
+        _value(
+            "paired_mean_delta",
+            mean_delta,
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"arithmetic mean of aligned variant minus baseline deltas; {common_basis}",
+        ),
+        _value(
+            "paired_median_delta",
+            median_delta,
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=(
+                "one-based nearest-rank median of aligned variant minus baseline deltas; "
+                f"{common_basis}"
+            ),
+        ),
+        _value(
+            "paired_minimum_delta",
+            min(deltas),
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"minimum aligned variant minus baseline delta; {common_basis}",
+        ),
+        _value(
+            "paired_maximum_delta",
+            max(deltas),
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"maximum aligned variant minus baseline delta; {common_basis}",
+        ),
+        _value(
+            "paired_delta_sample_stddev",
+            sample_stddev,
+            unit=unit,
+            basis=basis,
+            sample_size=sample_size,
+            calculation_basis=f"sample standard deviation of aligned deltas; {common_basis}",
+            null_reason="at least two paired observations are required" if sample_stddev is None else None,
+        ),
+    )
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(
+            MetricEvidenceReference("paired_metric_observations", observation_digest),
+            MetricEvidenceReference("pairing_receipt", pairing_receipt.fingerprint),
+        ),
+        common_calculation_parameters={
+            "metric_name": metric_name,
+            "observation_order": "sorted_by_observation_key",
+            "inference_policy": "descriptive_only_no_ranking_or_significance",
+            "pairing_receipt_verifier": pairing_receipt.verifier_version,
         },
     )
 
