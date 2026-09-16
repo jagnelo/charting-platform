@@ -2171,6 +2171,7 @@ def _provider_live_evidence(
     providers: set[str],
     junit_cases: list[dict[str, str]],
     ledger_path: Path | None = None,
+    account_usage_only: bool = False,
 ) -> dict[str, object]:
     """Correlate exact manifest cases and measured provider operations to one run."""
 
@@ -2330,8 +2331,24 @@ def _provider_live_evidence(
     missing: list[str] = []
     case_results: list[dict[str, object]] = []
     operation_results: dict[str, dict[str, object]] = {}
+    manifest_cases = {
+        provider: tuple(
+            (relative_path, function_name)
+            for relative_path, function_name in LIVE_PROVIDER_CASES[provider]
+            if not account_usage_only or "account_usage" in function_name
+        )
+        for provider in providers
+    }
+    required_operations = {
+        provider: (
+            {"fetch_account_usage"}
+            if account_usage_only
+            else LIVE_REQUIRED_OPERATIONS[provider]
+        )
+        for provider in providers
+    }
     for provider in sorted(providers):
-        for relative_path, function_name in LIVE_PROVIDER_CASES[provider]:
+        for relative_path, function_name in manifest_cases[provider]:
             matches = [
                 result
                 for result in junit_cases
@@ -2431,7 +2448,7 @@ def _provider_live_evidence(
         observed = provider_rows.get(provider, {})
         observed_operations = observed.get("operation_usage", {})
         provider_operation_results: dict[str, object] = {}
-        for operation in sorted(LIVE_REQUIRED_OPERATIONS[provider]):
+        for operation in sorted(required_operations[provider]):
             operation_row = observed_operations.get(operation, {})
             requests = int(operation_row.get("http_requests", 0) or 0)
             bytes_received = int(operation_row.get("response_bytes", 0) or 0)
@@ -2914,6 +2931,7 @@ def main() -> int:
                 run_id=live_run_id,
                 providers=selected_for_run,
                 junit_cases=junit_cases,
+                account_usage_only=account_usage_only,
             )
             if not live_evidence["complete"]:
                 print("live provider evidence preflight: incomplete for this exact run")
