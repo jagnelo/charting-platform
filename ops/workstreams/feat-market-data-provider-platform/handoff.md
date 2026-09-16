@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source Alpha Vantage/unit validation
+
+- The complete isolated backend unit suite passed `2,324/2,324` at exact
+  source `ee10f89dd`, with 70.67% total coverage against the configured 55%
+  threshold and 37 warnings in 134.48 seconds.
+- The run includes the stricter Alpha Vantage reset-boundary contract and its
+  reviewed-fixture runtime regression: production remains fail-closed when
+  the provider's daily reset boundary is unpublished, while the test fixture
+  explicitly supplies a reviewed reset only to exercise the raw-vs-adjusted
+  capability filter.
+- This is application/unit evidence only. It does not provide provider
+  transport acceptance, active quota baselines, source/legal/universe
+  admission, target secret-store verification, or permission to integrate,
+  deploy, activate routing, or start the final shadow phase.
+
 ## 2026-09-16 Alpha Vantage reset-boundary correction
 
 - Alpha Vantage publishes the free-key 25-requests/day allowance but does not

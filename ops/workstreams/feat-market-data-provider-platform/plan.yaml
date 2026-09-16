@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact current-source isolated backend unit gate at `ee10f89dd` passed
+    `2,324/2,324` with 70.67% coverage and 37 warnings. The Alpha Vantage
+    production reset-boundary correction and its explicit reviewed test
+    fixture are covered. This does not close the provider live matrix,
+    provider-account baselines, legal/source/universe controls, deployment
+    secret stores, or the final shadow gate.
+  - >-
     Alpha Vantage's free-key 25-requests/day allowance is documented, but its
     reset boundary/timezone is not. The quota seed now records the dimension
     as `provider_defined` with explicit unknown
