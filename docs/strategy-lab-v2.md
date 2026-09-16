@@ -481,7 +481,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and deterministic infrastructure-retry plan. It releases capacity and
   materializes a new queued attempt against the same scientific trial for
   crash/expiry/transient failures, while successful or non-retryable attempts
-  close without a retry. Missing admission evidence, worker drift, invalid
+  close without a retry. Its content-addressed recovery ledger replays exact
+  release/retry requests and reports conflicting evidence instead of trying to
+  release a slot twice. Missing admission evidence, worker drift, invalid
   lease-expiry claims, and missing retry identities fail closed; no attempt
   transition, scheduling, or engine invocation is performed.
 - `result_completion.py` composes terminal runtime, outcome, progress, result

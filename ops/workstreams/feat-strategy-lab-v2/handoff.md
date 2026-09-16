@@ -2064,3 +2064,21 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Idempotent recovery ledger checkpoint
+
+`worker_recovery.py` now accepts an append-only `WorkerRecoveryLedger` and
+records the recovery plan, reservation release, retry identity, and observation
+time as one content-addressed receipt. An exact repeated crash/expiry/transient
+resolution replays the existing released pool and queued retry; changed plan,
+reason, retry identity, or release evidence returns a conflict, and a receipt
+cannot replay against a still-active pool reservation. Recovery remains
+infrastructure-only and never transitions attempts, schedules queues, or starts
+an engine.
+
+The exact implementation tree passed all 428 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

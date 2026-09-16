@@ -16,7 +16,11 @@ from app.strategy_lab_v2.runtime_execution import preflight_strategy_runtime
 from app.strategy_lab_v2.tests.test_admission import _request, _reservation
 from app.strategy_lab_v2.tests.test_execution import _execution_fixture
 from app.strategy_lab_v2.tests.test_runtime_execution import _profile
-from app.strategy_lab_v2.worker_recovery import WorkerRecoveryDecision, resolve_worker_recovery
+from app.strategy_lab_v2.worker_recovery import (
+    WorkerRecoveryDecision,
+    WorkerRecoveryLedger,
+    resolve_worker_recovery,
+)
 from app.strategy_lab_v2.workers import WorkerKind, WorkerPoolState, WorkerProfile
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
@@ -57,6 +61,7 @@ def test_worker_crash_releases_capacity_and_materializes_same_trial_retry() -> N
         admission_ledger=ledger,
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.WORKER_CRASH,
         observed_at=NOW + timedelta(seconds=6),
         next_attempt_id="attempt-2",
@@ -71,6 +76,33 @@ def test_worker_crash_releases_capacity_and_materializes_same_trial_retry() -> N
     assert resolution.released_reservation_id == _reservation("one")
     assert not resolution.pool.active_reservations
 
+    replay = resolve_worker_recovery(
+        (failed,),
+        admission_ledger=ledger,
+        lease_state=LeaseObservationState(lease),
+        pool=resolution.pool,
+        ledger=resolution.ledger,
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=NOW + timedelta(seconds=6),
+        next_attempt_id="attempt-2",
+    )
+    assert replay.decision is WorkerRecoveryDecision.REPLAY_EXISTING
+    assert replay.next_attempt == resolution.next_attempt
+    assert replay.pool == resolution.pool
+
+    conflict = resolve_worker_recovery(
+        (failed,),
+        admission_ledger=ledger,
+        lease_state=LeaseObservationState(lease),
+        pool=resolution.pool,
+        ledger=resolution.ledger,
+        reason=RecoveryReason.WORKER_CRASH,
+        observed_at=NOW + timedelta(seconds=7),
+        next_attempt_id="attempt-2",
+    )
+    assert conflict.decision is WorkerRecoveryDecision.CONFLICT
+    assert conflict.pool == resolution.pool
+
 
 def test_successful_attempt_is_noop_but_still_releases_its_worker_slot() -> None:
     running, lease, ledger, pool = _admitted()
@@ -80,6 +112,7 @@ def test_successful_attempt_is_noop_but_still_releases_its_worker_slot() -> None
         admission_ledger=ledger,
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.WORKER_CRASH,
         observed_at=NOW + timedelta(seconds=6),
     )
@@ -97,6 +130,7 @@ def test_expired_lease_is_retryable_and_non_retryable_cancellation_is_terminal()
         admission_ledger=ledger,
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.LEASE_EXPIRED,
         observed_at=NOW + timedelta(seconds=40),
         next_attempt_id="attempt-2",
@@ -109,6 +143,7 @@ def test_expired_lease_is_retryable_and_non_retryable_cancellation_is_terminal()
         admission_ledger=ledger,
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.CANCELLED,
         observed_at=NOW + timedelta(seconds=6),
     )
@@ -126,6 +161,7 @@ def test_recovery_rejects_missing_receipts_mismatched_workers_and_missing_retry_
         admission_ledger=ExecutionAdmissionLedger(),
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.WORKER_CRASH,
         observed_at=NOW + timedelta(seconds=6),
         next_attempt_id="attempt-2",
@@ -138,6 +174,7 @@ def test_recovery_rejects_missing_receipts_mismatched_workers_and_missing_retry_
         admission_ledger=ledger,
         lease_state=LeaseObservationState(lease),
         pool=pool,
+        ledger=WorkerRecoveryLedger(),
         reason=RecoveryReason.WORKER_CRASH,
         observed_at=NOW + timedelta(seconds=6),
     )
