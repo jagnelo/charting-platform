@@ -66,6 +66,10 @@
       option chain, bounded option history, and the deliberate no-request
       guard). The receipt is current-source evidence only; paid-plan changes
       and response-priced history remain configuration-gated.
+- [x] Refresh the same bounded matrix at current source `5e2bfa102`: `7/7`
+      passed with the configured Starter Trial account; the redacted receipt
+      records the exact current-source evidence and no response-priced history
+      request was admitted.
 - [ ] Continue reconciling each provider's native observation against its
       exact durable quota dimensions; a passing usage snapshot does not itself
       authorize ordinary routing when reset semantics, terms, or plan limits
