@@ -723,6 +723,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current native account-usage refresh at source
+      `79b87e71dfc5cf001362e1d87985dc04d089b60b`: the bounded MarketData.app
+      account-usage case passed `1/1` with one request and 135 response bytes,
+      and the bounded Alpaca account-usage case passed `1/1` with one request
+      and 125 response bytes. Redacted receipts are durable in
+      `validation.jsonl`; no payloads or credentials were persisted. The
+      observations do not promote Alpaca ordinary routing because its reset
+      boundary remains unresolved, and MarketData.app remains governed by its
+      explicit plan/limit/expiry configuration.
+    - >-
       2026-09-17 explicit migration compatibility at source `97ae4fbf3` using
       the recorded staging base `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`:
       all `31` changed provider-platform migration files upgraded, the

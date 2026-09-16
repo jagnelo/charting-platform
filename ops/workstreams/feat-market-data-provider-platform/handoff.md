@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-source native usage refresh
+
+- The exact current committed source `79b87e71dfc5cf001362e1d87985dc04d089b60b`
+  passed the bounded MarketData.app account-usage case (`1/1`, one request,
+  135 response bytes) using the owner-local configured Starter Trial policy.
+- The same source passed the bounded Alpaca account-usage case (`1/1`, one
+  request, 125 response bytes) using the owner-local paper credentials.
+- Both receipts are redacted and durable in `validation.jsonl`; no provider
+  payloads or credentials were persisted. These are native usage observations,
+  not ordinary routing promotion: Alpaca's reset semantics remain unresolved,
+  while MarketData.app remains admitted only under its explicitly configured
+  plan/limit/expiry policy.
+
 ## 2026-09-17 Migration compatibility against staging base
 
 - The explicit `INTEGRATION_BASE_SHA=8b885a2f...` migration gate passed all

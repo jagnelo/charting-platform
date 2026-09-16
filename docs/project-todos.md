@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-source native usage refresh
+
+- [x] Re-run the bounded native account-usage cases at the exact committed
+      source `79b87e71dfc5cf001362e1d87985dc04d089b60b` for MarketData.app and
+      Alpaca. Both passed `1/1` with one request each (135 and 125 response
+      bytes respectively); redacted receipts are durable in the workstream
+      ledger and no provider payloads or credentials were persisted.
+- [ ] Keep the evidence scoped correctly: Alpaca ordinary routing still needs
+      an admission-safe reset boundary and evidence; MarketData.app remains
+      governed by the explicit Starter Trial/10,000-credit policy and expiry,
+      with paid-plan changes requiring a new provider-specific configuration.
+
 ### 2026-09-16 — FRED reset-boundary admission control
 
 - [x] Correct the FRED v1 quota seed: the documented 120-requests/minute
