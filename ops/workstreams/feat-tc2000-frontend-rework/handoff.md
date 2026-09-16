@@ -20,9 +20,14 @@ Focused Research Results coverage passed `48/48`; full frontend Vitest passed
 large-chunk warning; Strategy Lab API coverage passed `29/29`; breadth
 workspace integration passed `2/2` across Boolean, numeric-series, and
 recursive-tree paths; Strategy queue unit coverage passed `16/16`; Ruff,
-formatting, and diff checks passed. The exact full-stack/browser gate is
-pending at this new product tip. No provider-platform, ETF, visual baseline,
-threshold, mask, skip, V25 media, or acceptance-policy behavior changed.
+formatting, and diff checks passed. The first exact full-stack/browser attempt
+reached the functional Chromium stage and had `169` passes, `107` documented
+skips, and one F8k popup-recovery failure while restoring the Float control;
+Docker teardown completed cleanly. A fresh branch-stack targeted retry passed
+that scenario `1/1` in `4.9s`, classifying the failure as transient test state;
+the exact full-stack/browser gate is being rerun at this product tip. No
+provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or
+acceptance-policy behavior changed.
 
 ## 2026-09-16 — Exact-tip integration gate refreshed at Market Map performance tip
 

@@ -257,18 +257,20 @@ progress:
   total: 9
   current_phase: R5_python_breadth_strategy_signal_promotion
   next_action: >-
-    Run the exact full_stack_browser integration gate at the new breadth-signal
-    product tip, then continue the next unfinished TC-owned roadmap item. Keep
-    provider/ETF consumer work deferred until both upstream branches reach
-    staging, and do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Rerun the exact full_stack_browser integration gate at the breadth-signal
+    product tip after the fresh-stack F8k retry passed. Keep provider/ETF
+    consumer work deferred until both upstream branches reach staging, and do
+    not retry origin synchronization under the existing private-origin
+    safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
-    No active TC-owned validation blocker: the breadth-history Strategy signal
-    slice passes focused backend/frontend/API coverage, while the exact
-    make validate-integration gate is pending at product tip 61c4ae34a. The
-    prior exact gate at 2153991e4 passed functional browser flows, all four
-    visual projects, and the expected research-runner sandbox/resource probes;
-    its branch-scoped cleanup completed.
+    No active TC-owned product blocker: the breadth-history Strategy signal
+    slice passes focused backend/frontend/API coverage. The first exact
+    make validate-integration attempt at product tip 61c4ae34a stopped only at
+    functional Chromium on F8k after 169 passes and 107 documented skips; a
+    fresh-stack F8k retry passed 1/1, so the full gate is being rerun. The prior
+    exact gate at 2153991e4 passed functional browser flows, all four visual
+    projects, and the expected research-runner sandbox/resource probes; its
+    branch-scoped cleanup completed.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
