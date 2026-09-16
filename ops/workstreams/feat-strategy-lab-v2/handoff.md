@@ -1974,3 +1974,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Terminal outcome/progress materialization checkpoint
+
+`execution_terminal.py` projects one terminal `RuntimeExecutionState` into the
+public `ExecutionOutcome` and `ExecutionProgressState` streams as an atomic
+storage-neutral proposal. Successful runtimes require an attempt-bound
+`RunResultManifest`; failures require a typed `ApiError`; cancellation requires
+the persisted cancellation request. Matching terminal evidence replays without
+rewriting state, while half-terminal, contradictory, stale, or cross-attempt
+records fail closed.
+
+The exact implementation tree passed all 418 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

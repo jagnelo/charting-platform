@@ -592,6 +592,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   manifest and changed content conflicts. Package and artifact evidence is
   canonicalized before comparison. The manifest remains unpublished until
   artifact-integrity and authoritative publication gates succeed.
+- `execution_terminal.py` projects terminal runtime evidence into the public
+  outcome and progress streams as one storage-neutral decision. Successful
+  runtimes require an attempt-bound result manifest, failures require a typed
+  `ApiError`, cancellation requires an explicit cancellation request, and
+  matching terminal retries replay while half-terminal or contradictory state
+  is rejected.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
