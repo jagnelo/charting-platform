@@ -430,6 +430,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Message identity excludes scheduling timestamps, while the full record retains
   them for auditability. PostgreSQL transactionality and Redis transport remain
   adapter responsibilities.
+- `audit_outbox.py` links an audit entry to its transport envelope through one
+  pure atomic staging resolution. The envelope must carry the audit entry
+  identity; gaps, conflicts, or rejects return both original states so an
+  adapter cannot commit one side alone. A successful resolution provides the
+  journal and outbox states for one PostgreSQL transaction, while a repeated
+  pair replays idempotently.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

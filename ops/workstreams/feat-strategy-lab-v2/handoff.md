@@ -1454,3 +1454,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable-adapter boundary over the journal/outbox contracts; preserve all
 shared-path and execution-authorization gates.
+
+## 2026-09-16 - Atomic audit/outbox staging checkpoint
+
+`audit_outbox.py` adds `stage_audit_outbox()`, linking one audit entry to its
+content-addressed outbox envelope. The event identity must match exactly;
+append/enqueue gaps, conflicts, and rejects return the original journal and
+outbox states so a future database adapter cannot commit only one side. Safe
+append/enqueue combinations produce a single pair of states for one database
+transaction, and exact retries replay without mutation. No persistence,
+transport, or delivery claim is made here.
+
+The exact implementation tree passed all 256 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable adapter implementation only after upstream shared-path reconciliation;
+preserve all execution-authorization and ownership gates.
