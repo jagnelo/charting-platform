@@ -202,8 +202,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   context; the comparator returns the signed `variant - baseline` difference or
   a typed unavailable reason for missing, unversioned, incompatible, null, or
   metric-level out-of-scope inputs such as different session calendars. This
-  output is descriptive only: it does not rank or average candidates or
-  replicates, estimate significance, or claim paired inference. A shared
+  output is descriptive only: it does not average candidates or replicates,
+  estimate significance, or claim paired inference. A shared
   snapshot binds coverage-evidence digests as claims; this engine-neutral
   comparator cannot authenticate their referenced documents.
   The scenario digest binds the declared scenario but is not a separate typed
@@ -218,6 +218,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   warm-up periods are rejected as incomparable rather than silently mixed.
   Replicates are explicit; infrastructure retries remain attempts of the same
   scientific trial.
+- `ranking.py` provides deterministic descriptive ordering for completed
+  results within one experiment and compatible snapshot, portfolio, engine,
+  allocation, metric, unit, and calculation contexts. It excludes degraded
+  preflight, null, missing, unversioned, incompatible, and duplicate-trial
+  results by default, retains explicit exclusion reasons, and makes no
+  profitability or statistical inference claim.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
