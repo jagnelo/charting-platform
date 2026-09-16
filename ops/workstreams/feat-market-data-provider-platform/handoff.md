@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 CoinGecko Demo usage-endpoint audit
+
+- The official CoinGecko `/key` account-usage endpoint was probed once with
+  the owner-managed Demo credential. It returned the provider's documented
+  HTTP 401 / error code `10005` because the endpoint is restricted to Pro
+  subscribers. No monthly usage baseline or reset timestamp can therefore be
+  obtained from this Demo key; no fabricated counter, reset, or routing quota
+  was added. The checked-in contract continues to record 100 calls/minute and
+  10,000 calls/month with an unknown monthly reset boundary, so the monthly
+  pool remains fail-closed. This is one bounded transport/policy observation,
+  not routing activation or acceptance evidence; no frontend or ETF-provider
+  adapter file changed.
+
 ## 2026-09-16 Alpha Vantage compact-history completeness guard
 
 - Alpha Vantage's free `TIME_SERIES_DAILY` `compact` response is capped at the

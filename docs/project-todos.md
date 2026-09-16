@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-16 — CoinGecko Demo usage-endpoint audit
+
+- [x] Probe CoinGecko's documented `/key` account-usage endpoint once with the
+      configured Demo key. The official endpoint is Pro-only: the bounded
+      request returned HTTP 401 error code `10005` and made no data request
+      beyond the usage introspection attempt. Do not implement a fabricated
+      Demo usage counter or reset window; retain the documented 100/minute and
+      10,000/month dimensions, keep the monthly reset boundary unknown, and
+      keep monthly-pool routing fail-closed until provider/account evidence
+      establishes the boundary. No secret or response payload was committed.
+
 ### 2026-09-16 — Alpha Vantage compact-history completeness guard
 
 - [x] Reject a requested daily range that predates Alpha Vantage's full-size
