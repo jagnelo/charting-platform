@@ -1112,7 +1112,15 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     assert marketstack["dimensions"][0]["limit"] == 100
     assert marketstack["dimensions"][0]["window_seconds"] == 2_592_000
     assert marketstack["reset"] == "provider_defined"
-    assert marketstack["unknown_dimensions"] == ["monthly_cap_reset_boundary"]
+    assert marketstack["unknown_dimensions"] == [
+        "published_monthly_limit_conflict",
+        "monthly_cap_reset_boundary",
+    ]
+    assert marketstack["source_conflicts"][0] == {
+        "source": "https://marketstack.com/faq",
+        "claim": "1,000 requests per month",
+        "conflicts_with": "https://marketstack.com/pricing",
+    }
 
     ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
     assert {

@@ -781,6 +781,12 @@ enough for the bounded EOD history probe, while venue discovery also requires
 the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
+The provider's current pricing page states 100 requests/month, while its FAQ
+still states 1,000 requests/month. The contract therefore keeps the lower
+value only as a conservative reservation ceiling, records both source URLs and
+the conflict, and keeps all Marketstack routing non-routable until the account
+plan and reset boundary are clarified. No value is silently selected as the
+provider's confirmed allowance.
 
 The latest network-enabled rerun at `2026-09-10T03:16:52Z`, using the existing
 external keys plus a temporary non-secret SEC User-Agent and explicit

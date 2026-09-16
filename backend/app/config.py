@@ -959,16 +959,33 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://marketstack.com/pricing",
+                        "limit_basis": (
+                            "conservative lower published value pending provider clarification"
+                        ),
                     }
                 ],
-                # Public pricing states 100/month but does not define the
-                # reset anchor; keep the dimension visible but non-routable
-                # until the provider/account boundary is confirmed.
-                "unknown_dimensions": ["monthly_cap_reset_boundary"],
+                # The current pricing page states 100/month while the FAQ
+                # still states 1,000/month. Keep the lower value only as a
+                # conservative reservation ceiling and expose the conflict
+                # explicitly; routing remains non-routable until the account
+                # plan and reset boundary are clarified.
+                "unknown_dimensions": [
+                    "published_monthly_limit_conflict",
+                    "monthly_cap_reset_boundary",
+                ],
+                "source_conflicts": [
+                    {
+                        "source": "https://marketstack.com/faq",
+                        "claim": "1,000 requests per month",
+                        "conflicts_with": "https://marketstack.com/pricing",
+                    }
+                ],
                 "reset": "provider_defined",
             },
             "quota_scope": "api_key",
-            "quota_source": "Marketstack free-plan pricing",
+            "quota_source": (
+                "Marketstack free-plan pricing and FAQ; published monthly limits conflict"
+            ),
         },
         "ibkr": {
             "quota_contract": {
