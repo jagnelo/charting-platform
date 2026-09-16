@@ -605,6 +605,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   malformed owner/resource/relationship state and snapshot drift fail closed.
   The adapter is registration-neutral and does not create migrations, mutate
   aggregates, or dispatch work.
+- `postgres_submission.py` maps idempotent submission receipts and dispatch
+  intents to an owner-scoped additive PostgreSQL transaction. Exact retries
+  replay the durable receipt, a missing dispatch can be repaired from that
+  receipt, changed content conflicts, and different principals remain isolated.
+  It validates payload/fingerprint identity and stages no Redis message until a
+  later outbox relay; table creation and application wiring remain gated.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
