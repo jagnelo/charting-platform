@@ -13329,3 +13329,15 @@ No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or
 acceptance-policy behavior changed. Provider/ETF consumer integration remains
 deferred until both branches reach staging; this is a complete exact-gate receipt
 for the combined slice, not closure of the overall workstream.
+## 2026-09-16 - Coverage Summary empty-state accessibility
+
+Product commit `f63cd8ee4` gives `CoverageSummaryTool`'s no-local-adjusted-daily-
+observations state an explicit polite, atomic status announcement. Coverage,
+range readiness, provenance, dataset state, and visible layout behavior are
+unchanged.
+
+Focused CoverageSummaryTool coverage passed `6/6`; full frontend Vitest passed
+`1,120/1,120`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.
