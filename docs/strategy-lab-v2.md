@@ -632,6 +632,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reader, and fails closed on partial or tampered state. It remains a
   registration-neutral adapter; migrations, route wiring, and worker effects
   are still shared integration concerns.
+- `postgres_worker_state.py` maps immutable worker profiles, serial reservation
+  capacity, and execution-attempt lease observations to additive PostgreSQL
+  rows. Profile and lease identities are re-authenticated before use; active
+  reservations are guarded by a database uniqueness index and compare-and-set
+  release, while ordered heartbeat/release observations are applied atomically
+  with exact replay and gap/stale/conflict decisions. The adapter performs no
+  process scheduling, clock polling, engine disposal, queue publication, or
+  migration/application registration; those remain shared integration gates.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

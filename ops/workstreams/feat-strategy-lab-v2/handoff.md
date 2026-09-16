@@ -11,6 +11,26 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable worker and lease state checkpoint
+
+`postgres_worker_state.py` now maps immutable worker profiles, serial
+reservation capacity, execution-attempt leases, and ordered heartbeat/release
+observations to additive PostgreSQL schema statements. Profile, reservation,
+lease, and observation bytes are re-authenticated by canonical fingerprints;
+active worker/attempt uniqueness is guarded by a partial unique index; release
+and lease-observation updates use compare-and-set inside one async transaction.
+Exact retries replay, while saturation, gaps, stale sequences, identity drift,
+tampering, and uniqueness races fail closed. No process scheduling, engine
+disposal, queue publication, migration application, or shared runtime wiring is
+performed by this package-local adapter.
+
+The focused worker-state suite passed 4 tests. The complete Strategy Lab v2
+package passed 548 tests with Ruff, MyPy, and `git diff --check` clean. The
+Docker-backed combined gate and five declared branch checks remain to be run
+after this checkpoint; schema migrations, application wiring, worker
+entrypoints, Compose integration, upstream reconciliation, and stable Nautilus
+execution remain open shared-path gates.
+
 ## 2026-09-17 - Durable execution-state checkpoint
 
 `postgres_execution_state.py` now maps owner-scoped execution outcomes and
