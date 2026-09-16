@@ -13051,3 +13051,17 @@ or acceptance-policy behavior changed. The branch remains
 `committed_locally_pending_push` under the private-origin safeguard, and
 provider/ETF consumer integration remains deferred until both branches reach
 staging.
+
+## 2026-09-16 - Strategy Lab sidebar toggle accessibility
+
+Product commit `4a31b62ca` completes a narrow R6 accessibility slice in
+`StrategyLabView.vue`. The sidebar collapse/expand control now exposes the
+meaningful dynamic names `Collapse strategy list` and `Expand strategy list`,
+with matching `aria-expanded` state. Its existing `▸`/`◂` glyph, title, layout,
+and toggle behavior are unchanged.
+
+Focused StrategyLabView coverage passed 31/31; full frontend Vitest passed
+1,104/1,104; frontend type-check and production build passed with the existing
+large-chunk warning; and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed. The exact full-stack
+integration gate remains required at this product tip.
