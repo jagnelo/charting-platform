@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 clean checkpoint and exact-source gate
+
+- The validated implementation was committed on the isolated feature branch at
+  `5116a329b3c9ef346c784e1dc86aa4121b9da248`. This commit does not integrate,
+  deploy, activate routing, or start the shadow run.
+- The full backend unit suite was replayed against that exact clean source:
+  `2,294/2,294` passed with 37 warnings in 84.70 seconds. The generated
+  coverage XML was removed; no generated coverage artifact remains.
+- The lock-protected full live runner was then invoked against the same SHA.
+  It made zero provider calls and exited `2` during safety preflight. The
+  durable receipt enumerates the remaining provider-account baselines,
+  capability budgets, legal/source controls, and deferred-provider decisions;
+  it is exact-source evidence that the runner fails closed, not a transport
+  failure.
+- MarketData.app remains the only currently fully admitted local provider for
+  the bounded credentialed subset. The existing 7/7 transport receipt remains
+  useful quota-settlement evidence but is not a substitute for the clean-SHA
+  full matrix.
+
 ## 2026-09-16 MarketData.app account-introspection accounting checkpoint
 
 - Corrected the provider-specific `/user/` account-usage path: it retains a

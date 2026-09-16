@@ -161,6 +161,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Exact clean-source checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
+    passed the full backend unit suite (`2,294/2,294`, 37 warnings) and the
+    lock-protected live runner correctly stopped before network access with
+    exit `2`. The current full-matrix receipt is therefore exact-source
+    fail-closed evidence, not acceptance: provider-account baselines remain
+    unknown for many finite dimensions; unresolved capability cases include
+    daily-capacity, byte-bound, pagination, and entitlement decisions; legal
+    and source controls remain missing for Coinbase, FRED, xStocks, Bybit,
+    Dinari, and FINRA OTC; and CI/deployment stores plus the final shadow gate
+    remain unverified.
+  - >-
     The final current-head lock-protected live matrix at source `0b27192eb`
     collected 49 manifest cases and passed 43/49, including both the Alpaca
     AAPL and BTC-USD authenticated asset-profile probes. The three Alpha
@@ -308,6 +319,15 @@ remaining_gaps:
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      Created clean feature checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
+      after the provider-platform implementation passed repository validation.
+      The exact-source backend unit replay passed `2,294/2,294` with 37
+      warnings. The exact-source lock-protected full live runner made zero
+      provider calls and exited `2` during fail-closed preflight, recording
+      every unresolved quota baseline, capability budget, legal/source control,
+      and deferred-provider decision. No integration, deployment, routing
+      activation, or shadow run was performed.
     - >-
       Corrected MarketData.app authenticated `/user/` accounting: the
       explicitly routable `fetch_account_usage` operation keeps its positive
