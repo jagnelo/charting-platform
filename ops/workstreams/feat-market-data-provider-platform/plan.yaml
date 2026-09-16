@@ -369,6 +369,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      At committed source `8176e820ae11013409602aa2a2ec1f0045d3157b`, focused
+      account-usage live validation passed `1/1` for MarketData.app, Twelve
+      Data, and EODHD. The direct live-test path now reconciles exact native
+      snapshots for the first two providers into the durable coordinator after
+      settlement; EODHD's stale usage date remains observation-only. This is
+      exact-source focused evidence, not full-matrix acceptance.
+    - >-
       Current-source evidence was refreshed at `a9a8ea7f8de464cb3d0b4ae11f79eacd25613031`:
       the isolated backend unit suite passed `2,317/2,317` with 70.66% total
       coverage and 37 warnings; MarketData.app's bounded credentialed matrix

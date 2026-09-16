@@ -20,6 +20,19 @@
   current worktree was dirty during those runs, so exact-source receipts must
   be replayed after commit.
 
+## 2026-09-16 committed-source account-usage revalidation
+
+- At committed source `8176e820ae11013409602aa2a2ec1f0045d3157b`, the focused
+  MarketData.app, Twelve Data, and EODHD account-usage cases each passed `1/1`
+  through the normal live runner, local exclusive lock, durable coordinator,
+  and redacted external usage ledger. MarketData.app and Twelve Data exercised
+  the new durable native-baseline handoff; EODHD exercised the stale-date
+  observation-only branch. No provider payloads or secrets entered Git.
+- These are exact-source focused proofs only. The full matrix remains blocked
+  before transport by unresolved provider-specific quota baselines/contracts,
+  legal/source controls, deferred providers, and response-byte maps recorded in
+  the plan; this run does not promote routing or authorize deployment/shadow.
+
 ## 2026-09-16 current isolated unit gate
 
 - The complete backend unit suite passed `2,317/2,317` at source
