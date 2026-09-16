@@ -720,3 +720,45 @@ one-factor replicate summary in the engine-neutral package. Keep the strict
 complete-replicate, fixed-context, no-ranking/no-inference boundary and all
 provider, ETF, TC2000, persistence, API, worker, runtime, migration, Compose,
 and frontend ownership gates intact.
+
+## 2026-09-16 - Descriptive replicate-summary implementation checkpoint
+
+The scoped engine-neutral metric slice is complete in product commit
+`3767730ec32ee7cf19b0e4d44fac7caf664f8baf`. It adds immutable typed
+`ReplicateRandomizationSummary`, `NearestRankStatistic`,
+`ReplicateMetricStatistics`, `OneFactorReplicateMetricSummary`, and explicit
+`ReplicateMetricSummaryUnavailable` outcomes in `sensitivity.py`, plus the
+`summarize_one_factor_metric_replicates()` API and compatibility alias
+`compare_one_factor_metric_replicates()`.
+
+The summary requires successful results covering every planned replicate index
+exactly once on each arm, rejects duplicate trials/attempts and inconsistent
+arm parameters, enforces exactly one canonical parameter change, and binds one
+fixed execution and metric-measurement scope. It preserves each arm's realized
+observation sample sizes and full seed provenance, computes Decimal means,
+nearest-rank median/minimum/maximum and configured quantiles, and exposes only
+the signed difference of arm means. It never ranks candidates or claims
+significance, independence, or verified pairing. Focused sensitivity tests now
+cover deterministic ordering/statistics, shared-seed-only labeling, incomplete
+groups, and null values.
+
+Validation on the exact implementation tree passed 18 focused sensitivity
+tests, 80 package tests, Ruff for the changed package files, MyPy for the
+changed source and tests, and `git diff --check`. A package-wide Ruff format
+check still reports seven pre-existing formatting differences in unrelated
+files; no unrelated formatting was changed.
+
+The implementation commit was pushed once through the approved elevated Git
+path, but the private-origin safeguard rejected the newer payload before Git
+because exact authorization for `0f0d85c214de6828d8e15b6d03d60adcb1551c2a..3767730ec32ee7cf19b0e4d44fac7caf664f8baf` was not established. No alternate
+transport or retry was used. The current clean local boundary is
+`3767730ec32ee7cf19b0e4d44fac7caf664f8baf`; the remote remains
+`0f0d85c214de6828d8e15b6d03d60adcb1551c2a`. The operational record below is
+being committed separately; derive the full pending range externally before
+any authorized retry.
+
+Next action is blocked only on exact authorization to publish the current
+range, followed by plan-ready/session reconciliation for the changed plan. Do
+not begin another implementation context, integrate, promote, deploy, or
+touch provider, ETF, TC2000, shared runtime, persistence, API, worker, Compose,
+or frontend paths while this synchronization gate is unresolved.
