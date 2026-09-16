@@ -375,6 +375,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   classes fail closed without an active pin, while tiered/ephemeral eligibility
   is evaluated only at an explicit timestamp. The contract never deletes,
   moves, or rewrites artifact bytes.
+- `lease_observations.py` defines ordered heartbeat/release envelopes and a
+  restart-safe lease observation state. Exact retries replay, changed content
+  conflicts, gaps/stale sequences remain visible, and expired or released
+  leases reject further heartbeats. Lease identity and final heartbeat
+  metadata must match; persistence and clock scheduling remain adapter-owned.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

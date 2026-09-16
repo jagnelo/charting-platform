@@ -1277,3 +1277,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 worker heartbeat/lease-observation contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Worker lease-observation checkpoint
+
+`lease_observations.py` adds ordered `LeaseObservation` envelopes for worker
+heartbeats and releases plus `LeaseObservationState` and
+`apply_lease_observation()`. Per-lease sequences apply only contiguously; exact
+observation retries replay, reused identities conflict, and gaps/stale records
+return explicit non-mutating decisions. Heartbeats fail closed after expiry or
+release, release is terminal and replay-safe, and state validates monotonic
+timestamps plus lease/heartbeat identity. Durable compare-and-set, process
+clocks, scheduling, and persistence remain adapter-owned.
+
+The exact implementation tree passed all 190 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+forward warm-up/replay handoff contract; preserve all shared-path and
+execution-authorization gates.
