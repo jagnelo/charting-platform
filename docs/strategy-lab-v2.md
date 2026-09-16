@@ -483,9 +483,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   crash/expiry/transient failures, while successful or non-retryable attempts
   close without a retry. Its content-addressed recovery ledger replays exact
   release/retry requests and reports conflicting evidence instead of trying to
-  release a slot twice. Missing admission evidence, worker drift, invalid
-  lease-expiry claims, and missing retry identities fail closed; no attempt
-  transition, scheduling, or engine invocation is performed.
+  release a slot twice. Recovery also applies the ordered lease-release
+  observation and returns it with the released pool; missing admission
+  evidence, worker drift, invalid lease-expiry claims, and missing retry
+  identities fail closed; no attempt transition, scheduling, or engine
+  invocation is performed.
 - `result_completion.py` composes terminal runtime, outcome, progress, result
   publication, and content-addressed artifact-commit evidence. It resolves all
   artifact plans against a working ledger but returns the original ledger on

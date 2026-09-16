@@ -2065,6 +2065,23 @@ deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
 
+## 2026-09-16 - Lease-aware idempotent recovery checkpoint
+
+The recovery ledger now binds an ordered lease-release observation as well as
+the worker reservation release. Recovery returns the updated lease state, so
+crash, expiry, transient, cancellation, and successful/no-op paths cannot leave
+capacity and lease records split. Exact retries replay against the released
+pool and matching observation; changed recovery content or an active/missing
+lease observation is rejected. Expired leases remain eligible only for the
+explicit recovery reason and never become normal successful completions.
+
+The exact implementation tree passed all 428 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
+
 ## 2026-09-16 - Idempotent recovery ledger checkpoint
 
 `worker_recovery.py` now accepts an append-only `WorkerRecoveryLedger` and

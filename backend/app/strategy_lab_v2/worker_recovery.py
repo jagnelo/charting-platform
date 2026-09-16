@@ -10,7 +10,13 @@ from enum import StrEnum
 from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import RunAttempt
-from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lease_observations import (
+    LeaseObservation,
+    LeaseObservationDecision,
+    LeaseObservationKind,
+    LeaseObservationState,
+    apply_lease_observation,
+)
 from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
 from app.strategy_lab_v2.recovery import (
     RecoveryDisposition,
@@ -41,6 +47,7 @@ class WorkerRecoveryRecord:
     decision: WorkerRecoveryDecision
     plan_fingerprint: str
     next_attempt_id: str | None
+    lease_observation_fingerprint: str
     released_at: datetime
 
     def __post_init__(self) -> None:
@@ -48,6 +55,7 @@ class WorkerRecoveryRecord:
             "recovery_fingerprint",
             "reservation_id",
             "plan_fingerprint",
+            "lease_observation_fingerprint",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
         for name in ("attempt_id",):
@@ -100,6 +108,7 @@ class WorkerRecoveryResolution:
     decision: WorkerRecoveryDecision
     plan: RecoveryPlan | None
     pool: WorkerPoolState
+    lease_state: LeaseObservationState
     next_attempt: RunAttempt | None = None
     released_reservation_id: str | None = None
     rejection_reason: str | None = None
@@ -112,6 +121,8 @@ class WorkerRecoveryResolution:
             raise TypeError("plan must be a RecoveryPlan")
         if not isinstance(self.pool, WorkerPoolState):
             raise TypeError("pool must be a WorkerPoolState")
+        if not isinstance(self.lease_state, LeaseObservationState):
+            raise TypeError("lease_state must be a LeaseObservationState")
         if not isinstance(self.ledger, WorkerRecoveryLedger):
             raise TypeError("ledger must be a WorkerRecoveryLedger")
         if self.next_attempt is not None and not isinstance(self.next_attempt, RunAttempt):
@@ -198,13 +209,13 @@ def resolve_worker_recovery(
         None,
     )
     if admission is None:
-        return _reject(pool, ledger, "latest attempt has no execution admission receipt")
+        return _reject(pool, ledger, lease_state, "latest attempt has no execution admission receipt")
     if latest.attempt_id != lease_state.lease.attempt_id:
-        return _reject(pool, ledger, "latest attempt does not match the lease")
+        return _reject(pool, ledger, lease_state, "latest attempt does not match the lease")
     if admission.worker_id != lease_state.lease.worker_id:
-        return _reject(pool, ledger, "admission and lease reference different workers")
+        return _reject(pool, ledger, lease_state, "admission and lease reference different workers")
     if lease_state.lease.worker_id != pool.profile.worker_id:
-        return _reject(pool, ledger, "lease is bound to a different worker pool")
+        return _reject(pool, ledger, lease_state, "lease is bound to a different worker pool")
     reservation = next(
         (
             item
@@ -215,11 +226,11 @@ def resolve_worker_recovery(
         None,
     )
     if reservation is None:
-        return _reject(pool, ledger, "admission has no active worker reservation")
+        return _reject(pool, ledger, lease_state, "admission has no active worker reservation")
     if reason is RecoveryReason.LEASE_EXPIRED:
         status = lease_state.lease.status_at(observed_at)
         if status is not AttemptLeaseStatus.EXPIRED:
-            return _reject(pool, ledger, "lease-expired recovery requires an expired lease")
+            return _reject(pool, ledger, lease_state, "lease-expired recovery requires an expired lease")
 
     plan = plan_attempt_recovery(
         attempts,
@@ -230,7 +241,7 @@ def resolve_worker_recovery(
     next_attempt: RunAttempt | None = None
     if plan.disposition is RecoveryDisposition.RETRY:
         if not next_attempt_id or not next_attempt_id.strip():
-            return _reject(pool, ledger, "retry recovery requires a next attempt identity")
+            return _reject(pool, ledger, lease_state, "retry recovery requires a next attempt identity")
         next_attempt = plan.materialize_retry_attempt(attempts, attempt_id=next_attempt_id)
     recovery_fingerprint = content_digest(
         {
@@ -251,6 +262,7 @@ def resolve_worker_recovery(
                 WorkerRecoveryDecision.CONFLICT,
                 None,
                 pool,
+                lease_state,
                 rejection_reason="attempt is already bound to different recovery content",
                 ledger=ledger,
             )
@@ -258,13 +270,25 @@ def resolve_worker_recovery(
             return _reject(
                 pool,
                 ledger,
+                lease_state,
                 "recovery receipt exists but worker reservation is still active",
             )
         if reservation.released_at != existing.released_at:
             return _reject(
                 pool,
                 ledger,
+                lease_state,
                 "worker reservation release time differs from recovery receipt",
+            )
+        if not any(
+            item.fingerprint == existing.lease_observation_fingerprint
+            for item in lease_state.applied_observations
+        ):
+            return _reject(
+                pool,
+                ledger,
+                lease_state,
+                "recovery receipt exists but lease release observation is missing",
             )
         replay_attempt = None
         if existing.next_attempt_id is not None:
@@ -277,6 +301,7 @@ def resolve_worker_recovery(
             replay_decision,
             plan,
             pool,
+            lease_state,
             replay_attempt,
             existing.reservation_id,
             ledger=ledger,
@@ -285,7 +310,32 @@ def resolve_worker_recovery(
         return _reject(
             pool,
             ledger,
+            lease_state,
             "worker reservation is already released without a recovery receipt",
+        )
+
+    release_observation = LeaseObservation(
+        observation_id=content_digest(
+            {
+                "kind": LeaseObservationKind.RELEASE,
+                "lease_id": lease_state.lease.lease_id,
+                "recovery_fingerprint": recovery_fingerprint,
+            }
+        ),
+        lease_id=lease_state.lease.lease_id,
+        worker_id=lease_state.lease.worker_id,
+        attempt_id=lease_state.lease.attempt_id,
+        sequence=lease_state.last_sequence + 1,
+        kind=LeaseObservationKind.RELEASE,
+        observed_at=observed_at,
+    )
+    lease_resolution = apply_lease_observation(lease_state, release_observation)
+    if lease_resolution.decision is not LeaseObservationDecision.APPLY:
+        return _reject(
+            pool,
+            ledger,
+            lease_state,
+            lease_resolution.rejection_reason or "lease release observation was rejected",
         )
     released_pool = release_worker_slot(
         pool,
@@ -307,12 +357,14 @@ def resolve_worker_recovery(
         decision=decision,
         plan_fingerprint=plan.fingerprint,
         next_attempt_id=next_attempt.attempt_id if next_attempt is not None else None,
+        lease_observation_fingerprint=release_observation.fingerprint,
         released_at=observed_at,
     )
     return WorkerRecoveryResolution(
         decision,
         plan,
         released_pool,
+        lease_resolution.state,
         next_attempt,
         reservation.reservation_id,
         ledger=WorkerRecoveryLedger(ledger.records + (record,)),
@@ -322,12 +374,14 @@ def resolve_worker_recovery(
 def _reject(
     pool: WorkerPoolState,
     ledger: WorkerRecoveryLedger,
+    lease_state: LeaseObservationState,
     reason: str,
 ) -> WorkerRecoveryResolution:
     return WorkerRecoveryResolution(
         WorkerRecoveryDecision.REJECT,
         None,
         pool,
+        lease_state,
         rejection_reason=reason,
         ledger=ledger,
     )

@@ -79,7 +79,7 @@ def test_worker_crash_releases_capacity_and_materializes_same_trial_retry() -> N
     replay = resolve_worker_recovery(
         (failed,),
         admission_ledger=ledger,
-        lease_state=LeaseObservationState(lease),
+        lease_state=resolution.lease_state,
         pool=resolution.pool,
         ledger=resolution.ledger,
         reason=RecoveryReason.WORKER_CRASH,
