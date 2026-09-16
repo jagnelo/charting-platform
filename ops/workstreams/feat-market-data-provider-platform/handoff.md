@@ -3749,6 +3749,11 @@ the authoritative record for this replay; it made zero provider calls.
   the unbounded response-priced option-history guard made no request. The
   redacted receipt is committed in `validation.jsonl`; no secret or payload
   entered Git.
+- Reading the same durable coordinator with the owner-managed environment
+  resolved the active `credits_per_day` dimension as verified: `10,000` limit,
+  `260` locally settled credits since the provider observation, and `9,740`
+  remaining. This is ledger/accounting evidence, not a claim that other
+  uncoordinated clients cannot have spent the provider allowance.
 - The owner-only `app.env` now persists the durable quota-ledger path, live
   usage-ledger path, and local live-run scope so future worktrees reuse the
   same cross-session account accounting. The file remains outside Git with
