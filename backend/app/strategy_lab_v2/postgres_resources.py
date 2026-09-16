@@ -162,9 +162,8 @@ class PostgresResourceReader:
         schema_version = state.get("schema_version", 1)
         if not isinstance(schema_version, int) or isinstance(schema_version, bool) or schema_version < 1:
             raise ValueError("resource schema_version must be a positive integer")
-        revision_digest = state.get("revision_digest")
-        if revision_digest is not None:
-            require_sha256_digest(revision_digest, field_name="revision_digest")
+        revision_digest = state.get("revision_digest", aggregate.state_fingerprint)
+        require_sha256_digest(revision_digest, field_name="revision_digest")
         attributes = state.get("attributes", {})
         meta = state.get("meta", {})
         if not isinstance(attributes, Mapping) or not isinstance(meta, Mapping):

@@ -105,6 +105,7 @@ async def test_reader_does_not_leak_foreign_get_and_projects_relationships() -> 
         principal="alice", resource_type=ApiResourceType.TRIAL, resource_id="trial-1"
     )
     assert document is not None
+    assert document.identity.revision_digest == aggregate.state_fingerprint
     assert document.relationships["experiment"][0].resource_type is ApiResourceType.EXPERIMENT
     assert await reader.get_resource(
         principal="alice", resource_type=ApiResourceType.TRIAL, resource_id="trial-2"
