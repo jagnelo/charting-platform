@@ -586,6 +586,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   immutable worker handoff. It rejects identity drift, already-started runtime
   state, output-limit changes, and unauthorized authoritative execution before
   any process or queue adapter is called.
+- `worker_execution.py` revalidates that handoff immediately before process
+  creation, invokes only the gated Nautilus runner, and returns typed process
+  plus runtime evidence. Stale/rejected handoffs cannot spawn; successful,
+  failed, and runtime-rejected outcomes remain storage-neutral for a later
+  compare-and-set transaction.
 - `result_materialization.py` binds engine-neutral result evidence to an
   immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
   output-artifact identities must agree; exact retries replay an existing

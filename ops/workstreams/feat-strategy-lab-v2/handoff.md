@@ -1991,3 +1991,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Worker-handoff execution checkpoint
+
+`worker_execution.py` composes the immutable execution handoff with the gated
+Nautilus runner and runtime-result bridge. It revalidates every handoff
+identity immediately before process creation, refuses stale or rejected plans
+without spawning, and returns typed Nautilus plus runtime evidence for a future
+compare-and-set transaction. Process failures become runtime failures; no queue,
+database, result publication, or engine bypass is introduced.
+
+The exact implementation tree passed all 422 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
