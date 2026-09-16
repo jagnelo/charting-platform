@@ -391,6 +391,10 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         in workflow
     )
     assert (
+        "MASSIVE_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.MASSIVE_MARKET_DATA_USE_EXPIRES_AT || '' }}"
+        in workflow
+    )
+    assert (
         "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     )
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
@@ -500,6 +504,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "MASSIVE_MARKET_DATA_USE_AUTHORIZED=false" in example
     assert "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
+    assert "MASSIVE_MARKET_DATA_USE_EXPIRES_AT=" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example

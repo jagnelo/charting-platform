@@ -3599,3 +3599,6 @@ the authoritative record for this replay; it made zero provider calls.
   and diff checks passed. No provider calls or credentials were used by this
   change. The branch remains fail-closed for missing Massive attestation and
   all other unresolved provider gates.
+- CI and environment-example assertions now explicitly require the expiry
+  mapping as well; the focused wiring/registry suite passes `48/48` after this
+  test hardening.
