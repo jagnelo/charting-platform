@@ -1,5 +1,23 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 MarketData.app trial configuration confirmation
+
+- The owner-approved external configuration is present outside Git in the
+  owner-managed `~/.config/charting-platform/app.env`: the MarketData.app key
+  is configured with the provider-specific `starter_trial` plan, an exact
+  10,000-credit daily pool, and the timezone-aware expiry
+  `2026-10-11T18:09:00+01:00` (30 days from the key-email timestamp supplied by
+  the owner). The key value was not printed or persisted by this checkpoint.
+- Runtime evaluation against that external configuration returned the active
+  effective plan `starter_trial` and daily limit `10,000`. At or after expiry,
+  the existing provider policy returns `free_forever`/`100`; a later paid
+  upgrade remains an explicit plan/limit configuration change and still needs
+  `ALLOW_PAID_PROVIDER_ROUTING=true`.
+- Focused regression coverage passed `6/6` quota-contract cases and `5/5`
+  provider runtime cases. This confirms the active-boundary, expiry-boundary,
+  missing-expiry fail-closed, and environment-wiring behavior without making
+  a provider request.
+
 ## 2026-09-16 migration and workflow-enforcement checkpoint
 
 - Migration compatibility was replayed against the recorded staging parent
