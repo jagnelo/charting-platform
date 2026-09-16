@@ -372,6 +372,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      At branch source `64c81f3be`, the complete isolated backend unit suite
+      passed `2,319/2,319` in 181.62 seconds with 70.66% total coverage, above
+      the configured 55% threshold, and 37 warnings. This is a current unit
+      replay only; PostgreSQL/Redis integration, provider acceptance, CI/
+      deployment stores, and the final shadow gate remain separate.
+    - >-
       At committed source `c6b7b42de`, the lock-protected full provider live
       runner completed its safety preflight and stopped before transport with
       exit `2`. The receipt enumerates provider-specific unknown quota/reset,

@@ -47,6 +47,14 @@
   Massive, Coinbase, xStocks, Bybit, and tokenized venues. This is current
   fail-closed evidence, not a provider failure or acceptance result.
 
+## 2026-09-16 current isolated backend unit replay
+
+- At branch source `64c81f3be`, the complete isolated backend unit suite passed
+  `2,319/2,319` in 181.62 seconds, with 70.66% total coverage against the
+  configured 55% threshold and 37 warnings. This replays the application code
+  after the usage-accounting changes; it is not PostgreSQL/Redis integration,
+  external-provider acceptance, deployment, or shadow-run evidence.
+
 ## 2026-09-16 current isolated unit gate
 
 - The complete backend unit suite passed `2,317/2,317` at source
