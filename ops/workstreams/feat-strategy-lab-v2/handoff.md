@@ -931,3 +931,22 @@ MyPy, and `git diff --check`. Aligned per-observation inferential metrics,
 ranking, significance, and all shared persistence/API/worker/runtime gates
 remain open. No provider, ETF, TC2000, persistence, API, worker, Compose,
 Nautilus, frontend, integration, promotion, or deployment paths were changed.
+
+## 2026-09-16 - Static strategy-source preflight checkpoint
+
+Product commit `ddac66de4` adds `strategy_validation.py`, a deterministic AST
+preflight that binds every result to the exact source digest and rejects
+disallowed or relative imports, filesystem/network roots, dynamic-code calls,
+aliases of dangerous builtins, and private-object introspection. A forbidden
+root remains rejected even when a caller attempts to broaden the allowlist. The
+preflight is intentionally an early rejection layer, not the runtime security
+boundary: isolated execution, no-network/read-only filesystem enforcement,
+resource limits, secret exclusion, and adversarial container tests remain open.
+
+The exact implementation tree passed all 100 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`; the product commit is published at the
+authorized `origin/feat-strategy-lab-v2` destination. Persistence, API, worker,
+artifact, Compose, Nautilus, frontend, integration, promotion, and deployment
+paths remain unchanged. The next bounded slice is an engine-neutral
+artifact/result-integrity contract while preserving this static-preflight and
+runtime-isolation boundary.
