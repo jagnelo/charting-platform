@@ -1091,3 +1091,20 @@ The exact implementation tree passed all 129 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Retry/recovery, database/API, worker,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Attempt recovery and retry checkpoint
+
+`recovery.py` adds a storage-neutral `RetryPolicy` and
+`plan_attempt_recovery()` decision contract. Recovery validates one contiguous
+terminal attempt chain, distinguishes retry/no-op/terminal outcomes, allows
+only explicitly retryable infrastructure causes, caps deterministic exponential
+backoff, and fails closed on active attempts, malformed chains, stale
+timestamps, cancellation retries, or exhausted limits. A retry plan can
+materialize a queued `RunAttempt` against the same immutable scientific trial;
+durable scheduling, compare-and-set, worker restart, and engine disposal remain
+adapter responsibilities.
+
+The exact implementation tree passed all 133 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API, durable worker recovery,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.

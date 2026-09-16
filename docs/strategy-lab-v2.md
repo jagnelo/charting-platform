@@ -309,6 +309,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `pairing.py` verifies exact keyed common-random draw alignment and emits a
   content-bound receipt that can upgrade sensitivity provenance to
   `verified_paired`; it does not perform statistical inference.
+- `recovery.py` defines deterministic, bounded infrastructure recovery. A
+  terminal failed attempt can produce a retry plan only for explicitly
+  retryable causes and while the attempt limit remains; capped exponential
+  backoff is derived from the next ordinal and supplied observation time.
+  Successful attempts are no-ops, cancellation is terminal by default, and
+  `RecoveryPlan.materialize_retry_attempt()` preserves the immutable trial
+  identity. Durable compare-and-set, scheduling, worker restart, and engine
+  disposal remain adapter responsibilities.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
