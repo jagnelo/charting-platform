@@ -42,6 +42,51 @@ describe('MarketMapTool', () => {
     apiGet.mockResolvedValue([])
   })
 
+  it('announces history and benchmark readiness loading states politely', async () => {
+    let resolveHistory!: (value: unknown) => void
+    let resolveCoverage!: (value: unknown) => void
+    const historyResponse = new Promise(resolve => { resolveHistory = resolve })
+    const coverageResponse = new Promise(resolve => { resolveCoverage = resolve })
+    apiGet.mockImplementation((path: string) => {
+      if (path.includes('/history-status/')) return historyResponse
+      if (path.includes('/analysis/benchmark-families/')) return coverageResponse
+      return Promise.resolve([])
+    })
+
+    const historyWrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await vi.waitFor(() => expect(apiGet.mock.calls.some(([path]) => String(path).includes('/history-status/'))).toBe(true))
+    const historyStatus = historyWrapper.get('[aria-label="Market Map history readiness"] [role="status"]')
+    expect(historyStatus.attributes('aria-live')).toBe('polite')
+    expect(historyStatus.attributes('aria-atomic')).toBe('true')
+    resolveHistory(null)
+    await flushPromises()
+    historyWrapper.unmount()
+
+    const coverageWrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
+    await vi.waitFor(() => expect(apiGet.mock.calls.some(([path]) => String(path).includes('/analysis/benchmark-families/'))).toBe(true))
+    const coverageStatus = coverageWrapper.get('[aria-label="Benchmark family canonical readiness"] [role="status"]')
+    expect(coverageStatus.attributes('aria-live')).toBe('polite')
+    expect(coverageStatus.attributes('aria-atomic')).toBe('true')
+    resolveCoverage({ roles: [] })
+    await flushPromises()
+    coverageWrapper.unmount()
+  })
+
+  it('announces benchmark readiness failures assertively', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path.includes('/analysis/benchmark-families/')) return Promise.reject(new Error('coverage unavailable'))
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
+    await flushPromises()
+
+    const error = wrapper.get('[aria-label="Benchmark family canonical readiness"] [role="alert"]')
+    expect(error.text()).toContain('coverage unavailable')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
   it('persists follow and pin preferences without changing locked source membership', async () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()

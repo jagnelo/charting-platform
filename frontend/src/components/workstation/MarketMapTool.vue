@@ -142,8 +142,8 @@
           <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
-      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
-      <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
+      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Evaluating isolated Python…</span>
+      <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ pythonRunError }}</span>
       <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
@@ -166,8 +166,8 @@
     </div>
     <div v-if="benchmarkFamilyKey || benchmarkCoverageLoading || benchmarkCoverageError" class="market-map-tool__benchmark-readiness" aria-label="Benchmark family canonical readiness">
       <strong>Canonical readiness</strong>
-      <span v-if="benchmarkCoverageLoading">Checking dated holdings, weights, classifications, and member bars…</span>
-      <span v-else-if="benchmarkCoverageError" class="market-map-tool__status--error" role="alert">{{ benchmarkCoverageError }}</span>
+      <span v-if="benchmarkCoverageLoading" role="status" aria-live="polite" aria-atomic="true">Checking dated holdings, weights, classifications, and member bars…</span>
+      <span v-else-if="benchmarkCoverageError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ benchmarkCoverageError }}</span>
       <template v-else-if="benchmarkCoverage">
         <span>{{ benchmarkCoverage.name }} · {{ coveragePercent(benchmarkCoverage.coverage, 0) }}% of roles have dated holdings</span>
         <ul class="market-map-tool__benchmark-readiness-list">
@@ -189,8 +189,8 @@
     </div>
     <div v-if="sourceId || historyLoading || historyError" class="market-map-tool__history-status" aria-label="Market Map history readiness">
       <strong>History</strong>
-      <span v-if="historyLoading">Checking local bars…</span>
-      <span v-else-if="historyError" class="market-map-tool__status--error" role="alert">{{ historyError }}</span>
+      <span v-if="historyLoading" role="status" aria-live="polite" aria-atomic="true">Checking local bars…</span>
+      <span v-else-if="historyError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ historyError }}</span>
       <template v-else-if="historyStatus">
         <span :class="`market-map-tool__history-status--${historyStatus.overall_status}`">{{ historyStatus.overall_status }}</span>
         <span v-if="historyStatus.analysis_ready_status" :class="`market-map-tool__history-status--${historyStatus.analysis_ready_status}`">analysis {{ historyStatus.analysis_ready_status }}</span>
