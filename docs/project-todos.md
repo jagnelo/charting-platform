@@ -10,6 +10,11 @@
       controls through settings, diagnostics, local/RPi Compose, GitHub live
       validation, examples, documentation, and focused tests. A reviewed
       scope/limit/rights set cannot promote FRED without reset evidence.
+- [x] Focused provider contract/registry/wiring coverage passes `159/159`,
+      and the full backend unit gate passes `2,361/2,361` with 70.80% coverage
+      and 37 warnings. The exact-current-source FRED preflight at
+      `626e672af` made zero provider requests and recorded the reset/evidence,
+      rights, and durable-ledger blockers.
 - [ ] Obtain current FRED/provider-account reset evidence and written storage,
       automated-use, and per-series rights authority before routing or live
       transport validation.

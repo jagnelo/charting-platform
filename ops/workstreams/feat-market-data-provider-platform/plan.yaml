@@ -3540,6 +3540,11 @@ progress:
       through settings, examples, Compose/RPi, GitHub live validation,
       diagnostics, documentation, and focused tests; a reviewed scope/limit
       and rights set cannot promote FRED without independent reset evidence.
+      Focused provider contract/registry/wiring coverage passes 159/159; the
+      full backend unit gate passes 2,361/2,361 with 70.80% coverage and 37
+      warnings. The exact-current-source FRED preflight at `626e672af` made
+      zero provider requests and recorded the reset/evidence, rights, and
+      durable-ledger blockers.
     - >-
       2026-09-16 exact-current-source refresh: the configured MarketData.app
       Starter Trial matrix passed `7/7` at source `5e2bfa102`, including
