@@ -1258,3 +1258,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is
 artifact retention/pinning semantics; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Artifact retention and pinning checkpoint
+
+`artifact_retention.py` adds immutable `ArtifactRetentionPin` and
+`ArtifactRetentionState` records bound to the exact artifact manifest. Pin
+creation and release have explicit add/replay/conflict and idempotent-release
+semantics. `resolve_artifact_retention()` evaluates permanent, pinned, tiered,
+and ephemeral classes at a caller-supplied timestamp: pinned classes fail
+closed without an active pin, active pins override expiry, and tier/expiry
+eligibility is observable without deleting or moving bytes. Pin identities and
+state ordering are deterministic; foreign manifests and invalid deadlines are
+rejected.
+
+The exact implementation tree passed all 182 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+worker heartbeat/lease-observation contract; preserve all shared-path and
+execution-authorization gates.

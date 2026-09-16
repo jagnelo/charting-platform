@@ -370,6 +370,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and idempotent release. Unsafe profiles, reused reservation identities, and
   concurrent attempts fail closed; process scheduling, lease heartbeats,
   restart recovery, and engine disposal remain adapter responsibilities.
+- `artifact_retention.py` defines immutable owner-scoped retention pins and
+  manifest-bound retention state. Pin adds and releases are idempotent; pinned
+  classes fail closed without an active pin, while tiered/ephemeral eligibility
+  is evaluated only at an explicit timestamp. The contract never deletes,
+  moves, or rewrites artifact bytes.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
