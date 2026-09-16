@@ -334,10 +334,13 @@ class Settings(BaseSettings):
                         "source": "https://www.alphavantage.co/support/",
                     }
                 ],
-                # The provider publishes the daily allowance but not a reset
-                # timezone. A rolling 24-hour reservation is conservative and
-                # avoids assuming an undocumented calendar boundary.
-                "reset": "rolling",
+                # The provider publishes the daily allowance but not its
+                # reset boundary or timezone. A local rolling window would be
+                # a convenient safety approximation, not a provider fact, so
+                # keep the dimension explicitly fail-closed until a current
+                # reset-bearing observation or provider confirmation exists.
+                "reset": "provider_defined",
+                "unknown_dimensions": ["requests_per_day_reset_boundary"],
             },
             "quota_scope": "api_key",
             "quota_source": "Alpha Vantage support documentation",

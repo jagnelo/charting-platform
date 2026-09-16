@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpha Vantage reset-boundary correction
+
+- Alpha Vantage publishes the free-key 25-requests/day allowance but does not
+  publish a reset timezone/boundary. The quota seed now records
+  `reset=provider_defined` plus the explicit
+  `requests_per_day_reset_boundary` unknown dimension instead of presenting a
+  local rolling 24-hour window as provider truth.
+- This is deliberately stricter: the existing typed daily-capacity response
+  handling remains intact, but Alpha Vantage daily-capacity routing stays
+  fail-closed until a current reset-bearing observation or provider-confirmed
+  boundary is recorded.
+
 ## 2026-09-16 exact-current OpenFIGI/full-matrix preflight
 
 - The lock-protected full provider runner at source `467b755dd` exited `2`

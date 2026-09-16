@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Alpha Vantage's free-key 25-requests/day allowance is documented, but its
+    reset boundary/timezone is not. The quota seed now records the dimension
+    as `provider_defined` with explicit unknown
+    `requests_per_day_reset_boundary`; no rolling 24-hour reset is presented
+    as provider fact. Daily-capacity routing remains fail-closed until a
+    provider reset observation or confirmation is available.
+  - >-
     OpenFIGI's current official contract is exact for both traffic modes:
     anonymous mapping is 25 requests/minute with five jobs/request, while an
     API key is 25 requests per six seconds with 100 jobs/request. Runtime
