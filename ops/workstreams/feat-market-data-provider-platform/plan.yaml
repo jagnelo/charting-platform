@@ -370,6 +370,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 exact-current coordinator-backed safety preflight at source
+      `13585d253` verified the owner-local durable ledger health/lock/write
+      path, then stopped before transport with exit 2 and zero provider
+      requests. The prior sandbox-only readonly-database result was
+      environmental, not provider evidence. Current provider-specific
+      baselines/contracts, unresolved capability dispositions, legal/source/
+      byte controls, and deferred human-owned gates remain explicit; no
+      routing or shadow activation was implied.
+    - >-
       2026-09-16 Tiingo account-usage endpoint verification: the current
       official documentation confirms the Starter request/bandwidth pools but
       does not expose a current machine-readable usage endpoint. The older

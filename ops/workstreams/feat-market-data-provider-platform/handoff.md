@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current coordinator-backed safety preflight
+
+- At source `13585d253`, the live runner was replayed with owner-local access
+  to the durable quota ledger. The coordinator health/lock/write check passed;
+  the earlier sandbox-only `readonly database` result was environmental and
+  is not provider evidence.
+- The runner then stopped before transport with exit `2` and zero provider
+  requests. It preserved the current provider-specific baseline/contract
+  blockers, unresolved capability dispositions, and legal/source/byte gates;
+  MarketData.app account-plan/option-chain controls were the only relevant
+  routing controls reported routable. The full matrix remains incomplete and
+  no provider routing or shadow phase is activated.
+
 ## 2026-09-16 Tiingo account-usage endpoint verification
 
 - Tiingo's current official general/pricing documentation confirms the Starter
