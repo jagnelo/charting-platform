@@ -1892,3 +1892,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Runtime-result materialization checkpoint
+
+`runtime_result_adapter.py` materializes one bounded sandbox terminal result into
+the existing monotonic runtime state. It verifies command-plan and runtime-
+request identity, records bounded stdout digest/size for success or typed error
+identity for failure, transitions through running to terminal state, replays
+exact terminal evidence, and rejects conflicting terminal evidence. This
+remains runtime evidence only; official result artifacts still require result
+publication gates.
+
+The exact implementation tree passed all 403 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

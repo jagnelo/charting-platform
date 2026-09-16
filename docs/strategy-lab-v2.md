@@ -573,6 +573,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   execution gate. Rejected, non-Nautilus, or sandbox-mismatched plans return
   before process creation; ready plans execute only through the bounded sandbox
   adapter and preserve authoritative status only for successful gated runs.
+- `runtime_result_adapter.py` materializes one bounded sandbox result into the
+  monotonic runtime execution state. It verifies command-plan and request
+  identity, records bounded stdout digest/size for success or typed error
+  identity for failure, replays exact terminal evidence, and rejects conflicting
+  terminal evidence. This is runtime evidence only; official result artifacts
+  still require the result-publication gates.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
