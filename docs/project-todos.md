@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-16 — Alpha Vantage reset-boundary admission control
+
+- [x] Replace the unresolved Alpha Vantage reset boundary with an explicit
+      provider-specific review path. Commit `2f72ad2d` adds
+      `ALPHA_VANTAGE_REVIEWED_RESET` and `ALPHA_VANTAGE_QUOTA_EVIDENCE`, keeps
+      the default 25-requests/day seed fail-closed, and promotes it only for an
+      admission-safe reset label with non-empty evidence. The controls are
+      wired through local/RPi Compose, the manual GitHub workflow, diagnostics,
+      and live preflight so future account-plan changes remain configuration-
+      driven rather than hard-coded.
+- [x] Validate focused registry/quota/secret-wiring coverage `152/152` and the
+      complete backend unit gate `2,353/2,353` (37 warnings, 70.73% coverage),
+      plus Ruff and diff checks. No provider request or credential was used.
+- [ ] Supply current provider reset-boundary evidence and run the bounded Alpha
+      weekly/monthly live case; do not promote routing from fixture evidence.
+
 ### 2026-09-16 — Alpha Vantage weekly/monthly history coverage
 
 - [x] Extend the Alpha Vantage adapter beyond its daily-only restriction to

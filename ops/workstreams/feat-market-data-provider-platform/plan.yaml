@@ -161,6 +161,17 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Alpha Vantage's free-key 25-requests/day quota still has no provider-published
+    reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
+    makes this an explicit provider-specific admission control rather than a
+    generic fallback: `ALPHA_VANTAGE_REVIEWED_RESET` must name an
+    admission-safe, calculable boundary and `ALPHA_VANTAGE_QUOTA_EVIDENCE` must
+    record its current evidence. Both are wired through local/RPi Compose and
+    GitHub live CI; blank/invalid values preserve the fail-closed seed. Focused
+    coverage is 152/152 and the full backend unit gate is 2,353/2,353 with 37
+    warnings at 70.73% coverage. A credentialed Alpha live case remains
+    intentionally preflight-blocked and no provider request was made.
+  - >-
     Alpha Vantage now parses the documented raw weekly and monthly time-series
     endpoints in addition to its bounded daily compact endpoint. Each history
     aggregation remains a one-query operation in the explicit usage profile;

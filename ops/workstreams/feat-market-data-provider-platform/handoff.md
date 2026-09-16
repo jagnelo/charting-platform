@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpha Vantage reset-boundary admission control
+
+- Alpha Vantage's documented free-key allowance remains 25 requests/day, but
+  the provider does not publish a reset boundary/timezone. Production defaults
+  therefore remain explicitly fail-closed (`provider_defined` plus
+  `requests_per_day_reset_boundary`) rather than inventing a rolling window.
+- Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1` adds the provider-specific
+  `ALPHA_VANTAGE_REVIEWED_RESET` and `ALPHA_VANTAGE_QUOTA_EVIDENCE` controls,
+  wires them through local/RPi Compose and the manual GitHub workflow, exposes
+  the missing controls in diagnostics/live preflight, and promotes the seed
+  only when the reset label is admission-safe and evidence is non-empty. This
+  is configuration-only for future plan changes; no provider quota is guessed.
+- Focused registry/quota/wiring coverage passed `152/152`; the complete backend
+  unit gate passed `2,353/2,353` with 37 warnings and 70.73% coverage; Ruff and
+  `git diff --check` passed. Tests made no external provider requests.
+- The Alpha credentialed live case remains blocked before transport until an
+  operator supplies current reset-boundary evidence; the workstream remains
+  `ready_for_human_review`, not accepted for routing or shadow activation.
+
 ## 2026-09-16 Alpha Vantage weekly/monthly history coverage
 
 - The Alpha Vantage adapter now uses the documented raw
