@@ -3515,4 +3515,14 @@ progress:
       and fail closed. The controls are wired through settings, environment
       examples, Compose/RPi, GitHub live validation, diagnostics, and tests;
       no default reset semantics were inferred.
+    - >-
+      2026-09-16 exact-current-source refresh: the configured MarketData.app
+      Starter Trial matrix passed `7/7` at source `5e2bfa102`, including
+      daily/five-minute candles, latest price, option expirations/chain,
+      bounded option history, account usage, and the deliberate no-request
+      guard for response-priced history. The current Massive preflight then
+      stopped before transport with zero requests and recorded the explicit
+      reset/use-scope blockers. These are bounded transport and safety
+      receipts only; remaining provider, source/legal, universe, secret-store,
+      deferred-provider, and shadow gates remain open.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
