@@ -7,9 +7,10 @@ it turns a quantity into an auditable estimated base notional, applies the
 portfolio's all-or-nothing shared-risk gate, and returns an engine-neutral
 order record.  It never submits an order or claims that the estimate is a fill.
 
-The first registered model is cash-equity market value as signed base notional.
-Derivative and other product models must add their own validated economics and
-remain rejected until their semantics are explicitly registered.
+Registered models currently cover cash equities, crypto spot, futures contract
+notional, option delta-adjusted underlying notional, and FX pair notional.
+Each model still requires adapter-verified economics; unregistered product
+models remain rejected.
 """
 
 from __future__ import annotations
@@ -28,11 +29,12 @@ from app.strategy_lab_v2.allocation import (
 )
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
-    CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    SUPPORTED_PRODUCT_RISK_MODELS,
     PortfolioComposition,
     ProductRiskModel,
 )
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
+from app.strategy_lab_v2.risk_models import estimate_signed_base_notional
 from app.strategy_lab_v2.sdk import OrderIntent, OrderSide, OrderType, TimeInForce
 
 ORDER_ROUTING_DEFINITION_VERSION = (
@@ -82,6 +84,8 @@ class InstrumentOrderEconomics:
     quote_to_base_rate: Decimal
     valuation_evidence_digest: str
     price_tick: Decimal | None = None
+    underlying_mark_price: Decimal | None = None
+    option_delta: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.instrument_id, str) or not self.instrument_id.strip():
@@ -145,10 +149,6 @@ class RoutedOrder:
             or self.estimated_signed_base_notional == 0
         ):
             raise ValueError("estimated_signed_base_notional must be finite and non-zero")
-        if self.side is OrderSide.BUY and self.estimated_signed_base_notional < 0:
-            raise ValueError("buy estimated notional must be positive")
-        if self.side is OrderSide.SELL and self.estimated_signed_base_notional > 0:
-            raise ValueError("sell estimated notional must be negative")
         if self.client_tag is not None and not self.client_tag.strip():
             raise ValueError("client_tag must be non-empty when provided")
 
@@ -292,7 +292,7 @@ def route_order_intents(
         item.instrument_id: item.risk_model for item in exposure_snapshot.instrument_risk_models
     }
     for instrument_id, model in snapshot_models.items():
-        if model != CASH_EQUITY_NOTIONAL_RISK_MODEL:
+        if model not in SUPPORTED_PRODUCT_RISK_MODELS:
             raise ValueError(f"instrument {instrument_id!r} uses an unsupported order risk model")
         if allowed_models.get(model.product_class) != model:
             raise ValueError(f"instrument {instrument_id!r} risk model is not allowed by the portfolio policy")
@@ -336,11 +336,15 @@ def route_order_intents(
             economics = instrument_economics.get(intent.instrument_id)
             if economics is None:
                 raise ValueError(f"instrument {intent.instrument_id!r} has no order economics")
+            if economics.instrument_id != intent.instrument_id:
+                raise ValueError(
+                    f"instrument {intent.instrument_id!r} economics identity does not match"
+                )
             if economics.base_currency != portfolio.base_currency:
                 raise ValueError(
                     f"instrument {intent.instrument_id!r} economics use a different base currency"
                 )
-            if economics.risk_model != CASH_EQUITY_NOTIONAL_RISK_MODEL:
+            if economics.risk_model not in SUPPORTED_PRODUCT_RISK_MODELS:
                 raise ValueError(
                     f"instrument {intent.instrument_id!r} uses an unsupported order risk model"
                 )
@@ -365,14 +369,19 @@ def route_order_intents(
             if identity in seen_intents:
                 raise ValueError("duplicate order intent in one component batch")
             seen_intents.add(identity)
-            sign = Decimal(1) if intent.side is OrderSide.BUY else Decimal(-1)
-            estimated_notional = (
-                sign
-                * intent.quantity
-                * economics.mark_price
-                * economics.contract_multiplier
-                * economics.quote_to_base_rate
+            valuation = estimate_signed_base_notional(
+                instrument_id=intent.instrument_id,
+                risk_model=economics.risk_model,
+                side=intent.side,
+                quantity=intent.quantity,
+                mark_price=economics.mark_price,
+                contract_multiplier=economics.contract_multiplier,
+                quote_to_base_rate=economics.quote_to_base_rate,
+                valuation_evidence_digest=economics.valuation_evidence_digest,
+                underlying_mark_price=economics.underlying_mark_price,
+                option_delta=economics.option_delta,
             )
+            estimated_notional = valuation.signed_base_notional
             routed_order = RoutedOrder(
                 component_id=component_id,
                 intent_fingerprint=intent_fingerprint,

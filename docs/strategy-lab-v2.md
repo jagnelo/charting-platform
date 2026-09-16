@@ -22,12 +22,13 @@ handling is explicit (`reject`, `highest_priority`, or `sum_component_targets`),
 and gross risk is calculated before same-instrument netting. Shared gross, net,
 instrument, component, open-instrument-count, and short-position limits fail the
 whole candidate batch closed; targets are never silently scaled. Raw quantity
-`OrderIntent`s remain unroutable until an engine adapter supplies authoritative
+`OrderIntent`s are sized only after an engine adapter supplies authoritative
 instrument economics, FX conversion, and product-appropriate risk valuation.
 Risk calculations use a content-addressed, per-product risk-model binding. The
-current registry supports only cash-equity signed base notional; unsupported or
-unregistered products, including futures and options, fail closed. These
-notional concentration caps are not a complete market, margin, liquidity, or
+current registry covers cash-equity and crypto-spot marked notional, futures
+contract notional, option delta-adjusted underlying notional, and FX pair
+notional; unsupported or unregistered products fail closed. These notional
+concentration caps are not a complete market, margin, liquidity, or
 derivative-risk model, and passing them never authorizes order execution.
 Before execution, a capability preflight
 must establish the requested product, data granularity, history, adjustment,
@@ -127,17 +128,22 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `allocation.py` resolves event-aligned component target-position intents using
   typed policies, preserves existing component-attributed positions, records
   deterministic conflicts, and returns proposed versus risk-approved account targets.
-  Explicit zero targets are preserved. The only registered instrument risk
-  model is cash-equity market value as signed base notional. Current exposure
-  snapshots bind opaque valuation evidence which the future adapter must verify;
-  futures, options, FX, crypto, and other models are not currently supported.
+  Explicit zero targets are preserved. Exact registered cash-equity, crypto-spot,
+  futures, option-delta, and FX risk models are accepted only when the policy
+  and snapshot bind the same model; unregistered models fail closed. Current
+  exposure snapshots bind opaque valuation evidence which the adapter must verify.
   This pure module does not create or route engine orders.
+- `risk_models.py` applies the registered product formulas to adapter-verified
+  order economics: marked quantity value for cash/crypto, contract notional for
+  futures, delta-adjusted underlying notional for options, and marked pair
+  notional for FX. It returns a digest-bound signed base-notional receipt and
+  deliberately omits margin, liquidity, settlement, and engine-fill claims.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
-  digest-bound, adapter-supplied cash-equity base-notional estimates, validates
+  digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared
   risk gate before exposing an engine-neutral routed order. Estimates are not
-  fills and no order is submitted; futures, options, FX, crypto, and other
-  unregistered product models remain fail-closed.
+  fills and no order is submitted; unregistered product models remain
+  fail-closed.
 - `rebalance.py` validates complete local-date calendar coverage with explicit
   trading/closed days, official trading-date labels, UTC session segments,
   timezone and tzdb versions, and source evidence. It deterministically schedules

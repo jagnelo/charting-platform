@@ -16,7 +16,7 @@ from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
-    CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    SUPPORTED_PRODUCT_RISK_MODELS,
     PortfolioComponent,
     PortfolioComposition,
     ProductRiskModel,
@@ -376,7 +376,7 @@ def allocate_component_targets(
         risk_model = snapshot_risk_models.get(instrument_id)
         if risk_model is None:
             raise ValueError(f"instrument {instrument_id!r} has no risk-model evidence")
-        if risk_model != CASH_EQUITY_NOTIONAL_RISK_MODEL:
+        if risk_model not in SUPPORTED_PRODUCT_RISK_MODELS:
             raise ValueError(
                 f"instrument {instrument_id!r} uses an unsupported product risk model"
             )

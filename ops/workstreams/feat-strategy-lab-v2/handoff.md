@@ -2219,3 +2219,22 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Registered product-risk valuation checkpoint
+
+`contracts.py` now publishes exact content-addressed risk-model definitions for
+cash equity, crypto spot, futures contract notional, option delta-adjusted
+underlying notional, and FX pair notional. `risk_models.py` applies those
+versioned formulas only to adapter-verified economics and emits a signed
+base-notional receipt; option exposure explicitly binds underlying mark and
+delta, while all formulas remain estimates rather than fills or margin/liquidity
+claims. Allocation and order routing accept only these exact registered models
+and the policy/snapshot binding must agree, so arbitrary digests and other
+products still fail closed.
+
+The exact implementation tree passed all 458 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.

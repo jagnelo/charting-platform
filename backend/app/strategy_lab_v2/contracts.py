@@ -77,6 +77,9 @@ class TargetConflictPolicy(StrEnum):
 
 class RiskExposureMeasure(StrEnum):
     SIGNED_BASE_NOTIONAL = "signed_base_notional"
+    SIGNED_CONTRACT_NOTIONAL = "signed_contract_notional"
+    DELTA_ADJUSTED_BASE_NOTIONAL = "delta_adjusted_base_notional"
+    SIGNED_BASE_CURRENCY_NOTIONAL = "signed_base_currency_notional"
 
 
 class ArtifactRetention(StrEnum):
@@ -261,6 +264,46 @@ CASH_EQUITY_NOTIONAL_RISK_MODEL = ProductRiskModel(
     definition_digest=content_digest(
         {"model": "cash-equity-market-value-as-signed-base-notional", "version": 1}
     ),
+)
+
+CRYPTO_SPOT_NOTIONAL_RISK_MODEL = ProductRiskModel(
+    product_class=ProductClass.CRYPTO,
+    exposure_measure=RiskExposureMeasure.SIGNED_BASE_NOTIONAL,
+    definition_digest=content_digest(
+        {"model": "crypto-spot-market-value-as-signed-base-notional", "version": 1}
+    ),
+)
+
+FUTURE_CONTRACT_NOTIONAL_RISK_MODEL = ProductRiskModel(
+    product_class=ProductClass.FUTURE,
+    exposure_measure=RiskExposureMeasure.SIGNED_CONTRACT_NOTIONAL,
+    definition_digest=content_digest(
+        {"model": "future-contract-notional-as-signed-base-notional", "version": 1}
+    ),
+)
+
+OPTION_DELTA_NOTIONAL_RISK_MODEL = ProductRiskModel(
+    product_class=ProductClass.OPTION,
+    exposure_measure=RiskExposureMeasure.DELTA_ADJUSTED_BASE_NOTIONAL,
+    definition_digest=content_digest(
+        {"model": "option-delta-adjusted-underlying-notional", "version": 1}
+    ),
+)
+
+FX_BASE_NOTIONAL_RISK_MODEL = ProductRiskModel(
+    product_class=ProductClass.FX,
+    exposure_measure=RiskExposureMeasure.SIGNED_BASE_CURRENCY_NOTIONAL,
+    definition_digest=content_digest(
+        {"model": "fx-pair-base-currency-notional", "version": 1}
+    ),
+)
+
+SUPPORTED_PRODUCT_RISK_MODELS = (
+    CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    CRYPTO_SPOT_NOTIONAL_RISK_MODEL,
+    FUTURE_CONTRACT_NOTIONAL_RISK_MODEL,
+    OPTION_DELTA_NOTIONAL_RISK_MODEL,
+    FX_BASE_NOTIONAL_RISK_MODEL,
 )
 
 
