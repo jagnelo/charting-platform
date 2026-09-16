@@ -4560,3 +4560,10 @@ the authoritative record for this replay; it made zero provider calls.
   host-level `make branch-validate` Xcode-license blocker remains unchanged;
   this direct validator result is the repository/workstream evidence and does
   not substitute for the Docker-backed full-stack gate.
+
+- Three bounded Alpaca header probes (one request each, no payload persisted)
+  returned the reviewed `200` limit and `199` remaining, but
+  `X-RateLimit-Reset` tracked the current/near-current Unix second rather than
+  proving a stable minute boundary. The implementation therefore correctly
+  keeps ordinary Alpaca routing fail-closed and treats the native snapshot as
+  observation-only; no fixed-window assumption was introduced.
