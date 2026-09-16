@@ -36,6 +36,7 @@ from app.strategy_lab_v2.contracts import (
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
+    TrialSeedPolicy,
 )
 from app.strategy_lab_v2.experiments import (
     ExpansionMethod,
@@ -192,7 +193,8 @@ def test_scientific_trial_identity_is_stable_across_mapping_order() -> None:
             preflight_report=degraded_report,
             parameter_set={},
             scenario={},
-            seed=0,
+            seed=first.seed,
+            randomization=first.randomization,
         )
     unsupported = preflight_capabilities((_requirement(session="extended"),), (_cell(),))
     with pytest.raises(ValueError, match="unsupported preflight"):
@@ -287,6 +289,237 @@ def test_search_grid_random_and_latin_hypercube_are_deterministic() -> None:
     assert len(plans) == 8
     assert plans == repeated
     assert len({item.seed for item in plans}) == len(plans)
+    assert [item.seed for item in plans] == [
+        6980317637284689226,
+        8685861484798666868,
+        4423458724541804185,
+        4469982436725750052,
+        1295317444626196142,
+        3296952616154428720,
+        1590824964799001329,
+        8319398782401529149,
+    ]
+    assert all(
+        item.randomization.policy is TrialSeedPolicy.PER_CANDIDATE
+        and item.randomization.replicate_index == 0
+        and item.randomization.master_seed == 41
+        and item.randomization.seed_group_fingerprint is not None
+        and item.randomization.replicate_count == 1
+        and not item.randomization.has_schedule_provenance
+        for item in plans
+    )
+    preflight = preflight_capabilities((_requirement(),), (_cell(),))
+    default_plan = plans[0]
+    generated_trial = ScientificTrial.create(
+        experiment_fingerprint=content_digest({"experiment": "legacy-id"}),
+        snapshot_fingerprint=content_digest({"snapshot": "legacy-id"}),
+        preflight_report=preflight,
+        parameter_set=default_plan.parameters,
+        scenario=default_plan.scenario,
+        randomization=default_plan.randomization,
+    )
+    legacy_trial = ScientificTrial.create(
+        experiment_fingerprint=generated_trial.experiment_fingerprint,
+        snapshot_fingerprint=generated_trial.snapshot_fingerprint,
+        preflight_report=preflight,
+        parameter_set=default_plan.parameters,
+        scenario=default_plan.scenario,
+        seed=default_plan.seed,
+    )
+    assert generated_trial.randomization == default_plan.randomization
+    assert generated_trial.trial_id == legacy_trial.trial_id
+    with pytest.raises(ValueError, match="does not match its seed-group fingerprint"):
+        replace(default_plan.randomization, seed=default_plan.seed + 1)
+    with pytest.raises(ValueError, match="unsupported trial seed derivation version"):
+        replace(default_plan.randomization, derivation_version="unrecognized.v1")
+
+    independent_replicates = build_trial_designs(
+        ({"lookback": 5},),
+        scenarios[:1],
+        seed=41,
+        replicate_count=3,
+    )
+    assert [item.replicate_index for item in independent_replicates] == [0, 1, 2]
+    assert all(item.randomization.replicate_count == 3 for item in independent_replicates)
+    assert len({item.seed for item in independent_replicates}) == 3
+    assert len(
+        {item.randomization.seed_group_fingerprint for item in independent_replicates}
+    ) == 3
+    assert all(item.randomization.has_schedule_provenance for item in independent_replicates)
+
+
+def test_trial_seed_sharing_is_explicit_replicated_and_identity_bound() -> None:
+    scope = content_digest({"experiment": "fixed-input-scope"})
+    parameters = ({"lookback": 5}, {"lookback": 10}, {"lookback": 20})
+    scenarios = expand_scenario_matrix({"regime": ("calm", "stress")})
+    plans = build_trial_designs(
+        parameters,
+        scenarios,
+        seed=41,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=3,
+        scope_fingerprint=scope,
+    )
+    repeated = build_trial_designs(
+        parameters,
+        scenarios,
+        seed=41,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=3,
+        scope_fingerprint=scope,
+    )
+    assert len(plans) == len(repeated) == 18
+    assert plans == repeated
+
+    assignments = {
+        (item.scenario["regime"], item.replicate_index): item.randomization
+        for item in plans
+        if item.parameters["lookback"] == 5
+    }
+    for scenario in ("calm", "stress"):
+        replicate_assignments = [assignments[(scenario, replicate)] for replicate in range(3)]
+        assert len({item.seed for item in replicate_assignments}) == 3
+        assert len({item.seed_group_fingerprint for item in replicate_assignments}) == 3
+
+    for item in plans:
+        peers = [
+            other
+            for other in plans
+            if other.scenario == item.scenario
+            and other.replicate_index == item.replicate_index
+        ]
+        assert len(peers) == 3
+        assert {other.seed for other in peers} == {item.seed}
+        assert {other.randomization.seed_group_fingerprint for other in peers} == {
+            item.randomization.seed_group_fingerprint
+        }
+        assert item.randomization.policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE
+        assert item.randomization.scope_fingerprint == scope
+        assert item.randomization.master_seed == 41
+
+    permuted = build_trial_designs(
+        tuple(reversed(parameters)),
+        tuple(reversed(scenarios)),
+        seed=41,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=3,
+        scope_fingerprint=scope,
+    )
+    assignment_by_candidate = {
+        (canonical_json(item.parameters), canonical_json(item.scenario), item.replicate_index): (
+            item.seed,
+            item.randomization.seed_group_fingerprint,
+        )
+        for item in plans
+    }
+    assert assignment_by_candidate == {
+        (canonical_json(item.parameters), canonical_json(item.scenario), item.replicate_index): (
+            item.seed,
+            item.randomization.seed_group_fingerprint,
+        )
+        for item in permuted
+    }
+
+    other_master_seed = build_trial_designs(
+        parameters,
+        scenarios,
+        seed=42,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=3,
+        scope_fingerprint=scope,
+    )
+    other_scope = build_trial_designs(
+        parameters,
+        scenarios,
+        seed=41,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=3,
+        scope_fingerprint=content_digest({"experiment": "another-scope"}),
+    )
+    assert plans[0].randomization.seed_group_fingerprint != other_master_seed[0].randomization.seed_group_fingerprint
+    assert plans[0].randomization.seed_group_fingerprint != other_scope[0].randomization.seed_group_fingerprint
+
+    preflight = preflight_capabilities((_requirement(),), (_cell(),))
+    first = ScientificTrial.create(
+        experiment_fingerprint=scope,
+        snapshot_fingerprint=content_digest({"snapshot": 1}),
+        preflight_report=preflight,
+        parameter_set=plans[0].parameters,
+        scenario=plans[0].scenario,
+        randomization=plans[0].randomization,
+    )
+    second = ScientificTrial.create(
+        experiment_fingerprint=scope,
+        snapshot_fingerprint=content_digest({"snapshot": 1}),
+        preflight_report=preflight,
+        parameter_set=plans[6].parameters,
+        scenario=plans[6].scenario,
+        randomization=plans[6].randomization,
+    )
+    assert first.seed == second.seed
+    assert first.randomization == plans[0].randomization
+    assert first.trial_id != second.trial_id
+    same_candidate_next_replicate = ScientificTrial.create(
+        experiment_fingerprint=scope,
+        snapshot_fingerprint=content_digest({"snapshot": 1}),
+        preflight_report=preflight,
+        parameter_set=plans[1].parameters,
+        scenario=plans[1].scenario,
+        randomization=plans[1].randomization,
+    )
+    assert same_candidate_next_replicate.parameter_set == first.parameter_set
+    assert same_candidate_next_replicate.seed != first.seed
+    assert same_candidate_next_replicate.randomization.replicate_index == 1
+    assert same_candidate_next_replicate.trial_id != first.trial_id
+    with pytest.raises(ValueError, match="scope must match its experiment"):
+        ScientificTrial.create(
+            experiment_fingerprint=content_digest({"experiment": "wrong-scope"}),
+            snapshot_fingerprint=content_digest({"snapshot": 1}),
+            preflight_report=preflight,
+            parameter_set=plans[0].parameters,
+            scenario=plans[0].scenario,
+            randomization=plans[0].randomization,
+        )
+
+    with pytest.raises(ValueError, match="positive integer"):
+        build_trial_designs(parameters, scenarios, seed=41, replicate_count=0)
+    with pytest.raises(ValueError, match="positive integer"):
+        build_trial_designs(parameters, scenarios, seed=41, replicate_count=True)
+    with pytest.raises(ValueError, match="seed must be an integer"):
+        build_trial_designs(parameters, scenarios, seed=True)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="fixed-input scope_fingerprint"):
+        build_trial_designs(
+            parameters,
+            scenarios,
+            seed=41,
+            seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        )
+    with pytest.raises(ValueError, match="unique parameter sets"):
+        build_trial_designs(
+            ({"lookback": 5}, {"lookback": 5}),
+            scenarios,
+            seed=41,
+            seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+            scope_fingerprint=scope,
+        )
+    with pytest.raises(ValueError, match="unique scenarios"):
+        build_trial_designs(
+            parameters,
+            (scenarios[0], scenarios[0]),
+            seed=41,
+            seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+            scope_fingerprint=scope,
+        )
+    with pytest.raises(ValueError, match="more than max_trials"):
+        build_trial_designs(
+            parameters,
+            scenarios,
+            seed=41,
+            seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+            replicate_count=3,
+            scope_fingerprint=scope,
+            max_trials=17,
+        )
 
 
 def test_walk_forward_gaps_embargo_and_oos_aggregation_are_explicit() -> None:

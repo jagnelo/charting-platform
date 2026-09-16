@@ -11,6 +11,11 @@ from itertools import product
 from typing import Any
 
 from app.strategy_lab_v2.canonical import canonical_json, content_digest, freeze_json
+from app.strategy_lab_v2.contracts import (
+    TRIAL_SEED_DERIVATION_VERSION,
+    TrialRandomization,
+    TrialSeedPolicy,
+)
 
 
 class ExpansionMethod(StrEnum):
@@ -241,13 +246,27 @@ class TrialDesign:
     candidate_index: int
     parameters: Mapping[str, Any]
     scenario: Mapping[str, Any]
-    seed: int
+    randomization: TrialRandomization
 
     def __post_init__(self) -> None:
-        if self.candidate_index < 0:
+        if (
+            not isinstance(self.candidate_index, int)
+            or isinstance(self.candidate_index, bool)
+            or self.candidate_index < 0
+        ):
             raise ValueError("candidate_index must be non-negative")
+        if not isinstance(self.randomization, TrialRandomization):
+            raise TypeError("trial design requires typed TrialRandomization provenance")
         object.__setattr__(self, "parameters", freeze_json(self.parameters))
         object.__setattr__(self, "scenario", freeze_json(self.scenario))
+
+    @property
+    def seed(self) -> int:
+        return self.randomization.seed
+
+    @property
+    def replicate_index(self) -> int:
+        return self.randomization.replicate_index
 
 
 def build_trial_designs(
@@ -255,36 +274,111 @@ def build_trial_designs(
     scenarios: Sequence[Mapping[str, Any]],
     *,
     seed: int,
+    seed_policy: TrialSeedPolicy = TrialSeedPolicy.PER_CANDIDATE,
+    replicate_count: int = 1,
+    scope_fingerprint: str | None = None,
     max_trials: int = 100_000,
 ) -> tuple[TrialDesign, ...]:
-    """Cross parameter draws and scenarios with stable per-candidate random seeds."""
+    """Build deterministic seed assignments without claiming paired random draws.
+
+    The default retains the existing per-candidate seed derivation. The explicit
+    shared policy assigns one initial seed to each scope/scenario/replicate group
+    across parameter rows; engine stream compatibility is not implied.
+    """
 
     if not parameter_sets or not scenarios:
         raise ValueError("trial construction requires parameters and at least one scenario")
-    if max_trials < 1:
+    if not isinstance(seed, int) or isinstance(seed, bool):
+        raise ValueError("seed must be an integer")
+    seed_policy = TrialSeedPolicy(seed_policy)
+    if (
+        not isinstance(replicate_count, int)
+        or isinstance(replicate_count, bool)
+        or replicate_count < 1
+    ):
+        raise ValueError("replicate_count must be a positive integer")
+    if (
+        not isinstance(max_trials, int)
+        or isinstance(max_trials, bool)
+        or max_trials < 1
+    ):
         raise ValueError("max_trials must be positive")
-    total = len(parameter_sets) * len(scenarios)
+    if scope_fingerprint is not None and (
+        not isinstance(scope_fingerprint, str) or not scope_fingerprint
+    ):
+        raise ValueError("scope_fingerprint must be a non-empty SHA-256 digest")
+    if seed_policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE:
+        if scope_fingerprint is None:
+            raise ValueError("shared seed policy requires a fixed-input scope_fingerprint")
+        parameter_keys = [canonical_json(freeze_json(item)) for item in parameter_sets]
+        scenario_keys = [canonical_json(freeze_json(item)) for item in scenarios]
+        if len(parameter_keys) != len(set(parameter_keys)):
+            raise ValueError("shared seed policy requires unique parameter sets")
+        if len(scenario_keys) != len(set(scenario_keys)):
+            raise ValueError("shared seed policy requires unique scenarios")
+    total = len(parameter_sets) * len(scenarios) * replicate_count
     if total > max_trials:
         raise ValueError(f"trial design contains more than max_trials={max_trials} candidates")
     designs: list[TrialDesign] = []
+    seed_groups_by_value: dict[int, str] = {}
+    derivation_version = TRIAL_SEED_DERIVATION_VERSION
     for parameter_index, parameters in enumerate(parameter_sets):
         for scenario_index, scenario in enumerate(scenarios):
-            identity = {
-                "experiment_seed": seed,
-                "parameter_index": parameter_index,
-                "scenario_index": scenario_index,
-                "parameters": parameters,
-                "scenario": scenario,
-            }
-            derived_seed = int(content_digest(identity).split(":", 1)[1][:16], 16) & ((1 << 63) - 1)
-            designs.append(
-                TrialDesign(
-                    candidate_index=len(designs),
-                    parameters=parameters,
-                    scenario=scenario,
-                    seed=derived_seed,
+            for replicate_index in range(replicate_count):
+                candidate_identity = {
+                    "experiment_seed": seed,
+                    "parameter_index": parameter_index,
+                    "scenario_index": scenario_index,
+                    "parameters": parameters,
+                    "scenario": scenario,
+                }
+                identity: dict[str, Any]
+                if seed_policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE:
+                    identity = {
+                        "derivation_version": derivation_version,
+                        "policy": seed_policy.value,
+                        "scope_fingerprint": scope_fingerprint,
+                        "master_seed": seed,
+                        "scenario": scenario,
+                        "replicate_index": replicate_index,
+                    }
+                elif replicate_count == 1 and scope_fingerprint is None:
+                    identity = candidate_identity
+                else:
+                    identity = {
+                        **candidate_identity,
+                        "replicate_index": replicate_index,
+                        "scope_fingerprint": scope_fingerprint,
+                        "derivation_version": derivation_version,
+                    }
+                seed_group_fingerprint = content_digest(identity)
+                derived_seed = (
+                    int(seed_group_fingerprint.split(":", 1)[1][:16], 16)
+                    & ((1 << 63) - 1)
                 )
-            )
+                prior_group = seed_groups_by_value.setdefault(
+                    derived_seed, seed_group_fingerprint
+                )
+                if prior_group != seed_group_fingerprint:
+                    raise ValueError("derived trial seed collision across distinct randomization groups")
+                randomization = TrialRandomization(
+                    master_seed=seed,
+                    seed=derived_seed,
+                    policy=seed_policy,
+                    replicate_index=replicate_index,
+                    scope_fingerprint=scope_fingerprint,
+                    seed_group_fingerprint=seed_group_fingerprint,
+                    replicate_count=replicate_count,
+                    derivation_version=derivation_version,
+                )
+                designs.append(
+                    TrialDesign(
+                        candidate_index=len(designs),
+                        parameters=parameters,
+                        scenario=scenario,
+                        randomization=randomization,
+                    )
+                )
     return tuple(designs)
 
 

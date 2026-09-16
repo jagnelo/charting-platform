@@ -77,6 +77,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   preflight matching includes event type and
   semantic series requirements; manifest interval continuity is structural
   validation, not a substitute for upstream coverage-attestation verification.
+  Scientific trials also carry typed randomization provenance: master/effective
+  seed, policy, replicate index/count, scope and seed-group fingerprints, and
+  derivation version. Generated assignments verify their effective seed against
+  the supported seed-group digest; unsupported derivation versions fail closed.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
@@ -110,7 +114,17 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Engine adapters must provide the evidence; the core does not perform FX
   conversion, infer costs, or infer P&L attribution from position weights.
 - `experiments.py` expands deterministic search/scenario plans and
-  leakage-aware walk-forward folds.
+  leakage-aware walk-forward folds. Trial seeds remain per-candidate by default
+  with the pre-existing derivation unchanged. The default also retains existing
+  trial IDs: its typed seed metadata remains available without redundantly adding
+  the legacy schedule to identity. An explicit shared-per-scenario-replicate
+  policy assigns the same initial seed across parameter candidates within one
+  fixed experiment scope, scenario, and replicate, and records the seed group
+  needed for later matching. This is not evidence of paired random draws:
+  stateful/unkeyed engine streams may diverge when strategies take different
+  paths. Statistical pairing stays unavailable until an engine/runtime attests
+  compatible deterministic keyed-stream semantics. Replicates are explicit;
+  infrastructure retries remain attempts of the same scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from

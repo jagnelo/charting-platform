@@ -45,6 +45,15 @@ class MetricBasis(StrEnum):
     NET = "net"
 
 
+class TrialSeedPolicy(StrEnum):
+    PER_CANDIDATE = "per_candidate"
+    SHARED_PER_SCENARIO_REPLICATE = "shared_per_scenario_replicate"
+
+
+TRIAL_SEED_DERIVATION_VERSION = "strategy-lab.trial-seed.sha256-canonical-63.v1"
+EXPLICIT_SEED_DERIVATION_VERSION = "explicit-seed.v1"
+
+
 class TargetConflictPolicy(StrEnum):
     REJECT = "reject"
     HIGHEST_PRIORITY = "highest_priority"
@@ -579,6 +588,82 @@ class ExperimentDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class TrialRandomization:
+    """Reproducible seed assignment; shared seeds alone do not imply paired draws."""
+
+    master_seed: int
+    seed: int
+    policy: TrialSeedPolicy
+    replicate_index: int
+    scope_fingerprint: str | None
+    seed_group_fingerprint: str | None
+    replicate_count: int
+    derivation_version: str
+
+    def __post_init__(self) -> None:
+        for name, value in (("master_seed", self.master_seed), ("seed", self.seed)):
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(f"{name} must be an integer")
+        if not isinstance(self.policy, TrialSeedPolicy):
+            raise TypeError("policy must be a TrialSeedPolicy")
+        if (
+            not isinstance(self.replicate_index, int)
+            or isinstance(self.replicate_index, bool)
+            or self.replicate_index < 0
+        ):
+            raise ValueError("replicate_index must be a non-negative integer")
+        if (
+            not isinstance(self.replicate_count, int)
+            or isinstance(self.replicate_count, bool)
+            or self.replicate_count < 1
+        ):
+            raise ValueError("replicate_count must be a positive integer")
+        if self.replicate_index >= self.replicate_count:
+            raise ValueError("replicate_index must be less than replicate_count")
+        if self.scope_fingerprint is not None:
+            require_sha256_digest(self.scope_fingerprint, field_name="scope_fingerprint")
+        if self.seed_group_fingerprint is not None:
+            require_sha256_digest(
+                self.seed_group_fingerprint, field_name="seed_group_fingerprint"
+            )
+        if self.policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE and (
+            self.scope_fingerprint is None or self.seed_group_fingerprint is None
+        ):
+            raise ValueError("shared-seed assignments require scope and seed-group fingerprints")
+        _nonempty(self.derivation_version, "derivation_version")
+        if self.derivation_version == EXPLICIT_SEED_DERIVATION_VERSION:
+            if (
+                self.seed_group_fingerprint is not None
+                or self.scope_fingerprint is not None
+                or self.policy is not TrialSeedPolicy.PER_CANDIDATE
+                or self.replicate_index != 0
+                or self.replicate_count != 1
+                or self.master_seed != self.seed
+            ):
+                raise ValueError("explicit-seed provenance cannot claim a derived schedule")
+        elif self.derivation_version == TRIAL_SEED_DERIVATION_VERSION:
+            if self.seed_group_fingerprint is None:
+                raise ValueError("derived seed provenance requires a seed-group fingerprint")
+            expected_seed = (
+                int(self.seed_group_fingerprint.split(":", 1)[1][:16], 16)
+                & ((1 << 63) - 1)
+            )
+            if self.seed != expected_seed:
+                raise ValueError("trial seed does not match its seed-group fingerprint")
+        else:
+            raise ValueError("unsupported trial seed derivation version")
+
+    @property
+    def has_schedule_provenance(self) -> bool:
+        return (
+            self.scope_fingerprint is not None
+            or self.policy is not TrialSeedPolicy.PER_CANDIDATE
+            or self.replicate_index != 0
+            or self.replicate_count != 1
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ScientificTrial:
     trial_id: str
     experiment_fingerprint: str
@@ -587,6 +672,7 @@ class ScientificTrial:
     parameter_set: Mapping[str, Any]
     scenario: Mapping[str, Any]
     seed: int
+    randomization: TrialRandomization
 
     def __post_init__(self) -> None:
         from app.strategy_lab_v2.capabilities import PreflightClass, PreflightReport
@@ -600,6 +686,12 @@ class ScientificTrial:
             raise ValueError("unsupported preflight reports cannot create executable trials")
         if not isinstance(self.seed, int) or isinstance(self.seed, bool):
             raise ValueError("trial seed must be an integer")
+        if not isinstance(self.randomization, TrialRandomization):
+            raise TypeError("scientific trial requires typed TrialRandomization provenance")
+        if self.randomization.seed != self.seed:
+            raise ValueError("trial seed must match its randomization assignment")
+        if self.randomization.scope_fingerprint not in (None, self.experiment_fingerprint):
+            raise ValueError("trial randomization scope must match its experiment")
         object.__setattr__(self, "parameter_set", freeze_json(self.parameter_set))
         object.__setattr__(self, "scenario", freeze_json(self.scenario))
         if self.trial_id != content_digest(self._identity_payload()):
@@ -618,7 +710,7 @@ class ScientificTrial:
         return self.preflight_report.classification.value
 
     def _identity_payload(self) -> dict[str, Any]:
-        return {
+        identity = {
             "experiment_fingerprint": self.experiment_fingerprint,
             "snapshot_fingerprint": self.snapshot_fingerprint,
             "preflight_fingerprint": self.preflight_report.fingerprint,
@@ -626,6 +718,9 @@ class ScientificTrial:
             "scenario": self.scenario,
             "seed": self.seed,
         }
+        if self.randomization.has_schedule_provenance:
+            identity["randomization"] = self.randomization
+        return identity
 
     @classmethod
     def create(
@@ -636,16 +731,36 @@ class ScientificTrial:
         preflight_report: PreflightReport,
         parameter_set: Mapping[str, Any],
         scenario: Mapping[str, Any] | None = None,
-        seed: int = 0,
+        seed: int | None = None,
+        randomization: TrialRandomization | None = None,
     ) -> ScientificTrial:
+        trial_seed = 0 if seed is None and randomization is None else (
+            randomization.seed if seed is None and randomization is not None else seed
+        )
+        if not isinstance(trial_seed, int) or isinstance(trial_seed, bool):
+            raise ValueError("trial seed must be an integer")
+        assignment = randomization or TrialRandomization(
+            master_seed=trial_seed,
+            seed=trial_seed,
+            policy=TrialSeedPolicy.PER_CANDIDATE,
+            replicate_index=0,
+            scope_fingerprint=None,
+            seed_group_fingerprint=None,
+            replicate_count=1,
+            derivation_version=EXPLICIT_SEED_DERIVATION_VERSION,
+        )
+        if assignment.seed != trial_seed:
+            raise ValueError("trial seed must match its randomization assignment")
         identity = {
             "experiment_fingerprint": experiment_fingerprint,
             "snapshot_fingerprint": snapshot_fingerprint,
             "preflight_fingerprint": preflight_report.fingerprint,
             "parameter_set": parameter_set,
             "scenario": scenario or {},
-            "seed": seed,
+            "seed": trial_seed,
         }
+        if assignment.has_schedule_provenance:
+            identity["randomization"] = assignment
         return cls(
             trial_id=content_digest(identity),
             experiment_fingerprint=experiment_fingerprint,
@@ -653,7 +768,8 @@ class ScientificTrial:
             preflight_report=preflight_report,
             parameter_set=parameter_set,
             scenario=scenario or {},
-            seed=seed,
+            seed=trial_seed,
+            randomization=assignment,
         )
 
 
