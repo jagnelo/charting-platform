@@ -2450,3 +2450,22 @@ tests with 83.00% total coverage (required threshold: 75%), and Docker setup
 and cleanup completed successfully. Ruff, MyPy, `git diff --check`, and
 workstream validation also passed. No shared provider, ETF, TC2000, runtime,
 migration, API, worker, Compose, or frontend path was changed.
+
+## 2026-09-16 - Data-bound execution admission checkpoint
+
+`execution_data_admission.py` now composes the verified acquisition handoff
+with a scientific trial, frozen snapshot, and ready Nautilus execution plan.
+It rejects unverified coverage, request/snapshot drift, trial or plan snapshot
+drift, and non-ready engine plans before a worker can consume the plan. The
+result is immutable, content-addressed evidence and does not start a process or
+perform persistence/network I/O.
+
+The exact package tree passed 509 focused Strategy Lab v2 tests, Ruff, MyPy,
+and `git diff --check`. Provider fetching/repair, schema/API registration,
+workers, Compose, stable Nautilus execution, frontend integration, promotion,
+and deployment remain deferred behind the existing staging and release gates.
+
+The exact data-bound execution checkpoint also passed the repository-wide
+Docker-backed coverage gate: 2,156 tests completed with 83.02% total coverage
+(required threshold: 75%), with Docker setup and cleanup successful. The branch
+checks and workstream validation remain green.

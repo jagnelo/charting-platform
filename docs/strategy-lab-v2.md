@@ -95,6 +95,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resolution. Identity drift, stale receipts, unsupported preflight, and
   incomplete coverage reject the handoff deterministically; provider fetching,
   repair, and persistence remain adapter responsibilities.
+- `execution_data_admission.py` is the final pure data gate before a Nautilus
+  plan is consumed. It requires the verified acquisition handoff to match the
+  scientific trial, frozen snapshot, and ready engine plan, so a worker cannot
+  bypass coverage verification by passing only a snapshot digest.
 - `execution.py` composes source, trial, engine, attempt, and lease checks into
   one immutable `ExecutionAuthorization`. A future worker must obtain this
   authorization before invoking an engine adapter; it carries no source bytes,
