@@ -3476,3 +3476,25 @@ tests/e2e/
   Ruff and `git diff --check` passed, and no provider calls or credentials
   were used. This is source-dirty evidence and is not exact-current-SHA live
   acceptance.
+
+## 2026-09-16 provider-usage-dimension gate checkpoint
+
+- The Docker-backed combined backend unit/integration coverage gate completed
+  with exit code `0` in the current feature worktree. Its isolated test
+  session was cleaned up without a host-wide prune. The terminal stream was
+  truncated after the final test dots, so this checkpoint intentionally does
+  not claim a reconstructed test count or coverage percentage.
+- Compose/RPi contract validation, workstream validation for all 30 records,
+  and `git diff --check` also passed. Existing warnings about preparing the
+  private quota-ledger directory are non-fatal; no provider routing was
+  activated and no provider calls were made by these gates.
+- The implementation now persists provider-native usage dimensions and
+  account-plan metadata. Twelve Data's documented minute-credit headers are
+  captured as a named `credits_per_minute` dimension; MarketData.app exposes
+  the configured `credits_per_day` trial/free-tier dimension. Unknown daily
+  Twelve Data semantics remain unrepresented rather than guessed.
+- This does not close the branch. The exact current-source full live matrix
+  remains blocked by provider-specific baselines, byte/weighted cost maps,
+  legal/source controls, universe reconciliation, target secret stores, and
+  deferred-provider decisions. The branch remains at
+  `ready_for_human_review` until those owner-controlled gates are resolved.
