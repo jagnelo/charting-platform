@@ -9,6 +9,17 @@
   and documentation checkpoints; it is not PostgreSQL/Redis integration or
   external-provider acceptance evidence.
 
+## 2026-09-16 EODHD current account-usage recheck
+
+- The focused native EODHD account-usage case passed `1/1` at source
+  `a9a8ea7f8de464cb3d0b4ae11f79eacd25613031`; the redacted receipt records one
+  request and 304 response bytes. A same-time bounded `/api/user` inspection
+  returned `subscriptionType=free`, `apiRequests=3`,
+  `apiRequestsDate=2026-09-15`, and `dailyRateLimit=20`. The date is still
+  stale relative to the current UTC date, so the runtime correctly keeps the
+  daily baseline observation-only and does not seed a current `calls_per_day`
+  window. No provider limit was widened and no extra history request was made.
+
 ## 2026-09-16 current-source credentialed revalidation
 
 - MarketData.app passed its bounded current-source matrix `7/7` at source
