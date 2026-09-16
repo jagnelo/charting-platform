@@ -3733,3 +3733,7 @@ the authoritative record for this replay; it made zero provider calls.
   an active entitlement. Focused quota/runtime coverage passed `149/149`,
   Ruff, compileall, diff checks, and workstream validation passed. No
   provider calls or secret values were used.
+
+- The complete backend unit suite was replayed against this implementation and
+  passed `2,311/2,311` with 37 warnings in `103.55s`. The exact-source live
+  preflight remained fail-closed and made zero provider calls.
