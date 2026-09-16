@@ -533,6 +533,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   escalation and secrets, run as an unprivileged user, mount inputs read-only,
   bound output/CPU/memory/PID limits, and carry the explicit wall-time budget;
   execution remains a worker adapter responsibility.
+- `sandbox_execution.py` executes only those validated argv plans with
+  `shell=False`, a minimal secret-free environment, process-group cleanup,
+  explicit wall-time enforcement, and bounded stdout/stderr capture. Typed
+  results distinguish success, non-zero exit, timeout, output overflow, and
+  process-start failure; Docker remains the production command boundary.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
