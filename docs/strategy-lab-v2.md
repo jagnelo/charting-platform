@@ -522,6 +522,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Conflicts and missing aggregates return the original state, while exact
   request retries replay the recorded committed set. PostgreSQL mapping and
   transaction execution remain outside this pure contract.
+- `artifact_store.py` provides the local-first raw-byte adapter for immutable
+  content-addressed artifacts. It verifies manifests before publication, uses
+  same-directory temporary files and atomic create-if-absent links, deduplicates
+  concurrent writers, makes published files read-only, and re-verifies every
+  read so tampering or path/symlink escapes fail closed.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

@@ -1722,3 +1722,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Local content-addressed artifact store checkpoint
+
+`artifact_store.py` adds the local filesystem adapter for immutable raw-byte
+artifacts. It verifies the requested manifest before writing, publishes through
+same-directory temporary files and atomic hard-links without replacing an
+existing digest, deduplicates races, sets published files read-only, and
+re-verifies bytes on every read. Corrupt, non-regular, symlinked, or escaping
+paths fail closed; manifest/commit metadata remains the responsibility of the
+existing pure contracts.
+
+The exact implementation tree passed all 352 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
