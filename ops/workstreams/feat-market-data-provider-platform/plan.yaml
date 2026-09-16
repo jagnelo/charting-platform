@@ -370,6 +370,13 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 exact-source CoinGecko preflight at `40801db55` stopped before
+      network access with exit `2`. The corrected calendar-month contract was
+      accepted; only the Demo-key active `calls_per_minute` and
+      `calls_per_month` baselines remain unknown. No provider request or
+      shared quota was consumed, and the redacted receipt records this as
+      account evidence missing rather than a quota-contract failure.
+    - >-
       2026-09-16 CoinGecko monthly reset contract correction: current official
       pricing/support documentation states that Demo monthly call credits reset
       on the first day of each month regardless of billing date. The 10,000-call

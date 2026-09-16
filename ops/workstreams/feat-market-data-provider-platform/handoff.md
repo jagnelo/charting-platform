@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 CoinGecko exact-source preflight
+
+- At source `40801db55`, the selected CoinGecko live runner stopped before
+  network access with exit `2`. The corrected contract was accepted; the only
+  provider-specific blockers were the two exact active Demo-key baselines
+  (`calls_per_minute` and `calls_per_month`). No provider request or shared
+  quota was consumed. The redacted receipt is appended to
+  `validation.jsonl` and confirms the remaining gap is account evidence, not
+  an invented reset boundary.
+
 ## 2026-09-16 CoinGecko monthly reset contract correction
 
 - Current official CoinGecko pricing/support documentation explicitly states
