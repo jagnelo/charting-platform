@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source MarketData.app live checkpoint
+
+- The bounded credentialed MarketData.app matrix was rerun at commit
+  `ffa81f991e24c5054312789229f8002a888d3a21` using the owner-managed local
+  API key and the durable `local-dev-reset-audit` quota scope. All `7/7`
+  selected cases passed (`9` upstream requests and `17,241` response bytes),
+  including account usage, latest price, intraday candles, option surface,
+  option quote history, and the explicit no-request policy case.
+- The run created a reservation-linked receipt and settled native usage
+  telemetry without exposing credentials. The response-priced option-history
+  path remains intentionally non-routable because no reviewed hard result/
+  credit ceiling exists.
+- This is exact-source transport and accounting evidence for MarketData.app
+  only. The full matrix remains fail-closed for unresolved provider-account
+  baselines, legal/source controls, capability budgets, and deployment stores;
+  no routing activation, deployment, or shadow run occurred.
+
 ## 2026-09-16 provider reset-anchor audit checkpoint
 
 - Removed four unsafe reset interpretations from the provider contract: the
