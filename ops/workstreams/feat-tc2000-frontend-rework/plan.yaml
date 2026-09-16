@@ -255,19 +255,17 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_market_map_action_state_accessibility_gate_pending
+  current_phase: R6_market_map_action_state_accessibility_exact_gate_passed
   next_action: >-
-    Run the exact validate-integration target at product tip
-    e5b625f0b82642b5a482e308ade10b21b32d7aca, record clean teardown, then
-    checkpoint the combined Strategy Result Chart, Breadth asset, and Market Map
-    action-state accessibility receipts. Keep provider/ETF consumer work
-    deferred until both upstream branches reach staging, and do not retry origin
-    synchronization under the existing private-origin safeguard without newly
-    accepted exact-payload authorization.
+    Select and implement the next bounded TC-owned R1/R5/R6 roadmap item,
+    preserving the frontend-led ownership boundary. Keep provider/ETF consumer
+    work deferred until both upstream branches reach staging, and do not retry
+    origin synchronization under the existing private-origin safeguard without
+    newly accepted exact-payload authorization.
   current_blocker: >-
-    No active TC-owned product or validation blocker: focused Strategy Result
-    Chart, Breadth asset, and Market Map action-state checks passed; the exact
-    full_stack_browser gate is pending at product tip e5b625f0b82642b5a482e308ade10b21b32d7aca.
+    No active TC-owned product or validation blocker: the combined Strategy
+    Result Chart, Breadth asset, and Market Map action-state slices passed the
+    exact full_stack_browser gate at product tip e5b625f0b82642b5a482e308ade10b21b32d7aca.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold

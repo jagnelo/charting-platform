@@ -13302,3 +13302,30 @@ V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
 integration remains deferred until both upstream branches reach staging, and
 this is a complete exact-gate receipt for the slice, not closure of the overall
 workstream.
+## 2026-09-16 - Combined accessibility exact gate
+
+The combined Strategy Result Chart, Breadth asset, and Market Map action-state
+slices remain frontend-only at product tip `e5b625f0b`. Their focused coverage
+passed `8/8`, `10/10`, and `54/54`; full frontend Vitest passed `1,117/1,117`;
+`vue-tsc`, production build, TC scope/self-tests, and `git diff --check` passed.
+
+One long authenticated Chromium run stopped on unchanged `F8u-boolean` after
+`169` functional flows passed; the saved promotion status was present but its
+visible watchlist header did not appear within the timeout. A fresh-stack
+focused retry passed `1/1`, and the related F8u promotion group passed `7/7`,
+without source changes, classifying that run as a transient seeded-workspace or
+browser-run candidate.
+
+The definitive
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` run then
+passed at product tip `e5b625f0b`, completing all repository stages, the
+authenticated functional Chromium suite, and all four TC2000 visual projects.
+The host `/usr/bin/make` wrapper still exits with Xcode-license status `69`, so
+the equivalent installed CommandLineTools Make binary was used without changing
+system state. Branch-scoped teardown and post-gate resource accounting reported
+zero containers, volumes, test sessions, known bytes, and unknown components.
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or
+acceptance-policy behavior changed. Provider/ETF consumer integration remains
+deferred until both branches reach staging; this is a complete exact-gate receipt
+for the combined slice, not closure of the overall workstream.
