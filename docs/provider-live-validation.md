@@ -717,12 +717,14 @@ reset (including Eastern-time month/day and 09:30 ET boundaries), rather than
 adding a nominal 31-day duration. Fixed and rolling windows retain their
 duration semantics, so active-window diagnostics expire at the same boundary
 used by admission across short months and daylight-saving transitions.
-Tiingo's documented pool magnitudes are retained, but the provider does not
-publish exact reset anchors for its distinct-symbol, hourly, daily, or
-bandwidth pools. Those dimensions are therefore explicitly provider-defined
-and non-routable until an exact reset observation or provider confirmation is
-recorded; the durable `provider_quota_identity` ledger does not invent a
-rolling 31-day symbol window. FINRA's synchronous short-interest and OTC
+Tiingo's documented pool magnitudes are retained. Its general API
+documentation states that daily requests reset at midnight EST and monthly
+bandwidth resets on the first day of each month at midnight EST; the source
+does not define the distinct-symbol monthly reset anchor or an hourly
+timezone/boundary. Those two dimensions therefore remain explicitly
+provider-defined and non-routable until exact evidence is available; the
+durable `provider_quota_identity` ledger does not invent a rolling 31-day
+symbol window. FINRA's synchronous short-interest and OTC
 Daily List calls reserve a maximum 3,000,000 response bytes (the conservative
 decimal interpretation of FINRA's ambiguous 3 MB ceiling) against the public
 credential's published 10 GB monthly pool. FINRA says an exhausted public

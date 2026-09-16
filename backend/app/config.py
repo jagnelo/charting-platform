@@ -807,14 +807,14 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        "reset": "provider_defined",
+                        # Tiingo's general API documentation states that the
+                        # daily pool resets at midnight Eastern time.
+                        "reset": "calendar_day_est",
                     },
                 ],
                 "unknown_dimensions": [
                     "unique_symbols_reset_anchor",
                     "requests_per_hour_reset_boundary",
-                    "requests_per_day_reset_boundary",
-                    "bandwidth_reset_boundary",
                 ],
                 "reset": "provider_defined",
                 "untracked_constraints": [
@@ -829,7 +829,10 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        "reset": "provider_defined",
+                        # Tiingo's general API documentation states that the
+                        # monthly bandwidth pool resets on the first day of
+                        # each month at midnight Eastern time.
+                        "reset": "calendar_month_est",
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     }
                 ],

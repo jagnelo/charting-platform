@@ -1960,14 +1960,12 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert [item["reset"] for item in tiingo["dimensions"]] == [
         "provider_defined",
         "provider_defined",
-        "provider_defined",
+        "calendar_day_est",
     ]
-    assert tiingo["untracked_constraints"][0]["reset"] == "provider_defined"
+    assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert {
         "unique_symbols_reset_anchor",
         "requests_per_hour_reset_boundary",
-        "requests_per_day_reset_boundary",
-        "bandwidth_reset_boundary",
     } == set(tiingo["unknown_dimensions"])
 
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
@@ -2681,10 +2679,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["unknown_dimensions"] == [
         "unique_symbols_reset_anchor",
         "requests_per_hour_reset_boundary",
-        "requests_per_day_reset_boundary",
-        "bandwidth_reset_boundary",
     ]
-    assert tiingo["untracked_constraints"][0]["reset"] == "provider_defined"
+    assert tiingo["dimensions"][2]["reset"] == "calendar_day_est"
+    assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["dimensions"][0]["reset"] == "provider_defined"

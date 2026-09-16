@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-16 — Tiingo reset-semantics correction
+
+- [x] Reconcile Tiingo against its current primary documentation: daily
+      requests reset at midnight EST and monthly bandwidth resets on the first
+      day of each month at midnight EST. The quota seed now records
+      `calendar_day_est` and `calendar_month_est` rather than leaving those
+      documented boundaries as generic provider-defined values.
+- [ ] Keep the 500-unique-symbol monthly reset anchor and hourly timezone/
+      boundary fail-closed because Tiingo does not define them in the reviewed
+      source. Routing also still requires a complete reviewed
+      `TIINGO_OPERATION_BYTE_BOUNDS` map; no provider request was made for this
+      correction. Focused quota coverage passes `102/102`.
+
 ### 2026-09-16 — MarketData.app Starter Trial configuration verification
 
 - [x] Record the owner-selected account policy without storing the credential:

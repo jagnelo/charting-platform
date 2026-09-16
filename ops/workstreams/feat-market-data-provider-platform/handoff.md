@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Tiingo reset-semantics correction
+
+- Rechecked Tiingo's current primary documentation. The general API page
+  explicitly states that hourly requests reset every hour, daily requests
+  reset at midnight EST, and monthly bandwidth resets on the first day of each
+  month at midnight EST. The pricing page confirms the Starter magnitudes:
+  500 unique symbols/month, 50 requests/hour, 1,000/day, and 1 GB/month.
+- The quota seed now uses `calendar_day_est` for the daily request pool and
+  `calendar_month_est` for bandwidth. The unique-symbol monthly anchor and
+  the hourly timezone/boundary remain explicitly unknown; no rolling window
+  was inferred, so Tiingo remains non-routable until those two dimensions and
+  the reviewed per-operation byte map are supplied.
+- Focused provider quota coverage passed `102/102`; no provider request or
+  credential was used. Sources: `https://www.tiingo.com/documentation/general`
+  and `https://www.tiingo.com/about/pricing`.
+
 ## 2026-09-16 GitHub target-secret-store verification recheck
 
 - `gh auth status` was rechecked from the feature worktree. The only installed
@@ -412,10 +428,12 @@
   contract now records `provider_defined` plus an explicit
   `download_bytes_month_reset_boundary` unknown dimension; the prior rolling
   31-day approximation is removed.
-- Tiingo's distinct-symbol, hourly, daily, and bandwidth pools now all record
-  provider-defined reset semantics with explicit unknown dimensions. The
-  durable identity ledger no longer presents a guessed rolling 31-day symbol
-  window or estimated calendar bandwidth boundary.
+- Tiingo's daily request and monthly bandwidth pools now record the exact
+  `calendar_day_est`/`calendar_month_est` boundaries stated by its general API
+  documentation. Its distinct-symbol monthly anchor and hourly
+  timezone/boundary remain explicitly unknown; the durable identity ledger
+  does not present a guessed rolling 31-day symbol window or estimated hourly
+  boundary.
 - Production routing remains fail-closed for these dimensions. Focused quota
   coverage passed `100/100`; focused runtime/registry coverage passed
   `76/76`; Ruff, diff, and workstream validation passed. The complete
@@ -521,10 +539,11 @@
   `https://www.tiingo.com/account/usage`, then `404 Not Found` after following
   the redirect.
 - No data endpoint was called and no usage counter was inferred. The adapter
-  therefore remains unchanged: Tiingo's hourly/daily/bandwidth pools are
-  documented, but the 500-unique-symbol pool still has no current native
-  account snapshot or confirmed reset anchor and remains fail-closed. This is
-  a negative live-validation result, not acceptance evidence.
+  therefore remains unchanged: Tiingo's daily and monthly-bandwidth reset
+  anchors are now represented from the current documentation, while the
+  500-unique-symbol pool and hourly boundary still have no current native
+  account snapshot or confirmed reset anchor and remain fail-closed. This is a
+  negative live-validation result, not acceptance evidence.
 
 ## 2026-09-16 Marketstack usage-semantics audit
 
