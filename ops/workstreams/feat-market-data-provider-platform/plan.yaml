@@ -165,7 +165,8 @@ remaining_gaps:
     endpoints in addition to its bounded daily compact endpoint. Each history
     aggregation remains a one-query operation in the explicit usage profile;
     adjusted requests fail closed before transport for all three surfaces.
-    Fixture coverage passes 262/262 for the provider suite. This closes the
+    Implementation checkpoint `a6d430629` passes provider fixture coverage
+    262/262 and the complete unit gate 2,352/2,352 with 37 warnings. This closes the
     adapter aggregation gap only; the provider's 25-requests/day reset
     boundary remains unpublished and routing remains subject to that existing
     quota gate and current-source live evidence.
