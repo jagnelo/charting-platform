@@ -611,6 +611,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   receipt, changed content conflicts, and different principals remain isolated.
   It validates payload/fingerprint identity and stages no Redis message until a
   later outbox relay; table creation and application wiring remain gated.
+- `postgres_commands.py` maps retry/cancellation commands to owner-scoped,
+  transactionally locked PostgreSQL receipts. It resolves the latest injected
+  outcome/progress context through the engine-neutral command state machine,
+  replays exact idempotent commands, rejects content drift and terminal
+  preconditions with typed API errors, and verifies receipt fingerprints before
+  use. The adapter persists no worker side effect; migrations, wiring, and
+  execution dispatch remain gated.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

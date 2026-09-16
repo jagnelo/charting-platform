@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Durable command-receipt staging checkpoint
+
+`postgres_commands.py` now maps retry/cancellation intents to an owner-scoped
+PostgreSQL command ledger. The adapter locks the attempt ledger inside one
+transaction, resolves the latest injected outcome/progress context through the
+engine-neutral command state machine, persists accepted receipts, replays exact
+idempotent requests without writes, and returns typed conflict/precondition/not-
+found errors. Receipt fingerprints are stored and revalidated so tampered rows
+fail closed. The adapter deliberately performs no worker cancellation/retry
+effect; schema migration, application wiring, Redis/outbox dispatch, and worker
+integration remain gated.
+
+The focused command-adapter suite passed 5 tests; the full Strategy Lab v2
+package passed 536 tests with Ruff, MyPy, and `git diff --check` clean. Full
+branch and Docker-backed combined coverage gates will be rerun after this
+checkpoint.
+
 ## 2026-09-16 - Durable submission/dispatch staging checkpoint
 
 `postgres_submission.py` now maps owner-scoped idempotent submission receipts
