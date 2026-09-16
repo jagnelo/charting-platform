@@ -1654,3 +1654,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Forward event dispatch checkpoint
+
+`forward_event_dispatch.py` composes the forward event/correction transaction
+with content-bound worker dispatch. Accepted events and buffered gaps enqueue
+worker envelopes; duplicates and out-of-order observations remain
+non-dispatching. Correction envelopes bind the separately identified replay
+plan, and payload drift or queue idempotency conflicts return the original live
+checkpoint rather than publishing an orphaned message. Exact retries replay the
+dispatch evidence. Queue transport and persistence remain adapter-owned.
+
+The exact implementation tree passed all 327 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

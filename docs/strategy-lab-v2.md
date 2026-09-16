@@ -499,6 +499,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Missing commands, changed event or command content, and invalid replay
   evidence return the original live checkpoint, so a correction cannot be
   observed without an auditable replay basis.
+- `forward_event_dispatch.py` binds admitted forward events to content-addressed
+  worker dispatch envelopes. Accepted and buffered-gap events enqueue work;
+  duplicate/out-of-order observations remain non-dispatching, and correction
+  dispatches include the replay-plan identity. Queue idempotency conflicts and
+  payload drift return the original forward checkpoint, preventing a worker
+  message from being published for state that was not atomically admitted.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
