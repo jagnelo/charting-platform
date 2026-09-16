@@ -834,3 +834,21 @@ the explicit destination authorization and local/remote HEAD match at
 metric slice is capital/margin utilization or financing evidence. No provider,
 ETF, TC2000, persistence, API, worker, Compose, Nautilus, frontend,
 integration, promotion, or deployment paths were changed.
+
+## 2026-09-16 - Engine-reported capital and margin utilization checkpoint
+
+The next package-owned metric slice adds immutable
+`AccountCapitalMarginObservation` records and
+`calculate_capital_margin_utilization_metrics()`. Each observation binds a
+portfolio version, run attempt, ordered engine point, positive account equity,
+initial and maintenance requirements, supplied capacities, base currency, and
+valuation evidence. The calculator emits equally sample-weighted means and
+observed maxima for requirement-to-capacity and requirement-to-equity ratios.
+It accepts ratios above one as diagnostics and never infers margin, leverage,
+or buying power from notional exposure.
+
+The exact implementation tree passed 85 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Financing evidence outside fill reports and
+trusted paired inference remain open metric gaps. No provider, ETF, TC2000,
+persistence, API, worker, Compose, Nautilus, frontend, integration,
+promotion, or deployment paths were changed.
