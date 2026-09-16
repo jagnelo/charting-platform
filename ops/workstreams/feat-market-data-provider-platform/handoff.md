@@ -31,7 +31,7 @@
   remains fail-closed.
 - Added regression coverage for both providers, direct live preflight plans,
   operation-scoped dimensions, and normal-read exclusion. The complete
-  isolated backend unit suite passed `2,315/2,315`; focused quota/runtime
+  isolated backend unit suite passed `2,316/2,316`; focused quota/runtime
   coverage passed `198/198`; Ruff, compile, and diff checks passed.
 - Updated `docs/data-providers.md` and `docs/provider-live-validation.md` to
   distinguish the local bootstrap safety slot from provider entitlement and to
