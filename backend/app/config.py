@@ -1676,7 +1676,11 @@ class Settings(BaseSettings):
             "is_free": True,
             "authentication_required": True,
             "usage_terms": "Free API key with documented quota limits.",
-            "history_depth": "Latest 100 daily points on the observed free entitlement; full daily output is premium",
+            "history_depth": (
+                "Latest 100 daily points on the free compact endpoint; documented "
+                "weekly/monthly raw series expose long historical ranges; adjusted "
+                "daily history is premium"
+            ),
             "venue_coverage": "Provider-supported US symbols",
             "freshness_semantics": "EOD/delayed",
         },
