@@ -538,6 +538,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   explicit wall-time enforcement, and bounded stdout/stderr capture. Typed
   results distinguish success, non-zero exit, timeout, output overflow, and
   process-start failure; Docker remains the production command boundary.
+- `engine_execution.py` binds the final Nautilus invocation gate to execution
+  authorization, runtime preflight, sandbox request identity, data-snapshot
+  identity, and complete conformance evidence. Only a compatible Nautilus
+  build can run; authoritative runs additionally require stable release
+  evidence and an authoritative authorization, and no engine process is
+  started while any gate is missing.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

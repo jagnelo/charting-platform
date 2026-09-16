@@ -1773,3 +1773,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Nautilus execution-gating checkpoint
+
+`engine_execution.py` adds the final pre-invocation gate for the authoritative
+simulator. It binds execution authorization, accepted runtime isolation,
+content-matched sandbox argv, data-snapshot identity, and complete engine
+conformance evidence. Non-Nautilus engines, failed/incomplete conformance,
+runtime or sandbox drift, and non-authoritative stable-release attempts fail
+closed; compatible release candidates may run only when explicitly requested as
+non-authoritative. The contract does not start an engine.
+
+The exact implementation tree passed all 366 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
