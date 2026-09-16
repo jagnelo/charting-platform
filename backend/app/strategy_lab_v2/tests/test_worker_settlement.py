@@ -64,11 +64,14 @@ def _lease(admission: ExecutionAdmission) -> LeaseObservationState:
 
 
 def _execution(values: tuple, tmp_path: Path) -> WorkerExecutionResolution:
+    pool, admission = _admitted_pool(values)
     orchestration = plan_execution_orchestration(*values)
     return execute_worker_handoff(
         orchestration,
         *values,
-        worker_pool=_admitted_pool(values)[0],
+        worker_pool=pool,
+        lease_state=_lease(admission),
+        started_at=NOW,
         observed_at=NOW + timedelta(seconds=1),
         docker_binary=_fake_binary(tmp_path, "printf 'ok'"),
     )

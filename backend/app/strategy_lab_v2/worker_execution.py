@@ -2,9 +2,9 @@
 
 This adapter is deliberately still storage-neutral: it revalidates the
 immutable handoff and active serial reservation immediately before process
-creation, invokes only the gated Nautilus runner, and returns both process and
-runtime evidence for a future compare-and-set transaction.  It never queues
-work or publishes a result.
+creation, active lease at the launch boundary, invokes only the gated Nautilus
+runner, and returns both process and runtime evidence for a future
+compare-and-set transaction. It never queues work or publishes a result.
 """
 
 from __future__ import annotations
@@ -22,6 +22,8 @@ from app.strategy_lab_v2.execution_orchestration import (
     ExecutionOrchestrationPlan,
     plan_execution_orchestration,
 )
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
 from app.strategy_lab_v2.nautilus_runner import (
     NautilusRunResult,
     NautilusRunStatus,
@@ -110,6 +112,8 @@ def execute_worker_handoff(
     execution_plan: NautilusExecutionPlan,
     *,
     worker_pool: WorkerPoolState,
+    lease_state: LeaseObservationState,
+    started_at: datetime,
     observed_at: datetime,
     docker_binary: str = "docker",
 ) -> WorkerExecutionResolution:
@@ -119,8 +123,18 @@ def execute_worker_handoff(
         raise TypeError("orchestration_plan must be an ExecutionOrchestrationPlan")
     if not isinstance(worker_pool, WorkerPoolState):
         raise TypeError("worker_pool must be a WorkerPoolState")
+    if not isinstance(lease_state, LeaseObservationState):
+        raise TypeError("lease_state must be a LeaseObservationState")
+    if started_at.tzinfo is None or started_at.utcoffset() is None:
+        raise ValueError("started_at must be timezone-aware")
     if observed_at.tzinfo is None or observed_at.utcoffset() is None:
         raise ValueError("observed_at must be timezone-aware")
+    if observed_at < started_at:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="worker observation time precedes process start",
+        )
     if admission.worker_id != worker_pool.profile.worker_id:
         return WorkerExecutionResolution(
             WorkerExecutionDecision.REJECTED,
@@ -138,6 +152,32 @@ def execute_worker_handoff(
             WorkerExecutionDecision.REJECTED,
             orchestration_plan,
             rejection_reason="admission profile does not match the worker pool",
+        )
+    if lease_state.lease.attempt_id != admission.attempt_id:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="lease and admission reference different attempts",
+        )
+    if lease_state.lease.worker_id != admission.worker_id:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="lease and admission reference different workers",
+        )
+    try:
+        lease_status = lease_state.lease.status_at(started_at)
+    except (TypeError, ValueError) as exc:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason=str(exc),
+        )
+    if lease_status is not AttemptLeaseStatus.ACTIVE:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="worker lease is not active at process start",
         )
     reservation = next(
         (
@@ -193,6 +233,22 @@ def execute_worker_handoff(
             orchestration_plan,
             nautilus_result,
             rejection_reason="Nautilus runner rejected the execution plan",
+        )
+    try:
+        completion_lease_status = lease_state.lease.status_at(observed_at)
+    except (TypeError, ValueError) as exc:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            nautilus_result,
+            rejection_reason=str(exc),
+        )
+    if completion_lease_status is not AttemptLeaseStatus.ACTIVE:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            nautilus_result,
+            rejection_reason="worker lease is no longer active at process completion",
         )
     runtime_result = materialize_nautilus_result(
         runtime_state,

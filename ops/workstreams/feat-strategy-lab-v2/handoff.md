@@ -2065,6 +2065,23 @@ deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
 
+## 2026-09-16 - Launch-time lease gate checkpoint
+
+`execute_worker_handoff` now accepts an explicit start instant and
+`LeaseObservationState`. It verifies the lease is active at process creation,
+rejects observations that precede the start, and refuses to materialize process
+evidence after lease expiry; late results retain process evidence for explicit
+recovery instead of becoming normal runtime success/failure. Worker pool,
+reservation, and lease identities remain checked together immediately before
+the runner call.
+
+The exact implementation tree passed all 429 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
+
 ## 2026-09-16 - Lease-aware idempotent recovery checkpoint
 
 The recovery ledger now binds an ordered lease-release observation as well as

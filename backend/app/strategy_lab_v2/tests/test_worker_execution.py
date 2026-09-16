@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.lifecycle import ExecutionAttemptLease
 from app.strategy_lab_v2.nautilus_runner import NautilusRunStatus
 from app.strategy_lab_v2.tests.test_execution_orchestration import _fixtures
 from app.strategy_lab_v2.worker_execution import (
@@ -52,6 +54,20 @@ def _pool(values: tuple) -> WorkerPoolState:
     )
 
 
+def _lease(values: tuple) -> LeaseObservationState:
+    _, admission, *_ = values
+    return LeaseObservationState(
+        ExecutionAttemptLease(
+            admission.attempt_id,
+            admission.worker_id,
+            "lease-1",
+            NOW,
+            NOW,
+            NOW + timedelta(seconds=30),
+        )
+    )
+
+
 def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> None:
     values = _fixtures()
     orchestration = _plan(values)
@@ -59,6 +75,8 @@ def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> 
         orchestration,
         *values,
         worker_pool=_pool(values),
+        lease_state=_lease(values),
+        started_at=NOW,
         observed_at=NOW,
         docker_binary=_fake_binary(tmp_path, "printf 'ok'"),
     )
@@ -78,6 +96,8 @@ def test_worker_handoff_returns_typed_failure_evidence(tmp_path: Path) -> None:
         _plan(values),
         *values,
         worker_pool=_pool(values),
+        lease_state=_lease(values),
+        started_at=NOW,
         observed_at=NOW,
         docker_binary=_fake_binary(tmp_path, "exit 7"),
     )
@@ -95,6 +115,8 @@ def test_worker_handoff_rejects_stale_or_mismatched_plan_before_spawn(tmp_path: 
         stale,
         *values,
         worker_pool=_pool(values),
+        lease_state=_lease(values),
+        started_at=NOW,
         observed_at=NOW,
         docker_binary=os.fspath(tmp_path / "missing"),
     )
@@ -111,6 +133,8 @@ def test_worker_handoff_requires_explicit_observation_time() -> None:
             _plan(values),
             *values,
             worker_pool=_pool(values),
+            lease_state=_lease(values),
+            started_at=NOW,
             observed_at=datetime(2024, 1, 1),
         )
 
@@ -125,9 +149,38 @@ def test_worker_handoff_rejects_released_capacity_before_spawn(tmp_path: Path) -
         _plan(values),
         *values,
         worker_pool=released_pool,
+        lease_state=_lease(values),
+        started_at=NOW,
         observed_at=NOW,
         docker_binary=os.fspath(tmp_path / "missing"),
     )
     assert rejected.decision is WorkerExecutionDecision.REJECTED
     assert rejected.nautilus_result is None
     assert rejected.rejection_reason == "admission has no active worker reservation"
+
+
+def test_worker_handoff_rejects_expired_lease_before_spawn(tmp_path: Path) -> None:
+    values = _fixtures()
+    _, admission, *_ = values
+    expired = LeaseObservationState(
+        ExecutionAttemptLease(
+            admission.attempt_id,
+            admission.worker_id,
+            "lease-1",
+            NOW,
+            NOW,
+            NOW + timedelta(seconds=1),
+        )
+    )
+    rejected = execute_worker_handoff(
+        _plan(values),
+        *values,
+        worker_pool=_pool(values),
+        lease_state=expired,
+        started_at=NOW + timedelta(seconds=2),
+        observed_at=NOW + timedelta(seconds=2),
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert rejected.decision is WorkerExecutionDecision.REJECTED
+    assert rejected.nautilus_result is None
+    assert rejected.rejection_reason == "worker lease is not active at process start"
