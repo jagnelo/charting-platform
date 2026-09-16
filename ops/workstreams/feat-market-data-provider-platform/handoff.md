@@ -4548,3 +4548,15 @@ the authoritative record for this replay; it made zero provider calls.
   and retains `100` only as a conservative reservation ceiling. Routing stays
   fail-closed; no published value is presented as confirmed. Quota-contract
   coverage passed `98/98`, Ruff, compile, diff, and workstream checks passed.
+
+## 2026-09-16 full backend unit replay after Alpaca usage bootstrap
+
+- The complete backend unit suite passed `2,333/2,333` with 37 warnings in
+  `136.83s` against the exact feature checkout. Total coverage was `70.70%`,
+  above the configured `55%` threshold. This validates the native Alpaca
+  account-usage bootstrap, its fail-closed normal-routing boundary, and all
+  existing backend/provider regressions together.
+- The direct workstream validator passed all `30` workstream records. The
+  host-level `make branch-validate` Xcode-license blocker remains unchanged;
+  this direct validator result is the repository/workstream evidence and does
+  not substitute for the Docker-backed full-stack gate.
