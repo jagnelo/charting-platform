@@ -9,7 +9,12 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
-from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.canonical import (
+    canonical_json,
+    content_digest,
+    freeze_json,
+    require_sha256_digest,
+)
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 from app.strategy_lab_v2.observations import ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
@@ -1398,7 +1403,9 @@ class SensitivityComparisonEvidence:
             raise TypeError("sensitivity evidence requires two RunResultManifest values")
         if baseline.trial.trial_id == variant.trial.trial_id:
             raise ValueError("retries of one scientific trial are not sensitivity replicates")
-        if baseline.trial.parameter_set == variant.trial.parameter_set:
+        if canonical_json(baseline.trial.parameter_set) == canonical_json(
+            variant.trial.parameter_set
+        ):
             raise ValueError("sensitivity comparisons must change strategy parameters")
         if baseline.attempt.attempt_id == variant.attempt.attempt_id:
             raise ValueError("sensitivity comparisons require distinct successful attempts")

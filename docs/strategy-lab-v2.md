@@ -132,11 +132,26 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   complete draw-key alignment, and references trace/pairing artifacts in both
   result manifests. It cannot authenticate those bytes or engine conformance, so
   it deliberately does not label a claim as verified pairing; that requires a
-  future trusted verifier/registration receipt. It classifies randomization
-  provenance only; it does not compare metric semantics or calculate metric
-  deltas. This model does not calculate paired statistical significance:
-  current metric sets are scalar summaries, so valid paired inference still
-  needs aligned per-observation results or verified keyed draw outputs.
+  future trusted verifier/registration receipt. `sensitivity.py` adds a
+  descriptive one-factor metric comparison over successful results. It requires
+  identical parameter keys with exactly one canonically different value,
+  matches metrics by `(name, gross/net basis)`, and requires equal non-null
+  calculation fingerprints. The comparison separately binds a measurement-scope
+  identity to the experiment, frozen snapshot, declared scenario, portfolio
+  currency, execution context, metric calculation, referenced coverage claims,
+  and session-calendar evidence. Run-specific observation digests may differ;
+  both realized sample sizes and the existing randomization-evidence label are
+  retained. `SensitivityComparisonEvidence` rejects mismatched fixed run
+  context; the comparator returns the signed `variant - baseline` difference or
+  a typed unavailable reason for missing, unversioned, incompatible, null, or
+  metric-level out-of-scope inputs such as different session calendars. This
+  output is descriptive only: it does not rank or average candidates or
+  replicates, estimate significance, or claim paired inference. A shared
+  snapshot binds coverage-evidence digests as claims; this engine-neutral
+  comparator cannot authenticate their referenced documents.
+  The scenario digest binds the declared scenario but is not a separate typed
+  evaluation-window contract. Valid paired inference still needs aligned
+  per-observation results or a future trusted keyed-stream verifier.
   Replicates are explicit; infrastructure retries remain attempts of the same
   scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
@@ -181,9 +196,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   session close. Missing coverage, incomplete external-flow reporting, or any
   external-flow event withholds the entire distribution; simple close-to-close
   returns are not presented as flow-adjusted time-weighted returns. Histogram
-  bins and sensitivity analysis are not part of this summary. Remaining gaps
-  include irregular-time annualized metrics, margin/capital utilization,
-  financing outside fill reports, and sensitivity.
+  bins and sensitivity ranking/inference are not part of this summary. Remaining
+  gaps include irregular-time annualized metrics, margin/capital utilization,
+  financing outside fill reports, and replicate-level sensitivity aggregation.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.
@@ -193,10 +208,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   value, sample size, null result, and free-text display basis, while binding
   metric name, unit, gross/net basis, formula-definition version, and structured
   calculation definition. A missing structured definition (as in legacy or
-  manually constructed values) yields no calculation fingerprint, so future
-  comparison code can fail closed. This is a calculation-identity primitive,
-  not a metric comparator: comparison still has to validate experiment scope,
-  date/calendar range, coverage, currency, and sample eligibility. Existing
+  manually constructed values) yields no calculation fingerprint, so the
+  descriptive comparator withholds the delta. This is a calculation-identity
+  primitive; the comparator validates shared run scope, declared data/coverage
+  identity, currency, calendar evidence, and calculation compatibility
+  separately. Existing
   `calculation_basis` strings remain display-compatible and the formula version
   stays at v6 because this metadata addition does not change metric formulas.
 - `lifecycle.py` contains pure attempt/forward state transitions and event

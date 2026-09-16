@@ -79,6 +79,10 @@ from app.strategy_lab_v2.sdk import (
     build_strategy_context,
     validate_strategy_output,
 )
+from app.strategy_lab_v2.sensitivity import (
+    MetricDeltaUnavailable,
+    compare_one_factor_metric,
+)
 
 START = datetime(2020, 1, 1, tzinfo=UTC)
 END = datetime(2022, 1, 1, tzinfo=UTC)
@@ -946,6 +950,11 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
     shared_variant = result_for_trial(trial_for_design(2), "attempt-shared-variant")
     shared_evidence = SensitivityComparisonEvidence(shared_baseline, shared_variant)
     assert shared_evidence.evidence_level is SensitivityEvidenceLevel.SHARED_SEED_ONLY
+    shared_delta = compare_one_factor_metric(
+        shared_evidence, metric_name="total_return", basis=MetricBasis.NET
+    )
+    assert isinstance(shared_delta, MetricDeltaUnavailable)
+    assert shared_delta.evidence_level is SensitivityEvidenceLevel.SHARED_SEED_ONLY
 
     different_replicate = result_for_trial(trial_for_design(3), "attempt-different-replicate")
     assert (
@@ -995,13 +1004,15 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
     paired_evidence = SensitivityComparisonEvidence(
         paired_baseline, paired_variant, pairing_claim
     )
-    assert (
-        paired_evidence.evidence_level
-        is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
+    paired_delta = compare_one_factor_metric(
+        paired_evidence, metric_name="total_return", basis=MetricBasis.NET
     )
+    assert isinstance(paired_delta, MetricDeltaUnavailable)
+    assert paired_delta.evidence_level is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
     assert paired_evidence.fingerprint == SensitivityComparisonEvidence(
         paired_baseline, paired_variant, pairing_claim
     ).fingerprint
+    assert paired_evidence.evidence_level is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
 
     incomplete_baseline = replace(
         paired_baseline,
