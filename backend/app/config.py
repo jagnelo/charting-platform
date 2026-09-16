@@ -2186,6 +2186,12 @@ class Settings(BaseSettings):
     # depends on the provider response. Keep event routing fail-closed until
     # operations records a positive conservative page bound for this account.
     ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
+    # Massive publishes the Stocks Basic five-calls/minute ceiling but does
+    # not specify whether its minute bucket is fixed or rolling. Keep the
+    # provider-specific reset and evidence explicit; never infer a window
+    # from the headline allowance.
+    MASSIVE_REVIEWED_RESET: str = ""
+    MASSIVE_QUOTA_EVIDENCE: str = ""
     # Massive's split and dividend endpoints are independently cursor-paginated;
     # this bound applies to each endpoint and the runtime reserves twice it.
     MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: int = 0
@@ -3006,6 +3012,40 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             seed["quota_scope"] = "api_key"
             seed["quota_source"] = (
                 "Alpha Vantage support allowance plus operator-reviewed reset evidence"
+            )
+        return seed
+    if provider_name == "massive":
+        # Massive publishes the free Stocks Basic five-calls/minute ceiling,
+        # but its current plan documentation does not establish the minute
+        # reset boundary. Promote only after the operator records an explicit
+        # calculable reset label and current evidence for this account.
+        reviewed_reset = str(
+            getattr(settings, "MASSIVE_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "MASSIVE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if (
+                    isinstance(dimension, dict)
+                    and dimension.get("name") == "requests_per_minute"
+                ):
+                    dimension["reset"] = reviewed_reset
+            contract["source"] = (
+                f"{contract.get('source', 'Massive Stocks Basic documentation')} plus "
+                "operator-reviewed reset-boundary evidence"
+            )
+            seed["quota_scope"] = "api_key"
+            seed["quota_source"] = (
+                "Massive Stocks Basic allowance plus operator-reviewed reset evidence"
             )
         return seed
     if provider_name == "alpaca":

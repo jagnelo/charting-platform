@@ -77,6 +77,8 @@ PROVIDER_SAFETY_SETTINGS = {
     "ALPACA_REVIEWED_RESET",
     "ALPACA_QUOTA_EVIDENCE",
     "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+    "MASSIVE_REVIEWED_RESET",
+    "MASSIVE_QUOTA_EVIDENCE",
     "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
     "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
     "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
@@ -409,6 +411,8 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES || '0' }}"
         in workflow
     )
+    assert "MASSIVE_REVIEWED_RESET: ${{ vars.MASSIVE_REVIEWED_RESET || '' }}" in workflow
+    assert "MASSIVE_QUOTA_EVIDENCE: ${{ vars.MASSIVE_QUOTA_EVIDENCE || '' }}" in workflow
     assert (
         "MASSIVE_MARKET_DATA_USE_AUTHORIZED: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORIZED || 'false' }}"
         in workflow
@@ -672,6 +676,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("ALPACA_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
+    monkeypatch.setenv("MASSIVE_REVIEWED_RESET", "")
+    monkeypatch.setenv("MASSIVE_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "false")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")

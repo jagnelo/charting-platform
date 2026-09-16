@@ -1406,6 +1406,19 @@ def routing_safety_preflight() -> dict[str, str]:
         if not massive_use_missing
         else "non-routable: missing " + ", ".join(massive_use_missing)
     )
+    massive_reset = os.getenv("MASSIVE_REVIEWED_RESET", "").strip()
+    massive_quota_evidence = os.getenv("MASSIVE_QUOTA_EVIDENCE", "").strip()
+    massive_quota_missing: list[str] = []
+    if not provider_quota_reset_is_admission_safe(massive_reset):
+        massive_quota_missing.append("MASSIVE_REVIEWED_RESET")
+    if not massive_quota_evidence:
+        massive_quota_missing.append("MASSIVE_QUOTA_EVIDENCE")
+    result["massive market-data quota"] = (
+        "routable"
+        if not massive_quota_missing
+        else "non-routable: documented 5-requests/minute Stocks Basic pool has no provider-published reset boundary; missing/invalid "
+        + ", ".join(massive_quota_missing)
+    )
     async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
     try:
         result["finra async result bytes"] = (

@@ -3506,4 +3506,13 @@ progress:
       all 30 workstream records. These receipts are transport/schema evidence
       only; unresolved quota, baseline, source/legal, universe, target-secret,
       deferred-provider, and final shadow gates remain open.
+    - >-
+      2026-09-16 Massive quota-gate hardening: the documented free Stocks Basic
+      `5 requests/minute` ceiling now has explicit provider-specific
+      `MASSIVE_REVIEWED_RESET` and `MASSIVE_QUOTA_EVIDENCE` controls. A complete
+      reviewed pair promotes only the Massive request dimension; blank or
+      incomplete values preserve the unresolved `provider_defined` contract
+      and fail closed. The controls are wired through settings, environment
+      examples, Compose/RPi, GitHub live validation, diagnostics, and tests;
+      no default reset semantics were inferred.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
