@@ -254,7 +254,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_chart_comparison_accessibility
+  current_phase: R6_strategy_symbol_accessibility
   next_action: >-
     Continue the next unfinished TC-owned roadmap item. Keep provider/ETF
     consumer work deferred until both upstream branches reach staging, and do
@@ -264,15 +264,17 @@ progress:
     No active TC-owned validation blocker: the exact make validate-integration
     gate passed at documentation/product tip 04903e6ff, including functional
     browser flows and all four visual projects, and its branch-scoped stack
-    cleanup completed; the post-gate R6 clone-layout and chart-comparison
-    accessibility slices pass their focused 31-test workstation suite,
-    type-check/build, browser evidence, scope guard, and workstream checks.
+    cleanup completed; the post-gate R6 clone-layout, chart-comparison, and
+    Strategy Lab symbol accessibility slices pass their focused suites,
+    type-check/build, browser or unit evidence, scope guard, and workstream
+    checks.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit f23cb77f6 gives manually added Strategy Lab symbol-removal controls explicit accessible names (Remove <symbol>) while preserving the visible glyph and click handler. Focused Strategy Lab coverage passed 31/31 with named-control and removal assertions; frontend type-check and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit e11ce1f47 gives the chart comparison add and remove controls explicit accessible names (Add comparison and Remove <symbol>), preserves title/visible/click behavior, and updates F9c to use role/name locators. Focused workstation/pop-out coverage passed 31/31; frontend type-check and production build passed; authenticated branch-scoped Chromium confirmed add/remove semantics; Docker stack teardown removed only the assigned resources; and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit a624ffaf5 gives the compact WorkstationView layout-clone '+' control the explicit accessible name 'Clone active layout' while preserving its title and activation. Focused workstation/pop-out coverage passed 31/31, including clone activation and accessible-name assertions; frontend type-check, TC scope guard, workstream validation, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Exact-tip full_stack_browser gate at documentation/product tip 04903e6ff passed: backend unit+integration coverage 1,619 tests, frontend coverage, type-check/build, compose contracts, expected research-runner sandbox/resource probes, authenticated functional Playwright 170 passed with 107 skipped, and all four visual projects 104/104 passed. The branch-scoped stack teardown removed its containers, volumes, network, four generated images, and test sessions. The first same-tip attempt failed only because the helper reused an existing builder; the successful retry used a fresh branch-scoped builder with Docker API access. The declared branch-test full-gate command now omits INTEGRATION_BRANCH to prevent recursive invocation."

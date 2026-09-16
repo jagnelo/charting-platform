@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R6 Strategy Lab symbol-removal accessibility
+
+Product commit `f23cb77f6` gives each manually added Strategy Lab universe
+symbol's `×` control the explicit accessible name `Remove <symbol>`, while
+preserving its visible glyph and removal handler. The focused Strategy Lab view
+suite passed `31/31`, `vue-tsc` passed, and `git diff --check` passed. The
+regression adds a named-control assertion and verifies that removing `NVDA`
+restores the empty-universe state. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, V25 media, or acceptance-policy behavior changed.
+
+The broader goal remains active/in progress: no TC-owned validation blocker is
+present, provider/ETF consumer integration remains deferred until both
+upstream branches reach staging, and origin synchronization remains a
+separate operational hold under the recorded private-origin safeguard.
+
 ## 2026-09-16 — R6 chart-comparison accessibility
 
 Product commit `e11ce1f47` gives the chart comparison add and remove controls
