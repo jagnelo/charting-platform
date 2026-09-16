@@ -6,6 +6,10 @@
   for Alpaca, EODHD, Twelve Data, and MarketData.app. Each passed `1/1` with
   exactly one upstream request; aggregate-only receipts are durable in
   `validation.jsonl` and no broader market-data operation was spent.
+- Re-ran MarketData.app's complete reviewed Starter-trial matrix from the same
+  committed source: `7/7` focused cases passed, including daily/five-minute
+  candles, latest price, expirations, option chain, bounded option history,
+  and the deliberate no-request guard for unbounded response-priced history.
 - This refresh improves current usage evidence only. It does not promote a
   provider whose reset, legal-use, byte/cost, entitlement, or plan controls
   remain unresolved, and it does not activate routing or shadow mode.

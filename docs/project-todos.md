@@ -7,6 +7,11 @@
       four passed `1/1` with exactly one bounded request each; redacted
       aggregate receipts are appended to `validation.jsonl` and no history,
       quote, options, or discovery pulls were made.
+- [x] Re-run MarketData.app's complete reviewed Starter-trial focused matrix:
+      `7/7` cases passed (daily/five-minute history, latest price, expirations,
+      option chain, bounded option history, and the deliberate no-request
+      guard). The receipt is current-source evidence only; paid-plan changes
+      and response-priced history remain configuration-gated.
 - [ ] Continue reconciling each provider's native observation against its
       exact durable quota dimensions; a passing usage snapshot does not itself
       authorize ordinary routing when reset semantics, terms, or plan limits
