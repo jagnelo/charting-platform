@@ -14,6 +14,11 @@
   six-second window. Focused contract coverage verifies both paths.
 - No OpenFIGI credential was added or exposed; the existing bounded keyless
   live matrix remains the only external transport evidence.
+- At exact committed source `b0eab25e1`, the complete isolated backend unit
+  gate passed `2,324/2,324` with 70.67% coverage and 37 warnings. This
+  validates the keyed/anonymous contract change but does not create
+  credentialed OpenFIGI evidence or close the broader live, legal, universe,
+  deployment-secret, and shadow gates.
 
 ## 2026-09-16 exact-current coordinator-backed safety preflight
 
