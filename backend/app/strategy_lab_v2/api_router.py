@@ -76,6 +76,7 @@ class StrategyLabApiAdapter(Protocol):
         resource_type: ApiResourceType,
         limit: int,
         cursor: Any,
+        request_id: str,
     ) -> Awaitable[ResourceCollection] | ResourceCollection: ...
 
     def get_resource(
@@ -575,10 +576,13 @@ def create_strategy_lab_router(
                     resource_type=parsed_resource,
                     limit=limit,
                     cursor=parsed_cursor,
+                    request_id=request_id,
                 )
             )
             if collection.resource_type is not parsed_resource:
                 raise ValueError("adapter returned a collection for the wrong resource")
+            if collection.request_id != request_id:
+                raise ValueError("adapter returned a collection for the wrong request")
             return JSONResponse(status_code=collection.http_status, content=serialize_collection(collection))
         except ApiAdapterError as error:
             return _error_response(error.error)

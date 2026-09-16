@@ -60,7 +60,7 @@ class FakeAdapter:
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
         return ResourceCollection(
-            request_id="collection-request",
+            request_id=kwargs["request_id"],
             resource_type=kwargs["resource_type"],
             snapshot_digest=SNAPSHOT,
             items=(self.document,),
@@ -125,6 +125,19 @@ class ConflictAdapter(FakeAdapter):
         )
 
 
+class RequestDriftAdapter(FakeAdapter):
+    async def list_resources(self, **kwargs: Any) -> ResourceCollection:
+        collection = await super().list_resources(**kwargs)
+        return ResourceCollection(
+            request_id="different-request",
+            resource_type=collection.resource_type,
+            snapshot_digest=collection.snapshot_digest,
+            items=collection.items,
+            has_more=collection.has_more,
+            next_cursor=collection.next_cursor,
+        )
+
+
 def _client(adapter: FakeAdapter) -> TestClient:
     async def get_adapter() -> FakeAdapter:
         return adapter
@@ -184,6 +197,13 @@ def test_router_rejects_invalid_cursor_and_unknown_resource_with_typed_errors() 
 
         too_large = client.get("/api/v1/strategy-lab/v2/trials?limit=101")
         assert too_large.status_code == 400
+
+
+def test_router_rejects_collection_request_identity_drift() -> None:
+    with _client(RequestDriftAdapter()) as client:
+        response = client.get("/api/v1/strategy-lab/v2/trials")
+        assert response.status_code == 422
+        assert response.json()["errors"][0]["code"] == "validation_error"
 
 
 def test_strategy_validation_route_is_static_and_authenticated_by_injected_dependency() -> None:
