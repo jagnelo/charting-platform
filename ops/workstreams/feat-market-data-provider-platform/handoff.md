@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 account-usage focused live validation
+
+- The orchestrated clean-source focused EODHD account-usage case passed `1/1`
+  at source `7aedd03aa98f959719a507aa5c2be7acaddeaf42`; one HTTP request and
+  304 response bytes were recorded in the redacted durable receipt. The
+  provider's stale daily date remains observation-only, so no current daily
+  baseline was fabricated.
+- The equivalent Twelve Data case passed `1/1` at source
+  `3c890905113f9c3d29f3e84e1c25f34e30030bd4`; one HTTP request was recorded.
+  The live response returned valid minute-credit headers but omitted the
+  optional plan body field; the adapter preserves that as `None` rather than
+  guessing the plan.
+- Both runs used `--account-usage-only` through the normal runner, with the
+  durable coordinator, exclusive live lock, configured credentials, same-run
+  evidence correlation, and redaction controls. These are focused native
+  usage proofs, not full provider capability or routing-activation evidence.
+
 ## 2026-09-16 provider-native account-usage bootstrap hardening
 
 - Twelve Data and EODHD account snapshots now have an explicit,
