@@ -16,6 +16,8 @@ from collections.abc import Mapping
 from contextvars import ContextVar, Token
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 from uuid import uuid4
 
 DEFAULT_LEDGER = Path.home() / ".config" / "charting-platform" / "provider-live-usage.jsonl"
@@ -70,6 +72,75 @@ _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_live_case_id", default=
 _ACTIVE_REQUEST_ADMISSION: ContextVar[bool] = ContextVar(
     "provider_live_request_admission", default=False
 )
+
+
+def reconcile_native_account_usage(
+    provider_name: str,
+    usage: Any,
+) -> list[dict[str, Any]]:
+    """Reconcile exact native account snapshots observed by live probes.
+
+    The normal application path persists account-usage observations through
+    ``refresh_provider_account_usage``.  Direct live tests intentionally call
+    provider adapters without an application database session, so they need a
+    small equivalent handoff into the same durable quota coordinator.  This
+    helper reuses the production allow-list/validation logic and only seeds a
+    baseline when the provider-specific contract, limit, unit, and reset are
+    all proven.  A stale EODHD date, for example, is retained as observation
+    telemetry and produces no reconciliation rather than an invented window.
+    """
+
+    from app.config import provider_rate_limit_seed
+    from app.services.provider_account_usage import (
+        _native_baseline_candidate,
+        _usage_dimensions,
+    )
+    from app.services.provider_quota_coordinator import (
+        reconcile_provider_quota_baseline,
+    )
+
+    seed = provider_rate_limit_seed(provider_name)
+    contract = seed.get("quota_contract")
+    if not isinstance(contract, dict):
+        return [{"status": "not_reconciled", "reason": "missing quota contract"}]
+    policy = SimpleNamespace(
+        quota_contract=contract,
+        quota_scope=seed.get("quota_scope") or "api_key",
+    )
+    execution = SimpleNamespace(provider_name=provider_name, policy=policy)
+    dimensions = _usage_dimensions(usage, provider_name)
+    results: list[dict[str, Any]] = []
+    for dimension in dimensions:
+        candidate = _native_baseline_candidate(execution, dimension, usage.observed_at)
+        if candidate is None:
+            results.append(
+                {
+                    "status": "not_reconciled",
+                    "dimension": str(dimension.name),
+                    "reason": "provider snapshot did not prove the reviewed active window",
+                }
+            )
+            continue
+        dimension_name, capability, used_units, observed_at, evidence_reference = candidate
+        reconciliation = reconcile_provider_quota_baseline(
+            provider_name=provider_name,
+            capability=capability,
+            policy=policy,
+            dimension_name=dimension_name,
+            used_units=used_units,
+            observed_at=observed_at,
+            evidence_reference=evidence_reference,
+            source="provider_account_observation",
+        )
+        results.append(
+            {
+                "status": "reconciled",
+                "dimension": dimension_name,
+                "used_units": used_units,
+                "window_started_at": reconciliation.get("window_started_at"),
+            }
+        )
+    return results
 
 
 def ledger_path() -> Path:

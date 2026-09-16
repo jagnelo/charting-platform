@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-16 — Direct live account-usage baseline handoff
+
+- [x] Make the direct live account-usage probes reconcile exact native
+      snapshots into the same durable coordinator used by runtime refreshes.
+      MarketData.app and Twelve Data now seed their reviewed active pools after
+      a successful usage read; EODHD remains observation-only when its reported
+      usage date is stale. Focused local checks passed `1/1` for each of the
+      two reconciled providers, and unit coverage verifies both the positive
+      and fail-closed paths. Replay at the committed source SHA before treating
+      these as acceptance evidence.
+
 ### 2026-09-16 — CoinGecko Demo usage-endpoint audit
 
 - [x] Probe CoinGecko's documented `/key` account-usage endpoint once with the

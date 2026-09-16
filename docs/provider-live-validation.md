@@ -173,6 +173,16 @@ limit, window, or reset mismatch remains observation-only and cannot widen
 routing. Other provider pools still require operator attestation because their
 native usage surfaces do not establish an equivalent dimension safely.
 
+The direct live-test account snapshot cases use this same reconciliation path
+after the provider response has been durably settled. This is important across
+sessions: a successful `/user` or `/api_usage` test is not merely a receipt; it
+can establish the exact active baseline for the three allow-listed pools before
+the next run. EODHD remains intentionally observation-only when its `/user`
+response reports a stale `apiRequestsDate`, because no current daily reset has
+been proven. The live receipt records the provider-native observation and the
+reconciliation disposition separately, without copying the response payload or
+secret.
+
 ### Updating a provider plan or establishing a new baseline
 
 Quota policy is configuration, not a source-code constant. When an account is

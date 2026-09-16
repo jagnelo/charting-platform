@@ -161,6 +161,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Direct credentialed account-usage probes now hand exact native snapshots
+    for MarketData.app and Twelve Data into the durable coordinator after the
+    live reservation settles, so those two active pools no longer remain
+    unknown solely because the test path used an adapter directly. EODHD uses
+    the same handoff but remains observation-only while `/user` reports the
+    stale 2026-09-15 usage date; no current daily baseline is fabricated. The
+    focused 2026-09-16 runs passed 1/1 for each reconciled provider while the
+    worktree was dirty, so exact-source receipts still need replay after the
+    implementation commit.
+  - >-
     EODHD now has a provider-native `/user` account-usage adapter and live
     manifest case. It persists the documented daily `apiRequests`/
     `dailyRateLimit` pool and any matching minute response-header counters;

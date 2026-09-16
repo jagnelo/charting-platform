@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import json
+from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
@@ -246,6 +248,117 @@ def test_live_usage_preflight_fails_before_provider_calls_when_ledger_unwritable
 
     with pytest.raises(RuntimeError, match="ledger is not writable"):
         live_usage.ensure_ledger_writable()
+
+
+def test_native_account_usage_reconciliation_uses_exact_production_candidate(monkeypatch):
+    contract = {
+        "dimensions": [
+            {
+                "name": "credits_per_minute",
+                "limit": 8,
+                "window_seconds": 60,
+                "unit": "credits",
+                "scope": "api_key",
+            }
+        ],
+        "reset": "calendar_minute_utc",
+    }
+    monkeypatch.setattr(
+        "app.config.provider_rate_limit_seed",
+        lambda _provider: {"quota_contract": contract, "quota_scope": "api_key"},
+    )
+    monkeypatch.setattr(
+        "app.services.provider_account_usage._native_baseline_candidate",
+        lambda *_args: (
+            "credits_per_minute",
+            "account_usage",
+            3,
+            datetime(2026, 9, 16, 12, 0, tzinfo=UTC),
+            "account-usage:test-provider:2026-09-16",
+        ),
+    )
+    calls = []
+    monkeypatch.setattr(
+        "app.services.provider_quota_coordinator.reconcile_provider_quota_baseline",
+        lambda **kwargs: calls.append(kwargs) or {"window_started_at": "2026-09-16T12:00:00+00:00"},
+    )
+
+    usage = SimpleNamespace(
+        observed_at=datetime(2026, 9, 16, 12, 0, tzinfo=UTC),
+        dimensions=(
+            SimpleNamespace(
+                name="credits_per_minute",
+                unit="credits",
+                limit=8,
+                remaining=5,
+                consumed=3,
+                reset_at=datetime(2026, 9, 16, 12, 1, tzinfo=UTC),
+            ),
+        ),
+    )
+    result = live_usage.reconcile_native_account_usage("test_provider", usage)
+
+    assert result == [
+        {
+            "status": "reconciled",
+            "dimension": "credits_per_minute",
+            "used_units": 3,
+            "window_started_at": "2026-09-16T12:00:00+00:00",
+        }
+    ]
+    assert calls[0]["source"] == "provider_account_observation"
+    assert calls[0]["evidence_reference"] == "account-usage:test-provider:2026-09-16"
+
+
+def test_native_account_usage_reconciliation_keeps_unproven_snapshot_observational(
+    monkeypatch,
+):
+    contract = {
+        "dimensions": [
+            {
+                "name": "calls_per_day",
+                "limit": 20,
+                "window_seconds": 86400,
+                "unit": "calls",
+                "scope": "api_key",
+            }
+        ],
+        "reset": "00:00 UTC",
+    }
+    monkeypatch.setattr(
+        "app.config.provider_rate_limit_seed",
+        lambda _provider: {"quota_contract": contract, "quota_scope": "api_key"},
+    )
+    monkeypatch.setattr(
+        "app.services.provider_account_usage._native_baseline_candidate",
+        lambda *_args: None,
+    )
+    reconcile = monkeypatch.setattr(
+        "app.services.provider_quota_coordinator.reconcile_provider_quota_baseline",
+        lambda **_kwargs: pytest.fail("unproven native snapshot must not reconcile"),
+    )
+    del reconcile
+
+    usage = SimpleNamespace(
+        observed_at=datetime(2026, 9, 16, 12, 0, tzinfo=UTC),
+        dimensions=(
+            SimpleNamespace(
+                name="calls_per_day",
+                unit="calls",
+                limit=20,
+                remaining=20,
+                consumed=0,
+                reset_at=None,
+            ),
+        ),
+    )
+    assert live_usage.reconcile_native_account_usage("test_provider", usage) == [
+        {
+            "status": "not_reconciled",
+            "dimension": "calls_per_day",
+            "reason": "provider snapshot did not prove the reviewed active window",
+        }
+    ]
 
 
 @pytest.mark.parametrize("is_async", [False, True])

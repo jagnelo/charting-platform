@@ -66,6 +66,7 @@ from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from tests.live.live_usage import (
     activate_request_admission,
     deactivate_request_admission,
+    reconcile_native_account_usage,
     record_observation,
 )
 
@@ -1014,6 +1015,8 @@ def test_twelve_data_credentialed_account_usage_snapshot():
     assert minute.remaining is not None and minute.remaining >= 0
     assert minute.consumed is not None and minute.consumed >= 0
     assert minute.reset_at is not None and minute.reset_at.tzinfo is not None
+    reconciliation = reconcile_native_account_usage("twelve_data", usage)
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
 
 
 def test_eodhd_credentialed_account_usage_snapshot():
@@ -1037,6 +1040,11 @@ def test_eodhd_credentialed_account_usage_snapshot():
     assert daily.consumed is not None and daily.consumed >= 0
     if daily.reset_at is not None:
         assert daily.reset_at.tzinfo is not None
+    reconciliation = reconcile_native_account_usage("eodhd", usage)
+    # The supplied account can report the previous usage date until the first
+    # request after midnight GMT. Preserve that observation without fabricating
+    # a current daily baseline when the reset boundary is absent.
+    assert all(item["status"] == "not_reconciled" for item in reconciliation)
 
 
 def test_eodhd_free_plan_profile_entitlement_is_explicit():
@@ -1149,6 +1157,8 @@ def test_marketdata_app_credentialed_account_usage_snapshot():
     assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
     assert isinstance(usage.options_data_permissions, str)
     assert measurement.http_requests == 1
+    reconciliation = reconcile_native_account_usage("marketdata_app", usage)
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
 
 
 def test_marketdata_app_credentialed_latest_price():

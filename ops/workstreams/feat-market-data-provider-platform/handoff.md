@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 direct live account-usage baseline handoff
+
+- Closed a validation/accounting gap in the direct live-test path. The
+  MarketData.app and Twelve Data account-usage cases now pass their exact
+  provider-native snapshots through the production `_native_baseline_candidate`
+  allow-list and durable `reconcile_provider_quota_baseline` coordinator after
+  the live reservation settles. A successful usage read therefore survives the
+  process and can admit the next run; it does not rely on the external JSONL
+  receipt as quota authority.
+- The EODHD case uses the same handoff but remains observation-only when
+  `apiRequestsDate` is stale, so no current daily window is fabricated. Unit
+  coverage verifies both the exact reconciliation and the stale/unproven path.
+- Focused live checks with the configured local credentials passed: MarketData.app
+  account usage `1/1` and Twelve Data account usage `1/1`. The durable
+  coordinator now reports MarketData.app's active Starter Trial `10,000`
+  credits/day baseline and Twelve Data's reviewed `8` credits/minute baseline.
+  These are focused provider-account proofs, not full-matrix acceptance; the
+  current worktree was dirty during those runs, so exact-source receipts must
+  be replayed after commit.
+
 ## 2026-09-16 current isolated unit gate
 
 - The complete backend unit suite passed `2,317/2,317` at source
