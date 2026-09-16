@@ -484,6 +484,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   close without a retry. Missing admission evidence, worker drift, invalid
   lease-expiry claims, and missing retry identities fail closed; no attempt
   transition, scheduling, or engine invocation is performed.
+- `result_completion.py` composes terminal runtime, outcome, progress, result
+  publication, and content-addressed artifact-commit evidence. It resolves all
+  artifact plans against a working ledger but returns the original ledger on
+  any conflict or rejection, preventing partial finalization. Exact completion
+  retries replay only when every recorded commit remains present; successful
+  publication replays without a prior completion receipt are rejected. This is
+  an adapter transaction boundary and performs no byte writes, result publish,
+  process control, or engine I/O.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

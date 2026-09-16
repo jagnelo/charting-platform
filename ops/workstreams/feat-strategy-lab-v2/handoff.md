@@ -1617,3 +1617,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic result-completion checkpoint
+
+`result_completion.py` adds terminal completion evidence for a backtest attempt
+and its output artifacts. It requires successful runtime, outcome, and complete
+progress states plus an accepted publication plan; it then resolves every
+content-addressed artifact commit against a working ledger while returning the
+original ledger on any conflict or rejection. Completion receipts bind the
+attempt, result, runtime/outcome/progress identities, publication, and commit
+keys; exact retries replay only when all referenced commits are still present,
+and publication replay without a completion receipt fails closed. No bytes,
+database rows, queues, processes, or engines are touched.
+
+The exact implementation tree passed all 318 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
