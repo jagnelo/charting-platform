@@ -1436,3 +1436,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable-adapter boundary for this journal; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Transactional outbox checkpoint
+
+`outbox.py` adds immutable `OutboxMessage` and `OutboxState` records plus pure
+enqueue and acknowledgement resolutions. Request identities conflict when
+their semantic payload changes, identical content deduplicates even across
+request retries, pending messages have deterministic availability ordering,
+and publish acknowledgements are idempotent. Scheduling timestamps are retained
+in the record but excluded from content identity. Unknown acknowledgements and
+invalid state are rejected without mutation; PostgreSQL transactionality and
+Redis transport remain future adapter responsibilities.
+
+The exact implementation tree passed all 250 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable-adapter boundary over the journal/outbox contracts; preserve all
+shared-path and execution-authorization gates.

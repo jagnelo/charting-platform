@@ -423,6 +423,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and timestamp regressions remain explicit without mutating the journal. A
   future PostgreSQL/outbox adapter must persist the returned decision
   atomically; this contract never writes or transports audit records.
+- `outbox.py` defines immutable transactional-outbox messages and state.
+  Request identity conflicts, content duplicates, deterministic pending order,
+  and publish acknowledgements are resolved without I/O. Exact enqueue and
+  acknowledgement retries replay idempotently; unknown acknowledgements reject.
+  Message identity excludes scheduling timestamps, while the full record retains
+  them for auditability. PostgreSQL transactionality and Redis transport remain
+  adapter responsibilities.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
