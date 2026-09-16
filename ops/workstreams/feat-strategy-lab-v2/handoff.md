@@ -11,6 +11,46 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Registration-neutral API boundary context (in progress)
+
+This changeset owns only the new package-local API adapter/router and its
+focused tests, plus the Strategy Lab v2 documentation and workstream receipts.
+It will expose deterministic resource/error serialization, cursor-bound reads,
+static strategy validation, idempotent asynchronous submissions, and
+retry/cancellation command intents through an injected adapter. It must not
+register a router in `backend/app/main.py`, touch existing Strategy Lab routes,
+models, migrations, authentication dependencies, worker entrypoints, Compose,
+provider/ETF/TC2000 paths, or frontend code. The adapter remains responsible for
+authorization, persistence, atomic compare-and-set, dispatch, and execution.
+
+## 2026-09-16 - Registration-neutral API boundary checkpoint
+
+`api_router.py` now provides a package-local `create_strategy_lab_router()`
+factory. The router exposes cursor-bound resource collection/read endpoints,
+static strategy-source validation, idempotent asynchronous submission, and
+retry/cancellation command intents. It serializes frozen resource envelopes,
+Decimal/timestamp values, submission/command receipts, and stable typed errors;
+all state-changing behavior is delegated to an injected adapter scoped by the
+authenticated principal. Invalid cursors, resource types, bodies, source size,
+missing idempotency keys, and adapter conflicts fail closed. The router is
+deliberately not registered in `main.py`, so no shared application/auth/model
+path was changed.
+
+Focused validation passed 7 API-router tests. The exact package tree passed 519
+Strategy Lab v2 tests, Ruff, MyPy, and `git diff --check`; the declared branch
+checks passed all five checks. The Docker-backed combined backend gate passed
+2,166 tests with 83.04% total coverage (required threshold: 75%), including
+successful setup and cleanup. This remains an adapter boundary: durable
+PostgreSQL/API wiring, authentication dependency selection, Redis dispatch,
+worker effects, router registration, and full upstream reconciliation remain
+open behind the existing gates.
+
+The implementation context is complete. The next action is to reconcile the
+provider-platform, ETF, and TC2000 shared contracts after their branches reach
+staging, then register this router and add additive persistence/API/worker
+integration without changing the engine-neutral contracts. No other worktree
+or shared path was modified.
+
 ## 2026-09-15 - Approved implementation plan
 
 The human explicitly activated implementation of the agreed Strategy Lab v2
