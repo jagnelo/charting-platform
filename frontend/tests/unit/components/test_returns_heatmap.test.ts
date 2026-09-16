@@ -10,6 +10,21 @@ async function flushPromises() {
 }
 
 describe('ReturnsHeatmap', () => {
+  it('announces an empty return breakdown to assistive technology', () => {
+    const wrapper = mount(ReturnsHeatmap, {
+      props: {
+        mode: 'monthly',
+        rows: [],
+      },
+    })
+
+    const emptyState = wrapper.get('.returns-heatmap__empty')
+    expect(emptyState.text()).toContain('No return breakdown yet.')
+    expect(emptyState.attributes('role')).toBe('status')
+    expect(emptyState.attributes('aria-live')).toBe('polite')
+    expect(emptyState.attributes('aria-atomic')).toBe('true')
+  })
+
   it('shows the actual color-scale endpoint percentages in the legend', () => {
     const wrapper = mount(ReturnsHeatmap, {
       props: {
