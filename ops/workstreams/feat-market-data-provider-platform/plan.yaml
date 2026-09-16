@@ -372,6 +372,22 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 Binance native account-usage completion: the adapter now
+      probes the documented public `/api/v3/time` endpoint, validates native
+      `X-MBX-USED-WEIGHT-1M` telemetry, maps Binance's fixed UTC-minute reset,
+      and raises typed capacity errors for 418/429 or malformed capacity state.
+      The reviewed 6,000-weight/minute contract, serialized bootstrap slot,
+      durable native-baseline reconciliation, provider registry, docs, and
+      focused tests are wired. The corrected exact-source focused runner
+      passed `1/1` at source `f031e8e1f`; the owner-local redacted ledger now
+      records `limit=6000`, `used=1`, and `remaining=5999`. The prior
+      `e68d8e424` receipt is preserved as a superseded runner-pre-fix
+      `missing_live_evidence` result. The full backend unit suite passed
+      `2,322/2,322` with 70.66% coverage and 37 warnings. This closes only
+      Binance account-usage admission; the full matrix and all other
+      provider, source/legal, universe, secret-store, deferred-provider, and
+      shadow gates remain open.
+    - >-
       At source `cf934faa6`, bounded native account-usage refreshes passed
       `1/1` for EODHD and `1/1` for Twelve Data. The Twelve Data response
       reconciled a fresh 8-credit fixed-minute baseline with one credit used;

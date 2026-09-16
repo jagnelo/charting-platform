@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Binance native account-usage completion
+
+- Binance now has a provider-specific `fetch_account_usage` adapter using the
+  documented public `/api/v3/time` probe and native `X-MBX-USED-WEIGHT-1M`
+  telemetry. The adapter validates the counter, rejects missing or malformed
+  capacity state, maps the fixed UTC-minute reset, and preserves typed 418/429
+  capacity failures; it never invents a request allowance from an empty local
+  ledger.
+- The reviewed `request_weight_per_minute=6000` contract and a separate
+  deployment-scoped serialized bootstrap slot are wired through config,
+  reservations, routing diagnostics, and the native-baseline allow-list. The
+  successful snapshot reconciles the durable owner-local ledger as
+  `limit=6000`, `used=1`, `remaining=5999` at 2026-09-16 13:25 UTC.
+- The corrected exact-source focused runner passed Binance account usage
+  `1/1` at source `f031e8e1f`; it made one public request, persisted one
+  redacted ledger receipt, and skipped unrelated deferred OHLCV disposition
+  checks by explicit `--account-usage-only` scope. The earlier source
+  `e68d8e424` receipt remains recorded as an intentionally superseded runner
+  pre-fix `missing_live_evidence` result, not as acceptance evidence.
+- Full backend units pass `2,322/2,322` with 70.66% coverage and 37 warnings;
+  no frontend or ETF-provider adapter file changed. This closes Binance's
+  account-usage-baseline gap only. The full provider matrix, other
+  provider-specific quota/legal/source gates, universe reconciliation,
+  target-owned secret stores, and final shadow phase remain open.
+
 ## 2026-09-16 direct live account-usage baseline handoff
 
 - Closed a validation/accounting gap in the direct live-test path. The
