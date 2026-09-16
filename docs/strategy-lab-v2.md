@@ -355,6 +355,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   replay, lifecycle, and forward-event-tape checks are explicit; complete
   release-candidate evidence is compatibility-only, and only a complete stable
   release can be marked authoritative.
+- `result_publication.py` composes conformance, runtime isolation, and exact
+  result-artifact integrity into a storage-neutral publish plan. Only a stable
+  authoritative build with matching evidence can publish; already-published
+  manifests replay idempotently, while build, runtime, conformance, or artifact
+  mismatches reject without changing the result record.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
