@@ -1,5 +1,22 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R6 dense Market Map hit-test performance
+
+Product commit `c17962ef2` replaces the dense canvas Market Map's per-pointer
+linear cell scan with a fixed 32×32 normalized-space spatial index. Candidate
+cells retain visible layout order, so exact shared-edge and overlapping-geometry
+resolution remains compatible with the former first-match behavior. The index
+is rebuilt only when layout cells change; responsive canvas dimensions still
+use the existing normalized pointer conversion.
+
+Focused Market Map utility/component coverage passed `59/59`, full frontend
+Vitest passed `1,102/1,102`, `vue-tsc` and the production build passed with the
+existing large-chunk warning, and `git diff --check` passed. No provider,
+ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy
+behavior changed. The broader goal remains active: provider/ETF consumer
+integration waits for staging, while origin synchronization remains a separate
+operational hold.
+
 ## 2026-09-16 — R6 Strategy Lab symbol-removal accessibility
 
 Product commit `f23cb77f6` gives each manually added Strategy Lab universe

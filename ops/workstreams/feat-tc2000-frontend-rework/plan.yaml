@@ -254,7 +254,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_strategy_symbol_accessibility
+  current_phase: R6_market_map_hit_test_performance
   next_action: >-
     Continue the next unfinished TC-owned roadmap item. Keep provider/ETF
     consumer work deferred until both upstream branches reach staging, and do
@@ -274,6 +274,7 @@ progress:
     under the recorded private-origin safeguard, not a product or validation
     blocker.
 historical_implementation_records:
+  - "Product commit c17962ef2 replaces dense canvas Market Map hover/click linear scans with a fixed normalized-space spatial hit-test index while preserving source-order first-match semantics at shared edges. Focused Market Map utility/component coverage passed 59/59, full frontend Vitest passed 1,102/1,102, type-check and production build passed with the existing large-chunk warning, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit f23cb77f6 gives manually added Strategy Lab symbol-removal controls explicit accessible names (Remove <symbol>) while preserving the visible glyph and click handler. Focused Strategy Lab coverage passed 31/31 with named-control and removal assertions; frontend type-check and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit e11ce1f47 gives the chart comparison add and remove controls explicit accessible names (Add comparison and Remove <symbol>), preserves title/visible/click behavior, and updates F9c to use role/name locators. Focused workstation/pop-out coverage passed 31/31; frontend type-check and production build passed; authenticated branch-scoped Chromium confirmed add/remove semantics; Docker stack teardown removed only the assigned resources; and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
   - "Product commit a624ffaf5 gives the compact WorkstationView layout-clone '+' control the explicit accessible name 'Clone active layout' while preserving its title and activation. Focused workstation/pop-out coverage passed 31/31, including clone activation and accessible-name assertions; frontend type-check, TC scope guard, workstream validation, and git diff checks passed. No provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior changed."
