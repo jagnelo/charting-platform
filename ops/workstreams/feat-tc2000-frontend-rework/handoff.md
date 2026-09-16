@@ -13187,3 +13187,26 @@ mask, skip, V25-media, or acceptance-policy behavior changed. Provider/ETF
 consumer integration remains deferred until both branches reach staging, and
 this is a complete exact-gate receipt for the slice, not closure of the overall
 workstream.
+
+## 2026-09-16 - EasyScan state announcements
+
+Product commit `618aeb7` gives `EasyScanTool` explicit live-region semantics
+without changing condition-builder, scan, cancellation, promotion, or result
+behavior: the idle and save-progress states are polite atomic statuses, and
+condition-load failures are assertive atomic alerts. Focused coverage passed
+`17/17`; full frontend Vitest passed `1,113/1,113`; vue-tsc and production
+build passed with the existing large-chunk warning; TC scope validation,
+workstream validation, and `git diff --check` passed.
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make
+validate-integration` gate passed at product tip `618aeb7` with exit `0` through
+all repository stages, authenticated functional Chromium, and all four visual
+projects. Branch-scoped teardown removed the assigned containers, volumes,
+network, generated images, and test sessions; post-gate resource accounting
+reported zero containers, volumes, test sessions, known bytes, and unknown
+components. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
+integration remains deferred until both branches reach staging, and this is a
+complete exact-gate receipt for the slice, not closure of the overall
+workstream.
