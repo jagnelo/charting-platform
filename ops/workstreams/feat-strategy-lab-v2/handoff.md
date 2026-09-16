@@ -2150,3 +2150,18 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Worker-terminal release ordering checkpoint
+
+`materialize_worker_terminal` now rejects a first-time worker release whose
+timestamp precedes terminal evidence, preventing capacity and lease state from
+appearing released before process completion was observed. Existing terminal
+and settlement receipts remain replayable when a later retry arrives, while
+changed release evidence still follows the settlement conflict path.
+
+The exact implementation tree passed all 434 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

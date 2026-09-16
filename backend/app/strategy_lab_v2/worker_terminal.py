@@ -182,6 +182,23 @@ def materialize_worker_terminal(
             terminal.rejection_reason or "terminal projection was rejected",
             terminal_resolution=terminal,
         )
+    has_existing_settlement = any(
+        record.attempt_id == admission.attempt_id
+        for record in settlement_ledger.records
+    )
+    if released_at < observed_at and not (
+        terminal.decision is ExecutionTerminalDecision.REPLAY_EXISTING
+        and has_existing_settlement
+    ):
+        return _reject(
+            settlement_ledger,
+            pool,
+            lease_state,
+            outcome,
+            progress,
+            "worker release cannot precede terminal observation",
+            terminal_resolution=terminal,
+        )
 
     settlement = settle_worker_execution(
         settlement_ledger,

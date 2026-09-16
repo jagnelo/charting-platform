@@ -161,3 +161,28 @@ def test_worker_terminal_failed_runtime_requires_typed_error(tmp_path: Path) -> 
     assert failed.decision is WorkerTerminalDecision.COMMITTED
     assert failed.terminal_resolution.outcome.error is not None
     assert failed.terminal_resolution.progress.phase.value == "failed"
+
+
+def test_worker_terminal_rejects_release_before_terminal_observation(tmp_path: Path) -> None:
+    values = _fixtures()
+    execution = _execution(values, tmp_path)
+    _, admission, *_ = values
+    result, *_ = result_fixture()
+    resolved = materialize_worker_terminal(
+        WorkerSettlementLedger(),
+        _pool(values),
+        _lease(values),
+        admission,
+        execution,
+        _receipt(),
+        _outcome(),
+        _progress(),
+        result=result,
+        observed_at=NOW + timedelta(seconds=3),
+        released_at=NOW + timedelta(seconds=2),
+    )
+    assert resolved.decision is WorkerTerminalDecision.REJECT
+    assert resolved.rejection_reason == "worker release cannot precede terminal observation"
+    assert resolved.pool == _pool(values)
+    assert resolved.lease_state == _lease(values)
+    assert resolved.settlement_ledger == WorkerSettlementLedger()
