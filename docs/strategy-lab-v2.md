@@ -625,6 +625,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   atomically, supports exact replay and caller cursor compare-and-set, and
   leaves Redis publication and worker effects to later adapters; migrations
   and application registration remain gated.
+- `postgres_execution_state.py` maps owner-scoped outcome and progress
+  checkpoints to additive PostgreSQL rows. It locks both attempt records,
+  preserves monotonic outcome transitions and progress update fingerprints,
+  applies combined updates atomically, exposes an authenticated command-state
+  reader, and fails closed on partial or tampered state. It remains a
+  registration-neutral adapter; migrations, route wiring, and worker effects
+  are still shared integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

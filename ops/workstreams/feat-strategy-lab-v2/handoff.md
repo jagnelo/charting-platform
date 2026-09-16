@@ -11,6 +11,22 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable execution-state checkpoint
+
+`postgres_execution_state.py` now maps owner-scoped execution outcomes and
+progress checkpoints to additive PostgreSQL rows. It locks both records for an
+attempt, validates their shared identity and stored fingerprints, preserves
+monotonic outcome transitions, retains every applied progress-update digest
+for restart-safe replay, and applies combined outcome/progress/cancellation
+observations atomically. `read_context` returns the authenticated pair needed
+by the command adapter. Partial/tampered state, gaps, illegal transitions,
+cross-owner reads, and compare-and-set races fail closed; no queue, worker, or
+broker effect is performed.
+
+The focused state-adapter suite passed 4 tests; the full Strategy Lab v2
+package passed 544 tests with Ruff, MyPy, and `git diff --check` clean. Full
+branch and Docker-backed coverage gates will be rerun after this checkpoint.
+
 ## 2026-09-16 - Atomic execution-event transaction staging checkpoint
 
 `postgres_event_transaction.py` now maps the canonical execution-event,
