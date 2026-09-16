@@ -137,7 +137,7 @@
         @click="selectWorkspaceTab(tab.stable_key)"
         @keydown="handleWorkspaceTabKeydown(tab.stable_key, $event)"
       >{{ tab.name }}</button>
-      <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <button type="button" class="workstation__tab-add" title="Clone active layout" aria-label="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
           <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
         <div v-if="toolLibraryOpen" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">

@@ -230,6 +230,21 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('gives the compact clone-layout control an explicit accessible name', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const cloneButton = wrapper.get('button[aria-label="Clone active layout"]')
+    expect(cloneButton.text()).toBe('+')
+    expect(await cloneButton.attributes('title')).toBe('Clone active layout')
+    await cloneButton.trigger('click')
+    expect(harness.workspace.cloneActiveTab).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
   it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
     routeState.params = { windowKey: 'missing-tool' }
     const wrapper = mount(WorkstationView, {
