@@ -3587,3 +3587,15 @@ the authoritative record for this replay; it made zero provider calls.
   not full-matrix acceptance or routing promotion. The trial expiry remains
   `2026-10-11T18:09:00+01:00`, after which effective capacity falls back to
   Free Forever/100 credits per day.
+
+## 2026-09-16 Massive expiry diagnostics hardening
+
+- Massive's optional use-attestation expiry is now included in the registry's
+  advertised routing-control tuple. If an operator supplies an expired or
+  malformed expiry, the missing-control diagnostic names
+  `MASSIVE_MARKET_DATA_USE_EXPIRES_AT`; an omitted expiry remains valid for a
+  non-time-limited review.
+- Focused registry, secret-wiring, and live-runner tests passed `84/84`; Ruff
+  and diff checks passed. No provider calls or credentials were used by this
+  change. The branch remains fail-closed for missing Massive attestation and
+  all other unresolved provider gates.

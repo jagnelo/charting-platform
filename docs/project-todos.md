@@ -12,6 +12,12 @@
       435/435; the full backend unit suite passes 2,300/2,300. No provider
       calls or credentials were used by this change.
 
+- [x] Expose Massive's optional use-attestation expiry in routing diagnostics
+      as a first-class control. An explicitly expired or malformed expiry is
+      now reported by name while an omitted expiry remains valid for a
+      non-time-limited personal-use review. Focused registry/wiring/live-runner
+      coverage passes `84/84` after this hardening.
+
 ### 2026-09-16 — MarketData.app account-introspection charge correction
 
 - [x] Treat authenticated `/user/` account usage as a provider-specific,

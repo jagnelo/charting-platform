@@ -322,6 +322,7 @@ class TestProviderRegistry:
             "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
             "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
             "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+            "MASSIVE_MARKET_DATA_USE_EXPIRES_AT",
         )
         assert provider_missing_routing_controls("massive") == [
             "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
@@ -753,6 +754,32 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("marketdata_app") == [
             "MARKETDATA_APP_REVIEWED_PLAN",
             "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
+        ]
+
+    def test_massive_optional_expiry_is_reported_when_invalid(self, monkeypatch):
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", True)
+        monkeypatch.setattr(
+            settings,
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "reviewed terms",
+        )
+        monkeypatch.setattr(
+            settings,
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "personal_noncommercial_nonredistributed",
+        )
+        monkeypatch.setattr(
+            settings,
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+            datetime(2026, 9, 15, tzinfo=UTC),
+        )
+        monkeypatch.setattr(
+            settings,
+            "MASSIVE_MARKET_DATA_USE_EXPIRES_AT",
+            datetime(2026, 9, 16, tzinfo=UTC),
+        )
+        assert provider_missing_routing_controls("massive", "get_instrument_profile") == [
+            "MASSIVE_MARKET_DATA_USE_EXPIRES_AT"
         ]
 
     def test_yfinance_is_available_as_price_history_provider(self):
