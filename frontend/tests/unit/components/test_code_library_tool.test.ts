@@ -97,7 +97,38 @@ describe('CodeLibraryTool', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('Validation errors')
     expect(wrapper.text()).toContain('Imports are not permitted')
+    const validation = wrapper.get('.code-library-tool__validation')
+    expect(validation.attributes('role')).toBe('alert')
+    expect(validation.attributes('aria-live')).toBe('assertive')
+    expect(validation.attributes('aria-atomic')).toBe('true')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('announces successful source validation as a polite status', async () => {
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset source"]').setValue("output.scalar('value', 1)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await flushPromises()
+
+    const validation = wrapper.get('.code-library-tool__validation')
+    expect(validation.text()).toContain('Validated')
+    expect(validation.attributes('role')).toBe('status')
+    expect(validation.attributes('aria-live')).toBe('polite')
+    expect(validation.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces library request failures as assertive alerts', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Library unavailable'))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    const error = wrapper.get('.code-library-tool__error')
+    expect(error.text()).toBe('Library unavailable')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
   })
 
   it('blocks a syntactically valid source whose output contract disagrees with the asset kind', async () => {

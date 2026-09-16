@@ -18,13 +18,13 @@
         <button type="button" :disabled="validatingNew || !newSource.trim()" @click="validateNewSource">{{ validatingNew ? 'Validating…' : 'Validate' }}</button>
         <button type="submit" :disabled="creatingBusy || validatingNew || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
       </div>
-      <div v-if="newValidation" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !newValidation.valid }">
+      <div v-if="newValidation" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !newValidation.valid }" :role="newValidation.valid ? 'status' : 'alert'" :aria-live="newValidation.valid ? 'polite' : 'assertive'" aria-atomic="true">
         <strong>{{ newValidation.valid ? 'Validated' : 'Validation errors' }}</strong>
         <pre v-if="newValidation.diagnostics.length">{{ formatDiagnostics(newValidation.diagnostics) }}</pre>
         <small v-else>Outputs: {{ newValidation.output_contracts.join(', ') || 'none' }} · Dependencies: {{ newValidation.dependencies.join(', ') || 'none' }}</small>
       </div>
     </form>
-    <p v-if="error" class="code-library-tool__error">{{ error }}</p>
+    <p v-if="error" class="code-library-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="loading && !assets.length" class="code-library-tool__notice">Loading user-owned assets…</p>
     <p v-else-if="!filteredAssets.length" class="code-library-tool__notice">No matching Python assets.</p>
     <div v-else class="code-library-tool__assets" role="list">
@@ -44,7 +44,7 @@
               <button type="button" :disabled="validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="validateVersionSource(asset)">{{ validatingAsset === asset.id ? 'Validating…' : 'Validate' }}</button>
               <button type="button" :disabled="savingVersion === asset.id || validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="saveVersion(asset)">{{ savingVersion === asset.id ? 'Saving…' : 'Save as new version' }}</button>
             </div>
-            <div v-if="versionValidations[asset.id]" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !versionValidations[asset.id].valid }">
+            <div v-if="versionValidations[asset.id]" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !versionValidations[asset.id].valid }" :role="versionValidations[asset.id].valid ? 'status' : 'alert'" :aria-live="versionValidations[asset.id].valid ? 'polite' : 'assertive'" aria-atomic="true">
               <strong>{{ versionValidations[asset.id].valid ? 'Validated' : 'Validation errors' }}</strong>
               <pre v-if="versionValidations[asset.id].diagnostics.length">{{ formatDiagnostics(versionValidations[asset.id].diagnostics) }}</pre>
               <small v-else>Outputs: {{ versionValidations[asset.id].output_contracts.join(', ') || 'none' }} · Dependencies: {{ versionValidations[asset.id].dependencies.join(', ') || 'none' }}</small>
