@@ -30,6 +30,7 @@ from app.services.provider_runtime import (
     _get_bucket,
     _get_semaphore,
     execute_provider_call,
+    policy_allows_account_usage_bootstrap,
     resolve_provider_chain,
     seed_provider_runtime,
 )
@@ -57,6 +58,49 @@ def test_capacity_response_headers_retain_provider_native_usage_state_only():
         "x-api-ratelimit-reset": "1700000000",
         "x-api-ratelimit-consumed": "4",
     }
+
+
+def test_account_usage_bootstrap_allows_only_explicit_unknown_dimensions():
+    contract = {
+        "reset": "per_dimension",
+        "unknown_dimensions": ["provider_minute_pool"],
+        "account_usage_bootstrap": {
+            "enabled": True,
+            "source": "application_policy:provider_native_baseline_bootstrap",
+            "allowed_unknown_dimensions": ["provider_minute_pool"],
+        },
+        "dimensions": [
+            {
+                "name": "calls_per_day",
+                "limit": 20,
+                "window_seconds": 86400,
+                "unit": "calls",
+                "scope": "api_key",
+                "source": "unit-test",
+                "reset": "calendar_day_gmt",
+            },
+            {
+                "name": "account_usage_probe_concurrency",
+                "limit": 1,
+                "window_seconds": 1,
+                "unit": "concurrent_requests",
+                "scope": "deployment",
+                "source": "unit-test",
+                "reset": "rolling",
+                "applies_to_operations": ["fetch_account_usage"],
+            },
+        ],
+    }
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.ACCOUNT_USAGE,
+        quota_contract=contract,
+        quota_scope="api_key",
+        quota_source="unit-test",
+    )
+    assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is True
+    contract["account_usage_bootstrap"]["allowed_unknown_dimensions"] = []
+    assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
 
 
 @pytest.mark.asyncio
@@ -604,6 +648,9 @@ async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_
 
     monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", legacy_seeds)
     monkeypatch.setattr(settings, "EODHD_API_KEY", "configured-test-key")
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 20)
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "rolling")
+    monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "unit-test account evidence")
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
     await seed_provider_runtime(async_db)
 

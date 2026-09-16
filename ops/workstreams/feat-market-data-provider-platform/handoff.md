@@ -1,5 +1,28 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD conflicting minute-pool admission control
+
+- EODHD's 20/minute Free Starter publication conflicts with the official
+  general 1,000/minute statement. The seed now records that conflict and an
+  unresolved provider-defined minute reset; the lower value is audit metadata,
+  not a runtime entitlement.
+- Ordinary EODHD history/profile/quote/discovery routing requires the
+  provider-specific `EODHD_REVIEWED_MINUTE_LIMIT`,
+  `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` controls.
+  The native `/user` account-usage operation remains a bounded bootstrap for
+  the independent daily pool; only the named unresolved minute dimensions are
+  allowed during that control-plane read.
+- Controls are wired through settings, registry diagnostics, local/RPi Compose,
+  GitHub live workflow, live safety diagnostics, examples, and documentation.
+  Focused provider/quota/runtime/wiring coverage passed `214/214`; Ruff,
+  compileall, and `git diff --check` passed. No external provider request was
+  made by these checks.
+- The remaining owner gate is current EODHD account/provider evidence for the
+  minute limit/reset. Populate the three non-secret controls per environment,
+  rerun the committed-source EODHD live matrix, and reconcile the daily native
+  baseline when `/user` reports the current UTC date. This does not promote
+  routing, deployment, or the deferred shadow run.
+
 ## 2026-09-16 Native account-usage baseline refresh
 
 - Re-ran the bounded account-usage-only live cases from the committed source

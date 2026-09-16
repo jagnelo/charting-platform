@@ -837,6 +837,23 @@ class TestProviderRegistry:
         ]
         assert provider_missing_routing_controls("tiingo") == []
         assert provider_missing_routing_controls("fmp") == []
+        assert provider_missing_routing_controls("eodhd") == [
+            "EODHD_REVIEWED_MINUTE_LIMIT",
+            "EODHD_REVIEWED_MINUTE_RESET",
+            "EODHD_MINUTE_QUOTA_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("eodhd", "fetch_account_usage") == ()
+        assert provider_missing_routing_controls("eodhd", "fetch_account_usage") == []
+        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 20)
+        monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "rolling")
+        monkeypatch.setattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "account dashboard")
+        assert provider_missing_routing_controls("eodhd") == []
+        eodhd_seed = provider_rate_limit_seed("eodhd")
+        eodhd_contract = eodhd_seed["quota_contract"]
+        assert eodhd_contract["unknown_dimensions"] == []
+        assert eodhd_contract["dimensions"][0]["limit"] == 20
+        assert eodhd_contract["dimensions"][0]["reset"] == "rolling"
+        assert eodhd_seed["tokens_per_minute"] == 20
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         assert provider_missing_routing_controls("marketdata_app") == []

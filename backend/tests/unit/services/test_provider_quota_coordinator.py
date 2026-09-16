@@ -1114,6 +1114,15 @@ def test_eodhd_live_probe_settlement_keeps_provider_credits_separate_from_http_c
 ):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    # This fixture exercises settlement mechanics, so provide an explicit
+    # reviewed test contract for the otherwise fail-closed EODHD minute pool.
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 20)
+    monkeypatch.setattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "rolling")
+    monkeypatch.setattr(
+        settings,
+        "EODHD_MINUTE_QUOTA_EVIDENCE",
+        "unit-test:eodhd-reviewed-minute-pool",
+    )
 
     _seed_live_test_baseline("eodhd")
     reservation = reserve_live_provider_operation("eodhd", "get_instrument_profile")

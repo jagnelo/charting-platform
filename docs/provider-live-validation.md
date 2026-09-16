@@ -128,6 +128,12 @@ be probed with only the key, but discovery remains non-routable without it.
 The separate Marketstack quota preflight also requires the reviewed monthly
 limit/reset/evidence controls; the conflicting provider pages are never
 resolved by a generic default.
+EODHD is handled the same way for its conflicting minute pool: the native
+`/user` account snapshot may bootstrap the independently documented daily
+counter, but ordinary EODHD routing remains blocked until
+`EODHD_REVIEWED_MINUTE_LIMIT`, `EODHD_REVIEWED_MINUTE_RESET`, and
+`EODHD_MINUTE_QUOTA_EVIDENCE` are configured. The lower published 20/minute
+value is retained for audit and is never treated as a confirmed account limit.
 Coinbase's live case is blocked before transport until its exact internal,
 automated, persistent, non-redistributed use has current written authority
 recorded in the scoped `COINBASE_MARKET_DATA_USE_*` settings. FRED remains

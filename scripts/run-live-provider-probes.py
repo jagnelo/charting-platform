@@ -1515,6 +1515,28 @@ def routing_safety_preflight() -> dict[str, str]:
         + ", ".join(finnhub_missing)
     )
 
+    try:
+        eodhd_minute_limit = int(
+            os.getenv("EODHD_REVIEWED_MINUTE_LIMIT", "0").strip() or "0"
+        )
+    except ValueError:
+        eodhd_minute_limit = 0
+    eodhd_minute_reset = os.getenv("EODHD_REVIEWED_MINUTE_RESET", "").strip()
+    eodhd_minute_evidence = os.getenv("EODHD_MINUTE_QUOTA_EVIDENCE", "").strip()
+    eodhd_missing: list[str] = []
+    if not 0 < eodhd_minute_limit <= 1000:
+        eodhd_missing.append("EODHD_REVIEWED_MINUTE_LIMIT")
+    if not provider_quota_reset_is_admission_safe(eodhd_minute_reset):
+        eodhd_missing.append("EODHD_REVIEWED_MINUTE_RESET")
+    if not eodhd_minute_evidence:
+        eodhd_missing.append("EODHD_MINUTE_QUOTA_EVIDENCE")
+    result["eodhd"] = (
+        "routable"
+        if not eodhd_missing
+        else "non-routable: official EODHD minute-pool sources conflict; the lower published value is audit-only until the exact account limit/reset is reviewed; missing/invalid "
+        + ", ".join(eodhd_missing)
+    )
+
     # These providers have a useful live read but still lack one or more
     # provider-specific admission dimensions. Keep the gap visible next to
     # the byte-bound controls rather than letting a passing probe imply safe

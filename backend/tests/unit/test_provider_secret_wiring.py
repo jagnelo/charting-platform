@@ -142,6 +142,9 @@ PROVIDER_SAFETY_SETTINGS = {
     "FMP_REVIEWED_BANDWIDTH_RESET",
     "FMP_DAILY_QUOTA_EVIDENCE",
     "FMP_BANDWIDTH_QUOTA_EVIDENCE",
+    "EODHD_REVIEWED_MINUTE_LIMIT",
+    "EODHD_REVIEWED_MINUTE_RESET",
+    "EODHD_MINUTE_QUOTA_EVIDENCE",
     "MARKETDATA_APP_REVIEWED_PLAN",
     "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
     "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
@@ -525,6 +528,9 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     assert "FMP_REVIEWED_BANDWIDTH_RESET: ${{ vars.FMP_REVIEWED_BANDWIDTH_RESET || '' }}" in workflow
     assert "FMP_DAILY_QUOTA_EVIDENCE: ${{ vars.FMP_DAILY_QUOTA_EVIDENCE || '' }}" in workflow
     assert "FMP_BANDWIDTH_QUOTA_EVIDENCE: ${{ vars.FMP_BANDWIDTH_QUOTA_EVIDENCE || '' }}" in workflow
+    assert "EODHD_REVIEWED_MINUTE_LIMIT: ${{ vars.EODHD_REVIEWED_MINUTE_LIMIT || '0' }}" in workflow
+    assert "EODHD_REVIEWED_MINUTE_RESET: ${{ vars.EODHD_REVIEWED_MINUTE_RESET || '' }}" in workflow
+    assert "EODHD_MINUTE_QUOTA_EVIDENCE: ${{ vars.EODHD_MINUTE_QUOTA_EVIDENCE || '' }}" in workflow
     assert (
         "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
     )
@@ -609,6 +615,9 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FMP_REVIEWED_BANDWIDTH_RESET=" in example
     assert "FMP_DAILY_QUOTA_EVIDENCE=" in example
     assert "FMP_BANDWIDTH_QUOTA_EVIDENCE=" in example
+    assert "EODHD_REVIEWED_MINUTE_LIMIT=0" in example
+    assert "EODHD_REVIEWED_MINUTE_RESET=" in example
+    assert "EODHD_MINUTE_QUOTA_EVIDENCE=" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN=" in example
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example

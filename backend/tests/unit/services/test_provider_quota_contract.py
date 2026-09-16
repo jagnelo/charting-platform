@@ -2163,7 +2163,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
 
     eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
     assert [item["reset"] for item in eodhd["dimensions"]] == [
-        "rolling",
+        "provider_defined",
         "calendar_day_gmt",
         "rolling",
     ]
@@ -2177,9 +2177,16 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert (
         eodhd["dimensions"][0]["limit_basis"]
-        == "conservative lower published value pending provider clarification"
+        == "lower published value retained for audit; pending account/provider clarification"
     )
-    assert eodhd.get("unknown_dimensions", []) == []
+    assert eodhd["unknown_dimensions"] == [
+        "published_minute_limit_conflict",
+        "requests_per_minute_reset_boundary",
+    ]
+    assert eodhd["account_usage_bootstrap"]["allowed_unknown_dimensions"] == [
+        "published_minute_limit_conflict",
+        "requests_per_minute_reset_boundary",
+    ]
     assert eodhd["source_conflicts"] == [
         {
             "source": "https://eodhd.com/financial-apis/api-limits",

@@ -1464,7 +1464,23 @@ def policy_allows_account_usage_bootstrap(
         return False
     if not str(bootstrap.get("source") or "").strip():
         return False
-    if contract.get("unknown_dimensions") or contract.get("untracked_constraints"):
+    unknown_dimensions = {
+        str(item or "").strip()
+        for item in (contract.get("unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    allowed_unknown_dimensions = {
+        str(item or "").strip()
+        for item in (bootstrap.get("allowed_unknown_dimensions") or [])
+        if str(item or "").strip()
+    }
+    # A provider may explicitly authorize a native usage probe to run while
+    # one named pool remains unresolved (for example EODHD's conflicting
+    # minute-limit sources). This exception is exact-name allow-listed and
+    # never makes ordinary data operations routable.
+    if unknown_dimensions - allowed_unknown_dimensions:
+        return False
+    if contract.get("untracked_constraints"):
         return False
     dimensions = quota_dimensions(policy)
     if not dimensions:

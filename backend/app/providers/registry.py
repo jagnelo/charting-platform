@@ -635,6 +635,11 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "MARKETSTACK_REVIEWED_MONTHLY_RESET",
         "MARKETSTACK_QUOTA_EVIDENCE",
     ),
+    "eodhd": (
+        "EODHD_REVIEWED_MINUTE_LIMIT",
+        "EODHD_REVIEWED_MINUTE_RESET",
+        "EODHD_MINUTE_QUOTA_EVIDENCE",
+    ),
     # MarketData.app account plans have distinct daily credit pools.  Native
     # response headers are telemetry; admission uses only this explicit
     # operator-reviewed plan/limit pair.
@@ -763,6 +768,12 @@ def provider_routing_control_settings(
     # account-usage capability remains separately metered and does not admit
     # any market-data or options operation.
     if name == "marketdata_app" and operation == "fetch_account_usage":
+        return ()
+    # EODHD's native /user snapshot is the bounded mechanism that can
+    # establish the documented daily baseline while its conflicting minute
+    # sources remain unresolved. It may bootstrap; ordinary data operations
+    # still require the reviewed minute controls below.
+    if name == "eodhd" and operation == "fetch_account_usage":
         return ()
 
     controls = _ROUTING_CONTROL_SETTINGS.get(name, ())
@@ -1020,6 +1031,20 @@ def provider_missing_routing_controls(
             missing.append("MARKETSTACK_REVIEWED_MONTHLY_RESET")
         if not str(getattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "") or "").strip():
             missing.append("MARKETSTACK_QUOTA_EVIDENCE")
+        return list(dict.fromkeys(missing))
+    if name == "eodhd":
+        missing: list[str] = []
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+        )
+        if reviewed_limit is None or reviewed_limit > 1000:
+            missing.append("EODHD_REVIEWED_MINUTE_LIMIT")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "")
+        ):
+            missing.append("EODHD_REVIEWED_MINUTE_RESET")
+        if not str(getattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "") or "").strip():
+            missing.append("EODHD_MINUTE_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()

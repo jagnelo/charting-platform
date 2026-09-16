@@ -934,18 +934,20 @@ class Settings(BaseSettings):
                         "name": "requests_per_minute",
                         # The Free Starter plan card publishes a 20/min
                         # request ceiling. EODHD's general API-limits page and
-                        # Quick Start claim 1,000/min for every plan. Because
-                        # official sources conflict, enforce the lower value
-                        # pending provider clarification/account evidence.
+                        # Quick Start claim 1,000/min for every plan. Keep the
+                        # lower published value visible for audit only; the
+                        # unresolved conflict and reset boundary make this
+                        # dimension non-routable until account evidence is
+                        # reviewed.
                         "limit": 20,
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://eodhd.com/lp/historical-eod-api",
-                        "reset": "rolling",
+                        "reset": "provider_defined",
                         "limit_basis": (
-                            "conservative lower published value pending provider clarification"
+                            "lower published value retained for audit; pending account/provider clarification"
                         ),
                     },
                     {
@@ -976,6 +978,15 @@ class Settings(BaseSettings):
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
+                    # The native /user endpoint can safely establish the
+                    # daily counter while the conflicting minute pool stays
+                    # unresolved. These names are the only unknowns that the
+                    # bootstrap path may explicitly observe without making
+                    # ordinary data routing eligible.
+                    "allowed_unknown_dimensions": [
+                        "published_minute_limit_conflict",
+                        "requests_per_minute_reset_boundary",
+                    ],
                 },
                 "source_conflicts": [
                     {
@@ -983,6 +994,10 @@ class Settings(BaseSettings):
                         "claim": "1,000 requests per minute on every plan",
                         "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
                     }
+                ],
+                "unknown_dimensions": [
+                    "published_minute_limit_conflict",
+                    "requests_per_minute_reset_boundary",
                 ],
             },
             "tokens_per_minute": 20,
@@ -2127,6 +2142,14 @@ class Settings(BaseSettings):
     # affected.
     MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: int = 0
     XSTOCKS_API_KEY: str = ""
+    # EODHD publishes conflicting minute-pool limits (the Free Starter card
+    # says 20/min while the general limits page says 1,000/min). Keep that
+    # pool non-routable until the operator records the exact account limit,
+    # calculable reset boundary, and current evidence. The native /user
+    # snapshot may still bootstrap the independently documented daily pool.
+    EODHD_REVIEWED_MINUTE_LIMIT: int = 0
+    EODHD_REVIEWED_MINUTE_RESET: str = ""
+    EODHD_MINUTE_QUOTA_EVIDENCE: str = ""
     # xStocks public-read access does not by itself authorize automated,
     # persistent collection or establish deployment-jurisdiction eligibility.
     # Keep all application routes fail-closed until both dimensions have
@@ -2996,6 +3019,57 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                     for dimension in contract.get("dimensions") or []
                 ]
                 seed["quota_contract"] = contract
+        return seed
+    if provider_name == "eodhd":
+        # EODHD's official sources conflict on the minute pool (20/min on the
+        # Free Starter card versus 1,000/min on the general limits page), and
+        # neither source gives us a calculable reset boundary for this key.
+        # Keep the lower published value audit-visible but non-routable until
+        # an operator supplies the exact account limit, reset semantics, and
+        # current evidence. The separately documented daily pool remains
+        # eligible for native /user bootstrap.
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "EODHD_REVIEWED_MINUTE_LIMIT", 0)
+        )
+        reviewed_reset = str(
+            getattr(settings, "EODHD_REVIEWED_MINUTE_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "EODHD_MINUTE_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            reviewed_limit is not None
+            and reviewed_limit <= 1000
+            and provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            unresolved = {
+                "published_minute_limit_conflict",
+                "requests_per_minute_reset_boundary",
+            }
+            contract["unknown_dimensions"] = [
+                item
+                for item in (contract.get("unknown_dimensions") or [])
+                if item not in unresolved
+            ]
+            for dimension in contract.get("dimensions") or []:
+                if (
+                    isinstance(dimension, dict)
+                    and dimension.get("name") == "requests_per_minute"
+                ):
+                    dimension["limit"] = reviewed_limit
+                    dimension["reset"] = reviewed_reset
+                    dimension["limit_basis"] = "operator-reviewed account entitlement"
+            contract["source"] = (
+                f"{contract.get('source', 'EODHD API documentation')} plus "
+                "operator-reviewed minute-limit and reset evidence"
+            )
+            seed["tokens_per_minute"] = reviewed_limit
+            seed["quota_source"] = (
+                "EODHD account allowance plus operator-reviewed minute quota evidence"
+            )
         return seed
     if provider_name == "alpha_vantage":
         # Alpha Vantage documents the free-key daily allowance but does not

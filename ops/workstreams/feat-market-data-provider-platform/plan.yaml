@@ -225,6 +225,17 @@ remaining_gaps:
     156/156 and the complete backend unit gate passes 2,358/2,358 with 37
     warnings at 70.78% coverage.
   - >-
+    EODHD's conflicting official minute-pool claims (20/minute on the Free
+    Starter card versus 1,000/minute on the general limits page) are now
+    represented explicitly rather than enforced as a confirmed 20/minute
+    account limit. `EODHD_REVIEWED_MINUTE_LIMIT`,
+    `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` must all
+    be present before ordinary history/profile/quote/discovery routing can be
+    admitted. The native `/user` bootstrap remains eligible only for the
+    independently documented daily pool; its explicitly allow-listed unknown
+    minute dimensions are never treated as zero. Focused quota/registry/runtime/
+    wiring coverage passes 214/214; no provider request was made.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no provider-published
     reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
     makes this an explicit provider-specific admission control rather than a
@@ -347,7 +358,8 @@ remaining_gaps:
     usage date, so the adapter correctly retained the daily observation without
     a reset timestamp or baseline reconciliation. The published 20/day versus
     1,000/min source conflict remains conservative and normal routing stays
-    fail-closed until a current-day native observation or provider clarification.
+    fail-closed until the minute controls are reviewed and the daily observation
+    is current; a native header observation alone cannot promote either pool.
   - >-
     The exact current-source Twelve Data native account-usage case passed `1/1`
     with one bounded `/api_usage` request. Its native `credits_per_minute`

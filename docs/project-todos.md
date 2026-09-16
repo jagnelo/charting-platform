@@ -17694,3 +17694,19 @@ The current source also passes the focused authenticated top-down browser slice 
       focused prelisting coverage passes `8/8`, Ruff, compileall, and diff
       checks pass. No live SEC calls, credentials, migrations, frontend files,
       or ETF-provider adapter files were involved.
+### 2026-09-16 — EODHD conflicting minute-pool admission control
+
+- [x] Stop treating the lower 20/minute EODHD publication as a confirmed
+      account limit. The checked-in seed now records the 20-versus-1,000
+      official-source conflict and unresolved reset boundary explicitly.
+- [x] Add provider-specific `EODHD_REVIEWED_MINUTE_LIMIT`,
+      `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` controls.
+      Ordinary history/profile/quote/discovery routing remains fail-closed until
+      all three are present and the selected reset is admission-safe.
+- [x] Preserve the bounded `/user` bootstrap path for the independently
+      documented daily pool; only the explicitly allow-listed unresolved minute
+      dimensions may be observed there, never treated as zero or routable.
+- [ ] Obtain current account/provider evidence for the configured EODHD key,
+      populate the three controls in each environment, then replay the EODHD
+      live matrix from the committed source. A passing `/user` snapshot alone
+      does not promote the conflicting minute pool.
