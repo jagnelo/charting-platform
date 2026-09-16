@@ -552,6 +552,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   deliveries, and acknowledges entries with typed failure evidence. Redis
   remains transport-only; the authoritative state and outbox records stay in
   the persistence adapter.
+- `outbox_relay.py` binds one authoritative outbox message to that Redis
+  transport. It uses the message's semantic identity as the transport
+  idempotency key and proposes the published outbox state only after enqueue or
+  exact replay; Redis conflicts and failures preserve the pending state so a
+  later relay can retry safely.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

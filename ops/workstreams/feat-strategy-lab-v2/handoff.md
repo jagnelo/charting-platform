@@ -1823,3 +1823,21 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Outbox-to-Redis relay checkpoint
+
+`outbox_relay.py` binds the authoritative outbox contract to the Redis Streams
+publisher. It derives a deterministic transport envelope from an outbox
+message's semantic identity, publishes through the existing atomic enqueue
+adapter, and proposes the outbox `published_message_ids` update only after an
+enqueue or exact replay. If Redis rejects or conflicts, the original pending
+outbox state is returned unchanged; if a worker crashes after Redis publication
+but before the database compare-and-set, the next relay observes a replay and
+can safely stage the acknowledgement.
+
+The exact implementation tree passed all 383 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
