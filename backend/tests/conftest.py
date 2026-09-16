@@ -46,6 +46,29 @@ _PROVIDER_CREDENTIAL_SETTINGS = (
 )
 
 
+def pytest_collection_modifyitems(config, items):
+    """Bootstrap native provider usage before metered live operations.
+
+    The live runner deliberately refreshes provider-native account usage in the
+    same pytest process as the bounded data cases.  Pytest otherwise preserves
+    source-file order, which can put an account-usage snapshot after history,
+    quote, or discovery calls.  That is unsafe for fixed-window providers
+    (for example Binance): a reset can occur between a separately launched
+    bootstrap and the first metered operation, leaving the operation without a
+    current durable baseline.  This ordering is limited to the manifest runner
+    and does not affect ordinary unit/integration collection.
+    """
+
+    if os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() != "1":
+        return
+    items.sort(
+        key=lambda item: (
+            0 if "account_usage" in item.nodeid else 1,
+            item.nodeid,
+        )
+    )
+
+
 @pytest.fixture(autouse=True)
 def isolate_external_provider_credentials(request, monkeypatch):
     """Prevent ordinary tests from inheriting developer live credentials."""

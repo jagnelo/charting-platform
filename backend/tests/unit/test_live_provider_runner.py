@@ -15,6 +15,31 @@ def _runner_module():
     return module
 
 
+def test_live_matrix_collection_orders_native_usage_before_metered_cases(monkeypatch):
+    """Fixed-window providers bootstrap current usage before data operations."""
+
+    path = Path(__file__).parents[1] / "conftest.py"
+    spec = importlib.util.spec_from_file_location(
+        "charting_platform_tests_conftest_under_test", path
+    )
+    assert spec and spec.loader
+    conftest = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(conftest)
+
+    items = [
+        SimpleNamespace(nodeid="tests/live/test_provider.py::test_crypto_history"),
+        SimpleNamespace(
+            nodeid="tests/live/test_provider.py::test_credentialed_account_usage_snapshot"
+        ),
+    ]
+    monkeypatch.setenv("PROVIDER_LIVE_MATRIX_RUN", "1")
+
+    conftest.pytest_collection_modifyitems(None, items)
+
+    assert items[0].nodeid.endswith("account_usage_snapshot")
+    assert items[1].nodeid.endswith("crypto_history")
+
+
 def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix():
     runner = _runner_module()
     deferrals = runner.approved_live_deferrals()
