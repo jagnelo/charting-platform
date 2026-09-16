@@ -13420,3 +13420,16 @@ visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
 changed. Provider/ETF consumer integration remains deferred until both branches
 reach staging; this is a complete exact-gate receipt for the Strategy Coverage
 slice, not closure of the overall workstream.
+
+## 2026-09-16 - Distribution Bars empty-state accessibility
+
+Product commit `310e6ac19` gives Distribution Bars' no-trade-detail and
+no-closed-trade-R-multiples states explicit polite, atomic status announcements.
+Outcome-map rendering, uPlot lifecycle, and visible layout behavior are
+unchanged.
+
+Focused DistributionBars coverage passed `4/4`; full frontend Vitest passed
+`1,121/1,121`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.
