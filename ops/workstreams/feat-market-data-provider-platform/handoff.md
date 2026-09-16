@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 current-source credentialed revalidation
+
+- MarketData.app passed its bounded current-source matrix `7/7` at source
+  `a2ff6293ad082c8b6e91ca480bf08379d9521d17`, including account usage,
+  latest price, intraday candles, option expirations/chain, historical option
+  quote data, and the explicit no-request response-priced-history policy. The
+  redacted receipt records nine upstream HTTP requests and 17,241 response
+  bytes; no provider payload or secret entered Git. This is transport and
+  usage evidence only; the existing plan/terms and paid-routing controls stay
+  separate.
+- The same-source Alpaca and SEC EDGAR runs correctly stopped before network
+  access because the durable provider-specific active-window baselines are
+  unknown; the Dinari Sandbox run stopped before network access because its
+  provider-defined quota/reset and canary admission are not established. The
+  receipts preserve these as explicit safety preflights, not passing data
+  reads and not reasons to invent a rate limit.
+
 ## 2026-09-16 CoinGecko Demo usage-endpoint audit
 
 - The official CoinGecko `/key` account-usage endpoint was probed once with
