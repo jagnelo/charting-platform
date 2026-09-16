@@ -13341,3 +13341,20 @@ Focused CoverageSummaryTool coverage passed `6/6`; full frontend Vitest passed
 large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
 full-stack/browser gate is pending at this product tip. Provider/ETF consumer
 integration remains deferred until both branches reach staging.
+## 2026-09-16 - Coverage Summary exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` gate
+exited `0` at product tip `f63cd8ee4`. It completed all repository stages,
+authenticated functional Chromium, and all four TC2000 visual projects; the
+final Playwright status was `passed` with no failure markers. The host
+`/usr/bin/make` wrapper still exits with Xcode-license status `69`, so the
+equivalent installed CommandLineTools Make binary ran the same target without
+changing system state. Branch-scoped teardown and post-gate resource accounting
+reported zero containers, volumes, test sessions, known bytes, and unknown
+components. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
+integration remains deferred until both branches reach staging; this is a
+complete exact-gate receipt for the Coverage Summary slice, not closure of the
+overall workstream.
