@@ -142,6 +142,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   requirement and capacity gate over routed orders. Utilization and capacity
   breaches withhold the entire batch; the contract never infers margin from
   notional exposure or issues a solvency verdict.
+- `stress_risk.py` layers explicit adapter-generated stressed-equity scenarios
+  over the margin/routing decision. Loss-fraction and minimum-equity policy
+  breaches withhold the entire batch while retaining shock/evidence identities;
+  the package does not construct shocks or claim a solvency verdict.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared

@@ -2274,3 +2274,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Adapter-supplied stress-risk gate checkpoint
+
+`stress_risk.py` now layers an explicit stressed-equity gate over the margin and
+order-routing decisions. Each scenario binds a shock-definition digest,
+base/stressed equity values, and valuation evidence at the same event boundary;
+loss-fraction and minimum-equity ceilings are evaluated deterministically, and
+any breach withholds every routed order. Upstream margin/order rejection is
+preserved without fabricating stress evidence. Shock construction, liquidity,
+settlement, and solvency/profitability verdicts remain outside this contract.
+
+The exact implementation tree passed all 473 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.
