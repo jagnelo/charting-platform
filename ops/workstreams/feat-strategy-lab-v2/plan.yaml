@@ -291,7 +291,7 @@ deployment_impact: >-
   Add local Compose backtest/forward worker services and a persistent artifact
   volume with conservative defaults. No deployment, worker activation against
   real data, provider secret distribution, or broker connectivity is authorized.
-status: in_progress
+status: ready_for_human_review
 remaining_gaps:
   - The current engine-neutral package is only an initial core; deterministic static strategy-source preflight, pure artifact payload verification, bounded recovery planning, canonical execution event semantics, REST cursor/error contracts, typed resource/collection envelopes, compare-and-set storage transaction semantics, PostgreSQL compare-and-set adapter semantics, local atomic content-addressed artifact publication semantics, hardened sandbox-command planning semantics, bounded sandbox process execution semantics, Nautilus-only execution-gating semantics, gated Nautilus plan-to-sandbox runner semantics, runtime-result materialization semantics, execution-handoff orchestration semantics, worker-handoff execution semantics, engine-result materialization semantics, terminal outcome/progress materialization semantics, atomic Redis Streams dispatch/consumer semantics, outbox-to-Redis relay semantics, bounded Redis worker-pump semantics, idempotent async submission semantics, atomic submission/dispatch staging semantics, typed execution outcomes, artifact lineage semantics, runtime-isolation preflight, engine conformance gating, authoritative result-publication gating, restart-safe progress checkpoints, serial worker-capacity reservation semantics, manifest-bound retention/pinning semantics, ordered worker lease observations, one-time forward warm-up handoff semantics, content-addressed live-event admission semantics, idempotent artifact commit finalization, execution-summary read-model semantics, retry/cancellation command semantics, capability/report projection semantics, additive forward counterfactual-replay command semantics, append-only execution audit journal semantics, transactional-outbox enqueue/acknowledgement semantics, atomic audit/outbox staging semantics, explicit legacy preservation/import report semantics, resumable cancellable search-candidate state semantics, provider coverage-attestation verification semantics, strategy-runtime request/receipt semantics, execution-admission/worker-binding semantics, atomic search-candidate/admission/dispatch staging semantics, atomic worker-release/retry-recovery semantics, idempotent worker-capacity settlement semantics, atomic result-completion/artifact-finalization semantics, atomic forward-event/correction-replay staging semantics, atomic forward-event/worker-dispatch staging semantics, atomic execution-event/audit/outbox transaction semantics, and typed conformance-fixture evidence semantics are present, but schema migrations, application persistence wiring, API routes, worker entrypoints/scheduling, isolated strategy execution, local Compose services, and stable Nautilus release execution are not implemented.
   - Snapshot-level coverage verification now requires exactly one complete, content- and semantics-matching attestation for every frozen series; provider acquisition and execution adapters still must fetch those documents and enforce the verification receipt before runs can execute.
@@ -303,8 +303,10 @@ remaining_gaps:
   - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and the new conformance evidence gate.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold; full repository integration, migrations, API registration, worker entrypoints, Compose, and stable Nautilus execution remain unimplemented.
 progress:
-  completed: [workstream-plan]
+  completed:
+    - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
+    - combined-coverage-and-branch-validation
   total: 18
-  current_phase: coverage-gate-reconciled
+  current_phase: engine-neutral-core-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
-  next_action: continue the next bounded engine-neutral contract while preserving execution-admission/authorization and all upstream/shared-path gates
+  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then implement additive persistence/API/worker integration without changing the engine-neutral boundary

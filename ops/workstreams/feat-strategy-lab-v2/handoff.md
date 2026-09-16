@@ -2406,3 +2406,20 @@ be runnable branch commands.
 `make branch-tests INTEGRATION_BRANCH=feat/strategy-lab-v2` now passes all five
 checks. This repair changes only the branch-owned plan metadata; no provider,
 ETF, TC2000, or runtime source paths were modified.
+
+## 2026-09-16 - Engine-neutral core review boundary
+
+The package-owned implementation context is green and the workstream is now
+`ready_for_human_review`. The branch contains the immutable engine-neutral
+domain/SDK, deterministic search and walk-forward contracts, provenance-bound
+metrics and artifacts, forward-state semantics, execution isolation/admission,
+worker/retry/outbox contracts, and the composed pre-engine risk pipeline. The
+combined backend coverage and executable branch-test gates are green at the
+exact synchronized tip.
+
+This status is a review boundary, not a claim that the production backend is
+complete. Additive schema/API registration, provider acquisition wiring,
+durable worker entrypoints, Compose services, isolated runtime deployment, and
+stable Nautilus v2 execution remain open. They must begin only after the
+provider-platform, ETF, and TC2000 branches reach staging and their shared
+paths are reconciled line by line.
