@@ -11,6 +11,27 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable artifact-retention checkpoint
+
+`postgres_artifact_retention.py` now maps manifest-bound retention state and
+owner-scoped immutable pins to additive PostgreSQL rows. Initial state and pin
+rows are authenticated by canonical fingerprints; pin add/release updates the
+pin and state identity atomically with compare-and-set, and exact retries
+replay without rewriting immutable bytes. Retention eligibility is resolved at
+an explicit observation instant, preserving pinned, tiered, ephemeral, and
+permanent decisions without a wall clock or deletion side effect. Malformed,
+foreign, tampered, and uniqueness-racing rows fail closed; migration
+application, authorization, artifact storage lifecycle, and runtime wiring
+remain shared gates.
+
+The focused retention-adapter suite passed 4 tests. The complete Strategy Lab
+v2 package passed 553 tests with Ruff, MyPy, and `git diff --check` clean. All
+five declared branch checks passed, and the Docker-backed combined gate passed
+2,200 tests with 83.18% total coverage (required threshold: 75%), with setup
+and cleanup successful. Schema migrations, application wiring, worker
+entrypoints, Compose integration, upstream reconciliation, and stable Nautilus
+execution remain open shared-path gates.
+
 ## 2026-09-17 - Durable worker and lease state checkpoint
 
 `postgres_worker_state.py` now maps immutable worker profiles, serial

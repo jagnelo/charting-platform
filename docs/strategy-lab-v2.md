@@ -640,6 +640,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   with exact replay and gap/stale/conflict decisions. The adapter performs no
   process scheduling, clock polling, engine disposal, queue publication, or
   migration/application registration; those remain shared integration gates.
+- `postgres_artifact_retention.py` maps manifest-bound retention state and
+  owner-scoped immutable pins to additive PostgreSQL rows. Pin add/release
+  operations update the pin and state fingerprints atomically, exact retries
+  replay, and retention eligibility is resolved at an explicit observation time
+  without deleting or tiering bytes. Malformed, foreign, tampered, or
+  compare-and-set-racing rows fail closed; artifact publication, migrations,
+  authorization, and storage lifecycle effects remain outside this adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
