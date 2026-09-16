@@ -169,8 +169,9 @@ remaining_gaps:
     audit, not live acceptance, and confirms that the Dinari Sandbox canary is
     deliberately outside normal routing.
   - >-
-    The explicit Dinari Sandbox canary was validated at the current source with
-    transient owner controls and a 32-request per-process cap. Its compound
+    The explicit Dinari Sandbox canary was validated against implementation
+    source `d80aa10d3b55ba4f2e6a669b525953b8c96d17dd` (later commits only record
+    evidence) with transient owner controls and a 32-request per-process cap. Its compound
     manifest case passed 1/1, with 14 bounded upstream requests covering
     catalogue/identity, price and quote, all four aggregate windows, news,
     dividends, splits, and corporate actions. The one-request trial stopped at

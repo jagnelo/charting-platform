@@ -4650,7 +4650,9 @@ the authoritative record for this replay; it made zero provider calls.
 
 ## 2026-09-16 Dinari Sandbox canary validation
 
-- The explicit Dinari Sandbox canary was rerun with transient owner controls
+- The explicit Dinari Sandbox canary was rerun against implementation source
+  `d80aa10d3b55ba4f2e6a669b525953b8c96d17dd` (the following commits only
+  record evidence) with transient owner controls
   and a per-process cap of `32` requests. The manifest compound case passed
   `1/1`, making `14` bounded upstream requests and recording `160,813` response
   bytes across catalogue discovery, UUID/symbol resolution, price, quote,
