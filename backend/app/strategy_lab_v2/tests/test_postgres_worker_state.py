@@ -265,6 +265,38 @@ async def test_worker_state_adapter_rejects_tampered_rows_and_foreign_profiles()
         await adapter.load_pool(profile)
 
 
+@pytest.mark.asyncio
+async def test_worker_state_adapter_rejects_tampered_reservation_and_lease_rows() -> None:
+    session = FakeSession()
+    adapter = PostgresWorkerStateAdapter(lambda: session)
+    profile = _profile()
+    reservation_id = _reservation_id("one")
+    await adapter.reserve(
+        profile=profile,
+        attempt_id="attempt-1",
+        reservation_id=reservation_id,
+        acquired_at=NOW,
+    )
+    session.reservations[reservation_id]["reservation_fingerprint"] = content_digest("tampered")
+    with pytest.raises(ValueError, match="reservation fingerprint"):
+        await adapter.load_pool(profile)
+
+    lease_session = FakeSession()
+    lease_adapter = PostgresWorkerStateAdapter(lambda: lease_session)
+    attempt = RunAttempt("attempt-1", "trial-1", 1, AttemptState.RUNNING, NOW)
+    lease = acquire_attempt_lease(
+        attempt,
+        worker_id="worker-1",
+        lease_id="lease-1",
+        now=NOW,
+        lease_duration=timedelta(minutes=5),
+    )
+    await lease_adapter.persist_lease(lease)
+    lease_session.leases["lease-1"]["lease_fingerprint"] = content_digest("tampered")
+    with pytest.raises(ValueError, match="lease fingerprint"):
+        await lease_adapter.persist_lease(lease)
+
+
 def test_worker_state_schema_is_explicit_but_not_applied() -> None:
     schema = PostgresWorkerStateSchema()
     assert len(schema.statements) == 5

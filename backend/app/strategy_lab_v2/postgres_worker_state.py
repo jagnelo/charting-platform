@@ -386,7 +386,9 @@ class PostgresWorkerStateAdapter:
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError("PostgreSQL worker profile row is malformed") from error
-        if row["profile_fingerprint"] != profile.fingerprint:
+        if row.get("worker_id") != worker_id:
+            raise ValueError("PostgreSQL worker profile identity drifted")
+        if row.get("profile_fingerprint") != profile.fingerprint:
             raise ValueError("PostgreSQL worker profile fingerprint does not match bytes")
         return profile
 
@@ -409,7 +411,7 @@ class PostgresWorkerStateAdapter:
         reservations: list[WorkerReservation] = []
         for row in result.mappings():
             reservation = _decode_reservation(row)
-            if row["reservation_fingerprint"] != reservation.fingerprint:
+            if row.get("reservation_fingerprint") != reservation.fingerprint:
                 raise ValueError("PostgreSQL worker reservation fingerprint does not match bytes")
             reservations.append(reservation)
         ordered = tuple(sorted(reservations, key=lambda item: item.reservation_id))
@@ -439,7 +441,9 @@ class PostgresWorkerStateAdapter:
             raise ValueError("PostgreSQL lease query returned duplicate keys")
         row = lease_rows[0]
         lease = _decode_lease(row)
-        if row["lease_fingerprint"] != _lease_fingerprint(lease):
+        if row.get("lease_id") != lease_id:
+            raise ValueError("PostgreSQL lease identity drifted")
+        if row.get("lease_fingerprint") != _lease_fingerprint(lease):
             raise ValueError("PostgreSQL lease fingerprint does not match bytes")
         observation_result = await session.execute(
             _statement(
@@ -457,7 +461,7 @@ class PostgresWorkerStateAdapter:
         observations: list[LeaseObservation] = []
         for observation_row in observation_result.mappings():
             observation = _decode_observation(observation_row)
-            if observation_row["observation_fingerprint"] != observation.fingerprint:
+            if observation_row.get("observation_fingerprint") != observation.fingerprint:
                 raise ValueError("PostgreSQL lease observation fingerprint does not match bytes")
             observations.append(observation)
         ordered = tuple(sorted(observations, key=lambda item: item.sequence))
