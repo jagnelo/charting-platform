@@ -13157,3 +13157,33 @@ or acceptance-policy behavior changed. The branch remains
 provider/ETF consumer integration remains deferred until both branches reach
 staging. This is a complete exact-gate receipt for this narrow slice, not
 closure of the overall workstream.
+
+## 2026-09-16 - Chart Template state announcements
+
+Product commit `77c2b247` gives `ChartTemplateControl` explicit live-region
+semantics without changing template persistence, rendering, or interaction:
+loading and empty results are polite atomic statuses, and template-load
+failures are assertive atomic alerts. Focused coverage passed `14/14`; full
+frontend Vitest passed `1,110/1,110`; vue-tsc and production build passed with
+the existing large-chunk warning; TC scope validation, workstream validation,
+and `git diff --check` passed.
+
+The first exact full-stack gate attempt exposed one unrelated
+`F8s-breadth-family-ratio` timestamp assertion: the unchanged oracle expected
+`2026-06-27T00:00:00Z` but the seeded chart returned
+`2025-12-29T21:00:00Z`. A fresh branch-scoped stack rerun of that exact flow
+passed `1/1` without source changes, classifying the failure as a transient
+seeded-data/browser-run candidate rather than a Chart Template regression.
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make
+validate-integration` rerun at product tip `77c2b247` then passed with exit `0`
+through all repository stages, authenticated functional Chromium, and all four
+visual projects. Branch-scoped teardown removed the assigned containers,
+volumes, network, generated images, and test sessions; post-gate resource
+accounting reported zero containers, volumes, test sessions, known bytes, and
+unknown components. No provider-platform, ETF, visual-baseline, threshold,
+mask, skip, V25-media, or acceptance-policy behavior changed. Provider/ETF
+consumer integration remains deferred until both branches reach staging, and
+this is a complete exact-gate receipt for the slice, not closure of the overall
+workstream.

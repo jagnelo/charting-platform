@@ -255,18 +255,18 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_ratio_tool_state_accessibility
+  current_phase: R6_chart_template_state_accessibility_exact_gate_passed
   next_action: >-
     Select and implement the next bounded TC-owned R1/R5/R6 roadmap item now
-    that the RatioUPlot state accessibility slice has passed the exact
-    full_stack_browser gate. Keep provider/ETF consumer work deferred until
-    both upstream branches reach staging, and do not retry origin
+    that the ChartTemplateControl state accessibility slice has passed the
+    exact full_stack_browser gate. Keep provider/ETF consumer work deferred
+    until both upstream branches reach staging, and do not retry origin
     synchronization under the existing private-origin safeguard without newly
     accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker: the exact
     PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
-    make validate-integration gate passed at product tip e72e7a4 through all
+    make validate-integration gate passed at product tip 77c2b247 through all
     repository stages, authenticated functional Chromium, and all four visual
     projects, with clean branch-scoped teardown and zero post-gate resources.
     Provider-platform and ETF consumer integration remains a sequencing gate
@@ -423,6 +423,8 @@ historical_implementation_records_continued:
   - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration gate passed at product tip e72e7a4 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
   - "Product commit f043091 adds atomic live-region semantics to RatioUPlot empty and request-error states: no aligned bars is a polite status and request failures are assertive alerts. Focused RatioUPlot coverage passed 13/13; full frontend Vitest passed 1108/1108; vue-tsc and production build passed with the existing large-chunk warning; TC scope validation passed for 65 changed paths with all six self-tests; workstream validation and git diff checks passed. Ratio requests, warning text, layout, and provider/ETF/visual/acceptance policy were unchanged."
   - "The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration gate passed at product tip f043091 with exit 0 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
+  - "Product commit 77c2b247 adds atomic live-region semantics to ChartTemplateControl asynchronous states: loading and empty template results are polite statuses, while template-load failures are assertive alerts. Focused ChartTemplateControl coverage passed 14/14; full frontend Vitest passed 1110/1110; vue-tsc and production build passed with the existing large-chunk warning; TC scope validation and workstream/diff checks passed. No template persistence, provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The first exact gate attempt at product tip 77c2b247 failed one unrelated F8s-breadth-family-ratio linked-chart timestamp assertion; a fresh-stack rerun of that exact flow passed 1/1 without source changes. The exact PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration rerun then passed with exit 0 through all repository stages, authenticated functional Chromium, and all four visual projects. Branch-scoped teardown removed the assigned containers, volumes, network, generated images, and test sessions; post-gate resource accounting reported zero containers, volumes, test sessions, known bytes, and unknown components. No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior changed."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
