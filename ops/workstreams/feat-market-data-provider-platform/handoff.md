@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 current full-matrix fail-closed preflight
+
+- At exact committed source `f52bfd9e0`, the lock-protected full provider
+  runner exited `2` before transport. It recorded the fresh Binance native
+  account-usage baseline as expired by the time the broader matrix began;
+  this is the intended fixed-minute behavior, not a fabricated zero-usage
+  assumption. The focused Binance snapshot remains the only valid baseline
+  proof for that short active window.
+- The preflight also preserved the existing provider-specific blockers:
+  unknown active pools for Alpaca, Alpha Vantage, Bybit, Coinbase, EDGAR,
+  EODHD, Finnhub, FINRA, Kraken, OpenFIGI, Nasdaq, Twelve Data, xStocks and
+  others; unresolved capability dispositions; and legal/source/byte controls
+  for Massive, FRED, Coinbase, tokenized venues, FINRA OTC, Tiingo and FMP.
+  It made zero provider requests and consumed no shared-key quota. The
+  redacted receipt is appended to `validation.jsonl`.
+
 ## 2026-09-16 Binance native account-usage completion
 
 - Binance now has a provider-specific `fetch_account_usage` adapter using the

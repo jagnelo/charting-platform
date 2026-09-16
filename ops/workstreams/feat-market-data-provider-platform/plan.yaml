@@ -372,6 +372,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 exact-current full-matrix preflight at source `f52bfd9e0`
+      exited `2` before transport. The new Binance fixed-minute native
+      baseline had legitimately expired before the broader matrix could use
+      it, so the coordinator failed closed rather than treating a stale
+      snapshot as current. The receipt preserves all remaining provider
+      quota/cost/baseline, capability, legal/source, byte, deferred-provider,
+      and routing-control blockers; zero provider requests and zero shared-key
+      quota were consumed. This is current safety evidence, not acceptance.
+    - >-
       2026-09-16 Binance native account-usage completion: the adapter now
       probes the documented public `/api/v3/time` endpoint, validates native
       `X-MBX-USED-WEIGHT-1M` telemetry, maps Binance's fixed UTC-minute reset,
