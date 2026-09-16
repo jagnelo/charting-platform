@@ -4665,3 +4665,8 @@ the authoritative record for this replay; it made zero provider calls.
   canary path only. Dinari's numeric Sandbox quota/reset, commercial terms,
   redistribution rights, and production routing remain intentionally
   non-routable and require provider/owner evidence.
+
+## 2026-09-16 current-source admission audit
+
+- The no-network provider admission audit at source `0a6a92070de9bf8e22ca74b3db99e70dd31970f6` found `marketdata_app` as the only provider with every currently required operation dimension admission-safe; the remaining registered operations have `95` provider-specific quota, baseline, byte-cost, entitlement, or reset blockers.
+- This audit made no provider requests and is not live acceptance. It confirms that the successful Dinari Sandbox canary is intentionally outside ordinary routing admission, while the normal market-data chain remains fail-closed for every provider whose account-wide usage or provider contract is not independently reconciled.

@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    A no-network admission audit at source
+    `0a6a92070de9bf8e22ca74b3db99e70dd31970f6` found MarketData.app as the only
+    provider whose currently required operation dimensions are admission-safe;
+    the other registered operations retain 95 provider-specific quota,
+    baseline, byte-cost, entitlement, or reset blockers. This is a safety
+    audit, not live acceptance, and confirms that the Dinari Sandbox canary is
+    deliberately outside normal routing.
+  - >-
     The explicit Dinari Sandbox canary was validated at the current source with
     transient owner controls and a 32-request per-process cap. Its compound
     manifest case passed 1/1, with 14 bounded upstream requests covering
