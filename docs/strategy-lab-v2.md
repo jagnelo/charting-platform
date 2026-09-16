@@ -216,6 +216,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   engine-reported financing-cost reports outside fill costs. Complete reports
   publish signed net financing cost; partial or unavailable reports retain
   coverage counts and reported cash effects but withhold the derived net cost.
+  `calculate_stress_scenario_metrics()` separately consumes adapter-supplied
+  stressed-equity observations bound to explicit shock-definition digests. It
+  reports scenario counts, loss counts, average and worst stressed returns and
+  P&L, and minimum stressed equity; it does not construct shocks or issue a
+  solvency/risk verdict.
   Trusted paired inference remains deferred.
   `calculate_time_weighted_return_metrics()` now provides a strict,
   engine-neutral flow-adjusted return path. Each reported external event must

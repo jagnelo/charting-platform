@@ -32,6 +32,7 @@ from app.strategy_lab_v2.metrics import (
     calculate_financing_cost_metrics,
     calculate_rolling_equity_metrics,
     calculate_session_return_distribution_metrics,
+    calculate_stress_scenario_metrics,
     calculate_time_weighted_return_metrics,
 )
 from app.strategy_lab_v2.observations import (
@@ -48,6 +49,7 @@ from app.strategy_lab_v2.observations import (
     FinancingCostReport,
     ObservationPoint,
     PortfolioPnlObservation,
+    StressScenarioObservation,
 )
 from app.strategy_lab_v2.rebalance import (
     CalendarDay,
@@ -337,6 +339,29 @@ def _financing_report(
         report_status=status,
         engine_evidence_digest=EVIDENCE,
         observations=observations,
+    )
+
+
+def _stress_scenario(
+    scenario_id: str,
+    *,
+    initial_equity: str,
+    stressed_equity: str,
+    shock: str,
+    attempt_id: str = "attempt-1",
+) -> StressScenarioObservation:
+    initial = Decimal(initial_equity)
+    stressed = Decimal(stressed_equity)
+    return StressScenarioObservation(
+        portfolio_fingerprint=PORTFOLIO,
+        run_attempt_id=attempt_id,
+        scenario_id=scenario_id,
+        initial_equity=initial,
+        stressed_equity=stressed,
+        stressed_pnl=stressed - initial,
+        base_currency="USD",
+        shock_definition_digest=content_digest(shock),
+        engine_evidence_digest=EVIDENCE,
     )
 
 
@@ -656,6 +681,72 @@ def test_financing_reports_reject_scope_overlap_and_out_of_range_events() -> Non
         )
     with pytest.raises(ValueError, match="within the report interval"):
         _financing_report(0, 1, observations=(second,))
+
+
+def test_stress_scenario_metrics_preserve_shock_evidence_and_report_worst_case() -> None:
+    scenarios = (
+        _stress_scenario(
+            "up-10",
+            initial_equity="100000",
+            stressed_equity="110000",
+            shock="price-up-10pct",
+        ),
+        _stress_scenario(
+            "down-20",
+            initial_equity="100000",
+            stressed_equity="80000",
+            shock="price-down-20pct",
+        ),
+        _stress_scenario(
+            "gap-down",
+            initial_equity="110000",
+            stressed_equity="77000",
+            shock="gap-down-30pct",
+        ),
+    )
+    metrics = _metric_map(calculate_stress_scenario_metrics(scenarios))
+    assert metrics["stress_scenario_count"].value == Decimal(3)
+    assert metrics["loss_scenario_count"].value == Decimal(2)
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_average_return = (
+            Decimal("0.1") + Decimal("-0.2") + (Decimal("-0.3"))
+        ) / Decimal(3)
+    assert metrics["average_stressed_return"].value == expected_average_return
+    assert metrics["worst_stressed_return"].value == Decimal("-0.3")
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_average_pnl = Decimal("-43000") / Decimal(3)
+    assert metrics["average_stressed_pnl"].value == expected_average_pnl
+    assert metrics["worst_stressed_pnl"].value == Decimal("-33000")
+    assert metrics["minimum_stressed_equity"].value == Decimal("77000")
+    definition = metrics["worst_stressed_return"].calculation_definition
+    assert definition is not None
+    assert definition.parameters["shock_construction"] == "adapter_supplied_only"
+    assert definition.parameters["stress_definition_digests"] == tuple(
+        sorted({item.shock_definition_digest for item in scenarios})
+    )
+    assert metrics["worst_stressed_return"].evidence_references == (
+        MetricEvidenceReference("stress_scenario_observations", content_digest(tuple(sorted(scenarios, key=lambda item: item.scenario_id)))),
+    )
+
+
+def test_stress_scenario_metrics_reject_inconsistent_scope_or_duplicate_scenarios() -> None:
+    first = _stress_scenario(
+        "base",
+        initial_equity="100000",
+        stressed_equity="90000",
+        shock="down-10pct",
+    )
+    duplicate = replace(first, stressed_equity=Decimal("80000"), stressed_pnl=Decimal("-20000"))
+    with pytest.raises(ValueError, match="scenario ids must be unique"):
+        calculate_stress_scenario_metrics((first, duplicate))
+    with pytest.raises(ValueError, match="same run attempt"):
+        calculate_stress_scenario_metrics(
+            (first, replace(first, scenario_id="other", run_attempt_id="attempt-2"))
+        )
+    with pytest.raises(ValueError, match="stressed_pnl"):
+        replace(first, stressed_pnl=Decimal("-1"))
 
 
 def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> None:

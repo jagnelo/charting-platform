@@ -353,6 +353,42 @@ class AccountCapitalMarginObservation:
 
 
 @dataclass(frozen=True, slots=True)
+class StressScenarioObservation:
+    """One engine-reported equity result under an explicit stress scenario."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    scenario_id: str
+    initial_equity: Decimal
+    stressed_equity: Decimal
+    stressed_pnl: Decimal
+    base_currency: str
+    shock_definition_digest: str
+    engine_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.scenario_id, str) or not self.scenario_id.strip():
+            raise ValueError("scenario_id must not be empty")
+        for name in ("initial_equity", "stressed_equity", "stressed_pnl"):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite():
+                raise ValueError(f"{name} must be a finite Decimal")
+        if self.initial_equity <= 0:
+            raise ValueError("initial_equity must be positive")
+        if self.stressed_equity < 0:
+            raise ValueError("stressed_equity must be non-negative")
+        if self.stressed_equity - self.initial_equity != self.stressed_pnl:
+            raise ValueError("stressed_pnl must equal stressed_equity minus initial_equity")
+        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        require_sha256_digest(self.shock_definition_digest, field_name="shock_definition_digest")
+        require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
+
+
+@dataclass(frozen=True, slots=True)
 class AccountEquityIntervalObservation:
     """One engine-reported prior-mark-to-session-close account interval.
 

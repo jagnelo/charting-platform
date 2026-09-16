@@ -33,6 +33,7 @@ from app.strategy_lab_v2.observations import (
     FinancingCostReport,
     ObservationPoint,
     PortfolioPnlObservation,
+    StressScenarioObservation,
 )
 from app.strategy_lab_v2.pairing import (
     PairedMetricObservation,
@@ -108,6 +109,13 @@ _METRIC_FORMULAS = {
     "paired_minimum_delta": "minimum aligned variant minus baseline metric delta",
     "paired_maximum_delta": "maximum aligned variant minus baseline metric delta",
     "paired_delta_sample_stddev": "sample standard deviation of aligned variant minus baseline metric deltas",
+    "stress_scenario_count": "count of engine-reported stress scenarios",
+    "loss_scenario_count": "count of stress scenarios with negative stressed P&L",
+    "average_stressed_return": "arithmetic mean of stressed equity divided by initial equity minus one",
+    "worst_stressed_return": "minimum stressed equity divided by initial equity minus one",
+    "average_stressed_pnl": "arithmetic mean of engine-reported stressed P&L",
+    "worst_stressed_pnl": "minimum engine-reported stressed P&L",
+    "minimum_stressed_equity": "minimum engine-reported stressed equity",
 }
 
 
@@ -1508,6 +1516,134 @@ def calculate_paired_metric_metrics(
             "observation_order": "sorted_by_observation_key",
             "inference_policy": "descriptive_only_no_ranking_or_significance",
             "pairing_receipt_verifier": pairing_receipt.verifier_version,
+        },
+    )
+
+
+@deterministic_decimal_math
+def calculate_stress_scenario_metrics(
+    observations: Sequence[StressScenarioObservation],
+) -> tuple[MetricValue, ...]:
+    """Summarize explicit engine-reported stress scenario outcomes.
+
+    The adapter supplies both the shock-definition digest and stressed account
+    marks. This calculator reports descriptive scenario outcomes only; it does
+    not construct shocks, extrapolate scenarios, or issue a solvency/risk
+    verdict.
+    """
+
+    scenarios = tuple(observations)
+    if not scenarios:
+        raise ValueError("at least one stress scenario observation is required")
+    if any(not isinstance(item, StressScenarioObservation) for item in scenarios):
+        raise TypeError("observations must contain StressScenarioObservation values")
+    portfolio_fingerprint = scenarios[0].portfolio_fingerprint
+    run_attempt_id = scenarios[0].run_attempt_id
+    currency = scenarios[0].base_currency
+    if any(item.portfolio_fingerprint != portfolio_fingerprint for item in scenarios):
+        raise ValueError("all stress scenarios must use the same portfolio version")
+    if any(item.run_attempt_id != run_attempt_id for item in scenarios):
+        raise ValueError("all stress scenarios must belong to the same run attempt")
+    if any(item.base_currency != currency for item in scenarios):
+        raise ValueError("all stress scenarios must use the same base currency")
+    scenario_ids = tuple(item.scenario_id for item in scenarios)
+    if len(scenario_ids) != len(set(scenario_ids)):
+        raise ValueError("stress scenario ids must be unique")
+    ordered = tuple(sorted(scenarios, key=lambda item: item.scenario_id))
+    observation_digest = content_digest(ordered)
+    returns = tuple(item.stressed_equity / item.initial_equity - Decimal(1) for item in ordered)
+    pnls = tuple(item.stressed_pnl for item in ordered)
+    sample_size = len(ordered)
+    metrics = (
+        _value(
+            "stress_scenario_count",
+            Decimal(sample_size),
+            unit="scenarios",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                f"count of unique engine-reported stress scenarios; observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "loss_scenario_count",
+            Decimal(sum(value < 0 for value in pnls)),
+            unit="scenarios",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "count of stress scenarios with negative engine-reported stressed P&L; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "average_stressed_return",
+            sum(returns, Decimal(0)) / Decimal(sample_size),
+            unit="fraction",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "arithmetic mean of stressed equity divided by initial equity minus one; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "worst_stressed_return",
+            min(returns),
+            unit="fraction",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "minimum stressed equity divided by initial equity minus one; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "average_stressed_pnl",
+            sum(pnls, Decimal(0)) / Decimal(sample_size),
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "arithmetic mean of engine-reported stressed P&L; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "worst_stressed_pnl",
+            min(pnls),
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "minimum engine-reported stressed P&L; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "minimum_stressed_equity",
+            min(item.stressed_equity for item in ordered),
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "minimum engine-reported stressed equity; "
+                f"observations {observation_digest}"
+            ),
+        ),
+    )
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(
+            MetricEvidenceReference("stress_scenario_observations", observation_digest),
+        ),
+        common_calculation_parameters={
+            "scenario_order": "sorted_by_scenario_id",
+            "stress_definition_digests": tuple(
+                sorted({item.shock_definition_digest for item in ordered})
+            ),
+            "shock_construction": "adapter_supplied_only",
+            "inference_policy": "descriptive_only_no_solvency_or_profitability_verdict",
         },
     )
 
