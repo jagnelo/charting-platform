@@ -13065,3 +13065,18 @@ Focused StrategyLabView coverage passed 31/31; full frontend Vitest passed
 large-chunk warning; and `git diff --check` passed. No provider-platform, ETF,
 visual-oracle, or acceptance-policy behavior changed. The exact full-stack
 integration gate remains required at this product tip.
+
+## 2026-09-16 - Python library validation announcements
+
+Product commit `9778511ef` completes a narrow R5/R6 accessibility slice in
+`CodeLibraryTool.vue`. Request failures now use an atomic assertive alert, while
+new-asset and existing-version validation results expose atomic live regions:
+invalid results are assertive alerts and valid results are polite statuses.
+Existing Python asset persistence, immutable-version, import, clone, and
+rendering behavior are unchanged.
+
+Focused CodeLibraryTool coverage passed 8/8; full frontend Vitest passed
+1,106/1,106; frontend type-check and production build passed with the existing
+large-chunk warning; and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed. The exact full-stack
+integration gate remains required at the combined product tip.
