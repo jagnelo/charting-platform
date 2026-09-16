@@ -3737,3 +3737,23 @@ the authoritative record for this replay; it made zero provider calls.
 - The complete backend unit suite was replayed against this implementation and
   passed `2,311/2,311` with 37 warnings in `103.55s`. The exact-source live
   preflight remained fail-closed and made zero provider calls.
+
+## 2026-09-16 current-source MarketData.app live validation
+
+- With the owner-managed durable quota ledger and configured trial settings,
+  the exact current-source focused MarketData.app matrix passed `7/7` cases
+  (`9` HTTP requests, `17,241` response bytes) at source
+  `a9d7db8dc27351bd56ee5d6d1bf09f0616d15f58`. It exercised the account-usage,
+  latest-price, intraday-candle, option-surface, and bounded option-history
+  paths; the response exposed the reviewed `10,000` daily-credit limit and
+  the unbounded response-priced option-history guard made no request. The
+  redacted receipt is committed in `validation.jsonl`; no secret or payload
+  entered Git.
+- The owner-only `app.env` now persists the durable quota-ledger path, live
+  usage-ledger path, and local live-run scope so future worktrees reuse the
+  same cross-session account accounting. The file remains outside Git with
+  mode `0600`.
+- A focused OpenFIGI attempt was correctly blocked before network access
+  because its active public-IP `mapping_requests_per_minute` baseline is
+  unknown. Its redacted zero-request preflight receipt is also committed;
+  no generic limit or zero-usage assumption was introduced.
