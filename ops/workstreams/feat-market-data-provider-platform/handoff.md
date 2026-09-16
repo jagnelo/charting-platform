@@ -52,6 +52,16 @@
   baseline is intentionally allowed to expire and must be refreshed before a
   later run.
 
+## 2026-09-16 OpenFIGI short-window live matrix
+
+- A fresh anonymous native mapping snapshot followed immediately by the
+  bounded OpenFIGI matrix passed `3/3` at source `0b9accd5`: stable-identifier
+  mapping, profile resolution, and account usage all completed successfully.
+- The matrix stayed within the anonymous provider window and recorded only
+  redacted request/usage evidence. Keyed-mode behavior remains separately
+  fixture-covered and requires an operator-supplied OpenFIGI key for live
+  evidence; no keyed limit is inferred from the anonymous run.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses

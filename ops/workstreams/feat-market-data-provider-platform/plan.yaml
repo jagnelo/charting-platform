@@ -197,6 +197,12 @@ remaining_gaps:
     two, and native usage used one; the one-minute baseline is intentionally
     short-lived and must be refreshed before later transport.
   - >-
+    A fresh anonymous OpenFIGI native mapping snapshot followed immediately
+    by its bounded full matrix passed 3/3 at `0b9accd5`: stable-identifier
+    mapping, profile resolution, and account usage. Keyed-mode live evidence
+    still requires an operator-supplied OpenFIGI API key; no keyed limit is
+    inferred from the anonymous run.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and
