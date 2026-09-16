@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-16 — Massive reset-boundary admission control
+
+- [x] Add explicit `MASSIVE_REVIEWED_RESET` and
+      `MASSIVE_QUOTA_EVIDENCE` controls for the documented Stocks Basic
+      five-requests/minute pool. The provider does not publish whether that
+      minute bucket is fixed or rolling, so blank or invalid controls keep
+      the quota contract unresolved and routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, examples, and the live preflight. Focused coverage passes
+      `133/133`; the complete backend unit gate passes `2,359/2,359` with 37
+      warnings. No reset semantics are inferred from the headline allowance.
+- [ ] Obtain current provider/account evidence for the reset boundary and
+      review Massive's free-plan use/redistribution terms before promoting
+      ordinary routing or corporate-action history.
+
 ### 2026-09-16 — FMP independent quota-reset admission controls
 
 - [x] Add explicit FMP controls for the independent 250-calls/day and
