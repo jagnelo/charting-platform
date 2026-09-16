@@ -492,6 +492,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   publication replays without a prior completion receipt are rejected. This is
   an adapter transaction boundary and performs no byte writes, result publish,
   process control, or engine I/O.
+- `forward_event_transaction.py` composes live-event admission with the
+  correction replay command boundary. Ordinary events retain the existing
+  accepted/gap/duplicate/out-of-order decisions; corrections are committed
+  only when a separately identified counterfactual replay plan also resolves.
+  Missing commands, changed event or command content, and invalid replay
+  evidence return the original live checkpoint, so a correction cannot be
+  observed without an auditable replay basis.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

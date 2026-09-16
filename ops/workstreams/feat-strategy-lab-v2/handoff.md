@@ -1636,3 +1636,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic forward-event transaction checkpoint
+
+`forward_event_transaction.py` adds an all-or-nothing live-event boundary over
+the existing forward admission and counterfactual-correction contracts.
+Accepted, gap, duplicate, and out-of-order events retain their explicit
+decisions. A correction event requires a matching replay command and a
+content-addressed replay plan; command/event conflicts, missing evidence, and
+invalid non-correction replay input return the original live checkpoint. Exact
+correction retries replay the plan without incrementing correction state again.
+This remains broker-free and storage/engine neutral.
+
+The exact implementation tree passed all 323 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
