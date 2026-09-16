@@ -69,8 +69,10 @@ scope:
     backend integration and TC2000 semantic reconciliation.
   - >-
     Initially add only new engine-neutral package paths, their focused tests,
-    and this branch's workstream documentation. Do not modify active provider,
-    ETF, or TC2000 paths, current Strategy Lab routes/services, global runtime
+    and this branch's workstream documentation. A narrow shared Makefile test
+    collection update is allowed only to include those package-owned tests in
+    the existing combined coverage gate. Do not modify active provider, ETF,
+    or TC2000 paths, current Strategy Lab routes/services, global runtime
     dependencies, migrations, application registration, Compose, or frontend
     until upstream branches have reached staging and exact shared-path
     reconciliation is recorded.
@@ -99,6 +101,8 @@ shared_path_gates:
     gate: Add isolated worker/artifact services after checking provider and TC2000 Compose changes on staging.
   - path: docs/project-todos.md
     gate: Update only after reconciling the TC2000 roadmap and current shared todo document on staging.
+  - path: Makefile
+    gate: This branch may change only the existing test-backend-coverage pytest collection to include package-owned v2 tests; reconcile concurrent staging edits line by line before integration.
 execution_plan:
   phases:
     - >-
@@ -300,10 +304,10 @@ remaining_gaps:
   - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
   - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
   - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and the new conformance evidence gate.
-  - The combined `make test-backend-coverage` target currently runs 1,647 unit/integration tests successfully but reports 58.77% coverage because package-owned `app/strategy_lab_v2/tests` are outside its collection paths; reconcile collection with the declared 75% gate without exclusions before claiming full-integration green.
+  - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold; full repository integration, migrations, API registration, worker entrypoints, Compose, and stable Nautilus execution remain unimplemented.
 progress:
   completed: [workstream-plan]
   total: 18
-  current_phase: composed-pre-engine-risk-admission
-  current_blocker: stable Nautilus release, schema migration, application wiring, and combined backend coverage collection remain open
-  next_action: reconcile package-owned v2 test collection with the full backend coverage gate, then continue the next bounded engine-neutral contract while preserving execution-admission/authorization and all upstream/shared-path gates
+  current_phase: coverage-gate-reconciled
+  current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
+  next_action: continue the next bounded engine-neutral contract while preserving execution-admission/authorization and all upstream/shared-path gates

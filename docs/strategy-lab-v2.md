@@ -705,6 +705,17 @@ rtk uv run mypy app/strategy_lab_v2
 The override disables the repository-wide coverage threshold for this focused
 path; it is not a substitute for final full-backend coverage gates.
 
+The combined backend gate also collects the package-owned tests:
+
+```sh
+make test-backend-coverage
+```
+
+This keeps coverage honest across the package without moving tests into the
+provider-owned `backend/tests` tree or adding coverage exclusions. It remains a
+repository-wide integration gate and still requires Docker-backed PostgreSQL
+and Redis services.
+
 ## Deferred integration gates
 
 Do not add shared models/migrations, router registration, worker/task entrypoints,

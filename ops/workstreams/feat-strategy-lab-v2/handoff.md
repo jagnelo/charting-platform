@@ -2372,3 +2372,22 @@ The next implementation context must reconcile how package-owned v2 tests enter
 the full backend coverage gate without violating provider/ETF/TC2000 ownership
 or changing the required coverage meaning. Until then, the branch remains
 ready-for-human-review only, not full-integration green.
+
+## 2026-09-16 - Combined backend coverage gate reconciled
+
+The shared `Makefile` `test-backend-coverage` target now includes the
+package-owned `app/strategy_lab_v2/tests` path alongside `tests/unit` and
+`tests/integration`. This is a collection-only change: it preserves the
+repository's 75% threshold, adds no exclusions, and leaves provider/ETF/TC2000
+test ownership unchanged.
+
+The exact target completed 2,140 tests with 86 warnings and total coverage of
+82.98%, exceeding the required 75% gate. Docker-backed setup and cleanup both
+completed successfully. Focused package tests, Ruff, MyPy, and diff checks remain
+green. This closes the collection gap but does not claim full integration:
+schema/API/worker/Compose wiring, stable Nautilus activation, upstream
+reconciliation, frontend work, promotion, and deployment remain deferred.
+
+The next bounded slice remains inside the engine-neutral package-owned boundary;
+the Makefile change is shared-path material that must be reconciled line by line
+when this branch enters staging.

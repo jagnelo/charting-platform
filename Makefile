@@ -157,7 +157,7 @@ test-backend-coverage:
 	@set -e; \
 	status=0; \
 	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
-	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration app/strategy_lab_v2/tests \
 	  --override-ini addopts= \
 	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
 	  --cov-report=xml:coverage-combined.xml --cov-fail-under=75 \
