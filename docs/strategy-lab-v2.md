@@ -157,6 +157,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   baseline/variant means, nearest-rank delta median, extrema, and sample
   deviation. The receipt and observations establish provenance/alignment but
   no inferential model or significance claim is made.
+  `EvaluationWindow` is an immutable trial-bound interval with an optional
+  warm-up start. Its fingerprint participates in trial identity and in
+  sensitivity measurement scope, so variants with different evaluation or
+  warm-up periods are rejected as incomparable rather than silently mixed.
   Replicates are explicit; infrastructure retries remain attempts of the same
   scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,

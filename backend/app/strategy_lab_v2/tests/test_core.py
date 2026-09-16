@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import cast
 
@@ -22,6 +22,7 @@ from app.strategy_lab_v2.contracts import (
     AttemptState,
     DataSeriesManifest,
     DataSnapshot,
+    EvaluationWindow,
     EventGranularity,
     KeyedRandomStreamPairingClaim,
     MetricBasis,
@@ -210,6 +211,50 @@ def test_scientific_trial_identity_is_stable_across_mapping_order() -> None:
             snapshot_fingerprint=snapshot,
             preflight_report=unsupported,
             parameter_set={},
+        )
+
+
+def test_evaluation_window_is_typed_normalized_and_bound_to_trial_identity() -> None:
+    experiment = content_digest({"experiment": "window"})
+    snapshot = content_digest({"snapshot": "window"})
+    preflight = preflight_capabilities((_requirement(),), (_cell(),))
+    window = EvaluationWindow(
+        start=datetime(2021, 1, 4, 14, 30, tzinfo=UTC),
+        end=datetime(2021, 1, 8, 21, tzinfo=UTC),
+        purpose="out_of_sample",
+        warmup_start=datetime(2020, 12, 1, 14, 30, tzinfo=UTC),
+    )
+    offset_window = EvaluationWindow(
+        start=datetime(2021, 1, 4, 15, 30, tzinfo=timezone(timedelta(hours=1))),
+        end=datetime(2021, 1, 8, 22, tzinfo=timezone(timedelta(hours=1))),
+        purpose="out_of_sample",
+        warmup_start=datetime(2020, 12, 1, 15, 30, tzinfo=timezone(timedelta(hours=1))),
+    )
+    assert window == offset_window
+    first = ScientificTrial.create(
+        experiment_fingerprint=experiment,
+        snapshot_fingerprint=snapshot,
+        preflight_report=preflight,
+        parameter_set={"lookback": 20},
+        seed=19,
+        evaluation_window=window,
+    )
+    second = ScientificTrial.create(
+        experiment_fingerprint=experiment,
+        snapshot_fingerprint=snapshot,
+        preflight_report=preflight,
+        parameter_set={"lookback": 20},
+        seed=19,
+        evaluation_window=replace(window, end=datetime(2021, 1, 9, 21, tzinfo=UTC)),
+    )
+    assert first.evaluation_window is window
+    assert first.trial_id != second.trial_id
+    with pytest.raises(ValueError, match="warmup_start"):
+        EvaluationWindow(
+            start=datetime(2021, 1, 4, tzinfo=UTC),
+            end=datetime(2021, 1, 5, tzinfo=UTC),
+            purpose="training",
+            warmup_start=datetime(2021, 1, 6, tzinfo=UTC),
         )
 
 

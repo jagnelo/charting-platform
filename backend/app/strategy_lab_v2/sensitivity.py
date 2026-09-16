@@ -69,6 +69,7 @@ class SensitivityMetricScope:
     metric_calculation_fingerprint: str
     coverage_evidence_digests: tuple[str, ...]
     session_calendar_evidence_digests: tuple[str, ...]
+    evaluation_window_fingerprint: str | None = None
     contract_version: str = SENSITIVITY_METRIC_SCOPE_VERSION
 
     def __post_init__(self) -> None:
@@ -84,6 +85,11 @@ class SensitivityMetricScope:
             "metric_calculation_fingerprint",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
+        if self.evaluation_window_fingerprint is not None:
+            require_sha256_digest(
+                self.evaluation_window_fingerprint,
+                field_name="evaluation_window_fingerprint",
+            )
         for name in (
             "base_currency",
             "engine_name",
@@ -294,6 +300,11 @@ def _measurement_scope(result: RunResultManifest, metric: MetricValue) -> Sensit
         dependency_catalog_digest=result.dependency_catalog_digest,
         assumptions_digest=result.assumptions_digest,
         metric_calculation_fingerprint=calculation_fingerprint,
+        evaluation_window_fingerprint=(
+            result.trial.evaluation_window.fingerprint
+            if result.trial.evaluation_window is not None
+            else None
+        ),
         coverage_evidence_digests=tuple(
             sorted(item.coverage_evidence_digest for item in result.snapshot.series)
         ),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -676,6 +676,35 @@ class TrialRandomization:
 
 
 @dataclass(frozen=True, slots=True)
+class EvaluationWindow:
+    """Explicit evaluation interval, optionally preceded by immutable warm-up."""
+
+    start: datetime
+    end: datetime
+    purpose: str
+    warmup_start: datetime | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("start", "end"):
+            _aware(getattr(self, name), name)
+        if self.end <= self.start:
+            raise ValueError("evaluation window end must be after start")
+        if self.warmup_start is not None:
+            _aware(self.warmup_start, "warmup_start")
+            if self.warmup_start > self.start:
+                raise ValueError("evaluation warmup_start must not be after start")
+        _nonempty(self.purpose, "purpose")
+        object.__setattr__(self, "start", self.start.astimezone(UTC))
+        object.__setattr__(self, "end", self.end.astimezone(UTC))
+        if self.warmup_start is not None:
+            object.__setattr__(self, "warmup_start", self.warmup_start.astimezone(UTC))
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class ScientificTrial:
     trial_id: str
     experiment_fingerprint: str
@@ -685,6 +714,7 @@ class ScientificTrial:
     scenario: Mapping[str, Any]
     seed: int
     randomization: TrialRandomization
+    evaluation_window: EvaluationWindow | None = None
 
     def __post_init__(self) -> None:
         from app.strategy_lab_v2.capabilities import PreflightClass, PreflightReport
@@ -700,6 +730,10 @@ class ScientificTrial:
             raise ValueError("trial seed must be an integer")
         if not isinstance(self.randomization, TrialRandomization):
             raise TypeError("scientific trial requires typed TrialRandomization provenance")
+        if self.evaluation_window is not None and not isinstance(
+            self.evaluation_window, EvaluationWindow
+        ):
+            raise TypeError("evaluation_window must use EvaluationWindow")
         if self.randomization.seed != self.seed:
             raise ValueError("trial seed must match its randomization assignment")
         if self.randomization.scope_fingerprint not in (None, self.experiment_fingerprint):
@@ -732,6 +766,8 @@ class ScientificTrial:
         }
         if self.randomization.has_schedule_provenance:
             identity["randomization"] = self.randomization
+        if self.evaluation_window is not None:
+            identity["evaluation_window"] = self.evaluation_window
         return identity
 
     @classmethod
@@ -745,6 +781,7 @@ class ScientificTrial:
         scenario: Mapping[str, Any] | None = None,
         seed: int | None = None,
         randomization: TrialRandomization | None = None,
+        evaluation_window: EvaluationWindow | None = None,
     ) -> ScientificTrial:
         trial_seed = (
             0
@@ -775,6 +812,8 @@ class ScientificTrial:
         }
         if assignment.has_schedule_provenance:
             identity["randomization"] = assignment
+        if evaluation_window is not None:
+            identity["evaluation_window"] = evaluation_window
         return cls(
             trial_id=content_digest(identity),
             experiment_fingerprint=experiment_fingerprint,
@@ -784,6 +823,7 @@ class ScientificTrial:
             scenario=scenario or {},
             seed=trial_seed,
             randomization=assignment,
+            evaluation_window=evaluation_window,
         )
 
 
@@ -1449,6 +1489,7 @@ class SensitivityComparisonEvidence:
             and baseline.snapshot_fingerprint == variant.snapshot_fingerprint
             and baseline.capability_contract_digest == variant.capability_contract_digest
             and baseline.trial.scenario == variant.trial.scenario
+            and baseline.trial.evaluation_window == variant.trial.evaluation_window
             and baseline.portfolio_fingerprint == variant.portfolio_fingerprint
             and baseline.strategy_package_fingerprints == variant.strategy_package_fingerprints
             and baseline.engine_name == variant.engine_name
