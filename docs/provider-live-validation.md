@@ -556,10 +556,10 @@ PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
 
 The latest backend deterministic gate on the current corrective revision is:
 
-- authoritative combined unit + PostgreSQL/Redis Docker-backed coverage gate:
-  `1855 passed`, `80.37%` line coverage, 89 warnings, above the repository
-  `75%` threshold; the isolated testcontainer resources were cleaned after
-  the run
+- complete backend unit gate: `2,333 passed`, `70.70%` line coverage, 37
+  warnings, above the configured `55%` threshold; the direct workstream
+  validator passed all 30 records. The Docker-backed PostgreSQL/Redis gate is
+  still separately required and was not substituted by this unit result.
 - dedicated tokenized corporate-action capability, availability, registry,
   and service suite: `47 passed`
 - migration compatibility and the broader focused provider/quota/runtime
@@ -576,14 +576,14 @@ logs, health state, capacity events, or live-probe failure output. The redactor
 removes configured secret values and credential-bearing URL/header values, and
 the persistence regression covers transport URLs that include an API key.
 
-Current local validation (2026-09-13) has passing EDGAR, Alpaca, MarketData.app,
-and Dinari Sandbox probes. MarketData.app required its provider-mandated
-trailing slash. Dinari initially returned typed HTTP 401 because the
-operator-only endpoint was still the live host; after switching to the
-documented Sandbox host, the replacement Sandbox pair passed the full bounded
-stock metadata, quote/history/news, dividend, and split case. Tradier, Ondo,
-and IBKR are intentionally deferred. Every deployment and CI
-environment must still provide its own operator contact value.
+Historical bounded transport evidence exists for EDGAR, Alpaca, MarketData.app,
+and the Dinari Sandbox pair. The latest exact-source Alpaca work live-verified
+only its native account-usage header snapshot; ordinary Alpaca routing remains
+fail-closed because the observed reset value did not prove a calculable minute
+window. The latest SEC EDGAR manifest preflight stopped before transport because
+the documented IP window has no current durable baseline. Tradier, Ondo, and
+IBKR are intentionally deferred. Every deployment and CI environment must
+still provide its own operator contact value.
 
 The complete 37-case manifest rerun at 2026-09-11T17:43:45Z passed 33 cases.
 The four honest outcomes were Alpha Vantage's documented 25-requests/day

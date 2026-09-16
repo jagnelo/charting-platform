@@ -21,13 +21,15 @@ supplies, its priority level per capability, and where to configure its credenti
 >
 > A reviewed plan and configured credential are still not enough to route a
 > provider: its capability must carry `passed` (or genuinely `not_required`)
-> live-probe evidence. The current local validation snapshot (2026-09-13)
-> has passing EDGAR, Alpaca, MarketData.app, and Dinari Sandbox probes. The
-> Dinari probe initially used the live host and returned HTTP 401; after the
-> operator-only endpoint was corrected to the documented Sandbox host, the
-> replacement Sandbox pair passed. Tradier, Ondo, and IBKR are intentionally
-> deferred. None of these observations alone overrides the separate quota,
-> terms, entitlement, and reconciliation gates.
+> live-probe evidence. Historical bounded transport evidence exists for EDGAR,
+> Alpaca, MarketData.app, and the Dinari Sandbox pair, but it is not by itself
+> current-source acceptance. The latest exact-source Alpaca work proves only
+> its native account-usage header snapshot; ordinary Alpaca routing remains
+> fail-closed because the live reset value did not prove a calculable minute
+> window. The latest SEC EDGAR manifest preflight stopped before transport
+> because the documented IP window has no current durable baseline. Tradier,
+> Ondo, and IBKR are intentionally deferred. None of these observations
+> overrides the separate quota, terms, entitlement, and reconciliation gates.
 
 Operation-cost maps are provider-specific and reviewed against the adapter's
 actual transport shape. Alpha Vantage's search, daily history, latest-price,
@@ -100,9 +102,12 @@ but they cannot know a provider's account-side counters unless that provider
 publishes an introspection endpoint.  Such counters therefore have a separate
 `account_usage` capability and observation table. The current concrete
 implementations are MarketData.app's authenticated `GET /user/` endpoint,
-Twelve Data's `/api_usage` endpoint, EODHD's `/user` endpoint, and Binance's
+Twelve Data's `/api_usage` endpoint, EODHD's `/user` endpoint, Binance's
 public `/api/v3/time` endpoint (which exposes its native one-minute request
-weight header):
+weight header), and Alpaca's bounded latest-bar observation of its native
+limit/remaining/reset headers. Alpaca's observation is currently diagnostic
+only: its reset value has not established a stable admission-safe window, so
+it cannot seed ordinary routing:
 
 ```sh
 POST /api/v1/providers/usage/account/refresh   # admin-only, explicit poll
