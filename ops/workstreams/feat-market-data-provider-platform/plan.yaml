@@ -620,6 +620,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 exact-current full live preflight after the Tiingo correction:
+      source `feff096d8` passed the owner-ledger lock/health checks and
+      stopped before transport with exit `2`, `0/0` cases, and zero provider
+      requests. Its redacted receipt is appended to `validation.jsonl`.
+      Tiingo's documented daily/monthly boundaries are now represented, while
+      the unresolved unique-symbol/hourly boundaries and missing byte map,
+      plus the existing provider/legal/source/deployment/universe/shadow
+      gates, remain fail-closed.
+    - >-
       2026-09-16 Tiingo reset-semantics correction: current primary
       documentation explicitly fixes the daily request pool at midnight EST
       and monthly bandwidth at the first of each month at midnight EST; the

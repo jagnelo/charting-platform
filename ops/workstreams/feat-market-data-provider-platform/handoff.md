@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current full live preflight after Tiingo correction
+
+- The current-source full provider runner at `feff096d8` completed its
+  owner-ledger lock/health checks and stopped before transport with exit `2`,
+  `0/0` cases, and zero provider requests. The redacted receipt is appended to
+  `validation.jsonl`.
+- Tiingo's daily/monthly reset correction is reflected in the preflight, but
+  its unresolved unique-symbol/hourly boundaries and missing byte map still
+  block its operations. Existing Alpaca, EODHD, Twelve Data, OpenFIGI,
+  Binance, legal/source, deferred-provider, deployment-secret, universe, and
+  shadow blockers remain explicit; no routing or shadow activation was implied.
+
 ## 2026-09-16 Tiingo reset-semantics correction
 
 - Rechecked Tiingo's current primary documentation. The general API page
