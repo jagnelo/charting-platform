@@ -11,7 +11,9 @@
 - Focused Alpha Vantage provider coverage passed `29/29`. The change does not
   alter the reviewed 25-requests/day contract, adjusted-history restriction,
   or any provider routing entitlement. No live request was made and no
-  frontend or ETF-provider adapter file changed.
+  frontend or ETF-provider adapter file changed. The complete isolated backend
+  unit suite passed `2,317/2,317`; the live runner then blocked before network
+  because Alpha Vantage's current daily usage baseline is not known.
 
 ## 2026-09-16 account-usage focused live validation
 
