@@ -12991,3 +12991,26 @@ workstream.
 Next: select the next bounded TC-owned R1/R5/R6 item, preserve the visual
 oracles, and consume provider/ETF contracts only after their staging
 promotion.
+
+## 2026-09-16 - Factory-reset accessible name
+
+Product commit `cc07077dba1d999d8637f59ff5e9765d33f7abe2` completes a narrow
+R6 accessibility slice in `WorkstationView.vue`: the icon-only US Top Down
+factory-reset control now exposes the explicit accessible name `Reset factory
+workspace` while retaining its existing title, reset glyph, confirmation, and
+store action. Focused WorkstationView coverage passed 32/32; full frontend
+Vitest passed 1,104/1,104; vue-tsc and production build passed with the
+existing large-chunk warning; and the exact `make validate-integration` gate
+exited 0 through the locked dependency/migration, lint/format/type-check/build,
+Compose/provider, research-runner, authenticated Chromium, and visual stages.
+The branch-scoped teardown removed the assigned containers, volumes, network,
+generated images, and test sessions. No provider-platform, ETF, visual baseline,
+threshold, mask, skip, V25-media, or acceptance-policy behavior changed.
+
+The branch remains locally committed pending push under the recorded
+private-origin safeguard. Provider-platform and ETF consumer integration stays
+deferred until both upstream branches reach staging. This slice is complete,
+but the overall workstream remains in progress.
+
+Next: select the next bounded TC-owned R1/R5/R6 item while preserving visual
+oracles and the staging-only provider/ETF consumer boundary.
