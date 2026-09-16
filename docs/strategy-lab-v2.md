@@ -505,6 +505,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   dispatches include the replay-plan identity. Queue idempotency conflicts and
   payload drift return the original forward checkpoint, preventing a worker
   message from being published for state that was not atomically admitted.
+- `execution_event_transaction.py` links each canonical execution-event append
+  to its audit-journal entry and transactional-outbox message. Event sequence
+  gaps, audit gaps, identity mismatches, and outbox conflicts return every
+  original state, while exact retries replay only when all three identities
+  agree. Persistence adapters still own the compare-and-set transaction and
+  transport; this contract performs no I/O or engine work.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

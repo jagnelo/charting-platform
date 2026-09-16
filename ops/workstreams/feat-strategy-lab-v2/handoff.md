@@ -1671,3 +1671,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic execution-event transaction checkpoint
+
+`execution_event_transaction.py` links canonical execution-event append
+resolution with the append-only audit journal and transactional outbox. The
+contract enforces event-to-audit correlation and audit-to-outbox identity,
+returns the original cursor/journal/outbox on any gap, conflict, or rejection,
+and exposes exact all-stream replay only when every linked record is already
+present. It remains an immutable adapter boundary: compare-and-set persistence,
+outbox transport, worker entrypoints, and engine execution are not performed.
+
+The exact implementation tree passed all 334 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
