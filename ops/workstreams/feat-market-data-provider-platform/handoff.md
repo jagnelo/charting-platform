@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 current isolated unit gate
+
+- The complete backend unit suite passed `2,317/2,317` at source
+  `9171f39e6a6c9945273663fa5430a3ada4dabc54` in 2m49s, with 37 warnings
+  and 70.66% total coverage (the configured 55% threshold was met). This
+  revalidates the current branch after the provider-policy, live-evidence,
+  and documentation checkpoints; it is not PostgreSQL/Redis integration or
+  external-provider acceptance evidence.
+
 ## 2026-09-16 current-source credentialed revalidation
 
 - MarketData.app passed its bounded current-source matrix `7/7` at source
