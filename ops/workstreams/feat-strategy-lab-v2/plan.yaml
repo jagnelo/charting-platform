@@ -303,6 +303,6 @@ remaining_gaps:
 progress:
   completed: [workstream-plan]
   total: 18
-  current_phase: worker-terminal-atomic-settlement
+  current_phase: snapshot-coverage-verification
   current_blocker: stable Nautilus release, schema migration, application wiring, and other shared-path gates remain open
   next_action: inspect and implement the next bounded engine-neutral orchestration contract slice; preserve the execution-admission/authorization gate, static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates
