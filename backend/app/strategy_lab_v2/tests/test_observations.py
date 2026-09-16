@@ -29,6 +29,7 @@ from app.strategy_lab_v2.metrics import (
     calculate_component_attribution_metrics,
     calculate_execution_cost_metrics,
     calculate_exposure_utilization_metrics,
+    calculate_financing_cost_metrics,
     calculate_rolling_equity_metrics,
     calculate_session_return_distribution_metrics,
     calculate_time_weighted_return_metrics,
@@ -43,6 +44,8 @@ from app.strategy_lab_v2.observations import (
     ExternalCashFlowBoundaryObservation,
     ExternalCashFlowReportStatus,
     FillCostObservation,
+    FinancingCostObservation,
+    FinancingCostReport,
     ObservationPoint,
     PortfolioPnlObservation,
 )
@@ -298,6 +301,45 @@ def _capital_margin(
     )
 
 
+def _financing_observation(
+    sequence: int,
+    *,
+    cash_effect: str,
+    event_id: str,
+    attempt_id: str = "attempt-1",
+) -> FinancingCostObservation:
+    return FinancingCostObservation(
+        portfolio_fingerprint=PORTFOLIO,
+        run_attempt_id=attempt_id,
+        point=ObservationPoint(START + timedelta(minutes=sequence), sequence),
+        financing_event_id=event_id,
+        base_cash_effect=Decimal(cash_effect),
+        base_currency="USD",
+        financing_model_digest=MODEL,
+        engine_evidence_digest=EVIDENCE,
+    )
+
+
+def _financing_report(
+    start_sequence: int,
+    end_sequence: int,
+    *,
+    observations: tuple[FinancingCostObservation, ...] = (),
+    status: CostReportStatus = CostReportStatus.COMPLETE,
+    attempt_id: str = "attempt-1",
+) -> FinancingCostReport:
+    return FinancingCostReport(
+        portfolio_fingerprint=PORTFOLIO,
+        run_attempt_id=attempt_id,
+        start_point=ObservationPoint(START + timedelta(minutes=start_sequence), start_sequence),
+        end_point=ObservationPoint(START + timedelta(minutes=end_sequence), end_sequence),
+        base_currency="USD",
+        report_status=status,
+        engine_evidence_digest=EVIDENCE,
+        observations=observations,
+    )
+
+
 def _cost(
     cost_id: str,
     kind: ExecutionCostKind,
@@ -548,6 +590,72 @@ def test_capital_margin_metrics_reject_mixed_scope_or_unordered_marks() -> None:
         calculate_capital_margin_utilization_metrics((second, first))
     with pytest.raises(ValueError, match="margin capacities must be positive"):
         replace(first, initial_margin_capacity=Decimal(0))
+
+
+def test_financing_metrics_separate_complete_costs_from_reported_cash_effects() -> None:
+    first = _financing_observation(1, cash_effect="-25", event_id="funding-1")
+    second = _financing_observation(2, cash_effect="5", event_id="rebate-1")
+    reports = (
+        _financing_report(0, 1, observations=(first,)),
+        _financing_report(1, 2, observations=(second,)),
+    )
+
+    metrics = _metric_map(calculate_financing_cost_metrics(reports))
+    assert metrics["financing_event_count"].value == Decimal(2)
+    assert metrics["complete_financing_report_count"].value == Decimal(2)
+    assert metrics["partial_financing_report_count"].value == Decimal(0)
+    assert metrics["unavailable_financing_report_count"].value == Decimal(0)
+    assert metrics["reported_financing_cash_effect"].value == Decimal(-20)
+    assert metrics["gross_financing_cost"].value == Decimal(25)
+    assert metrics["reported_financing_credit"].value == Decimal(5)
+    assert metrics["net_financing_cost"].value == Decimal(20)
+    assert metrics["net_financing_cost"].unit == "currency:USD"
+    assert metrics["net_financing_cost"].calculation_definition.parameters["financing_scope"] == (
+        "outside_fill_reports"
+    )
+    assert metrics["net_financing_cost"].evidence_references == (
+        MetricEvidenceReference("financing_cost_reports", content_digest(reports)),
+    )
+
+
+def test_financing_metrics_withhold_net_cost_for_incomplete_reports() -> None:
+    observation = _financing_observation(1, cash_effect="-25", event_id="funding-1")
+    partial = _financing_report(
+        0,
+        1,
+        observations=(observation,),
+        status=CostReportStatus.PARTIAL,
+    )
+    metrics = _metric_map(calculate_financing_cost_metrics((partial,)))
+    assert metrics["reported_financing_cash_effect"].value == Decimal(-25)
+    assert metrics["gross_financing_cost"].value is None
+    assert metrics["reported_financing_credit"].value == Decimal(0)
+    assert metrics["net_financing_cost"].value is None
+    assert metrics["net_financing_cost"].null_reason == (
+        "one or more financing reports are incomplete"
+    )
+
+    unavailable = _financing_report(1, 2, status=CostReportStatus.UNAVAILABLE)
+    unavailable_metrics = _metric_map(calculate_financing_cost_metrics((unavailable,)))
+    assert unavailable_metrics["financing_event_count"].value == Decimal(0)
+    assert unavailable_metrics["net_financing_cost"].value is None
+
+
+def test_financing_reports_reject_scope_overlap_and_out_of_range_events() -> None:
+    first = _financing_observation(1, cash_effect="-25", event_id="funding-1")
+    second = _financing_observation(2, cash_effect="-10", event_id="funding-2")
+    with pytest.raises(ValueError, match="report's run attempt"):
+        calculate_financing_cost_metrics(
+            (_financing_report(0, 1, observations=(first,)),
+             _financing_report(1, 2, observations=(second,), attempt_id="attempt-2"))
+        )
+    with pytest.raises(ValueError, match="must not overlap"):
+        calculate_financing_cost_metrics(
+            (_financing_report(0, 2, observations=(first,)),
+             _financing_report(1, 3, observations=(second,)))
+        )
+    with pytest.raises(ValueError, match="within the report interval"):
+        _financing_report(0, 1, observations=(second,))
 
 
 def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> None:

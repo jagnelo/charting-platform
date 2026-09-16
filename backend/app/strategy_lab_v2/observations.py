@@ -229,6 +229,81 @@ class FillCostObservation:
         )
 
 
+@dataclass(frozen=True, slots=True, order=True)
+class FinancingCostObservation:
+    """One engine-reported financing cash effect outside a fill report."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    point: ObservationPoint
+    financing_event_id: str
+    base_cash_effect: Decimal
+    base_currency: str
+    financing_model_digest: str
+    engine_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.point, ObservationPoint):
+            raise TypeError("point must be an ObservationPoint")
+        if not isinstance(self.financing_event_id, str) or not self.financing_event_id.strip():
+            raise ValueError("financing_event_id must not be empty")
+        if not isinstance(self.base_cash_effect, Decimal) or not self.base_cash_effect.is_finite():
+            raise ValueError("base_cash_effect must be a finite Decimal")
+        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        require_sha256_digest(self.financing_model_digest, field_name="financing_model_digest")
+        require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
+
+
+@dataclass(frozen=True, slots=True)
+class FinancingCostReport:
+    """A bounded engine financing report with explicit completeness status."""
+
+    portfolio_fingerprint: str
+    run_attempt_id: str
+    start_point: ObservationPoint
+    end_point: ObservationPoint
+    base_currency: str
+    report_status: CostReportStatus
+    engine_evidence_digest: str
+    observations: tuple[FinancingCostObservation, ...] = ()
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
+        if not isinstance(self.run_attempt_id, str) or not self.run_attempt_id.strip():
+            raise ValueError("run_attempt_id must not be empty")
+        if not isinstance(self.start_point, ObservationPoint):
+            raise TypeError("start_point must be an ObservationPoint")
+        if not isinstance(self.end_point, ObservationPoint):
+            raise TypeError("end_point must be an ObservationPoint")
+        if self.end_point <= self.start_point:
+            raise ValueError("financing report end_point must be after start_point")
+        object.__setattr__(self, "base_currency", _currency_code(self.base_currency, "base_currency"))
+        if not isinstance(self.report_status, CostReportStatus):
+            raise TypeError("report_status must be a CostReportStatus")
+        require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
+        observations = tuple(self.observations)
+        if any(not isinstance(item, FinancingCostObservation) for item in observations):
+            raise TypeError("observations must contain FinancingCostObservation values")
+        if any(item.portfolio_fingerprint != self.portfolio_fingerprint for item in observations):
+            raise ValueError("financing observations must use the report's portfolio version")
+        if any(item.run_attempt_id != self.run_attempt_id for item in observations):
+            raise ValueError("financing observations must use the report's run attempt")
+        if any(item.base_currency != self.base_currency for item in observations):
+            raise ValueError("financing observations must use the report's base currency")
+        if any(item.point < self.start_point or item.point > self.end_point for item in observations):
+            raise ValueError("financing observations must fall within the report interval")
+        event_ids = [item.financing_event_id for item in observations]
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("financing event ids must be unique within a report")
+        if self.report_status is CostReportStatus.UNAVAILABLE and observations:
+            raise ValueError("unavailable financing reports must not include observations")
+        object.__setattr__(self, "observations", tuple(sorted(observations, key=lambda item: item.point)))
+
+
 @dataclass(frozen=True, slots=True)
 class AccountCapitalMarginObservation:
     """One engine-reported capital and margin capacity valuation.

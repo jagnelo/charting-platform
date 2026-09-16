@@ -29,6 +29,7 @@ from app.strategy_lab_v2.observations import (
     ExecutionCostKind,
     ExternalCashFlowReportStatus,
     FillCostObservation,
+    FinancingCostReport,
     ObservationPoint,
     PortfolioPnlObservation,
 )
@@ -87,6 +88,14 @@ _METRIC_FORMULAS = {
     "maximum_initial_margin_requirement_to_equity": "maximum observed initial margin requirement divided by contemporaneous account equity",
     "average_maintenance_margin_requirement_to_equity": "equally sample-weighted mean of maintenance margin requirement divided by contemporaneous account equity",
     "maximum_maintenance_margin_requirement_to_equity": "maximum observed maintenance margin requirement divided by contemporaneous account equity",
+    "financing_event_count": "count of engine-reported financing cash-effect events",
+    "complete_financing_report_count": "count of financing reports explicitly marked complete",
+    "partial_financing_report_count": "count of financing reports explicitly marked partial",
+    "unavailable_financing_report_count": "count of financing reports explicitly marked unavailable",
+    "reported_financing_cash_effect": "sum of engine-reported financing cash effects in account base currency",
+    "gross_financing_cost": "absolute sum of negative engine-reported financing cash effects in account base currency",
+    "reported_financing_credit": "sum of positive engine-reported financing cash effects in account base currency",
+    "net_financing_cost": "negative sum of engine-reported financing cash effects in account base currency",
 }
 
 
@@ -1182,6 +1191,163 @@ def calculate_capital_margin_utilization_metrics(
             MetricEvidenceReference("capital_margin_observations", observation_digest),
         ),
         common_calculation_parameters=calculation_parameters,
+    )
+
+
+@deterministic_decimal_math
+def calculate_financing_cost_metrics(
+    reports: Sequence[FinancingCostReport],
+) -> tuple[MetricValue, ...]:
+    """Summarize explicitly reported financing cash effects.
+
+    Financing is intentionally a separate evidence path from fill costs. A
+    complete report can publish a signed net cash effect; partial or
+    unavailable reports retain coverage counts and reported components but
+    withhold the derived net cost so omitted funding events cannot look free.
+    """
+
+    report_values = tuple(reports)
+    if not report_values:
+        raise ValueError("at least one financing cost report is required")
+    if any(not isinstance(item, FinancingCostReport) for item in report_values):
+        raise TypeError("reports must contain FinancingCostReport values")
+    portfolio_fingerprint = report_values[0].portfolio_fingerprint
+    run_attempt_id = report_values[0].run_attempt_id
+    currency = report_values[0].base_currency
+    previous_end: ObservationPoint | None = None
+    for report in report_values:
+        if report.portfolio_fingerprint != portfolio_fingerprint:
+            raise ValueError("all financing reports must use the same portfolio version")
+        if report.run_attempt_id != run_attempt_id:
+            raise ValueError("all financing reports must belong to the same run attempt")
+        if report.base_currency != currency:
+            raise ValueError("all financing reports must use the same base currency")
+        if previous_end is not None and report.start_point < previous_end:
+            raise ValueError("financing reports must be ordered and must not overlap")
+        previous_end = report.end_point
+
+    observation_digest = content_digest(report_values)
+    observations = tuple(
+        observation
+        for report in report_values
+        for observation in report.observations
+    )
+    if len({item.financing_event_id for item in observations}) != len(observations):
+        raise ValueError("financing event ids must be unique across reports")
+    cash_effect = sum((item.base_cash_effect for item in observations), Decimal(0))
+    gross_cost = -sum(
+        (item.base_cash_effect for item in observations if item.base_cash_effect < 0),
+        Decimal(0),
+    )
+    reported_credit = sum(
+        (item.base_cash_effect for item in observations if item.base_cash_effect > 0),
+        Decimal(0),
+    )
+    complete_count = sum(
+        report.report_status is CostReportStatus.COMPLETE for report in report_values
+    )
+    partial_count = sum(report.report_status is CostReportStatus.PARTIAL for report in report_values)
+    unavailable_count = sum(
+        report.report_status is CostReportStatus.UNAVAILABLE for report in report_values
+    )
+    complete = partial_count == 0 and unavailable_count == 0
+    sample_size = len(observations)
+    incompleteness_reason = "one or more financing reports are incomplete"
+    net_cash_value = -cash_effect if complete else None
+    gross_cost_value = gross_cost if complete else None
+    metrics = (
+        _value(
+            "financing_event_count",
+            Decimal(sample_size),
+            unit="events",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "count of unique engine-reported financing events; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "complete_financing_report_count",
+            Decimal(complete_count),
+            unit="reports",
+            basis=MetricBasis.NET,
+            sample_size=len(report_values),
+            calculation_basis="count of financing reports explicitly marked complete",
+        ),
+        _value(
+            "partial_financing_report_count",
+            Decimal(partial_count),
+            unit="reports",
+            basis=MetricBasis.NET,
+            sample_size=len(report_values),
+            calculation_basis="count of financing reports explicitly marked partial",
+        ),
+        _value(
+            "unavailable_financing_report_count",
+            Decimal(unavailable_count),
+            unit="reports",
+            basis=MetricBasis.NET,
+            sample_size=len(report_values),
+            calculation_basis="count of financing reports explicitly marked unavailable",
+        ),
+        _value(
+            "reported_financing_cash_effect",
+            cash_effect,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "sum of engine-reported financing cash effects in account base currency; "
+                "negative is expense and positive is credit; incomplete reports may omit amounts; "
+                f"observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "gross_financing_cost",
+            gross_cost_value,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.GROSS,
+            sample_size=sample_size,
+            calculation_basis=(
+                "absolute sum of negative engine-reported financing cash effects in account base currency; "
+                f"observations {observation_digest}"
+            ),
+            null_reason=incompleteness_reason if not complete else None,
+        ),
+        _value(
+            "reported_financing_credit",
+            reported_credit,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "sum of positive engine-reported financing cash effects in account base currency; "
+                f"incomplete reports may omit amounts; observations {observation_digest}"
+            ),
+        ),
+        _value(
+            "net_financing_cost",
+            net_cash_value,
+            unit=f"currency:{currency}",
+            basis=MetricBasis.NET,
+            sample_size=sample_size,
+            calculation_basis=(
+                "negative sum of engine-reported financing cash effects in account base currency; "
+                f"observations {observation_digest}"
+            ),
+            null_reason=incompleteness_reason if not complete else None,
+        ),
+    )
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(
+            MetricEvidenceReference("financing_cost_reports", observation_digest),
+        ),
+        common_calculation_parameters={
+            "financing_scope": "outside_fill_reports",
+            "cost_report_policy": "null_net_cost_unless_all_reports_complete",
+        },
     )
 
 
