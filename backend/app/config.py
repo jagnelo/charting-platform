@@ -834,6 +834,9 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "https://eodhd.com/lp/historical-eod-api",
                         "reset": "rolling",
+                        "limit_basis": (
+                            "conservative lower published value pending provider clarification"
+                        ),
                     },
                     {
                         "name": "calls_per_day",
@@ -849,6 +852,14 @@ class Settings(BaseSettings):
                 ],
                 "reset": "per_dimension",
                 "operation_costs_required": True,
+                "unknown_dimensions": ["published_minute_limit_conflict"],
+                "source_conflicts": [
+                    {
+                        "source": "https://eodhd.com/financial-apis/api-limits",
+                        "claim": "1,000 requests per minute on every plan",
+                        "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
+                    }
+                ],
             },
             "tokens_per_minute": 20,
             "quota_scope": "api_key",

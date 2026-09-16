@@ -1841,6 +1841,18 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd["dimensions"][0]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert eodhd["dimensions"][1]["source"] == "https://eodhd.com/lp/historical-eod-api"
     assert (
+        eodhd["dimensions"][0]["limit_basis"]
+        == "conservative lower published value pending provider clarification"
+    )
+    assert eodhd["unknown_dimensions"] == ["published_minute_limit_conflict"]
+    assert eodhd["source_conflicts"] == [
+        {
+            "source": "https://eodhd.com/financial-apis/api-limits",
+            "claim": "1,000 requests per minute on every plan",
+            "conflicts_with": "https://eodhd.com/lp/historical-eod-api",
+        }
+    ]
+    assert (
         eodhd["dimensions"][1]["reset_source"]
         == "https://eodhd.com/financial-apis/api-limits"
     )
