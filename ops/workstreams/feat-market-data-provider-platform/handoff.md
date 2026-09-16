@@ -3621,3 +3621,5 @@ the authoritative record for this replay; it made zero provider calls.
   price, overnight-eligibility, and the raw row; duplicate symbols, unknown
   status codes, and incomplete rows fail closed. Provider/parser regression
   coverage passed `266/266`; no provider calls or credentials were used.
+- The complete backend unit suite then passed `2,304/2,304` with 37 warnings;
+  no external provider calls were made.
