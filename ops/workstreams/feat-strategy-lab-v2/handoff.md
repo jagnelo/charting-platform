@@ -2341,3 +2341,18 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Composed pre-engine risk-admission checkpoint
+
+`risk_pipeline.py` now evaluates the fixed routing, margin, stress, liquidity,
+and settlement sequence and verifies each decision's content-addressed parent.
+The resulting immutable `TradeRiskAdmission` exposes every layer for audit but
+only releases the complete routed batch when all gates approve; no partial order
+approval, engine submission, or fill claim is possible.
+
+The exact implementation tree passed all 493 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.

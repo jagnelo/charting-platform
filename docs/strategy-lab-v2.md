@@ -159,6 +159,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   scenario definitions and content-addressed identities. It never applies
   shocks, infers cross-asset effects, or calculates stressed equity; those
   operations remain engine/account-adapter responsibilities.
+- `risk_pipeline.py` composes routing, margin, stress, liquidity, and settlement
+  in a fixed order and verifies the fingerprint chain in one immutable
+  pre-engine admission receipt. It exposes only approved routed orders and has
+  no submission or fill capability.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared
