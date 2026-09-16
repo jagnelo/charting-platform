@@ -779,3 +779,27 @@ boundary and an active goal. The next bounded action is to inspect and
 implement the next engine-neutral metric slice; no provider, ETF, TC2000,
 persistence, API, worker, Compose, Nautilus, frontend, integration,
 promotion, or deployment paths are opened by this authorization.
+
+## 2026-09-16 - Flow-adjusted return implementation checkpoint
+
+The next package-owned metric slice is complete in product commit
+`ec670600a3eda08eea7ee40ea05b61becb45ed83`. It adds the immutable
+`ExternalCashFlowBoundaryObservation` and binds ordered interior pre-flow and
+post-flow marks to each `AccountEquityIntervalObservation`. Boundary amounts
+must reconcile the parent interval's reported flow; zero and offsetting flows
+remain observable rather than being collapsed into a false no-flow claim.
+
+`calculate_time_weighted_return_metrics()` now geometrically links the
+subperiod factors around every explicit flow, withholds results when native flow
+reports are incomplete or boundary evidence is missing, and emits an explicit
+elapsed-UTC annualized return using a caller-supplied days-per-year convention.
+Existing calendar, rolling, and distribution aggregators remain intentionally
+unchanged and fail closed for flow-bearing inputs until they consume this
+boundary evidence directly.
+
+Validation on the exact implementation tree passed all 83 Strategy Lab v2
+package tests, Ruff checks for the changed files, MyPy for the package, and
+`git diff --check`. No provider, ETF, TC2000, persistence, API, worker,
+Compose, Nautilus, frontend, integration, promotion, or deployment paths were
+changed. The next bounded slice is the boundary-aware wiring for those existing
+calendar/rolling/distribution aggregators.
