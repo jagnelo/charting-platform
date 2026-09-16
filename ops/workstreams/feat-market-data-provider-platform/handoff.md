@@ -4567,3 +4567,30 @@ the authoritative record for this replay; it made zero provider calls.
   proving a stable minute boundary. The implementation therefore correctly
   keeps ordinary Alpaca routing fail-closed and treats the native snapshot as
   observation-only; no fixed-window assumption was introduced.
+
+## 2026-09-16 Dinari Sandbox canary admission hardening
+
+- Dinari Sandbox now has a separate, explicit runner mode:
+  `--dinari-sandbox-canary --provider dinari`. It requires the non-secret
+  owner controls `DINARI_SANDBOX_CANARY_AUTHORIZED=true`,
+  `DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE`, and a positive
+  `DINARI_SANDBOX_CANARY_MAX_REQUESTS`. The cap is an application safety budget,
+  not an inferred Dinari entitlement; normal Dinari routing remains blocked by
+  the provider's unpublished Sandbox quota/terms.
+- The canary cap is consumed by the HTTPX pre-send guard for every actual
+  request, including adapter fan-out and failed requests. The run uses the
+  existing exclusive live-run lock, records only aggregate redacted telemetry,
+  marks its usage receipt `admission_mode=dinari_sandbox_canary`, and never
+  persists Dinari Sandbox payloads or calls the durable provider reservation
+  path. Normal Dinari live selection is still rejected before the run lock.
+- The local canary preflight was exercised with the rotated owner key present;
+  it stopped before network because the three explicit canary controls are not
+  configured. No Dinari request was made by that preflight. GitHub's manual
+  provider-live workflow now exposes a separate boolean canary input and reads
+  the same controls from environment variables; it remains off by default.
+- Focused canary/runner/ledger coverage passed `65/65`; Ruff, compile, workflow
+  YAML parsing, and diff checks passed. The complete backend suite passed
+  `2,727/2,727` executable tests with `464` expected skips and `89` warnings;
+  coverage was `81.98%`. The host Xcode-license blocker and the remaining
+  provider/legal/source/universe/deployment-secret/Docker/shadow gates are
+  unchanged.

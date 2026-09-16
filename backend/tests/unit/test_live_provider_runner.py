@@ -31,6 +31,82 @@ def test_only_plan_approved_live_deferrals_are_excluded_from_full_matrix():
     assert any("test_openfigi_keyless_mapping" in argument for argument in arguments)
 
 
+def test_dinari_sandbox_canary_controls_require_explicit_operator_budget(monkeypatch):
+    runner = _runner_module()
+    for name in (
+        "DINARI_SANDBOX_CANARY_AUTHORIZED",
+        "DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE",
+        "DINARI_SANDBOX_CANARY_MAX_REQUESTS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    assert set(runner.dinari_sandbox_canary_controls_missing()) == {
+        "DINARI_SANDBOX_CANARY_AUTHORIZED",
+        "DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE",
+        "DINARI_SANDBOX_CANARY_MAX_REQUESTS",
+    }
+
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE", "owner-approved-sandbox-check"
+    )
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "20")
+    assert runner.dinari_sandbox_canary_controls_missing() == []
+
+
+def test_dinari_sandbox_canary_requires_exact_provider_selection(monkeypatch):
+    runner = _runner_module()
+    monkeypatch.setattr(
+        runner,
+        "_arguments",
+        lambda: SimpleNamespace(
+            allow_staged_candidate=False,
+            provider=["alpaca", "dinari"],
+            account_usage_only=False,
+            dinari_sandbox_canary=True,
+        ),
+    )
+    assert runner.main() == 2
+
+
+def test_normal_dinari_selection_remains_blocked_without_canary(monkeypatch, capsys):
+    runner = _runner_module()
+    monkeypatch.setattr(
+        runner,
+        "_arguments",
+        lambda: SimpleNamespace(
+            allow_staged_candidate=False,
+            provider=["dinari"],
+            account_usage_only=False,
+            dinari_sandbox_canary=False,
+        ),
+    )
+    monkeypatch.setattr(runner, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setattr(runner, "changed_provider_code", lambda: True)
+    monkeypatch.setattr(runner, "live_matrix_inventory_errors", lambda: [])
+    monkeypatch.setattr(runner, "approved_live_deferrals", lambda: {})
+    monkeypatch.setattr(runner, "LIVE_PROVIDER_CASES", {"dinari": (("x", "y"),)})
+    monkeypatch.setattr(runner, "CREDENTIALS", {"dinari": ("DINARI_API_KEY_ID",)})
+    monkeypatch.setattr(runner, "KEYLESS", ())
+    monkeypatch.setattr(runner, "setting_is_configured", lambda _name: True)
+    monkeypatch.setattr(runner, "usage_scope_is_configured", lambda: True)
+    monkeypatch.setattr(runner, "durable_quota_preflight", lambda: (True, None))
+    monkeypatch.setattr(runner, "live_operation_quota_preflight", lambda _providers: {})
+    monkeypatch.setattr(
+        runner,
+        "routing_safety_preflight",
+        lambda: {"dinari sandbox canary quota": "non-routable: quota unknown"},
+    )
+    monkeypatch.setattr(
+        runner,
+        "provider_live_run_lock",
+        lambda: (_ for _ in ()).throw(AssertionError("must not begin live run")),
+    )
+
+    assert runner.main() == 2
+    assert "required live capability safety" in capsys.readouterr().out
+
+
 def test_unit_runner_does_not_persist_synthetic_receipts_to_workstream_by_default(
     monkeypatch, tmp_path
 ):

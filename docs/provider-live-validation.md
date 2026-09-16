@@ -403,6 +403,13 @@ The local MarketData.app account uses the reviewed Starter Trial/10,000 daily
 credits through its configured expiry, then automatically falls back to the
 Free Forever/100 daily-credit contract. Do not copy that account's key or plan
 configuration into GitHub; provision and review a separate CI account first.
+The workflow's manual-dispatch `dinari_sandbox_canary` input is opt-in. When it
+is enabled, the job runs only the Dinari Sandbox canary and reads
+`DINARI_SANDBOX_CANARY_AUTHORIZED`,
+`DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE`, and
+`DINARI_SANDBOX_CANARY_MAX_REQUESTS` from that environment's configuration
+variables; leaving the input off keeps the normal full-matrix behavior, where
+Dinari remains blocked by its unpublished quota/entitlement gate.
 In GitHub, leave the MarketData.app pair blank/zero, the option bound at zero,
 and the SEC directory scan disabled with a zero submissions bound until that
 environment has its own reviewed account/entitlement and scan controls. Keep
@@ -591,6 +598,19 @@ capacity response for IPO-calendar and exact credential preflights for the
 intentionally deferred Tradier, IBKR, and Ondo providers. Aggregate request and
 response-byte telemetry was written outside Git; no credential or payload was
 persisted.
+
+Dinari Sandbox validation is available only through the explicit
+`--dinari-sandbox-canary --provider dinari` runner mode. Because Dinari does not
+publish a numeric Sandbox request quota/reset, this mode requires the operator
+controls `DINARI_SANDBOX_CANARY_AUTHORIZED=true`, a non-secret
+`DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE`, and a positive
+`DINARI_SANDBOX_CANARY_MAX_REQUESTS`. The cap is consumed once per attempted
+HTTP request in that process (including provider failures), and the runner's
+exclusive live-run lock prevents concurrent local canaries. The test records
+only redacted request/byte observations; it does not persist Dinari payloads or
+use the normal provider-quota reservation path. The receipt is marked
+`canary_mode=dinari_sandbox`. These controls are an application safety budget,
+not an inferred Dinari entitlement, and ordinary routing remains fail-closed.
 
 Provider refreshes now create/reuse a deterministic `MarketSeries` and attach
 its ID to canonical bars and provider observations. OHLCV conflict identity is

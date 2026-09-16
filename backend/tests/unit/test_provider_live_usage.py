@@ -102,6 +102,62 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(tmp_path:
     assert live_usage.flush_observations(0) is None
 
 
+def test_dinari_sandbox_canary_uses_only_explicit_process_cap(monkeypatch):
+    live_usage._reset_for_test()
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    monkeypatch.delenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", raising=False)
+    with pytest.raises(RuntimeError, match="MAX_REQUESTS must be a positive integer"):
+        live_usage.reserve_dinari_sandbox_canary_request()
+
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "2")
+    assert live_usage.reserve_dinari_sandbox_canary_request() == 1
+    assert live_usage.reserve_dinari_sandbox_canary_request() == 2
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    with pytest.raises(ProviderQuotaAdmissionError, match="canary request cap exhausted"):
+        live_usage.reserve_dinari_sandbox_canary_request()
+
+
+def test_dinari_canary_receipt_is_explicitly_marked(tmp_path: Path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "dinari-canary-run")
+    monkeypatch.setenv("PROVIDER_LIVE_ADMISSION_MODE", "dinari_sandbox_canary")
+    live_usage._reset_for_test()
+    live_usage.record_observation(
+        "dinari",
+        operation="get_tokenized_price",
+        http_requests=1,
+        response_bytes=12,
+    )
+
+    live_usage.flush_observations(0)
+    row = json.loads(ledger.read_text(encoding="utf-8").splitlines()[0])
+    assert row["admission_mode"] == "dinari_sandbox_canary"
+
+
+def test_dinari_canary_cap_is_consumed_per_transport_request(monkeypatch):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_RUN", "1")
+    monkeypatch.setenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "2")
+    live_usage._reset_for_test()
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, content=b"ok"))
+    token = live_usage.activate_request_admission()
+    try:
+        with httpx.Client(transport=transport) as client:
+            assert client.get("https://provider.example.test/one").status_code == 200
+            assert client.get("https://provider.example.test/two").status_code == 200
+            from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+            with pytest.raises(ProviderQuotaAdmissionError, match="canary request cap exhausted"):
+                client.get("https://provider.example.test/three")
+    finally:
+        live_usage.deactivate_request_admission(token)
+
+
 def test_live_usage_tracks_provider_status_separately_from_process_exit(tmp_path, monkeypatch):
     ledger = tmp_path / "provider-live-usage.jsonl"
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))

@@ -2,6 +2,12 @@ name: Credentialed Provider Live Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      dinari_sandbox_canary:
+        description: "Run only the explicit non-persisting Dinari Sandbox canary"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: provider-live-${{ github.ref }}
@@ -106,6 +112,9 @@ jobs:
       DINARI_API_KEY_ID: ${{ secrets.DINARI_API_KEY_ID }}
       DINARI_API_SECRET_KEY: ${{ secrets.DINARI_API_SECRET_KEY }}
       DINARI_API_BASE_URL: ${{ vars.DINARI_API_BASE_URL || 'https://api-enterprise.sandbox.dinari.com/api/v2' }}
+      DINARI_SANDBOX_CANARY_AUTHORIZED: ${{ vars.DINARI_SANDBOX_CANARY_AUTHORIZED || 'false' }}
+      DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE: ${{ vars.DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE || '' }}
+      DINARI_SANDBOX_CANARY_MAX_REQUESTS: ${{ vars.DINARI_SANDBOX_CANARY_MAX_REQUESTS || '' }}
       ONDO_GLOBAL_MARKETS_API_KEY: ${{ secrets.ONDO_GLOBAL_MARKETS_API_KEY }}
       IBKR_READ_ONLY_URL: ${{ vars.IBKR_READ_ONLY_URL || '' }}
       IBKR_READ_ONLY_SESSION_COOKIE: ${{ secrets.IBKR_READ_ONLY_SESSION_COOKIE }}
@@ -154,7 +163,13 @@ jobs:
         run: bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
 
       - name: Run one bounded live read per provider
-        run: uv run --project backend python scripts/run-live-provider-probes.py
+        run: |
+          if [ "${{ inputs.dinari_sandbox_canary }}" = "true" ]; then
+            uv run --project backend python scripts/run-live-provider-probes.py \
+              --provider dinari --dinari-sandbox-canary
+          else
+            uv run --project backend python scripts/run-live-provider-probes.py
+          fi
 
       - name: Preserve redacted live usage receipt
         if: always()

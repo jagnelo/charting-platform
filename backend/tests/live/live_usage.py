@@ -72,6 +72,44 @@ _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_live_case_id", default=
 _ACTIVE_REQUEST_ADMISSION: ContextVar[bool] = ContextVar(
     "provider_live_request_admission", default=False
 )
+_DINARI_CANARY_REQUESTS = 0
+
+
+def reserve_dinari_sandbox_canary_request() -> int:
+    """Consume one operator-configured Dinari Sandbox canary allowance.
+
+    Dinari does not publish a numeric Sandbox quota that can be used for
+    durable application routing.  The explicit canary path therefore uses a
+    process-local, operator-supplied request cap only.  This is an application
+    safety budget, not a claim about (or replacement for) Dinari's entitlement.
+    Every attempted request consumes one slot, including provider failures.
+    """
+
+    if os.getenv("DINARI_SANDBOX_CANARY_RUN", "") != "1":
+        raise RuntimeError(
+            "Dinari Sandbox canary admission is disabled; use the explicit "
+            "--dinari-sandbox-canary runner mode"
+        )
+    raw_limit = os.getenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "").strip()
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "DINARI_SANDBOX_CANARY_MAX_REQUESTS must be a positive integer"
+        ) from exc
+    if limit <= 0:
+        raise RuntimeError(
+            "DINARI_SANDBOX_CANARY_MAX_REQUESTS must be a positive integer"
+        )
+    global _DINARI_CANARY_REQUESTS
+    if _DINARI_CANARY_REQUESTS >= limit:
+        from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+        raise ProviderQuotaAdmissionError(
+            "Dinari Sandbox canary request cap exhausted before live operation"
+        )
+    _DINARI_CANARY_REQUESTS += 1
+    return _DINARI_CANARY_REQUESTS
 
 
 def reconcile_native_account_usage(
@@ -181,6 +219,15 @@ def require_request_admission() -> None:
         raise RuntimeError(
             "live provider HTTP request blocked: no active durable quota reservation"
         )
+    if (
+        os.getenv("RUN_LIVE_PROVIDER_TESTS") == "1"
+        and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
+        and _ACTIVE_REQUEST_ADMISSION.get()
+    ):
+        # The Dinari canary intentionally has no durable provider reservation.
+        # Count at the transport guard instead, so one adapter operation that
+        # fans out to several HTTP requests consumes several cap units.
+        reserve_dinari_sandbox_canary_request()
 
 
 def install_httpx_quota_admission_guard(*, patcher=None) -> None:
@@ -464,6 +511,7 @@ def flush_observations(exit_status: int) -> Path | None:
     run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or _PROCESS_RUN_ID
     now = datetime.now(UTC).isoformat()
     usage_scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip() or "unspecified"
+    admission_mode = os.getenv("PROVIDER_LIVE_ADMISSION_MODE", "").strip()
     rows = [
         {
             "at": now,
@@ -483,6 +531,7 @@ def flush_observations(exit_status: int) -> Path | None:
                 operation: dict(operation_values)
                 for operation, operation_values in sorted(values["operation_usage"].items())
             },
+            **({"admission_mode": admission_mode} if admission_mode else {}),
             **({"case_usage": values["case_usage"]} if values["case_usage"] else {}),
             **({"reservations": values["reservations"]} if values.get("reservations") else {}),
         }
@@ -513,3 +562,5 @@ def _reset_for_test() -> None:
 
     _observations.clear()
     _CURRENT_CASE_ID.set("")
+    global _DINARI_CANARY_REQUESTS
+    _DINARI_CANARY_REQUESTS = 0

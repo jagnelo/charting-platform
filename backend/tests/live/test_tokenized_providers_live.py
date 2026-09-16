@@ -58,7 +58,13 @@ def _observed_read(
     operation_cost_override: int | None = None,
     dimension_cost_overrides: dict[str, int] | None = None,
 ):
-    """Reserve durable provider quota before direct tokenized-provider reads."""
+    """Admit a direct tokenized-provider read before outbound HTTP.
+
+    All normal providers use the durable quota coordinator. Dinari Sandbox is
+    deliberately different: it is never application-routable, and its
+    unpublished Sandbox allowance can only be exercised through the runner's
+    explicit, operator-capped canary mode.
+    """
 
     from app.services.provider_quota_coordinator import (
         ProviderQuotaAdmissionError,
@@ -66,18 +72,21 @@ def _observed_read(
         settle_live_provider_operation,
     )
 
-    reservation = reserve_live_provider_operation(
-        provider_name,
-        operation,
-        usage_identity=usage_identity,
-        operation_cost_override=operation_cost_override,
-        dimension_cost_overrides=dimension_cost_overrides,
-        require_persistent_coordinator=True,
-    )
-    if reservation is None:
-        raise ProviderQuotaAdmissionError(
-            f"provider quota exhausted before live operation {provider_name}/{operation}"
+    canary = provider_name == "dinari" and os.getenv("DINARI_SANDBOX_CANARY_RUN") == "1"
+    reservation = None
+    if not canary:
+        reservation = reserve_live_provider_operation(
+            provider_name,
+            operation,
+            usage_identity=usage_identity,
+            operation_cost_override=operation_cost_override,
+            dimension_cost_overrides=dimension_cost_overrides,
+            require_persistent_coordinator=True,
         )
+        if reservation is None:
+            raise ProviderQuotaAdmissionError(
+                f"provider quota exhausted before live operation {provider_name}/{operation}"
+            )
 
     measurement, token = activate_provider_telemetry()
     admission_token = activate_request_admission()
@@ -88,11 +97,12 @@ def _observed_read(
         # response must have crossed the adapter and been observed before the
         # caller decides whether a bounded retry is allowed.
         try:
-            settle_live_provider_operation(
-                reservation,
-                http_requests=measurement.http_requests,
-                response_bytes=measurement.response_bytes,
-            )
+            if reservation is not None:
+                settle_live_provider_operation(
+                    reservation,
+                    http_requests=measurement.http_requests,
+                    response_bytes=measurement.response_bytes,
+                )
         finally:
             record_observation(
                 provider_name,
@@ -101,7 +111,7 @@ def _observed_read(
                 response_bytes=measurement.response_bytes,
                 response_headers=measurement.response_headers,
                 success=False,
-                reservation_id=reservation.reservation_id,
+                reservation_id=reservation.reservation_id if reservation else None,
             )
         assert measurement.http_requests > 0
         assert measurement.response_bytes > 0
@@ -110,11 +120,12 @@ def _observed_read(
         deactivate_request_admission(admission_token)
         deactivate_provider_telemetry(token)
     try:
-        settle_live_provider_operation(
-            reservation,
-            http_requests=measurement.http_requests,
-            response_bytes=measurement.response_bytes,
-        )
+        if reservation is not None:
+            settle_live_provider_operation(
+                reservation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+            )
     finally:
         record_observation(
             provider_name,
@@ -123,7 +134,7 @@ def _observed_read(
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
             success=True,
-            reservation_id=reservation.reservation_id,
+            reservation_id=reservation.reservation_id if reservation else None,
         )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0

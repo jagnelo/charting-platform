@@ -161,6 +161,24 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Dinari Sandbox now has an explicit opt-in canary path rather than a generic
+    or invented provider quota: `--dinari-sandbox-canary --provider dinari`
+    requires owner controls `DINARI_SANDBOX_CANARY_AUTHORIZED`, a non-secret
+    authority reference, and a positive per-process request cap. The cap is
+    enforced at the HTTPX transport guard per actual request (including
+    adapter fan-out), receipts are marked as Sandbox canary observations, and
+    no Dinari payload enters canonical persistence. The current local canary
+    preflight intentionally stopped before network because those three
+    controls are not configured; ordinary Dinari routing remains fail-closed.
+  - >-
+    The exact current-source full backend suite after the Dinari canary/CI
+    changes passed `2,727/2,727` executable tests with `464` expected skips and
+    `89` warnings in `564.84s`; total coverage was `81.98%`. Focused canary
+    runner/ledger tests passed `65/65`, Ruff, workflow YAML parsing, compile,
+    and diff checks passed. This does not close the provider-owned Dinari
+    Sandbox quota/terms gate or the remaining live, legal/source, universe,
+    deployment-secret, Docker, and shadow gates.
+  - >-
     The exact-current preflight at committed source `0220ae07e` stopped before
     transport with exit `2`, `0/0` cases, and zero provider requests after the
     Alpaca fixed-history contract. It records `94` provider-specific

@@ -990,6 +990,34 @@ def setting_is_configured(name: str) -> bool:
     return True
 
 
+def dinari_sandbox_canary_controls_missing() -> list[str]:
+    """Return missing owner controls for the explicit Dinari Sandbox canary.
+
+    These controls are intentionally separate from provider quota policy. They
+    authorize one bounded, non-persisting validation run; they never make
+    Dinari routable and never infer an unpublished Sandbox entitlement.
+    """
+
+    missing: list[str] = []
+    if os.getenv("DINARI_SANDBOX_CANARY_AUTHORIZED", "").strip().lower() not in {
+        "1",
+        "true",
+        "yes",
+    }:
+        missing.append("DINARI_SANDBOX_CANARY_AUTHORIZED")
+    authority_reference = os.getenv("DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE", "").strip()
+    if not authority_reference or len(authority_reference) > 256 or not authority_reference.isprintable():
+        missing.append("DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE")
+    raw_limit = os.getenv("DINARI_SANDBOX_CANARY_MAX_REQUESTS", "").strip()
+    try:
+        limit = int(raw_limit)
+    except ValueError:
+        limit = 0
+    if limit <= 0:
+        missing.append("DINARI_SANDBOX_CANARY_MAX_REQUESTS")
+    return missing
+
+
 def workflow_secret_environment_names() -> set[str]:
     """Find every secret-backed variable in the credentialed live workflow."""
 
@@ -2568,6 +2596,7 @@ def _record_live_validation(
     live_evidence: dict[str, object] | None = None,
     candidate_tree: dict[str, str] | None = None,
     candidate_unchanged: bool = True,
+    canary_mode: bool = False,
 ) -> str:
     """Persist a redacted live-test receipt in the active branch workstream."""
 
@@ -2634,6 +2663,7 @@ def _record_live_validation(
         or {"complete": False, "missing": ["same-run live evidence unavailable"]},
         "approved_deferrals": approved_deferrals if full_matrix else {},
         "exit_code": exit_code,
+        **({"canary_mode": "dinari_sandbox"} if canary_mode else {}),
     }
     if candidate_tree is not None:
         receipt["candidate_tree_sha"] = candidate_tree["tree_sha"]
@@ -2676,6 +2706,14 @@ def _arguments() -> argparse.Namespace:
             "requires exactly one --provider and remains a focused receipt"
         ),
     )
+    parser.add_argument(
+        "--dinari-sandbox-canary",
+        action="store_true",
+        help=(
+            "run only Dinari's non-persisting Sandbox validation through an "
+            "explicit operator-authorized per-run request cap"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -2683,6 +2721,15 @@ def main() -> int:
     arguments = _arguments()
     selected_providers = set(arguments.provider or [])
     account_usage_only = bool(getattr(arguments, "account_usage_only", False))
+    dinari_sandbox_canary = bool(getattr(arguments, "dinari_sandbox_canary", False))
+    if dinari_sandbox_canary and selected_providers != {"dinari"}:
+        print(
+            "--dinari-sandbox-canary requires exactly one --provider dinari"
+        )
+        return 2
+    if dinari_sandbox_canary and account_usage_only:
+        print("--dinari-sandbox-canary cannot be combined with --account-usage-only")
+        return 2
     if account_usage_only and selected_providers not in (
         {"alpaca"},
         {"marketdata_app"},
@@ -2771,6 +2818,11 @@ def main() -> int:
             missing["FINRA OTC source admission"] = source_review_missing
     if not usage_scope_is_configured():
         missing["usage accounting"] = ["PROVIDER_LIVE_USAGE_SCOPE"]
+    canary_missing: list[str] = []
+    if dinari_sandbox_canary:
+        canary_missing = dinari_sandbox_canary_controls_missing()
+        if canary_missing:
+            missing["Dinari Sandbox canary controls"] = canary_missing
     quota_coordinator_ready, quota_coordinator_missing = durable_quota_preflight()
     live_quota_missing: dict[str, list[str]] = {}
     if not quota_coordinator_ready:
@@ -2780,7 +2832,9 @@ def main() -> int:
         ]
     print("live provider credential/usage preflight:")
     if quota_coordinator_ready:
-        if account_usage_only:
+        if dinari_sandbox_canary:
+            live_quota_missing = {}
+        elif account_usage_only:
             live_quota_missing = live_operation_quota_preflight(
                 selected_for_run,
                 operations_override={
@@ -2811,6 +2865,8 @@ def main() -> int:
     blocked_live_safety: dict[str, list[str]] = {}
     for provider in sorted(selected_for_run):
         for safety_name in LIVE_PREFLIGHT_ROUTING_CONTROLS.get(provider, ()):
+            if dinari_sandbox_canary and provider == "dinari":
+                continue
             status = safety_statuses.get(
                 safety_name, "non-routable: control status is missing"
             )
@@ -2839,6 +2895,7 @@ def main() -> int:
             counts={"case_count": 0, "passed_cases": 0, "failed_cases": 0, "skipped_cases": 0},
             approved_deferrals=deferred_providers,
             candidate_tree=staged_candidate,
+            canary_mode=dinari_sandbox_canary,
         )
         return 2
     if (
@@ -2846,6 +2903,7 @@ def main() -> int:
         or selected_deferred
         or live_quota_missing
         or unresolved_live_coverage
+        or (dinari_sandbox_canary and canary_missing)
     ):
         print(
             "live provider probes blocked before network calls: required cases are not safely admitted"
@@ -2862,6 +2920,7 @@ def main() -> int:
             },
             approved_deferrals=deferred_providers,
             candidate_tree=staged_candidate,
+            canary_mode=dinari_sandbox_canary,
         )
         return 2
     if not quota_coordinator_ready:
@@ -2880,6 +2939,7 @@ def main() -> int:
             },
             approved_deferrals=deferred_providers,
             candidate_tree=staged_candidate,
+            canary_mode=dinari_sandbox_canary,
         )
         return 2
     try:
@@ -2943,6 +3003,14 @@ def main() -> int:
                         "RUN_LIVE_PROVIDER_TESTS": "1",
                         "PROVIDER_LIVE_MATRIX_RUN": "1",
                         "PROVIDER_LIVE_RUN_ID": live_run_id,
+                        **(
+                            {
+                                "DINARI_SANDBOX_CANARY_RUN": "1",
+                                "PROVIDER_LIVE_ADMISSION_MODE": "dinari_sandbox_canary",
+                            }
+                            if dinari_sandbox_canary
+                            else {}
+                        ),
                     },
                     capture_output=True,
                     text=True,
@@ -2981,6 +3049,7 @@ def main() -> int:
                 live_evidence=live_evidence,
                 candidate_tree=staged_candidate,
                 candidate_unchanged=candidate_unchanged,
+                canary_mode=dinari_sandbox_canary,
             )
     except ProviderLiveRunAlreadyActive as exc:
         print(f"live provider probes: blocked by local key-use lock: {exc}")

@@ -471,6 +471,15 @@ Dinari's [US-customer requirements](https://docs.dinari.com/docs/us) make partne
 approval, regulatory, data-security, and redistribution review a deployment
 gate, so having a key alone does not make this provider routable.
 
+The current Sandbox key can be exercised only by the explicit non-persisting
+live canary (`--dinari-sandbox-canary --provider dinari`). That mode requires
+the non-secret operator controls `DINARI_SANDBOX_CANARY_AUTHORIZED`,
+`DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE`, and the positive per-process
+`DINARI_SANDBOX_CANARY_MAX_REQUESTS` cap. The cap is an application safety
+budget, not a claim about Dinari's unpublished Sandbox entitlement; ordinary
+provider routing remains disabled until the commercial, quota, eligibility, and
+redistribution review is complete.
+
 Dinari's SEC CIK is retained as the token detail's first-class
 `underlying_cik`, separate from the provider Stock UUID. When an issuer with
 that CIK is already materialized, `underlying_issuer_id` links to it; the
