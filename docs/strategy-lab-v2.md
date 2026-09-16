@@ -339,6 +339,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   content-addressed result, failures carry a typed `ApiError`, and exact
   repeats replay the existing terminal state while regressions, foreign
   identities, stale timestamps, and conflicting sequences fail closed.
+- `lineage.py` defines immutable artifact-manifest lineage edges and
+  owner-scoped indexes. Semantic keys exclude recording timestamps for
+  idempotency, exact edges replay, changed metadata conflicts, and entries are
+  deterministically ordered. Storage adapters must still enforce manifest
+  existence, foreign-key constraints, and atomic persistence.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

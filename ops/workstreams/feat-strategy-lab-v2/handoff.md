@@ -1167,3 +1167,17 @@ The exact implementation tree passed all 151 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Artifact lineage/idempotency checkpoint
+
+`lineage.py` adds immutable `ArtifactLineageEntry` edges and owner-scoped
+`ArtifactLineageIndex` records. Semantic keys bind owner, role, parent, and
+manifest identity while excluding recording time; exact edges replay, changed
+metadata returns an explicit conflict, duplicate semantic keys are rejected,
+and index ordering/fingerprints are deterministic. Persistence adapters remain
+responsible for manifest foreign keys and atomic writes.
+
+The exact implementation tree passed all 155 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.
