@@ -54,9 +54,11 @@
   for that one-page range and does not become a runtime cost default for
   arbitrary history windows.
 - The Binance operation is now a required live operation rather than an
-  unresolved full-range disposition. Focused runner unit coverage passed
-  `37/37`; live transport evidence is pending a clean committed source and
-  a just-in-time native one-minute baseline refresh.
+  unresolved full-range disposition. The first live execution showed the
+  exact 30-day interval uses two pages, so the reviewed test bound is two
+  request weights rather than one. Focused runner unit coverage passed
+  `37/37`; the corrected live transport evidence is pending a clean
+  committed source and a just-in-time native one-minute baseline refresh.
 
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 

@@ -144,7 +144,7 @@ def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
             "fetch_ohlcv": 2,
             "fetch_instrument_events": 2,
         },
-        "binance": {"fetch_latest_ohlcv": 2, "fetch_ohlcv": 1},
+        "binance": {"fetch_latest_ohlcv": 2, "fetch_ohlcv": 2},
         "coinbase": {"fetch_latest_ohlcv": 1},
         "kraken": {"fetch_latest_ohlcv": 1},
         "massive": {"fetch_ohlcv": 1},

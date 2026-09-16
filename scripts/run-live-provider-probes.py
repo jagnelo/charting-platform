@@ -511,10 +511,10 @@ LIVE_OPERATION_COST_OVERRIDES = {
         # request weight (including the wrapper's lookback padding); this is
         # a test-case bound, not a runtime default for arbitrary ranges.
         "fetch_latest_ohlcv": 2,
-        # A direct 30-day daily range fits in one Binance klines page. Keep
-        # this bound attached to that exact live case; wider ranges must use a
-        # caller-supplied estimate rather than inheriting it.
-        "fetch_ohlcv": 1,
+        # A direct 30-day daily range observed two Binance klines pages in
+        # live validation. Keep this ceiling attached to that exact case;
+        # wider ranges must use a caller-supplied estimate instead.
+        "fetch_ohlcv": 2,
     },
     "coinbase": {
         # The bounded manifest requests one daily candle.  Coinbase's

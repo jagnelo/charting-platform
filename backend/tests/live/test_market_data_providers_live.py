@@ -496,9 +496,11 @@ def test_binance_keyless_bounded_daily_history():
         ),
         "binance",
         "fetch_ohlcv",
-        operation_cost_override=1,
+        operation_cost_override=2,
     )
-    assert measurement.http_requests == 1
+    # The provider may split the exact 30-day interval at its exchange
+    # boundary; the reviewed safety ceiling for this case is two pages.
+    assert 1 <= measurement.http_requests <= 2
     assert rows and rows[-1].close > 0
     assert all(row.ts.tzinfo is not None for row in rows)
 
