@@ -305,4 +305,4 @@ progress:
   total: 18
   current_phase: engine-neutral-core
   current_blocker: none
-  next_action: inspect and implement the next bounded engine-neutral execution-attempt lifecycle contract slice; preserve the static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates
+  next_action: inspect and implement the next bounded engine-neutral execution capability-preflight contract slice; preserve the static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates

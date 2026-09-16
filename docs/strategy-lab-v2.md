@@ -278,8 +278,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   separately. Existing
   `calculation_basis` strings remain display-compatible and the formula version
   stays at v6 because this metadata addition does not change metric formulas.
-- `lifecycle.py` contains pure attempt/forward state transitions and event
-  anomaly classification.
+- `lifecycle.py` contains pure attempt/forward state transitions, event
+  anomaly classification, and typed monotonic execution-attempt leases.
+  Running attempts can acquire a lease, active leases can renew, and expired or
+  released leases cannot be renewed; persistence, worker scheduling, and clock
+  ownership remain outside the package.
 - `pairing.py` verifies exact keyed common-random draw alignment and emits a
   content-bound receipt that can upgrade sensitivity provenance to
   `verified_paired`; it does not perform statistical inference.

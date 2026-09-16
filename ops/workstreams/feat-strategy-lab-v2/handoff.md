@@ -994,3 +994,17 @@ The exact implementation tree passed all 107 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Execution-attempt lifecycle, persistence,
 API, worker, artifact-store, Compose, Nautilus, frontend, integration,
 promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Execution-attempt lease checkpoint
+
+`lifecycle.py` now includes typed `ExecutionAttemptLease` records and
+`acquire_attempt_lease()`. Leases can be acquired only by running attempts,
+renew only while active with monotonic timestamps, and transition explicitly to
+released or expired states. The pure contract supplies worker-side lease
+evidence without persistence, scheduling, or automatic clock access; result
+publication must still be guarded by a live lease in the future worker.
+
+The exact implementation tree passed all 110 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Capability execution preflight, persistence,
+API, worker, artifact-store, Compose, Nautilus, frontend, integration,
+promotion, and deployment paths remain unchanged.

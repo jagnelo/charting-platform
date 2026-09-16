@@ -71,6 +71,98 @@ def create_retry_attempt(
     )
 
 
+class AttemptLeaseStatus(StrEnum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    RELEASED = "released"
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionAttemptLease:
+    """Worker lease metadata for one running attempt.
+
+    Persistence and clock scheduling stay outside this module. A worker may
+    renew only an active lease and must treat an expired or released lease as
+    non-authoritative before publishing results.
+    """
+
+    attempt_id: str
+    worker_id: str
+    lease_id: str
+    leased_at: datetime
+    heartbeat_at: datetime
+    expires_at: datetime
+    released_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("attempt_id", "worker_id", "lease_id"):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name).strip():
+                raise ValueError(f"lease {name} must not be empty")
+        for name in ("leased_at", "heartbeat_at", "expires_at", "released_at"):
+            value = getattr(self, name)
+            if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+                raise ValueError(f"lease {name} must be timezone-aware")
+        if self.heartbeat_at < self.leased_at:
+            raise ValueError("lease heartbeat cannot precede lease acquisition")
+        if self.expires_at <= self.heartbeat_at:
+            raise ValueError("lease expiry must follow the latest heartbeat")
+        if self.released_at is not None and self.released_at < self.heartbeat_at:
+            raise ValueError("lease release cannot precede the latest heartbeat")
+
+    def status_at(self, now: datetime) -> AttemptLeaseStatus:
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("lease status time must be timezone-aware")
+        if self.released_at is not None and now >= self.released_at:
+            return AttemptLeaseStatus.RELEASED
+        return AttemptLeaseStatus.ACTIVE if now < self.expires_at else AttemptLeaseStatus.EXPIRED
+
+    def renew(self, *, now: datetime, lease_duration: timedelta) -> ExecutionAttemptLease:
+        if lease_duration <= timedelta(0):
+            raise ValueError("lease duration must be positive")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("lease heartbeat time must be timezone-aware")
+        if now < self.heartbeat_at:
+            raise ValueError("lease heartbeat cannot move backwards")
+        if self.status_at(now) is not AttemptLeaseStatus.ACTIVE:
+            raise ValueError("only an active lease can be renewed")
+        return replace(self, heartbeat_at=now, expires_at=now + lease_duration)
+
+    def release(self, *, now: datetime) -> ExecutionAttemptLease:
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("lease release time must be timezone-aware")
+        if now < self.heartbeat_at:
+            raise ValueError("lease release cannot move backwards")
+        if self.released_at is not None:
+            raise ValueError("lease is already released")
+        return replace(self, released_at=now)
+
+
+def acquire_attempt_lease(
+    attempt: RunAttempt,
+    *,
+    worker_id: str,
+    lease_id: str,
+    now: datetime,
+    lease_duration: timedelta,
+) -> ExecutionAttemptLease:
+    """Create a lease only for a running attempt; no persistence is performed."""
+
+    if attempt.state is not AttemptState.RUNNING:
+        raise ValueError("only a running attempt can acquire a worker lease")
+    if lease_duration <= timedelta(0):
+        raise ValueError("lease duration must be positive")
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("lease acquisition time must be timezone-aware")
+    return ExecutionAttemptLease(
+        attempt_id=attempt.attempt_id,
+        worker_id=worker_id,
+        lease_id=lease_id,
+        leased_at=now,
+        heartbeat_at=now,
+        expires_at=now + lease_duration,
+    )
+
+
 def transition_forward_instance(
     instance: ForwardInstance, target: ForwardState, *, now: datetime
 ) -> ForwardInstance:
