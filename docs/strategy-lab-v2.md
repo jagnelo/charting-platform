@@ -314,6 +314,7 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   retryable causes and while the attempt limit remains; capped exponential
   backoff is derived from the next ordinal and supplied observation time.
   Successful attempts are no-ops, cancellation is terminal by default, and
+  `RecoveryPlan` is content-addressed for idempotent scheduling records.
   `RecoveryPlan.materialize_retry_attempt()` preserves the immutable trial
   identity. Durable compare-and-set, scheduling, worker restart, and engine
   disposal remain adapter responsibilities.

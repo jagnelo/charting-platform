@@ -38,6 +38,7 @@ def test_recovery_plan_is_deterministic_and_materializes_same_trial_retry() -> N
     assert plan.disposition is RecoveryDisposition.RETRY
     assert plan.next_ordinal == 2
     assert plan.retry_at == NOW + timedelta(seconds=8)
+    assert plan.fingerprint.startswith("sha256:")
     assert plan == plan_attempt_recovery(
         (failed,),
         reason=RecoveryReason.WORKER_CRASH,

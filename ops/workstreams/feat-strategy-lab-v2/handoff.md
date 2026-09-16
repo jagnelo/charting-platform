@@ -1098,7 +1098,8 @@ deployment paths remain unchanged.
 `plan_attempt_recovery()` decision contract. Recovery validates one contiguous
 terminal attempt chain, distinguishes retry/no-op/terminal outcomes, allows
 only explicitly retryable infrastructure causes, caps deterministic exponential
-backoff, and fails closed on active attempts, malformed chains, stale
+backoff, content-addresses the resulting plan for idempotent scheduling, and
+fails closed on active attempts, malformed chains, stale
 timestamps, cancellation retries, or exhausted limits. A retry plan can
 materialize a queued `RunAttempt` against the same immutable scientific trial;
 durable scheduling, compare-and-set, worker restart, and engine disposal remain

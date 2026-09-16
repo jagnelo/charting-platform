@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import AttemptState, RunAttempt
 from app.strategy_lab_v2.lifecycle import create_retry_attempt
 
@@ -119,6 +120,12 @@ class RecoveryPlan:
         elif self.next_ordinal is not None or self.retry_at is not None:
             raise ValueError("non-retry plans cannot schedule an attempt")
 
+    @property
+    def fingerprint(self) -> str:
+        """Return the content identity used for idempotent scheduling records."""
+
+        return content_digest(self)
+
     def materialize_retry_attempt(
         self, prior_attempts: tuple[RunAttempt, ...], *, attempt_id: str
     ) -> RunAttempt:
@@ -126,8 +133,10 @@ class RecoveryPlan:
 
         if self.disposition is not RecoveryDisposition.RETRY:
             raise ValueError("only retry plans can materialize an attempt")
+        if self.retry_at is None:
+            raise ValueError("retry plan is missing retry_at")
         attempt = create_retry_attempt(
-            prior_attempts, attempt_id=attempt_id, created_at=self.retry_at  # type: ignore[arg-type]
+            prior_attempts, attempt_id=attempt_id, created_at=self.retry_at
         )
         if attempt.trial_id != self.trial_id or attempt.ordinal != self.next_ordinal:
             raise ValueError("prior attempts do not match the recovery plan")
