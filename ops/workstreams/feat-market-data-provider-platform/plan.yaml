@@ -3648,4 +3648,13 @@ progress:
       reset/use-scope blockers. These are bounded transport and safety
       receipts only; remaining provider, source/legal, universe, secret-store,
       deferred-provider, and shadow gates remain open.
+    - >-
+      2026-09-17 exact-current-source native usage refresh: Twelve Data passed
+      its bounded account-usage case `1/1` (one request, 132 response bytes),
+      and EODHD passed its bounded account-usage case `1/1` (one request, 304
+      response bytes), both at source `6047a5985` using the owner-only durable
+      local quota ledger. These are native usage observations only; EODHD's
+      conflicting minute pool, other provider reset/legal/source gates,
+      complete universe, target secret stores, deferred providers, routing
+      promotion, and final shadow remain open.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.

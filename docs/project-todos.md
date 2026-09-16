@@ -17808,3 +17808,18 @@ The current source also passes the focused authenticated top-down browser slice 
       previous-release schema head was `fe4f5a6b7c8d`, and the previous app
       returned `/health 200` against the expanded schema. Temporary Docker and
       worktree resources were cleaned.
+
+### 2026-09-17 — Current-source native usage snapshots
+
+- [x] Re-run the bounded Twelve Data account-usage case from committed source
+      `6047a5985`. It passed `1/1` with one upstream request and `132` response
+      bytes; the receipt is redacted in `validation.jsonl` and the durable
+      owner-local quota ledger was used.
+- [x] Re-run the bounded EODHD account-usage case from the same committed
+      source. It passed `1/1` with one upstream request and `304` response
+      bytes. This is a native usage observation only; EODHD ordinary routing
+      remains fail-closed until the conflicting minute-pool limit/reset and
+      evidence controls are reviewed.
+- [ ] These snapshots do not close provider-specific reset, legal/source,
+      complete-universe, target secret-store, deployment, routing-promotion,
+      deferred-provider, or final shadow gates.

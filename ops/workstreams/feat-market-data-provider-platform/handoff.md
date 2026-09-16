@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-source Twelve Data and EODHD usage snapshots
+
+- The exact committed source `6047a59858e34b41122c511f30987f6b27fee64d`
+  passed the bounded Twelve Data native account-usage case (`1/1`, one
+  upstream request, 132 response bytes) using the owner-only durable local
+  quota ledger.
+- The same source passed the bounded EODHD native account-usage case (`1/1`,
+  one upstream request, 304 response bytes). This only observes the provider's
+  account endpoint; EODHD history/profile/quote/discovery routing remains
+  fail-closed until the conflicting minute-pool limit/reset and evidence are
+  reviewed.
+- Both receipts are aggregate-only and redacted in `validation.jsonl`; no
+  credentials or provider payloads were persisted.
+
 ## 2026-09-17 Binance fixed-window live-ordering correction
 
 - The first current-window Binance replay exposed a real boundary race: a
