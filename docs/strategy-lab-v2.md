@@ -43,8 +43,10 @@ upstream coverage-evidence digest in addition to its content digest. Bounds and
 row count alone do not prove observations are complete: the staged provider
 adapter must verify that attestation (including calendar and gap semantics)
 against the series content digest, range, row count, and semantic dimensions
-before execution is enabled. Until that adapter exists, snapshot construction
-trusts the upstream assertion and does not verify the attestation payload.
+before execution is enabled. The package-owned `snapshot_coverage.py` and
+`data_acquisition.py` contracts now record that verification and bind it to the
+request, preflight, frozen snapshot, and opaque provider receipt; provider I/O,
+repair, and evidence retrieval remain owned by the staged adapter.
 Trial identities
 include the experiment, snapshot, preflight, parameter/scenario configuration,
 and deterministic seed. Infrastructure retries create new run attempts linked
@@ -88,6 +90,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   or account semantics are not supported. Non-authoritative engines may be
   executable for compatibility evidence but cannot publish authoritative
   results.
+- `data_acquisition.py` binds a provider acquisition receipt to one typed
+  capability preflight, frozen `DataSnapshot`, and verified snapshot-coverage
+  resolution. Identity drift, stale receipts, unsupported preflight, and
+  incomplete coverage reject the handoff deterministically; provider fetching,
+  repair, and persistence remain adapter responsibilities.
 - `execution.py` composes source, trial, engine, attempt, and lease checks into
   one immutable `ExecutionAuthorization`. A future worker must obtain this
   authorization before invoking an engine adapter; it carries no source bytes,

@@ -2423,3 +2423,20 @@ durable worker entrypoints, Compose services, isolated runtime deployment, and
 stable Nautilus v2 execution remain open. They must begin only after the
 provider-platform, ETF, and TC2000 branches reach staging and their shared
 paths are reconciled line by line.
+
+## 2026-09-16 - Provider-neutral acquisition handoff checkpoint
+
+`data_acquisition.py` now defines the package-owned handoff between a typed
+capability preflight and a provider-produced frozen snapshot. A receipt binds
+the request, snapshot IDs/fingerprint, snapshot-level coverage verification,
+opaque provider evidence, and acquisition time. Verification fails closed on
+unsupported preflight, preflight/snapshot drift, incomplete or misaligned
+coverage, receipt identity drift, and stale acquisition evidence, returning
+stable reason codes without performing I/O or mutating any input.
+
+The exact package tree passed 503 focused Strategy Lab v2 tests, Ruff, MyPy,
+and `git diff --check`. This remains an engine-neutral adapter boundary: the
+provider-platform branch still owns data fetching, repair, and evidence
+retrieval, while schema migrations, application/API wiring, workers, Compose,
+stable Nautilus execution, frontend integration, promotion, and deployment stay
+deferred behind their existing gates.
