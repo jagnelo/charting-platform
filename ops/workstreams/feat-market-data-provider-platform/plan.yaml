@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact current-source EODHD native account-usage case passed `1/1` with
+    one bounded `/user` request and observed daily usage plus native minute
+    headers (`1200` limit, `1199` remaining). EODHD reported a previous active
+    usage date, so the adapter correctly retained the daily observation without
+    a reset timestamp or baseline reconciliation. The published 20/day versus
+    1,000/min source conflict remains conservative and normal routing stays
+    fail-closed until a current-day native observation or provider clarification.
+  - >-
     The exact current-source Twelve Data native account-usage case passed `1/1`
     with one bounded `/api_usage` request. Its native `credits_per_minute`
     snapshot (`8` total, `7` remaining after the probe) reconciled into the

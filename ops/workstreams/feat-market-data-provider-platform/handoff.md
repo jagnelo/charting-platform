@@ -4619,3 +4619,19 @@ the authoritative record for this replay; it made zero provider calls.
 - The redacted provider-live receipt records one request and 131 response bytes;
   no credential or response payload was persisted. The existing exact-source
   unit/live accounting and cross-session ledger behavior remain unchanged.
+
+## 2026-09-16 EODHD native usage snapshot
+
+- The exact current-source focused EODHD account-usage case passed `1/1` at
+  source `c885b9d5b31730f7af8d7e312ddc24f1f52c652e`. It made one bounded
+  `/user` request, observed the provider's daily usage payload and native
+  `x-ratelimit-limit=1200`/`remaining=1199` headers, and wrote 304 bytes of
+  aggregate telemetry.
+- EODHD reported a previous active usage date rather than the current UTC date,
+  so the adapter correctly kept `calls_per_day` observation-only and did not
+  fabricate a reset timestamp or reconcile a stale daily baseline. The
+  provider's published 20/day versus 1,000/min source conflict remains
+  conservatively represented and normal EODHD routing stays fail-closed until
+  a current-day native baseline or provider clarification exists.
+- No credential or response payload was persisted; the receipt and ledger row
+  are committed as transport/accounting evidence only.
