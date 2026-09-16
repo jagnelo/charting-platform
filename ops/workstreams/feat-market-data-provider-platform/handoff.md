@@ -4588,6 +4588,10 @@ the authoritative record for this replay; it made zero provider calls.
   configured. No Dinari request was made by that preflight. GitHub's manual
   provider-live workflow now exposes a separate boolean canary input and reads
   the same controls from environment variables; it remains off by default.
+- The exact current-source preflight after commit `c6895c83f` reproduced the
+  same fail-closed result (`0/0` cases, zero provider requests) and is recorded
+  in `validation.jsonl` with the three missing control names; no generic Dinari
+  quota was inferred.
 - Focused canary/runner/ledger coverage passed `65/65`; Ruff, compile, workflow
   YAML parsing, and diff checks passed. The complete backend suite passed
   `2,727/2,727` executable tests with `464` expected skips and `89` warnings;
