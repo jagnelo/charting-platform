@@ -4635,3 +4635,15 @@ the authoritative record for this replay; it made zero provider calls.
   a current-day native baseline or provider clarification exists.
 - No credential or response payload was persisted; the receipt and ledger row
   are committed as transport/accounting evidence only.
+
+## 2026-09-16 current backend suite replay
+
+- The complete backend suite was replayed against the current checkout after
+  the live-admission fixes and provider-usage evidence updates. It passed
+  `2,727/2,727` executable tests with `464` expected skips and `89` warnings in
+  `624.49s`; total coverage was `81.98%`, above the configured `55%` threshold.
+- Live-provider tests remained intentionally skipped by the normal unit
+  command; the bounded current-source Twelve Data and EODHD account probes are
+  recorded separately in `validation.jsonl`. This suite result does not close
+  the provider-native baseline, source/legal, deployment-secret, Docker, or
+  final shadow gates.

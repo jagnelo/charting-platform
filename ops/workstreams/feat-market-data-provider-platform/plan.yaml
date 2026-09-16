@@ -161,6 +161,13 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The complete backend suite was replayed against the current checkout after
+    the live-admission fixes and provider-usage evidence updates: `2,727/2,727`
+    executable tests passed, with `464` expected skips, `89` warnings, and
+    `81.98%` coverage in `624.49s`. Live tests remain separately controlled;
+    this gate does not substitute for current-source provider live evidence,
+    legal/source/secret-store, Docker, or final shadow validation.
+  - >-
     The exact current-source EODHD native account-usage case passed `1/1` with
     one bounded `/user` request and observed daily usage plus native minute
     headers (`1200` limit, `1199` remaining). EODHD reported a previous active
