@@ -379,6 +379,18 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 OpenFIGI quota audit and runtime correction: current official
+      documentation distinguishes anonymous mapping (25 requests/minute,
+      five jobs/request) from keyed mapping (25 requests/6 seconds, 100
+      jobs/request) and publishes `ratelimit-limit`, `ratelimit-remaining`,
+      and `ratelimit-reset`. The runtime now selects the exact contract from
+      `OPENFIGI_API_KEY`, preserves native reset headers, and derives typed
+      retry timing on 429 responses. Focused OpenFIGI/quota coverage passed
+      109/109; the exact committed backend unit gate at `b0eab25e1` passed
+      2,324/2,324 with 70.67% coverage. No OpenFIGI credentialed live proof
+      exists, so the existing keyless live evidence and broader safety gates
+      remain separate.
+    - >-
       2026-09-16 exact-current coordinator-backed safety preflight at source
       `13585d253` verified the owner-local durable ledger health/lock/write
       path, then stopped before transport with exit 2 and zero provider
