@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current safety preflight after quota-reset documentation correction
+
+- At committed source `da65066bc`, the owner-ledger lock-protected full
+  provider runner stopped before transport with exit `2` and zero provider
+  requests. The coordinator health/locking path passed, and the receipt is
+  appended to `validation.jsonl`.
+- The report contains `99` provider-specific quota/cost/baseline blockers,
+  `7` required live capability-safety blockers, and `22` unresolved capability
+  dispositions. FINRA, Tiingo, and FMP now consistently describe unresolved
+  provider-defined reset dimensions instead of local rolling substitutes.
+- MarketData.app account-plan and option-chain controls remain the only
+  relevant routing controls reported routable. This is current fail-closed
+  safety evidence, not provider transport acceptance, deployment authorization,
+  routing activation, or shadow-run authorization.
+
 ## 2026-09-16 exact-source safety preflight after reset correction
 
 - At committed source `427579521`, the owner-ledger lock-protected full
