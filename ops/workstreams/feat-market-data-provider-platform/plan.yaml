@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact current-source Twelve Data native account-usage case passed `1/1`
+    with one bounded `/api_usage` request. Its native `credits_per_minute`
+    snapshot (`8` total, `7` remaining after the probe) reconciled into the
+    durable coordinator. The documented Basic-plan `800 credits/day` UTC pool
+    remains contractually explicit, but the provider usage endpoint does not
+    expose a stable cumulative daily counter; daily routing therefore remains
+    fail-closed until that baseline is independently reconciled or an explicit
+    reviewed account-scope reset policy is authorized.
+  - >-
     Dinari Sandbox now has an explicit opt-in canary path rather than a generic
     or invented provider quota: `--dinari-sandbox-canary --provider dinari`
     requires owner controls `DINARI_SANDBOX_CANARY_AUTHORIZED`, a non-secret

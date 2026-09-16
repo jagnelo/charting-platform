@@ -4602,3 +4602,20 @@ the authoritative record for this replay; it made zero provider calls.
   coverage was `81.98%`. The host Xcode-license blocker and the remaining
   provider/legal/source/universe/deployment-secret/Docker/shadow gates are
   unchanged.
+
+## 2026-09-16 Twelve Data native usage snapshot
+
+- The exact current-source focused Twelve Data account-usage run passed `1/1`
+  at source `2fab722e5d67d8bbfbcbf379013095c1ba2de14a`. It made one bounded
+  `/api_usage` request and observed the native Basic-plan minute pool (`8`
+  credits total, `7` remaining after the probe); the provider-native
+  `credits_per_minute` baseline reconciled into the durable coordinator.
+- Twelve Data's documented Basic-plan `800` credits/day UTC pool remains
+  represented explicitly in the contract, but `/api_usage` does not expose a
+  stable cumulative daily counter. The live snapshot therefore does not invent
+  daily usage or widen routing: every normal operation remains blocked until
+  the daily baseline is independently reconciled or an explicit reviewed
+  account-scope policy permits safe reset accounting.
+- The redacted provider-live receipt records one request and 131 response bytes;
+  no credential or response payload was persisted. The existing exact-source
+  unit/live accounting and cross-session ledger behavior remain unchanged.
