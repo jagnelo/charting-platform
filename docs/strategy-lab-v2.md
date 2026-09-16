@@ -449,6 +449,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   closed; exact starts, terminal receipts, and cancellation retries replay.
   Cancellation blocks new work but still requires explicit terminal receipts,
   and the module exposes no ranking or profitability verdict.
+- `coverage.py` verifies a provider-supplied coverage attestation against every
+  frozen `DataSeriesManifest` dimension: evidence and series digests, interval,
+  row count, instrument/event semantics, session/feed, adjustment and
+  corporate-action policy. Incomplete or gapped claims reject explicitly, and
+  the report retains deterministic evidence identities. The verifier performs
+  no provider I/O, repair, or inference; the adapter must supply the attestation
+  before execution is enabled.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

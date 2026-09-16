@@ -1507,3 +1507,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable adapter implementation only after upstream shared-path reconciliation;
 preserve all execution-authorization and ownership gates.
+
+## 2026-09-16 - Coverage attestation verification checkpoint
+
+`coverage.py` adds immutable `CoverageAttestation` and
+`CoverageVerificationReport` records plus `verify_coverage_attestation()`.
+Provider-adapter claims are compared against every frozen series identity:
+evidence/content digests, instrument and event semantics, interval, row count,
+session/feed, adjustment and corporate-action policy, completeness, and gap
+status. Any mismatch or incomplete/gapped claim rejects with stable reasons;
+matching evidence verifies deterministically. No provider, repair, calendar, or
+execution I/O is performed, and a report is not an execution authorization by
+itself.
+
+The exact implementation tree passed all 288 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+strategy-runtime contract only within the package-owned boundary; preserve all
+execution-authorization and ownership gates.
