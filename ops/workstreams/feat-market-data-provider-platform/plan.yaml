@@ -3492,4 +3492,18 @@ progress:
       while the configured account reports 512 MB; the source/account conflict
       and both reset anchors remain unresolved. Documentation now records both
       facts and no routing control was widened.
+    - >-
+      2026-09-16 current-source credentialed validation: Alpaca native account
+      usage passed `1/1` (one request, 125 response bytes); MarketData.app
+      passed `7/7` (nine upstream requests, 20,991 response bytes), including
+      its explicit no-request guard for unbounded response-priced option
+      history; and the replacement Dinari Sandbox canary passed `1/1` (14
+      upstream requests, 180,742 response bytes) under a transient 20-request
+      process cap. SEC EDGAR was stopped before transport because the durable
+      per-IP baseline is unknown. The current manifest inventory has zero
+      structural errors, the backend unit gate passed `2,358/2,358` at
+      `70.78%` coverage with 37 warnings, and `make branch-validate` validated
+      all 30 workstream records. These receipts are transport/schema evidence
+      only; unresolved quota, baseline, source/legal, universe, target-secret,
+      deferred-provider, and final shadow gates remain open.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.
