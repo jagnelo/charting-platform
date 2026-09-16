@@ -269,8 +269,8 @@
         <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" @configuration="(windowKey, configuration) => emit('configuration', windowKey, configuration)" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
-          <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
-          <button v-for="target in comparisonLegend" :key="target.symbol" type="button" class="chart-tool__compare-chip" :title="`Remove ${target.label}`" @click="removeComparisonSymbol(target.symbol)">
+          <button type="button" title="Add comparison" aria-label="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
+          <button v-for="target in comparisonLegend" :key="target.symbol" type="button" class="chart-tool__compare-chip" :title="`Remove ${target.label}`" :aria-label="`Remove ${target.label}`" @click="removeComparisonSymbol(target.symbol)">
             <i :style="{ background: target.color }" />{{ target.symbol }} {{ target.percentChange == null ? '—' : `${target.percentChange >= 0 ? '+' : ''}${target.percentChange.toFixed(2)}%` }} ×
           </button>
         </div>
