@@ -91,6 +91,7 @@ class StrategyLabApiAdapter(Protocol):
         self,
         *,
         principal: Any,
+        request_id: str,
         request: SubmissionRequest,
         payload: Mapping[str, Any],
     ) -> Awaitable[SubmissionServiceResult] | SubmissionServiceResult: ...
@@ -99,6 +100,7 @@ class StrategyLabApiAdapter(Protocol):
         self,
         *,
         principal: Any,
+        request_id: str,
         idempotency_key: str,
         command: ExecutionCommand,
     ) -> Awaitable[ExecutionCommandResolution] | ExecutionCommandResolution: ...
@@ -691,7 +693,14 @@ def create_strategy_lab_router(
             submission, payload = _parse_submission(
                 body, idempotency_key=idempotency_key, request_id=request_id, now=clock()
             )
-            result = await _resolve(adapter.submit(principal=principal, request=submission, payload=payload))
+            result = await _resolve(
+                adapter.submit(
+                    principal=principal,
+                    request_id=request_id,
+                    request=submission,
+                    payload=payload,
+                )
+            )
             if not isinstance(result, SubmissionServiceResult):
                 raise TypeError("adapter returned an invalid submission result")
             if result.resolution.decision is SubmissionDecision.IDEMPOTENCY_CONFLICT:
@@ -764,6 +773,7 @@ def create_strategy_lab_router(
             resolution = await _resolve(
                 adapter.command(
                     principal=principal,
+                    request_id=request_id,
                     idempotency_key=idempotency_key.strip(),
                     command=command,
                 )
