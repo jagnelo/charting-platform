@@ -1109,3 +1109,18 @@ The exact implementation tree passed all 133 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Database/API, durable worker recovery,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Canonical execution event-stream checkpoint
+
+`events.py` adds content-addressed `ExecutionEvent` envelopes, typed
+`EventStreamCursor` records, and `resolve_event_append()`. Exact prior events
+are replayable; a new event must be the next contiguous sequence, while gaps,
+stale sequences, foreign streams, and identity conflicts fail closed or return
+an explicit decision. The contract is storage- and transport-neutral so future
+PostgreSQL/outbox/Redis adapters can perform atomic compare-and-set without
+altering trial identity or invoking an engine.
+
+The exact implementation tree passed all 137 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.

@@ -318,6 +318,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `RecoveryPlan.materialize_retry_attempt()` preserves the immutable trial
   identity. Durable compare-and-set, scheduling, worker restart, and engine
   disposal remain adapter responsibilities.
+- `events.py` defines content-addressed execution event envelopes, typed
+  per-trial/attempt cursors, and pure append decisions. Exact prior events can
+  be replayed; stale, missing, foreign, or conflicting sequences are surfaced
+  without advancing the cursor. PostgreSQL/outbox/Redis adapters still own
+  atomic persistence and transport.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
