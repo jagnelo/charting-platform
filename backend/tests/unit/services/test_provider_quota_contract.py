@@ -1357,6 +1357,7 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     assert trial_dimension["limit"] == 10000
     assert trial_dimension["account_plan"] == "starter_trial"
     assert trial_dimension["account_limit_reviewed"] is True
+    assert trial_dimension["account_plan_expires_at"] == "2030-01-01T00:00:00+00:00"
 
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "trader_trial")
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 100000)
@@ -1375,6 +1376,7 @@ def test_marketdata_app_only_widens_daily_limit_for_exact_reviewed_plan_pair(mon
     assert expired_trial["quota_contract"]["dimensions"][0]["limit"] == 100
     assert expired_trial["quota_contract"]["dimensions"][0]["account_plan"] == "free_forever"
     assert expired_trial["quota_contract"]["dimensions"][0]["account_limit_reviewed"] is True
+    assert "account_plan_expires_at" not in expired_trial["quota_contract"]["dimensions"][0]
 
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
     missing_expiry_trial = provider_rate_limit_seed("marketdata_app")

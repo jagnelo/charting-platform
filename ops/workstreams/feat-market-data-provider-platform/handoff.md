@@ -3723,3 +3723,13 @@ the authoritative record for this replay; it made zero provider calls.
   suite was not accepted as a failure signal because its Testcontainers setup
   could not access the local Docker socket (`PermissionError`); the earlier
   Docker-backed authoritative gate remains the relevant integration evidence.
+
+## 2026-09-16 MarketData.app effective-expiry diagnostics
+
+- The effective MarketData.app `credits_per_day` contract now exposes the
+  active trial's non-secret `account_plan_expires_at` metadata to provider
+  policy/admin diagnostics. Expired trials still emit only the effective
+  Free Forever plan and 100-credit limit; no expired timestamp is retained as
+  an active entitlement. Focused quota/runtime coverage passed `149/149`,
+  Ruff, compileall, diff checks, and workstream validation passed. No
+  provider calls or secret values were used.

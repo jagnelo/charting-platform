@@ -2632,14 +2632,29 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         reviewed_plan = marketdata_app_reviewed_plan()
         if reviewed_plan is not None:
             plan, daily_limit = reviewed_plan
+            trial_expiry = getattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+            account_plan_metadata = {
+                "account_plan": plan,
+                "account_limit_reviewed": True,
+            }
+            # Keep the active trial boundary visible to admin diagnostics and
+            # quota receipts without treating it as a credential or silently
+            # carrying an expired trial into the Free Forever fallback.
+            if (
+                plan.endswith("_trial")
+                and isinstance(trial_expiry, datetime)
+                and trial_expiry.tzinfo is not None
+            ):
+                account_plan_metadata["account_plan_expires_at"] = (
+                    trial_expiry.astimezone(UTC).isoformat()
+                )
             contract = seed.get("quota_contract")
             if isinstance(contract, dict):
                 contract["dimensions"] = [
                     {
                         **dimension,
                         "limit": daily_limit,
-                        "account_plan": plan,
-                        "account_limit_reviewed": True,
+                        **account_plan_metadata,
                     }
                     if isinstance(dimension, dict) and dimension.get("name") == "credits_per_day"
                     else dimension
