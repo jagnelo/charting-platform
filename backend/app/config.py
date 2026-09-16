@@ -464,15 +464,19 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "provider_defined",
                         "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
-                        "reset": "rolling",
+                        "reset": "provider_defined",
                     }
                 ],
                 "unknown_dimensions": [
                     "v1_enforcement_scope",
                     "provider_adjustable_limits",
                     "series_terms_and_redistribution",
+                    "requests_per_minute_reset_boundary",
                 ],
-                "reset": "rolling",
+                # FRED publishes a threshold before HTTP 429 but does not
+                # establish the reset boundary. Keep it provider-defined
+                # until current provider/account evidence is reviewed.
+                "reset": "provider_defined",
                 "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
             },
             "quota_scope": "provider_defined",
@@ -2218,6 +2222,8 @@ class Settings(BaseSettings):
     FRED_REVIEWED_LIMIT_SCOPE: str = ""
     FRED_REVIEWED_REQUESTS_PER_MINUTE: int = 0
     FRED_REVIEWED_QUOTA_EVIDENCE: str = ""
+    FRED_REVIEWED_RESET: str = ""
+    FRED_RESET_EVIDENCE: str = ""
     FRED_PERSISTED_STORAGE_AUTHORIZED: bool = False
     FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE: str = ""
     FRED_AUTOMATED_USE_AUTHORIZED: bool = False
@@ -3368,12 +3374,20 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         quota_evidence = str(
             getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or ""
         ).strip()
+        reviewed_reset = str(
+            getattr(settings, "FRED_REVIEWED_RESET", "") or ""
+        ).strip()
+        reset_evidence = str(
+            getattr(settings, "FRED_RESET_EVIDENCE", "") or ""
+        ).strip()
         allowed_scopes = {"api_key", "account", "ip", "deployment"}
         if (
             scope in allowed_scopes
             and reviewed_limit is not None
             and reviewed_limit <= 120
             and quota_evidence
+            and provider_quota_reset_is_admission_safe(reviewed_reset)
+            and reset_evidence
             and not fred_data_use_controls_missing()
             and not fred_series_rights_missing()
             and isinstance(seed.get("quota_contract"), dict)
@@ -3385,9 +3399,12 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                     dimension["limit"] = reviewed_limit
                     dimension["scope"] = scope
                     dimension["quota_group"] = scope
+                    dimension["reset"] = reviewed_reset
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
             contract["source"] = (
                 f"{contract.get('source', 'FRED v1 errors')} plus separately reviewed "
-                "quota-scope and persisted-storage authority evidence"
+                "quota-scope, reset, and persisted-storage authority evidence"
             )
             seed["quota_scope"] = scope
             seed["quota_source"] = (

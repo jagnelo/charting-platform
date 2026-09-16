@@ -487,6 +487,8 @@ class TestProviderRegistry:
             "FRED_REVIEWED_LIMIT_SCOPE",
             "FRED_REVIEWED_REQUESTS_PER_MINUTE",
             "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_REVIEWED_RESET",
+            "FRED_RESET_EVIDENCE",
             "FRED_PERSISTED_STORAGE_AUTHORIZED",
             "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
             "FRED_AUTOMATED_USE_AUTHORIZED",
@@ -497,6 +499,8 @@ class TestProviderRegistry:
             "FRED_REVIEWED_LIMIT_SCOPE",
             "FRED_REVIEWED_REQUESTS_PER_MINUTE",
             "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_REVIEWED_RESET",
+            "FRED_RESET_EVIDENCE",
             "FRED_PERSISTED_STORAGE_AUTHORIZED",
             "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
             "FRED_AUTOMATED_USE_AUTHORIZED",
@@ -762,6 +766,8 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
         monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+        monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "rolling")
+        monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "current provider/account review")
         monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", True)
         monkeypatch.setattr(
             settings,

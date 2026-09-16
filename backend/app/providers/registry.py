@@ -576,6 +576,8 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "FRED_REVIEWED_LIMIT_SCOPE",
         "FRED_REVIEWED_REQUESTS_PER_MINUTE",
         "FRED_REVIEWED_QUOTA_EVIDENCE",
+        "FRED_REVIEWED_RESET",
+        "FRED_RESET_EVIDENCE",
         "FRED_PERSISTED_STORAGE_AUTHORIZED",
         "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
         "FRED_AUTOMATED_USE_AUTHORIZED",
@@ -895,6 +897,12 @@ def provider_missing_routing_controls(
         quota_evidence = str(
             getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or ""
         ).strip()
+        reviewed_reset = str(
+            getattr(settings, "FRED_REVIEWED_RESET", "") or ""
+        ).strip()
+        reset_evidence = str(
+            getattr(settings, "FRED_RESET_EVIDENCE", "") or ""
+        ).strip()
         missing: list[str] = []
         if scope not in {"api_key", "account", "ip", "deployment"}:
             missing.append("FRED_REVIEWED_LIMIT_SCOPE")
@@ -902,6 +910,10 @@ def provider_missing_routing_controls(
             missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
         if not quota_evidence:
             missing.append("FRED_REVIEWED_QUOTA_EVIDENCE")
+        if not provider_quota_reset_is_admission_safe(reviewed_reset):
+            missing.append("FRED_REVIEWED_RESET")
+        if not reset_evidence:
+            missing.append("FRED_RESET_EVIDENCE")
         missing.extend(fred_data_use_controls_missing())
         missing.extend(fred_series_rights_missing())
         return missing

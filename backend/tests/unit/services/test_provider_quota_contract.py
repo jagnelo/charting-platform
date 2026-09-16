@@ -189,6 +189,16 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
     assert alpha["reset"] == "provider_defined"
     assert alpha["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
 
+    fred = provider_rate_limit_seed("fred")["quota_contract"]
+    assert fred["dimensions"][0]["reset"] == "provider_defined"
+    assert fred["reset"] == "provider_defined"
+    assert fred["unknown_dimensions"] == [
+        "v1_enforcement_scope",
+        "provider_adjustable_limits",
+        "series_terms_and_redistribution",
+        "requests_per_minute_reset_boundary",
+    ]
+
 
 def test_massive_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
     monkeypatch.setattr(settings, "MASSIVE_REVIEWED_RESET", "rolling")
@@ -253,11 +263,33 @@ def test_alpha_vantage_reviewed_reset_promotes_only_explicit_evidence(monkeypatc
     assert contract["unknown_dimensions"] == ["requests_per_day_reset_boundary"]
 
 
+def test_fred_reset_requires_independent_current_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
+    monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "")
+    monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "")
+    monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", True)
+    monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "written permission")
+    monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORIZED", True)
+    monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "written permission")
+    monkeypatch.setattr(
+        settings,
+        "FRED_SERIES_RIGHTS_EVIDENCE",
+        {series_id: "written series rights" for series_id in FRED_MAPPED_SERIES_IDS},
+    )
+    contract = provider_rate_limit_seed("fred")["quota_contract"]
+    assert contract["reset"] == "provider_defined"
+    assert "requests_per_minute_reset_boundary" in contract["unknown_dimensions"]
+
+
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkeypatch):
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "")
+    monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "")
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", False)
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
     monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORIZED", False)
@@ -281,18 +313,20 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkey
             "unit": "requests",
             "scope": "provider_defined",
             "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
-            "reset": "rolling",
+            "reset": "provider_defined",
         }
     ]
     assert {
         "v1_enforcement_scope",
         "provider_adjustable_limits",
         "series_terms_and_redistribution",
+        "requests_per_minute_reset_boundary",
     } <= set(policy.quota_contract["unknown_dimensions"])
     assert {
         "quota_contract.unknown_dimensions.v1_enforcement_scope",
         "quota_contract.unknown_dimensions.provider_adjustable_limits",
         "quota_contract.unknown_dimensions.series_terms_and_redistribution",
+        "quota_contract.unknown_dimensions.requests_per_minute_reset_boundary",
     } <= set(quota_contract_missing_dimensions(policy))
     assert policy.tokens_per_minute is None
     assert policy.burst_capacity is None
@@ -308,6 +342,8 @@ async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_con
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "current provider/account review")
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", True)
     monkeypatch.setattr(
         settings,
@@ -337,6 +373,8 @@ async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_con
     assert policy.quota_contract["unknown_dimensions"] == []
     assert policy.quota_contract["dimensions"][0]["limit"] == 120
     assert policy.quota_contract["dimensions"][0]["scope"] == "api_key"
+    assert policy.quota_contract["dimensions"][0]["reset"] == "rolling"
+    assert policy.quota_contract["reset"] == "rolling"
     assert quota_contract_missing_dimensions(policy) == []
     assert policy_has_known_quota(policy)
 
@@ -654,6 +692,8 @@ def test_fred_quota_review_alone_does_not_authorize_persisted_usage(monkeypatch)
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
     monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "FRED_RESET_EVIDENCE", "current provider/account review")
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "written permission")
     monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", False)
     seed = provider_rate_limit_seed("fred")

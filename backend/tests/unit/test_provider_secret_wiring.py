@@ -106,6 +106,8 @@ PROVIDER_SAFETY_SETTINGS = {
     "FRED_REVIEWED_LIMIT_SCOPE",
     "FRED_REVIEWED_REQUESTS_PER_MINUTE",
     "FRED_REVIEWED_QUOTA_EVIDENCE",
+    "FRED_REVIEWED_RESET",
+    "FRED_RESET_EVIDENCE",
     "FRED_PERSISTED_STORAGE_AUTHORIZED",
     "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
     "FRED_AUTOMATED_USE_AUTHORIZED",
@@ -464,6 +466,8 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     assert (
         "FRED_REVIEWED_QUOTA_EVIDENCE: ${{ vars.FRED_REVIEWED_QUOTA_EVIDENCE || '' }}" in workflow
     )
+    assert "FRED_REVIEWED_RESET: ${{ vars.FRED_REVIEWED_RESET || '' }}" in workflow
+    assert "FRED_RESET_EVIDENCE: ${{ vars.FRED_RESET_EVIDENCE || '' }}" in workflow
     assert (
         "FRED_PERSISTED_STORAGE_AUTHORIZED: ${{ vars.FRED_PERSISTED_STORAGE_AUTHORIZED || 'false' }}"
         in workflow
@@ -588,6 +592,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINNHUB_SECOND_QUOTA_EVIDENCE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
+    assert "FRED_REVIEWED_RESET=" in example
+    assert "FRED_RESET_EVIDENCE=" in example
     assert "FRED_PERSISTED_STORAGE_AUTHORIZED=false" in example
     assert "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE=" in example
     assert "FRED_AUTOMATED_USE_AUTHORIZED=false" in example
@@ -700,6 +706,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FINNHUB_SECOND_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("FRED_REVIEWED_RESET", "")
+    monkeypatch.setenv("FRED_RESET_EVIDENCE", "")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
     monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORIZED", "false")
@@ -774,6 +782,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "120")
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+    monkeypatch.setenv("FRED_REVIEWED_RESET", "rolling")
+    monkeypatch.setenv("FRED_RESET_EVIDENCE", "current provider/account review")
     monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "true")
     monkeypatch.setenv(
         "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "written permission for persisted data"

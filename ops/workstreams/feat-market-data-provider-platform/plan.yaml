@@ -3532,6 +3532,15 @@ progress:
       still-required durable IP baseline, confirming that no SEC request is
       admitted from the documented ceiling alone.
     - >-
+      2026-09-16 FRED quota-gate hardening: the documented v1 120-requests/
+      minute threshold no longer carries an inferred rolling reset. The seed
+      records `provider_defined` with the explicit unresolved
+      `requests_per_minute_reset_boundary` dimension. New
+      `FRED_REVIEWED_RESET` and `FRED_RESET_EVIDENCE` controls are wired
+      through settings, examples, Compose/RPi, GitHub live validation,
+      diagnostics, documentation, and focused tests; a reviewed scope/limit
+      and rights set cannot promote FRED without independent reset evidence.
+    - >-
       2026-09-16 exact-current-source refresh: the configured MarketData.app
       Starter Trial matrix passed `7/7` at source `5e2bfa102`, including
       daily/five-minute candles, latest price, option expirations/chain,

@@ -788,7 +788,10 @@ until reviewed quota-scope evidence, written persistent-storage and
 automated-use authority, and rights evidence for each series are supplied.
 Controls include `FRED_REVIEWED_LIMIT_SCOPE`,
 `FRED_REVIEWED_REQUESTS_PER_MINUTE` (1..120),
-`FRED_REVIEWED_QUOTA_EVIDENCE`,
+`FRED_REVIEWED_QUOTA_EVIDENCE`, `FRED_REVIEWED_RESET`, and
+`FRED_RESET_EVIDENCE`. FRED v1 does not publish the reset boundary, so the
+reset label and its current provider/account evidence are independent required
+controls; `rolling` is not assumed from the 120/minute headline.
 `FRED_PERSISTED_STORAGE_AUTHORIZED=true`,
 `FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE`,
 `FRED_AUTOMATED_USE_AUTHORIZED=true`,
@@ -925,7 +928,8 @@ exact credential preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`,
 current-chain live reads remained unexecuted because `TRADIER_API_KEY` is still
 absent; this is an explicit credential failure, not a live skip. FRED now reports its three explicit missing
 review controls (`FRED_REVIEWED_LIMIT_SCOPE`,
-`FRED_REVIEWED_REQUESTS_PER_MINUTE`, and `FRED_SERIES_TERMS_REVIEWED`) rather
+`FRED_REVIEWED_REQUESTS_PER_MINUTE`, `FRED_REVIEWED_RESET`, and the associated
+quota/storage/automated-use/series-rights evidence) rather
 than an opaque generic blocker. FINRA asynchronous result bytes, Nasdaq polling,
 xStocks quota/legal eligibility, Bybit endpoint/UID state, and Tiingo/FMP
 operation byte maps remain non-routable because their reviewed controls are not

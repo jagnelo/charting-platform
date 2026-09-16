@@ -1527,6 +1527,8 @@ def routing_safety_preflight() -> dict[str, str]:
     except ValueError:
         fred_limit = 0
     fred_quota_evidence = os.getenv("FRED_REVIEWED_QUOTA_EVIDENCE", "").strip()
+    fred_reset = os.getenv("FRED_REVIEWED_RESET", "").strip()
+    fred_reset_evidence = os.getenv("FRED_RESET_EVIDENCE", "").strip()
     fred_storage_authorized = os.getenv(
         "FRED_PERSISTED_STORAGE_AUTHORIZED", ""
     ).strip().lower() in {
@@ -1550,6 +1552,10 @@ def routing_safety_preflight() -> dict[str, str]:
         fred_missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
     if not fred_quota_evidence:
         fred_missing.append("FRED_REVIEWED_QUOTA_EVIDENCE")
+    if not provider_quota_reset_is_admission_safe(fred_reset):
+        fred_missing.append("FRED_REVIEWED_RESET")
+    if not fred_reset_evidence:
+        fred_missing.append("FRED_RESET_EVIDENCE")
     if not fred_storage_authorized:
         fred_missing.append("FRED_PERSISTED_STORAGE_AUTHORIZED")
     if not fred_storage_evidence:
@@ -1573,7 +1579,7 @@ def routing_safety_preflight() -> dict[str, str]:
     result["fred"] = (
         "routable"
         if not fred_missing
-        else "non-routable: FRED v1 persisted observations require provider-confirmed quota scope and written storage/automated-use rights; missing/invalid "
+        else "non-routable: FRED v1 persisted observations require provider-confirmed quota scope/reset and written storage/automated-use rights; missing/invalid "
         + ", ".join(fred_missing)
     )
     coinbase_missing = coinbase_market_data_use_authority_missing(source=live_settings)

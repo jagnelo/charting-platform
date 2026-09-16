@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-16 — FRED reset-boundary admission control
+
+- [x] Correct the FRED v1 quota seed: the documented 120-requests/minute
+      threshold remains `provider_defined` for both scope and reset, with an
+      explicit unresolved `requests_per_minute_reset_boundary` dimension; the
+      separate FRED v2 2-requests/second rule is not applied.
+- [x] Add `FRED_REVIEWED_RESET` and `FRED_RESET_EVIDENCE` as independent
+      controls through settings, diagnostics, local/RPi Compose, GitHub live
+      validation, examples, documentation, and focused tests. A reviewed
+      scope/limit/rights set cannot promote FRED without reset evidence.
+- [ ] Obtain current FRED/provider-account reset evidence and written storage,
+      automated-use, and per-series rights authority before routing or live
+      transport validation.
+
 ### 2026-09-16 — SEC EDGAR reset-boundary admission control
 
 - [x] Correct the EDGAR quota seed so the documented 10-requests/second
