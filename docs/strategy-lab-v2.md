@@ -396,6 +396,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exact retries replay it, storage-key collisions conflict, and
   reuse-existing plans fail closed until a committed record is observed. No
   bytes are written or deleted by this contract.
+- `execution_summary.py` projects submission, outcome, progress, and result
+  publication into one immutable API read model. It enforces identity and
+  terminal-phase consistency, requires authoritative publication for success,
+  and exposes ready/in-progress/terminal decisions without leaking engine
+  handles or mutable worker state.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

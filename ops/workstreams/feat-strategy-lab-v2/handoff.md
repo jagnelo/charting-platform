@@ -1348,3 +1348,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 execution-summary/read-model contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Execution summary/read-model checkpoint
+
+`execution_summary.py` adds `ExecutionSummary` and
+`build_execution_summary()`, projecting a submission receipt, typed outcome,
+progress checkpoint, and optional authoritative publication plan into one
+immutable machine-facing view. Submission/attempt identities and
+outcome/progress phases must agree; successful summaries require a published or
+replayed result whose digest matches the outcome, while failed/cancelled
+summaries require matching terminal progress and never expose a result. The
+summary exposes ready/in-progress/terminal decisions and a deterministic
+fingerprint without mutable engine handles.
+
+The exact implementation tree passed all 217 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+retry/cancellation command contract; preserve all shared-path and
+execution-authorization gates.
