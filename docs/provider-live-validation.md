@@ -157,6 +157,59 @@ limit, window, or reset mismatch remains observation-only and cannot widen
 routing. Other providers still require operator attestation because their
 native usage surfaces do not establish an equivalent dimension safely.
 
+### Updating a provider plan or establishing a new baseline
+
+Quota policy is configuration, not a source-code constant. When an account is
+created, upgraded, renewed, or moved between trial and paid plans, update the
+provider-specific non-secret settings in that environment and then attest the
+active window through the admin API. Do not copy a value from one provider or
+account to another, and do not use an empty ledger as evidence of zero usage.
+
+For MarketData.app, set the exact reviewed plan/limit pair. Trial plans also
+require a timezone-aware expiry; after that instant the runtime deliberately
+falls back to `free_forever`/100 credits per day. A paid-plan change requires
+replacing the plan, limit, and (if applicable) expiry in the same environment;
+the `/user/` response is an observation and cannot silently widen routing:
+
+```dotenv
+MARKETDATA_APP_REVIEWED_PLAN=starter_trial
+MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=10000
+MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=2026-10-11T18:09:00+01:00
+```
+
+After observing the provider dashboard or an explicitly supported native
+account-usage response, record each finite dimension separately. The request
+contains only observed usage and a non-secret evidence locator; the reviewed
+limit, unit, reset boundary, account scope, and quota group come from the
+provider contract:
+
+```sh
+curl -X POST "$APP_ORIGIN/api/v1/market-data/quota-coordinator/baselines" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "marketdata_app",
+    "capability": "account_usage",
+    "dimension": "credits_per_day",
+    "used_units": 137,
+    "observed_at": "2026-09-16T18:00:00+01:00",
+    "evidence_reference": "dashboard:marketdata-app:2026-09-16"
+  }'
+```
+
+Inspect the result before enabling or widening workers:
+
+```sh
+curl "$APP_ORIGIN/api/v1/market-data/quota-coordinator/baselines?provider=marketdata_app&capability=account_usage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Use `calls_per_day`, `requests_per_minute`, bandwidth, and other dimensions
+as separate attestations when a provider exposes more than one pool. Never
+convert calls to bytes or credits. An unknown reset boundary, mismatched plan
+and limit, stale observation, or incomplete dimension map remains non-routable
+until an operator records a current exact baseline.
+
 The durable coordinator also contains a reservation-linked live-receipt
 registry (`provider_quota_ledger_live_receipt`). This is the authoritative
 link between a live test observation and the exact quota reservation that was

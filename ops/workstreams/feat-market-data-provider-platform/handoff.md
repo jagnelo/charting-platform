@@ -3698,3 +3698,20 @@ the authoritative record for this replay; it made zero provider calls.
   unresolved provider baselines/cost maps and legal/source gates, including
   FINRA OTC source admission; the new parser did not widen routing. Zero
   provider calls and zero shared-key quota were consumed.
+
+## 2026-09-16 provider-plan operations checkpoint
+
+- Added a concrete, secret-free operator procedure to
+  `docs/provider-live-validation.md` for changing provider plans, recording
+  exact active-window baselines, and inspecting remaining headroom. The
+  procedure keeps MarketData.app's Starter Trial/10,000 daily credits and
+  timezone-aware expiry provider-specific, documents the automatic
+  Free-Forever/100 fallback after expiry, and requires separate attestations
+  for calls, credits, bytes, and other dimensions.
+- The local owner-managed environment already contains the non-secret
+  MarketData.app settings `starter_trial`, `10000`, and
+  `2026-10-11T18:09:00+01:00`; no secret values were printed or added to Git.
+- Focused quota/admin tests passed `104/104` with `--no-cov`; the default
+  focused invocation also passed all tests but returned the repository's
+  expected global coverage-threshold exit because it intentionally ran only
+  the focused subset. Workstream validation and `git diff --check` passed.
