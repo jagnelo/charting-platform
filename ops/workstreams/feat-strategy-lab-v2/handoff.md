@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - Persisted revision-bound resource identity checkpoint
+
+Resource projection now derives a missing API `revision_digest` from the
+authenticated aggregate state fingerprint. Every projected document therefore
+identifies the exact canonical persisted state, while explicitly supplied
+revision digests remain format-validated. This is still a read-only,
+registration-neutral adapter; no migrations, model registration, auth wiring,
+worker dispatch, or shared provider paths were changed.
+
+Focused route/read validation passed 13 tests, the full Strategy Lab v2 package
+passed 526 tests, and Ruff, MyPy, and `git diff --check` were clean. All five
+declared branch checks passed. The Docker-backed combined gate passed 2,173
+tests with 83.06% total coverage (required threshold: 75%), with setup and
+cleanup successful. Durable submission/command adapters, schema migrations,
+application wiring, worker entrypoints, Compose, upstream reconciliation, and
+stable Nautilus execution remain open.
+
 ## 2026-09-16 - Request-correlated API collection checkpoint
 
 The registration-neutral router now passes its generated request identity into
