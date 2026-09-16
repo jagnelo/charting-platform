@@ -587,10 +587,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   state, output-limit changes, and unauthorized authoritative execution before
   any process or queue adapter is called.
 - `worker_execution.py` revalidates that handoff immediately before process
-  creation, invokes only the gated Nautilus runner, and returns typed process
-  plus runtime evidence. Stale/rejected handoffs cannot spawn; successful,
-  failed, and runtime-rejected outcomes remain storage-neutral for a later
-  compare-and-set transaction.
+  creation, including the admission's active serial `WorkerPoolState` and
+  reservation identity, invokes only the gated Nautilus runner, and returns
+  typed process plus runtime evidence. Stale/rejected handoffs or released
+  capacity cannot spawn; successful, failed, and runtime-rejected outcomes
+  remain storage-neutral for a later compare-and-set transaction.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, releases the matching

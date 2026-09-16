@@ -53,6 +53,7 @@ def _execution(values: tuple, tmp_path: Path) -> WorkerExecutionResolution:
     return execute_worker_handoff(
         orchestration,
         *values,
+        worker_pool=_admitted_pool(values)[0],
         observed_at=NOW + timedelta(seconds=1),
         docker_binary=_fake_binary(tmp_path, "printf 'ok'"),
     )

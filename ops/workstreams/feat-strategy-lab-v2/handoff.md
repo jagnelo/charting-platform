@@ -2026,3 +2026,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Active worker reservation launch gate checkpoint
+
+`worker_execution.py` now requires the current `WorkerPoolState` at the process
+boundary. Immediately before the gated Nautilus runner is invoked it verifies
+the admission's worker id, kind, runtime profile, and active reservation, and
+rejects released, missing, mismatched, or not-yet-acquired capacity without
+spawning a process. This keeps serial capacity a launch-time invariant rather
+than relying only on an earlier admission receipt; settlement remains the
+storage-neutral release path after the handoff completes.
+
+The exact implementation tree passed all 427 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

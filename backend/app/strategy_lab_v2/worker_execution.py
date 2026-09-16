@@ -1,9 +1,10 @@
 """Worker-side composition of execution admission, runner, and runtime state.
 
 This adapter is deliberately still storage-neutral: it revalidates the
-immutable handoff immediately before process creation, invokes only the gated
-Nautilus runner, and returns both process and runtime evidence for a future
-compare-and-set transaction.  It never queues work or publishes a result.
+immutable handoff and active serial reservation immediately before process
+creation, invokes only the gated Nautilus runner, and returns both process and
+runtime evidence for a future compare-and-set transaction.  It never queues
+work or publishes a result.
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from app.strategy_lab_v2.runtime_result_adapter import (
     materialize_nautilus_result,
 )
 from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.workers import WorkerPoolState
 
 
 class WorkerExecutionDecision(StrEnum):
@@ -99,6 +101,7 @@ def execute_worker_handoff(
     sandbox_plan: SandboxCommandPlan,
     execution_plan: NautilusExecutionPlan,
     *,
+    worker_pool: WorkerPoolState,
     observed_at: datetime,
     docker_binary: str = "docker",
 ) -> WorkerExecutionResolution:
@@ -106,8 +109,49 @@ def execute_worker_handoff(
 
     if not isinstance(orchestration_plan, ExecutionOrchestrationPlan):
         raise TypeError("orchestration_plan must be an ExecutionOrchestrationPlan")
+    if not isinstance(worker_pool, WorkerPoolState):
+        raise TypeError("worker_pool must be a WorkerPoolState")
     if observed_at.tzinfo is None or observed_at.utcoffset() is None:
         raise ValueError("observed_at must be timezone-aware")
+    if admission.worker_id != worker_pool.profile.worker_id:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="admission is bound to a different worker pool",
+        )
+    if admission.worker_kind is not worker_pool.profile.kind:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="admission kind does not match the worker pool",
+        )
+    if admission.worker_profile_fingerprint != worker_pool.profile.runtime_profile_fingerprint:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="admission profile does not match the worker pool",
+        )
+    reservation = next(
+        (
+            item
+            for item in worker_pool.active_reservations
+            if item.reservation_id == admission.reservation_id
+            and item.attempt_id == admission.attempt_id
+        ),
+        None,
+    )
+    if reservation is None:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="admission has no active worker reservation",
+        )
+    if observed_at < reservation.acquired_at:
+        return WorkerExecutionResolution(
+            WorkerExecutionDecision.REJECTED,
+            orchestration_plan,
+            rejection_reason="worker observation time precedes reservation acquisition",
+        )
     expected = plan_execution_orchestration(
         authorization,
         admission,

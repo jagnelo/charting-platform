@@ -15,6 +15,12 @@ from app.strategy_lab_v2.worker_execution import (
     WorkerExecutionDecision,
     execute_worker_handoff,
 )
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    WorkerReservation,
+)
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -30,12 +36,29 @@ def _plan(values: tuple):
     return plan_execution_orchestration(*values)
 
 
+def _pool(values: tuple) -> WorkerPoolState:
+    _, admission, request, *_ = values
+    return WorkerPoolState(
+        WorkerProfile("worker-1", WorkerKind.BACKTEST, request.runtime_profile_fingerprint),
+        (
+            WorkerReservation(
+                admission.reservation_id,
+                admission.worker_id,
+                admission.worker_kind,
+                admission.attempt_id,
+                NOW,
+            ),
+        ),
+    )
+
+
 def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> None:
     values = _fixtures()
     orchestration = _plan(values)
     result = execute_worker_handoff(
         orchestration,
         *values,
+        worker_pool=_pool(values),
         observed_at=NOW,
         docker_binary=_fake_binary(tmp_path, "printf 'ok'"),
     )
@@ -51,6 +74,7 @@ def test_worker_handoff_returns_typed_failure_evidence(tmp_path: Path) -> None:
     result = execute_worker_handoff(
         _plan(values),
         *values,
+        worker_pool=_pool(values),
         observed_at=NOW,
         docker_binary=_fake_binary(tmp_path, "exit 7"),
     )
@@ -67,6 +91,7 @@ def test_worker_handoff_rejects_stale_or_mismatched_plan_before_spawn(tmp_path: 
     rejected = execute_worker_handoff(
         stale,
         *values,
+        worker_pool=_pool(values),
         observed_at=NOW,
         docker_binary=os.fspath(tmp_path / "missing"),
     )
@@ -79,4 +104,27 @@ def test_worker_handoff_rejects_stale_or_mismatched_plan_before_spawn(tmp_path: 
 def test_worker_handoff_requires_explicit_observation_time() -> None:
     values = _fixtures()
     with pytest.raises(ValueError, match="timezone-aware"):
-        execute_worker_handoff(_plan(values), *values, observed_at=datetime(2024, 1, 1))
+        execute_worker_handoff(
+            _plan(values),
+            *values,
+            worker_pool=_pool(values),
+            observed_at=datetime(2024, 1, 1),
+        )
+
+
+def test_worker_handoff_rejects_released_capacity_before_spawn(tmp_path: Path) -> None:
+    values = _fixtures()
+    released_pool = replace(
+        _pool(values),
+        reservations=(replace(_pool(values).reservations[0], released_at=NOW),),
+    )
+    rejected = execute_worker_handoff(
+        _plan(values),
+        *values,
+        worker_pool=released_pool,
+        observed_at=NOW,
+        docker_binary=os.fspath(tmp_path / "missing"),
+    )
+    assert rejected.decision is WorkerExecutionDecision.REJECTED
+    assert rejected.nautilus_result is None
+    assert rejected.rejection_reason == "admission has no active worker reservation"
