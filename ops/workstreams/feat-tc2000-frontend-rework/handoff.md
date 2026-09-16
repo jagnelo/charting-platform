@@ -13389,3 +13389,15 @@ visual-baseline, threshold, mask, skip, V25-media, or acceptance-policy behavior
 changed. Provider/ETF consumer integration remains deferred until both branches
 reach staging; this is a complete exact-gate receipt for the Excursion Bars
 slice, not closure of the overall workstream.
+
+## 2026-09-16 - Strategy Coverage timeline empty-state accessibility
+
+Product commit `f379c18a0` gives the fully-covered Strategy Coverage timeline
+state an explicit polite, atomic status announcement. Coverage calculations,
+timeline rendering, and visible layout behavior are unchanged.
+
+Focused StrategyCoveragePanel coverage passed `4/4`; full frontend Vitest passed
+`1,120/1,120`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.

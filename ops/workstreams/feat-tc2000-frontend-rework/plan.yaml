@@ -255,17 +255,19 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_excursion_bars_empty_state_accessibility_exact_gate_passed
+  current_phase: R6_strategy_coverage_timeline_empty_state_accessibility_gate_pending
   next_action: >-
-    Select and implement the next bounded TC-owned R1/R5/R6 roadmap item. Keep
+    Run the exact validate-integration target at product tip
+    f379c18a01db364c40207202b1a1759667f98933, record clean teardown, then
+    checkpoint the Strategy Coverage timeline accessibility receipt. Keep
     provider/ETF consumer work deferred until both upstream branches reach
     staging, and do not retry origin synchronization under the existing
     private-origin safeguard without newly accepted exact-payload authorization.
   current_blocker: >-
-    No active TC-owned product or validation blocker: the Excursion Bars
-    empty-state accessibility slice passed focused validation and its exact
-    full_stack_browser gate passed at product tip
-    bcdb78bc65d58a2819ed417886da8d8dec32fdb1.
+    No active TC-owned product or validation blocker: the Strategy Coverage
+    timeline empty-state accessibility slice passed focused validation and its
+    exact full_stack_browser gate is pending at product tip
+    f379c18a01db364c40207202b1a1759667f98933.
     Provider-platform and ETF consumer integration remains a sequencing gate
     until both upstream branches reach staging; that does not stop independent
     TC-owned work. Origin synchronization remains a separate operational hold
