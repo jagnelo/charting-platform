@@ -25,8 +25,10 @@ is additive and registration-neutral, so migrations and application wiring
 remain gated behind upstream reconciliation.
 
 The focused adapter suite passed 4 tests; the full Strategy Lab v2 package
-passed 540 tests with Ruff, MyPy, and `git diff --check` clean. The branch and
-combined coverage gates will be rerun after the documentation checkpoint.
+passed 540 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed. The Docker-backed combined gate passed 2,187
+tests with 83.13% total coverage (required threshold: 75%), with setup and
+cleanup successful.
 
 ## 2026-09-16 - Durable command-receipt staging checkpoint
 
