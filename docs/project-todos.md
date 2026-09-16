@@ -17729,3 +17729,11 @@ The current source also passes the focused authenticated top-down browser slice 
       cache.
 - [ ] Static wiring does not prove GitHub/RPi/production secret-store contents
       or deployment authorization; those owner-controlled gates remain open.
+
+### 2026-09-17 — Migration compatibility against staging base
+
+- [x] Run `INTEGRATION_BASE_SHA=8b885a2f... make test-migration-compatibility`.
+      All `31` changed provider-platform migrations upgraded successfully;
+      previous-release schema head was `fe4f5a6b7c8d`, and the previous app
+      returned `/health 200` against the expanded schema. Temporary Docker and
+      worktree resources were cleaned.

@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Migration compatibility against staging base
+
+- The explicit `INTEGRATION_BASE_SHA=8b885a2f...` migration gate passed all
+  `31` changed provider-platform migration files. The previous-release schema
+  reached head `fe4f5a6b7c8d`, the checked-out schema upgraded successfully,
+  and the previous application returned `/health 200` against the expanded
+  schema. Temporary Docker/worktree resources were cleaned; no provider calls
+  or credentials were used.
+
 ## 2026-09-17 Compose and workflow contract validation
 
 - `make test-compose-contract` passed for the main and RPi Compose files,

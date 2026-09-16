@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 explicit migration compatibility at source `97ae4fbf3` using
+      the recorded staging base `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`:
+      all `31` changed provider-platform migration files upgraded, the
+      previous-release schema reached head `fe4f5a6b7c8d`, and the previous
+      application smoke-tested `/health 200` against the expanded schema.
+      Isolated Docker/worktree resources were cleaned and no provider calls or
+      credentials were used.
+    - >-
       2026-09-17 Compose and workflow contract validation at source
       `5fd3544b6`: `make test-compose-contract` passed for the main and RPi
       Compose files, including the provider environment and egress/network
