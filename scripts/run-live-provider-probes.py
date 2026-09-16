@@ -79,6 +79,10 @@ LIVE_PROVIDER_CASES = {
             "test_market_data_providers_live.py",
             "test_openfigi_keyless_profile_resolution",
         ),
+        (
+            "test_market_data_providers_live.py",
+            "test_openfigi_keyless_account_usage_snapshot",
+        ),
     ),
     "edgar": (
         ("test_market_data_providers_live.py", "test_sec_edgar_keyless_profile"),
@@ -340,7 +344,11 @@ LIVE_PROVIDER_EXCLUSIONS = {
 # the stable capability-level labels emitted by the adapter probes and live
 # usage ledger; a green pytest count alone is never external evidence.
 LIVE_REQUIRED_OPERATIONS = {
-    "openfigi": {"fetch_stable_identifiers", "resolve_instrument_profile"},
+    "openfigi": {
+        "fetch_stable_identifiers",
+        "resolve_instrument_profile",
+        "fetch_account_usage",
+    },
     "edgar": {
         "search_instruments",
         "get_instrument_profile",
@@ -2791,11 +2799,12 @@ def main() -> int:
         {"twelve_data"},
         {"eodhd"},
         {"binance"},
+        {"openfigi"},
     ):
         print(
             "account-usage-only requires exactly one of --provider alpaca, "
             "marketdata_app, --provider twelve_data, --provider eodhd, or "
-            "--provider binance"
+            "--provider binance, or --provider openfigi"
         )
         return 2
     if arguments.allow_staged_candidate and (

@@ -1234,6 +1234,11 @@ def test_openfigi_switches_between_exact_anonymous_and_keyed_contracts(monkeypat
     assert anonymous["quota_contract"]["endpoint_constraints"]["mapping"][
         "max_jobs_per_request"
     ] == 5
+    assert (
+        anonymous["quota_contract"]["dimensions"][1]["name"]
+        == "account_usage_probe_concurrency"
+    )
+    assert anonymous["quota_contract"]["account_usage_bootstrap"]["enabled"] is True
 
     monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "reviewed-key")
     keyed = provider_rate_limit_seed("openfigi")
@@ -1246,6 +1251,10 @@ def test_openfigi_switches_between_exact_anonymous_and_keyed_contracts(monkeypat
     assert keyed["quota_contract"]["endpoint_constraints"]["mapping"][
         "max_jobs_per_request"
     ] == 100
+    assert (
+        keyed["quota_contract"]["dimensions"][1]["name"]
+        == "account_usage_probe_concurrency"
+    )
 
 
 def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():
@@ -2176,6 +2185,7 @@ def test_single_request_provider_profiles_are_explicit():
         "openfigi": {
             "fetch_stable_identifiers": 1,
             "resolve_instrument_profile": 1,
+            "fetch_account_usage": 1,
         },
         "coinbase": {"get_current_price": 1, "discover_universe_page": 1},
         "kraken": {"get_current_price": 1, "discover_universe_page": 1},

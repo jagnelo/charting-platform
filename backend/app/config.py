@@ -212,7 +212,14 @@ class Settings(BaseSettings):
         # capability/quota gates as data reads. These adapters remain opt-in
         # at the worker level; this list only makes them resolvable when an
         # operator explicitly requests a snapshot.
-        "account_usage": ["marketdata_app", "twelve_data", "eodhd", "binance", "alpaca"],
+        "account_usage": [
+            "marketdata_app",
+            "twelve_data",
+            "eodhd",
+            "binance",
+            "alpaca",
+            "openfigi",
+        ],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
@@ -391,9 +398,24 @@ class Settings(BaseSettings):
                         "scope": "ip_or_api_key",
                         "quota_group": "ip_or_api_key",
                         "source": "https://www.openfigi.com/api/documentation",
-                    }
+                    },
+                    {
+                        "name": "account_usage_probe_concurrency",
+                        "limit": 1,
+                        "window_seconds": 1,
+                        "unit": "concurrent_requests",
+                        "scope": "deployment",
+                        "quota_group": "account_usage_probe",
+                        "source": "application_policy:provider_native_baseline_bootstrap",
+                        "reset": "rolling",
+                        "applies_to_operations": ["fetch_account_usage"],
+                    },
                 ],
                 "reset": "rolling",
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "source": "application_policy:provider_native_baseline_bootstrap",
+                },
                 "endpoint_constraints": {
                     "mapping": {
                         "max_jobs_per_request": 5,
@@ -1192,6 +1214,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "fetch_stable_identifiers": 1,
                 "resolve_instrument_profile": 1,
+                "fetch_account_usage": 1,
             },
         },
         # Binance publishes exact weights for the two single-request adapter
@@ -2808,6 +2831,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         authenticated = bool(str(getattr(settings, "OPENFIGI_API_KEY", "") or "").strip())
         contract = seed.get("quota_contract")
         if isinstance(contract, dict):
+            account_usage_probe = next(
+                (
+                    item
+                    for item in contract.get("dimensions", [])
+                    if isinstance(item, dict)
+                    and item.get("name") == "account_usage_probe_concurrency"
+                ),
+                None,
+            )
             if authenticated:
                 contract["dimensions"] = [
                     {
@@ -2855,6 +2887,8 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                 seed["quota_scope"] = "ip_or_api_key"
                 seed["quota_source"] = "OpenFIGI API documentation"
                 seed["tokens_per_minute"] = 25
+            if account_usage_probe is not None:
+                contract["dimensions"].append(account_usage_probe)
             seed["quota_contract"] = contract
         return seed
     if provider_name == "marketdata_app":

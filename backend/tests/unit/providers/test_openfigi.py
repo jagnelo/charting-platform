@@ -3,6 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from app.config import settings
 from app.providers.base import InstrumentProfile
 from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.openfigi import OpenFigiProvider
@@ -115,6 +116,40 @@ def test_openfigi_mapping_reports_transport_usage(monkeypatch):
     assert measurement.http_requests == 1
     assert measurement.response_bytes == len(b"openfigi-payload")
     assert measurement.response_headers == {"x-ratelimit-remaining": "24"}
+
+
+def test_openfigi_account_usage_parses_native_window_headers(monkeypatch):
+    monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "")
+
+    class UsageClient(FakeClient):
+        def post(self, *args, **kwargs):
+            response = FakeResponse([{"data": []}])
+            response.headers = {
+                "ratelimit-limit": "25",
+                "ratelimit-remaining": "24",
+                "ratelimit-reset": "47",
+            }
+            return response
+
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", UsageClient)
+    usage = OpenFigiProvider().fetch_account_usage()
+
+    assert usage.provider == "openfigi"
+    assert usage.account_plan == "anonymous"
+    assert usage.limit == 25
+    assert usage.remaining == 24
+    dimension = usage.dimensions[0]
+    assert dimension.name == "mapping_requests_per_minute"
+    assert dimension.consumed == 1
+    assert dimension.reset_at is not None
+    assert dimension.reset_at > usage.observed_at
+
+
+def test_openfigi_account_usage_rejects_missing_native_window_headers(monkeypatch):
+    monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "")
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    with pytest.raises(ProviderResponseError, match="native limit/remaining/reset"):
+        OpenFigiProvider().fetch_account_usage()
 
 
 def test_openfigi_transport_failure_is_typed(monkeypatch):

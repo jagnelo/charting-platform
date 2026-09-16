@@ -233,6 +233,29 @@ def test_openfigi_keyless_profile_resolution():
     assert measurement.http_requests == 1
 
 
+def test_openfigi_keyless_account_usage_snapshot():
+    """Observe OpenFIGI's anonymous mapping-window headers exactly once."""
+
+    usage, measurement = _observed_read(
+        lambda: OpenFigiProvider().fetch_account_usage(),
+        "openfigi",
+        "fetch_account_usage",
+    )
+    assert usage is not None
+    assert usage.provider == "openfigi"
+    assert usage.account_plan == "anonymous"
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert set(dimensions) == {"mapping_requests_per_minute"}
+    window = dimensions["mapping_requests_per_minute"]
+    assert window.limit == 25
+    assert window.remaining is not None and 0 <= window.remaining <= window.limit
+    assert window.consumed == window.limit - window.remaining
+    assert window.reset_at is not None and window.reset_at > usage.observed_at
+    reconciliation = reconcile_native_account_usage("openfigi", usage)
+    assert [item["status"] for item in reconciliation] == ["reconciled"]
+
+
 def test_sec_edgar_keyless_profile():
     _require("EDGAR_USER_AGENT")
     import app.providers.edgar as edgar_module

@@ -42,6 +42,10 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, tuple[str, str]] = {
     # weight for the current fixed one-minute window.  The adapter supplies
     # the exact next-minute reset boundary and the reviewed 6,000-weight cap.
     "binance": ("request_weight_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    # OpenFIGI exposes the exact active mapping dimension in its native
+    # headers. The dimension is anonymous 25/minute or keyed 25/6-seconds,
+    # selected by provider_rate_limit_seed at runtime.
+    "openfigi": ("mapping_requests_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
 }
 
 
@@ -152,11 +156,19 @@ def _native_baseline_candidate(
     dimensions = [
         item
         for item in contract.get("dimensions", [])
-        if isinstance(item, dict) and item.get("name") == dimension_name
+        if isinstance(item, dict)
+        and (
+            item.get("name") == dimension_name
+            or (
+                provider_name == "openfigi"
+                and item.get("name") == "mapping_requests_per_6_seconds"
+            )
+        )
     ]
     if len(dimensions) != 1 or contract.get("unknown_dimensions"):
         return None
     policy_dimension = dimensions[0]
+    dimension_name = str(policy_dimension.get("name") or dimension_name)
     limit = policy_dimension.get("limit")
     if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
         return None

@@ -1097,8 +1097,9 @@ with `OPENFIGI_API_KEY`, it allows 25 requests/6 seconds and 100 jobs/request,
 scoped to the key. The runtime selects the matching contract, and the adapter
 preserves the provider's `ratelimit-limit`, `ratelimit-remaining`, and
 `ratelimit-reset` headers, including typed retry timing on HTTP 429. Focused
-coverage now passes `109/109`; a credentialed live case remains unavailable
-until an OpenFIGI key is intentionally provisioned.
+coverage now includes the native account-usage parser and dynamic baseline
+reconciliation; the manifest's keyless account-usage case consumes one mapping
+request and must be run through the durable live runner, not standalone.
 
 Alpaca OHLCV and latest-price paths now reject malformed or mixed bar rows,
 missing required OHLC fields, non-finite numeric values, and invalid pagination

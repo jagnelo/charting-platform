@@ -417,6 +417,43 @@ def test_native_account_usage_reconciliation_keeps_unproven_snapshot_observation
     ]
 
 
+def test_openfigi_native_usage_reconciles_the_environment_specific_dimension(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "")
+    calls = []
+    monkeypatch.setattr(
+        "app.services.provider_quota_coordinator.reconcile_provider_quota_baseline",
+        lambda **kwargs: calls.append(kwargs)
+        or {"window_started_at": "2026-09-16T12:00:00+00:00"},
+    )
+    usage = SimpleNamespace(
+        observed_at=datetime(2026, 9, 16, 12, 0, tzinfo=UTC),
+        dimensions=(
+            SimpleNamespace(
+                name="mapping_requests_per_minute",
+                unit="requests",
+                limit=25,
+                remaining=24,
+                consumed=1,
+                reset_at=datetime(2026, 9, 16, 12, 1, tzinfo=UTC),
+            ),
+        ),
+    )
+
+    result = live_usage.reconcile_native_account_usage("openfigi", usage)
+
+    assert result == [
+        {
+            "status": "reconciled",
+            "dimension": "mapping_requests_per_minute",
+            "used_units": 1,
+            "window_started_at": "2026-09-16T12:00:00+00:00",
+        }
+    ]
+    assert calls[0]["dimension_name"] == "mapping_requests_per_minute"
+
+
 @pytest.mark.parametrize("is_async", [False, True])
 def test_httpx_live_transport_requires_active_durable_quota_admission(monkeypatch, is_async):
     import httpx

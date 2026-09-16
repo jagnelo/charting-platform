@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    OpenFIGI native usage accounting is now implemented without a generic
+    fallback: one bounded mapping job reads the provider's exact
+    `ratelimit-limit`, `ratelimit-remaining`, and response-relative
+    `ratelimit-reset` headers, selects the anonymous 25/minute or keyed
+    25/6-second dimension, and reconciles that dimension into the durable
+    ledger. Focused provider/quota/live-usage coverage passes locally; the
+    keyless account-usage case still needs a current manifest-runner execution
+    before it can serve as live baseline evidence.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and

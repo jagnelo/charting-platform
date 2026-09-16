@@ -1225,6 +1225,14 @@ without notice. Should be deprioritized via provider policy once primary provide
 
 **Capabilities**: `instrument_identifiers`
 
+The provider-native `fetch_account_usage` observation sends one bounded
+mapping job and requires OpenFIGI's `ratelimit-limit`, `ratelimit-remaining`,
+and response-relative `ratelimit-reset` headers. The exact anonymous
+(`mapping_requests_per_minute`) or keyed (`mapping_requests_per_6_seconds`)
+dimension is persisted and reconciled into the durable quota ledger; missing
+or malformed headers fail closed. This consumes one mapping request and is
+never treated as a free metadata read.
+
 ### FINRA (`finra`)
 
 **Role**: Periodic consolidated short-interest observations plus OTC lifecycle

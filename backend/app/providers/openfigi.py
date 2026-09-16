@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
 from app.config import settings
-from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentProfile,
+    ListingRecord,
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
+)
 from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
@@ -31,6 +38,68 @@ class OpenFigiProvider:
     name = "openfigi"
     base_url = "https://api.openfigi.com"
     description = "OpenFIGI mapping API for stable instrument identifiers"
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Observe OpenFIGI's native mapping-window headers with one job.
+
+        OpenFIGI publishes the active request limit, remaining count, and
+        seconds until the current window resets.  This bounded mapping call is
+        used only to reconcile that exact native window; it does not infer a
+        different reset model or a generic daily allowance.
+        """
+
+        results, headers = self._mapping_request(
+            [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": "SPY"}]
+        )
+        del results
+        # ``ratelimit-reset`` is a response-relative number of seconds, so
+        # anchor the durable observation at the response boundary rather than
+        # at request start.
+        observed_at = datetime.now(UTC)
+        try:
+            limit = int(headers["ratelimit-limit"])
+            remaining = int(headers["ratelimit-remaining"])
+            reset_seconds = int(headers["ratelimit-reset"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "OpenFIGI omitted its native limit/remaining/reset headers",
+            ) from exc
+        if (
+            limit <= 0
+            or remaining < 0
+            or remaining > limit
+            or reset_seconds <= 0
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "OpenFIGI returned invalid native request-window counters",
+            )
+        reset_at = observed_at + timedelta(seconds=reset_seconds)
+        dimension_name = (
+            "mapping_requests_per_6_seconds"
+            if settings.OPENFIGI_API_KEY
+            else "mapping_requests_per_minute"
+        )
+        dimension = ProviderAccountUsageDimension(
+            name=dimension_name,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+            account_plan="api_key" if settings.OPENFIGI_API_KEY else "anonymous",
+            dimensions=(dimension,),
+        )
 
     def fetch_stable_identifiers(
         self,
@@ -107,6 +176,12 @@ class OpenFigiProvider:
         return None
 
     def _mapping_results(self, payload: list[dict[str, str]]) -> list[list[dict[str, Any]]]:
+        results, _ = self._mapping_request(payload)
+        return results
+
+    def _mapping_request(
+        self, payload: list[dict[str, str]]
+    ) -> tuple[list[list[dict[str, Any]]], dict[str, str]]:
         headers = {"Content-Type": "application/json"}
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
@@ -172,7 +247,7 @@ class OpenFigiProvider:
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                 raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
             results.append(rows)
-        return results
+        return results, response_capacity_headers
 
     def _identifier_records_from_mapping(
         self,

@@ -189,6 +189,15 @@ def test_account_usage_only_selection_keeps_only_the_dedicated_case():
         "alpaca_credentialed_account_usage_snapshot",
     ]
 
+    openfigi_arguments = runner.selected_live_test_arguments(
+        ["openfigi"], account_usage_only=True
+    )
+    assert openfigi_arguments == [
+        "tests/live/test_market_data_providers_live.py::test_openfigi_keyless_account_usage_snapshot",
+        "-k",
+        "openfigi_keyless_account_usage_snapshot",
+    ]
+
 
 def test_manifest_has_exact_operation_evidence_for_every_provider():
     runner = _runner_module()

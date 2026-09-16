@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 OpenFIGI native usage reconciliation
+
+- OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses
+  one mapping job and requires the documented `ratelimit-limit`,
+  `ratelimit-remaining`, and response-relative `ratelimit-reset` headers.
+  Anonymous and keyed environments retain their distinct 25/minute versus
+  25/6-second dimensions and job limits; no generic rate is inferred.
+- The native observation is wired through the account-usage capability chain,
+  durable baseline reconciliation, live manifest, and provider documentation.
+  Missing/malformed headers fail closed, and the mapping request is charged as
+  one OpenFIGI request.
+- Focused OpenFIGI, quota-contract, and live-usage unit coverage passed
+  `139/139`; the current full backend replay remains the prior `2,775 passed,
+  472 skipped` evidence until this increment is replayed. A current keyless
+  manifest account-usage run is still required for live baseline evidence.
+
 ## 2026-09-16 documented FINRA ORF complete-source path
 
 - The FINRA OTC adapter now supports the documented ORF complete-source pair:
