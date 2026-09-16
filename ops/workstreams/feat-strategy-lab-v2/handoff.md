@@ -11,6 +11,39 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-16 - PostgreSQL resource-read adapter checkpoint
+
+`postgres_storage.py` now exposes read-only `get` and deterministic `list_type`
+aggregate snapshots. Rows are decoded through the canonical JSON codec and
+their state fingerprints are re-authenticated before being returned.
+`postgres_resources.py` projects those snapshots into immutable API resource
+documents scoped to the authenticated principal. Collection pages sort by a
+stable `(sort_value, id)` key and bind opaque cursors to the complete visible
+resource-set digest; foreign rows, malformed owner/resource/relationship state,
+duplicate identities, and snapshot drift fail closed. The adapter is structural
+and registration-neutral, so it does not add migrations, route registration,
+authentication dependencies, worker effects, or writes.
+
+Focused validation passed 11 persistence/read-adapter tests; the package tree
+passed 525 Strategy Lab v2 tests with Ruff, MyPy, and `git diff --check` clean.
+The declared branch checks passed all five checks. The Docker-backed combined
+backend gate passed 2,172 tests with 83.05% total coverage (required threshold:
+75%), including successful setup and cleanup. This slice is committed and
+published; schema migrations, application wiring, router/auth registration,
+worker entrypoints, Compose services, upstream reconciliation, and stable
+Nautilus execution remain open behind the shared-path gates.
+
+## 2026-09-16 - PostgreSQL resource-read adapter context (in progress)
+
+This changeset owns only the package-local PostgreSQL aggregate read helpers,
+the owner-scoped resource projection adapter, focused tests, and the related
+documentation/workstream receipts. It must not add migrations, register models
+or routes, change authentication, alter existing Strategy Lab services, enqueue
+work, or touch provider/ETF/TC2000/frontend paths. The adapter will fail closed
+on malformed state, owner mismatch, cursor snapshot drift, and ambiguous
+resource identity; writes and state-changing API operations remain behind the
+existing compare-and-set and staging gates.
+
 ## 2026-09-16 - Registration-neutral API boundary context (in progress)
 
 This changeset owns only the new package-local API adapter/router and its
