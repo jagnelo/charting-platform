@@ -12,9 +12,11 @@
   the hourly timezone/boundary remain explicitly unknown; no rolling window
   was inferred, so Tiingo remains non-routable until those two dimensions and
   the reviewed per-operation byte map are supplied.
-- Focused provider quota coverage passed `102/102`; no provider request or
-  credential was used. Sources: `https://www.tiingo.com/documentation/general`
-  and `https://www.tiingo.com/about/pricing`.
+- Focused provider quota coverage passed `102/102`; the fresh full backend unit
+  replay at source `98002b309` passed `2,346/2,346` with 37 warnings. No
+  provider request or credential was used. Sources:
+  `https://www.tiingo.com/documentation/general` and
+  `https://www.tiingo.com/about/pricing`.
 
 ## 2026-09-16 GitHub target-secret-store verification recheck
 

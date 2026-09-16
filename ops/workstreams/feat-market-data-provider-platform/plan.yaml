@@ -629,7 +629,9 @@ progress:
       unique-symbol monthly anchor and hourly timezone/boundary remain
       unknown, so no rolling window was inferred and Tiingo remains
       non-routable pending those dimensions plus the reviewed byte map.
-      Focused quota coverage passed `102/102`; no provider request occurred.
+      Focused quota coverage passed `102/102`; the fresh full backend unit
+      replay at source `98002b309` passed `2,346/2,346` with 37 warnings; no
+      provider request occurred.
     - >-
       2026-09-16 GitHub target-secret-store verification recheck: `gh auth
       status` confirms that only the invalid `jagnelo-symbiotech` session is

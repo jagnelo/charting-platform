@@ -11,7 +11,9 @@
       boundary fail-closed because Tiingo does not define them in the reviewed
       source. Routing also still requires a complete reviewed
       `TIINGO_OPERATION_BYTE_BOUNDS` map; no provider request was made for this
-      correction. Focused quota coverage passes `102/102`.
+      correction. Focused quota coverage passes `102/102`; the fresh full
+      backend unit replay at source `98002b309` passes `2,346/2,346` with 37
+      warnings.
 
 ### 2026-09-16 — MarketData.app Starter Trial configuration verification
 
