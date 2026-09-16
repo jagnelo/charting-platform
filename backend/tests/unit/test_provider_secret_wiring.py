@@ -972,6 +972,16 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
 
 
+def test_live_preflight_control_aliases_resolve_to_reported_statuses():
+    statuses = routing_safety_preflight()
+    missing = {
+        provider: [name for name in control_names if name not in statuses]
+        for provider, control_names in _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS.items()
+        if any(name not in statuses for name in control_names)
+    }
+    assert missing == {}
+
+
 def test_live_credential_preflight_rejects_placeholder_sec_contact(monkeypatch):
     monkeypatch.delenv("EDGAR_USER_AGENT", raising=False)
     assert setting_is_configured("EDGAR_USER_AGENT") is False

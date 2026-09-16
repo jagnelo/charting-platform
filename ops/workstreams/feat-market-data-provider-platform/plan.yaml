@@ -731,6 +731,12 @@ progress:
       coverage 42/42, and the full backend unit gate passed 2,363/2,363 at
       70.82% coverage; Ruff, diff, and workstream checks passed.
     - >-
+      2026-09-17 live-preflight alias invariant: focused secret-wiring
+      coverage now asserts every `LIVE_PREFLIGHT_ROUTING_CONTROLS` alias is a
+      key emitted by `routing_safety_preflight`, preventing future providers
+      from degrading to generic missing-status diagnostics. Focused coverage
+      passed 26/26; Ruff, diff, and workstream checks passed.
+    - >-
       2026-09-17 exact-current-source OpenFIGI anonymous validation: the first
       account-usage attempt returned a typed HTTP 429 and was not retried in a
       loop. After one provider-window delay, the native usage bootstrap passed

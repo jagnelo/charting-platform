@@ -11,6 +11,9 @@
   warnings. Ruff, diff checks, and workstream validation passed.
 - No provider calls, credentials, frontend files, or ETF-provider adapters
   were changed by this correction.
+- Added a general regression invariant requiring every
+  `LIVE_PREFLIGHT_ROUTING_CONTROLS` alias to resolve to a status emitted by
+  `routing_safety_preflight`; focused secret-wiring coverage now passes `26/26`.
 
 ## 2026-09-17 Exact-source OpenFIGI anonymous matrix
 
