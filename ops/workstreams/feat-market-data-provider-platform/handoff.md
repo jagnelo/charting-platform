@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source EODHD preflight receipt
+
+- Replayed `scripts/run-live-provider-probes.py --provider eodhd` at source
+  `9d407fc40825d85562c79d12de3e410763aa1dd9` with the pinned backend
+  virtualenv and owner-managed environment. It exited `2` before transport;
+  the receipt records all ten EODHD cases blocked on the two unknown active
+  pools (`requests_per_minute` and `calls_per_day`). No additional provider
+  request was made by the runner.
+- The same receipt preserves unrelated routing-safety blockers (FINRA/FRED/
+  Coinbase/tokenized terms, response-byte maps, and deferred provider controls)
+  rather than misclassifying them as EODHD failures. The redacted JSONL receipt
+  is committed with this checkpoint.
+
 ## 2026-09-16 EODHD native-usage observation
 
 - Performed one bounded credentialed `GET /api/user` call using the existing
