@@ -512,6 +512,7 @@ class Settings(BaseSettings):
                         "reset": "provider_defined",
                     },
                 ],
+                "unknown_dimensions": ["monthly_cap_reset_boundary"],
                 "reset": "per_dimension",
             },
             "tokens_per_minute": 100,
@@ -705,9 +706,11 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        # Tiingo does not state the distinct-symbol pool's
-                        # reset anchor; use a conservative rolling 31 days.
-                        "reset": "rolling",
+                        # Tiingo publishes the distinct-symbol pool but does
+                        # not state its reset anchor. Do not turn that
+                        # provider-defined boundary into a guessed rolling
+                        # window; routing remains blocked until reviewed.
+                        "reset": "provider_defined",
                     },
                     {
                         "name": "requests_per_hour",
@@ -729,6 +732,7 @@ class Settings(BaseSettings):
                         "reset": "calendar_day_est",
                     },
                 ],
+                "unknown_dimensions": ["unique_symbols_reset_anchor"],
                 "reset": "provider_defined",
                 "untracked_constraints": [
                     {
@@ -865,9 +869,10 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
+                        "reset": "provider_defined",
                     }
                 ],
-                "reset": "provider_defined_daily",
+                "reset": "provider_defined",
                 "untracked_constraints": [
                     {
                         "name": "bandwidth_bytes_per_30_days",
@@ -880,9 +885,13 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "https://site.financialmodelingprep.com/pricing-plans",
                         "window_seconds": 2_592_000,
-                        "reset": "rolling_30_days",
+                        "reset": "provider_defined",
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",
                     }
+                ],
+                "unknown_dimensions": [
+                    "calls_daily_reset_anchor",
+                    "bandwidth_reset_anchor",
                 ],
             },
             "quota_scope": "api_key",
@@ -953,8 +962,10 @@ class Settings(BaseSettings):
                     }
                 ],
                 # Public pricing states 100/month but does not define the
-                # reset anchor; enforce the smaller rolling 30-day window.
-                "reset": "rolling_30_days",
+                # reset anchor; keep the dimension visible but non-routable
+                # until the provider/account boundary is confirmed.
+                "unknown_dimensions": ["monthly_cap_reset_boundary"],
+                "reset": "provider_defined",
             },
             "quota_scope": "api_key",
             "quota_source": "Marketstack free-plan pricing",

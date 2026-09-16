@@ -778,7 +778,7 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
 
 
 @pytest.mark.asyncio
-async def test_marketstack_history_route_does_not_require_discovery_scope(db, monkeypatch):
+async def test_marketstack_history_route_requires_monthly_reset_review(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
@@ -791,7 +791,7 @@ async def test_marketstack_history_route_does_not_require_discovery_scope(db, mo
         operation="fetch_ohlcv:D1",
         operation_cost_overrides={"marketstack": 1},
     )
-    assert any(item.provider_name == "marketstack" for item in history_chain)
+    assert all(item.provider_name != "marketstack" for item in history_chain)
 
     discovery_chain = await resolve_provider_chain(
         async_db,
@@ -823,7 +823,7 @@ async def test_history_route_enforces_seeded_provider_lookback_bound(db, monkeyp
         history_start=now - timedelta(days=367),
     )
 
-    assert any(item.provider_name == "marketstack" for item in within_bound)
+    assert all(item.provider_name != "marketstack" for item in within_bound)
     assert all(item.provider_name != "marketstack" for item in beyond_bound)
 
 
@@ -849,7 +849,7 @@ async def test_history_route_evaluates_provider_specific_start_factory(db, monke
     )
 
     assert "marketstack" in seen
-    assert any(item.provider_name == "marketstack" for item in chain)
+    assert all(item.provider_name != "marketstack" for item in chain)
 
 
 @pytest.mark.asyncio

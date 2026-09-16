@@ -286,7 +286,10 @@ async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map
             ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
         )
     ).scalar_one()
-    assert policy_has_known_quota(policy)
+    assert not policy_has_known_quota(policy)
+    assert "quota_contract.unknown_dimensions.unique_symbols_reset_anchor" in (
+        quota_contract_missing_dimensions(policy)
+    )
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
     await seed_provider_runtime(async_db)
@@ -358,7 +361,7 @@ def test_unknown_quota_reset_semantics_fail_closed_in_runtime_contract():
     assert "quota_contract.reset.unknown" in quota_contract_missing_dimensions(policy)
 
 
-def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(monkeypatch):
+def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -386,7 +389,10 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
         quota_source=seed["quota_source"],
         quota_contract=contract,
     )
-    assert policy_has_known_quota(policy)
+    assert not policy_has_known_quota(policy)
+    assert "quota_contract.unknown_dimensions.unique_symbols_reset_anchor" in (
+        quota_contract_missing_dimensions(policy)
+    )
     source = DataSource(
         name="tiingo",
         config={"usage_tracking": get_provider_usage_profile("tiingo")},
@@ -1105,7 +1111,8 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     marketstack = settings.PROVIDER_RATE_LIMIT_SEEDS["marketstack"]["quota_contract"]
     assert marketstack["dimensions"][0]["limit"] == 100
     assert marketstack["dimensions"][0]["window_seconds"] == 2_592_000
-    assert marketstack["reset"] == "rolling_30_days"
+    assert marketstack["reset"] == "provider_defined"
+    assert marketstack["unknown_dimensions"] == ["monthly_cap_reset_boundary"]
 
     ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
     assert {
@@ -1806,6 +1813,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "rolling",
         "provider_defined",
     ]
+    assert coingecko["unknown_dimensions"] == ["monthly_cap_reset_boundary"]
 
     twelve = settings.PROVIDER_RATE_LIMIT_SEEDS["twelve_data"]["quota_contract"]
     assert [item["reset"] for item in twelve["dimensions"]] == [
@@ -2474,13 +2482,19 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     } <= set(finra_otc["unknown_dimensions"])
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500
-    assert tiingo["dimensions"][0]["reset"] == "rolling"
+    assert tiingo["dimensions"][0]["reset"] == "provider_defined"
+    assert tiingo["unknown_dimensions"] == ["unique_symbols_reset_anchor"]
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
+    assert fmp["dimensions"][0]["reset"] == "provider_defined"
+    assert fmp["unknown_dimensions"] == [
+        "calls_daily_reset_anchor",
+        "bandwidth_reset_anchor",
+    ]
     assert fmp["untracked_constraints"][0]["limit"] == 500_000_000
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
-    assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
+    assert fmp["untracked_constraints"][0]["reset"] == "provider_defined"
 
 
 def test_finnhub_rate_windows_require_explicit_operation_costs_for_each_dimension():

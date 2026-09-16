@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 provider reset-anchor audit checkpoint
+
+- Removed four unsafe reset interpretations from the provider contract: the
+  CoinGecko monthly Demo pool, Tiingo distinct-symbol pool, Marketstack monthly
+  pool, and FMP daily/bandwidth pools now expose explicit unresolved reset
+  dimensions. Their published limits remain visible, but routing fails closed
+  until provider/account evidence establishes the actual reset boundary.
+- The coordinator no longer receives a provider-defined label as permission to
+  invent a rolling window for these pools. This preserves exact units and
+  prevents cross-session usage accounting from underestimating a shared key's
+  active-window consumption.
+- Documentation, seed-contract assertions, and workstream plan records were
+  updated. Focused contract/runtime checks passed `149/149`; the complete
+  backend unit suite passed `2,308/2,308` with 37 warnings. No provider
+  request, deployment, or routing activation occurred.
+
 ## 2026-09-16 OTC Markets validation-file integrity checkpoint
 
 - Added a pure parser for the official OTC Markets Overnight Security Master

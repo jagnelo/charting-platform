@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The provider contract audit found that CoinGecko's monthly Demo pool,
+    Tiingo's distinct-symbol pool, Marketstack's monthly request pool, and
+    FMP's daily/bandwidth pools did not publish exact reset anchors. Their
+    dimensions remain recorded, but the implementation now marks those reset
+    anchors explicitly unknown and excludes the affected providers from
+    routing until provider/account evidence supplies the boundary; no
+    provider-defined label is converted into an invented rolling window.
+  - >-
     Exact clean-source checkpoint `5116a329b3c9ef346c784e1dc86aa4121b9da248`
     passed the full backend unit suite (`2,294/2,294`, 37 warnings) and the
     lock-protected live runner correctly stopped before network access with

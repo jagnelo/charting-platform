@@ -120,13 +120,12 @@ def _reserve_once_in_process(path: str, barrier, outcomes) -> None:
     barrier.wait(timeout=15)
     policy = _policy(_dimension(limit=1))
     try:
-        _seed_test_baseline(
-            policy,
-            now=datetime(2026, 9, 15, 12, 0, tzinfo=UTC),
-        )
-        reserved = _reserve(
-            policy,
-            {"requests_per_minute": 1},
+        reserved = reserve_provider_quota(
+            provider_name="fixture",
+            capability="price_history",
+            operation="fetch_ohlcv",
+            policy=policy,
+            dimension_units={"requests_per_minute": 1},
             now=datetime(2026, 9, 15, 12, 0, tzinfo=UTC),
         ) is not None
         outcomes.put(("ok", reserved))
@@ -1251,6 +1250,14 @@ def test_empty_dimension_cost_map_is_an_explicit_zero_cost_exclusion(monkeypatch
 def test_sqlite_reservations_are_atomic_across_processes(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    # Baseline reconciliation is intentionally not allowed while another
+    # reservation is pending. Seed the shared baseline before the concurrent
+    # reservation race so this test exercises atomic admission rather than
+    # racing two independent baseline initializers.
+    _seed_test_baseline(
+        _policy(_dimension(limit=1)),
+        now=datetime(2026, 9, 15, 12, 0, tzinfo=UTC),
+    )
     context = get_context("spawn")
     barrier = context.Barrier(2)
     outcomes_queue = context.Queue()
