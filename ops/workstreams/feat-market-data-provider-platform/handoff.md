@@ -18,9 +18,11 @@
   Compose, the manual GitHub workflow, registry diagnostics, and the live
   safety preflight. Documentation records the independent controls and keeps
   Alpaca UUIDs provider-native rather than treating them as canonical FIGI/CIK.
-- Focused coverage passed `423/423`; the complete backend unit gate passed
-  `2,355/2,355` with 37 warnings and 70.76% coverage. Ruff and
-  `git diff --check` passed. No provider request or credential was used.
+- Focused coverage passed `424/424`; the complete backend unit gate passed
+  `2,356/2,356` with 37 warnings and 70.76% coverage. Ruff and
+  `git diff --check` passed. The committed-source focused live case passed
+  `1/1` with one authenticated request and 125 response bytes; the redacted
+  receipt is durable in `validation.jsonl`.
 - The current gate remains open: obtain current reset-boundary evidence,
   populate the pair in each authorized environment, run the bounded live
   Alpaca matrix, and reconcile the native observations before any routing or

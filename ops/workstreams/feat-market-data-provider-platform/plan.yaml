@@ -169,9 +169,13 @@ remaining_gaps:
     configured. Commits `8808f6ba` and `582931f1` implement the gate and CI
     wiring. The explicit `fetch_account_usage` bootstrap remains eligible
     to observe native reset headers; `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` is a
-    separate event-pagination bound. Focused coverage is 423/423 and the full
-    backend unit gate is 2,355/2,355 with 37 warnings at 70.76% coverage. No
-    provider request was made.
+    separate event-pagination bound. Commit `316a1486` also retains valid
+    current/previous reset-header observations without treating them as
+    future reconciliation boundaries. Focused coverage is 424/424 and the
+    full backend unit gate is 2,356/2,356 with 37 warnings at 70.76%
+    coverage. The committed-source account-usage live case passed 1/1 with
+    one authenticated request and 125 response bytes; ordinary routing and
+    event routing remain closed.
   - >-
     Finnhub's observed 60-calls/minute and 30-calls/second ceilings are
     independent pools, but the provider does not supply a reviewed reset
