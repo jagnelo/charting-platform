@@ -51,12 +51,7 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -115,10 +110,10 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+  "head": "7742cbaf5b8988d5fc9839d5d33363fa168abd1e",
   "implementation_sha": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
   "interrupted": false,
-  "last_checkpoint": "2026-09-16T22:17:02.488131+00:00",
+  "last_checkpoint": "2026-09-16T22:17:55.097556+00:00",
   "last_human_progress_update": "2026-09-16T22:16:01.988864+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Signal Replay exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
