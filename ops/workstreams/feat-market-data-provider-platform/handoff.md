@@ -1,5 +1,27 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpaca native reset-header hardening and MarketData.app live proof
+
+- Alpaca native quota observations now require a positive, parseable
+  `X-RateLimit-Reset` epoch in addition to an exact reviewed limit and a
+  valid remaining counter. Missing, malformed, or non-positive reset headers
+  remain observation-only; this does not promote Alpaca's unresolved reset
+  contract to routable status.
+- Focused Alpaca reconciliation coverage passed `1/1`; Ruff and `git
+  diff --check` passed. The complete backend unit suite passed `2,329/2,329`
+  with 37 warnings and 70.69% coverage.
+- The manifest-enforced MarketData.app focused live matrix passed `7/7`
+  cases with `9` HTTP requests and `18,489` response bytes using the
+  configured Starter Trial account (`10,000` daily credits through the
+  configured 2026-10-11 expiry). Account usage, daily/five-minute candles,
+  options, bounded option history, latest price, and the deliberate
+  response-priced no-request guard all passed. The redacted receipt is in
+  `validation.jsonl`; credentials and provider payloads were not persisted.
+- An unqualified full pytest invocation was stopped after Testcontainers
+  failed to access the local Docker socket (`PermissionError`). This is an
+  environment blocker for the Docker-backed integration gate, not a unit or
+  provider-live failure.
+
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 
 - At committed source `0220ae07e`, the owner-local durable-ledger preflight

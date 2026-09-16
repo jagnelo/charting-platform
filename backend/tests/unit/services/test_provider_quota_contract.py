@@ -1693,9 +1693,36 @@ def test_alpaca_market_data_headers_reconcile_only_matching_request_window():
         response_headers={
             "x-ratelimit-limit": "100",
             "x-ratelimit-remaining": "99",
+            "x-ratelimit-reset": "1789238854",
         }
     )
     assert _observed_dimension_totals(policy, mismatched) == {}
+
+    missing_reset = SimpleNamespace(
+        response_headers={
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+        }
+    )
+    assert _observed_dimension_totals(policy, missing_reset) == {}
+
+    malformed_reset = SimpleNamespace(
+        response_headers={
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+            "x-ratelimit-reset": "not-an-epoch",
+        }
+    )
+    assert _observed_dimension_totals(policy, malformed_reset) == {}
+
+    nonpositive_reset = SimpleNamespace(
+        response_headers={
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+            "x-ratelimit-reset": "0",
+        }
+    )
+    assert _observed_dimension_totals(policy, nonpositive_reset) == {}
 
 
 def test_xstocks_native_headers_reconcile_only_matching_shared_public_window():

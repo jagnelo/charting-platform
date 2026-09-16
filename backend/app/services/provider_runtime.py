@@ -805,9 +805,18 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             try:
                 header_limit = int(headers["x-ratelimit-limit"])
                 remaining = int(headers["x-ratelimit-remaining"])
+                reset_epoch = int(headers["x-ratelimit-reset"])
             except (KeyError, TypeError, ValueError):
                 continue
-            if header_limit == limit and 0 <= remaining <= header_limit:
+            # Alpaca's native counter is only useful as a current-window
+            # observation when the response also proves the provider's reset
+            # boundary.  Do not turn a limit/remaining pair from a different
+            # endpoint, stale cache, or changed contract into durable usage.
+            if (
+                header_limit == limit
+                and 0 <= remaining <= header_limit
+                and reset_epoch > 0
+            ):
                 totals[name] = header_limit - remaining
             continue
         if unit in {"credit", "credits"} and window_seconds == 86400 and "marketdata.app" in source:
