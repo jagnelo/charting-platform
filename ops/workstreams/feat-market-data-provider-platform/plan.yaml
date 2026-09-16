@@ -3657,4 +3657,15 @@ progress:
       conflicting minute pool, other provider reset/legal/source gates,
       complete universe, target secret stores, deferred providers, routing
       promotion, and final shadow remain open.
+    - >-
+      2026-09-17 exact-current-source matrix replay: MarketData.app passed
+      `7/7` at source `ac34754e1` with nine requests and 20,960 response bytes,
+      including its no-request unbounded-history guard. Binance's native usage
+      bootstrap passed `1/1`, then its bounded matrix passed `3/3` at the same
+      source with seven requests and 17,616,639 response bytes. The Binance
+      fixed-window baseline was refreshed at the minute boundary after a
+      prior stale-window preflight correctly stopped before transport. These
+      receipts remain bounded transport/accounting evidence; provider/source,
+      universe, target-secret, deferred-provider, routing-promotion, and final
+      shadow gates remain open.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.

@@ -14,6 +14,22 @@
 - Both receipts are aggregate-only and redacted in `validation.jsonl`; no
   credentials or provider payloads were persisted.
 
+## 2026-09-17 Exact-source MarketData.app and Binance replay
+
+- MarketData.app passed its bounded matrix `7/7` at exact source
+  `ac34754e16d8fb49a486cba27ed63c3e676cf706`, with nine upstream requests and
+  20,960 response bytes. The response-priced unbounded-history guard made no
+  request.
+- Binance's native request-weight bootstrap passed `1/1` at that same source,
+  followed immediately by its bounded matrix `3/3` with seven upstream
+  requests and 17,616,639 response bytes. The first replay after a stale
+  fixed-window observation was correctly stopped before transport; the
+  successful retry refreshed the native 6,000-weight/minute baseline at the
+  next boundary and then exercised discovery, latest/history, current price,
+  and usage accounting.
+- Receipts are aggregate-only and redacted in `validation.jsonl`; no
+  credentials or provider payloads were persisted.
+
 ## 2026-09-17 Binance fixed-window live-ordering correction
 
 - The first current-window Binance replay exposed a real boundary race: a

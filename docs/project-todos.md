@@ -17823,3 +17823,17 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] These snapshots do not close provider-specific reset, legal/source,
       complete-universe, target secret-store, deployment, routing-promotion,
       deferred-provider, or final shadow gates.
+
+### 2026-09-17 — Exact-source live matrix replay
+
+- [x] MarketData.app passed its exact-source bounded matrix `7/7` at
+      `ac34754e1`, with nine upstream requests and `20,960` response bytes;
+      the response-priced unbounded-history guard made no request.
+- [x] Binance passed its exact-source native usage bootstrap `1/1`, followed
+      immediately by the bounded matrix `3/3` at `ac34754e1` (seven upstream
+      requests and `17,616,639` response bytes). The fixed one-minute
+      request-weight baseline was refreshed at the window boundary; a prior
+      replay that crossed the boundary was correctly rejected before transport.
+- [ ] These are bounded transport/accounting receipts only; provider-specific
+      terms, complete universe, target secret stores, deferred providers,
+      routing promotion, and the final shadow gate remain open.
