@@ -595,7 +595,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reads to the authenticated principal and atomically persist receipts before
   returning them. Router registration, authentication dependency selection,
   PostgreSQL compare-and-set, Redis dispatch, and worker effects remain shared
-  integration concerns.
+  integration concerns. Collection adapters receive the route-generated request
+  identity and must return it unchanged in the collection envelope, preventing
+  response evidence from being detached from the originating request.
 - `postgres_resources.py` supplies the read-only persistence bridge for that
   boundary. It projects authenticated-owner aggregate snapshots into immutable
   resource documents, orders pages deterministically, and binds every cursor to
