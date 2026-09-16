@@ -1,5 +1,84 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R5 series shapes and R6 visual parity: full gate green
+
+Product commit `92876519f839f6341d9ff073c8a60e043996697a`
+(`fix(research): validate study series promotion shapes`) records the R5
+compatibility change and the R6 visual-state fixture updates. Structured series
+can become chart plots only when their timestamps and finite/gap observations
+form a valid aligned axis. Legacy unaligned numeric arrays remain eligible for
+latest-value and threshold promotions, but not chart plots; malformed structured
+artifacts remain inspectable/exportable with an explicit limitation. Unit and
+authenticated E2E coverage covers these cases.
+
+The visual tests now wait for settled benchmark readiness/current rows before
+capturing the pop-out, and assert the updated target-specific Ctrl+wheel help
+copy. Eight local Darwin snapshots were refreshed for the settled floating
+WatchList, readiness-backed column editor, and help-overlay states. The four
+visual projects passed without changing the 0.5% threshold, masks, skips, V25
+reference media, or acceptance policy.
+
+The full `make validate-integration` gate exited 0 on the working tree based on
+`ce718e97b96b68a7be4a110b503cd20e75020e74` with this product slice staged;
+the resulting product commit above contains that tested product tree. The gate
+included the functional browser suite and all four visual projects and removed
+only the assigned TC Compose stack/resources. An additional standalone headless
+Chromium run passed 169 tests with zero failures. The TC scope guard passed for
+52 paths, its six self-tests passed, workstream validation passed, and
+`git diff --check` passed. No provider-platform or ETF-owned behavior was added.
+
+The earlier Boolean-column E2E failure did not reproduce: the adjacent focused
+pair passed, then the full functional browser suite passed. It was a transient
+test failure, not a persistent product or environment blocker. The session goal
+and workstream remain active/in progress because the broader roadmap is not
+complete. Provider/ETF consumption remains deferred until both upstreams reach
+staging; this sequencing gate blocks only consumer integration. No push was
+attempted under the recorded private-origin safeguard.
+
+Next: continue the next unfinished TC-owned roadmap item. Do not revive the old
+workspace-floating/watchlist visual blocker; the latest full visual gate passed.
+
+## Historical diagnostic (superseded) — Workspace-floating oracle after intended WatchList hydration
+
+The focused headless browser test was rerun against the freshly seeded,
+branch-scoped TC stack in all four viewport/scale projects. Each screenshot
+assertion failed at the unchanged `0.005` pixel-ratio threshold; the stable
+1080p/100% result differed by `15,817` pixels (about 2%). The test had already
+asserted five rows and the exact `DIA`, `IWM`, `QQQ`, `RSP`, `SPY` symbol order
+before capture. The actual screenshot shows those populated rows; the committed
+expected image has only the WatchList chrome and an empty body.
+
+History confirms an oracle/state mismatch, not a row-rendering regression: the
+Darwin local screenshot was added on 2026-08-20 by `3a83fdd00`; the intended
+late-open WatchList pop-out hydration shipped on 2026-09-04 in `a01e84c16`; and
+the explicit row-preservation assertion was added on 2026-09-15 in `4d448da2c`
+without refreshing the screenshot. The accepted board-covered state uses local
+product screenshots as regression baselines, not as exact-build TC2000 captures.
+Official shared-layout references also show populated WatchLists. Therefore
+refresh only the four `workspace-floating` local viewport/scale screenshots to
+the current deterministic seeded state. Keep the five-row/symbol assertions,
+`0.005` threshold, masks/skips, V25 reference pack, manifest, and acceptance
+policy unchanged. This does not promote a local screenshot to an exact V25
+reference or weaken its pixel tolerance. After the focused cases pass, run the
+complete visual suite and continue the separate watchlist-column-editor audit.
+
+The complete 104-case visual suite then passed `99/104`. It exposed a capture-
+timing detail: the 1080p/125% run sometimes reached the screenshot after row
+identity rendered but before late WatchList hydration settled. The first
+refreshed 125% image contained “Checking all-family readiness” and unavailable
+cells. The fixture now waits for the readiness result and all five rows to
+report `Current`; floating-state repeat validation passed `8/8` without update
+mode. The 1080p/125% capture was regenerated from the settled populated state,
+and each of the four project variants has passed twice.
+
+The same full suite found two help-overlay screenshots whose expected copy
+predates the intentional Ctrl+wheel help update in product commit
+`5c3da621c`. The actual help text distinguishes chart timeframe navigation from
+WatchList symbol traversal. The visual test now asserts that wording; only the
+two affected 1080p local captures are candidates for refresh. The remaining
+watchlist-column-editor screenshots are still uninvestigated. No threshold,
+mask, skip, V25 media, manifest, or acceptance policy changed.
+
 ## 2026-09-16 - Completed context: V25 chart Ctrl+wheel timeframe navigation
 
 This independent R6 workstation slice corrects a direct V25 interaction mismatch.
