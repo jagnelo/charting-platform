@@ -853,6 +853,21 @@ trusted paired inference remain open metric gaps. No provider, ETF, TC2000,
 persistence, API, worker, Compose, Nautilus, frontend, integration,
 promotion, or deployment paths were changed.
 
+## 2026-09-16 - Trial-bound evaluation-window checkpoint
+
+The metric-scope slice adds immutable `EvaluationWindow` records with explicit
+evaluation start/end, purpose, and optional warm-up start. The window is bound
+into `ScientificTrial` identity and projected into `SensitivityMetricScope`;
+`SensitivityComparisonEvidence` now rejects variants that use different
+evaluation or warm-up windows. Offset-aware timestamps normalize to UTC and
+invalid ranges fail closed.
+
+The exact implementation tree passed 94 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Additional risk evidence and all persistence,
+API, worker, and runtime gates remain open. No provider, ETF, TC2000,
+persistence, API, worker, Compose, Nautilus, frontend, integration,
+promotion, or deployment paths were changed.
+
 ## 2026-09-16 - Explicit stress-scenario evidence checkpoint
 
 The next engine-neutral risk slice adds `StressScenarioObservation` and
