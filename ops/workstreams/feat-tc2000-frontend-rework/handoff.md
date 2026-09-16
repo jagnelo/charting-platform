@@ -13212,6 +13212,21 @@ consumer integration remains deferred until both branches reach staging, and
 this is a complete exact-gate receipt for the slice, not closure of the overall
 workstream.
 
+## 2026-09-16 - Strategy Result, Breadth asset, and Market Map action states
+
+Product commits `7c3891316`, `3e741a7dd`, and `e5b625f0b` complete three
+frontend-only R6 accessibility slices. StrategyResultChart's no-data state is a
+polite atomic status; BreadthConditionTreeEditor announces Python series asset
+loading/no-asset states politely in both leaf editors; and MarketMapTool's
+source/bootstrap/clone, snapshot, history, definition, warning, and empty-map
+messages now use consistent polite-status or assertive-alert semantics. No
+chart, condition, map, source, or provider behavior changed.
+
+Focused coverage passed `8/8`, `10/10`, and `54/54` respectively; full frontend
+Vitest passed `1,117/1,117`; vue-tsc and production build passed with the
+existing large-chunk warning; TC scope/self-tests and `git diff --check` passed.
+The combined exact full-stack/browser gate is pending at product tip `e5b625f0b`.
+
 ## 2026-09-16 - EasyScan state announcements
 
 Product commit `618aeb7` gives `EasyScanTool` explicit live-region semantics
