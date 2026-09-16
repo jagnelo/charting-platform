@@ -440,7 +440,12 @@ class Settings(BaseSettings):
                         "source": "https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits",
                     }
                 ],
-                "reset": "rolling",
+                # SEC publishes the 10-requests/second ceiling but does not
+                # define whether the enforcement window is fixed or rolling.
+                # Keep the dimension auditable but non-admission-safe until
+                # current provider/account evidence is explicitly reviewed.
+                "reset": "provider_defined",
+                "unknown_dimensions": ["requests_per_second_reset_boundary"],
             },
             "quota_scope": "ip",
             "quota_source": "SEC fair-access policy",
@@ -2222,6 +2227,10 @@ class Settings(BaseSettings):
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
     EDGAR_USER_AGENT: str = ""
+    # SEC publishes the 10-requests/second ceiling but not its reset-window
+    # semantics. Keep EDGAR routing fail-closed until both are reviewed.
+    EDGAR_REVIEWED_RESET: str = ""
+    EDGAR_QUOTA_EVIDENCE: str = ""
     FINRA_CLIENT_ID: str = ""
     FINRA_CLIENT_SECRET: str = ""
     FINRA_TOKEN_URL: str = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token"
@@ -2505,6 +2514,7 @@ _KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
         "calendar_month",
         "calendar_month_est",
         "calendar_month_utc",
+        "fixed_second",
         "fixed_minute",
         "per_dimension",
         "provider_defined",
@@ -3046,6 +3056,38 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             seed["quota_scope"] = "api_key"
             seed["quota_source"] = (
                 "Massive Stocks Basic allowance plus operator-reviewed reset evidence"
+            )
+        return seed
+    if provider_name == "edgar":
+        # EDGAR publishes a 10-requests/second fair-access ceiling, but the
+        # source does not establish the reset boundary. Promote only after an
+        # operator records an explicit calculable label and current evidence.
+        reviewed_reset = str(
+            getattr(settings, "EDGAR_REVIEWED_RESET", "") or ""
+        ).strip()
+        quota_evidence = str(
+            getattr(settings, "EDGAR_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        contract = seed.get("quota_contract")
+        if (
+            provider_quota_reset_is_admission_safe(reviewed_reset)
+            and quota_evidence
+            and isinstance(contract, dict)
+        ):
+            contract["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if (
+                    isinstance(dimension, dict)
+                    and dimension.get("name") == "requests_per_second"
+                ):
+                    dimension["reset"] = reviewed_reset
+            contract["source"] = (
+                f"{contract.get('source', 'SEC fair-access policy')} plus "
+                "operator-reviewed reset-boundary evidence"
+            )
+            seed["quota_source"] = (
+                "SEC fair-access ceiling plus operator-reviewed reset evidence"
             )
         return seed
     if provider_name == "alpaca":

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-16 — SEC EDGAR reset-boundary admission control
+
+- [x] Correct the EDGAR quota seed so the documented 10-requests/second
+      ceiling is not interpreted as a provider-confirmed rolling window. The
+      contract now records `provider_defined` plus the exact unresolved
+      `requests_per_second_reset_boundary` dimension.
+- [x] Add `EDGAR_REVIEWED_RESET` and `EDGAR_QUOTA_EVIDENCE` through settings,
+      diagnostics, local/RPi Compose, GitHub live validation, examples, and
+      focused tests. A reviewed pair is required before routing; User-Agent
+      configuration and an IP baseline alone are insufficient.
+- [ ] Obtain current SEC/account evidence for the reset boundary and run the
+      bounded EDGAR live matrix only after that pair and the durable IP baseline
+      are available.
+
 ### 2026-09-16 — Massive reset-boundary admission control
 
 - [x] Add explicit `MASSIVE_REVIEWED_RESET` and

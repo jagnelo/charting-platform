@@ -97,6 +97,8 @@ PROVIDER_SAFETY_SETTINGS = {
     "FINRA_OTC_POLL_INTERVAL_SECONDS",
     "ALPHA_VANTAGE_REVIEWED_RESET",
     "ALPHA_VANTAGE_QUOTA_EVIDENCE",
+    "EDGAR_REVIEWED_RESET",
+    "EDGAR_QUOTA_EVIDENCE",
     "FINNHUB_REVIEWED_MINUTE_RESET",
     "FINNHUB_REVIEWED_SECOND_RESET",
     "FINNHUB_MINUTE_QUOTA_EVIDENCE",
@@ -437,6 +439,8 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         "ALPHA_VANTAGE_QUOTA_EVIDENCE: ${{ vars.ALPHA_VANTAGE_QUOTA_EVIDENCE || '' }}"
         in workflow
     )
+    assert "EDGAR_REVIEWED_RESET: ${{ vars.EDGAR_REVIEWED_RESET || '' }}" in workflow
+    assert "EDGAR_QUOTA_EVIDENCE: ${{ vars.EDGAR_QUOTA_EVIDENCE || '' }}" in workflow
     assert (
         "FINNHUB_REVIEWED_MINUTE_RESET: ${{ vars.FINNHUB_REVIEWED_MINUTE_RESET || '' }}"
         in workflow
@@ -576,6 +580,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "ALPHA_VANTAGE_REVIEWED_RESET=" in example
     assert "ALPHA_VANTAGE_QUOTA_EVIDENCE=" in example
+    assert "EDGAR_REVIEWED_RESET=" in example
+    assert "EDGAR_QUOTA_EVIDENCE=" in example
     assert "FINNHUB_REVIEWED_MINUTE_RESET=" in example
     assert "FINNHUB_REVIEWED_SECOND_RESET=" in example
     assert "FINNHUB_MINUTE_QUOTA_EVIDENCE=" in example
@@ -686,6 +692,8 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setenv("ALPHA_VANTAGE_REVIEWED_RESET", "")
     monkeypatch.setenv("ALPHA_VANTAGE_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("EDGAR_REVIEWED_RESET", "")
+    monkeypatch.setenv("EDGAR_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FINNHUB_REVIEWED_MINUTE_RESET", "")
     monkeypatch.setenv("FINNHUB_REVIEWED_SECOND_RESET", "")
     monkeypatch.setenv("FINNHUB_MINUTE_QUOTA_EVIDENCE", "")
@@ -741,6 +749,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["alpha_vantage"].startswith("non-routable:")
+    assert statuses["edgar quota"].startswith("non-routable:")
     assert statuses["finnhub"].startswith("non-routable:")
     assert statuses["coinbase market-data use"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("routable:")
@@ -824,6 +833,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["alpaca corporate actions"] == "routable"
     assert statuses["alpaca market-data quota"] == "routable"
+    monkeypatch.setenv("EDGAR_REVIEWED_RESET", "rolling")
+    monkeypatch.setenv("EDGAR_QUOTA_EVIDENCE", "current SEC/account review")
+    statuses = routing_safety_preflight()
+    assert statuses["edgar quota"] == "routable"
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "2")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "true")
     monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "Massive personal-use terms review")

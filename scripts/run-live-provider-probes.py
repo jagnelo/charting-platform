@@ -1419,6 +1419,19 @@ def routing_safety_preflight() -> dict[str, str]:
         else "non-routable: documented 5-requests/minute Stocks Basic pool has no provider-published reset boundary; missing/invalid "
         + ", ".join(massive_quota_missing)
     )
+    edgar_reset = os.getenv("EDGAR_REVIEWED_RESET", "").strip()
+    edgar_quota_evidence = os.getenv("EDGAR_QUOTA_EVIDENCE", "").strip()
+    edgar_quota_missing: list[str] = []
+    if not provider_quota_reset_is_admission_safe(edgar_reset):
+        edgar_quota_missing.append("EDGAR_REVIEWED_RESET")
+    if not edgar_quota_evidence:
+        edgar_quota_missing.append("EDGAR_QUOTA_EVIDENCE")
+    result["edgar quota"] = (
+        "routable"
+        if not edgar_quota_missing
+        else "non-routable: documented 10-requests/second SEC fair-access ceiling has no provider-published reset boundary; missing/invalid "
+        + ", ".join(edgar_quota_missing)
+    )
     async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
     try:
         result["finra async result bytes"] = (

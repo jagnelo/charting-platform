@@ -412,7 +412,7 @@ GitHub uses the separate manually dispatched
 environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmation)
 `FINRA_OTC_SOURCE_KIND`, `FINRA_OTC_SYMBOL_DIRECTORY_URL`, and (for the documented ORF pair)
 `FINRA_OTC_INACTIVE_SECURITY_MASTER_URL` environment variables. Put the reviewed non-secret safety settings
-`ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE`, `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_MARKET_DATA_USE_AUTHORIZED`,
+`ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE`, `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `EDGAR_REVIEWED_RESET`, `EDGAR_QUOTA_EVIDENCE`, `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_MARKET_DATA_USE_AUTHORIZED`,
 `MASSIVE_REVIEWED_RESET`, `MASSIVE_QUOTA_EVIDENCE`,
 `MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE`, `MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE`,
 `MASSIVE_MARKET_DATA_USE_REVIEWED_AT`, `MASSIVE_MARKET_DATA_USE_EXPIRES_AT`, `FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
@@ -633,7 +633,7 @@ and the Dinari Sandbox pair. The latest exact-source Alpaca work live-verified
 only its native account-usage header snapshot; ordinary Alpaca routing remains
 fail-closed because the observed reset value did not prove a calculable minute
 window. The latest SEC EDGAR manifest preflight stopped before transport because
-the documented IP window has no current durable baseline. Tradier, Ondo, and
+the reset boundary and current durable IP baseline are not yet reviewed. Tradier, Ondo, and
 IBKR are intentionally deferred. Every deployment and CI environment must
 still provide its own operator contact value.
 

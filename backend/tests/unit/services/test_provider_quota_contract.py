@@ -179,6 +179,11 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
     assert massive["reset"] == "provider_defined"
     assert massive["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
 
+    edgar = provider_rate_limit_seed("edgar")["quota_contract"]
+    assert edgar["dimensions"][0]["limit"] == 10
+    assert edgar["reset"] == "provider_defined"
+    assert edgar["unknown_dimensions"] == ["requests_per_second_reset_boundary"]
+
     alpha = provider_rate_limit_seed("alpha_vantage")["quota_contract"]
     assert alpha["dimensions"][0]["limit"] == 25
     assert alpha["reset"] == "provider_defined"
@@ -198,6 +203,21 @@ def test_massive_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
     contract = provider_rate_limit_seed("massive")["quota_contract"]
     assert contract["reset"] == "provider_defined"
     assert contract["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
+
+
+def test_edgar_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "EDGAR_REVIEWED_RESET", "rolling")
+    monkeypatch.setattr(settings, "EDGAR_QUOTA_EVIDENCE", "operator review")
+    contract = provider_rate_limit_seed("edgar")["quota_contract"]
+    assert contract["reset"] == "rolling"
+    assert contract["unknown_dimensions"] == []
+    assert contract["dimensions"][0]["reset"] == "rolling"
+
+    monkeypatch.setattr(settings, "EDGAR_REVIEWED_RESET", "fixed_minute")
+    monkeypatch.setattr(settings, "EDGAR_QUOTA_EVIDENCE", "")
+    contract = provider_rate_limit_seed("edgar")["quota_contract"]
+    assert contract["reset"] == "provider_defined"
+    assert contract["unknown_dimensions"] == ["requests_per_second_reset_boundary"]
 
 
 def test_alpaca_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
@@ -417,6 +437,7 @@ def test_unknown_quota_reset_semantics_fail_closed_in_runtime_contract():
     assert provider_quota_reset_is_known("provider_defined_daily")
     assert not provider_quota_reset_is_admission_safe("provider_defined_daily")
     assert provider_quota_reset_is_admission_safe("rolling")
+    assert provider_quota_reset_is_admission_safe("fixed_second")
     assert not provider_quota_reset_is_known("one_request_per_whatever")
     policy = ProviderPolicy(
         data_source_id=1,
