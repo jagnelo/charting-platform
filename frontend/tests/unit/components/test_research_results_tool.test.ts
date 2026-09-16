@@ -1072,7 +1072,7 @@ describe('ResearchResultsTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/analysis/breadth/python/runs/25/promote-scan') return Promise.resolve({ id: 55, name: 'Boolean breadth scan 25', conditions: { code_version_id: 88 } })
       if (path === '/alerts/screener') return Promise.resolve({ id: 56 })
-      if (path === '/strategy-lab/signals/from-code/88') return Promise.resolve({ id: 57 })
+      if (path === '/analysis/breadth/python/runs/25/promote-signal') return Promise.resolve({ id: 57, name: 'Boolean breadth signal 25' })
       return Promise.resolve({})
     })
     const wrapper = mountTool()
@@ -1087,8 +1087,9 @@ describe('ResearchResultsTool', () => {
 
     expect(apiPost.mock.calls.filter(call => call[0] === '/analysis/breadth/python/runs/25/promote-scan')).toHaveLength(1)
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 55, trigger_type: 'entered', repeat: true, notes: 'Created from Python breadth run 25' })
-    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/88', {})
-    expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.')
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/25/promote-signal', {})
+    expect(apiPost).not.toHaveBeenCalledWith('/strategy-lab/signals/from-code/88', {})
+    expect(wrapper.text()).toContain('Saved Strategy Lab signal “Boolean breadth signal 25” (#57).')
   })
 
   it('offers aggregate Study Lab promotion for cross-sectional Python breadth history', async () => {

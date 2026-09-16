@@ -1,4 +1,141 @@
 class TestStrategyLabAPI:
+    def test_historical_breadth_signal_promotion_preserves_shape_and_lineage(
+        self, client, auth_headers, db, user, instrument
+    ):
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        def add_run(
+            *,
+            stable_key: str,
+            output_contract: str,
+            output_name: str,
+            run_config: dict,
+        ) -> ResearchRun:
+            asset = CodeAsset(
+                user_id=user.id,
+                stable_key=stable_key,
+                name=stable_key,
+                kind="condition",
+            )
+            asset.versions.append(
+                CodeVersion(
+                    version_number=1,
+                    source=(
+                        f"output.{output_contract}('{output_name}', True)"
+                        if output_contract == "boolean"
+                        else f"output.series('{output_name}', market.close())"
+                    ),
+                    output_contract=output_contract,
+                    output_name=output_name,
+                )
+            )
+            run = ResearchRun(
+                user_id=user.id,
+                code_version=asset.versions[0],
+                status="completed",
+                run_config={
+                    "execution_mode": "breadth_history",
+                    "symbols": [instrument.symbol],
+                    "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                    "definition_hash": f"{stable_key}-definition",
+                    **run_config,
+                },
+                dataset_manifest={"source": "canonical_database", "timeframe": "D1"},
+                reproducibility_hash=f"{stable_key}-hash",
+            )
+            run.artifacts.append(
+                ResearchArtifact(
+                    artifact_type="breadth_history",
+                    name="breadth_history",
+                    payload={"value": {"points": [], "occurrences": []}},
+                )
+            )
+            db.add(run)
+            db.flush()
+            return run
+
+        boolean_run = add_run(
+            stable_key="breadth-signal-boolean",
+            output_contract="boolean",
+            output_name="match",
+            run_config={},
+        )
+        boolean_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{boolean_run.id}/promote-signal",
+            headers=auth_headers,
+            json={"name": "Boolean breadth strategy signal"},
+        )
+        assert boolean_response.status_code == 201, boolean_response.text
+        boolean_payload = boolean_response.json()
+        assert boolean_payload["metadata"]["origin"] == "breadth_history_promotion"
+        assert boolean_payload["metadata"]["source_instrument_ids"] == [instrument.id]
+
+        series_run = add_run(
+            stable_key="breadth-signal-series",
+            output_contract="series",
+            output_name="trend",
+            run_config={
+                "output_contract": "series",
+                "series_target": {"operator": "gte", "threshold": 2.5},
+            },
+        )
+        series_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{series_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert series_response.status_code == 201, series_response.text
+        series_payload = series_response.json()
+        assert series_payload["metadata"]["output_adapter"] == "series_target_to_boolean"
+        assert series_payload["metadata"]["source_output_name"] == "trend"
+        assert series_payload["metadata"]["series_target"] == {
+            "operator": "gte",
+            "threshold": 2.5,
+        }
+
+        tree_run = add_run(
+            stable_key="breadth-signal-tree",
+            output_contract="boolean",
+            output_name="match",
+            run_config={
+                "condition_tree": {"kind": "all", "params": {"conditions": []}},
+            },
+        )
+        tree_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{tree_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert tree_response.status_code == 201, tree_response.text
+        tree_payload = tree_response.json()
+        assert tree_payload["metadata"]["output_adapter"] == "condition_tree_to_boolean"
+        assert tree_payload["metadata"]["condition_tree"]["kind"] == "all"
+
+        cross_sectional_run = add_run(
+            stable_key="breadth-signal-cross-sectional",
+            output_contract="series",
+            output_name="trend",
+            run_config={
+                "output_contract": "series",
+                "series_target": {
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+            },
+        )
+        cross_sectional_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_sectional_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert cross_sectional_response.status_code == 422, cross_sectional_response.text
+        assert (
+            cross_sectional_response.json()["detail"]["code"]
+            == "breadth_signal_promotion_requires_member_series"
+        )
+
     def test_research_event_artifact_promotes_with_lineage(self, client, auth_headers, db, user):
         import hashlib
         import json

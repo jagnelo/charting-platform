@@ -137,6 +137,38 @@ def _resolve_engine_for_version(
     )
 
 
+def _promotion_lineage_from_diagnostics(diagnostics: object) -> dict[str, object]:
+    """Normalize canonical and legacy promotion diagnostics for Strategy runs.
+
+    Older breadth adapters stored ``promotion_lineage`` as a top-level key and
+    stored executable adapter fields in a neighboring diagnostic object.  Newer
+    code assets use the canonical ``code``/``lineage`` envelope.  Reading both
+    shapes keeps immutable historical assets executable without rewriting them.
+    """
+    if not isinstance(diagnostics, list):
+        return {}
+    lineage: dict[str, object] = {}
+    for item in diagnostics:
+        if not isinstance(item, dict):
+            continue
+        canonical = item.get("lineage")
+        if item.get("code") == "promotion_lineage" and isinstance(canonical, dict):
+            lineage.update(canonical)
+        legacy = item.get("promotion_lineage")
+        if isinstance(legacy, dict):
+            lineage.update(legacy)
+        for key in (
+            "output_adapter",
+            "series_target",
+            "condition_tree",
+            "source_output_name",
+        ):
+            value = item.get(key)
+            if value is not None:
+                lineage[key] = value
+    return lineage
+
+
 async def _queue_python_signal_research(
     db: AsyncSession,
     *,
@@ -179,24 +211,17 @@ async def _queue_python_signal_research(
     # thresholded series or range-center value).  Carry that immutable lineage
     # into the queued research configuration so the isolated runner receives the
     # same adapter and target relation as the authored CodeVersion.
-    diagnostics = code_version.diagnostics if isinstance(code_version.diagnostics, list) else []
-    promotion_lineage = next(
-        (
-            item.get("lineage")
-            for item in diagnostics
-            if isinstance(item, dict)
-            and item.get("code") == "promotion_lineage"
-            and isinstance(item.get("lineage"), dict)
-        ),
-        None,
-    )
-    if isinstance(promotion_lineage, dict):
+    promotion_lineage = _promotion_lineage_from_diagnostics(code_version.diagnostics)
+    if promotion_lineage:
         output_adapter = promotion_lineage.get("output_adapter")
         if isinstance(output_adapter, str) and output_adapter:
             run_config["output_adapter"] = output_adapter
         series_target = promotion_lineage.get("series_target")
         if isinstance(series_target, dict):
             run_config["series_target"] = series_target
+        condition_tree = promotion_lineage.get("condition_tree")
+        if isinstance(condition_tree, dict):
+            run_config["condition_tree"] = condition_tree
         output_name = promotion_lineage.get("source_output_name")
         if isinstance(output_name, str) and output_name:
             run_config["output_name"] = output_name

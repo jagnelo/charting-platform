@@ -23,6 +23,7 @@ from app.schemas.strategy import (
     StrategyVersionUpdate,
 )
 from app.services.strategy_lab import (
+    _promotion_lineage_from_diagnostics,
     _refresh_python_signal_research,
     execute_strategy_run,
     preview_strategy_coverage,
@@ -125,25 +126,20 @@ async def promote_code_signal(
             status_code=422, detail="Signal code must produce Boolean or event output"
         )
 
-    promotion_lineage = next(
-        (
-            item.get("lineage")
-            for item in (version.diagnostics or [])
-            if isinstance(item, dict)
-            and item.get("code") == "promotion_lineage"
-            and isinstance(item.get("lineage"), dict)
-        ),
-        None,
-    )
-    promotion_type = promotion_lineage.get("type") if isinstance(promotion_lineage, dict) else None
+    promotion_lineage = _promotion_lineage_from_diagnostics(version.diagnostics)
+    promotion_type = promotion_lineage.get("type") if promotion_lineage else None
     origin = (
         "chart_plot_promotion"
         if promotion_type == "chart_plot_promotion"
+        else "breadth_history_promotion"
+        if promotion_type == "python_breadth_research_run"
         else "study_lab_promotion"
     )
     description = (
         "Canonical chart indicator threshold promoted as a Strategy Lab signal."
         if origin == "chart_plot_promotion"
+        else "Historical Python breadth condition promoted as a Strategy Lab signal."
+        if origin == "breadth_history_promotion"
         else "Unified-Python signal promoted from Study Lab."
     )
     base_name = f"{version.asset.name} Strategy Signal"
@@ -162,6 +158,42 @@ async def promote_code_signal(
         name = f"{base_name} ({suffix})"
         suffix += 1
 
+    strategy_metadata = {
+        "origin": origin,
+        "code_asset_id": version.code_asset_id,
+        "code_version_id": version.id,
+        "output_contract": version.output_contract,
+    }
+    if origin == "breadth_history_promotion":
+        strategy_metadata["promotion_lineage"] = promotion_lineage
+        for key in (
+            "source_run_id",
+            "source_code_version_id",
+            "source_execution_mode",
+            "source_definition_hash",
+            "source_reproducibility_hash",
+            "source_dataset_manifest_sha256",
+            "source_dataset_manifest",
+            "source_universe",
+            "source_instrument_ids",
+            "source_output_name",
+            "output_adapter",
+            "series_target",
+            "condition_tree",
+            "target_semantics",
+            "point_in_time_source_preserved",
+        ):
+            if key in promotion_lineage:
+                strategy_metadata[key] = promotion_lineage[key]
+
+    definition_snapshot = {
+        "kind": "python_signal",
+        "code_version_id": version.id,
+        "output_contract": version.output_contract,
+    }
+    if origin == "breadth_history_promotion":
+        definition_snapshot["promotion_lineage"] = promotion_lineage
+
     strategy = StrategyDefinition(
         user_id=current_user.id,
         name=name,
@@ -171,22 +203,15 @@ async def promote_code_signal(
         is_active=True,
         tags=["chart-plot", "python-signal"]
         if origin == "chart_plot_promotion"
+        else ["breadth-history", "python-signal"]
+        if origin == "breadth_history_promotion"
         else ["study-lab", "python-signal"],
-        metadata_json={
-            "origin": origin,
-            "code_asset_id": version.code_asset_id,
-            "code_version_id": version.id,
-            "output_contract": version.output_contract,
-        },
+        metadata_json=strategy_metadata,
     )
     strategy.versions.append(
         StrategyVersion(
             version_number=1,
-            definition_snapshot={
-                "kind": "python_signal",
-                "code_version_id": version.id,
-                "output_contract": version.output_contract,
-            },
+            definition_snapshot=definition_snapshot,
             parameter_schema=version.parameter_schema or {},
             default_parameters=version.default_parameters or {},
             notes="Immutable unified-Python signal reference promoted from Study Lab.",

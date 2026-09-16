@@ -99,6 +99,7 @@ from app.schemas.analysis import (
     BreadthPythonResultPointOut,
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
+    BreadthPythonSignalPromotionRequest,
     BreadthPythonStudyPromotionRequest,
     BreadthUniverseRequest,
     CrossFamilyRankingHistoryOut,
@@ -131,6 +132,7 @@ from app.schemas.market_map import (
     MarketMapSnapshotOut,
     MarketMapSnapshotSummary,
 )
+from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
     assess_observed_holdings_cadence,
@@ -7766,6 +7768,17 @@ async def _python_breadth_source_instrument_ids(db: AsyncSession, run: ResearchR
     return [by_symbol[symbol].id for symbol in symbols]
 
 
+def _python_breadth_tree_has_cross_sectional_scope(node: object) -> bool:
+    """Return whether a breadth condition tree contains a group-scoped leaf."""
+    if isinstance(node, dict):
+        if str(node.get("scope", "member")).lower() == "cross_sectional":
+            return True
+        return any(_python_breadth_tree_has_cross_sectional_scope(value) for value in node.values())
+    if isinstance(node, list):
+        return any(_python_breadth_tree_has_cross_sectional_scope(value) for value in node)
+    return False
+
+
 @router.post("/breadth/python", response_model=BreadthPythonRunOut, status_code=202)
 async def queue_python_breadth(
     body: BreadthPythonRunRequest,
@@ -8356,6 +8369,211 @@ async def promote_python_breadth_run_to_scan(
     await db.flush()
     await db.refresh(screener)
     return screener
+
+
+@router.post(
+    "/breadth/python/runs/{run_id}/promote-signal",
+    response_model=StrategyDefinitionDetailOut,
+    status_code=201,
+)
+async def promote_python_breadth_run_to_signal(
+    run_id: int,
+    body: BreadthPythonSignalPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a first-class immutable Strategy signal from historical breadth.
+
+    EasyScans intentionally remain ``condition`` assets.  Strategy signals use a
+    separate immutable ``signal`` asset so the promotion cannot accidentally
+    retag or mutate a scan, and so the source run/adapter/tree lineage travels
+    with the signal into Strategy Lab's isolated runner.
+    """
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if config.get("execution_mode") != "breadth_history":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_requires_history",
+                "message": "Only completed historical breadth runs can become Strategy signals.",
+            },
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "breadth_signal_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != current_user.id
+        or version.asset.kind != "condition"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_source_unavailable",
+                "message": "The source run does not reference an owned condition version.",
+            },
+        )
+
+    source_contract = str(version.output_contract or "")
+    series_target = config.get("series_target")
+    condition_tree = config.get("condition_tree")
+    output_adapter: str | None = None
+    if isinstance(condition_tree, dict):
+        if source_contract not in {"boolean", "series"}:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_tree_requires_boolean_source",
+                    "message": "A recursive breadth tree must be anchored by a Boolean or numeric condition version.",
+                },
+            )
+        if _python_breadth_tree_has_cross_sectional_scope(condition_tree):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_requires_member_tree",
+                    "message": "Cross-sectional breadth trees remain aggregate studies and cannot become per-instrument Strategy signals.",
+                },
+            )
+        if series_target is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_tree_series_target_conflict",
+                    "message": "A recursive breadth tree cannot be combined with a numeric series target.",
+                },
+            )
+        output_adapter = "condition_tree_to_boolean"
+    elif source_contract == "series":
+        if (
+            not isinstance(series_target, dict)
+            or str(series_target.get("scope", "member")).lower() != "member"
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_requires_member_series",
+                    "message": "Only member-scoped numeric breadth targets can become Strategy signals.",
+                },
+            )
+        output_adapter = "series_target_to_boolean"
+    elif source_contract != "boolean":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_source_unavailable",
+                "message": "The source run does not provide a Boolean or member-scoped numeric condition.",
+            },
+        )
+
+    artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "breadth_history"),
+        None,
+    )
+    if artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_artifact_unavailable",
+                "message": "The completed run has no persisted breadth history artifact.",
+            },
+        )
+    # Resolve the source members even though Strategy execution may later use a
+    # different declared universe.  This keeps the historical source universe
+    # auditable and prevents promotion from silently widening an incomplete run.
+    source_instrument_ids = await _python_breadth_source_instrument_ids(db, run)
+
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    universe = config.get("universe") if isinstance(config.get("universe"), dict) else {}
+    source_metadata: dict[str, object] = {
+        "type": "python_breadth_research_run",
+        "target": "signal",
+        "source_run_id": run.id,
+        "source_execution_mode": config.get("execution_mode"),
+        "source_code_version_id": run.code_version_id,
+        "source_definition_hash": str(config.get("definition_hash") or ""),
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _python_breadth_manifest_summary(manifest),
+        "source_universe": universe,
+        "source_instrument_ids": source_instrument_ids,
+        "target_semantics": "re_evaluate_current_data_as_strategy_signal",
+        "point_in_time_source_preserved": True,
+    }
+    if isinstance(version.output_name, str) and version.output_name.strip():
+        source_metadata["source_output_name"] = version.output_name
+    if isinstance(condition_tree, dict):
+        source_metadata["condition_tree"] = condition_tree
+    if isinstance(series_target, dict):
+        source_metadata["series_target"] = series_target
+    if output_adapter is not None:
+        source_metadata["output_adapter"] = output_adapter
+
+    stable_key = f"breadth-run-{run.id}-signal"
+    existing = (
+        await db.execute(
+            select(CodeAsset).where(
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "breadth_signal_promotion_already_exists"},
+        )
+
+    asset = CodeAsset(
+        user_id=current_user.id,
+        stable_key=stable_key,
+        name=body.name or f"Python breadth signal run {run.id}",
+        kind="signal",
+    )
+    asset.versions.append(
+        CodeVersion(
+            version_number=1,
+            source=version.source,
+            output_contract="boolean",
+            output_name=version.output_name,
+            parameter_schema=dict(version.parameter_schema or {}),
+            default_parameters=dict(version.default_parameters or {}),
+            sdk_version=version.sdk_version,
+            runtime_version=version.runtime_version,
+            dependencies=list(version.dependencies or []),
+            lookback=version.lookback,
+            diagnostics=[
+                *(version.diagnostics or []),
+                {"code": "promotion_lineage", "lineage": source_metadata},
+            ],
+        )
+    )
+    db.add(asset)
+    await db.flush()
+    # Reuse the canonical Strategy Lab promotion path after creating the
+    # dedicated signal asset. This keeps the generic endpoint restricted to
+    # signal/study assets and makes this action atomic from the caller's
+    # perspective: one request creates both immutable source code and the
+    # Strategy definition that references it.
+    from app.routers.strategy_lab import promote_code_signal
+
+    strategy = await promote_code_signal(
+        asset.versions[0].id,
+        db=db,
+        current_user=current_user,
+    )
+    if body.description:
+        strategy.description = body.description
+        await db.commit()
+    return strategy
 
 
 @router.post(

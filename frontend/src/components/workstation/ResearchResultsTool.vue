@@ -700,12 +700,9 @@ async function promoteGauge(run: ResearchRunSummary) {
 async function promoteSignal(run: ResearchRunSummary) {
   const generation = beginPromotion()
   try {
-    const scan = await ensurePromotedScan(run, generation)
+    const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-signal`, {})
     if (!isCurrentMutation(generation)) return
-    if (scan.codeVersionId == null) throw new Error('The promoted EasyScan did not return its immutable Boolean code version.')
-    await api.post(`/strategy-lab/signals/from-code/${scan.codeVersionId}`, {})
-    if (!isCurrentMutation(generation)) return
-    promotionMessage.value = 'Saved as a reusable Strategy Lab signal.'
+    promotionMessage.value = `Saved Strategy Lab signal “${promoted.name}” (#${promoted.id}). It re-evaluates current data with the historical breadth source and adapter lineage preserved.`
   } catch (cause: any) {
     if (isCurrentMutation(generation)) promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Strategy signal'
   } finally {

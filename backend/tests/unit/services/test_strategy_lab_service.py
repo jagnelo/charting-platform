@@ -13,6 +13,7 @@ from app.services.strategy_lab import (
     _build_dense_portfolio_history,
     _build_universe_coverage_summary,
     _extract_risk_and_exit_config,
+    _promotion_lineage_from_diagnostics,
     _queue_python_signal_research,
     _run_rules_paper_forward,
     _symbol_performance_snapshot,
@@ -202,6 +203,88 @@ async def test_python_signal_strategy_carries_study_threshold_adapter_into_resea
     assert research_run.run_config["output_adapter"] == "series_target_to_boolean"
     assert research_run.run_config["series_target"] == {"operator": "gte", "threshold": 2.5}
     assert research_run.run_config["output_name"] == "trend"
+
+
+def test_promotion_lineage_normalizes_canonical_and_legacy_diagnostics():
+    tree = {"kind": "all", "params": {"conditions": []}}
+    diagnostics = [
+        {
+            "output_adapter": "condition_tree_to_boolean",
+            "condition_tree": tree,
+        },
+        {
+            "promotion_lineage": {
+                "type": "python_breadth_research_run",
+                "source_run_id": 42,
+                "source_output_name": "trend",
+            }
+        },
+        {
+            "code": "promotion_lineage",
+            "lineage": {"series_target": {"operator": "gte", "threshold": 2.5}},
+        },
+    ]
+
+    assert _promotion_lineage_from_diagnostics(diagnostics) == {
+        "output_adapter": "condition_tree_to_boolean",
+        "condition_tree": tree,
+        "type": "python_breadth_research_run",
+        "source_run_id": 42,
+        "source_output_name": "trend",
+        "series_target": {"operator": "gte", "threshold": 2.5},
+    }
+
+
+@pytest.mark.asyncio
+async def test_python_signal_strategy_carries_legacy_breadth_tree_lineage_into_research_job(
+    monkeypatch,
+):
+    tree = {"kind": "all", "params": {"conditions": []}}
+    code_version = CodeVersion(
+        id=12,
+        code_asset_id=22,
+        version_number=1,
+        source="output.boolean('match', True)",
+        output_contract="boolean",
+        diagnostics=[
+            {"output_adapter": "condition_tree_to_boolean", "condition_tree": tree},
+            {
+                "promotion_lineage": {
+                    "type": "python_breadth_research_run",
+                    "source_run_id": 42,
+                    "source_output_name": "match",
+                }
+            },
+        ],
+    )
+    db = _ResearchQueueDB(code_version)
+
+    async def materialize(*_args, **_kwargs):
+        return {"symbols": ["SPY"], "datasets": []}
+
+    monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
+    queued = []
+    monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
+    strategy = StrategyDefinition(user_id=4, name="Breadth tree signal", definition_type="python")
+    version = StrategyVersion(
+        strategy=strategy,
+        definition_snapshot={"code_version_id": 12, "output_contract": "boolean"},
+    )
+    run = StrategyRun(
+        strategy=strategy,
+        strategy_version=version,
+        requested_by_user_id=4,
+        engine_type="nautilus",
+        test_mode="backtest",
+        universe_config={"symbols": ["SPY"]},
+    )
+
+    await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+
+    research_run = queued[0]
+    assert research_run.run_config["output_adapter"] == "condition_tree_to_boolean"
+    assert research_run.run_config["condition_tree"] == tree
+    assert research_run.run_config["output_name"] == "match"
 
 
 def _trade(

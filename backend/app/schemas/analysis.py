@@ -1081,6 +1081,13 @@ class BreadthPythonPromotionRequest(AnalysisContractModel):
     is_active: bool = True
 
 
+class BreadthPythonSignalPromotionRequest(AnalysisContractModel):
+    """Create a reusable Strategy signal from a completed historical breadth run."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2_000)
+
+
 class BreadthPythonPlotPromotionRequest(AnalysisContractModel):
     """Create a reusable plot asset from a completed breadth series or aggregate history."""
 
