@@ -696,3 +696,27 @@ the next action is to obtain exact-payload authorization for the resulting
 `origin/feat-strategy-lab-v2..HEAD` range, publish only through the approved Git
 path, verify synchronized hashes, then run the required plan-ready/session-state
 reconciliation. Do not bypass the gate or use another transport.
+
+## 2026-09-16 - Synchronization and plan-ready reconciliation
+
+The human explicitly authorized the exact current export after the prior
+private-origin safeguard. The approved elevated command
+`rtk git push origin feat/strategy-lab-v2` succeeded for
+`d2497f43084d52d3e66b40a91be25dd2678620be..0f0d85c214de6828d8e15b6d03d60adcb1551c2a`.
+Post-push verification found a clean worktree and matching local/remote HEAD at
+`0f0d85c214de6828d8e15b6d03d60adcb1551c2a`.
+
+`make agent-session-plan-ready SESSION_ID=e2731935-179c-4c35-b5d2-aadf7b4857f7`
+passed after synchronization. The resumed session goal was recorded as active
+with `make agent-session-goal-state ... STATE=active`, and the required
+`make agent-session-checkpoint SESSION_ID=e2731935-179c-4c35-b5d2-aadf7b4857f7`
+passed through the approved elevated UV path. The session record now reflects
+the synchronized publication state. This operational reconciliation is being
+committed separately; verify its enclosing commit externally with
+`git rev-parse` rather than writing a self-referential SHA into the record.
+
+The next bounded implementation action is the already scoped descriptive
+one-factor replicate summary in the engine-neutral package. Keep the strict
+complete-replicate, fixed-context, no-ranking/no-inference boundary and all
+provider, ETF, TC2000, persistence, API, worker, runtime, migration, Compose,
+and frontend ownership gates intact.
