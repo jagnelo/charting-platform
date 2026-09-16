@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current native usage live evidence
+
+- Alpaca's bounded credentialed `fetch_account_usage` manifest case passed
+  `1/1` at current source `419e57c3c`, with one authenticated request. The
+  response was parsed for the documented limit, remaining, and Unix reset
+  headers and recorded in the redacted durable receipt.
+- OpenFIGI's bounded keyless `fetch_account_usage` manifest case passed `1/1`
+  at the same current source, with one mapping request. Its exact
+  `ratelimit-limit`, `ratelimit-remaining`, and response-relative
+  `ratelimit-reset` headers were reconciled to the anonymous mapping window.
+- These are provider-specific transport and usage observations, not full
+  routing admission: Alpaca's reset-window semantics remain unresolved and
+  keyed OpenFIGI evidence still requires an API key. The broader provider,
+  legal/source, universe, deployment-secret, and final shadow gates remain
+  open. The complete backend replay for this commit passed `2,778` tests with
+  `473` expected skips.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses
@@ -12,9 +29,9 @@
   Missing/malformed headers fail closed, and the mapping request is charged as
   one OpenFIGI request.
 - Focused OpenFIGI, quota-contract, and live-usage unit coverage passed
-  `139/139`; the current full backend replay remains the prior `2,775 passed,
-  472 skipped` evidence until this increment is replayed. A current keyless
-  manifest account-usage run is still required for live baseline evidence.
+  `204/204`; the exact current-source keyless manifest account-usage run is
+  recorded above, and the full backend replay passed `2,778` tests with `473`
+  expected skips.
 
 ## 2026-09-16 documented FINRA ORF complete-source path
 
