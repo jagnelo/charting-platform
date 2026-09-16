@@ -2479,6 +2479,12 @@ def _provider_live_evidence(
     # policy cases are still emitted as coverage metadata, but are not treated
     # as successful provider data reads.
     for provider in sorted(set(providers) & set(LIVE_OPERATION_DISPOSITIONS)):
+        # Account-usage-only runs intentionally validate only the dedicated
+        # native introspection case.  Data-operation dispositions belong to
+        # the full provider matrix and must not turn a focused baseline refresh
+        # into a misleading incomplete result.
+        if account_usage_only:
+            continue
         for operation, disposition in sorted(LIVE_OPERATION_DISPOSITIONS[provider].items()):
             kind = live_operation_disposition_kind(disposition)
             if kind not in LIVE_COVERED_DISPOSITION_KINDS:
