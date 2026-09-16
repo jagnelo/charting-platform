@@ -1526,3 +1526,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 strategy-runtime contract only within the package-owned boundary; preserve all
 execution-authorization and ownership gates.
+
+## 2026-09-16 - Strategy-runtime request/receipt checkpoint
+
+`runtime_execution.py` adds immutable `StrategyRuntimeRequest`,
+`StrategyRuntimePreflight`, `RuntimeExecutionState`, and ordered update
+receipts. Requests bind package/source/input digests, declared entrypoint,
+attempt, and isolation profile; preflight reuses the fail-closed isolation
+report and rejects profile identity drift. Runtime states require an allowed
+preflight, replay exact updates, reject sequence/time/identity conflicts, and
+enforce the output-byte budget before a success can be recorded. This is an
+engine-neutral protocol only: container limits, process lifecycle, and engine
+execution remain future isolated-worker adapter responsibilities.
+
+The exact implementation tree passed all 295 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable adapter implementation only after upstream shared-path reconciliation;
+preserve all execution-authorization and ownership gates.

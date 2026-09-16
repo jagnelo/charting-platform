@@ -456,6 +456,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the report retains deterministic evidence identities. The verifier performs
   no provider I/O, repair, or inference; the adapter must supply the attestation
   before execution is enabled.
+- `runtime_execution.py` binds a strategy runtime request to its package/source,
+  frozen input bundle, declared entrypoint, and isolation profile. Allowed
+  requests advance through ordered accepted/running/terminal receipts; exact
+  retries replay, terminal conflicts fail closed, and successful output size is
+  checked against the declared limit. This is a protocol and receipt boundary,
+  not container enforcement or an engine invocation.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
