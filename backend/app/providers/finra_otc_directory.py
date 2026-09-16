@@ -291,6 +291,107 @@ def _parse_directory(text: str) -> list[dict[str, Any]]:
     return result
 
 
+def parse_otc_markets_security_master(
+    text: str,
+    *,
+    validation_text: str | None = None,
+) -> list[dict[str, Any]]:
+    """Parse an OTC Markets security-master file and its optional validation file.
+
+    The OTC Markets specification delivers a validation file alongside each
+    security-master snapshot.  The validation record count is the only source
+    of completeness evidence available from the file pair, so callers that
+    have both files should always provide ``validation_text``.  The network
+    adapter deliberately does not fetch or infer a companion URL: source
+    delivery and entitlement remain separately gated.
+    """
+
+    if not isinstance(text, str):
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets security master must be text"
+        )
+    reader = csv.DictReader(io.StringIO(text), delimiter="|", strict=True)
+    if not reader.fieldnames:
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets security master omitted CSV headers"
+        )
+    fields = {
+        str(field).lstrip("\ufeff").strip().lower()
+        for field in reader.fieldnames
+        if field
+    }
+    required_fields = {"date", "secid", "compid", "symbol", "security status"}
+    if not required_fields.issubset(fields):
+        raise ProviderResponseError(
+            "finra_otc_directory",
+            "OTC Markets security master omitted required CSV columns",
+        )
+    rows = _parse_otc_markets_security_master(reader)
+    if validation_text is not None:
+        expected_count = _parse_otc_markets_validation_file(validation_text)
+        if expected_count != len(rows):
+            raise ProviderResponseError(
+                "finra_otc_directory",
+                "OTC Markets validation record count does not match security master",
+            )
+    return rows
+
+
+def _parse_otc_markets_validation_file(text: str) -> int:
+    """Return the record count from an OTC Markets validation file.
+
+    The specification requires one pipe-delimited record with ``Datafile``,
+    ``Source``, ``Date/Time``, and ``Record Count`` fields.  Do not accept a
+    bare integer or a multi-record file: that would discard the provenance
+    needed to prove which snapshot was checked.
+    """
+
+    if not isinstance(text, str):
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets validation file must be text"
+        )
+    reader = csv.DictReader(io.StringIO(text), delimiter="|", strict=True)
+    if not reader.fieldnames:
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets validation file omitted CSV headers"
+        )
+    rows = list(reader)
+    if len(rows) != 1 or None in rows[0] or any(value is None for value in rows[0].values()):
+        raise ProviderResponseError(
+            "finra_otc_directory",
+            "OTC Markets validation file must contain exactly one complete row",
+        )
+    normalized = {
+        str(key).lstrip("\ufeff").strip().lower(): str(value or "").strip()
+        for key, value in rows[0].items()
+        if key
+    }
+    required_fields = {"datafile", "source", "date/time", "record count"}
+    if not required_fields.issubset(normalized) or any(
+        not normalized[field] for field in required_fields
+    ):
+        raise ProviderResponseError(
+            "finra_otc_directory",
+            "OTC Markets validation file omitted required provenance fields",
+        )
+    if normalized["source"].casefold() != "otc markets group":
+        raise ProviderResponseError(
+            "finra_otc_directory",
+            "OTC Markets validation file has an unexpected source",
+        )
+    try:
+        count = int(normalized["record count"], 10)
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets validation file has an invalid record count"
+        ) from exc
+    if count < 1:
+        raise ProviderResponseError(
+            "finra_otc_directory", "OTC Markets validation file has an invalid record count"
+        )
+    return count
+
+
 def _parse_otc_markets_security_master(reader: csv.DictReader) -> list[dict[str, Any]]:
     """Normalize the official OTC Markets pipe-delimited security-master shape.
 

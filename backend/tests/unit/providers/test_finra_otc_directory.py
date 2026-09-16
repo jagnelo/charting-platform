@@ -10,7 +10,17 @@ from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
 )
-from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
+from app.providers.finra_otc_directory import (
+    FINRAOTCDirectoryProvider,
+    parse_otc_markets_security_master,
+)
+
+_OTC_MARKETS_SECURITY_MASTER = (
+    "Date|SecID|CompID|Symbol|CUSIP|Company Name|Security Name|Security Type|"
+    "Security Class|Security Status|OTC Tier|Tier ID|Overnight Eligible|Reference Price\n"
+    "2026-09-16|100|200|AAA|123456789|Alpha Corp|Alpha Common|common|A|A|OTCQX|2|Y|12.3456\n"
+    "2026-09-16|101|201|BBB||Beta Corp|Beta Warrant|warrant|B|H|Grey Market|30|N|0.125\n"
+)
 
 
 def test_finra_otc_directory_requires_explicit_source(monkeypatch):
@@ -64,6 +74,49 @@ def test_finra_otc_directory_parses_official_otc_markets_security_master(monkeyp
     assert page["quotes"][0]["overnight_eligible"] == "Y"
     assert page["quotes"][1]["status"] == "inactive"
     assert page["quotes"][1]["financial_status"] == "H"
+
+
+def test_parse_otc_markets_security_master_verifies_validation_record_count():
+    validation = (
+        "Datafile|Source|Date/Time|Record Count\n"
+        "otc-overnight-sec-2026-09-16-1725.txt|OTC Markets Group|"
+        "2026-09-16 17:25:00|2\n"
+    )
+    rows = parse_otc_markets_security_master(
+        _OTC_MARKETS_SECURITY_MASTER,
+        validation_text=validation,
+    )
+    assert [row["symbol"] for row in rows] == ["AAA", "BBB"]
+
+
+@pytest.mark.parametrize(
+    "validation,match",
+    [
+        (
+            "Datafile|Source|Date/Time|Record Count\n"
+            "file|OTC Markets Group|2026-09-16 17:25:00|1\n",
+            "record count does not match",
+        ),
+        (
+            "Datafile|Source|Date/Time|Record Count\n"
+            "file|Other Source|2026-09-16 17:25:00|2\n",
+            "unexpected source",
+        ),
+        (
+            "Datafile|Source|Date/Time|Record Count\n"
+            "file|OTC Markets Group|2026-09-16 17:25:00|not-a-count\n",
+            "invalid record count",
+        ),
+    ],
+)
+def test_parse_otc_markets_security_master_rejects_invalid_validation_file(
+    validation, match
+):
+    with pytest.raises(ProviderResponseError, match=match):
+        parse_otc_markets_security_master(
+            _OTC_MARKETS_SECURITY_MASTER,
+            validation_text=validation,
+        )
 
 
 @pytest.mark.parametrize(

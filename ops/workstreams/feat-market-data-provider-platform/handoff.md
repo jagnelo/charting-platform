@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 OTC Markets validation-file integrity checkpoint
+
+- Added a pure parser for the official OTC Markets Overnight Security Master
+  companion validation file. When supplied with a snapshot, it requires the
+  documented data-file name, source, timestamp, and positive record-count
+  fields, requires the source to be `OTC Markets Group`, and rejects any
+  record-count mismatch before the snapshot can be consumed.
+- This is parser/fixture capability only. The source remains a candidate: no
+  SFTP delivery, entitlement, complete-coverage admission, redistribution
+  authorization, or OTC routing was enabled. The parser intentionally does
+  not infer a companion URL from the currently configured FINRA-shaped source.
+- The focused OTC provider suite passed `20/20` tests (pytest coverage
+  threshold is not meaningful for a narrow slice); Ruff and diff checks pass.
+  No provider request was made and no frontend or ETF-provider adapter files
+  changed.
+
 ## 2026-09-16 named provider-usage dimensions and Twelve Data account usage
 
 - Commit `c5e27dca5` adds named `ProviderAccountUsageDimension` values and
