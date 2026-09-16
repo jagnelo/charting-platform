@@ -1858,3 +1858,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - PostgreSQL compare-and-set adapter checkpoint
+
+`postgres_storage.py` maps the package-owned aggregate transaction contract to
+one SQLAlchemy async transaction. It locks requested aggregate and receipt rows,
+round-trips canonical state (including tuples and `None`) without changing its
+content identity, uses guarded inserts/updates and idempotent receipts, and
+rolls back when a concurrent write wins. The module exposes the future additive
+schema contract but never creates tables or registers shared ORM models; schema
+migrations and application wiring remain explicitly deferred gates.
+
+The exact implementation tree passed all 394 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

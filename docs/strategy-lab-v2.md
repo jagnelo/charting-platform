@@ -563,6 +563,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   receipt is acknowledged; retry, rejection, handler-content drift, and Redis
   acknowledgement failure leave the delivery unacknowledged with typed
   evidence.
+- `postgres_storage.py` maps the compare-and-set aggregate contract to one
+  SQLAlchemy async transaction. It locks requested aggregate/receipt rows,
+  preserves canonical state identity through a versioned JSON codec, uses
+  idempotent inserts and guarded updates, and rolls back on concurrent races.
+  It exposes the future additive schema contract but never creates tables or
+  registers models; migrations remain a shared-path gate.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
