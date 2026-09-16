@@ -1163,14 +1163,30 @@ def calculate_calendar_period_metrics(
             if not period_complete
             else "one or more external cash-flow reports are incomplete"
             if not flow_reports_complete
-            else "period contains external cash flows; time-weighted return is not implemented"
+            else "period contains external cash flows; boundary-aware return evidence is unavailable"
             if has_external_flows
             else None
         )
-        period_return = (
-            None
-            if return_null_reason is not None
-            else last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+        if period_complete and flow_reports_complete and has_external_flows:
+            weighted_metrics = calculate_time_weighted_return_metrics(
+                period_intervals,
+                calendar=calendar,
+            )
+            weighted_return = next(
+                item for item in weighted_metrics if item.name == "time_weighted_return"
+            )
+            period_return = weighted_return.value
+            return_null_reason = weighted_return.null_reason
+        else:
+            period_return = (
+                None
+                if return_null_reason is not None
+                else last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+            )
+        return_calculation_basis = (
+            "geometrically linked pre/post-flow subperiod returns; "
+            if has_external_flows
+            else "closing account equity divided by the first interval opening equity minus one; "
         )
         observation_digest = content_digest(tuple(period_intervals))
         basis = (
@@ -1199,10 +1215,7 @@ def calculate_calendar_period_metrics(
                         unit="fraction",
                         basis=MetricBasis.NET,
                         sample_size=len(period_intervals),
-                        calculation_basis=(
-                            "closing account equity divided by the first interval opening equity minus one; "
-                            f"{basis}"
-                        ),
+                        calculation_basis=f"{return_calculation_basis}{basis}",
                         null_reason=return_null_reason,
                     ),
                     _value(
@@ -1225,7 +1238,7 @@ def calculate_calendar_period_metrics(
                     "calendar_cadence": cadence.value,
                     "coverage_convention": "preceding_actual_close_through_period_final_close",
                     "external_cash_flow_policy": (
-                        "subtract reported flows from net pnl; return unavailable for flows or incomplete reports"
+                        "subtract reported flows from net pnl; require explicit pre/post boundaries for flow-bearing returns"
                     ),
                 },
             )

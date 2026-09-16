@@ -554,7 +554,7 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
     assert flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"].value == Decimal(2000)
     assert flow_metrics["calendar_period_return:monthly:month:2024-01"].value is None
     assert flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
-        "period contains external cash flows; time-weighted return is not implemented"
+        "external cash-flow boundary valuations are required for every reported event"
     )
 
     net_zero_flow_intervals = (
@@ -577,7 +577,7 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
     )
     assert net_zero_flow_metrics["calendar_period_return:monthly:month:2024-01"].value is None
     assert net_zero_flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
-        "period contains external cash flows; time-weighted return is not implemented"
+        "external cash-flow boundary valuations are required for every reported event"
     )
 
     incomplete_flow_intervals = (
@@ -625,6 +625,44 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
         unavailable_flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason
         == "one or more external cash-flow reports are incomplete"
     )
+
+    boundary_flow_intervals = (
+        replace(
+            flow_intervals[0],
+            ending_equity=Decimal("110000"),
+            external_cash_flow_boundaries=(
+                ExternalCashFlowBoundaryObservation(
+                    point=ObservationPoint(datetime(2024, 1, 2, 17, 0, tzinfo=UTC), 4),
+                    pre_flow_equity=Decimal("105000"),
+                    post_flow_equity=Decimal("110000"),
+                    external_cash_flow=Decimal("5000"),
+                    engine_evidence_digest=EVIDENCE,
+                ),
+            ),
+        ),
+        replace(flow_intervals[1], starting_equity=Decimal("110000"), ending_equity=Decimal("111000")),
+    )
+    boundary_flow_metrics = _metric_map(
+        calculate_calendar_period_metrics(
+            boundary_flow_intervals,
+            calendar=calendar,
+            cadence=RebalanceCadence.MONTHLY,
+        )
+    )
+    assert boundary_flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"].value == (
+        Decimal("6000")
+    )
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_time_weighted_return = (
+            Decimal("105000") / Decimal("100000") * Decimal("111000") / Decimal("110000")
+            - Decimal(1)
+        )
+    actual_time_weighted_return = boundary_flow_metrics[
+        "calendar_period_return:monthly:month:2024-01"
+    ].value
+    assert actual_time_weighted_return is not None
+    assert abs(actual_time_weighted_return - expected_time_weighted_return) <= Decimal("1e-33")
 
 
 def test_time_weighted_returns_exclude_explicit_cash_flow_jumps_and_annualize_elapsed_time() -> (

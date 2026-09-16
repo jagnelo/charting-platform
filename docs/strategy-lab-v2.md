@@ -179,8 +179,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   ISO-weekly, monthly, quarterly, or yearly cadence, tied to the exact session
   calendar and complete-period flag. Net P&L reconciles account equity changes
   after explicit complete external-flow reports; it is null when those reports
-  are partial or unavailable. Returns are null for incomplete period coverage
-  and when flows occur until a time-weighted return method is selected.
+  are partial or unavailable. Returns are null for incomplete period coverage.
+  Flow-bearing periods use the geometric boundary-aware path when every event
+  has explicit pre/post valuations, and remain null when that evidence is
+  missing.
   `calculate_rolling_equity_metrics()` returns structured, run-scoped points for
   each observed close. Each window requires the requested number of consecutive
   session-close intervals plus the preceding session close; missing observations
@@ -203,9 +205,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reconciles the event cash amount; missing or incomplete flow evidence
   withholds both linked and elapsed-time annualized returns. Annualization uses
   an explicit days-per-year convention and elapsed UTC duration, so irregular
-  spacing is not treated as a fixed session cadence. Existing calendar, rolling,
-  and distribution aggregators still require their own boundary-aware wiring
-  before they consume these values.
+  spacing is not treated as a fixed session cadence. Calendar-period aggregation
+  now consumes the same boundary evidence; rolling and distribution aggregators
+  still require their own boundary-aware wiring before they consume these values.
   `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
   baseline/variant summary over complete replicate arms. It requires one result
   per planned replicate index, one canonical parameter change, identical fixed
@@ -214,9 +216,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   mean, nearest-rank median/minimum/maximum, and configured nearest-rank
   quantiles. The result exposes only the signed difference of arm means; it does
   not rank candidates, estimate significance, or claim independence or paired
-  inference. Remaining gaps include boundary-aware wiring for calendar/rolling/
-  distribution aggregators, margin/capital utilization, financing outside fill
-  reports, and trusted paired inference.
+  inference. Remaining gaps include boundary-aware wiring for rolling/distribution
+  aggregators, margin/capital utilization, financing outside fill reports, and
+  trusted paired inference.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.
