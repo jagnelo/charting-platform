@@ -106,6 +106,25 @@
   feature checkout's Python environment and passed: `30` workstream records
   validated. Ruff, compilation, and `git diff --check` also passed.
 
+## 2026-09-16 Alpaca native usage bootstrap
+
+- Alpaca now exposes a provider-native `fetch_account_usage` observation using
+  one bounded latest-bar request and the exact `X-RateLimit-Limit`,
+  `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers. The application
+  permits this observation through an explicit bootstrap-only concurrency
+  lease; ordinary Alpaca data operations remain non-routable while the
+  provider-defined reset boundary is unresolved.
+- Focused unit/runtime/live-runner coverage passed (`484` focused unit tests
+  before the final full-suite replay). The first live attempt correctly
+  rejected a response whose reset epoch elapsed during transport; the parser
+  now validates against request start time. The corrected protected live run
+  passed `1/1`, one request and 118 response bytes. The redacted receipt is in
+  `validation.jsonl`; no credentials or payloads entered Git.
+- The native header snapshot is intentionally observation-only and was not
+  reconciled into a durable ordinary-routing baseline. This preserves the
+  fail-closed policy until Alpaca's reset-window semantics are explicitly
+  reviewed.
+
 - At committed source `4d1ed8622`, the just-in-time native usage refresh and
   expanded Binance matrix both passed. The matrix covered latest history,
   direct 30-day daily history, current price, universe discovery, and native
