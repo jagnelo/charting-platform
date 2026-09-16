@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 MarketData.app trial configuration verification
+
+- The owner-managed local environment at `~/.config/charting-platform/app.env`
+  contains the exact non-secret policy controls selected for the current key:
+  `starter_trial`, `10000` daily credits, and the timezone-aware expiry
+  `2026-10-11T18:09:00+01:00` (30 days from the supplied key-email time).
+  `backend/.env.dev` remains a symlink to that external file; no secret values
+  or environment contents were copied into Git.
+- The provider-specific runtime contract was rechecked at the expiry boundary:
+  the active trial reserves 10,000 credits/day, and at/after expiry the
+  entitlement and quota reseed to Free Forever/100 credits/day. Paid-plan
+  changes remain an explicit plan/limit configuration change and still require
+  the separate paid-routing control.
+- Focused quota/registry/coordinator coverage passed `163/163` with `--no-cov`,
+  the workstream validator passed all 30 records, and `git diff --check`
+  passed. This verifies the selected configuration and fallback contract; it
+  does not promote unrelated providers or close the remaining legal, universe,
+  target-secret-store, deployment, and shadow gates.
+
 ## 2026-09-16 exact-current native usage live evidence
 
 - Alpaca's bounded credentialed `fetch_account_usage` manifest case passed

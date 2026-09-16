@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-16 — MarketData.app Starter Trial configuration verification
+
+- [x] Record the owner-selected account policy without storing the credential:
+      the current local key uses `starter_trial` with `10,000` daily credits
+      through `2026-10-11T18:09:00+01:00`, calculated as 30 days from the
+      supplied 2026-09-11 18:09 Europe/Lisbon key-email time. The external
+      `~/.config/charting-platform/app.env` file contains these non-secret
+      controls and remains outside Git.
+- [x] Recheck the runtime boundary: the active trial uses the 10,000-credit
+      pool, and at/after expiry the provider-specific entitlement and durable
+      quota contract fall back to Free Forever/100 credits/day. A future paid
+      plan remains an explicit plan/limit configuration change and still needs
+      the separate paid-routing control. Focused quota/registry/coordinator
+      coverage passes `163/163`; workstream validation and diff checks pass.
+- [ ] Keep provider terms/redistribution, protected target secret stores,
+      complete venue reconciliation, routing activation, and the final shadow
+      run as separate gates; this configuration verification does not close
+      them.
+
 ### 2026-09-16 — Alpaca fixed historical-start entitlement
 
 - [x] Model Alpaca Basic's documented stock/ETF history start (`2016-01-01`)
