@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 Bybit live-preflight diagnostic correction: commit
+      `a3ce59d2` aligns `LIVE_PREFLIGHT_ROUTING_CONTROLS[bybit_xstocks]` with
+      the actual `routing_safety_preflight` status key. The runner now reports
+      the precise Bybit terms/jurisdiction blockers instead of a generic
+      missing-status message. Secret-wiring coverage passed 25/25, live-runner
+      coverage 42/42, and the full backend unit gate passed 2,363/2,363 at
+      70.82% coverage; Ruff, diff, and workstream checks passed.
+    - >-
       2026-09-17 exact-current-source OpenFIGI anonymous validation: the first
       account-usage attempt returned a typed HTTP 429 and was not retried in a
       loop. After one provider-window delay, the native usage bootstrap passed

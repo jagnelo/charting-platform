@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Bybit live-preflight diagnostic correction
+
+- Commit `a3ce59d2` fixes the `LIVE_PREFLIGHT_ROUTING_CONTROLS` alias for
+  `bybit_xstocks`. The runner now resolves the actual `bybit_xstocks` status
+  and reports the precise terms/jurisdiction controls when they are missing,
+  rather than emitting a generic missing-status diagnostic.
+- Secret-wiring coverage passed `25/25`, live-runner coverage `42/42`, and the
+  complete backend unit gate passed `2,363/2,363` with 70.82% coverage and 37
+  warnings. Ruff, diff checks, and workstream validation passed.
+- No provider calls, credentials, frontend files, or ETF-provider adapters
+  were changed by this correction.
+
 ## 2026-09-17 Exact-source OpenFIGI anonymous matrix
 
 - The first current-source OpenFIGI native-usage attempt returned HTTP 429 and
