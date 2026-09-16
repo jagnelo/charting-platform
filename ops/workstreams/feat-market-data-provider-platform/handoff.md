@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 provider-defined reset correction for FINRA and Tiingo
+
+- FINRA's public credential allowance is documented as 10 GB/month and the
+  credential is disabled until the first day of the following month, but the
+  provider does not publish the reset timezone or byte convention. The quota
+  contract now records `provider_defined` plus an explicit
+  `download_bytes_month_reset_boundary` unknown dimension; the prior rolling
+  31-day approximation is removed.
+- Tiingo's distinct-symbol, hourly, daily, and bandwidth pools now all record
+  provider-defined reset semantics with explicit unknown dimensions. The
+  durable identity ledger no longer presents a guessed rolling 31-day symbol
+  window or estimated calendar bandwidth boundary.
+- Production routing remains fail-closed for these dimensions. Focused quota
+  coverage passed `100/100`; focused runtime/registry coverage passed
+  `76/76`; Ruff, diff, and workstream validation passed. The complete
+  isolated backend unit gate passed `2,324/2,324` with 70.66% coverage and 37
+  warnings at the dirty implementation source.
+- Runtime settlement tests use an explicit reviewed UTC test fixture only to
+  exercise monthly byte accounting; this does not alter the production seed
+  or promote FINRA/Tiingo routing.
+
 ## 2026-09-16 exact-source full-matrix safety preflight after Alpha correction
 
 - At committed source `6e9df43bb`, the lock-protected full provider runner

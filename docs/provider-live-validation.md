@@ -688,17 +688,19 @@ reset (including Eastern-time month/day and 09:30 ET boundaries), rather than
 adding a nominal 31-day duration. Fixed and rolling windows retain their
 duration semantics, so active-window diagnostics expire at the same boundary
 used by admission across short months and daylight-saving transitions.
-Tiingo's first-of-month Eastern bandwidth reset and FMP's rolling 30-day
-bandwidth reset are represented in the durable calendar-window engine.
-Tiingo's 500-symbol monthly pool is enforced by the durable
-`provider_quota_identity` ledger, which claims each normalized provider symbol
-once per conservative rolling 31-day window because the plan does not specify
-the pool's exact reset anchor. FINRA's synchronous short-interest and OTC
+Tiingo's documented pool magnitudes are retained, but the provider does not
+publish exact reset anchors for its distinct-symbol, hourly, daily, or
+bandwidth pools. Those dimensions are therefore explicitly provider-defined
+and non-routable until an exact reset observation or provider confirmation is
+recorded; the durable `provider_quota_identity` ledger does not invent a
+rolling 31-day symbol window. FINRA's synchronous short-interest and OTC
 Daily List calls reserve a maximum 3,000,000 response bytes (the conservative
-decimal interpretation of FINRA's ambiguous 3 MB ceiling) against a 10 GB
-credential pool modeled as a rolling 31-day window because the exact reset
-anchor and byte convention are not stated; measured bytes settle the
-reservation. Its asynchronous
+decimal interpretation of FINRA's ambiguous 3 MB ceiling) against the public
+credential's published 10 GB monthly pool. FINRA says an exhausted public
+credential is disabled until the first day of the following month, but does not
+publish the reset timezone or byte convention, so the runtime records a
+provider-defined reset and remains fail-closed rather than substituting a
+rolling 31-day window; measured bytes settle the reservation. Its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful
 direct adapter. A positive `FINRA_ASYNC_MAX_RESULT_BYTES` promotes the signed
 download operation into the durable rolling-window byte reservation; the default `0`

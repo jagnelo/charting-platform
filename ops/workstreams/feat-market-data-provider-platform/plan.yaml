@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    FINRA's public 10 GB monthly download allowance and Tiingo's published
+    symbol/request/bandwidth magnitudes now record provider-defined reset
+    semantics explicitly. FINRA's `download_bytes_month_reset_boundary` and
+    Tiingo's distinct-symbol, hourly, daily, and bandwidth reset dimensions
+    remain unknown, so routing stays fail-closed; no rolling 31-day or
+    estimated calendar boundary is used. The exact-source unit gate after this
+    correction passed `2,324/2,324` with 70.66% coverage and 37 warnings.
+  - >-
     The committed-source full-matrix preflight at `6e9df43bb` stopped before
     transport with zero provider requests (`101` provider quota/cost/baseline
     blockers, `7` required live capability-safety blockers, and `22`

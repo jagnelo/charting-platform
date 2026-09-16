@@ -461,21 +461,23 @@ class Settings(BaseSettings):
                     {
                         "name": "download_bytes_per_calendar_month",
                         # FINRA publishes "10 GB" and says public keys stay
-                        # disabled until the following month if exhausted,
-                        # but does not state its timezone or byte convention.
-                        # A rolling 31-day decimal ceiling is conservative
-                        # across that undocumented reset boundary.
+                        # disabled until the first day of the following month
+                        # if exhausted, but does not state the reset timezone
+                        # or byte convention. Keep the decimal magnitude
+                        # explicit while refusing to turn the month into a
+                        # guessed rolling 31-day window.
                         "limit": 10_000_000_000,
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
                         "quota_group": "public_credential",
                         "source": "https://developer.finra.org/support",
-                        "reset": "rolling",
+                        "reset": "provider_defined",
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     },
                 ],
-                "reset": "rolling_or_provider_defined",
+                "reset": "provider_defined",
+                "unknown_dimensions": ["download_bytes_month_reset_boundary"],
                 "dimension_costs_required": True,
                 # FINRA publishes a decimal 3 MB maximum but does not specify
                 # the byte convention. Reserve 3,000,000 bytes to stay below
@@ -754,6 +756,7 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
+                        "reset": "provider_defined",
                     },
                     {
                         "name": "requests_per_day",
@@ -763,10 +766,15 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        "reset": "calendar_day_est",
+                        "reset": "provider_defined",
                     },
                 ],
-                "unknown_dimensions": ["unique_symbols_reset_anchor"],
+                "unknown_dimensions": [
+                    "unique_symbols_reset_anchor",
+                    "requests_per_hour_reset_boundary",
+                    "requests_per_day_reset_boundary",
+                    "bandwidth_reset_boundary",
+                ],
                 "reset": "provider_defined",
                 "untracked_constraints": [
                     {
@@ -780,7 +788,7 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        "reset": "calendar_month_est",
+                        "reset": "provider_defined",
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     }
                 ],

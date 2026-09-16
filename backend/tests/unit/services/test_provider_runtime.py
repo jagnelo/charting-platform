@@ -378,6 +378,16 @@ async def test_finra_async_download_settles_measured_bytes_in_monthly_window(db,
     )
     db.add(source)
     db.flush()
+    finra_contract = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"])
+    # Production deliberately leaves FINRA's public-credential month reset
+    # provider-defined/unknown. This fixture supplies an explicit reviewed
+    # UTC calendar boundary so the settlement mechanics can be tested without
+    # weakening production admission.
+    finra_contract["reset"] = "calendar_month_utc"
+    finra_contract.pop("unknown_dimensions", None)
+    for dimension in finra_contract["dimensions"]:
+        if dimension["name"] == "download_bytes_per_calendar_month":
+            dimension["reset"] = "calendar_month_utc"
     policy = ProviderPolicy(
         data_source_id=source.id,
         capability=ProviderCapability.SHORT_INTEREST,
@@ -385,7 +395,7 @@ async def test_finra_async_download_settles_measured_bytes_in_monthly_window(db,
         max_concurrency=1,
         quota_scope="ip",
         quota_source="unit-test FINRA contract",
-        quota_contract=settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"],
+        quota_contract=finra_contract,
         score_floor=Decimal("0"),
         score_ceiling=Decimal("100"),
         learned_weight=Decimal("0"),

@@ -1884,7 +1884,18 @@ async def test_failed_contract_rolls_back_one_in_flight_slot(db):
 
 def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
-    assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
+    assert [item["reset"] for item in tiingo["dimensions"]] == [
+        "provider_defined",
+        "provider_defined",
+        "provider_defined",
+    ]
+    assert tiingo["untracked_constraints"][0]["reset"] == "provider_defined"
+    assert {
+        "unique_symbols_reset_anchor",
+        "requests_per_hour_reset_boundary",
+        "requests_per_day_reset_boundary",
+        "bandwidth_reset_boundary",
+    } == set(tiingo["unknown_dimensions"])
 
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
     assert [item["reset"] for item in coingecko["dimensions"]] == [
@@ -2577,6 +2588,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     fmp = settings.PROVIDER_RATE_LIMIT_SEEDS["fmp"]["quota_contract"]
     finra_bytes = next(item for item in finra["dimensions"] if item["unit"] == "bytes")
     assert finra_bytes["limit"] == 10_000_000_000
+    assert finra_bytes["reset"] == "provider_defined"
+    assert "download_bytes_month_reset_boundary" in finra["unknown_dimensions"]
+    assert finra["reset"] == "provider_defined"
     assert finra["dimension_costs_required"] is True
     assert finra_otc["dimensions"] == []
     assert {
@@ -2587,8 +2601,13 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500
     assert tiingo["dimensions"][0]["reset"] == "provider_defined"
-    assert tiingo["unknown_dimensions"] == ["unique_symbols_reset_anchor"]
-    assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
+    assert tiingo["unknown_dimensions"] == [
+        "unique_symbols_reset_anchor",
+        "requests_per_hour_reset_boundary",
+        "requests_per_day_reset_boundary",
+        "bandwidth_reset_boundary",
+    ]
+    assert tiingo["untracked_constraints"][0]["reset"] == "provider_defined"
     assert tiingo["untracked_constraints"][0]["limit"] == 1_000_000_000
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["dimensions"][0]["reset"] == "provider_defined"
@@ -2725,7 +2744,11 @@ def test_finra_synchronous_budget_uses_documented_byte_reservation():
         quota_source=seed["quota_source"],
         quota_contract=contract,
     )
-    assert policy_has_known_quota(policy)
+    assert not policy_has_known_quota(policy)
+    assert (
+        "quota_contract.unknown_dimensions.download_bytes_month_reset_boundary"
+        in quota_contract_missing_dimensions(policy)
+    )
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
 
@@ -2740,7 +2763,11 @@ async def test_seeded_finra_policy_contains_dimension_cost_profile(db):
             ProviderPolicy.capability == ProviderCapability.SHORT_INTEREST,
         )
     ).scalar_one()
-    assert policy_has_known_quota(policy)
+    assert not policy_has_known_quota(policy)
+    assert (
+        "quota_contract.unknown_dimensions.download_bytes_month_reset_boundary"
+        in quota_contract_missing_dimensions(policy)
+    )
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
     assert (
         source.config["usage_tracking"]["dimension_costs"]["download_bytes_per_calendar_month"][
