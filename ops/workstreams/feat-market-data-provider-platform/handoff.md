@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source safety preflight after reset correction
+
+- At committed source `427579521`, the owner-ledger lock-protected full
+  provider runner stopped before transport with exit `2` and zero provider
+  requests. The receipt is appended to `validation.jsonl`; coordinator
+  health/locking passed.
+- The current report contains `99` provider-specific quota/cost/baseline
+  blockers, `7` required live capability-safety blockers, and `22` unresolved
+  capability dispositions. FINRA now fails explicitly on its unknown monthly
+  byte reset boundary rather than being admitted under a rolling approximation;
+  Tiingo remains blocked on its explicit reset dimensions and byte map.
+- MarketData.app account-plan/option-chain controls remain the only relevant
+  routing controls reported routable in this full preflight. This is current
+  fail-closed safety evidence, not transport acceptance or routing/shadow
+  activation.
+
 ## 2026-09-16 provider-defined reset correction for FINRA and Tiingo
 
 - FINRA's public credential allowance is documented as 10 GB/month and the

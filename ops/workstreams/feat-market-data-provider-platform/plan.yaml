@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact committed-source full-matrix preflight at `427579521` stopped
+    before transport with zero provider requests. It records `99` provider
+    quota/cost/baseline blockers, `7` required live capability-safety blockers,
+    and `22` unresolved capability dispositions. FINRA's newly explicit
+    monthly byte-reset unknown is represented in the current receipt; owner
+    baselines, legal/source controls, universe admission, deployment secret
+    stores, and final shadow authorization remain open.
+  - >-
     FINRA's public 10 GB monthly download allowance and Tiingo's published
     symbol/request/bandwidth magnitudes now record provider-defined reset
     semantics explicitly. FINRA's `download_bytes_month_reset_boundary` and
