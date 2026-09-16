@@ -1124,3 +1124,18 @@ The exact implementation tree passed all 137 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - API cursor and typed-error checkpoint
+
+`api_contracts.py` adds snapshot-bound `ApiCursor` tokens, consistent
+`CursorPage` envelopes, and immutable `ApiError` values. Cursor tokens are
+deterministic URL-safe JSON envelopes with a content checksum and strict field
+validation; pages cannot claim continuation without a matching cursor, and
+errors expose stable codes, HTTP status, retryability, request identity, and
+frozen details. These are router/persistence-neutral boundary contracts; the
+checksum is not an authorization mechanism.
+
+The exact implementation tree passed all 142 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.
