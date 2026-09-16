@@ -88,6 +88,7 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -129,16 +130,16 @@
   "head": "9da8d667e327aca619cc93bd8d22eac123e688a5",
   "implementation_sha": "9da8d667e327aca619cc93bd8d22eac123e688a5",
   "last_checkpoint": "2026-09-16T02:27:34.499812+00:00",
-  "last_human_progress_update": "2026-09-16T01:53:17.038415+00:00",
+  "last_human_progress_update": "2026-09-16T02:36:13+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Stage and review only the three branch-owned workstream files, commit them as the separate ops checkpoint, then verify the clean worktree and exact HEAD/origin hashes; do not push while the exact-payload export hold is active. From that clean local checkpoint, continue with the recorded bounded core-gap review.",
+  "next_action": "Commit this validated scope-selection checkpoint locally, verify the final clean HEAD and origin hashes, then obtain exact-payload authorization for that exact range. After synchronization, satisfy the repository plan-ready/session-state gate before starting replicate-summary implementation; do not bypass either gate.",
   "parent_branch": "staging",
   "pending_push": {
     "attempted": false,
     "branch": "feat/strategy-lab-v2",
     "command": "rtk git push origin feat/strategy-lab-v2",
-    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..9da8d667e327aca619cc93bd8d22eac123e688a5",
-    "reason": "Exact-payload authorization for the private origin is unavailable; this is the last known pre-ops-checkpoint range and the enclosing ops SHA is verified externally with git rev-parse.",
+    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..dfe93ae7014074be066ef677a3c7b985a500956e",
+    "reason": "Exact-payload authorization for the private origin is unavailable; dfe93ae7014074be066ef677a3c7b985a500956e is the last clean local boundary before this scope checkpoint. Verify the resulting exact range after commit and do not retry or use another transport without authorization for that range.",
     "remote": "origin"
   },
   "plan_hash": "ee98572300e3a0025bac1f87834e8bb68a0720817b5a4080b904d6eb5c7e216a",
@@ -150,10 +151,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "metric-delta-comparison",
-    "next_action": "From a verified clean local checkpoint, inspect remaining parallel-safe Strategy Lab v2 core gaps and select the next bounded backend-owned slice; preserve the no-inference/no-ranking boundary and keep other worktrees untouched.",
+    "current_phase": "replicate-sensitivity-summary",
+    "next_action": "After committing this scope-selection checkpoint, obtain exact-payload authorization for the resulting export, synchronize through the approved path, and satisfy the repository plan-ready/session-state gate before implementing descriptive replicate summaries; retain the no-inference/no-ranking boundary and keep other worktrees untouched.",
     "total": 18,
-    "updated_at": "2026-09-16T02:17:16+00:00"
+    "updated_at": "2026-09-16T02:39:46+00:00"
   },
   "publication_state": "committed_locally_pending_push",
   "remote": "d2497f43084d52d3e66b40a91be25dd2678620be",

@@ -643,3 +643,56 @@ only these branch-owned files:
 
 Do not mutate another worktree or provider, ETF, TC2000, shared runtime, API,
 persistence, Compose, or frontend path.
+
+## 2026-09-16 - Descriptive one-factor replicate summaries (in progress)
+
+The next bounded implementation context owns only
+`backend/app/strategy_lab_v2/sensitivity.py`,
+`backend/app/strategy_lab_v2/tests/test_sensitivity.py`, and
+`docs/strategy-lab-v2.md`. It adds a deterministic descriptive comparison over
+complete baseline and variant replicate groups of successful
+`RunResultManifest` values. The groups must differ in exactly one canonical
+parameter, contain one result for each distinct scientific trial, and cover
+every planned replicate index exactly once. Fixed experiment, scenario,
+snapshot, capability, portfolio, engine/build, dependency, assumption, metric
+calculation, and measurement-calendar scopes must agree. Missing, duplicate,
+null, or incompatible replicates fail closed rather than silently shrinking the
+sample. Results retain the per-arm randomization provenance and report
+descriptive per-arm summaries plus the difference of sample means. Equal
+replicate indices or seeds are not treated as verified paired draws; no
+significance, confidence interval, candidate ranking, or independence claim is
+made.
+
+Read-only gap audit confirmed that the current v6 package already has account
+performance, trade-quality, cash-equity exposure, fill-cost, component
+attribution, calendar/rolling, session-return-distribution, and one-run metric
+delta calculators. This replicate-level summary is the next parallel-safe
+metric gap. Time-weighted returns requiring external-flow boundary valuations,
+irregular-time annualization, true margin/capital utilization, financing outside
+fill reports, and trusted paired inference remain deferred. Provider, ETF,
+TC2000, persistence, API, worker, runtime, migration, Compose, and frontend work
+remain outside this context.
+
+The preceding one-factor delta product commit is
+`9da8d667e327aca619cc93bd8d22eac123e688a5`; its separate ops checkpoint is
+`dfe93ae7014074be066ef677a3c7b985a500956e`. External verification after that
+checkpoint found local `HEAD` at `dfe93ae7014074be066ef677a3c7b985a500956e`,
+`origin/feat/strategy-lab-v2` at
+`d2497f43084d52d3e66b40a91be25dd2678620be`, and a clean worktree (23 commits
+ahead). The private-origin exact-payload export hold remains; no push of this
+current range was attempted, and no alternate transport is authorized. Continue
+from the clean local boundary without claiming remote synchronization.
+
+This scope-selection checkpoint updates only this branch's `plan.yaml`,
+`handoff.md`, `session.json`, and `validation.jsonl`. Validate and commit those
+records separately before changing the three implementation-context paths
+listed above. The session checkpoint helper rejects a changed plan until
+`agent-session-plan-ready` runs; the repository helper requires the plan update
+to be committed and the local branch head to match its remote before it can mark
+the plan ready. Because the exact private-origin range is still under its
+authorization hold, the replicate implementation must not start until that
+plan-ready gate is satisfied. After this scope checkpoint is locally committed,
+the next action is to obtain exact-payload authorization for the resulting
+`origin/feat-strategy-lab-v2..HEAD` range, publish only through the approved Git
+path, verify synchronized hashes, then run the required plan-ready/session-state
+reconciliation. Do not bypass the gate or use another transport.
