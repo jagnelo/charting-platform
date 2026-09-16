@@ -1,5 +1,25 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 named provider-usage dimensions and Twelve Data account usage
+
+- Commit `c5e27dca5` adds named `ProviderAccountUsageDimension` values and
+  persists one durable observation row per provider pool, with account-plan
+  metadata. Existing MarketData.app rows migrate to the explicit
+  `credits_per_day` dimension; legacy top-level usage objects remain
+  compatible.
+- Twelve Data now exposes the documented `/api_usage` endpoint through the
+  `account_usage` capability. Its `api-credits-used`/`api-credits-left`
+  headers are retained as a named `credits_per_minute` observation with a
+  fixed-minute reset, and the returned plan is persisted. The separate Basic
+  daily pool is not fabricated from minute headers. The endpoint's one-credit
+  cost is declared against both reviewed Twelve Data dimensions.
+- Fixture, service, migration, registry, quota-profile, and live-manifest
+  coverage passed. The complete backend unit suite passed `2,299/2,299` with
+  37 warnings; migration compatibility passed across 31 changed migration
+  files. The clean-source live runner at `c5e27dca5` exited before provider
+  transport because account baselines and other existing legal/source gates
+  remain unresolved; no quota was spent.
+
 ## 2026-09-16 MarketData.app trial configuration confirmation
 
 - The owner-approved external configuration is present outside Git in the
