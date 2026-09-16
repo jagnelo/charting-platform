@@ -1181,3 +1181,18 @@ The exact implementation tree passed all 155 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Runtime-isolation preflight checkpoint
+
+`runtime.py` adds pinned `RuntimeIsolationProfile` and execution-request
+contracts plus `preflight_runtime_isolation()`. The preflight requires a
+content-addressed runtime image, exact dependency pins, disabled network and
+secrets, read-only root, dropped capabilities, and positive resource limits;
+requested network/filesystem/secret access or unvetted dependencies produce
+explicit rejection evidence. No container is started and no OS enforcement is
+claimed; those remain isolated worker/runtime adapter responsibilities.
+
+The exact implementation tree passed all 159 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.

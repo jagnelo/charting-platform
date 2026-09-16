@@ -344,6 +344,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   idempotency, exact edges replay, changed metadata conflicts, and entries are
   deterministically ordered. Storage adapters must still enforce manifest
   existence, foreign-key constraints, and atomic persistence.
+- `runtime.py` defines fail-closed isolation preflight for future strategy
+  workers. A profile requires a pinned runtime image, exact vetted dependency
+  digests, disabled network, read-only root, dropped capabilities, disabled
+  secrets, and positive wall/CPU/memory/output limits; execution requests that
+  ask for forbidden access or missing pins are rejected with explicit reasons.
+  This contract does not itself create containers or enforce OS limits.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
