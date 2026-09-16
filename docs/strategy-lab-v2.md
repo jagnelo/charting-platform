@@ -184,6 +184,21 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   bins and sensitivity analysis are not part of this summary. Remaining gaps
   include irregular-time annualized metrics, margin/capital utilization,
   financing outside fill reports, and sensitivity.
+- Every metric produced by the v2 calculators carries a versioned
+  `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
+  stable formula-family ID, Decimal context, and effective formula parameters.
+  `MetricEvidenceReference` records run-specific input/result digests separately;
+  the digest is retained for provenance but is intentionally excluded from a
+  metric's `calculation_fingerprint`. That fingerprint also excludes the output
+  value, sample size, null result, and free-text display basis, while binding
+  metric name, unit, gross/net basis, formula-definition version, and structured
+  calculation definition. A missing structured definition (as in legacy or
+  manually constructed values) yields no calculation fingerprint, so future
+  comparison code can fail closed. This is a calculation-identity primitive,
+  not a metric comparator: comparison still has to validate experiment scope,
+  date/calendar range, coverage, currency, and sample eligibility. Existing
+  `calculation_basis` strings remain display-compatible and the formula version
+  stays at v6 because this metadata addition does not change metric formulas.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
 - `tests/` holds focused tests adjacent to the new package because the active

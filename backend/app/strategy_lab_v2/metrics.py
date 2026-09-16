@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import date
 from decimal import ROUND_CEILING, Decimal
+from typing import Any
 
 from app.strategy_lab_v2.allocation import PortfolioExposureSnapshot
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
+    METRIC_CALCULATION_CONTRACT_VERSION,
     MetricBasis,
+    MetricCalculationDefinition,
+    MetricEvidenceReference,
     MetricValue,
     RollingMetricPoint,
     SessionReturnDistribution,
@@ -84,19 +89,32 @@ def _value(
     annualization_basis: str | None = None,
     calculation_basis: str | None = None,
     null_reason: str | None = None,
+    formula_id: str | None = None,
+    calculation_parameters: dict[str, Any] | None = None,
+    evidence_references: Sequence[MetricEvidenceReference] = (),
 ) -> MetricValue:
     if calculation_basis is None:
         try:
             calculation_basis = _METRIC_FORMULAS[name]
         except KeyError as error:
             raise ValueError(f"no calculation-basis definition registered for {name!r}") from error
-    decimal_context_basis = (
-        f"Decimal precision={DECIMAL_PRECISION}; rounding=ROUND_HALF_EVEN"
-    )
+    decimal_context_basis = f"Decimal precision={DECIMAL_PRECISION}; rounding=ROUND_HALF_EVEN"
     if calculation_basis is None:
         calculation_basis = decimal_context_basis
     else:
         calculation_basis = f"{calculation_basis}; {decimal_context_basis}"
+    parameters: dict[str, Any] = {
+        "decimal_precision": DECIMAL_PRECISION,
+        "decimal_rounding": "ROUND_HALF_EVEN",
+    }
+    if calculation_parameters is not None:
+        overlapping_parameters = parameters.keys() & calculation_parameters.keys()
+        if overlapping_parameters:
+            raise ValueError(
+                "calculation parameters cannot override numeric context fields: "
+                f"{', '.join(sorted(overlapping_parameters))}"
+            )
+        parameters.update(calculation_parameters)
     return MetricValue(
         name=name,
         value=value,
@@ -107,7 +125,63 @@ def _value(
         annualization_basis=annualization_basis,
         calculation_basis=calculation_basis,
         null_reason=null_reason,
+        calculation_definition=MetricCalculationDefinition(
+            formula_id=formula_id or f"metric.{name}",
+            contract_version=METRIC_CALCULATION_CONTRACT_VERSION,
+            parameters=parameters,
+        ),
+        evidence_references=tuple(evidence_references),
     )
+
+
+def _finalize_metric_values(
+    metrics: Sequence[MetricValue],
+    *,
+    evidence_references: Sequence[MetricEvidenceReference] = (),
+    evidence_references_by_metric: Mapping[str, Sequence[MetricEvidenceReference]] | None = None,
+    common_calculation_parameters: Mapping[str, Any] | None = None,
+    calculation_parameters_by_metric: Mapping[str, Mapping[str, Any]] | None = None,
+) -> tuple[MetricValue, ...]:
+    """Bind family-stable formula IDs and explicit context to calculated values.
+
+    Dynamic dimensions in metric names use the first colon-delimited token as
+    their formula family (for example, ``component_net_pnl:alpha``). Parameters
+    are supplied by the calculator, never inferred from display strings.
+    """
+
+    common_parameters = common_calculation_parameters or {}
+    parameters_by_metric = calculation_parameters_by_metric or {}
+    references_by_metric = evidence_references_by_metric or {}
+    finalized: list[MetricValue] = []
+    for metric in metrics:
+        definition = metric.calculation_definition
+        if definition is None:
+            raise ValueError("calculated metrics must have a structured calculation definition")
+        formula_family = metric.name.partition(":")[0]
+        parameters = dict(definition.parameters)
+        parameters.update(common_parameters)
+        parameters.update(
+            parameters_by_metric.get(metric.name, parameters_by_metric.get(formula_family, {}))
+        )
+        finalized.append(
+            replace(
+                metric,
+                calculation_definition=MetricCalculationDefinition(
+                    formula_id=f"strategy-lab.metrics/{formula_family}",
+                    contract_version=definition.contract_version,
+                    parameters=parameters,
+                ),
+                evidence_references=(
+                    *metric.evidence_references,
+                    *evidence_references,
+                    *references_by_metric.get(
+                        metric.name,
+                        references_by_metric.get(formula_family, ()),
+                    ),
+                ),
+            )
+        )
+    return tuple(finalized)
 
 
 def _validate_decimal_series(values: Sequence[Decimal], field_name: str) -> tuple[Decimal, ...]:
@@ -193,6 +267,7 @@ def calculate_performance_metrics(
         raise ValueError("equity curve cannot contain negative account equity")
     if not curve:
         raise ValueError("equity_curve must contain at least one observation")
+    input_digest = content_digest({"equity_curve": curve, "initial_capital": initial_capital})
 
     return_values: list[Decimal] = []
     previous = initial_capital
@@ -309,14 +384,8 @@ def calculate_performance_metrics(
         recovery_factor = None
         recovery_null_reason = "maximum drawdown is zero"
     else:
-        calmar = (
-            None
-            if annualized_return is None
-            else annualized_return / abs(max_drawdown)
-        )
-        calmar_null_reason = (
-            "annualized return is unavailable" if calmar is None else None
-        )
+        calmar = None if annualized_return is None else annualized_return / abs(max_drawdown)
+        calmar_null_reason = "annualized return is unavailable" if calmar is None else None
         recovery_factor = (final_equity - initial_capital) / max_drawdown_amount
         recovery_null_reason = None
     metrics.extend(
@@ -395,7 +464,34 @@ def calculate_performance_metrics(
                 ),
             )
         )
-        return tuple(metrics)
+        return _finalize_metric_values(
+            metrics,
+            evidence_references=(MetricEvidenceReference("calculator_input", input_digest),),
+            common_calculation_parameters={
+                "external_cash_flow_assumption": "no_external_cash_flows",
+            },
+            calculation_parameters_by_metric={
+                "annualized_return": {"periods_per_year": periods_per_year},
+                "calmar_ratio": {"periods_per_year": periods_per_year},
+                "annualized_volatility": {"periods_per_year": periods_per_year},
+                "sharpe_ratio": {
+                    "periods_per_year": periods_per_year,
+                    "risk_free_return_per_period": risk_free_return_per_period,
+                },
+                "sortino_ratio": {
+                    "periods_per_year": periods_per_year,
+                    "risk_free_return_per_period": risk_free_return_per_period,
+                },
+                "historical_value_at_risk": {
+                    "confidence_level": historical_confidence_level,
+                    "tail_rule": "ceil(n * (1 - confidence)); nearest-rank; no interpolation",
+                },
+                "historical_expected_shortfall": {
+                    "confidence_level": historical_confidence_level,
+                    "tail_rule": "ceil(n * (1 - confidence)); mean worst tail; no interpolation",
+                },
+            },
+        )
 
     mean_return = sum(returns, Decimal(0)) / Decimal(len(returns))
     sample_variance = sum(((value - mean_return) ** 2 for value in returns), Decimal(0)) / Decimal(
@@ -506,7 +602,34 @@ def calculate_performance_metrics(
             ),
         )
     )
-    return tuple(metrics)
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(MetricEvidenceReference("calculator_input", input_digest),),
+        common_calculation_parameters={
+            "external_cash_flow_assumption": "no_external_cash_flows",
+        },
+        calculation_parameters_by_metric={
+            "annualized_return": {"periods_per_year": periods_per_year},
+            "calmar_ratio": {"periods_per_year": periods_per_year},
+            "annualized_volatility": {"periods_per_year": periods_per_year},
+            "sharpe_ratio": {
+                "periods_per_year": periods_per_year,
+                "risk_free_return_per_period": risk_free_return_per_period,
+            },
+            "sortino_ratio": {
+                "periods_per_year": periods_per_year,
+                "risk_free_return_per_period": risk_free_return_per_period,
+            },
+            "historical_value_at_risk": {
+                "confidence_level": historical_confidence_level,
+                "tail_rule": "ceil(n * (1 - confidence)); nearest-rank; no interpolation",
+            },
+            "historical_expected_shortfall": {
+                "confidence_level": historical_confidence_level,
+                "tail_rule": "ceil(n * (1 - confidence)); mean worst tail; no interpolation",
+            },
+        },
+    )
 
 
 @deterministic_decimal_math
@@ -517,118 +640,126 @@ def calculate_trade_metrics(
 
     pnls = _validate_decimal_series(trade_pnls, "trade_pnls")
     currency = _currency_code(base_currency)
+    input_digest = content_digest({"ordered_trade_pnls": pnls})
     if not isinstance(basis, MetricBasis):
         raise TypeError("basis must be a MetricBasis")
     count = len(pnls)
     if count == 0:
-        return (
-            _value(
-                "trade_count",
-                Decimal(0),
-                unit="trades",
-                basis=basis,
-                sample_size=0,
+        return _finalize_metric_values(
+            (
+                _value(
+                    "trade_count",
+                    Decimal(0),
+                    unit="trades",
+                    basis=basis,
+                    sample_size=0,
+                ),
+                _value(
+                    "winning_trade_pnl",
+                    Decimal(0),
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                ),
+                _value(
+                    "losing_trade_pnl_magnitude",
+                    Decimal(0),
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                ),
+                _value(
+                    "win_rate",
+                    None,
+                    unit="fraction",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "break_even_rate",
+                    None,
+                    unit="fraction",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "average_trade_pnl",
+                    None,
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "average_winning_trade_pnl",
+                    None,
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "average_losing_trade_pnl",
+                    None,
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "largest_winning_trade_pnl",
+                    None,
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "largest_losing_trade_pnl",
+                    None,
+                    unit=f"currency:{currency}",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "win_loss_ratio",
+                    None,
+                    unit="ratio",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "profit_factor",
+                    None,
+                    unit="ratio",
+                    basis=basis,
+                    sample_size=0,
+                    null_reason="no completed trades",
+                ),
+                _value(
+                    "max_consecutive_wins",
+                    Decimal(0),
+                    unit="trades",
+                    basis=basis,
+                    sample_size=0,
+                ),
+                _value(
+                    "max_consecutive_losses",
+                    Decimal(0),
+                    unit="trades",
+                    basis=basis,
+                    sample_size=0,
+                ),
             ),
-            _value(
-                "winning_trade_pnl",
-                Decimal(0),
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-            ),
-            _value(
-                "losing_trade_pnl_magnitude",
-                Decimal(0),
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-            ),
-            _value(
-                "win_rate",
-                None,
-                unit="fraction",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "break_even_rate",
-                None,
-                unit="fraction",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "average_trade_pnl",
-                None,
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "average_winning_trade_pnl",
-                None,
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "average_losing_trade_pnl",
-                None,
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "largest_winning_trade_pnl",
-                None,
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "largest_losing_trade_pnl",
-                None,
-                unit=f"currency:{currency}",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "win_loss_ratio",
-                None,
-                unit="ratio",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "profit_factor",
-                None,
-                unit="ratio",
-                basis=basis,
-                sample_size=0,
-                null_reason="no completed trades",
-            ),
-            _value(
-                "max_consecutive_wins",
-                Decimal(0),
-                unit="trades",
-                basis=basis,
-                sample_size=0,
-            ),
-            _value(
-                "max_consecutive_losses",
-                Decimal(0),
-                unit="trades",
-                basis=basis,
-                sample_size=0,
-            ),
+            evidence_references=(MetricEvidenceReference("calculator_input", input_digest),),
+            calculation_parameters_by_metric={
+                "max_consecutive_wins": {"input_order": "ordered_trade_sequence"},
+                "max_consecutive_losses": {"input_order": "ordered_trade_sequence"},
+            },
         )
 
     wins = tuple(value for value in pnls if value > 0)
@@ -653,109 +784,114 @@ def calculate_trade_metrics(
         current_losses = current_losses + 1 if pnl < 0 else 0
         max_consecutive_wins = max(max_consecutive_wins, current_wins)
         max_consecutive_losses = max(max_consecutive_losses, current_losses)
-    return (
-        _value("trade_count", Decimal(count), unit="trades", basis=basis, sample_size=count),
-        _value(
-            "winning_trade_pnl",
-            gross_profit,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "losing_trade_pnl_magnitude",
-            gross_loss,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "win_rate",
-            Decimal(len(wins)) / Decimal(count),
-            unit="fraction",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "break_even_rate",
-            Decimal(break_even_count) / Decimal(count),
-            unit="fraction",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "average_trade_pnl",
-            sum(pnls, Decimal(0)) / Decimal(count),
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "average_winning_trade_pnl",
-            average_win,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=len(wins),
-            null_reason="no winning trades" if average_win is None else None,
-        ),
-        _value(
-            "average_losing_trade_pnl",
-            average_loss,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=len(losses),
-            null_reason="no losing trades" if average_loss is None else None,
-        ),
-        _value(
-            "largest_winning_trade_pnl",
-            max(wins) if wins else None,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=len(wins),
-            null_reason="no winning trades" if not wins else None,
-        ),
-        _value(
-            "largest_losing_trade_pnl",
-            min(losses) if losses else None,
-            unit=f"currency:{currency}",
-            basis=basis,
-            sample_size=len(losses),
-            null_reason="no losing trades" if not losses else None,
-        ),
-        _value(
-            "win_loss_ratio",
-            win_loss_ratio,
-            unit="ratio",
-            basis=basis,
-            sample_size=count,
-            null_reason=(
-                "no winning trades"
-                if not wins
-                else "no losing trades" if not losses else None
+    return _finalize_metric_values(
+        (
+            _value("trade_count", Decimal(count), unit="trades", basis=basis, sample_size=count),
+            _value(
+                "winning_trade_pnl",
+                gross_profit,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "losing_trade_pnl_magnitude",
+                gross_loss,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "win_rate",
+                Decimal(len(wins)) / Decimal(count),
+                unit="fraction",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "break_even_rate",
+                Decimal(break_even_count) / Decimal(count),
+                unit="fraction",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "average_trade_pnl",
+                sum(pnls, Decimal(0)) / Decimal(count),
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "average_winning_trade_pnl",
+                average_win,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=len(wins),
+                null_reason="no winning trades" if average_win is None else None,
+            ),
+            _value(
+                "average_losing_trade_pnl",
+                average_loss,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=len(losses),
+                null_reason="no losing trades" if average_loss is None else None,
+            ),
+            _value(
+                "largest_winning_trade_pnl",
+                max(wins) if wins else None,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=len(wins),
+                null_reason="no winning trades" if not wins else None,
+            ),
+            _value(
+                "largest_losing_trade_pnl",
+                min(losses) if losses else None,
+                unit=f"currency:{currency}",
+                basis=basis,
+                sample_size=len(losses),
+                null_reason="no losing trades" if not losses else None,
+            ),
+            _value(
+                "win_loss_ratio",
+                win_loss_ratio,
+                unit="ratio",
+                basis=basis,
+                sample_size=count,
+                null_reason=(
+                    "no winning trades" if not wins else "no losing trades" if not losses else None
+                ),
+            ),
+            _value(
+                "profit_factor",
+                profit_factor,
+                unit="ratio",
+                basis=basis,
+                sample_size=count,
+                null_reason="no losing trades" if profit_factor is None else None,
+            ),
+            _value(
+                "max_consecutive_wins",
+                Decimal(max_consecutive_wins),
+                unit="trades",
+                basis=basis,
+                sample_size=count,
+            ),
+            _value(
+                "max_consecutive_losses",
+                Decimal(max_consecutive_losses),
+                unit="trades",
+                basis=basis,
+                sample_size=count,
             ),
         ),
-        _value(
-            "profit_factor",
-            profit_factor,
-            unit="ratio",
-            basis=basis,
-            sample_size=count,
-            null_reason="no losing trades" if profit_factor is None else None,
-        ),
-        _value(
-            "max_consecutive_wins",
-            Decimal(max_consecutive_wins),
-            unit="trades",
-            basis=basis,
-            sample_size=count,
-        ),
-        _value(
-            "max_consecutive_losses",
-            Decimal(max_consecutive_losses),
-            unit="trades",
-            basis=basis,
-            sample_size=count,
-        ),
+        evidence_references=(MetricEvidenceReference("calculator_input", input_digest),),
+        calculation_parameters_by_metric={
+            "max_consecutive_wins": {"input_order": "ordered_trade_sequence"},
+            "max_consecutive_losses": {"input_order": "ordered_trade_sequence"},
+        },
     )
 
 
@@ -786,7 +922,9 @@ def calculate_exposure_utilization_metrics(
     if any(item.base_currency != base_currency for item in marks):
         raise ValueError("all exposure observations must use the same base currency")
     if any(current <= previous for previous, current in zip(points, points[1:])):
-        raise ValueError("exposure observations must be strictly ordered by event time and sequence")
+        raise ValueError(
+            "exposure observations must be strictly ordered by event time and sequence"
+        )
     observation_digest = content_digest(marks)
 
     gross_ratios: list[Decimal] = []
@@ -803,75 +941,78 @@ def calculate_exposure_utilization_metrics(
                 raise ValueError(
                     f"instrument {instrument_id!r} uses an unsupported exposure risk model"
                 )
-        gross = sum(
-            (abs(item.signed_base_risk_exposure) for item in mark.positions), Decimal(0)
-        )
-        net = sum(
-            (item.signed_base_risk_exposure for item in mark.positions), Decimal(0)
-        )
+        gross = sum((abs(item.signed_base_risk_exposure) for item in mark.positions), Decimal(0))
+        net = sum((item.signed_base_risk_exposure for item in mark.positions), Decimal(0))
         gross_ratios.append(gross / mark.account_equity)
         net_ratios.append(net / mark.account_equity)
         cash_ratios.append(mark.account_cash_balance / mark.account_equity)
 
     sample_size = len(marks)
-    return (
-        _value(
-            "average_gross_notional_to_equity",
-            sum(gross_ratios, Decimal(0)) / Decimal(sample_size),
-            unit="ratio",
-            basis=MetricBasis.GROSS,
-            sample_size=sample_size,
-            calculation_basis=(
-                "equally sample-weighted mean of cash-equity gross signed-base-notional "
-                "exposure divided by contemporaneous account equity; not margin usage; "
-                f"observations {observation_digest}"
+    return _finalize_metric_values(
+        (
+            _value(
+                "average_gross_notional_to_equity",
+                sum(gross_ratios, Decimal(0)) / Decimal(sample_size),
+                unit="ratio",
+                basis=MetricBasis.GROSS,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of cash-equity gross signed-base-notional "
+                    "exposure divided by contemporaneous account equity; not margin usage; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_gross_notional_to_equity",
+                max(gross_ratios),
+                unit="ratio",
+                basis=MetricBasis.GROSS,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum observed cash-equity gross signed-base-notional exposure "
+                    "divided by contemporaneous account equity; not margin usage; "
+                    f"observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "average_net_notional_to_equity",
+                sum(net_ratios, Decimal(0)) / Decimal(sample_size),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean of signed account exposure divided by "
+                    f"contemporaneous account equity; observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "maximum_absolute_net_notional_to_equity",
+                max((abs(item) for item in net_ratios), default=Decimal(0)),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "maximum absolute observed signed account exposure divided by "
+                    f"contemporaneous account equity; observations {observation_digest}"
+                ),
+            ),
+            _value(
+                "average_cash_balance_to_equity",
+                sum(cash_ratios, Decimal(0)) / Decimal(sample_size),
+                unit="ratio",
+                basis=MetricBasis.NET,
+                sample_size=sample_size,
+                calculation_basis=(
+                    "equally sample-weighted mean account cash balance divided by "
+                    f"contemporaneous account equity; observations {observation_digest}"
+                ),
             ),
         ),
-        _value(
-            "maximum_gross_notional_to_equity",
-            max(gross_ratios),
-            unit="ratio",
-            basis=MetricBasis.GROSS,
-            sample_size=sample_size,
-            calculation_basis=(
-                "maximum observed cash-equity gross signed-base-notional exposure "
-                "divided by contemporaneous account equity; not margin usage; "
-                f"observations {observation_digest}"
-            ),
-        ),
-        _value(
-            "average_net_notional_to_equity",
-            sum(net_ratios, Decimal(0)) / Decimal(sample_size),
-            unit="ratio",
-            basis=MetricBasis.NET,
-            sample_size=sample_size,
-            calculation_basis=(
-                "equally sample-weighted mean of signed account exposure divided by "
-                f"contemporaneous account equity; observations {observation_digest}"
-            ),
-        ),
-        _value(
-            "maximum_absolute_net_notional_to_equity",
-            max((abs(item) for item in net_ratios), default=Decimal(0)),
-            unit="ratio",
-            basis=MetricBasis.NET,
-            sample_size=sample_size,
-            calculation_basis=(
-                "maximum absolute observed signed account exposure divided by "
-                f"contemporaneous account equity; observations {observation_digest}"
-            ),
-        ),
-        _value(
-            "average_cash_balance_to_equity",
-            sum(cash_ratios, Decimal(0)) / Decimal(sample_size),
-            unit="ratio",
-            basis=MetricBasis.NET,
-            sample_size=sample_size,
-            calculation_basis=(
-                "equally sample-weighted mean account cash balance divided by "
-                f"contemporaneous account equity; observations {observation_digest}"
-            ),
-        ),
+        evidence_references=(MetricEvidenceReference("exposure_observations", observation_digest),),
+        common_calculation_parameters={
+            "risk_model": CASH_EQUITY_NOTIONAL_RISK_MODEL,
+            "valuation_basis": "signed_base_notional_over_contemporaneous_account_equity",
+        },
     )
 
 
@@ -1036,42 +1177,55 @@ def calculate_calendar_period_metrics(
             f"period_complete={str(period_complete).lower()}; observations {observation_digest}"
         )
         metrics.extend(
-            (
-                _value(
-                    f"calendar_period_net_pnl:{cadence.value}:{period}",
-                    net_pnl,
-                    unit=f"currency:{currency}",
-                    basis=MetricBasis.NET,
-                    sample_size=len(period_intervals),
-                    calculation_basis=(
-                        "sum of linked session-close account equity changes less explicitly reported "
-                        f"external cash flows; {basis}"
+            _finalize_metric_values(
+                (
+                    _value(
+                        f"calendar_period_net_pnl:{cadence.value}:{period}",
+                        net_pnl,
+                        unit=f"currency:{currency}",
+                        basis=MetricBasis.NET,
+                        sample_size=len(period_intervals),
+                        calculation_basis=(
+                            "sum of linked session-close account equity changes less explicitly reported "
+                            f"external cash flows; {basis}"
+                        ),
+                        null_reason=net_pnl_null_reason,
                     ),
-                    null_reason=net_pnl_null_reason,
-                ),
-                _value(
-                    f"calendar_period_return:{cadence.value}:{period}",
-                    period_return,
-                    unit="fraction",
-                    basis=MetricBasis.NET,
-                    sample_size=len(period_intervals),
-                    calculation_basis=(
-                        "closing account equity divided by the first interval opening equity minus one; "
-                        f"{basis}"
+                    _value(
+                        f"calendar_period_return:{cadence.value}:{period}",
+                        period_return,
+                        unit="fraction",
+                        basis=MetricBasis.NET,
+                        sample_size=len(period_intervals),
+                        calculation_basis=(
+                            "closing account equity divided by the first interval opening equity minus one; "
+                            f"{basis}"
+                        ),
+                        null_reason=return_null_reason,
                     ),
-                    null_reason=return_null_reason,
-                ),
-                _value(
-                    f"calendar_period_complete:{cadence.value}:{period}",
-                    Decimal(1) if period_complete else Decimal(0),
-                    unit="boolean",
-                    basis=MetricBasis.NET,
-                    sample_size=len(period_intervals),
-                    calculation_basis=(
-                        "one means marks span the preceding actual session close through "
-                        f"the last actual session close; {basis}"
+                    _value(
+                        f"calendar_period_complete:{cadence.value}:{period}",
+                        Decimal(1) if period_complete else Decimal(0),
+                        unit="boolean",
+                        basis=MetricBasis.NET,
+                        sample_size=len(period_intervals),
+                        calculation_basis=(
+                            "one means marks span the preceding actual session close through "
+                            f"the last actual session close; {basis}"
+                        ),
                     ),
                 ),
+                evidence_references=(
+                    MetricEvidenceReference("calendar_period_intervals", observation_digest),
+                    MetricEvidenceReference("session_calendar", calendar_fingerprint),
+                ),
+                common_calculation_parameters={
+                    "calendar_cadence": cadence.value,
+                    "coverage_convention": "preceding_actual_close_through_period_final_close",
+                    "external_cash_flow_policy": (
+                        "subtract reported flows from net pnl; return unavailable for flows or incomplete reports"
+                    ),
+                },
             )
         )
     return tuple(metrics)
@@ -1132,9 +1286,7 @@ def calculate_rolling_equity_metrics(
         session.session_label: index for index, session in enumerate(calendar_sessions)
     }
     interval_by_label = {item.session_label: item for item in intervals}
-    annualization_basis = (
-        f"sample session-return convention: {periods_per_year} sessions per year"
-    )
+    annualization_basis = f"sample session-return convention: {periods_per_year} sessions per year"
     points: list[RollingMetricPoint] = []
 
     for endpoint in intervals:
@@ -1159,23 +1311,15 @@ def calculate_rolling_equity_metrics(
             first_window_interval.start_point if first_window_interval is not None else None
         )
         preceding_session = (
-            calendar_sessions[first_window_index - 1]
-            if first_window_index > 0
-            else None
+            calendar_sessions[first_window_index - 1] if first_window_index > 0 else None
         )
         coverage_null_reason = None
         if first_window_index < 0 or len(expected_sessions) != window_sessions:
-            coverage_null_reason = (
-                "calendar coverage does not include the complete rolling window"
-            )
+            coverage_null_reason = "calendar coverage does not include the complete rolling window"
         elif preceding_session is None:
-            coverage_null_reason = (
-                "calendar coverage does not include the opening session close"
-            )
+            coverage_null_reason = "calendar coverage does not include the opening session close"
         elif observed_sessions != window_sessions:
-            coverage_null_reason = (
-                "one or more expected session-close observations are missing"
-            )
+            coverage_null_reason = "one or more expected session-close observations are missing"
         elif window_intervals[0].start_point.event_time != preceding_session.close_time:
             coverage_null_reason = (
                 "rolling window opening mark does not match the preceding session close"
@@ -1251,12 +1395,11 @@ def calculate_rolling_equity_metrics(
         else:
             first_interval = window_intervals[0]
             last_interval = window_intervals[-1]
-            rolling_return = (
-                last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+            rolling_return = last_interval.ending_equity / first_interval.starting_equity - Decimal(
+                1
             )
             returns = tuple(
-                item.ending_equity / item.starting_equity - Decimal(1)
-                for item in window_intervals
+                item.ending_equity / item.starting_equity - Decimal(1) for item in window_intervals
             )
             if len(returns) < minimum_risk_observations:
                 annualized_volatility = None
@@ -1272,9 +1415,7 @@ def calculate_rolling_equity_metrics(
                 sample_variance = sum(
                     ((value - mean_return) ** 2 for value in returns), Decimal(0)
                 ) / Decimal(len(returns) - 1)
-                annualized_volatility = (
-                    sample_variance * Decimal(periods_per_year)
-                ).sqrt()
+                annualized_volatility = (sample_variance * Decimal(periods_per_year)).sqrt()
                 risk_null_reason = None
                 if sample_variance == 0:
                     sharpe_ratio = None
@@ -1325,12 +1466,11 @@ def calculate_rolling_equity_metrics(
                     current_drawdown_duration = 0
             maximum_drawdown = min(drawdowns, default=Decimal(0))
             ulcer_index = (
-                sum((drawdown**2 for drawdown in drawdowns), Decimal(0))
-                / Decimal(len(drawdowns))
+                sum((drawdown**2 for drawdown in drawdowns), Decimal(0)) / Decimal(len(drawdowns))
             ).sqrt()
 
         metric_calculation_basis = basis
-        values = (
+        values: tuple[MetricValue, ...] = (
             _value(
                 "rolling_net_pnl",
                 net_pnl,
@@ -1408,9 +1548,7 @@ def calculate_rolling_equity_metrics(
             ),
             _value(
                 "rolling_maximum_drawdown_duration",
-                None
-                if maximum_drawdown_duration is None
-                else Decimal(maximum_drawdown_duration),
+                None if maximum_drawdown_duration is None else Decimal(maximum_drawdown_duration),
                 unit="sessions",
                 basis=MetricBasis.NET,
                 sample_size=sample_size,
@@ -1432,6 +1570,36 @@ def calculate_rolling_equity_metrics(
                 ),
                 null_reason=equity_metric_null_reason,
             ),
+        )
+        values = _finalize_metric_values(
+            values,
+            evidence_references=(
+                MetricEvidenceReference("rolling_window_intervals", observation_digest),
+                MetricEvidenceReference("session_calendar", calendar_fingerprint),
+            ),
+            common_calculation_parameters={
+                "window_sessions": window_sessions,
+                "session_interval_convention": "actual_close_to_close_intervals",
+                "external_cash_flow_policy": (
+                    "subtract complete flows from net pnl; suppress return and risk metrics for flows or incomplete reports"
+                ),
+            },
+            calculation_parameters_by_metric={
+                "rolling_annualized_volatility": {
+                    "periods_per_year": periods_per_year,
+                    "minimum_risk_observations": minimum_risk_observations,
+                },
+                "rolling_sharpe_ratio": {
+                    "periods_per_year": periods_per_year,
+                    "risk_free_return_per_period": risk_free_return_per_period,
+                    "minimum_risk_observations": minimum_risk_observations,
+                },
+                "rolling_sortino_ratio": {
+                    "periods_per_year": periods_per_year,
+                    "risk_free_return_per_period": risk_free_return_per_period,
+                    "minimum_risk_observations": minimum_risk_observations,
+                },
+            },
         )
         points.append(
             RollingMetricPoint(
@@ -1497,7 +1665,9 @@ def calculate_session_return_distribution_metrics(
 
     intervals, session_by_label = _validated_equity_intervals(observations, calendar)
     if start_session_label not in session_by_label or end_session_label not in session_by_label:
-        raise ValueError("session bounds must be actual trading-session labels in the supplied calendar")
+        raise ValueError(
+            "session bounds must be actual trading-session labels in the supplied calendar"
+        )
     if any(
         item.session_label < start_session_label or item.session_label > end_session_label
         for item in intervals
@@ -1536,9 +1706,7 @@ def calculate_session_return_distribution_metrics(
 
     null_reason = None
     if not coverage_complete:
-        null_reason = (
-            "requested session range is missing observations or preceding actual session-close marks"
-        )
+        null_reason = "requested session range is missing observations or preceding actual session-close marks"
     elif not flow_reports_complete:
         null_reason = "one or more external cash-flow reports are incomplete"
     elif external_flows_occurred:
@@ -1565,10 +1733,16 @@ def calculate_session_return_distribution_metrics(
         f"calendar={calendar.fingerprint}; observations={observation_digest}"
     )
     metric_values: list[MetricValue] = []
+    distribution_parameters: dict[str, dict[str, Any]] = {}
     for probability in quantiles:
         rank = _ceil_probability_count(observed_sessions, probability) if eligible else None
         value = sorted_returns[rank - 1] if rank is not None else None
         token = _decimal_token(probability)
+        distribution_parameters[f"session_return_quantile:p={token}"] = {
+            "quantile_probability": probability,
+            "minimum_observations": minimum_observations,
+            "rank_rule": "ceil(n * probability); one-based nearest-rank; no interpolation",
+        }
         metric_values.append(
             _value(
                 f"session_return_quantile:p={token}",
@@ -1600,6 +1774,16 @@ def calculate_session_return_distribution_metrics(
             else None
         )
         token = _decimal_token(confidence)
+        distribution_parameters[f"session_return_value_at_risk:c={token}"] = {
+            "confidence_level": confidence,
+            "minimum_observations": minimum_observations,
+            "tail_rule": "ceil(n * (1 - confidence)); nearest-rank boundary; no interpolation",
+        }
+        distribution_parameters[f"session_return_expected_shortfall:c={token}"] = {
+            "confidence_level": confidence,
+            "minimum_observations": minimum_observations,
+            "tail_rule": "ceil(n * (1 - confidence)); mean worst tail; no interpolation",
+        }
         metric_values.extend(
             (
                 _value(
@@ -1629,6 +1813,19 @@ def calculate_session_return_distribution_metrics(
             )
         )
 
+    structured_metrics = _finalize_metric_values(
+        metric_values,
+        evidence_references=(
+            MetricEvidenceReference("session_equity_intervals", observation_digest),
+            MetricEvidenceReference("session_calendar", calendar.fingerprint),
+        ),
+        common_calculation_parameters={
+            "return_convention": "simple_close_to_close_session_returns",
+            "coverage_policy": "one interval per actual session with preceding actual close mark",
+            "external_cash_flow_policy": "suppress distributions for external or incompletely reported flows",
+        },
+        calculation_parameters_by_metric=distribution_parameters,
+    )
     return SessionReturnDistribution(
         portfolio_fingerprint=intervals[0].portfolio_fingerprint,
         run_attempt_id=intervals[0].run_attempt_id,
@@ -1647,7 +1844,7 @@ def calculate_session_return_distribution_metrics(
         confidence_levels=confidence_levels_sorted,
         effective_tail_observation_counts=tuple(tail_counts),
         observation_digest=observation_digest,
-        metrics=tuple(metric_values),
+        metrics=structured_metrics,
     )
 
 
@@ -1721,14 +1918,8 @@ def calculate_execution_cost_metrics(
             component_cost_counts[fill.component_id] += 1
 
     cost_reporting_complete = partial_fill_count == 0 and unavailable_fill_count == 0
-    net_cost = (
-        -sum(cash_effects.values(), Decimal(0)) if cost_reporting_complete else None
-    )
-    cost_bps = (
-        None
-        if notional == 0 or net_cost is None
-        else net_cost / notional * Decimal(10000)
-    )
+    net_cost = -sum(cash_effects.values(), Decimal(0)) if cost_reporting_complete else None
+    cost_bps = None if notional == 0 or net_cost is None else net_cost / notional * Decimal(10000)
     metrics = [
         _value(
             "fill_count",
@@ -1786,9 +1977,7 @@ def calculate_execution_cost_metrics(
                 f"observations {observation_digest}"
             ),
             null_reason=(
-                "one or more fill cost reports are incomplete"
-                if net_cost is None
-                else None
+                "one or more fill cost reports are incomplete" if net_cost is None else None
             ),
         ),
         _value(
@@ -1827,15 +2016,11 @@ def calculate_execution_cost_metrics(
         )
     for component_id in sorted(component_effects):
         component_cost = (
-            component_effects[component_id]
-            if component_cost_complete[component_id]
-            else None
+            component_effects[component_id] if component_cost_complete[component_id] else None
         )
         component_notional = component_notionals[component_id]
         component_bps = (
-            None
-            if component_cost is None
-            else component_cost / component_notional * Decimal(10000)
+            None if component_cost is None else component_cost / component_notional * Decimal(10000)
         )
         metrics.extend(
             (
@@ -1875,7 +2060,46 @@ def calculate_execution_cost_metrics(
                 ),
             )
         )
-    return tuple(metrics)
+    cost_definition_parameters = {
+        "cost_model_digests": tuple(
+            sorted({cost.cost_model_digest for fill in fill_values for cost in fill.costs})
+        ),
+        "slippage_benchmark_definition_digests": tuple(
+            sorted(
+                {
+                    cost.benchmark_definition_digest
+                    for fill in fill_values
+                    for cost in fill.costs
+                    if cost.benchmark_definition_digest is not None
+                }
+            )
+        ),
+        "cost_report_policy": "null_cost_totals_unless_all_fill_reports_complete",
+    }
+    cost_sensitive_parameters: dict[str, dict[str, Any]] = {
+        "net_execution_cost": cost_definition_parameters,
+        "execution_cost_basis_points": {
+            **cost_definition_parameters,
+            "basis_point_scale": Decimal(10000),
+        },
+        "component_execution_cost": cost_definition_parameters,
+        "component_execution_cost_basis_points": {
+            **cost_definition_parameters,
+            "basis_point_scale": Decimal(10000),
+        },
+    }
+    for kind in ExecutionCostKind:
+        cost_sensitive_parameters[f"reported_{kind.value}_cash_effect"] = {
+            **cost_definition_parameters,
+            "execution_cost_kind": kind.value,
+        }
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(
+            MetricEvidenceReference("fill_cost_observations", observation_digest),
+        ),
+        calculation_parameters_by_metric=cost_sensitive_parameters,
+    )
 
 
 @deterministic_decimal_math
@@ -1981,9 +2205,7 @@ def calculate_component_attribution_metrics(
                 ),
                 _value(
                     f"component_net_pnl_contribution:{item.component_id}",
-                    None
-                    if portfolio_pnl.net_pnl == 0
-                    else item.net_pnl / portfolio_pnl.net_pnl,
+                    None if portfolio_pnl.net_pnl == 0 else item.net_pnl / portfolio_pnl.net_pnl,
                     unit="fraction",
                     basis=MetricBasis.NET,
                     sample_size=1,
@@ -1996,4 +2218,42 @@ def calculate_component_attribution_metrics(
                 ),
             )
         )
-    return tuple(metrics)
+    component_parameters: dict[str, dict[str, Any]] = {}
+    component_evidence: dict[str, tuple[MetricEvidenceReference, ...]] = {}
+    for item in components:
+        for metric_family in (
+            "component_gross_pnl",
+            "component_net_pnl",
+            "component_net_pnl_contribution",
+        ):
+            metric_name = f"{metric_family}:{item.component_id}"
+            component_parameters[metric_name] = {
+                "component_id": item.component_id,
+                "attribution_method_digest": item.attribution_method_digest,
+            }
+            component_evidence[metric_name] = (
+                MetricEvidenceReference("component_engine_evidence", item.engine_evidence_digest),
+            )
+    attribution_input_digest = content_digest(
+        {"portfolio_pnl": portfolio_pnl, "component_pnl": components}
+    )
+    return _finalize_metric_values(
+        metrics,
+        evidence_references=(
+            MetricEvidenceReference("attribution_inputs", attribution_input_digest),
+            MetricEvidenceReference(
+                "portfolio_engine_evidence", portfolio_pnl.engine_evidence_digest
+            ),
+            MetricEvidenceReference("result_bundle", portfolio_pnl.result_bundle_digest),
+        ),
+        evidence_references_by_metric=component_evidence,
+        calculation_parameters_by_metric={
+            "portfolio_attributed_gross_pnl": {
+                "reconciliation_policy": "exact_component_sum_matches_portfolio_gross_pnl",
+            },
+            "portfolio_attributed_net_pnl": {
+                "reconciliation_policy": "exact_component_sum_matches_portfolio_net_pnl",
+            },
+            **component_parameters,
+        },
+    )

@@ -45,6 +45,9 @@ class MetricBasis(StrEnum):
     NET = "net"
 
 
+METRIC_CALCULATION_CONTRACT_VERSION = "strategy-lab.metric-calculation.v1"
+
+
 class TrialSeedPolicy(StrEnum):
     PER_CANDIDATE = "per_candidate"
     SHARED_PER_SCENARIO_REPLICATE = "shared_per_scenario_replicate"
@@ -361,9 +364,7 @@ class PortfolioComposition:
     def unallocated_capital_weight(self) -> Decimal:
         """Share of current account equity not assigned to strategy components."""
 
-        return Decimal(1) - sum(
-            (item.capital_weight for item in self.components), Decimal(0)
-        )
+        return Decimal(1) - sum((item.capital_weight for item in self.components), Decimal(0))
 
 
 @dataclass(frozen=True, slots=True)
@@ -520,7 +521,9 @@ class DataSnapshot:
                 and item.start < effective_end
                 and item.end > effective_start
             ]
-            ordered_candidates = sorted(candidates, key=lambda entry: (entry[1].start, entry[1].end))
+            ordered_candidates = sorted(
+                candidates, key=lambda entry: (entry[1].start, entry[1].end)
+            )
             previous_end: datetime | None = None
             for _, item in ordered_candidates:
                 if previous_end is not None and item.start < previous_end:
@@ -629,9 +632,7 @@ class TrialRandomization:
         if self.scope_fingerprint is not None:
             require_sha256_digest(self.scope_fingerprint, field_name="scope_fingerprint")
         if self.seed_group_fingerprint is not None:
-            require_sha256_digest(
-                self.seed_group_fingerprint, field_name="seed_group_fingerprint"
-            )
+            require_sha256_digest(self.seed_group_fingerprint, field_name="seed_group_fingerprint")
         if self.policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE and (
             self.scope_fingerprint is None or self.seed_group_fingerprint is None
         ):
@@ -650,9 +651,8 @@ class TrialRandomization:
         elif self.derivation_version == TRIAL_SEED_DERIVATION_VERSION:
             if self.seed_group_fingerprint is None:
                 raise ValueError("derived seed provenance requires a seed-group fingerprint")
-            expected_seed = (
-                int(self.seed_group_fingerprint.split(":", 1)[1][:16], 16)
-                & ((1 << 63) - 1)
+            expected_seed = int(self.seed_group_fingerprint.split(":", 1)[1][:16], 16) & (
+                (1 << 63) - 1
             )
             if self.seed != expected_seed:
                 raise ValueError("trial seed does not match its seed-group fingerprint")
@@ -740,8 +740,10 @@ class ScientificTrial:
         seed: int | None = None,
         randomization: TrialRandomization | None = None,
     ) -> ScientificTrial:
-        trial_seed = 0 if seed is None and randomization is None else (
-            randomization.seed if seed is None and randomization is not None else seed
+        trial_seed = (
+            0
+            if seed is None and randomization is None
+            else (randomization.seed if seed is None and randomization is not None else seed)
         )
         if not isinstance(trial_seed, int) or isinstance(trial_seed, bool):
             raise ValueError("trial seed must be an integer")
@@ -791,11 +793,7 @@ class RunAttempt:
     def __post_init__(self) -> None:
         _nonempty(self.attempt_id, "attempt_id")
         _nonempty(self.trial_id, "trial_id")
-        if (
-            not isinstance(self.ordinal, int)
-            or isinstance(self.ordinal, bool)
-            or self.ordinal < 1
-        ):
+        if not isinstance(self.ordinal, int) or isinstance(self.ordinal, bool) or self.ordinal < 1:
             raise ValueError("attempt ordinal must be positive")
         if not isinstance(self.state, AttemptState):
             raise TypeError("attempt state must be an AttemptState")
@@ -827,6 +825,41 @@ class ArtifactManifest:
 
 
 @dataclass(frozen=True, slots=True)
+class MetricCalculationDefinition:
+    """Stable formula identity and effective parameters, without run outputs."""
+
+    formula_id: str
+    contract_version: str
+    parameters: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for name in ("formula_id", "contract_version"):
+            _nonempty(getattr(self, name), name)
+        if not isinstance(self.parameters, Mapping):
+            raise TypeError("calculation parameters must be a mapping")
+        frozen_parameters = freeze_json(self.parameters)
+        if not isinstance(frozen_parameters, Mapping):
+            raise TypeError("calculation parameters must be a mapping")
+        object.__setattr__(self, "parameters", frozen_parameters)
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class MetricEvidenceReference:
+    """A typed digest for run-specific observations or supporting evidence."""
+
+    role: str
+    digest: str
+
+    def __post_init__(self) -> None:
+        _nonempty(self.role, "role")
+        require_sha256_digest(self.digest, field_name="digest")
+
+
+@dataclass(frozen=True, slots=True)
 class MetricValue:
     name: str
     value: Decimal | None
@@ -837,6 +870,8 @@ class MetricValue:
     annualization_basis: str | None = None
     calculation_basis: str | None = None
     null_reason: str | None = None
+    calculation_definition: MetricCalculationDefinition | None = None
+    evidence_references: tuple[MetricEvidenceReference, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("name", "unit", "definition_version"):
@@ -862,6 +897,41 @@ class MetricValue:
             _nonempty(self.annualization_basis, "annualization_basis")
         if self.calculation_basis is not None:
             _nonempty(self.calculation_basis, "calculation_basis")
+        if self.calculation_definition is not None and not isinstance(
+            self.calculation_definition, MetricCalculationDefinition
+        ):
+            raise TypeError("calculation_definition must be a MetricCalculationDefinition")
+        evidence_references = tuple(self.evidence_references)
+        if any(not isinstance(item, MetricEvidenceReference) for item in evidence_references):
+            raise TypeError("evidence_references must contain MetricEvidenceReference values")
+        if len(set(evidence_references)) != len(evidence_references):
+            raise ValueError("evidence references must not contain duplicates")
+        object.__setattr__(
+            self,
+            "evidence_references",
+            tuple(sorted(evidence_references, key=lambda item: (item.role, item.digest))),
+        )
+
+    @property
+    def calculation_fingerprint(self) -> str | None:
+        """Return stable calculation compatibility identity, or None for legacy values.
+
+        Run values, sample sizes, null outcomes, free-text presentation fields, and
+        evidence digests are intentionally excluded so separate runs using the same
+        formula/configuration can be compared without claiming identical evidence.
+        """
+
+        if self.calculation_definition is None:
+            return None
+        return content_digest(
+            {
+                "metric_name": self.name,
+                "unit": self.unit,
+                "basis": self.basis,
+                "definition_version": self.definition_version,
+                "calculation_definition": self.calculation_definition,
+            }
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -897,9 +967,10 @@ class RollingMetricPoint:
             or not 1 <= self.observed_sessions <= self.window_sessions
         ):
             raise ValueError("observed_sessions must be between one and window_sessions")
-        if self.window_start_session_label is not None and type(
-            self.window_start_session_label
-        ) is not date:
+        if (
+            self.window_start_session_label is not None
+            and type(self.window_start_session_label) is not date
+        ):
             raise TypeError("window_start_session_label must be a date or None")
         if type(self.window_end_session_label) is not date:
             raise TypeError("window_end_session_label must be a date, not a datetime")
@@ -921,11 +992,10 @@ class RollingMetricPoint:
             or self.window_start_session_label is None
             or self.window_start_point is None
         ):
-            raise ValueError("complete rolling points require full session and opening-mark coverage")
-        if (
-            self.window_start_point is not None
-            and self.window_end_point <= self.window_start_point
-        ):
+            raise ValueError(
+                "complete rolling points require full session and opening-mark coverage"
+            )
+        if self.window_start_point is not None and self.window_end_point <= self.window_start_point:
             raise ValueError("rolling window end point must follow its opening mark")
         require_sha256_digest(self.observation_digest, field_name="observation_digest")
         metrics = tuple(self.metrics)
@@ -1044,7 +1114,9 @@ class SessionReturnDistribution:
             ):
                 raise ValueError("effective tail observation counts must be valid sample counts")
             if eligible != (count is not None):
-                raise ValueError("tail observation counts must be present only for eligible samples")
+                raise ValueError(
+                    "tail observation counts must be present only for eligible samples"
+                )
 
         require_sha256_digest(self.observation_digest, field_name="observation_digest")
         metrics = tuple(self.metrics)
@@ -1052,7 +1124,9 @@ class SessionReturnDistribution:
         if len(metrics) != expected_metric_count or any(
             not isinstance(item, MetricValue) for item in metrics
         ):
-            raise ValueError("distribution metrics must contain each requested quantile and tail value")
+            raise ValueError(
+                "distribution metrics must contain each requested quantile and tail value"
+            )
         if len({item.name for item in metrics}) != len(metrics):
             raise ValueError("distribution metric names must be unique")
         if len({item.definition_version for item in metrics}) != 1:
@@ -1061,7 +1135,9 @@ class SessionReturnDistribution:
             item.sample_size != self.observed_sessions or item.basis is not MetricBasis.NET
             for item in metrics
         ):
-            raise ValueError("distribution metrics must use the observed sample count and net basis")
+            raise ValueError(
+                "distribution metrics must use the observed sample count and net basis"
+            )
         if eligible and any(item.value is None for item in metrics):
             raise ValueError("eligible distribution samples must provide every requested metric")
         if not eligible and any(item.value is not None for item in metrics):
@@ -1145,7 +1221,9 @@ class RunResultManifest:
         if self.snapshot.preflight_report.fingerprint != self.trial.preflight_fingerprint:
             raise ValueError("result snapshot capability report must match its scientific trial")
         require_sha256_digest(self.engine_build_digest, field_name="engine_build_digest")
-        require_sha256_digest(self.dependency_catalog_digest, field_name="dependency_catalog_digest")
+        require_sha256_digest(
+            self.dependency_catalog_digest, field_name="dependency_catalog_digest"
+        )
         require_sha256_digest(self.assumptions_digest, field_name="assumptions_digest")
         for name in ("engine_name", "engine_version", "allocation_definition_version"):
             _nonempty(getattr(self, name), name)
@@ -1156,9 +1234,7 @@ class RunResultManifest:
         if any(not isinstance(item, ArtifactManifest) for item in artifacts):
             raise TypeError("result outputs must use ArtifactManifest records")
         package_strategies = [item.strategy_fingerprint for item in packages]
-        portfolio_strategies = {
-            item.strategy_fingerprint for item in self.portfolio.components
-        }
+        portfolio_strategies = {item.strategy_fingerprint for item in self.portfolio.components}
         if not packages or set(package_strategies) != portfolio_strategies:
             raise ValueError("result packages must match the portfolio strategy versions")
         if len(package_strategies) != len(set(package_strategies)):

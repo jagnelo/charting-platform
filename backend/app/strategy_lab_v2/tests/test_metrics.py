@@ -4,7 +4,14 @@ from decimal import ROUND_DOWN, Decimal, localcontext
 
 import pytest
 
-from app.strategy_lab_v2.contracts import MetricBasis
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    METRIC_CALCULATION_CONTRACT_VERSION,
+    MetricBasis,
+    MetricCalculationDefinition,
+    MetricEvidenceReference,
+    MetricValue,
+)
 from app.strategy_lab_v2.metrics import (
     METRIC_DEFINITION_VERSION,
     calculate_performance_metrics,
@@ -102,6 +109,110 @@ def test_equity_curve_uses_post_start_fixed_cadence_marks_not_opening_balance() 
     assert metrics["annualized_return"].annualization_basis == "252 observed periods per year"  # type: ignore[attr-defined]
 
 
+def test_structured_calculation_identity_excludes_values_and_run_evidence() -> None:
+    first = _by_name(
+        calculate_performance_metrics(
+            (Decimal("110"), Decimal("104"), Decimal("117")),
+            initial_capital=Decimal("100"),
+            base_currency="USD",
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal("0.001"),
+        )
+    )
+    second = _by_name(
+        calculate_performance_metrics(
+            (Decimal("112"), Decimal("103"), Decimal("110"), Decimal("119")),
+            initial_capital=Decimal("100"),
+            base_currency="USD",
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal("0.001"),
+        )
+    )
+
+    first_sharpe = first["sharpe_ratio"]
+    second_sharpe = second["sharpe_ratio"]
+    assert first_sharpe.calculation_definition.contract_version == (  # type: ignore[attr-defined]
+        METRIC_CALCULATION_CONTRACT_VERSION
+    )
+    assert first_sharpe.calculation_definition.formula_id == (  # type: ignore[attr-defined]
+        "strategy-lab.metrics/sharpe_ratio"
+    )
+    assert first_sharpe.calculation_definition.parameters[  # type: ignore[attr-defined]
+        "risk_free_return_per_period"
+    ] == Decimal("0.001")
+    assert first_sharpe.calculation_fingerprint == second_sharpe.calculation_fingerprint  # type: ignore[attr-defined]
+    assert first_sharpe.value != second_sharpe.value  # type: ignore[attr-defined]
+    assert first_sharpe.sample_size != second_sharpe.sample_size  # type: ignore[attr-defined]
+    assert first_sharpe.evidence_references != second_sharpe.evidence_references  # type: ignore[attr-defined]
+    assert first_sharpe.evidence_references[0].role == "calculator_input"  # type: ignore[attr-defined]
+
+    changed_risk_free = _by_name(
+        calculate_performance_metrics(
+            (Decimal("110"), Decimal("104"), Decimal("117")),
+            initial_capital=Decimal("100"),
+            base_currency="USD",
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal("0.002"),
+        )
+    )
+    assert (
+        first_sharpe.calculation_fingerprint  # type: ignore[attr-defined]
+        != changed_risk_free["sharpe_ratio"].calculation_fingerprint  # type: ignore[attr-defined]
+    )
+    assert (
+        first["total_return"].calculation_fingerprint  # type: ignore[attr-defined]
+        == changed_risk_free["total_return"].calculation_fingerprint  # type: ignore[attr-defined]
+    )
+
+    changed_annualization = _by_name(
+        calculate_performance_metrics(
+            (Decimal("110"), Decimal("104"), Decimal("117")),
+            initial_capital=Decimal("100"),
+            base_currency="USD",
+            periods_per_year=12,
+            risk_free_return_per_period=Decimal("0.001"),
+        )
+    )
+    assert (
+        first["total_return"].calculation_fingerprint  # type: ignore[attr-defined]
+        == changed_annualization["total_return"].calculation_fingerprint  # type: ignore[attr-defined]
+    )
+    assert (
+        first["annualized_return"].calculation_fingerprint  # type: ignore[attr-defined]
+        != changed_annualization["annualized_return"].calculation_fingerprint  # type: ignore[attr-defined]
+    )
+    assert first["annualized_return"].value != changed_annualization["annualized_return"].value  # type: ignore[attr-defined]
+
+
+def test_calculation_definition_is_versioned_immutable_and_legacy_is_fail_closed() -> None:
+    first = MetricCalculationDefinition(
+        "test.return",
+        METRIC_CALCULATION_CONTRACT_VERSION,
+        {"confidence": Decimal("0.95"), "labels": ["close", "to-close"]},
+    )
+    second = MetricCalculationDefinition(
+        "test.return",
+        METRIC_CALCULATION_CONTRACT_VERSION,
+        {"confidence": Decimal("0.975"), "labels": ["close", "to-close"]},
+    )
+    assert first.fingerprint != second.fingerprint
+    assert first.parameters["labels"] == ("close", "to-close")
+    with pytest.raises(TypeError):
+        first.parameters["confidence"] = Decimal("0.9")  # type: ignore[index]
+
+    evidence = MetricEvidenceReference("test_observations", content_digest([1, 2, 3]))
+    legacy = MetricValue(
+        "return",
+        Decimal("0.1"),
+        "fraction",
+        "strategy-lab.metrics.v2",
+        MetricBasis.NET,
+        3,
+    )
+    assert legacy.calculation_fingerprint is None
+    assert evidence.digest == content_digest([1, 2, 3])
+
+
 def test_trade_metrics_cover_expectancy_quality_streaks_and_explicit_currency() -> None:
     metrics = _by_name(
         calculate_trade_metrics(
@@ -145,9 +256,7 @@ def test_trade_metrics_have_defined_nulls_for_no_wins_or_no_losses() -> None:
     assert only_losses["win_loss_ratio"].value is None  # type: ignore[attr-defined]
     assert only_losses["win_loss_ratio"].null_reason == "no winning trades"  # type: ignore[attr-defined]
 
-    only_wins = _by_name(
-        calculate_trade_metrics((Decimal("2"), Decimal("3")), base_currency="USD")
-    )
+    only_wins = _by_name(calculate_trade_metrics((Decimal("2"), Decimal("3")), base_currency="USD"))
     assert only_wins["profit_factor"].value is None  # type: ignore[attr-defined]
     assert only_wins["profit_factor"].null_reason == "no losing trades"  # type: ignore[attr-defined]
     assert only_wins["win_loss_ratio"].value is None  # type: ignore[attr-defined]

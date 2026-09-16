@@ -16,6 +16,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     CASH_EQUITY_NOTIONAL_RISK_MODEL,
     MetricBasis,
+    MetricEvidenceReference,
     ProductClass,
     ProductRiskModel,
     RiskExposureMeasure,
@@ -128,9 +129,9 @@ def _equity_interval(
     if flow_occurred is None:
         if flow_status is ExternalCashFlowReportStatus.COMPLETE:
             flow_occurred = flow_amount != 0
-        elif (
-            flow_status is ExternalCashFlowReportStatus.PARTIAL
-            and flow_amount not in (None, Decimal(0))
+        elif flow_status is ExternalCashFlowReportStatus.PARTIAL and flow_amount not in (
+            None,
+            Decimal(0),
         ):
             flow_occurred = True
     return AccountEquityIntervalObservation(
@@ -389,6 +390,21 @@ def test_exposure_metrics_are_ordered_event_weighted_and_not_margin_utilization(
     assert metrics["average_cash_balance_to_equity"].value == Decimal("0.55")
     assert "not margin usage" in metrics["maximum_gross_notional_to_equity"].calculation_basis
     assert content_digest(marks) in metrics["average_gross_notional_to_equity"].calculation_basis
+    assert MetricEvidenceReference("exposure_observations", content_digest(marks)) in (
+        metrics["average_gross_notional_to_equity"].evidence_references
+    )
+    risk_model_parameters = metrics[
+        "average_gross_notional_to_equity"
+    ].calculation_definition.parameters["risk_model"]
+    assert risk_model_parameters["product_class"] == (
+        CASH_EQUITY_NOTIONAL_RISK_MODEL.product_class.value
+    )
+    assert risk_model_parameters["exposure_measure"] == (
+        CASH_EQUITY_NOTIONAL_RISK_MODEL.exposure_measure.value
+    )
+    assert risk_model_parameters["definition_digest"] == (
+        CASH_EQUITY_NOTIONAL_RISK_MODEL.definition_digest
+    )
     assert metrics["average_gross_notional_to_equity"].basis is MetricBasis.GROSS
     permuted = _snapshot(
         1,
@@ -475,6 +491,12 @@ def test_calendar_period_metrics_reconcile_complete_period_pnl_and_return() -> N
         calendar.fingerprint
         in metrics["calendar_period_net_pnl:monthly:month:2024-01"].calculation_basis
     )
+    period_metric = metrics["calendar_period_net_pnl:monthly:month:2024-01"]
+    assert period_metric.calculation_definition.parameters["calendar_cadence"] == "monthly"
+    assert (
+        MetricEvidenceReference("session_calendar", calendar.fingerprint)
+        in period_metric.evidence_references
+    )
     assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
 
 
@@ -552,9 +574,7 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
         Decimal(7000)
     )
     assert net_zero_flow_metrics["calendar_period_return:monthly:month:2024-01"].value is None
-    assert net_zero_flow_metrics[
-        "calendar_period_return:monthly:month:2024-01"
-    ].null_reason == (
+    assert net_zero_flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason == (
         "period contains external cash flows; time-weighted return is not implemented"
     )
 
@@ -595,12 +615,14 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
             cadence=RebalanceCadence.MONTHLY,
         )
     )
-    assert unavailable_flow_metrics[
-        "calendar_period_net_pnl:monthly:month:2024-01"
-    ].null_reason == "one or more external cash-flow reports are incomplete"
-    assert unavailable_flow_metrics[
-        "calendar_period_return:monthly:month:2024-01"
-    ].null_reason == "one or more external cash-flow reports are incomplete"
+    assert (
+        unavailable_flow_metrics["calendar_period_net_pnl:monthly:month:2024-01"].null_reason
+        == "one or more external cash-flow reports are incomplete"
+    )
+    assert (
+        unavailable_flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason
+        == "one or more external cash-flow reports are incomplete"
+    )
 
 
 def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> None:
@@ -645,13 +667,16 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     assert complete_point.window_start_point == intervals[0].start_point
     assert complete_point.window_end_point == second_close
     assert complete_point.observation_digest == content_digest(intervals)
-    assert complete_point.fingerprint == calculate_rolling_equity_metrics(
-        intervals,
-        calendar=calendar,
-        window_sessions=2,
-        periods_per_year=252,
-        risk_free_return_per_period=Decimal(0),
-    )[-1].fingerprint
+    assert (
+        complete_point.fingerprint
+        == calculate_rolling_equity_metrics(
+            intervals,
+            calendar=calendar,
+            window_sessions=2,
+            periods_per_year=252,
+            risk_free_return_per_period=Decimal(0),
+        )[-1].fingerprint
+    )
     with pytest.raises(ValueError, match="start label must not follow"):
         replace(
             complete_point,
@@ -676,6 +701,13 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     assert metrics["rolling_maximum_drawdown"].value == Decimal("-0.01")
     assert metrics["rolling_maximum_drawdown_duration"].value == Decimal(1)
     assert Decimal("0.007") < metrics["rolling_ulcer_index"].value < Decimal("0.008")
+    assert (
+        MetricEvidenceReference("rolling_window_intervals", complete_point.observation_digest)
+        in metrics["rolling_net_pnl"].evidence_references
+    )
+    assert metrics["rolling_sharpe_ratio"].calculation_definition.parameters[
+        "risk_free_return_per_period"
+    ] == Decimal(0)
     assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
 
     risk_free_target = Decimal("0.001")
@@ -690,12 +722,8 @@ def test_rolling_equity_metrics_emit_reproducible_complete_session_windows() -> 
     )
     with localcontext() as context:
         context.prec = 34
-        expected_sharpe = (
-            -risk_free_target / Decimal("0.0002").sqrt() * Decimal(252).sqrt()
-        )
-        expected_sortino = (
-            -risk_free_target / Decimal("0.0000605").sqrt() * Decimal(252).sqrt()
-        )
+        expected_sharpe = -risk_free_target / Decimal("0.0002").sqrt() * Decimal(252).sqrt()
+        expected_sortino = -risk_free_target / Decimal("0.0000605").sqrt() * Decimal(252).sqrt()
     assert targeted_metrics["rolling_sharpe_ratio"].value == expected_sharpe
     assert targeted_metrics["rolling_sortino_ratio"].value == expected_sortino
 
@@ -997,9 +1025,17 @@ def test_session_return_distribution_metrics_use_pinned_nearest_rank_estimators(
     assert all(item.sample_size == 2 for item in metrics.values())
     assert all(item.basis is MetricBasis.NET for item in metrics.values())
     assert all(item.definition_version == "strategy-lab.metrics.v6" for item in metrics.values())
-    assert "one-based rank=1; no interpolation" in metrics[
-        "session_return_quantile:p=0.25"
-    ].calculation_basis
+    assert (
+        "one-based rank=1; no interpolation"
+        in metrics["session_return_quantile:p=0.25"].calculation_basis
+    )
+    assert (
+        MetricEvidenceReference("session_equity_intervals", distribution.observation_digest)
+        in metrics["session_return_quantile:p=0.25"].evidence_references
+    )
+    assert metrics["session_return_quantile:p=0.25"].calculation_definition.parameters[
+        "quantile_probability"
+    ] == Decimal("0.25")
 
     canonical_order = calculate_session_return_distribution_metrics(
         intervals,
@@ -1098,8 +1134,7 @@ def test_session_return_distribution_metrics_use_pinned_nearest_rank_estimators(
     with pytest.raises(ValueError, match="observed sample count"):
         replace(
             distribution,
-            metrics=(replace(distribution.metrics[0], sample_size=1),)
-            + distribution.metrics[1:],
+            metrics=(replace(distribution.metrics[0], sample_size=1),) + distribution.metrics[1:],
         )
 
 
@@ -1196,7 +1231,10 @@ def test_session_return_distribution_metrics_fail_closed_on_coverage_and_flow_ev
     assert not partial_result.external_cash_flow_reports_complete
     assert partial_result.external_flows_occurred is None
     assert partial_result.observed_sessions == 2
-    assert all(item.null_reason == "one or more external cash-flow reports are incomplete" for item in partial_result.metrics)
+    assert all(
+        item.null_reason == "one or more external cash-flow reports are incomplete"
+        for item in partial_result.metrics
+    )
 
     unavailable_flow = replace(
         intervals[0],
@@ -1208,10 +1246,15 @@ def test_session_return_distribution_metrics_fail_closed_on_coverage_and_flow_ev
         (unavailable_flow, intervals[1]), **common
     )
     assert all(item.value is None for item in unavailable_result.metrics)
-    assert all(item.null_reason == "one or more external cash-flow reports are incomplete" for item in unavailable_result.metrics)
+    assert all(
+        item.null_reason == "one or more external cash-flow reports are incomplete"
+        for item in unavailable_result.metrics
+    )
 
 
-def test_session_return_distribution_metrics_validate_parameters_minimum_sample_and_early_close() -> None:
+def test_session_return_distribution_metrics_validate_parameters_minimum_sample_and_early_close() -> (
+    None
+):
     calendar = _january_calendar()
     single_interval = _equity_interval(
         calendar,
@@ -1290,9 +1333,7 @@ def test_session_return_distribution_metrics_validate_parameters_minimum_sample_
     early_calendar = replace(
         calendar,
         days=tuple(
-            replace(day, session=early_session)
-            if day.label == date(2024, 1, 2)
-            else day
+            replace(day, session=early_session) if day.label == date(2024, 1, 2) else day
             for day in calendar.days
         ),
         source_evidence_digest=content_digest("january-early-close-calendar-source-v1"),
@@ -1326,9 +1367,7 @@ def test_session_return_distribution_metrics_validate_parameters_minimum_sample_
     assert early_result.coverage_complete
     assert early_result.metrics[0].value is not None
     early_close_by_label = {
-        day.label: day.session.close_time
-        for day in early_calendar.days
-        if day.session is not None
+        day.label: day.session.close_time for day in early_calendar.days if day.session is not None
     }
     assert all(
         item.end_point.event_time == early_close_by_label[item.session_label]
@@ -1341,9 +1380,7 @@ def test_calendar_period_metrics_reject_mixed_runs_unmatched_marks_and_wrong_cal
     start = ObservationPoint(datetime(2024, 1, 1, 20, 0, tzinfo=UTC), 1)
     first_close = ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 2)
     last_close = ObservationPoint(datetime(2024, 1, 31, 21, 0, tzinfo=UTC), 3)
-    first = _equity_interval(
-        calendar, date(2024, 1, 2), start, first_close, "100000", "101000"
-    )
+    first = _equity_interval(calendar, date(2024, 1, 2), start, first_close, "100000", "101000")
     second = _equity_interval(
         calendar, date(2024, 1, 31), first_close, last_close, "101000", "102000"
     )
@@ -1368,7 +1405,11 @@ def test_calendar_period_metrics_reject_mixed_runs_unmatched_marks_and_wrong_cal
         )
     with pytest.raises(ValueError, match="official session close"):
         calculate_calendar_period_metrics(
-            (replace(first, end_point=ObservationPoint(datetime(2024, 1, 2, 20, 0, tzinfo=UTC), 2)),),
+            (
+                replace(
+                    first, end_point=ObservationPoint(datetime(2024, 1, 2, 20, 0, tzinfo=UTC), 2)
+                ),
+            ),
             calendar=calendar,
             cadence=RebalanceCadence.MONTHLY,
         )
@@ -1422,6 +1463,13 @@ def test_execution_cost_metrics_reconcile_fill_cash_effects_and_component_costs(
     assert metrics["component_execution_cost_basis_points:beta"].value == Decimal("-0.2")
     assert metrics["net_execution_cost"].unit == "currency:USD"
     assert content_digest(fills) in metrics["net_execution_cost"].calculation_basis
+    assert (
+        MetricEvidenceReference("fill_cost_observations", content_digest(fills))
+        in metrics["net_execution_cost"].evidence_references
+    )
+    assert metrics["net_execution_cost"].calculation_definition.parameters[
+        "cost_model_digests"
+    ] == (MODEL,)
     assert calculate_execution_cost_metrics(
         tuple(reversed(fills)), base_currency="USD"
     ) == calculate_execution_cost_metrics(fills, base_currency="USD")
@@ -1493,9 +1541,7 @@ def test_incomplete_fill_cost_reports_never_appear_as_zero_total_cost() -> None:
         sequence=1,
         cost_report_status=CostReportStatus.UNAVAILABLE,
     )
-    metrics = _metric_map(
-        calculate_execution_cost_metrics((unavailable,), base_currency="USD")
-    )
+    metrics = _metric_map(calculate_execution_cost_metrics((unavailable,), base_currency="USD"))
 
     assert metrics["complete_cost_report_fill_count"].value == Decimal(0)
     assert metrics["unavailable_cost_report_fill_count"].value == Decimal(1)
@@ -1515,9 +1561,7 @@ def test_incomplete_fill_cost_reports_never_appear_as_zero_total_cost() -> None:
         costs=(_cost("known-commission", ExecutionCostKind.COMMISSION, "-2"),),
         cost_report_status=CostReportStatus.PARTIAL,
     )
-    partial_metrics = _metric_map(
-        calculate_execution_cost_metrics((partial,), base_currency="USD")
-    )
+    partial_metrics = _metric_map(calculate_execution_cost_metrics((partial,), base_currency="USD"))
     assert partial_metrics["reported_commission_cash_effect"].value == Decimal(-2)
     assert partial_metrics["net_execution_cost"].value is None
     assert partial_metrics["partial_cost_report_fill_count"].value == Decimal(1)
@@ -1559,6 +1603,16 @@ def test_component_attribution_reconciles_account_pnl_and_records_unallocated_re
     assert metrics["component_net_pnl_contribution:__unallocated__"].value == Decimal(0)
     assert METHOD in metrics["component_net_pnl:alpha"].calculation_basis
     assert RESULT_BUNDLE in metrics["portfolio_attributed_net_pnl"].calculation_basis
+    assert (
+        metrics["component_net_pnl:alpha"].calculation_definition.parameters[
+            "attribution_method_digest"
+        ]
+        == METHOD
+    )
+    assert (
+        MetricEvidenceReference("component_engine_evidence", EVIDENCE)
+        in metrics["component_net_pnl:alpha"].evidence_references
+    )
     assert calculate_component_attribution_metrics(
         portfolio_pnl, tuple(reversed(components))
     ) == calculate_component_attribution_metrics(portfolio_pnl, components)
