@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The latest implementation hardens the `per_dimension` meta-label: it is
+    not a calculable reset unless each chargeable dimension declares an
+    explicit admission-safe boundary. Account-usage bootstrap can only skip a
+    specifically excluded unknown pool at zero cost. The live-runner now
+    records unresolved-reset exceptions as provider-specific preflight
+    blockers instead of allowing them to escape before the missing-credential
+    report. The complete backend unit gate passes `2,326/2,326` with 70.68%
+    coverage; replay the exact-source safety preflight after commit.
+  - >-
     The exact current-source preflight at `92ee86fd1` stopped before transport
     with `0/0` cases and zero provider requests after the unresolved-reset
     hardening. It records `94` provider-specific quota/cost/baseline blockers,

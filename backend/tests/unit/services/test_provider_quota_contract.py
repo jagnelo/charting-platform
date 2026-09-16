@@ -403,6 +403,22 @@ def test_unresolved_provider_reset_cannot_be_converted_to_a_local_window():
         )
 
 
+def test_per_dimension_without_dimension_reset_is_not_a_window():
+    with pytest.raises(ProviderQuotaUnknownError, match="reset boundary is unresolved"):
+        _window_start_for_dimension(
+            {
+                "name": "requests_per_day",
+                "limit": 1,
+                "window_seconds": 86400,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "unit-test",
+            },
+            reset="per_dimension",
+            now=datetime(2026, 9, 5, 12, tzinfo=UTC),
+        )
+
+
 def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,

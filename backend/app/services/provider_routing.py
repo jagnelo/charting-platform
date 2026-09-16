@@ -89,10 +89,7 @@ def _window_start_for_dimension(
         if eastern < reset_local:
             reset_local -= timedelta(days=1)
         window_start = reset_local.astimezone(UTC)
-    rolling = window_start is None and (
-        "rolling" in dimension_reset
-        or dimension_reset in {"provider_defined", "provider_defined_daily", "per_dimension"}
-    )
+    rolling = window_start is None and "rolling" in dimension_reset
     return window_start, rolling
 
 

@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 `per_dimension` reset admission and preflight classification
+
+- A `per_dimension` root reset is now treated as a meta-label, not as a
+  calculable rolling or epoch window. Each chargeable dimension must provide
+  its own explicit admission-safe reset; otherwise runtime and direct live
+  reservations fail closed. Account-usage bootstrap may still explicitly
+  exclude an unknown pool as zero-cost, without inventing a window.
+- The live-runner preflight now converts unresolved reset errors into a
+  provider-specific blocker and preserves the before-network stop, so missing
+  credentials and quota-contract gaps are reported together rather than
+  escaping as an exception.
+- Focused quota/runner tests and Ruff pass. The complete backend unit gate
+  passes `2,326/2,326` with 70.68% coverage and 37 warnings. No provider calls
+  or credentials were used. A new exact-source safety preflight remains
+  required after this source is committed.
+
 ## 2026-09-16 exact-current preflight after unresolved-reset hardening
 
 - At committed source `92ee86fd1`, the owner-ledger lock-protected full

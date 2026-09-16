@@ -1065,6 +1065,7 @@ def live_operation_quota_preflight(
             _reservation_plan_for_live_probe,
             provider_quota_baseline_status,
         )
+        from app.services.provider_runtime import ProviderQuotaUnknownError
     except Exception:
         return {"provider quota accounting": ["quota admission code is unavailable"]}
 
@@ -1088,7 +1089,11 @@ def live_operation_quota_preflight(
                         LIVE_OPERATION_COST_OVERRIDES.get(provider, {}).get(operation)
                     ),
                 )
-            except (ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError) as exc:
+            except (
+                ProviderQuotaAdmissionError,
+                ProviderQuotaCoordinatorError,
+                ProviderQuotaUnknownError,
+            ) as exc:
                 blockers.setdefault(provider, []).append(str(exc))
                 continue
             seed = provider_rate_limit_seed(provider)
@@ -1120,7 +1125,11 @@ def live_operation_quota_preflight(
                         dimension_name=dimension_name,
                         now=now,
                     )
-                except (ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError) as exc:
+                except (
+                    ProviderQuotaAdmissionError,
+                    ProviderQuotaCoordinatorError,
+                    ProviderQuotaUnknownError,
+                ) as exc:
                     blockers.setdefault(provider, []).append(f"{label}: {exc}")
                     continue
                 if state.get("status") != "verified":

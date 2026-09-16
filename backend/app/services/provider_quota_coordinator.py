@@ -1781,6 +1781,20 @@ def _reservation_plan_for_live_probe(
                     str(value) for value in applies_to
                 }:
                     continue
+            effective_reset = item.get("reset", contract.get("reset"))
+            if not provider_quota_reset_is_admission_safe(effective_reset):
+                # An account-usage bootstrap may explicitly exclude an
+                # unknown provider pool from charging. It still must not
+                # invent a window for that zero-cost dimension.
+                if operation == "fetch_account_usage" and isinstance(bootstrap, dict) and bootstrap.get(
+                    "enabled"
+                ) is True:
+                    bootstrap_unknown.add(str(item.get("name") or ""))
+                    continue
+                suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
+                raise ProviderQuotaAdmissionError(
+                    f"provider dimension reset semantics are {suffix} for live operation {provider_name}/{operation}/{item.get('name', '')}"
+                )
             status = provider_quota_baseline_status(
                 provider_name=provider_name,
                 capability="account_usage",
@@ -1822,12 +1836,6 @@ def _reservation_plan_for_live_probe(
                 str(value) for value in applies_to
             }:
                 continue
-        effective_reset = dimension.get("reset", contract.get("reset"))
-        if not provider_quota_reset_is_admission_safe(effective_reset):
-            suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
-            raise ProviderQuotaAdmissionError(
-                f"provider dimension reset semantics are {suffix} for live operation {provider_name}/{operation}/{name}"
-            )
         unit = str(dimension.get("unit") or "").lower()
         if name in bootstrap_unknown:
             amount = 0

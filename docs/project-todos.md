@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-16 — `per_dimension` reset and live-preflight fail-closed handling
+
+- [x] Treat `per_dimension` as an unresolved meta-label unless every
+      chargeable dimension supplies its own explicit calculable reset. Preserve
+      the intentional zero-cost exclusion for unknown account-usage bootstrap
+      pools without creating a fake window, and classify unresolved-reset
+      exceptions as live-runner blockers before transport. The full backend
+      unit suite passes `2,326/2,326` with 70.68% coverage; exact-source
+      preflight replay remains required after commit.
+
 ### 2026-09-16 — Provider-defined quota reset admission hardening
 
 - [x] Prevent unresolved provider-defined reset labels from being interpreted

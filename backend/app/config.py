@@ -2405,6 +2405,7 @@ _KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
 
 _UNRESOLVED_PROVIDER_QUOTA_RESETS = frozenset(
     {
+        "per_dimension",
         "provider_defined",
         "provider_defined_daily",
         "provider_defined_minute_and_rolling_second",
