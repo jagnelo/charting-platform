@@ -3784,3 +3784,12 @@ the authoritative record for this replay; it made zero provider calls.
   provider snapshot; these additional units are local reservations settled by
   the live tests and are intentionally not treated as a global provider-account
   total for uncoordinated clients.
+
+## 2026-09-16 Marketstack quota-source conflict hardening
+
+- Marketstack's current pricing page says `100` requests/month while its FAQ
+  still says `1,000` requests/month. The quota contract now records both URLs,
+  marks `published_monthly_limit_conflict` and the reset boundary as unknown,
+  and retains `100` only as a conservative reservation ceiling. Routing stays
+  fail-closed; no published value is presented as confirmed. Quota-contract
+  coverage passed `98/98`, Ruff, compile, diff, and workstream checks passed.
