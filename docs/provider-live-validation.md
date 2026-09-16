@@ -1059,6 +1059,16 @@ authoritative gate completed at `2026-09-10T08:42Z` with `1907 passed`,
 `89` warnings, and `80.35%` line coverage in `410.96s`. Testcontainer session
 `fddece92-aebf-488b-a824-68f4068db334` was cleaned without host-wide pruning.
 
+The current OpenFIGI contract is environment-specific and must not be
+collapsed into one generic request rate. With no API key, the mapping endpoint
+allows 25 requests/minute and five jobs/request, scoped to anonymous traffic;
+with `OPENFIGI_API_KEY`, it allows 25 requests/6 seconds and 100 jobs/request,
+scoped to the key. The runtime selects the matching contract, and the adapter
+preserves the provider's `ratelimit-limit`, `ratelimit-remaining`, and
+`ratelimit-reset` headers, including typed retry timing on HTTP 429. Focused
+coverage now passes `109/109`; a credentialed live case remains unavailable
+until an OpenFIGI key is intentionally provisioned.
+
 Alpaca OHLCV and latest-price paths now reject malformed or mixed bar rows,
 missing required OHLC fields, non-finite numeric values, and invalid pagination
 tokens instead of skipping observations or leaking generic exceptions. The
