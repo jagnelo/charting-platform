@@ -108,6 +108,69 @@ class PostgresAggregateStore:
     def schema(self) -> PostgresStorageSchema:
         return self._schema
 
+    async def get(self, key: AggregateKey) -> StoredAggregate | None:
+        """Read one aggregate snapshot without changing authoritative state.
+
+        The row is read inside a short transaction so a future API adapter can
+        bind the response to one database snapshot.  No receipt or mutation is
+        created by this method; compare-and-set writes continue through
+        :meth:`apply`.
+        """
+
+        if not isinstance(key, AggregateKey):
+            raise TypeError("key must be an AggregateKey")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        f"""
+                        SELECT aggregate_type, aggregate_id, version, state_json, state_fingerprint
+                        FROM {self._schema.aggregate_table}
+                        WHERE aggregate_type = :aggregate_type
+                          AND aggregate_id = :aggregate_id
+                        """
+                    ),
+                    {"aggregate_type": key.aggregate_type, "aggregate_id": key.aggregate_id},
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL aggregate read returned duplicate keys")
+                return _decode_aggregate_row(rows[0])
+
+    async def list_type(self, aggregate_type: str) -> tuple[StoredAggregate, ...]:
+        """Read all aggregates of one type in deterministic key order.
+
+        The package-level adapter intentionally returns a complete immutable
+        snapshot so a resource cursor can bind to its content digest.  A
+        production query may replace this with a database snapshot token while
+        preserving the same method contract.
+        """
+
+        if not isinstance(aggregate_type, str) or not aggregate_type.strip():
+            raise ValueError("aggregate_type must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        f"""
+                        SELECT aggregate_type, aggregate_id, version, state_json, state_fingerprint
+                        FROM {self._schema.aggregate_table}
+                        WHERE aggregate_type = :aggregate_type
+                        ORDER BY aggregate_id ASC
+                        """
+                    ),
+                    {"aggregate_type": aggregate_type},
+                )
+                rows = list(result.mappings())
+                aggregates = tuple(_decode_aggregate_row(row) for row in rows)
+                if tuple(sorted(aggregates, key=lambda item: item.key)) != aggregates:
+                    raise ValueError("PostgreSQL aggregate list is not deterministically ordered")
+                return aggregates
+
     async def apply(self, request: StorageTransactionRequest) -> StorageTransactionResolution:
         """Apply one request atomically, or return a typed rejection.
 
@@ -332,6 +395,23 @@ def _reject(
         tuple(sorted(current, key=lambda item: item.key)),
         rejection_reason=reason,
     )
+
+
+def _decode_aggregate_row(row: Mapping[str, Any]) -> StoredAggregate:
+    """Decode and authenticate one aggregate row returned by PostgreSQL."""
+
+    try:
+        key = AggregateKey(row["aggregate_type"], row["aggregate_id"])
+        aggregate = StoredAggregate(
+            key,
+            int(row["version"]),
+            _decode_state(row["state_json"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL aggregate row is malformed") from error
+    if aggregate.state_fingerprint != row["state_fingerprint"]:
+        raise ValueError("PostgreSQL aggregate state fingerprint does not match bytes")
+    return aggregate
 
 
 def _decode_state(raw: Any) -> Any:

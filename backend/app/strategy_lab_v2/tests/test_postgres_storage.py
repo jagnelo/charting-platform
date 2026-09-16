@@ -49,6 +49,18 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         self.calls.append((sql, values))
+        if sql.lstrip().startswith("SELECT aggregate_type") and "AND aggregate_id = :aggregate_id" in sql:
+            key = (values["aggregate_type"], values["aggregate_id"])
+            return FakeResult([] if key not in self.aggregates else [self.aggregates[key]])
+        if sql.lstrip().startswith("SELECT aggregate_type") and "ORDER BY aggregate_id" in sql:
+            aggregate_type = values["aggregate_type"]
+            return FakeResult(
+                [
+                    row
+                    for key, row in sorted(self.aggregates.items())
+                    if key[0] == aggregate_type
+                ]
+            )
         if sql.lstrip().startswith("SELECT aggregate_type"):
             keys = {
                 (values[name], values[name.replace("aggregate_type", "aggregate_id")])
@@ -190,3 +202,19 @@ def test_schema_is_explicit_but_never_applied_implicitly() -> None:
     assert "CREATE TABLE" in schema.statements[0]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresStorageSchema(aggregate_table="unsafe;drop")
+
+
+@pytest.mark.asyncio
+async def test_postgres_store_reads_one_and_deterministic_type_snapshot() -> None:
+    session = FakeSession()
+    store = PostgresAggregateStore(lambda: session)
+    await store.apply(_request())
+
+    found = await store.get(AggregateKey("attempt", "attempt-1"))
+    assert found is not None
+    assert found.key == AggregateKey("attempt", "attempt-1")
+    assert found.state["value"] == 1
+    assert await store.get(AggregateKey("attempt", "missing")) is None
+
+    listed = await store.list_type("attempt")
+    assert listed == (found,)

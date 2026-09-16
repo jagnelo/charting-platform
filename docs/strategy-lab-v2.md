@@ -596,6 +596,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   returning them. Router registration, authentication dependency selection,
   PostgreSQL compare-and-set, Redis dispatch, and worker effects remain shared
   integration concerns.
+- `postgres_resources.py` supplies the read-only persistence bridge for that
+  boundary. It projects authenticated-owner aggregate snapshots into immutable
+  resource documents, orders pages deterministically, and binds every cursor to
+  the complete visible-set digest. Missing or foreign rows are not disclosed;
+  malformed owner/resource/relationship state and snapshot drift fail closed.
+  The adapter is registration-neutral and does not create migrations, mutate
+  aggregates, or dispatch work.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.
@@ -650,8 +657,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   SQLAlchemy async transaction. It locks requested aggregate/receipt rows,
   preserves canonical state identity through a versioned JSON codec, uses
   idempotent inserts and guarded updates, and rolls back on concurrent races.
-  It exposes the future additive schema contract but never creates tables or
-  registers models; migrations remain a shared-path gate.
+  Its read methods return authenticated canonical aggregate snapshots in
+  deterministic key order for the resource bridge. It exposes the future
+  additive schema contract but never creates tables or registers models;
+  migrations remain a shared-path gate.
 - `nautilus_runner.py` is the final process handoff after the Nautilus
   execution gate. Rejected, non-Nautilus, or sandbox-mismatched plans return
   before process creation; ready plans execute only through the bounded sandbox
