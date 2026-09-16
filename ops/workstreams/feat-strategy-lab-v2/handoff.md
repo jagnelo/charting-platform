@@ -1909,3 +1909,21 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Execution-handoff orchestration checkpoint
+
+`execution_orchestration.py` binds authorization, worker admission, runtime
+preflight/state, sandbox planning, and the gated Nautilus plan into one
+immutable worker handoff. The plan verifies every cross-contract identity,
+requires an accepted sequence-zero runtime state, keeps the declared output
+limit unchanged, and preserves authoritative eligibility only when admission
+and the engine gate agree. Identity drift, an already-started runtime,
+unauthorized authority, and rejected engine plans fail closed before a process
+or queue adapter is invoked.
+
+The exact implementation tree passed all 407 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

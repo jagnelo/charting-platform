@@ -579,6 +579,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   identity for failure, replays exact terminal evidence, and rejects conflicting
   terminal evidence. This is runtime evidence only; official result artifacts
   still require the result-publication gates.
+- `execution_orchestration.py` binds authorization, worker admission, runtime
+  preflight/state, sandbox planning, and the gated Nautilus plan into one
+  immutable worker handoff. It rejects identity drift, already-started runtime
+  state, output-limit changes, and unauthorized authoritative execution before
+  any process or queue adapter is called.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
