@@ -853,6 +853,21 @@ trusted paired inference remain open metric gaps. No provider, ETF, TC2000,
 persistence, API, worker, Compose, Nautilus, frontend, integration,
 promotion, or deployment paths were changed.
 
+## 2026-09-16 - Explicit stress-scenario evidence checkpoint
+
+The next engine-neutral risk slice adds `StressScenarioObservation` and
+`calculate_stress_scenario_metrics()`. Adapter-supplied initial/stressed equity
+and P&L must reconcile exactly and bind a shock-definition digest plus engine
+evidence. The calculator emits descriptive scenario/loss counts, average and
+worst stressed returns and P&L, and minimum stressed equity. It does not
+construct shocks, extrapolate outcomes, or issue a solvency/risk verdict.
+
+The exact implementation tree passed 94 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Metric-scope completeness and all persistence,
+API, worker, and runtime gates remain open. No provider, ETF, TC2000,
+persistence, API, worker, Compose, Nautilus, frontend, integration,
+promotion, or deployment paths were changed.
+
 ## 2026-09-16 - Explicit financing-cost evidence checkpoint
 
 The next package-owned metric slice adds immutable
