@@ -91,6 +91,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   introspection, while binding the result to the exact source digest. This is
   an early rejection layer only; it is not a substitute for the separately
   required isolated runtime and resource controls.
+- `artifacts.py` verifies an already-read immutable payload against its
+  `ArtifactManifest` using raw-byte SHA-256 and exact byte length, returning a
+  digest-bound receipt with typed mismatch reasons. Retrieval, atomic
+  publication, retention, and storage I/O remain adapter/worker concerns.
 - `allocation.py` resolves event-aligned component target-position intents using
   typed policies, preserves existing component-attributed positions, records
   deterministic conflicts, and returns proposed versus risk-approved account targets.

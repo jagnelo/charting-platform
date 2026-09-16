@@ -950,3 +950,19 @@ artifact, Compose, Nautilus, frontend, integration, promotion, and deployment
 paths remain unchanged. The next bounded slice is an engine-neutral
 artifact/result-integrity contract while preserving this static-preflight and
 runtime-isolation boundary.
+
+## 2026-09-16 - Artifact payload integrity checkpoint
+
+The next engine-neutral slice adds `artifacts.py` with raw-byte SHA-256 content
+addressing and `ArtifactIntegrityReceipt`. `verify_artifact_payload()` compares
+an already-read payload to its immutable manifest's digest and exact byte
+length, returning deterministic `digest_mismatch` and/or
+`byte_length_mismatch` evidence without retaining bytes or performing storage
+I/O. Invalid payload types fail fast; retrieval, atomic publication, retention,
+and worker/storage ownership remain deferred.
+
+The exact implementation tree passed all 104 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Static source preflight remains an early
+rejection layer rather than the runtime security boundary. Persistence, API,
+worker, artifact-store, Compose, Nautilus, frontend, integration, promotion,
+and deployment paths remain unchanged.
