@@ -68,9 +68,8 @@
     </div>
     <div ref="scrollElement" class="watchlist__scroll" role="listbox" :aria-label="`${label} symbols`" :aria-multiselectable="true" :aria-activedescendant="activeDescendantId" tabindex="0" @scroll="syncHeaderScroll" @keydown.stop="onKeydown" @wheel.ctrl.prevent.stop="onCtrlWheel">
       <div :data-render-epoch="renderEpoch" :style="rowCanvasStyle">
-        <button
-          v-for="virtualRow in virtualItems"
-          :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol"
+        <template v-for="virtualRow in virtualItems" :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol">
+          <button
           type="button"
           role="option"
           :id="rowDomId(filteredRows[virtualRow.index])"
@@ -90,12 +89,13 @@
           @drop.prevent="dropRow(filteredRows[virtualRow.index])"
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
-          <span :id="rowAccessibilityDescriptionId(filteredRows[virtualRow.index])" class="watchlist__row-description">{{ rowAccessibilityDescription(filteredRows[virtualRow.index], virtualRow.index) }}</span>
           <template v-for="item in columnRenderItems" :key="item.column.key">
             <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="cellClasses(filteredRows[virtualRow.index], item.column.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], item.column.key)" :title="cellTitle(filteredRows[virtualRow.index], item.column.key)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
             <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
-        </button>
+          </button>
+          <span :id="rowAccessibilityDescriptionId(filteredRows[virtualRow.index])" class="watchlist__row-description">{{ rowAccessibilityDescription(filteredRows[virtualRow.index], virtualRow.index) }}</span>
+        </template>
       </div>
     </div>
     <div v-if="contextMenu" ref="contextMenuRoot" class="watchlist__context-menu" role="menu" :aria-label="`${contextMenu.row.symbol} actions`" :style="{ left: `${contextMenu.left}px`, top: `${contextMenu.top}px` }" @click.stop @keydown="handleContextMenuKeydown">
