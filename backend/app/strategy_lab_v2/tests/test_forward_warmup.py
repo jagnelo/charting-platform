@@ -36,6 +36,7 @@ def _receipt(
     completed_at: datetime = NOW + timedelta(minutes=1),
     final_event_id: str | None = None,
     final_event_sequence: int = 0,
+    final_event_fingerprint: str | None = None,
 ) -> ForwardWarmupReceipt:
     return ForwardWarmupReceipt(
         instance_id="forward-1",
@@ -45,11 +46,16 @@ def _receipt(
         completed_at=completed_at,
         final_event_id=final_event_id,
         final_event_sequence=final_event_sequence,
+        final_event_fingerprint=final_event_fingerprint,
     )
 
 
 def test_warmup_completion_activates_instance_and_seeds_cursor() -> None:
-    receipt = _receipt(final_event_id="historical-0", final_event_sequence=0)
+    receipt = _receipt(
+        final_event_id="historical-0",
+        final_event_sequence=0,
+        final_event_fingerprint=content_digest("historical-0"),
+    )
     result = resolve_forward_warmup(_instance(), receipt)
     assert result.decision is ForwardWarmupDecision.COMPLETE
     assert result.instance.state is ForwardState.ACTIVE
@@ -130,6 +136,8 @@ def test_warmup_completion_time_and_live_cursor_are_monotonic() -> None:
 def test_warmup_receipt_identity_requires_event_id_for_nonzero_sequence() -> None:
     with pytest.raises(ValueError, match="final_event_id"):
         _receipt(final_event_sequence=2)
+    with pytest.raises(ValueError, match="final_event_fingerprint"):
+        _receipt(final_event_id="historical-0")
 
 
 def test_warmup_contract_rejects_invalid_digest_and_timestamp() -> None:

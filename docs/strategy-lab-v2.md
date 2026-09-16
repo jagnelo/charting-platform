@@ -385,6 +385,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and replay the same receipt without rewriting live state; changed receipts,
   mismatched snapshot/carry-in, stale completion times, and cursor overwrite
   attempts fail closed.
+- `forward_admission.py` adds active-instance live-event admission with
+  content-addressed event identities. Contiguous events advance the existing
+  checkpoint, gaps remain buffered for later reconciliation, and duplicate,
+  out-of-order, correction, conflict, and exact-replay outcomes stay explicit.
+  A completed warm-up cursor is seeded into the admission state so historical
+  events cannot be silently replayed.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

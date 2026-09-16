@@ -31,6 +31,7 @@ class ForwardWarmupReceipt:
     completed_at: datetime
     final_event_id: str | None = None
     final_event_sequence: int = 0
+    final_event_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         _nonempty(self.instance_id, "instance_id")
@@ -51,6 +52,12 @@ class ForwardWarmupReceipt:
             raise ValueError("a non-zero final event sequence requires final_event_id")
         if self.final_event_id is not None:
             _nonempty(self.final_event_id, "final_event_id")
+        if self.final_event_fingerprint is not None:
+            require_sha256_digest(self.final_event_fingerprint, field_name="final_event_fingerprint")
+            if self.final_event_id is None:
+                raise ValueError("final_event_fingerprint requires final_event_id")
+        elif self.final_event_id is not None:
+            raise ValueError("final_event_id requires final_event_fingerprint")
 
     @property
     def fingerprint(self) -> str:

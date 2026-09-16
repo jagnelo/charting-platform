@@ -1313,3 +1313,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 forward live-event admission/replay contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Forward live-event admission checkpoint
+
+`forward_admission.py` adds `ForwardLiveAdmissionState`, content-addressed
+`ForwardSeenEvent` identities, and `admit_forward_event()`. Live admission is
+allowed only for an active post-warm-up instance and seeds its checkpoint from
+the exact warm-up receipt. Newly observed events are retained by identity so
+exact retries replay and changed content conflicts; contiguous events advance,
+gaps buffer and later reconcile, and duplicate/out-of-order/correction
+outcomes remain observable without rewriting prior decisions.
+
+The exact implementation tree passed all 204 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+result-artifact commit/finalization contract; preserve all shared-path and
+execution-authorization gates.
