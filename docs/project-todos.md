@@ -13,7 +13,9 @@
       quota contract fall back to Free Forever/100 credits/day. A future paid
       plan remains an explicit plan/limit configuration change and still needs
       the separate paid-routing control. Focused quota/registry/coordinator
-      coverage passes `163/163`; workstream validation and diff checks pass.
+      coverage passes `163/163`; a fresh backend unit replay passes
+      `2,346/2,346` with 37 warnings; workstream validation and diff checks
+      pass.
 - [ ] Keep provider terms/redistribution, protected target secret stores,
       complete venue reconciliation, routing activation, and the final shadow
       run as separate gates; this configuration verification does not close

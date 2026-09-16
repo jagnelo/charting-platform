@@ -626,6 +626,7 @@ progress:
       credits per day at or after expiry; paid upgrades remain explicit
       provider-specific configuration plus the separate paid-routing control.
       Focused quota/registry/coordinator coverage passed `163/163`, and the
+      fresh backend unit replay passed `2,346/2,346` with 37 warnings; the
       workstream validator plus diff checks passed. No secret values entered
       Git; provider/legal, target-secret-store, universe, deployment, routing,
       and shadow gates remain separate.

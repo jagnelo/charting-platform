@@ -18,6 +18,9 @@
   passed. This verifies the selected configuration and fallback contract; it
   does not promote unrelated providers or close the remaining legal, universe,
   target-secret-store, deployment, and shadow gates.
+- A fresh backend unit replay at this documentation-only head passed
+  `2,346/2,346` tests with 37 warnings. No external provider requests were
+  made by that replay.
 
 ## 2026-09-16 exact-current native usage live evidence
 
