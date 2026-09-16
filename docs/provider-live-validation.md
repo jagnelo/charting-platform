@@ -513,8 +513,9 @@ On 2026-09-10, the configured FMP key also passed the bounded stable
 `9,444` response bytes). The adapter returned non-empty normalized earnings
 events with inclusive date bounds; the raw EPS/revenue estimate fields remain
 preserved in event provenance. This is positive transport/shape evidence for
-the configured account, not a promotion of FMP routing: the rolling 30-day
-bandwidth pool still requires a complete operator-reviewed
+the configured account, not a promotion of FMP routing: the provider-reported
+512 MB bandwidth pool has provider-defined reset semantics that remain
+unconfirmed, and it still requires a complete operator-reviewed
 `FMP_OPERATION_BYTE_BOUNDS` map, and analyst-estimate/price-target endpoints
 remain outside this adapter until their plan entitlements are separately
 validated.
