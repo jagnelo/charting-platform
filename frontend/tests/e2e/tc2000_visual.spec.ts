@@ -213,8 +213,11 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
   test('watchlist column editor open state has a deterministic board baseline', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.goto('/')
     await waitForShellReady(page)
+    const benchmarkSurface = page.locator('.benchmark-surface:visible')
     const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
     await expect(benchmarks).toBeVisible()
+    await expect(benchmarkSurface.getByLabel('Benchmark family readiness'))
+      .toContainText('All-family readiness:', { timeout: 15_000 })
     await benchmarks.getByRole('button', { name: 'Columns', exact: true }).click()
     const editor = benchmarks.locator('.watchlist__column-menu')
     await expect(editor).toBeVisible()
@@ -327,6 +330,15 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       rows.map((row) => row.getAttribute('aria-label')?.split(/\s+/)[0] ?? ''),
     )
     expect(poppedSymbols).toEqual(expectedSymbols)
+    // The detached WatchList can paint its persisted row identities before it
+    // hydrates shared market analysis. Do not capture the transient
+    // unavailable/loading state as the deterministic populated-state baseline.
+    await expect(popoutTool.locator('.benchmark-surface__family-readiness'))
+      .toContainText('All-family readiness:', { timeout: 15_000 })
+    await expect.poll(async () => {
+      const rowText = await popoutRows.allTextContents()
+      return rowText.length === expectedSymbols.length && rowText.every(text => text.includes('Current'))
+    }, { timeout: 15_000 }).toBe(true)
     await expect(popup).toHaveScreenshot('workspace-floating.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -372,6 +384,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     const menu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
     await expect(menu).toBeVisible()
     await expect(menu).toContainText('Shift+Space')
+    await expect(menu).toContainText(/Over a chart: change timeframe; over a WatchList: move through symbols/i)
     await expect(menu).toContainText('Shortcuts are inactive while a text, numeric, code, or search editor owns focus.')
     await expect(page).toHaveScreenshot('application-shell-help-open.png', {
       animations: 'disabled',

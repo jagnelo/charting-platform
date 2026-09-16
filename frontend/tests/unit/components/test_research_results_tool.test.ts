@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
-vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
+vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { template: '<div class="range-chart" />', props: ['name', 'timestamps', 'lower', 'upper', 'center'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
@@ -580,18 +580,70 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “percentage_history” as chart plot')
   })
 
-  it('keeps malformed cross-sectional series view-only instead of offering an aggregate chart plot', async () => {
+  it.each([
+    ['misaligned axes', { timestamps: ['2026-01-01'], values: [0.4, 0.5] }],
+    ['invalid timestamp', { timestamps: ['not-a-date'], values: [0.4] }],
+    ['no finite observations', { timestamps: ['2026-01-01'], values: [null] }],
+    ['malformed value alongside a finite observation', { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, 'not-a-number'] }],
+  ])('keeps malformed cross-sectional series view-only (%s)', async (_case, value) => {
     apiGet.mockImplementation((path: string) => path === '/research/runs'
       ? Promise.resolve([{ id: 41, status: 'completed', code_version_id: 91, output_contract: 'study', run_config: { result_scope: 'cross_sectional' }, dataset_manifest: { source: 'canonical_database' }, artifacts: [
-        { id: 42, name: 'unaligned_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.4, 0.5] } } },
+        { id: 42, name: 'invalid_history', artifact_type: 'series', payload: { value } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: invalid_history"]').exists()).toBe(false)
+    expect(wrapper.find('[title="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this cross-sectional series needs valid aligned timestamps and at least one finite observation for an aggregate chart plot.')
+  })
+
+  it.each([
+    ['invalid timestamp', { timestamps: ['not-a-date'], values: [0.4] }],
+    ['no finite observations', { timestamps: ['2026-01-01'], values: [null] }],
+    ['malformed value alongside a finite observation', { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, 'not-a-number'] }],
+  ])('keeps unusable single-symbol structured series view/export only (%s)', async (_case, value) => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 43, status: 'completed', code_version_id: 92, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 44, name: 'invalid_history', artifact_type: 'series', payload: { value } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: invalid_history"]').exists()).toBe(false)
+    expect(wrapper.find('[title="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.')
+  })
+
+  it('preserves latest-value promotion for unaligned arrays without offering a chart plot', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 44, status: 'completed', code_version_id: 93, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 45, name: 'unaligned_history', artifact_type: 'series', payload: { value: [0.4, 0.5] } },
       ] }])
       : Promise.resolve([]))
     const wrapper = mountTool()
     await flushPromises()
 
     expect(wrapper.find('[aria-label="Save chart plot: unaligned_history"]').exists()).toBe(false)
-    expect(wrapper.find('[title="Export unaligned_history"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('View/export only: this cross-sectional series has no aligned timestamps and values for an aggregate chart plot.')
+    expect(wrapper.find('[aria-label="Save latest column: unaligned_history"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Save Boolean column: unaligned_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Chart plot unavailable: this series has no aligned timestamp axis.')
+  })
+
+  it('keeps valid structured series with null gaps eligible for chart and latest-value promotion', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 45, status: 'completed', code_version_id: 93, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 46, name: 'gapped_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, null] } } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: gapped_history"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Save latest column: gapped_history"]').exists()).toBe(true)
+    expect(wrapper.find('.series-chart').attributes('data-values')).toBe('[0.4,null]')
   })
 
   it('promotes a structured scalar through an explicit thresholded Boolean condition', async () => {

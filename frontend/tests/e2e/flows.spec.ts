@@ -240,7 +240,7 @@ test.describe('Chart', () => {
     await menu.getByRole('textbox', { name: 'Chart template name' }).fill(transformTemplateName)
     await menu.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(menu.locator('.chart-template__apply').first()).toBeVisible({ timeout: 15_000 })
-    await menu.locator('footer button').click()
+    await menu.getByRole('button', { name: 'Reset chart defaults' }).click()
     await expect(menu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
     const savedTemplate = menu.locator('.chart-template__apply').filter({ hasText: transformTemplateName })
     await savedTemplate.click()
@@ -839,6 +839,31 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9g-series-shape — an unaligned Study series stays scalar-promotable but cannot become a chart plot', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    const studyName = `E2E unaligned series ${Date.now()}`
+    await page.goto('/chart/SPY')
+    const target = page.getByRole('region', { name: 'Major US benchmarks' })
+    await expect(target).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('unaligned_history', [0.4, 0.5])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+
+    await expect(study).toContainText('Chart plot unavailable: this series has no aligned timestamp axis.')
+    await expect(study.getByRole('button', { name: 'Save as chart plot' })).toHaveCount(0)
+    await study.getByRole('button', { name: 'Save latest column' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9g-python-plot — Python chart plots support lifecycle and watchlist target propagation', async ({ page, browserDiagnostics }) => {
     const plotName = `E2E Python series ${Date.now()}`
     const asset = { kind: 'plot', name: plotName, versions: [{ id: 99101, version_number: 1, output_contract: 'series' }] }
@@ -960,7 +985,7 @@ test.describe('Chart', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
-    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', [1, 2, 3, 4])")
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', {'timestamps': ['2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', '2026-01-03T00:00:00Z', '2026-01-04T00:00:00Z'], 'values': [1, 2, 3, 4]})")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()

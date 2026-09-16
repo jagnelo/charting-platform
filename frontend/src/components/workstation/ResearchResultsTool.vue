@@ -60,7 +60,7 @@
                 <button v-for="target in structuredSeriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${structuredSeriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredScalarCondition(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredSeriesConditionLabel(target)}: ${artifact.name}` }}</button>
               </div>
             </template>
-            <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
+            <button v-if="artifact.artifact_type === 'series' && seriesCanBePlotted(artifact)" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series' && !isCrossSectionalStudyRun(selectedRun) && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'series' && !isCrossSectionalStudyRun(selectedRun) && hasFiniteSeriesValue(artifact)">
               <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} thresholded condition`">
@@ -143,6 +143,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
 import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
@@ -277,9 +278,15 @@ function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number
     if (artifact.artifact_type === 'series') {
       return seriesData(artifact)
         ? 'Compatible target: aggregate chart plot only; the series describes the prepared cross-sectional universe, not the active symbol.'
-        : 'View/export only: this cross-sectional series has no aligned timestamps and values for an aggregate chart plot.'
+        : 'View/export only: this cross-sectional series needs valid aligned timestamps and at least one finite observation for an aggregate chart plot.'
     }
     if (['scalar', 'boolean', 'range'].includes(artifact.artifact_type)) return 'View/export only: this cross-sectional aggregate cannot be reinterpreted as a per-symbol column or condition.'
+  }
+  if (artifact.artifact_type === 'series' && !seriesCanBePlotted(artifact)) {
+    if (Array.isArray(artifact.payload.value) && latestSeriesValue(artifact) != null) {
+      return 'Chart plot unavailable: this series has no aligned timestamp axis. Latest-value column and threshold promotions remain available because it has a finite observation.'
+    }
+    return 'View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.'
   }
   const capability = studyArtifactCapability(artifact.artifact_type)
   if (artifact.artifact_type === 'range' && rangeData(artifact)?.center == null) {
@@ -297,13 +304,14 @@ function tableRows(artifact: ResearchRunSummary['artifacts'][number]): Array<Rec
 function tableColumns(artifact: ResearchRunSummary['artifacts'][number]) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
 function seriesData(artifact: ResearchRunSummary['artifacts'][number]): { timestamps: string[]; values: Array<number | null> } | null {
-  const value = artifact.payload.value
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const candidate = value as { timestamps?: unknown; values?: unknown }
-  return Array.isArray(candidate.timestamps) && candidate.timestamps.every(item => typeof item === 'string') && Array.isArray(candidate.values) && candidate.timestamps.length === candidate.values.length && candidate.values.every(item => item == null || typeof item === 'number') ? { timestamps: candidate.timestamps, values: candidate.values } : null
+  return normalizeStructuredNumericSeries(artifact.payload.value)
+}
+function seriesCanBePlotted(artifact: ResearchRunSummary['artifacts'][number]) {
+  return seriesData(artifact) != null
 }
 function latestSeriesValue(artifact: ResearchRunSummary['artifacts'][number]): number | null {
-  const values = seriesData(artifact)?.values
+  const rawValue = artifact.payload.value
+  const values = seriesData(artifact)?.values ?? (Array.isArray(rawValue) ? rawValue : null)
   if (!values) return null
   for (const value of values.slice().reverse()) {
     if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -322,7 +330,7 @@ function hasFiniteRangeCenterValue(artifact: ResearchRunSummary['artifacts'][num
   return latestRangeCenterValue(artifact) != null
 }
 function hasFiniteSeriesValue(artifact: ResearchRunSummary['artifacts'][number]) {
-  return Boolean(seriesData(artifact)?.values.some(value => typeof value === 'number' && Number.isFinite(value)))
+  return latestSeriesValue(artifact) != null
 }
 function hasFiniteScalarValue(artifact: ResearchRunSummary['artifacts'][number]) {
   const value = artifact.payload.value
@@ -517,7 +525,7 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
     && run.output_contract === 'study'
     && (aggregate
       ? artifact.artifact_type === 'series' && Boolean(seriesData(artifact))
-      : artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
+      : artifact.artifact_type === 'scalar' || (artifact.artifact_type === 'series' && (seriesCanBePlotted(artifact) || latestSeriesValue(artifact) != null)) || artifact.artifact_type === 'boolean'
       || (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null))
 }
 type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
@@ -855,6 +863,10 @@ async function promoteStructuredStudySignal(
 }
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
+  if (target === 'plot' && artifact.artifact_type === 'series' && !seriesCanBePlotted(artifact)) {
+    promotionMessage.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    return
+  }
   const generation = beginPromotion()
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {

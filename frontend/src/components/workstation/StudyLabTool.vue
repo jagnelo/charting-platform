@@ -71,7 +71,7 @@
           <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteScalarCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
           <button v-for="target in seriesConditionTargets" :key="`scalar-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteScalarCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
         </div>
-        <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
+        <button v-if="promotableKind === 'series' && promotableSeriesCanBePlotted" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'series' && latestSeriesObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest column' }}</button>
         <div v-if="promotableKind === 'series' && latestSeriesObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study series threshold condition">
           <label>When <select v-model="seriesConditionOperator" aria-label="Study series condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
@@ -109,6 +109,7 @@
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="`study-artifact-${artifact.id}-summary`">
         <span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
+        <small v-if="seriesCapabilityNote(artifact)" role="note">{{ seriesCapabilityNote(artifact) }}</small>
         <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="seriesConditionOperator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
@@ -133,6 +134,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
+import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
@@ -383,11 +385,20 @@ const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'ra
   // already valid boolean result or strand the newly-created scan before it
   // can be promoted to an alert/signal.
   if (!run.value || !runSource.value || (run.value.status !== 'completed' && promotedScanId.value == null)) return null
+  if (runContract.value === 'series') {
+    const series = run.value.artifacts?.find(item => item.artifact_type === 'series')
+    if (!series || latestSeriesValue(series) == null) return null
+  }
   const eventCount = (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length
   return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'range'
     || (runContract.value === 'events' && eventCount === 1)
     ? runContract.value
     : null
+})
+const promotableSeriesCanBePlotted = computed(() => {
+  if (runContract.value !== 'series') return false
+  const series = run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return series ? seriesCanBePlotted(series) : false
 })
 const progressLabel = computed(() => {
   const progress = run.value?.progress
@@ -515,7 +526,7 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
       continue
     }
     if (artifact.artifact_type === 'series') {
-      promotions.push({ artifact, target: 'plot', label: 'Save plot' })
+      if (seriesCanBePlotted(artifact)) promotions.push({ artifact, target: 'plot', label: 'Save plot' })
       if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
     }
     else if (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null) {
@@ -674,11 +685,17 @@ function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
 function tableColumns(artifact: Artifact) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
 function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<number | null> } | null {
-  const value = artifact.payload.value
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const candidate = value as { timestamps?: unknown; values?: unknown }
-  if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
-  return { timestamps: candidate.timestamps, values: candidate.values }
+  return normalizeStructuredNumericSeries(artifact.payload.value)
+}
+function seriesCanBePlotted(artifact: Artifact) {
+  return seriesData(artifact) != null
+}
+function seriesCapabilityNote(artifact: Artifact) {
+  if (artifact.artifact_type !== 'series' || seriesCanBePlotted(artifact)) return ''
+  if (Array.isArray(artifact.payload.value) && latestSeriesValue(artifact) != null) {
+    return 'Chart plot unavailable: this series has no aligned timestamp axis. Latest-value promotion remains available because it has a finite observation.'
+  }
+  return 'View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.'
 }
 function latestSeriesValue(artifact: Artifact): number | null {
   const structuredValues = seriesData(artifact)?.values
@@ -850,6 +867,13 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   const selectedArtifact = selectedOutputName ? (run.value?.artifacts ?? []).find(artifact => artifact.name === selectedOutputName) : null
   const contract = selectedArtifact ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events' | 'range') : promotableKind.value
   if (!contract || promotionBusy.value) return
+  const seriesPlotArtifact = selectedArtifact?.artifact_type === 'series'
+    ? selectedArtifact
+    : contract === 'series' ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series') : undefined
+  if (target === 'plot' && seriesPlotArtifact && !seriesCanBePlotted(seriesPlotArtifact)) {
+    promotionStatus.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    return
+  }
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
