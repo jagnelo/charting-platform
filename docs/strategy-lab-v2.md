@@ -196,9 +196,18 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   session close. Missing coverage, incomplete external-flow reporting, or any
   external-flow event withholds the entire distribution; simple close-to-close
   returns are not presented as flow-adjusted time-weighted returns. Histogram
-  bins and sensitivity ranking/inference are not part of this summary. Remaining
-  gaps include irregular-time annualized metrics, margin/capital utilization,
-  financing outside fill reports, and replicate-level sensitivity aggregation.
+  bins and sensitivity ranking/inference are not part of this summary.
+  `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
+  baseline/variant summary over complete replicate arms. It requires one result
+  per planned replicate index, one canonical parameter change, identical fixed
+  execution and metric-measurement scope, and non-null values. Each arm retains
+  realized observation sample sizes and seed provenance, and reports Decimal
+  mean, nearest-rank median/minimum/maximum, and configured nearest-rank
+  quantiles. The result exposes only the signed difference of arm means; it does
+  not rank candidates, estimate significance, or claim independence or paired
+  inference. Remaining gaps include irregular-time annualized metrics, margin/
+  capital utilization, financing outside fill reports, and trusted paired
+  inference.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.

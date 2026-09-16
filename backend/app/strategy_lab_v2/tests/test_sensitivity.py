@@ -14,6 +14,7 @@ from app.strategy_lab_v2.capabilities import (
     preflight_capabilities,
 )
 from app.strategy_lab_v2.contracts import (
+    TRIAL_SEED_DERIVATION_VERSION,
     AdjustmentMode,
     ArtifactManifest,
     AttemptState,
@@ -35,12 +36,18 @@ from app.strategy_lab_v2.contracts import (
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
+    TrialRandomization,
+    TrialSeedPolicy,
 )
 from app.strategy_lab_v2.sensitivity import (
     MetricDeltaUnavailable,
     MetricDeltaUnavailableReason,
     OneFactorMetricDelta,
+    OneFactorReplicateMetricSummary,
+    ReplicateMetricSummaryUnavailable,
+    ReplicateSummaryUnavailableReason,
     compare_one_factor_metric,
+    summarize_one_factor_metric_replicates,
 )
 
 START = datetime(2020, 1, 1, tzinfo=UTC)
@@ -245,6 +252,71 @@ def _metric(
 
 def _compare(evidence: SensitivityComparisonEvidence):
     return compare_one_factor_metric(evidence, metric_name="total_return", basis=MetricBasis.NET)
+
+
+def _replicate_result(
+    source: RunResultManifest,
+    *,
+    parameters: dict[str, Any],
+    replicate_index: int,
+    replicate_count: int,
+    value: Decimal | None,
+    shared_seed: bool = False,
+    null_reason: str | None = None,
+) -> RunResultManifest:
+    group_identity = {
+        "scope": source.trial.experiment_fingerprint if shared_seed else source.trial.parameter_set,
+        "replicate_index": replicate_index,
+    }
+    seed_group = content_digest(group_identity)
+    derived_seed = int(seed_group.split(":", 1)[1][:16], 16) & ((1 << 63) - 1)
+    randomization = TrialRandomization(
+        master_seed=41,
+        seed=derived_seed,
+        policy=(
+            TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE
+            if shared_seed
+            else TrialSeedPolicy.PER_CANDIDATE
+        ),
+        replicate_index=replicate_index,
+        scope_fingerprint=(source.trial.experiment_fingerprint if shared_seed else None),
+        seed_group_fingerprint=seed_group,
+        replicate_count=replicate_count,
+        derivation_version=TRIAL_SEED_DERIVATION_VERSION,
+    )
+    trial = ScientificTrial.create(
+        experiment_fingerprint=source.trial.experiment_fingerprint,
+        snapshot_fingerprint=source.snapshot_fingerprint,
+        preflight_report=source.snapshot.preflight_report,
+        parameter_set=parameters,
+        scenario=source.trial.scenario,
+        randomization=randomization,
+    )
+    attempt_id = f"{source.attempt_id}-{replicate_index}"
+    attempt = RunAttempt(attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, CREATED)
+    values = tuple(
+        replace(metric, value=value, null_reason=null_reason)
+        if metric.name == "total_return" and metric.basis is MetricBasis.NET
+        else metric
+        for metric in source.metric_set.values
+    )
+    metric_set = replace(
+        source.metric_set,
+        metric_set_id=f"metrics-{attempt_id}",
+        trial_id=trial.trial_id,
+        attempt_id=attempt_id,
+        values=values,
+    )
+    output_digest = content_digest({"result": attempt_id})
+    return replace(
+        source,
+        trial=trial,
+        attempt=attempt,
+        metric_set=metric_set,
+        output_artifacts=(
+            ArtifactManifest(output_digest, 32, "application/octet-stream", "1", output_digest),
+        ),
+    )
 
 
 def test_one_factor_delta_is_signed_scoped_and_preserves_realized_sample_sizes() -> None:
@@ -454,3 +526,183 @@ def test_metric_lookup_uses_name_and_basis_not_metric_tuple_position() -> None:
 
     assert isinstance(result, OneFactorMetricDelta)
     assert result.delta == Decimal("0.1")
+
+
+def test_replicate_summary_is_complete_deterministic_and_descriptive() -> None:
+    pair = _result_pair()
+    baseline = tuple(
+        _replicate_result(
+            pair.baseline_result,
+            parameters={"lookback": 20},
+            replicate_index=index,
+            replicate_count=3,
+            value=Decimal(value),
+        )
+        for index, value in enumerate(("0.10", "0.30", "0.20"))
+    )
+    variant = tuple(
+        _replicate_result(
+            pair.variant_result,
+            parameters={"lookback": 30},
+            replicate_index=index,
+            replicate_count=3,
+            value=Decimal(value),
+        )
+        for index, value in enumerate(("0.20", "0.40", "0.30"))
+    )
+
+    result = summarize_one_factor_metric_replicates(
+        baseline,
+        tuple(reversed(variant)),
+        metric_name="total_return",
+        basis=MetricBasis.NET,
+    )
+
+    assert isinstance(result, OneFactorReplicateMetricSummary)
+    assert result.baseline.mean == Decimal("0.20")
+    assert result.variant.mean == Decimal("0.30")
+    assert result.mean_delta == Decimal("0.10")
+    assert result.baseline.median == Decimal("0.20")
+    assert result.baseline.minimum == Decimal("0.10")
+    assert result.baseline.maximum == Decimal("0.30")
+    assert [item.value for item in result.baseline.nearest_rank_statistics] == [
+        Decimal("0.10"),
+        Decimal("0.10"),
+        Decimal("0.20"),
+        Decimal("0.30"),
+        Decimal("0.30"),
+    ]
+    assert result.baseline.observation_sample_sizes == (252, 252, 252)
+    assert result.baseline_trial_ids == tuple(item.trial_id for item in baseline)
+    assert result.variant_attempt_ids == tuple(item.attempt_id for item in variant)
+    assert result.evidence_level.value == "unpaired"
+    assert (
+        result.fingerprint
+        == summarize_one_factor_metric_replicates(
+            tuple(reversed(baseline)),
+            variant,
+            metric_name="total_return",
+            basis=MetricBasis.NET,
+        ).fingerprint
+    )
+
+
+def test_replicate_summary_retains_shared_seed_provenance_without_pairing_claim() -> None:
+    pair = _result_pair()
+    baseline = tuple(
+        _replicate_result(
+            pair.baseline_result,
+            parameters={"lookback": 20},
+            replicate_index=index,
+            replicate_count=2,
+            value=Decimal("0.10") + Decimal(index) / Decimal("100"),
+            shared_seed=True,
+        )
+        for index in range(2)
+    )
+    variant = tuple(
+        _replicate_result(
+            pair.variant_result,
+            parameters={"lookback": 30},
+            replicate_index=index,
+            replicate_count=2,
+            value=Decimal("0.20") + Decimal(index) / Decimal("100"),
+            shared_seed=True,
+        )
+        for index in range(2)
+    )
+
+    result = summarize_one_factor_metric_replicates(
+        baseline,
+        variant,
+        metric_name="total_return",
+        basis=MetricBasis.NET,
+    )
+
+    assert isinstance(result, OneFactorReplicateMetricSummary)
+    assert result.evidence_level.value == "shared_seed_only"
+    assert result.baseline_randomization.seed_group_fingerprints == (
+        result.variant_randomization.seed_group_fingerprints
+    )
+    assert result.baseline_randomization.replicate_indices == (0, 1)
+
+
+@pytest.mark.parametrize(
+    ("baseline_count", "variant_count", "reason"),
+    [
+        (3, 3, ReplicateSummaryUnavailableReason.REPLICATE_INDEX_INCOMPLETE),
+        (2, 3, ReplicateSummaryUnavailableReason.REPLICATE_COUNT_MISMATCH),
+    ],
+)
+def test_replicate_summary_fails_closed_on_incomplete_planned_groups(
+    baseline_count: int,
+    variant_count: int,
+    reason: ReplicateSummaryUnavailableReason,
+) -> None:
+    pair = _result_pair()
+    baseline = tuple(
+        _replicate_result(
+            pair.baseline_result,
+            parameters={"lookback": 20},
+            replicate_index=index,
+            replicate_count=baseline_count,
+            value=Decimal("0.10"),
+        )
+        for index in range(baseline_count - (1 if baseline_count == 3 else 0))
+    )
+    variant = tuple(
+        _replicate_result(
+            pair.variant_result,
+            parameters={"lookback": 30},
+            replicate_index=index,
+            replicate_count=variant_count,
+            value=Decimal("0.20"),
+        )
+        for index in range(variant_count)
+    )
+
+    result = summarize_one_factor_metric_replicates(
+        baseline,
+        variant,
+        metric_name="total_return",
+        basis=MetricBasis.NET,
+    )
+
+    assert isinstance(result, ReplicateMetricSummaryUnavailable)
+    assert result.reason is reason
+
+
+def test_replicate_summary_fails_closed_on_null_replicate_value() -> None:
+    pair = _result_pair()
+    baseline = tuple(
+        _replicate_result(
+            pair.baseline_result,
+            parameters={"lookback": 20},
+            replicate_index=index,
+            replicate_count=2,
+            value=(None if index == 1 else Decimal("0.10")),
+            null_reason=("engine omitted metric" if index == 1 else None),
+        )
+        for index in range(2)
+    )
+    variant = tuple(
+        _replicate_result(
+            pair.variant_result,
+            parameters={"lookback": 30},
+            replicate_index=index,
+            replicate_count=2,
+            value=Decimal("0.20"),
+        )
+        for index in range(2)
+    )
+
+    result = summarize_one_factor_metric_replicates(
+        baseline,
+        variant,
+        metric_name="total_return",
+        basis=MetricBasis.NET,
+    )
+
+    assert isinstance(result, ReplicateMetricSummaryUnavailable)
+    assert result.reason is ReplicateSummaryUnavailableReason.METRIC_VALUE_NULL
+    assert result.baseline_null_reasons == ("engine omitted metric",)
