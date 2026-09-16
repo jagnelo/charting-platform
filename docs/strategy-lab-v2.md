@@ -287,7 +287,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   anomaly classification, and typed monotonic execution-attempt leases.
   Running attempts can acquire a lease, active leases can renew, and expired or
   released leases cannot be renewed; persistence, worker scheduling, and clock
-  ownership remain outside the package.
+  ownership remain outside the package. `apply_forward_event_observation()`
+  advances a forward instance only for contiguous accepted events, preserves
+  anomaly cursors, and increments corrections without rewriting prior state.
 - `pairing.py` verifies exact keyed common-random draw alignment and emits a
   content-bound receipt that can upgrade sensitivity provenance to
   `verified_paired`; it does not perform statistical inference.

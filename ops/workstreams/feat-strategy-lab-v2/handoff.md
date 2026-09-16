@@ -1021,3 +1021,17 @@ The exact implementation tree passed all 113 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Forward-event/result-state handling,
 persistence, API, worker, artifact-store, Compose, Nautilus, frontend,
 integration, promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Forward event-state application checkpoint
+
+`apply_forward_event_observation()` now applies classified canonical events to a
+`ForwardInstance` without implicit replay or state loss. Contiguous accepted
+events advance the stored event identity/sequence; gaps, duplicates, and
+out-of-order events preserve the cursor; corrections increment an append-only
+counter and retain the prior decision cursor. Event arrival timestamps remain
+monotonic, and the function performs no persistence or external event I/O.
+
+The exact implementation tree passed all 113 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Forward-state persistence/idempotency,
+database/API, workers, artifact-store, Compose, Nautilus, frontend,
+integration, promotion, and deployment paths remain unchanged.

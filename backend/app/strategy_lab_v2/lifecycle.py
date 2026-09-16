@@ -238,6 +238,59 @@ class ForwardEventObservation:
     buffer_event: bool = False
 
 
+def apply_forward_event_observation(
+    instance: ForwardInstance,
+    event: CanonicalForwardEvent,
+    observation: ForwardEventObservation,
+) -> ForwardInstance:
+    """Apply one classified event without rewriting prior forward decisions.
+
+    Only a contiguous ``ACCEPTED`` event advances the instance cursor. Gaps,
+    duplicates, and out-of-order events leave it unchanged so a worker can
+    buffer or audit them. Corrections increment the append-only correction
+    count and never advance the decision cursor.
+    """
+
+    if not isinstance(instance, ForwardInstance):
+        raise TypeError("instance must be a ForwardInstance")
+    if not isinstance(event, CanonicalForwardEvent):
+        raise TypeError("event must be a CanonicalForwardEvent")
+    if not isinstance(observation, ForwardEventObservation):
+        raise TypeError("observation must be a ForwardEventObservation")
+    if observation.disposition is ForwardEventDisposition.ACCEPTED:
+        if observation.next_cursor.last_sequence != event.sequence:
+            raise ValueError("accepted observation cursor must end at the event sequence")
+        if observation.next_cursor.last_event_id != event.event_id:
+            raise ValueError("accepted observation cursor must end at the event identity")
+        if event.sequence <= instance.last_event_sequence:
+            raise ValueError("accepted event sequence must advance the instance cursor")
+        if event.arrived_at < instance.updated_at:
+            raise ValueError("event arrival time cannot move instance time backwards")
+        return replace(
+            instance,
+            last_event_id=event.event_id,
+            last_event_sequence=event.sequence,
+            updated_at=event.arrived_at,
+        )
+    if observation.disposition is ForwardEventDisposition.CORRECTION:
+        if event.correction_of is None or not observation.correction_requires_counterfactual_replay:
+            raise ValueError("correction observations require counterfactual replay evidence")
+        return replace(
+            instance,
+            correction_count=instance.correction_count + 1,
+            updated_at=max(instance.updated_at, event.arrived_at),
+        )
+    # A non-advancing observation may still carry a richer cursor time; the
+    # instance contract stores only identity/sequence, so reject accidental
+    # cursor movement rather than silently dropping it.
+    if (
+        observation.next_cursor.last_sequence != instance.last_event_sequence
+        or observation.next_cursor.last_event_id != instance.last_event_id
+    ):
+        raise ValueError("non-accepted observation must not advance the instance cursor")
+    return instance
+
+
 def observe_forward_event(
     cursor: ForwardCursor,
     event: CanonicalForwardEvent,

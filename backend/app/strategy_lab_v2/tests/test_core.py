@@ -21,10 +21,13 @@ from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     ArtifactManifest,
     AttemptState,
+    CarryInMode,
     DataSeriesManifest,
     DataSnapshot,
     EvaluationWindow,
     EventGranularity,
+    ForwardInstance,
+    ForwardState,
     KeyedRandomStreamPairingClaim,
     MetricBasis,
     MetricSet,
@@ -59,6 +62,7 @@ from app.strategy_lab_v2.lifecycle import (
     CanonicalForwardEvent,
     ForwardCursor,
     ForwardEventDisposition,
+    apply_forward_event_observation,
     create_retry_attempt,
     observe_forward_event,
     transition_attempt,
@@ -1198,28 +1202,49 @@ def test_attempt_retry_preserves_trial_and_forward_events_are_auditable() -> Non
     assert recovered6.disposition is ForwardEventDisposition.ACCEPTED
     assert recovered6.next_cursor.last_sequence == 6
 
+    duplicate_event = CanonicalForwardEvent(
+        "e6", 6, created + timedelta(seconds=3), created + timedelta(seconds=4), EVIDENCE_DIGEST
+    )
     duplicate = observe_forward_event(
         recovered6.next_cursor,
-        CanonicalForwardEvent(
-            "e6", 6, created + timedelta(seconds=3), created + timedelta(seconds=4), EVIDENCE_DIGEST
-        ),
+        duplicate_event,
         processed_event_ids=frozenset({"e6"}),
     )
     assert duplicate.disposition is ForwardEventDisposition.DUPLICATE
     assert duplicate.next_cursor == recovered6.next_cursor
 
-    correction = observe_forward_event(
-        recovered6.next_cursor,
-        CanonicalForwardEvent(
-            "e6-correction",
-            7,
-            created + timedelta(seconds=3),
-            created + timedelta(minutes=6),
-            EVIDENCE_DIGEST,
-            correction_of="e6",
-        ),
+    correction_event = CanonicalForwardEvent(
+        "e6-correction",
+        7,
+        created + timedelta(seconds=3),
+        created + timedelta(minutes=6),
+        EVIDENCE_DIGEST,
+        correction_of="e6",
     )
+    correction = observe_forward_event(recovered6.next_cursor, correction_event)
     assert correction.disposition is ForwardEventDisposition.CORRECTION
     assert correction.stale
     assert correction.correction_requires_counterfactual_replay
     assert correction.next_cursor == recovered6.next_cursor
+
+    instance = ForwardInstance(
+        instance_id="forward-1",
+        portfolio_fingerprint=content_digest("portfolio"),
+        warmup_snapshot_fingerprint=content_digest("snapshot"),
+        carry_in_mode=CarryInMode.FLAT,
+        state=ForwardState.ACTIVE,
+        last_event_id="e3",
+        last_event_sequence=3,
+        correction_count=0,
+        created_at=created,
+        updated_at=created,
+    )
+    assert apply_forward_event_observation(instance, gap_event, gap) == instance
+    instance4 = apply_forward_event_observation(instance, event4, accepted4)
+    instance5 = apply_forward_event_observation(instance4, event5, accepted5)
+    instance6 = apply_forward_event_observation(instance5, gap_event, recovered6)
+    assert (instance6.last_event_id, instance6.last_event_sequence) == ("e6", 6)
+    assert apply_forward_event_observation(instance6, duplicate_event, duplicate) == instance6
+    corrected_instance = apply_forward_event_observation(instance6, correction_event, correction)
+    assert corrected_instance.correction_count == 1
+    assert corrected_instance.last_event_sequence == 6
