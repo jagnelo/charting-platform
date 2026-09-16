@@ -380,6 +380,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   conflicts, gaps/stale sequences remain visible, and expired or released
   leases reject further heartbeats. Lease identity and final heartbeat
   metadata must match; persistence and clock scheduling remain adapter-owned.
+- `forward_warmup.py` defines manifest-bound warm-up completion receipts. A
+  warming instance can transition to active once, seed its historical cursor,
+  and replay the same receipt without rewriting live state; changed receipts,
+  mismatched snapshot/carry-in, stale completion times, and cursor overwrite
+  attempts fail closed.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

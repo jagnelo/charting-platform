@@ -1295,3 +1295,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 forward warm-up/replay handoff contract; preserve all shared-path and
 execution-authorization gates.
+
+## 2026-09-16 - Forward warm-up handoff checkpoint
+
+`forward_warmup.py` adds immutable `ForwardWarmupReceipt` values and
+`resolve_forward_warmup()`. Receipts bind the forward instance, frozen warm-up
+snapshot, declared carry-in mode, completion timestamp, and engine-state
+fingerprint. A receipt can complete only a `WARMING_UP` instance once and seeds
+the historical cursor; an exact existing receipt replays without rewriting
+live state. Snapshot/mode mismatches, stale completion, existing cursor
+overwrite, invalid final sequence identity, and changed receipt content fail
+closed. No engine, storage, or event transport is invoked.
+
+The exact implementation tree passed all 198 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+forward live-event admission/replay contract; preserve all shared-path and
+execution-authorization gates.
