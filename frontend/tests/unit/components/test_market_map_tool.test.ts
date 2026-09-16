@@ -407,7 +407,10 @@ describe('MarketMapTool', () => {
 
     expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/bootstrap', {})
     expect(wrapper.get('[aria-label="Market Map universe"]').element.value).toBe('etf-holdings:QQQ')
-    expect(wrapper.find('[aria-label="Add ETF constituent universe"] [role="status"]').text()).toContain('membership is pending hydration')
+    const bootstrapStatus = wrapper.find('[aria-label="Add ETF constituent universe"] [role="status"]')
+    expect(bootstrapStatus.text()).toContain('membership is pending hydration')
+    expect(bootstrapStatus.attributes('aria-live')).toBe('polite')
+    expect(bootstrapStatus.attributes('aria-atomic')).toBe('true')
 
     wrapper.unmount()
     sourceState.sources = previousSources
@@ -456,7 +459,10 @@ describe('MarketMapTool', () => {
     await flushPromises()
 
     expect(apiPost.mock.calls.some(([path]) => String(path).includes('/etf-holdings/'))).toBe(false)
-    expect(wrapper.get('[aria-label="Add ETF constituent universe"] [role="alert"]').text()).toContain('canonical ETF symbol')
+    const bootstrapError = wrapper.get('[aria-label="Add ETF constituent universe"] [role="alert"]')
+    expect(bootstrapError.text()).toContain('canonical ETF symbol')
+    expect(bootstrapError.attributes('aria-live')).toBe('assertive')
+    expect(bootstrapError.attributes('aria-atomic')).toBe('true')
   })
 
   it('shows source history readiness and queues an explicit refresh without changing membership', async () => {
@@ -884,7 +890,10 @@ describe('MarketMapTool', () => {
     apiPost.mockRejectedValue(new Error('map unavailable'))
     const wrapper = mount(MarketMapTool)
     await flushPromises()
-    expect(wrapper.find('[role="alert"]').text()).toContain('map unavailable')
+    const mapError = wrapper.find('[role="alert"]')
+    expect(mapError.text()).toContain('map unavailable')
+    expect(mapError.attributes('aria-live')).toBe('assertive')
+    expect(mapError.attributes('aria-atomic')).toBe('true')
     expect(wrapper.find('select[aria-label="Market Map universe"]').exists()).toBe(true)
   })
 

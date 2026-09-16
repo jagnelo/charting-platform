@@ -17,8 +17,8 @@
           <input v-model.trim="etfBootstrapSymbol" aria-label="ETF universe symbol" placeholder="e.g. QQQ" maxlength="20" @keydown.enter.prevent="bootstrapEtfSource" />
         </label>
         <button type="button" :disabled="etfBootstrapBusy || !etfBootstrapSymbol.trim()" aria-label="Load ETF constituent universe" @click="bootstrapEtfSource">{{ etfBootstrapBusy ? 'Loading…' : 'Load ETF' }}</button>
-        <span v-if="etfBootstrapMessage" role="status">{{ etfBootstrapMessage }}</span>
-        <span v-if="etfBootstrapError" class="market-map-tool__status--error" role="alert">{{ etfBootstrapError }}</span>
+        <span v-if="etfBootstrapMessage" role="status" aria-live="polite" aria-atomic="true">{{ etfBootstrapMessage }}</span>
+        <span v-if="etfBootstrapError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ etfBootstrapError }}</span>
       </div>
       <label>Explicit symbols
         <input v-model.trim="explicitSymbols" aria-label="Market Map explicit symbols" placeholder="SPY, NVDA, MSFT" @keydown.enter.prevent="run" />
@@ -28,18 +28,18 @@
         <input v-model.trim="explicitWatchlistName" aria-label="Explicit source watchlist name" placeholder="Save watchlist as…" maxlength="80" />
         <button type="button" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
         <button type="button" :disabled="explicitSaving || !explicitWatchlistName" aria-label="Save explicit symbols as locked source" @click="saveExplicitLockedSource">{{ explicitSaving ? 'Saving…' : 'Save as locked source' }}</button>
-        <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
-        <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
+        <span v-if="publicationMessage" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</span>
+        <span v-if="publicationError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ publicationError }}</span>
       </template>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
-        <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
+        <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status" aria-live="polite" aria-atomic="true">Membership pending; this locked source remains followable</span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
         <button v-if="sourceCloneRetryIds.length" type="button" :disabled="sourceCloneBusy" aria-label="Retry failed source clone members" @click="retrySourceClone">{{ sourceCloneBusy ? 'Retrying…' : `Retry ${sourceCloneRetryIds.length} failed` }}</button>
-        <span v-if="sourceCloneMessage" role="status">{{ sourceCloneMessage }}</span>
-        <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert">{{ sourceCloneError }}</span>
+        <span v-if="sourceCloneMessage" role="status" aria-live="polite" aria-atomic="true">{{ sourceCloneMessage }}</span>
+        <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourceCloneError }}</span>
       </div>
       <label>Group
         <select v-model="groupBy" aria-label="Market Map grouping">
@@ -156,11 +156,11 @@
       <button type="button" :disabled="!map" @click="exportCsv">Export CSV</button>
       <button v-if="snapshotSelectionId" type="button" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
-    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ sourcesError }}</p>
-    <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ error }}</p>
-    <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ snapshotError }}</p>
-    <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status">{{ publicationMessage }}</p>
-    <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
+    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourcesError }}</p>
+    <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ snapshotError }}</p>
+    <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</p>
+    <p v-if="map?.warnings.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.python_run_id && map.python_code_version_id" aria-label="Market Map Python output lineage">Python · {{ map.python_output_name || 'unnamed output' }} · {{ map.python_output_contract || 'unknown contract' }} · version #{{ map.python_code_version_id }} · run #{{ map.python_run_id }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
@@ -196,16 +196,16 @@
         <span v-if="historyStatus.analysis_ready_status" :class="`market-map-tool__history-status--${historyStatus.analysis_ready_status}`">analysis {{ historyStatus.analysis_ready_status }}</span>
         <span v-for="history in historyStatus.timeframes" :key="history.timeframe">{{ watchlistHistoryTimeframeLabel(history) }}</span>
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
-        <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
+        <span v-if="historyRefreshMessage" role="status" aria-live="polite" aria-atomic="true">{{ historyRefreshMessage }}</span>
         <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history membership timing evidence">{{ watchlistHistoryTimingLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history adjustment provenance evidence">{{ watchlistHistoryAdjustmentLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history lineage evidence">{{ watchlistHistoryLineageLabel(historyStatus) }}</span>
       </template>
-      <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
+      <span v-if="historyRun" class="market-map-tool__history-run" role="status" aria-live="polite" aria-atomic="true">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
       <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
       <button v-if="historyRun && isHistoryRunActive" type="button" aria-label="Cancel Market Map history refresh" :disabled="historyRunLoading" @click="cancelHistoryRefresh">{{ historyRunLoading ? 'Canceling…' : 'Cancel refresh' }}</button>
-      <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert">{{ historyRefreshError }}</span>
+      <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ historyRefreshError }}</span>
     </div>
     <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
       <span v-if="selectedIds.length">{{ selectedIds.length }} selected members will be included as context</span>
@@ -215,8 +215,8 @@
     <div v-if="map && colorMetric === 'breadth'" class="market-map-tool__definition-actions" aria-label="Market Map reusable definition actions">
       <input v-model.trim="definitionName" aria-label="Market Map breadth definition name" placeholder="Reusable breadth definition name" maxlength="160" />
       <button type="button" aria-label="Save as Study Lab definition" :disabled="definitionSaving || !definitionName" @click="saveBreadthDefinition">{{ definitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
-      <span v-if="definitionMessage" role="status">{{ definitionMessage }}</span>
-      <span v-if="definitionError" class="market-map-tool__status--error" role="alert">{{ definitionError }}</span>
+      <span v-if="definitionMessage" role="status" aria-live="polite" aria-atomic="true">{{ definitionMessage }}</span>
+      <span v-if="definitionError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ definitionError }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
@@ -289,7 +289,7 @@
       </div>
     </div>
     <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.classification_provenance">Classification snapshot · {{ formatClassificationProvenance(hoveredCell.classification_provenance) }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
-    <p v-if="!map && !loading" class="market-map-tool__status">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
+    <p v-if="!map && !loading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
   </section>
 </template>
 
