@@ -12,6 +12,8 @@ from datetime import datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.engine_execution import NautilusExecutionPlan
+from app.strategy_lab_v2.nautilus_runner import NautilusRunResult, NautilusRunStatus
 from app.strategy_lab_v2.runtime_execution import (
     RuntimeExecutionDecision,
     RuntimeExecutionPhase,
@@ -147,6 +149,55 @@ def materialize_sandbox_result(
         terminal,
     )
     return RuntimeResultResolution(decision, resolved.state, sandbox_result)
+
+
+def materialize_nautilus_result(
+    state: RuntimeExecutionState,
+    execution_plan: NautilusExecutionPlan,
+    sandbox_plan: SandboxCommandPlan,
+    run_result: NautilusRunResult,
+    *,
+    observed_at: datetime,
+) -> RuntimeResultResolution:
+    """Materialize a gated Nautilus runner result after verifying its envelope.
+
+    Rejected runner results represent a pre-process admission failure and must
+    never transition runtime state.  The runner therefore has no sandbox
+    evidence in that case; callers should retain the state and surface the
+    runner's rejection rather than treating it as a strategy failure.
+    """
+
+    if not isinstance(state, RuntimeExecutionState):
+        raise TypeError("state must be a RuntimeExecutionState")
+    if not isinstance(execution_plan, NautilusExecutionPlan):
+        raise TypeError("execution_plan must be a NautilusExecutionPlan")
+    if not isinstance(sandbox_plan, SandboxCommandPlan):
+        raise TypeError("sandbox_plan must be a SandboxCommandPlan")
+    if not isinstance(run_result, NautilusRunResult):
+        raise TypeError("run_result must be a NautilusRunResult")
+    if run_result.status is NautilusRunStatus.REJECTED:
+        raise ValueError("rejected Nautilus results have no runtime sandbox evidence")
+    if run_result.sandbox_result is None:
+        raise ValueError("executed Nautilus results require sandbox evidence")
+    if run_result.execution_plan_fingerprint != execution_plan.fingerprint:
+        return _reject(state, run_result.sandbox_result, "Nautilus result does not match its execution plan")
+    if run_result.sandbox_plan_fingerprint != sandbox_plan.fingerprint:
+        return _reject(state, run_result.sandbox_result, "Nautilus result does not match its sandbox plan")
+    if run_result.sandbox_result.plan_fingerprint != sandbox_plan.fingerprint:
+        return _reject(state, run_result.sandbox_result, "Nautilus sandbox evidence does not match its plan")
+    if run_result.sandbox_result.status.value != run_result.status.value:
+        return _reject(state, run_result.sandbox_result, "Nautilus and sandbox statuses differ")
+    expected_authoritative = (
+        execution_plan.authoritative and run_result.status is NautilusRunStatus.SUCCEEDED
+    )
+    if run_result.authoritative is not expected_authoritative:
+        return _reject(state, run_result.sandbox_result, "Nautilus authority evidence is inconsistent")
+    return materialize_sandbox_result(
+        state,
+        sandbox_plan,
+        run_result.sandbox_result,
+        observed_at=observed_at,
+    )
 
 
 def _reject(

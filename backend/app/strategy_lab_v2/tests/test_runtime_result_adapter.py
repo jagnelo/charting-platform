@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 import pytest
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.engine_execution import EngineExecutionDecision, NautilusExecutionPlan
+from app.strategy_lab_v2.nautilus_runner import NautilusRunResult, NautilusRunStatus
 from app.strategy_lab_v2.runtime import RuntimeIsolationProfile, RuntimeIsolationRequest
 from app.strategy_lab_v2.runtime_execution import (
     RuntimeExecutionPhase,
@@ -14,6 +16,7 @@ from app.strategy_lab_v2.runtime_execution import (
 )
 from app.strategy_lab_v2.runtime_result_adapter import (
     RuntimeResultDecision,
+    materialize_nautilus_result,
     materialize_sandbox_result,
 )
 from app.strategy_lab_v2.sandbox import SandboxCommandPlan
@@ -149,3 +152,83 @@ def test_invalid_arguments_and_time_fail_closed() -> None:
         materialize_sandbox_result("bad", plan, result, observed_at=NOW)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="timezone-aware"):
         materialize_sandbox_result(state, plan, result, observed_at=datetime(2024, 1, 1))
+
+
+def test_gated_nautilus_result_is_envelope_checked_before_materialization() -> None:
+    state, plan = _fixtures()
+    execution_plan = NautilusExecutionPlan(
+        "trial-1",
+        "attempt-1",
+        content_digest("snapshot"),
+        "nautilus",
+        "2.0.0",
+        content_digest("build"),
+        content_digest("authorization"),
+        content_digest("runtime"),
+        content_digest("conformance"),
+        plan.fingerprint,
+        EngineExecutionDecision.READY,
+        True,
+    )
+    sandbox_result = _result(plan, SandboxRunStatus.SUCCEEDED)
+    run_result = NautilusRunResult(
+        execution_plan.fingerprint,
+        plan.fingerprint,
+        NautilusRunStatus.SUCCEEDED,
+        True,
+        sandbox_result,
+    )
+    materialized = materialize_nautilus_result(
+        state,
+        execution_plan,
+        plan,
+        run_result,
+        observed_at=NOW,
+    )
+    assert materialized.decision is RuntimeResultDecision.SUCCEEDED
+    assert materialized.state.phase is RuntimeExecutionPhase.SUCCEEDED
+
+    drifted = NautilusRunResult(
+        content_digest("different-execution-plan"),
+        plan.fingerprint,
+        NautilusRunStatus.SUCCEEDED,
+        True,
+        sandbox_result,
+    )
+    rejected = materialize_nautilus_result(
+        state,
+        execution_plan,
+        plan,
+        drifted,
+        observed_at=NOW,
+    )
+    assert rejected.decision is RuntimeResultDecision.REJECT
+    assert rejected.rejection_reason == "Nautilus result does not match its execution plan"
+
+
+def test_rejected_nautilus_result_does_not_become_runtime_failure() -> None:
+    state, plan = _fixtures()
+    execution_plan = NautilusExecutionPlan(
+        "trial-1",
+        "attempt-1",
+        content_digest("snapshot"),
+        "nautilus",
+        "2.0.0",
+        content_digest("build"),
+        content_digest("authorization"),
+        content_digest("runtime"),
+        content_digest("conformance"),
+        plan.fingerprint,
+        EngineExecutionDecision.REJECT,
+        False,
+        ("gate rejected",),
+    )
+    rejected = NautilusRunResult(
+        execution_plan.fingerprint,
+        plan.fingerprint,
+        NautilusRunStatus.REJECTED,
+        False,
+        rejection_reasons=("execution_plan_rejected",),
+    )
+    with pytest.raises(ValueError, match="no runtime sandbox evidence"):
+        materialize_nautilus_result(state, execution_plan, plan, rejected, observed_at=NOW)

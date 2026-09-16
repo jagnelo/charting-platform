@@ -1927,3 +1927,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Nautilus-result runtime bridge checkpoint
+
+`runtime_result_adapter.py` now accepts an executed `NautilusRunResult` only
+after verifying the execution-plan and sandbox-plan identities, matching the
+runner and sandbox statuses, and checking the authoritative flag against the
+gated plan. Rejected pre-process Nautilus plans are refused without a synthetic
+runtime failure; executed evidence then follows the existing bounded,
+idempotent sandbox-to-runtime materialization path.
+
+The exact implementation tree passed all 409 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

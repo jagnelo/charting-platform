@@ -577,8 +577,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   monotonic runtime execution state. It verifies command-plan and request
   identity, records bounded stdout digest/size for success or typed error
   identity for failure, replays exact terminal evidence, and rejects conflicting
-  terminal evidence. This is runtime evidence only; official result artifacts
-  still require the result-publication gates.
+  terminal evidence. Gated Nautilus results are envelope-checked before this
+  materialization; rejected pre-process plans remain admission failures rather
+  than strategy failures. This is runtime evidence only; official result
+  artifacts still require the result-publication gates.
 - `execution_orchestration.py` binds authorization, worker admission, runtime
   preflight/state, sandbox planning, and the gated Nautilus plan into one
   immutable worker handoff. It rejects identity drift, already-started runtime
