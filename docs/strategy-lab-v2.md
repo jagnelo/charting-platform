@@ -527,6 +527,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   same-directory temporary files and atomic create-if-absent links, deduplicates
   concurrent writers, makes published files read-only, and re-verifies every
   read so tampering or path/symlink escapes fail closed.
+- `sandbox.py` builds deterministic, shell-free Docker argv plans only after
+  runtime preflight succeeds. Plans pin the runtime image digest, disable the
+  network, make the root read-only, drop capabilities, disable privilege
+  escalation and secrets, run as an unprivileged user, mount inputs read-only,
+  bound output/CPU/memory/PID limits, and carry the explicit wall-time budget;
+  execution remains a worker adapter responsibility.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
