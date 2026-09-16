@@ -150,6 +150,10 @@ describe('StrategyCoveragePanel', () => {
     await wrapper.get('.coverage-list-toggle').trigger('click')
 
     expect(wrapper.text()).toContain('0 issues')
-    expect(wrapper.text()).toContain('Requested range is fully covered by every selected instrument and benchmark.')
+    const empty = wrapper.get('.coverage-timeline-empty')
+    expect(empty.text()).toBe('Requested range is fully covered by every selected instrument and benchmark.')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
   })
 })

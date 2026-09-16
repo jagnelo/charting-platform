@@ -101,7 +101,13 @@
               </div>
               <p v-if="row.note" class="coverage-timeline-row__note">{{ row.note }}</p>
             </div>
-            <div v-if="!issueCoverageRows.length" class="coverage-timeline-empty">
+            <div
+              v-if="!issueCoverageRows.length"
+              class="coverage-timeline-empty"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               Requested range is fully covered by every selected instrument and benchmark.
             </div>
           </div>
