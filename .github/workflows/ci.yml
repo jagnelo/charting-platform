@@ -167,7 +167,7 @@ jobs:
 
       - name: Start stack
         # Vars are provided inline — no .env file needed
-        run: docker compose -p charting-platform-ci up -d --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait
         timeout-minutes: 5
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}
@@ -201,7 +201,7 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose -p charting-platform-ci down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci down -v
 
   # Staging is the integration authority. Master independently replays the same
   # architecture-neutral gate after an exact green staging SHA is promoted.

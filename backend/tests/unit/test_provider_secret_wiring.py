@@ -44,11 +44,15 @@ PROVIDER_SECRET_NAMES = {
     "OPENFIGI_API_KEY",
     "COINBASE_API_KEY",
     "KRAKEN_API_KEY",
+    "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
 }
 PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
     "NASDAQ_USER_AGENT",
     "OPENFIGI_TIMEOUT_SECONDS",
     "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+    "FINRA_OTC_SOURCE_REVIEWED",
+    "FINRA_OTC_SOURCE_EVIDENCE",
+    "FINRA_OTC_REVIEWED_SOURCE_URL",
     "FINRA_TOKEN_URL",
     "FINRA_API_BASE_URL",
     "FINRA_SHORT_INTEREST_URL",
@@ -59,19 +63,48 @@ PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
     "IBKR_READ_ONLY_TIMEOUT_SECONDS",
     "IBKR_CONID_MAP",
     "DINARI_API_BASE_URL",
+    "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED",
+    "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
 }
 PROVIDER_SAFETY_SETTINGS = {
     "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
     "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
     "FINRA_ASYNC_MAX_RESULT_BYTES",
     "FINRA_OTC_OPERATION_COSTS",
+    "FINRA_OTC_SOURCE_REVIEWED",
+    "FINRA_OTC_SOURCE_EVIDENCE",
+    "FINRA_OTC_REVIEWED_SOURCE_URL",
     "FINRA_OTC_TERMS_REVIEWED",
     "FINRA_OTC_COMPLETENESS_REVIEWED",
     "FINRA_OTC_REDISTRIBUTION_REVIEWED",
     "FINRA_OTC_POLL_INTERVAL_SECONDS",
     "FRED_REVIEWED_LIMIT_SCOPE",
     "FRED_REVIEWED_REQUESTS_PER_MINUTE",
-    "FRED_SERIES_TERMS_REVIEWED",
+    "FRED_REVIEWED_QUOTA_EVIDENCE",
+    "FRED_PERSISTED_STORAGE_AUTHORIZED",
+    "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+    "FRED_AUTOMATED_USE_AUTHORIZED",
+    "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+    "FRED_SERIES_RIGHTS_EVIDENCE",
+    "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+    "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+    "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+    "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+    "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+    "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+    "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
+    "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
+    "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
     "TIINGO_OPERATION_BYTE_BOUNDS",
     "FMP_OPERATION_BYTE_BOUNDS",
     "MARKETDATA_APP_REVIEWED_PLAN",
@@ -83,11 +116,14 @@ PROVIDER_SAFETY_SETTINGS = {
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS",
     "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE",
+    "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT",
 }
 PROVIDER_CONFIGURATION_SETTINGS = {
     "ALPACA_DATA_FEED",
     "ALPACA_TRADING_BASE_URL",
     "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+    "FINRA_OTC_SOURCE_EVIDENCE",
+    "FINRA_OTC_REVIEWED_SOURCE_URL",
     "MARKETSTACK_DISCOVERY_EXCHANGE",
     "IBKR_READ_ONLY_URL",
     "ALLOW_PAID_PROVIDER_ROUTING",
@@ -95,6 +131,10 @@ PROVIDER_CONFIGURATION_SETTINGS = {
     "PROVIDER_RATE_LIMIT_SEEDS",
     "PROVIDER_FRESHNESS_SEEDS",
     "PROVIDER_USAGE_PROFILE_SEEDS",
+    "PROVIDER_QUOTA_ACCOUNT_SCOPES",
+    "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES",
+    "PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS",
+    "PROVIDER_QUOTA_LEDGER_PATH",
 }
 TOKENIZED_REFRESH_SETTINGS = {
     "TOKENIZED_ASSET_REFRESH_ENABLED",
@@ -109,6 +149,8 @@ TOKENIZED_REFRESH_SETTINGS = {
 MARKET_OPERATION_SETTINGS = {
     "MARKET_DATA_REFRESH_SCHEDULE_ENABLED",
     "MARKET_DATA_SHADOW_REPORT_ENABLED",
+    "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED",
+    "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
     "MARKET_UNIVERSE_RECONCILIATION_ENABLED",
     "MARKET_UNIVERSE_MISSING_CONFIRMATIONS",
 }
@@ -150,6 +192,40 @@ def test_local_and_rpi_compose_pass_secrets_only_to_trusted_provider_processes()
             assert f"{name}:" in backend, (relative_path, "backend", name)
             assert f"{name}:" in worker, (relative_path, "worker", name)
             assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
+def test_research_runner_cannot_read_the_durable_provider_quota_ledger():
+    """User-supplied research code must not observe or mutate quota state."""
+
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        research = _service_environment(compose, "research-runner")
+        assert "provider-quota" not in research, (relative_path, "research-runner")
+        assert "provider_quota_ledger" not in research, (relative_path, "research-runner")
+        assert "/var/lib/charting-platform/provider-quota" not in research, (
+            relative_path,
+            "research-runner",
+        )
+        assert "PROVIDER_QUOTA_LEDGER" not in research, (relative_path, "research-runner")
+
+
+def test_trusted_local_and_rpi_processes_share_the_durable_quota_ledger():
+    """Backend/worker reservations must coordinate without exposing the ledger to user code."""
+
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        mount = (
+            "${PROVIDER_QUOTA_LEDGER_HOST_DIR:-${HOME}/.config/charting-platform/provider-quota}"
+            ":/var/lib/charting-platform/provider-quota"
+            if relative_path == "docker-compose.yml"
+            else "provider_quota_ledger:/var/lib/charting-platform/provider-quota"
+        )
+        assert mount in backend, (relative_path, "backend")
+        assert mount in worker, (relative_path, "worker")
+        assert mount not in research, (relative_path, "research-runner")
 
 
 def test_local_and_rpi_compose_pass_provider_safety_settings_to_backend_and_worker_only():
@@ -231,10 +307,7 @@ def test_deployment_defaults_keep_new_tokenized_providers_visible():
             'TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks","dinari","ondo_global_markets"]'
             in compose
         )
-        assert (
-            '"tokenized_historical_prices":["dinari","ondo_global_markets"]'
-            in compose
-        )
+        assert '"tokenized_historical_prices":["dinari","ondo_global_markets"]' in compose
 
 
 def test_provider_chain_examples_match_backend_tokenized_history_contract():
@@ -252,17 +325,26 @@ def test_provider_chain_examples_match_backend_tokenized_history_contract():
         assert chain_seed(relative_path) == expected, relative_path
 
 
-def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
+def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secret():
     workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
     assert "workflow_dispatch:" in workflow
-    assert "environment: provider-live-validation" in workflow
+    assert "if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master'" in workflow
+    assert "provider-live-staging" in workflow
+    assert "provider-live-master" in workflow
+    assert "environment: provider-live-validation" not in workflow
     assert "pull_request_target" not in workflow
     assert "schedule:" not in workflow
     assert "PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl" in workflow
     assert (
-        "PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}"
+        "PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.ref_name }}"
         in workflow
     )
+    assert (
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL: ${{ secrets.PROVIDER_QUOTA_LEDGER_DATABASE_URL }}"
+        in workflow
+    )
+    assert "PROVIDER_QUOTA_ACCOUNT_SCOPES:" in workflow
+    assert "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES:" in workflow
     assert "uses: actions/upload-artifact@v4" in workflow
     assert "name: provider-live-usage-${{ github.run_id }}" in workflow
     assert "if: always()" in workflow
@@ -304,8 +386,53 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
         in workflow
     )
     assert (
-        "FRED_SERIES_TERMS_REVIEWED: ${{ vars.FRED_SERIES_TERMS_REVIEWED || 'false' }}" in workflow
+        "FRED_REVIEWED_QUOTA_EVIDENCE: ${{ vars.FRED_REVIEWED_QUOTA_EVIDENCE || '' }}" in workflow
     )
+    assert (
+        "FRED_PERSISTED_STORAGE_AUTHORIZED: ${{ vars.FRED_PERSISTED_STORAGE_AUTHORIZED || 'false' }}"
+        in workflow
+    )
+    assert (
+        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE: ${{ vars.FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert (
+        "FRED_AUTOMATED_USE_AUTHORIZED: ${{ vars.FRED_AUTOMATED_USE_AUTHORIZED || 'false' }}"
+        in workflow
+    )
+    assert (
+        "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE: ${{ vars.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE || '' }}"
+        in workflow
+    )
+    assert "FRED_SERIES_RIGHTS_EVIDENCE: ${{ vars.FRED_SERIES_RIGHTS_EVIDENCE || '{}' }}" in workflow
+    for name in (
+        "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
+    for name in (
+        "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
+        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+    ):
+        assert f"{name}:" in workflow
     assert (
         "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     )
@@ -342,6 +469,10 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
         in workflow
     )
     assert (
+        "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT || '0' }}"
+        in workflow
+    )
+    assert (
         "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}"
         in workflow
     )
@@ -356,18 +487,31 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
-    assert "FRED_SERIES_TERMS_REVIEWED=false" in example
+    assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
+    assert "FRED_PERSISTED_STORAGE_AUTHORIZED=false" in example
+    assert "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE=" in example
+    assert "FRED_AUTOMATED_USE_AUTHORIZED=false" in example
+    assert "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE=" in example
+    assert "FRED_SERIES_RIGHTS_EVIDENCE={}" in example
     assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN=" in example
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example
     assert "MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0" in example
+    assert "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=false" in example
+    assert "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS=[]" in example
+    assert "XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false" in example
+    assert "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
+    assert "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED=false" in example
+    assert "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false" in example
+    assert "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED=false" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS=50" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER=100" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS=0" in example
     assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE=disabled" in example
+    assert "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT=0" in example
     for name in (
         "IBKR_READ_ONLY_URL",
         "COINBASE_API_KEY",
@@ -427,7 +571,31 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
-    monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "false")
+    monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "false")
+    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
+    monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "")
+    monkeypatch.setenv("FRED_SERIES_RIGHTS_EVIDENCE", "{}")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_EXPIRES_AT", "")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", "")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", "false")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", "")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", "false")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE", "")
     monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "{}")
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "")
@@ -439,9 +607,11 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["massive corporate actions"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
-    assert statuses["nasdaq"].startswith("non-routable:")
+    assert statuses["coinbase market-data use"].startswith("non-routable:")
+    assert statuses["nasdaq"].startswith("routable:")
+    assert statuses["dinari sandbox canary quota"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
-    assert statuses["bybit_xstocks"].startswith("routable:")
+    assert statuses["bybit_xstocks"].startswith("non-routable:")
     assert (
         statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     )
@@ -452,12 +622,65 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         == "non-routable: explicit reviewed plan/limit pair required"
     )
     assert statuses["marketdata.app option chain"].startswith("non-routable:")
+    assert statuses["marketdata.app option quote history"].startswith("non-routable:")
+    assert "xstocks" in _LIVE_SCRIPT.LIVE_PREFLIGHT_ROUTING_CONTROLS
 
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
-    monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "60")
-    monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "true")
+    monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "120")
+    monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+    monkeypatch.setenv("FRED_PERSISTED_STORAGE_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "written permission for persisted data"
+    )
+    monkeypatch.setenv("FRED_AUTOMATED_USE_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "written automated-use permission"
+    )
+    from app.config import FRED_MAPPED_SERIES_IDS
+
+    monkeypatch.setenv(
+        "FRED_SERIES_RIGHTS_EVIDENCE",
+        json.dumps({series_id: "written series rights" for series_id in FRED_MAPPED_SERIES_IDS}),
+    )
     statuses = routing_safety_preflight()
     assert statuses["fred"] == "routable"
+
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
+    monkeypatch.setenv(
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_automated_persistent_nonredistributed",
+    )
+    monkeypatch.setenv("COINBASE_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
+    statuses = routing_safety_preflight()
+    assert statuses["coinbase market-data use"] == "routable"
+
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
+    monkeypatch.setenv(
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_automated_persistent_nonredistributed",
+    )
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", "true")
+    monkeypatch.setenv("XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "deployment review")
+    statuses = routing_safety_preflight()
+    assert statuses["xstocks"] == "routable"
+
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
+    monkeypatch.setenv(
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_automated_persistent_nonredistributed",
+    )
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
+    monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", "true")
+    monkeypatch.setenv(
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
+        "deployment outside restricted egress",
+    )
+    statuses = routing_safety_preflight()
+    assert statuses["bybit_xstocks"] == "routable: anonymous public calls are bounded by the documented 600/5-second/IP ceiling"
 
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "4")
     statuses = routing_safety_preflight()
@@ -469,6 +692,16 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv(
         "FINRA_OTC_OPERATION_COSTS",
         '{"discover_universe_page": 3, "reconcile_universe_page": 3}',
+    )
+    monkeypatch.setenv("FINRA_OTC_SOURCE_REVIEWED", "true")
+    monkeypatch.setenv("FINRA_OTC_SOURCE_EVIDENCE", "FINRA support case 123")
+    monkeypatch.setenv(
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    )
+    monkeypatch.setenv(
+        "FINRA_OTC_REVIEWED_SOURCE_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
     )
     monkeypatch.setenv("FINRA_OTC_TERMS_REVIEWED", "true")
     monkeypatch.setenv("FINRA_OTC_COMPLETENESS_REVIEWED", "true")
@@ -512,8 +745,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.delenv("MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", raising=False)
     statuses = routing_safety_preflight()
     assert statuses["marketdata.app account plan"] == (
-        "non-routable: trial requires a timezone-aware "
-        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
+        "non-routable: trial requires a timezone-aware " "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT"
     )
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "100")
     statuses = routing_safety_preflight()
@@ -597,18 +829,41 @@ def test_live_runner_treats_provider_configuration_changes_as_provider_changes(m
 
 
 def test_live_runner_can_select_only_manifest_cases_for_a_provider():
-    assert _LIVE_SCRIPT.selected_live_test_arguments(["bybit_xstocks"]) == [
+    bybit_arguments = _LIVE_SCRIPT.selected_live_test_arguments(["bybit_xstocks"])
+    assert bybit_arguments[:-2] == [
         "tests/live/test_tokenized_providers_live.py::test_bybit_public_xstocks_asset_and_price",
-        "-k",
-        "bybit_public_xstocks_asset_and_price or bybit_xstocks",
+        "tests/live/test_tokenized_providers_live.py::test_bybit_public_xstocks_cursor_page",
     ]
+    assert bybit_arguments[-2] == "-k"
+    assert set(bybit_arguments[-1].split(" or ")) == {
+        "bybit_public_xstocks_asset_and_price",
+        "bybit_public_xstocks_cursor_page",
+        "bybit_xstocks",
+    }
     arguments = _LIVE_SCRIPT.selected_live_test_arguments(["marketdata_app"])
-    assert "tests/live/test_market_data_providers_live.py::test_optional_credentialed_provider_small_read" in arguments
+    assert (
+        "tests/live/test_market_data_providers_live.py::test_optional_credentialed_provider_small_read"
+        in arguments
+    )
     assert "marketdata_app" in arguments[-1]
-    assert _LIVE_SCRIPT.selected_live_test_arguments(None) == [
-        "tests/live/test_market_data_providers_live.py",
-        "tests/live/test_tokenized_providers_live.py",
-    ]
+    all_arguments = _LIVE_SCRIPT.selected_live_test_arguments(None)
+    expected_nodes = sorted(
+        {
+            f"tests/live/{relative_path}::{function_name}"
+            for cases in _LIVE_SCRIPT.LIVE_PROVIDER_CASES.values()
+            for relative_path, function_name in cases
+        }
+    )
+    expected_filter_terms = set(_LIVE_SCRIPT.LIVE_PROVIDER_CASES)
+    expected_filter_terms.update(
+        function_name.removeprefix("test_")
+        for cases in _LIVE_SCRIPT.LIVE_PROVIDER_CASES.values()
+        for _relative_path, function_name in cases
+        if function_name != "test_optional_credentialed_provider_small_read"
+    )
+    assert all_arguments[:-2] == expected_nodes
+    assert all_arguments[-2] == "-k"
+    assert set(all_arguments[-1].split(" or ")) == expected_filter_terms
 
 
 def test_live_runner_uses_staging_merge_base_after_metadata_commit(monkeypatch):
@@ -663,3 +918,48 @@ def test_every_registered_provider_has_live_case_or_explicit_exclusion():
 
     for provider, reason in _LIVE_SCRIPT.LIVE_PROVIDER_EXCLUSIONS.items():
         assert reason.strip(), provider
+
+
+def test_external_provider_adapters_use_the_quota_guarded_httpx_transport():
+    """Require a transport guard before an adapter can bypass live admission."""
+
+    unguarded_network_modules = {
+        "aiohttp",
+        "ccxt",
+        "curl_cffi",
+        "httpcore",
+        "http.client",
+        "requests",
+        "socket",
+        "urllib.request",
+        "urllib3",
+        "websocket",
+        "websockets",
+    }
+    source_roots = (
+        ROOT / "backend" / "app" / "providers",
+        ROOT / "backend" / "tests" / "live",
+    )
+    for source_root in source_roots:
+        for path in sorted(source_root.rglob("*.py")):
+            # yfinance remains an explicitly excluded legacy adapter and is
+            # never selected by default or in the external acceptance matrix.
+            if source_root.name == "providers" and path.name == "yfinance.py":
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            imported_modules = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    imported_modules.update(alias.name for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    imported_modules.add(node.module)
+            unguarded = sorted(
+                module
+                for module in imported_modules
+                if module in unguarded_network_modules
+                or any(
+                    module.startswith(f"{blocked}.")
+                    for blocked in unguarded_network_modules
+                )
+            )
+            assert not unguarded, (path.relative_to(ROOT), unguarded)

@@ -158,7 +158,20 @@ printf '%s' "$(docker info --format '{{{{.Architecture}}}}')" | grep -Eq '{docke
 docker compose version >/dev/null
 test -d {root} && test -w {root}
 test -d {root}/shared && test -w {root}/shared
-test -f {root}/shared/app.env && test "$(stat -c '%a' {root}/shared/app.env 2>/dev/null || stat -f '%Lp' {root}/shared/app.env)" = 600
+env_file={root}/shared/app.env
+test -f "$env_file" && test "$(stat -c '%a' "$env_file" 2>/dev/null || stat -f '%Lp' "$env_file")" = 600
+for required_name in SECRET_KEY POSTGRES_PASSWORD CORS_ORIGINS; do
+  # Check only the assignment shape.  Never echo or interpolate the value into
+  # the diagnostic, because this command is captured by the local deploy tool.
+  grep -Eq "^$required_name=.+$" "$env_file" || {{ echo "missing or empty deployment setting: $required_name" >&2; exit 25; }}
+done
+if grep -Eq '^PROVIDER_QUOTA_LEDGER_DATABASE_URL=' "$env_file"; then
+  quota_url="$(sed -n 's/^PROVIDER_QUOTA_LEDGER_DATABASE_URL=//p' "$env_file" | tail -1)"
+  case "$quota_url" in
+    ""|postgresql://*|postgresql+psycopg2://*) ;;
+    *) echo 'PROVIDER_QUOTA_LEDGER_DATABASE_URL must be PostgreSQL when configured' >&2; exit 26;;
+  esac
+fi
 test "$(df -Pk {root} | awk 'NR==2 {{print $4}}')" -gt 2097152
 command -v ss >/dev/null 2>&1 || {{ echo 'ss is required for a reliable reserved-port preflight' >&2; exit 23; }}
 ! ss -ltnH | awk '{{print $4}}' | grep -E '[:.]'"{port}"'$' >/dev/null
@@ -393,6 +406,8 @@ if test -L "$root/current" && docker compose -p charting-platform -f "$root/curr
 fi
 docker load < "$root/releases/$sha/$sha.docker.tar.gz"
 docker compose -p charting-platform -f "$root/releases/$sha/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/releases/$sha/release.env" up -d --no-build --pull never --wait
+docker compose -p charting-platform -f "$root/releases/$sha/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/releases/$sha/release.env" exec -T backend python -c 'from app.services.provider_quota_coordinator import ensure_provider_quota_coordinator; ensure_provider_quota_coordinator(require_persistent_coordinator=True)'
+docker compose -p charting-platform -f "$root/releases/$sha/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/releases/$sha/release.env" exec -T worker python -c 'from app.services.provider_quota_coordinator import ensure_provider_quota_coordinator; ensure_provider_quota_coordinator(require_persistent_coordinator=True)'
 docker compose -p charting-platform -f "$root/releases/$sha/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/releases/$sha/release.env" ps
 schema_revision="$(docker compose -p charting-platform -f "$root/releases/$sha/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/releases/$sha/release.env" exec -T backend alembic current 2>/dev/null | tail -1 | tr -d '\\r' || true)"
 bundle_sha256="$(sha256sum "$root/releases/$sha/$sha.docker.tar.gz" | awk '{{print $1}}')"

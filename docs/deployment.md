@@ -15,9 +15,65 @@ Provision application and provider secrets separately on the target at
 `/opt/charting-platform/shared/app.env` (or
 `$RPI_DEPLOY_ROOT/shared/app.env`) with mode `0600`. Use the same variable names
 as `.env.example`, but copy them through an approved password/secret manager or
-a secure operator channel. The deployment intentionally does not pull secrets
-from GitHub or from a developer worktree, and release bundles never contain
-them. Compose passes provider credentials only to `backend` and `worker`.
+a secure operator channel. The RPi preflight checks the presence of the core
+`SECRET_KEY`, `POSTGRES_PASSWORD`, and `CORS_ORIGINS` names without printing
+values, rejects a non-PostgreSQL quota-coordinator URL, and the post-start
+transaction opens the quota coordinator from both `backend` and `worker` to
+verify that the shared ledger is readable, writable, and lockable. The
+deployment intentionally does not pull secrets from GitHub or from a developer
+worktree, and release bundles never contain them. Compose passes provider
+credentials only to `backend` and `worker`. The `research-runner` environment is
+an explicit allow-list and mounts only its job/result volumes: it must never
+receive `PROVIDER_QUOTA_*` settings, the `PROVIDER_QUOTA_LEDGER_DATABASE_URL`,
+or the `provider_quota_ledger` volume. Keeping user-supplied research code away
+from the durable quota ledger is part of the deployment boundary, even when the
+same `app.env` contains the coordinator configuration for trusted services.
+
+The durable provider-quota coordinator is separate from the observational
+`PROVIDER_LIVE_USAGE_LEDGER`. Local Compose bind-mounts the owner-managed
+`PROVIDER_QUOTA_LEDGER_HOST_DIR` into both backend and worker; RPi Compose
+mounts one persistent `provider_quota_ledger` volume at
+`/var/lib/charting-platform/provider-quota` for both services. Reservations
+and the reservation-linked live-receipt registry therefore survive
+container/process restarts on either deployment. The live-receipt registry is
+the durable link between a live operation and its admitted quota reservation;
+the optional JSONL live-test ledger is not a replacement for it. The runner
+reconciles pending registry rows before starting another live run and fails
+closed on uncertain, missing, or mismatched reservations.
+`PROVIDER_QUOTA_LEDGER_DATABASE_URL` can instead
+point both services at a shared PostgreSQL coordinator. GitHub's credentialed
+live workflow requires its own persistent PostgreSQL URL and will refuse to
+probe with an ephemeral SQLite coordinator. If CI and a deployment use keys
+whose quota is shared at the provider-account level, configure both with the
+same durable database and matching `PROVIDER_QUOTA_ACCOUNT_SCOPES` aliases;
+different API keys may still draw from one account quota. If they are distinct
+provider accounts, keep their coordinator scopes separate. Do not point a
+deployment at a developer's local file or copy local credentials into CI.
+
+An empty coordinator is not treated as zero account usage. Before enabling a
+provider in each distinct account/window, an administrator must reconcile the
+exact active dimensions through
+`POST /api/v1/market-data/quota-coordinator/baselines`; the current route
+records a dashboard attestation. Check missing/verified dimensions and actual
+remaining headroom through
+`GET /api/v1/market-data/quota-coordinator/baselines?provider=...&capability=...`.
+Use a source/provider/date or human-readable descriptive evidence locator, not
+a URL, opaque identifier, or copied dashboard content. The general coordinator
+summary resolves active limits from the currently configured provider contract,
+including MarketData.app plan changes and trial expiry; if providers sharing a
+bucket disagree, it reports current headroom as unknown. Only set
+`PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES` for an alias when every caller shares
+that same durable coordinator; this permits safe automatic rollover after the
+provider's reset. Otherwise the next window requires a fresh baseline.
+
+Provider-native account snapshots are opt-in. To refresh explicitly supported
+account-usage endpoints once per day, set
+`PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=true` and provide a JSON list such as
+`PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS=["marketdata_app"]`. The list is
+allow-listed by configuration: an empty list does not fan out to every
+provider, and each named provider is still admitted through its own reviewed
+quota and credential gates. The default is disabled so enabling other worker
+schedules cannot silently spend provider account credits.
 
 The direct live-probe ledger is optional and contains only provider/request/byte
 aggregates. If an operator wants those cross-session probe totals visible in
@@ -25,6 +81,44 @@ the backend usage endpoint, mount the owner-managed ledger read-only into the
 backend and worker containers and set `PROVIDER_LIVE_USAGE_LEDGER` to its
 container path. Do not copy credentials or raw provider payloads into that
 mount; an unavailable ledger is safe and does not affect routing.
+
+Back up the durable quota coordinator separately from the optional live-test
+JSONL. For the default local/Compose SQLite coordinator, use SQLite's online
+backup while the owner-managed coordinator is reachable, for example:
+
+```bash
+sqlite3 ~/.config/charting-platform/provider-quota/usage.sqlite3 \
+  ".backup '/secure-backups/provider-quota-$(date +%Y%m%d_%H%M%S).sqlite3'"
+```
+
+For the RPi named volume, stop `backend` and `worker` for a consistent file
+snapshot, then archive the explicit project volume (replace the project name
+with the deployment's `COMPOSE_PROJECT_NAME`):
+
+```bash
+docker compose stop backend worker
+docker run --rm \
+  -v charting-prod_provider_quota_ledger:/data:ro \
+  -v /secure-backups:/backup \
+  alpine tar -czf /backup/provider-quota-$(date +%Y%m%d_%H%M%S).tgz -C /data .
+docker compose start backend worker
+```
+
+Restore the archive only while `backend` and `worker` are stopped, preserve
+the volume's ownership and permissions, and run the normal post-start
+coordinator read/write/lock health check before enabling provider workers. If
+the coordinator uses `PROVIDER_QUOTA_LEDGER_DATABASE_URL`, include its
+`provider_quota_ledger_*` tables (including reservations, windows, baselines,
+and live receipts) in the PostgreSQL backup instead; there is no separate
+SQLite volume to copy in that mode. Keep backups encrypted and access-limited
+because the ledger reveals provider/account scopes and usage history, even
+though it contains no API keys.
+
+The optional `PROVIDER_LIVE_USAGE_LEDGER` JSONL may be backed up independently
+for audit purposes, but losing it does not authorize quota routing. Conversely,
+restoring an empty quota database or restoring only the JSONL while losing the
+durable coordinator is unsafe: disable the affected providers and establish a
+fresh exact baseline for each active finite quota dimension before resuming.
 
 Identical OHLCV refreshes are coordinated by PostgreSQL transaction-scoped
 advisory locks when all workers share one database. A deployment whose backend
@@ -101,21 +195,27 @@ CIKs already present in the canonical issuer table, persists its cursor in
 `market_event_scan_state`, and reports partial cycles; it never claims that a
 bounded batch is a complete SEC universe.
 
-If complete SEC issuer-directory coverage is required for filing-driven
-candidate scans, use the separate `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`
+For additional SEC ticker-association candidate scans, use the separate
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`
 flag with bounded `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS` and
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER` values, plus a
 positive `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS` bound.
-One SEC submissions request is made per CIK in each directory page, so the
-submissions bound must cover the configured page size. This worker pages unique
-CIKs from the official SEC ticker directory and stores its offset in scan-state
-provenance. It is disabled by default and must not be enabled without reviewing
-fair-access, candidate-use, and redistribution requirements. Issuer writes are
-separately controlled by `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`:
-keep the default `disabled` mode for a read-only scan, or explicitly review and
-select `create_missing` to create only absent CIK/name `Issuer` rows. That mode
-never creates instruments/listings, changes existing legal names, or infers
-tradability or listing dates.
+One SEC submissions request is attempted per CIK in each invocation, so this
+per-invocation bound must cover the configured page size; it is not an SEC
+daily quota. This worker pages unique
+CIKs from SEC's ticker-association file and stores its offset and source
+fingerprint in scan-state provenance. SEC says these associations do not
+guarantee accuracy or scope, so this is not full issuer, security, or NMS/OTC
+venue reconciliation. It is disabled by default and must not be enabled
+without reviewing fair-access, candidate-use, and redistribution requirements.
+Issuer writes are separately controlled by
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`: keep the
+default `disabled` mode for a candidate-count dry scan, inspect the complete
+clean-cycle report, then set `create_missing` with the exact reviewed cycle in
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT`. The service checks
+that the source fingerprint has not changed. Materialization creates only
+absent CIK/name `Issuer` rows; it never creates instruments/listings, changes
+existing legal names, or infers tradability or listing dates.
 
 The core market refresh and US venue/lifecycle reconciliation schedules are also
 disabled by default. After the corresponding provider entitlements, quota
@@ -273,14 +373,19 @@ CORS_ORIGINS=["https://charts.yourdomain.com"]
 
 ### What needs to be backed up
 
-All application data lives in two Docker named volumes:
+Application data and provider-quota state may live in these Docker named
+volumes:
 
 | Volume | Contents |
 |---|---|
 | `${COMPOSE_PROJECT_NAME}_postgres_data` | All OHLCV bars, user data, drawings, alerts, screeners |
 | `${COMPOSE_PROJECT_NAME}_redis_data` | Task queue state (safe to lose — tasks simply re-queue) |
+| `${COMPOSE_PROJECT_NAME}_provider_quota_ledger` | Durable provider-quota reservations, windows, baselines, and live-receipt registry when the RPi/Compose SQLite coordinator is enabled |
 
-Only the Postgres volume is essential. Redis can always be recreated.
+Postgres and the provider-quota ledger are essential when provider routing or
+live validation is enabled. Redis can always be recreated. If
+`PROVIDER_QUOTA_LEDGER_DATABASE_URL` points to PostgreSQL, the quota tables are
+inside that database backup rather than in the named volume.
 
 ### Backup
 
@@ -293,6 +398,14 @@ docker compose exec postgres pg_dumpall -U postgres > backup_$(date +%Y%m%d_%H%M
 
 # Or use pg_dump for a single database
 docker compose exec postgres pg_dump -U postgres chartingdb > chartingdb_$(date +%Y%m%d).sql
+
+# Back up the SQLite quota ledger separately when using the named volume
+docker compose stop backend worker
+docker run --rm \
+  -v ${COMPOSE_PROJECT_NAME:-charting}_provider_quota_ledger:/data:ro \
+  -v /backups:/backup \
+  alpine tar -czf /backup/provider-quota_$(date +%Y%m%d_%H%M%S).tgz -C /data .
+docker compose start backend worker
 
 # Resume
 docker compose start

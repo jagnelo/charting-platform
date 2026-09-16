@@ -5,9 +5,11 @@ Pulls the maximum available OHLCV history for an instrument from the configured
 provider and stores it in the local DB for all supported timeframes.
 
 Design principles:
-  - Source-agnostic: no hardcoded source-specific history-window assumptions.
-  - We always attempt to start from EPOCH (Unix timestamp 0) and let the data
-    source tell us how far back it can actually go.
+  - Source-agnostic: provider-specific history windows come from reviewed
+    machine-readable entitlement constraints, never generic assumptions.
+  - Providers without an explicit history bound receive an epoch sentinel and
+    are rejected by runtime admission; the source is never asked to act as an
+    undocumented unlimited-history provider.
   - If a source returns nothing for a timeframe after coarser timeframes have
     returned data, we record that fact and stop asking, accepting the source
     simply doesn't provide that resolution that far back.
@@ -19,7 +21,7 @@ Design principles:
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -37,6 +39,10 @@ from app.providers.crypto_market_data import (
     estimate_kraken_ohlcv_request_count,
 )
 from app.providers.errors import bounded_redact_provider_message
+from app.providers.ibkr import estimate_ibkr_ohlcv_request_count
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
 from app.providers.optional_market_data import (
     estimate_marketdata_app_ohlcv_credit_count,
     estimate_marketstack_ohlcv_request_count,
@@ -86,6 +92,55 @@ INTER_TF_DELAY_SECONDS: float = 1.5
 _REDIS_PROGRESS_KEY = "bulk_fetch:progress:{instrument_id}"
 _REDIS_CANCEL_KEY = "watchlist-history:cancel:{run_id}"
 _REDIS_TTL_SECONDS = 86_400  # 24 h
+
+
+def _provider_bulk_history_start(provider_name: str, end: datetime) -> datetime:
+    """Return the reviewed earliest request bound for one provider.
+
+    A bulk refresh must not send the epoch to every adapter: the runtime's
+    entitlement check needs the same requested start that the adapter will
+    actually receive.  Bounds come from the machine-readable provider
+    entitlement seed.  An absent or malformed bound deliberately returns the
+    epoch, which makes the provider fail closed in ``resolve_provider_chain``
+    rather than inventing an unlimited history entitlement.
+
+    The seed is only a conservative request bound.  An operator may narrow a
+    provider entitlement in the database; the runtime admission check still
+    applies that persisted policy before the request is sent.
+    """
+
+    normalized_end = _normalize_fetch_end(end)
+    provider_seed = settings.PROVIDER_ENTITLEMENT_SEEDS.get(str(provider_name).strip().lower())
+    if not isinstance(provider_seed, dict):
+        return EPOCH_START
+
+    # Capability-level reviews override the provider-wide entitlement.  This
+    # matters for providers such as Finnhub whose free plan may expose price
+    # history only after a separate endpoint entitlement is reviewed.
+    capability_seed = provider_seed.get("capabilities", {}).get("price_history")
+    if isinstance(capability_seed, dict):
+        provider_seed = {**provider_seed, **capability_seed}
+    quota_policy = provider_seed.get("quota_policy")
+    constraints = quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
+    if not isinstance(constraints, dict):
+        return EPOCH_START
+
+    raw_years = constraints.get("max_lookback_years")
+    raw_days = constraints.get("max_lookback_days")
+    if (raw_years is None) == (raw_days is None):
+        return EPOCH_START
+    raw_value = raw_years if raw_years is not None else raw_days
+    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
+        return EPOCH_START
+    if raw_years is not None:
+        try:
+            return normalized_end.replace(year=normalized_end.year - raw_value)
+        except ValueError:
+            # Preserve the runtime entitlement check's conservative leap-day
+            # convention instead of requesting one day beyond the reviewed
+            # calendar-year boundary.
+            return normalized_end.replace(year=normalized_end.year - raw_value, month=2, day=28)
+    return normalized_end - timedelta(days=raw_value)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -268,22 +323,56 @@ async def _do_fetch_and_store(
     adjusted: bool,
     end: datetime,
 ) -> int:
-    """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
-    alpaca_cost = estimate_ohlcv_request_count(timeframe, EPOCH_START, end)
-    binance_cost = estimate_ohlcv_request_weight(timeframe, EPOCH_START, end)
-    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, EPOCH_START, end)
-    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, EPOCH_START, end)
-    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, EPOCH_START, end)
-    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, EPOCH_START, end)
-    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, EPOCH_START, end)
+    """Request the reviewed maximum history and upsert all returned bars.
+
+    Providers with an explicit plan lookback receive that provider-specific
+    lower bound. Providers without a machine-readable bound receive the epoch
+    sentinel and are rejected by runtime history admission; that is safer than
+    silently treating an unknown plan as unlimited history.
+    """
+    provider_history_starts = {
+        provider_name: _provider_bulk_history_start(provider_name, end)
+        for provider_name in settings.PROVIDER_ENTITLEMENT_SEEDS
+    }
+
+    def history_start(provider_name: str) -> datetime:
+        return provider_history_starts.get(provider_name, EPOCH_START)
+
+    alpaca_start = history_start("alpaca")
+    binance_start = history_start("binance")
+    coinbase_start = history_start("coinbase")
+    kraken_start = history_start("kraken")
+    massive_start = history_start("massive")
+    marketstack_start = history_start("marketstack")
+    marketdata_app_start = history_start("marketdata_app")
+    twelve_data_start = history_start("twelve_data")
+    ibkr_start = history_start("ibkr")
+
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, alpaca_start, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, binance_start, end)
+    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, coinbase_start, end)
+    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, kraken_start, end)
+    massive_cost = estimate_massive_ohlcv_request_count(timeframe, massive_start, end)
+    marketstack_cost = estimate_marketstack_ohlcv_request_count(
+        timeframe, marketstack_start, end
+    )
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(
+        timeframe, marketdata_app_start, end
+    )
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(
+        timeframe, twelve_data_start, end
+    )
+    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, ibkr_start, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
         **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
         **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
         **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
@@ -293,10 +382,11 @@ async def _do_fetch_and_store(
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=operation_cost_overrides or None,
         adjusted=adjusted,
+        history_start=history_start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
-            EPOCH_START,
+            history_start(provider.name),
             end,
             adjusted=adjusted,
             instrument_id=instrument.id,

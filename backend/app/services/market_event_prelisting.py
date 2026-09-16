@@ -37,6 +37,7 @@ _IDENTIFIER_FIELDS = {
 }
 _SYMBOL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,49}$")
 _MIC_PATTERN = re.compile(r"^[A-Z0-9]{4}$")
+_STRONG_CONSENSUS_STATUSES = frozenset({"corroborated", "resolved"})
 
 
 def _first_text(payload: dict[str, Any], fields: Iterable[str]) -> str | None:
@@ -73,6 +74,81 @@ def _stable_identifiers(payload: dict[str, Any]) -> dict[str, str]:
         if value:
             identifiers[kind] = "".join(value.upper().split())
     return identifiers
+
+
+def _normalised_name(payload: dict[str, Any]) -> str | None:
+    value = _first_text(payload, _NAME_FIELDS)
+    return value.casefold() if value else None
+
+
+def _strong_evidence_reason(
+    *,
+    consensus: MarketEventConsensus | None,
+    events: list[MarketEvent],
+    payloads: list[dict[str, Any]],
+    symbol: str,
+    exchange_mic: str | None,
+) -> str | None:
+    """Return a quarantine reason unless future-listing evidence is strong.
+
+    A valid-looking ticker is not enough to create a provisional security.  A
+    future listing must have a reconciled multi-provider consensus, one exact
+    symbol/name, and either an exact venue-qualified observation from every
+    source or the same stable security identifier observed by at least two
+    sources.  This is deliberately stricter than the later promotion step:
+    weak or contradictory observations remain reviewable candidates without
+    becoming instruments that downstream jobs could accidentally consume.
+    """
+
+    if consensus is None:
+        return "future-listing evidence has no reconciled provider consensus"
+    status = str(consensus.status or "").strip().lower()
+    if status not in _STRONG_CONSENSUS_STATUSES:
+        return f"future-listing consensus status {status or 'unknown'} is not corroborated"
+    sources = {str(event.source or "").strip().lower() for event in events if event.source}
+    if len(sources) < 2 or len(events) < 2:
+        return "future-listing evidence requires at least two distinct provider observations"
+    if consensus.conflict_fields:
+        return "future-listing consensus retains unresolved field conflicts"
+
+    symbols = [_symbol(payload) for payload in payloads]
+    if any(value is None for value in symbols):
+        return "every future-listing observation must provide a valid symbol"
+    if len(set(symbols)) != 1 or symbols[0] != symbol:
+        return "future-listing observations disagree on the proposed symbol"
+
+    names = [_normalised_name(payload) for payload in payloads]
+    if any(value is None for value in names):
+        return "every future-listing observation must provide a company name"
+    if len(set(names)) != 1:
+        return "future-listing observations disagree on the company name"
+
+    identifier_observations: dict[str, dict[str, set[str]]] = {}
+    for event, payload in zip(events, payloads, strict=True):
+        source = str(event.source or "").strip().lower()
+        for kind, value in _stable_identifiers(payload).items():
+            identifier_observations.setdefault(kind, {}).setdefault(value, set()).add(source)
+    for kind, values in identifier_observations.items():
+        if len(values) > 1:
+            return f"future-listing observations disagree on {kind}"
+
+    venue_values = [_mic(payload) for payload in payloads]
+    exact_venue = (
+        all(value is not None for value in venue_values)
+        and len(set(venue_values)) == 1
+        and venue_values[0] == exchange_mic
+    )
+    shared_identifier = any(
+        len(source_names) >= 2
+        for values in identifier_observations.values()
+        for source_names in values.values()
+    )
+    if not exact_venue and not shared_identifier:
+        return (
+            "future-listing evidence requires one exact venue MIC across providers "
+            "or a shared stable security identifier"
+        )
+    return None
 
 
 def _candidate_key(event: MarketEvent) -> str:
@@ -197,7 +273,14 @@ async def materialize_prelisting_candidates(
         consensus = None
         if anchor.consensus_id is not None:
             consensus = await db.get(MarketEventConsensus, anchor.consensus_id)
-        status = "quarantined" if consensus is not None and consensus.status == "conflicted" else "pending"
+        quarantine_reason = _strong_evidence_reason(
+            consensus=consensus,
+            events=events,
+            payloads=[row for _event, row in payloads],
+            symbol=symbol,
+            exchange_mic=exchange_mic,
+        )
+        status = "quarantined" if quarantine_reason is not None else "pending"
         candidate = (
             await db.execute(
                 select(MarketEventPrelistingCandidate).where(
@@ -225,6 +308,7 @@ async def materialize_prelisting_candidates(
                     "algorithm": "market_event_prelisting_v1",
                     "provider_event_keys": [event.event_key for event in events],
                     "provider_rows_are_immutable": True,
+                    "evidence_policy": "corroborated_exact_symbol_name_venue_or_shared_identifier_v2",
                 },
             )
             db.add(candidate)
@@ -249,13 +333,34 @@ async def materialize_prelisting_candidates(
             candidate.last_seen_at = max(_utc(candidate.last_seen_at), max(observed_times))
             if candidate.status == "pending" and status == "quarantined":
                 candidate.status = status
+                candidate.resolution = {
+                    "status": "operator_review_required",
+                    "reason": quarantine_reason,
+                }
 
         if status == "quarantined":
             quarantined += 1
             candidate.resolution = {
                 "status": "operator_review_required",
-                "reason": "provider event fields conflict in consensus group",
+                "reason": quarantine_reason or "provider event evidence is ambiguous",
             }
+            # A prior implementation could have attached a provisional
+            # instrument before this stricter evidence policy was applied.
+            # Keep that row inactive and quarantine it rather than allowing a
+            # newly observed contradiction to remain routable.
+            if candidate.instrument_id is not None:
+                prior_instrument = await db.get(Instrument, candidate.instrument_id)
+                if (
+                    prior_instrument is not None
+                    and prior_instrument.identity_status == IdentityStatus.PROVISIONAL.value
+                ):
+                    prior_instrument.is_active = False
+                    prior_instrument.identity_status = IdentityStatus.QUARANTINED.value
+                    prior_instrument.field_provenance = {
+                        **(prior_instrument.field_provenance or {}),
+                        "quarantine_reason": quarantine_reason
+                        or "provider event evidence is ambiguous",
+                    }
             continue
         if candidate.status == "quarantined":
             # Quarantine is an explicit operator boundary; never silently

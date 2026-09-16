@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import TypeVar, cast
+from urllib.parse import urlsplit, urlunsplit
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
+    bybit_xstocks_market_data_use_authority_missing,
+    coinbase_market_data_use_authority_missing,
+    fred_data_use_controls_missing,
+    fred_series_rights_missing,
     marketdata_app_reviewed_plan,
     marketdata_app_reviewed_plan_pair,
     marketdata_app_trial_expiry_has_elapsed,
@@ -16,6 +21,7 @@ from app.config import (
     provider_required_operation_byte_bounds,
     provider_reviewed_flag,
     settings,
+    xstocks_market_data_use_authority_missing,
 )
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
@@ -94,7 +100,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
-    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # Explicitly configured OTC directory evidence
+    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # Candidate parser; source-review gates control routing
     # Optional low-cost adapters. They remain absent from default chains and
     # entitlement seeds until credentials, quotas, and redistribution terms
     # are reviewed by operations.
@@ -545,6 +551,9 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
     "finra_otc_directory": (
         "FINRA_OTC_OPERATION_COSTS",
+        "FINRA_OTC_SOURCE_REVIEWED",
+        "FINRA_OTC_SOURCE_EVIDENCE",
+        "FINRA_OTC_REVIEWED_SOURCE_URL",
         "FINRA_OTC_TERMS_REVIEWED",
         "FINRA_OTC_COMPLETENESS_REVIEWED",
         "FINRA_OTC_REDISTRIBUTION_REVIEWED",
@@ -553,7 +562,34 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     "fred": (
         "FRED_REVIEWED_LIMIT_SCOPE",
         "FRED_REVIEWED_REQUESTS_PER_MINUTE",
-        "FRED_SERIES_TERMS_REVIEWED",
+        "FRED_REVIEWED_QUOTA_EVIDENCE",
+        "FRED_PERSISTED_STORAGE_AUTHORIZED",
+        "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+        "FRED_AUTOMATED_USE_AUTHORIZED",
+        "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+        "FRED_SERIES_RIGHTS_EVIDENCE",
+    ),
+    "coinbase": (
+        "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+    ),
+    "xstocks": (
+        "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
+        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+    ),
+    "bybit_xstocks": (
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
     ),
     "tiingo": ("TIINGO_OPERATION_BYTE_BOUNDS",),
     "fmp": ("FMP_OPERATION_BYTE_BOUNDS",),
@@ -643,6 +679,16 @@ def provider_routing_control_settings(
         return ()
     if name == "massive" and operation is not None and operation != "fetch_instrument_events":
         return ()
+    # The async signed-result bound is independent from FINRA's synchronous
+    # short-interest and OTC Daily List calls. Those dataset operations already
+    # reserve the published 3 MB synchronous response ceiling against the
+    # credential's monthly byte pool; do not make them wait for an async-only
+    # operator bound.
+    if name == "finra" and operation in {
+        "fetch_short_interest",
+        "fetch_market_events",
+    }:
+        return ()
     # Account introspection is the mechanism used to discover the operator's
     # actual MarketData.app plan/credit window. Requiring the reviewed plan
     # before this one bounded request would make the review gate circular. The
@@ -671,6 +717,8 @@ def provider_missing_routing_controls(
     if not required:
         return []
     if name == "finra":
+        if operation in {"fetch_short_interest", "fetch_market_events"}:
+            return []
         configured = provider_positive_integer(
             getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         )
@@ -701,6 +749,22 @@ def provider_missing_routing_controls(
         ):
             missing.append("FINRA_OTC_OPERATION_COSTS")
         if not provider_reviewed_flag(
+            getattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
+        ):
+            missing.append("FINRA_OTC_SOURCE_REVIEWED")
+        if not str(
+            getattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "") or ""
+        ).strip():
+            missing.append("FINRA_OTC_SOURCE_EVIDENCE")
+        configured_source = _normalized_reviewed_https_source(
+            getattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+        )
+        reviewed_source = _normalized_reviewed_https_source(
+            getattr(settings, "FINRA_OTC_REVIEWED_SOURCE_URL", "")
+        )
+        if configured_source is None or reviewed_source != configured_source:
+            missing.append("FINRA_OTC_REVIEWED_SOURCE_URL")
+        if not provider_reviewed_flag(
             getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
         ):
             missing.append("FINRA_OTC_TERMS_REVIEWED")
@@ -723,17 +787,25 @@ def provider_missing_routing_controls(
         reviewed_limit = provider_positive_integer(
             getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         )
-        terms_reviewed = provider_reviewed_flag(
-            getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
-        )
+        quota_evidence = str(
+            getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or ""
+        ).strip()
         missing: list[str] = []
         if scope not in {"api_key", "account", "ip", "deployment"}:
             missing.append("FRED_REVIEWED_LIMIT_SCOPE")
         if reviewed_limit is None or reviewed_limit > 120:
             missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
-        if not terms_reviewed:
-            missing.append("FRED_SERIES_TERMS_REVIEWED")
+        if not quota_evidence:
+            missing.append("FRED_REVIEWED_QUOTA_EVIDENCE")
+        missing.extend(fred_data_use_controls_missing())
+        missing.extend(fred_series_rights_missing())
         return missing
+    if name == "coinbase":
+        return coinbase_market_data_use_authority_missing()
+    if name == "xstocks":
+        return xstocks_market_data_use_authority_missing()
+    if name == "bybit_xstocks":
+        return bybit_xstocks_market_data_use_authority_missing()
     if name == "marketdata_app":
         reviewed_pair = marketdata_app_reviewed_plan_pair()
         if marketdata_app_reviewed_plan() is not None:
@@ -770,6 +842,36 @@ def provider_missing_routing_controls(
     )
 
 
+def _normalized_reviewed_https_source(value: object) -> str | None:
+    """Normalize only URL components that are case-insensitive by definition.
+
+    Source review is bound to the exact configured path and query. Requiring a
+    credential-free HTTPS URL prevents a reviewed annotation from authorizing
+    another endpoint after configuration changes.
+    """
+
+    raw = str(value or "").strip()
+    if not raw or any(character.isspace() for character in raw):
+        return None
+    try:
+        parsed = urlsplit(raw)
+        # Access .port here so malformed port values are rejected.
+        _ = parsed.port
+    except ValueError:
+        return None
+    if (
+        parsed.scheme.lower() != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+    ):
+        return None
+    return urlunsplit(
+        (parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, "")
+    )
+
+
 def provider_is_configured(name: str, operation: str | None = None) -> bool:
     """Return whether the deployment supplied required adapter inputs.
 
@@ -801,7 +903,7 @@ def get_provider_usage_profile(name: str) -> dict:
     merged = dict(profile)
     if isinstance(override, dict):
         for key, value in override.items():
-            if key == "operation_costs" and isinstance(value, dict):
+            if key in {"operation_costs", "dimension_costs"} and isinstance(value, dict):
                 merged[key] = dict(profile.get(key) or {}) | value
             else:
                 merged[key] = value
@@ -911,14 +1013,29 @@ async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource
         src.supported_capabilities = capabilities
         config = dict(src.config or {})
         config["capabilities"] = capabilities
+        usage_profile = get_provider_usage_profile(provider_name)
+        existing_usage_tracking = dict(config.get("usage_tracking") or {})
+        configured_dimension_costs = existing_usage_tracking.get("dimension_costs")
+        seeded_dimension_costs = usage_profile.get("dimension_costs")
+        if isinstance(seeded_dimension_costs, dict):
+            # Refresh newly reviewed dimensions on existing rows while
+            # preserving an operator's explicit per-dimension override (an
+            # empty map is intentionally preserved as a quarantine).
+            dimension_costs = dict(seeded_dimension_costs)
+            if isinstance(configured_dimension_costs, dict):
+                dimension_costs.update(configured_dimension_costs)
+        else:
+            dimension_costs = configured_dimension_costs
         config["usage_tracking"] = {
-            **get_provider_usage_profile(provider_name),
-            **dict(config.get("usage_tracking") or {}),
+            **usage_profile,
+            **existing_usage_tracking,
             "operation_costs": {
-                **get_provider_usage_profile(provider_name).get("operation_costs", {}),
-                **dict((config.get("usage_tracking") or {}).get("operation_costs") or {}),
+                **usage_profile.get("operation_costs", {}),
+                **dict(existing_usage_tracking.get("operation_costs") or {}),
             },
         }
+        if isinstance(dimension_costs, dict):
+            config["usage_tracking"]["dimension_costs"] = dimension_costs
         src.config = config
     return src
 

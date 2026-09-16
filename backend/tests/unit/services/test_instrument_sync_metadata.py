@@ -5,7 +5,7 @@ import pytest
 
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.services import instrument_sync
-from app.services.instrument_sync import _listing_evidence
+from app.services.instrument_sync import _listing_evidence, sync_instruments
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -59,3 +59,23 @@ async def test_tracked_sync_redacts_failure_error(db, monkeypatch):
     run = db.query(InstrumentSyncRun).one()
     assert "sync-secret" not in (run.error or "")
     assert "<redacted>" in (run.error or "")
+
+
+@pytest.mark.asyncio
+async def test_metadata_sync_uses_canonical_profile_operation(db, instrument, monkeypatch):
+    """The workload must charge the same operation used by provider contracts."""
+
+    async_db = AsyncSessionAdapter(db)
+    captured: dict[str, object] = {}
+
+    async def _fail_closed(*args, **kwargs):
+        captured["operation"] = args[2]
+        raise RuntimeError("fixture provider unavailable")
+
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fail_closed)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_METADATA_DELAY_SECONDS", 0)
+
+    result = await sync_instruments(async_db, limit=1)
+
+    assert captured["operation"] == "get_instrument_profile"
+    assert result == {"updated": 0, "deactivated": 0, "total": 1}

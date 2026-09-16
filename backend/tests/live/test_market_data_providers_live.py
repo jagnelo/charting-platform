@@ -9,24 +9,43 @@ silently skipped evidence.
 from __future__ import annotations
 
 import os
+import time
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from app.config import settings
 from app.models.ohlcv import Timeframe
-from app.providers.alpaca import AlpacaProvider
+from app.providers.alpaca import (
+    AlpacaProvider,
+)
+from app.providers.alpaca import (
+    estimate_ohlcv_request_count as estimate_alpaca_ohlcv_request_count,
+)
 from app.providers.alpha_vantage import AlphaVantageProvider
-from app.providers.binance import BinanceProvider
+from app.providers.binance import (
+    BinanceProvider,
+    estimate_latest_ohlcv_request_weight,
+)
 from app.providers.coingecko import CoinGeckoProvider
-from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
+from app.providers.crypto_market_data import (
+    CoinbaseProvider,
+    KrakenProvider,
+    estimate_coinbase_latest_ohlcv_request_count,
+    estimate_kraken_latest_ohlcv_request_count,
+)
 from app.providers.edgar import EdgarProvider
 from app.providers.errors import ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
 from app.providers.ibkr import IBKRProvider
-from app.providers.massive import MassiveProvider
+from app.providers.massive import (
+    MassiveProvider,
+)
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
 from app.providers.nasdaq import NasdaqProvider
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.optional_market_data import (
@@ -38,10 +57,17 @@ from app.providers.optional_market_data import (
     TiingoProvider,
     TradierProvider,
     TwelveDataProvider,
+    estimate_marketdata_app_ohlcv_credit_count,
+    estimate_marketdata_app_option_quote_history_credit_count,
+    estimate_marketstack_ohlcv_request_count,
 )
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
-from tests.live.live_usage import record_observation
+from tests.live.live_usage import (
+    activate_request_admission,
+    deactivate_request_admission,
+    record_observation,
+)
 
 pytestmark = [
     pytest.mark.live,
@@ -73,34 +99,107 @@ def _require(*names: str) -> None:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 
 
-def _observed_read(call, provider_name: str, operation: str):
-    """Require every live adapter operation to report a real HTTP response."""
+def _skip_unadmitted_live_operation(provider_name: str, operation: str) -> None:
+    """Skip an opt-in probe before adapter access when quota policy is unknown."""
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        _reservation_plan_for_live_probe,
+    )
+
+    try:
+        # This planner is pure: it validates a reviewed reservation shape but
+        # neither reserves quota nor touches the provider/network.
+        _reservation_plan_for_live_probe(provider_name, operation, None, datetime.now(UTC))
+    except ProviderQuotaAdmissionError as exc:
+        pytest.skip(
+            f"no provider request made: {provider_name}/{operation} lacks "
+            f"reviewed live quota admission: {exc}"
+        )
+
+
+def _observed_read(
+    call,
+    provider_name: str,
+    operation: str,
+    *,
+    usage_identity: str | None = None,
+    operation_cost_override: int | None = None,
+    dimension_cost_overrides: dict[str, int] | None = None,
+    expected_http_statuses: set[int] | None = None,
+):
+    """Durably reserve provider quota before every direct adapter operation."""
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        reserve_live_provider_operation,
+        settle_live_provider_operation,
+    )
+
+    reservation = reserve_live_provider_operation(
+        provider_name,
+        operation,
+        usage_identity=usage_identity,
+        operation_cost_override=operation_cost_override,
+        dimension_cost_overrides=dimension_cost_overrides,
+        require_persistent_coordinator=True,
+    )
+    if reservation is None:
+        raise ProviderQuotaAdmissionError(
+            f"provider quota exhausted before live operation {provider_name}/{operation}"
+        )
 
     measurement, token = activate_provider_telemetry()
+    admission_token = activate_request_admission()
     try:
         result = call()
-    except BaseException:
+    except BaseException as exc:
+        response_status_code = getattr(exc, "status_code", None)
+        expected_entitlement_denial = response_status_code in (expected_http_statuses or set())
+        try:
+            settle_live_provider_operation(
+                reservation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+            )
+        finally:
+            record_observation(
+                provider_name,
+                operation=operation,
+                http_requests=measurement.http_requests,
+                response_bytes=measurement.response_bytes,
+                response_headers=measurement.response_headers,
+                success=expected_entitlement_denial,
+                disposition=(
+                    "expected_entitlement_denial"
+                    if expected_entitlement_denial
+                    else "provider_error"
+                ),
+                response_status_code=response_status_code,
+                reservation_id=reservation.reservation_id,
+            )
+        assert measurement.http_requests > 0
+        assert measurement.response_bytes > 0
+        raise
+    finally:
+        deactivate_request_admission(admission_token)
+        deactivate_provider_telemetry(token)
+    try:
+        settle_live_provider_operation(
+            reservation,
+            http_requests=measurement.http_requests,
+            response_bytes=measurement.response_bytes,
+        )
+    finally:
         record_observation(
             provider_name,
             operation=operation,
             http_requests=measurement.http_requests,
             response_bytes=measurement.response_bytes,
             response_headers=measurement.response_headers,
-            success=False,
+            success=True,
+            reservation_id=reservation.reservation_id,
         )
-        assert measurement.http_requests > 0
-        assert measurement.response_bytes > 0
-        raise
-    finally:
-        deactivate_provider_telemetry(token)
-    record_observation(
-        provider_name,
-        operation=operation,
-        http_requests=measurement.http_requests,
-        response_bytes=measurement.response_bytes,
-        response_headers=measurement.response_headers,
-        success=True,
-    )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0
     return result, measurement
@@ -113,6 +212,24 @@ def test_openfigi_keyless_mapping():
         "fetch_stable_identifiers",
     )
     assert rows and any(row.identifier_type == "COMPOSITE_FIGI" for row in rows)
+
+
+def test_openfigi_keyless_profile_resolution():
+    """Exercise identifier-to-profile enrichment separately from ticker mapping."""
+
+    profile, measurement = _observed_read(
+        lambda: OpenFigiProvider().resolve_instrument_profile(isin="US0378331005"),
+        "openfigi",
+        "resolve_instrument_profile",
+    )
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert any(
+        identifier.identifier_type == "ISIN"
+        and identifier.identifier_value == "US0378331005"
+        for identifier in profile.identifiers
+    )
+    assert measurement.http_requests == 1
 
 
 def test_sec_edgar_keyless_profile():
@@ -129,6 +246,24 @@ def test_sec_edgar_keyless_profile():
     )
     assert profile is not None and profile.name and profile.extra.get("cik")
     assert measurement.http_requests >= 2
+
+
+def test_sec_edgar_keyless_search():
+    """Exercise the cold SEC ticker-association search aid separately."""
+
+    _require("EDGAR_USER_AGENT")
+    import app.providers.edgar as edgar_module
+
+    edgar_module._ticker_map = {}
+    edgar_module._ticker_map_ts = 0.0
+    rows, measurement = _observed_read(
+        lambda: EdgarProvider().search_instruments("AAPL", limit=1),
+        "edgar",
+        "search_instruments",
+    )
+    assert rows
+    assert rows[0].symbol == "AAPL"
+    assert measurement.http_requests == 1
 
 
 def test_sec_edgar_credentialed_filings_and_company_facts():
@@ -159,14 +294,21 @@ def test_sec_edgar_credentialed_filings_and_company_facts():
     assert all(event.event_type == "ipo_pipeline" for event in pipeline_events)
 
 
-def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
+def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete(monkeypatch):
     """Fetch the official SEC directory once and prove local page completion."""
 
     _require("EDGAR_USER_AGENT")
+    # This probe must establish a measured external read even when another
+    # SEC test has already populated the independent exchange-directory cache.
+    import app.providers.edgar as edgar_module
+
+    monkeypatch.setattr(edgar_module, "_exchange_directory", [])
+    monkeypatch.setattr(edgar_module, "_exchange_directory_ts", 0.0)
     provider = EdgarProvider()
     rows: list[dict] = []
     offset = 0
     declared_total: int | None = None
+    declared_fingerprint: str | None = None
     first_page = True
     while True:
         if first_page:
@@ -175,6 +317,8 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
                 "edgar",
                 "discover_universe_page",
             )
+            # The SEC ticker/exchange directory is one HTTP response; all
+            # subsequent pagination is local projection of this snapshot.
             first_page = False
         else:
             # Subsequent pages are served from the provider's documented
@@ -185,7 +329,9 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
         assert page_rows
         if declared_total is None:
             declared_total = page["total"]
+            declared_fingerprint = page["source_fingerprint"]
         assert page["total"] == declared_total
+        assert page["source_fingerprint"] == declared_fingerprint
         rows.extend(page_rows)
         offset += len(page_rows)
         if offset >= declared_total:
@@ -197,7 +343,7 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
 
 
 def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete(monkeypatch):
-    """Exercise the directory-backed issuer scan catalogue used by the worker."""
+    """Traverse the current SEC ticker-association snapshot consistently."""
 
     _require("EDGAR_USER_AGENT")
     # Keep this case independently runnable.  Other SEC probes populate the
@@ -238,13 +384,21 @@ def test_sec_edgar_complete_unique_issuer_cik_directory_pagination_is_complete(m
     assert all(len(row["cik"]) == 10 and row["cik"].isdigit() for row in rows)
 
 
-def test_nasdaq_trader_keyless_directory():
+def test_nasdaq_trader_keyless_directory(monkeypatch):
+    _skip_unadmitted_live_operation("nasdaq", "discover_universe_page")
+    import app.providers.nasdaq as nasdaq_module
+
+    # The source is two directory files. Clear both cache layers so the
+    # observed cold read cannot silently become an unmeasured cache hit.
+    monkeypatch.setattr(nasdaq_module, "_cache", None)
+    monkeypatch.setattr(nasdaq_module, "_file_cache", {})
     provider = NasdaqProvider()
-    equities, _ = _observed_read(
+    equities, measurement = _observed_read(
         lambda: provider.discover_universe_page("EQUITY", 0),
         "nasdaq",
         "discover_universe_page",
     )
+    assert measurement.http_requests == 2
     # The first EQUITY read above populates the shared directory cache. The
     # ETF read is therefore a local projection of that same observed source.
     etfs = provider.discover_universe_page("ETF", 0)
@@ -260,16 +414,33 @@ def test_nasdaq_trader_keyless_directory():
         )
 
 
-def test_nasdaq_trader_full_directory_pagination_is_complete():
+def test_nasdaq_trader_full_directory_pagination_is_complete(monkeypatch):
     """Fetch both official directory files once and prove page completion locally."""
 
+    _skip_unadmitted_live_operation("nasdaq", "discover_universe_page")
+    import app.providers.nasdaq as nasdaq_module
+
+    monkeypatch.setattr(nasdaq_module, "_cache", None)
+    monkeypatch.setattr(nasdaq_module, "_file_cache", {})
     provider = NasdaqProvider()
+    first_page = True
     for quote_type in ("EQUITY", "ETF"):
         rows: list[dict] = []
         offset = 0
         declared_total: int | None = None
         while True:
-            page = provider.discover_universe_page(quote_type, offset)
+            if first_page:
+                page, measurement = _observed_read(
+                    lambda: provider.discover_universe_page(quote_type, offset),
+                    "nasdaq",
+                    "discover_universe_page",
+                )
+                assert measurement.http_requests == 2
+                first_page = False
+            else:
+                # All later pages and the ETF projection are served from the
+                # same observed local directory snapshot.
+                page = provider.discover_universe_page(quote_type, offset)
             assert page["source_files"] == ["nasdaqlisted", "otherlisted"]
             if declared_total is None:
                 declared_total = page["total"]
@@ -291,20 +462,45 @@ def test_nasdaq_trader_full_directory_pagination_is_complete():
 
 
 def test_binance_keyless_crypto_history():
-    start, end = _bounds()
     rows, _ = _observed_read(
         lambda: BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "binance",
         "fetch_latest_ohlcv",
+        operation_cost_override=estimate_latest_ohlcv_request_weight(Timeframe.D1, 1),
     )
     assert rows and rows[-1].close > 0
+    price, _ = _observed_read(
+        lambda: BinanceProvider().get_current_price("BTC-USD"),
+        "binance",
+        "get_current_price",
+    )
+    assert price is not None and price > 0
+    universe, _ = _observed_read(
+        lambda: BinanceProvider().discover_universe_page("CRYPTOCURRENCY", 0),
+        "binance",
+        "discover_universe_page",
+        operation_cost_override=20,
+    )
+    assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
 
 
 def test_coinbase_keyless_crypto_history():
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("coinbase", "fetch_latest_ohlcv")
+    if missing:
+        assert {
+            "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        } >= set(missing)
+        return
     rows, _ = _observed_read(
         lambda: CoinbaseProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "coinbase",
         "fetch_latest_ohlcv",
+        operation_cost_override=estimate_coinbase_latest_ohlcv_request_count(Timeframe.D1, 1),
     )
     assert rows and rows[-1].close > 0
 
@@ -314,8 +510,23 @@ def test_kraken_keyless_crypto_history():
         lambda: KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1, adjusted=False),
         "kraken",
         "fetch_latest_ohlcv",
+        operation_cost_override=estimate_kraken_latest_ohlcv_request_count(Timeframe.D1, 1),
     )
     assert rows and rows[-1].close > 0
+    time.sleep(1.2)
+    price, _ = _observed_read(
+        lambda: KrakenProvider().get_current_price("BTC-USD"),
+        "kraken",
+        "get_current_price",
+    )
+    assert price is not None and price > 0
+    time.sleep(1.2)
+    universe, _ = _observed_read(
+        lambda: KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0),
+        "kraken",
+        "discover_universe_page",
+    )
+    assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
 
 
 def test_alpaca_credentialed_history():
@@ -325,6 +536,7 @@ def test_alpaca_credentialed_history():
         lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end),
         "alpaca",
         "fetch_ohlcv",
+        operation_cost_override=estimate_alpaca_ohlcv_request_count(Timeframe.D1, start, end),
     )
     assert rows and rows[-1].close > 0
 
@@ -339,6 +551,7 @@ def test_alpaca_credentialed_intraday_history():
         lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.M5, start, end, adjusted=False),
         "alpaca",
         "fetch_ohlcv",
+        operation_cost_override=estimate_alpaca_ohlcv_request_count(Timeframe.M5, start, end),
     )
     assert measurement.http_requests > 0
     assert rows and rows[-1].close > 0
@@ -397,7 +610,10 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     assert page["total"] >= len(page["quotes"])
     assert all(row["quoteType"] == "EQUITY" for row in page["quotes"])
     events, _ = _observed_read(
-        lambda: provider.fetch_instrument_events("AAPL"), "alpaca", "fetch_instrument_events"
+        lambda: provider.fetch_instrument_events("AAPL"),
+        "alpaca",
+        "fetch_instrument_events",
+        operation_cost_override=settings.ALPACA_CORPORATE_ACTIONS_MAX_PAGES,
     )
     # A symbol can legitimately have no actions in the bounded lookback. The
     # transport and normalized event container must still be valid.
@@ -405,13 +621,14 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     assert all(event.event_type.value in {"split", "dividend", "ex_dividend"} for event in events)
 
 
-def test_massive_credentialed_reference(monkeypatch):
+def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
-    # Keep this compound case within the documented five-call/minute Stocks
-    # Basic allowance: profile (1), IPO calendar (1), corporate actions (2),
-    # and one adjusted daily history read (1). Intraday, holidays, and search
-    # are covered by separate prior receipts/focused live cases.
-    monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 1)
+    # Keep this case within the documented five-call/minute Stocks Basic
+    # allowance: profile (1), IPO calendar (1), search (1), holidays (1), and
+    # one adjusted daily history read (1). Corporate actions deliberately
+    # remain a separately scheduled two-request live case because Massive
+    # exposes splits and dividends as independent paginated endpoints; doing
+    # both here would overrun the key's five-call window.
     provider = MassiveProvider()
     profile, _ = _observed_read(
         lambda: provider.get_instrument_profile("AAPL"), "massive", "get_instrument_profile"
@@ -434,24 +651,33 @@ def test_massive_credentialed_reference(monkeypatch):
     assert isinstance(events, list)
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
-    actions, _ = _observed_read(
-        lambda: provider.fetch_instrument_events("AAPL"), "massive", "fetch_instrument_events"
+    search_rows, _ = _observed_read(
+        lambda: provider.search_instruments("AAPL", limit=1),
+        "massive",
+        "search_instruments",
     )
-    assert isinstance(actions, list)
-    assert all(
-        event.event_type.value in {"split", "dividend", "ex_dividend"}
-        for event in actions
+    assert search_rows and search_rows[0].symbol == "AAPL"
+    holidays, _ = _observed_read(
+        lambda: provider.fetch_market_holidays(
+            start=date.today(), end=date.today() + timedelta(days=90)
+        ),
+        "massive",
+        "fetch_market_holidays",
     )
+    assert isinstance(holidays, list)
+    start = datetime.now(UTC) - timedelta(days=30)
+    end = datetime.now(UTC)
     bars, _ = _observed_read(
         lambda: provider.fetch_ohlcv(
             "AAPL",
             Timeframe.D1,
-            datetime.now(UTC) - timedelta(days=30),
-            datetime.now(UTC),
+            start,
+            end,
             adjusted=True,
         ),
         "massive",
         "fetch_ohlcv",
+        operation_cost_override=estimate_massive_ohlcv_request_count(Timeframe.D1, start, end),
     )
     assert bars
     assert all(bar.is_adjusted for bar in bars)
@@ -546,7 +772,24 @@ def test_coingecko_credentialed_profile_observes_id_resolution_request():
     assert measurement.http_requests >= 2
 
 
-def test_fred_credentialed_series():
+def test_fred_series_requires_persisted_data_rights_before_network_access():
+    """Avoid network access while FRED storage rights and quota scope are unresolved."""
+
+    from app.providers.registry import provider_missing_routing_controls
+
+    missing = provider_missing_routing_controls("fred", "fetch_ohlcv")
+    if missing:
+        assert {
+            "FRED_REVIEWED_LIMIT_SCOPE",
+            "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+            "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_PERSISTED_STORAGE_AUTHORIZED",
+            "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+            "FRED_AUTOMATED_USE_AUTHORIZED",
+            "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+            "FRED_SERIES_RIGHTS_EVIDENCE",
+        } >= set(missing)
+        return
     _require("FRED_API_KEY")
     start, end = _bounds()
     rows, _ = _observed_read(
@@ -560,7 +803,13 @@ def test_fred_credentialed_series():
 def test_finra_credentialed_short_interest():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     rows, _ = _observed_read(
-        lambda: FINRAProvider().fetch_short_interest("AAPL"), "finra", "fetch_short_interest"
+        lambda: FINRAProvider().fetch_short_interest("AAPL"),
+        "finra",
+        "fetch_short_interest",
+        # FINRA's per-dataset async limiter does not apply to these direct
+        # synchronous endpoints. Keep sync requests and the 3 MiB response
+        # reservation in place; explicitly declare no async-dimension use.
+        dimension_cost_overrides={"asynchronous_requests_per_minute_dataset": 0},
     )
     assert rows
     assert all(row.settlement_date and row.short_position is not None for row in rows)
@@ -574,6 +823,7 @@ def test_finra_credentialed_otc_daily_list():
         lambda: FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end),
         "finra",
         "fetch_market_events",
+        dimension_cost_overrides={"asynchronous_requests_per_minute_dataset": 0},
     )
     assert rows
     for row in rows:
@@ -581,7 +831,22 @@ def test_finra_credentialed_otc_daily_list():
 
 
 def test_finra_otc_directory_credentialed_source():
-    """Prove the operator-approved complete OTC source returns a bounded page."""
+    """Probe OTC source only after its current availability is evidenced."""
+
+    configured_source = settings.FINRA_OTC_SYMBOL_DIRECTORY_URL.strip()
+    reviewed_source = settings.FINRA_OTC_REVIEWED_SOURCE_URL.strip()
+    if (
+        not settings.FINRA_OTC_SOURCE_REVIEWED
+        or not settings.FINRA_OTC_SOURCE_EVIDENCE.strip()
+        or not configured_source
+        or reviewed_source != configured_source
+    ):
+        pytest.skip(
+            "FINRA's current public dataset catalog does not list otcSecurityMaster; "
+            "no live request is permitted until current documentation or written "
+            "provider confirmation is recorded and the reviewed URL exactly matches "
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL."
+        )
 
     _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
     page, _ = _observed_read(
@@ -611,17 +876,27 @@ def test_finra_otc_directory_credentialed_source():
 def test_optional_credentialed_provider_small_read(provider, credentials, symbol):
     _require(*credentials)
     start, end = _bounds()
+    operation_cost = None
+    if provider.name == "marketstack":
+        operation_cost = estimate_marketstack_ohlcv_request_count(Timeframe.D1, start, end)
+    elif provider.name == "marketdata_app":
+        operation_cost = estimate_marketdata_app_ohlcv_credit_count(Timeframe.D1, start, end)
     rows, _ = _observed_read(
         lambda: provider.fetch_ohlcv(symbol, Timeframe.D1, start, end, adjusted=False),
         provider.name,
         "fetch_ohlcv",
+        usage_identity=symbol,
+        operation_cost_override=operation_cost,
     )
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
     assert all(row.close > 0 for row in rows)
     if provider.name == "tiingo":
         profile, _ = _observed_read(
-            lambda: provider.get_instrument_profile(symbol), provider.name, "get_instrument_profile"
+            lambda: provider.get_instrument_profile(symbol),
+            provider.name,
+            "get_instrument_profile",
+            usage_identity=symbol,
         )
         assert profile is not None
         assert profile.symbol == symbol
@@ -637,6 +912,22 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         )
         assert intraday_rows
         assert all(row.ts.tzinfo is not None and row.close > 0 for row in intraday_rows)
+        search_rows, _ = _observed_read(
+            lambda: provider.search_instruments("AAPL", limit=1),
+            provider.name,
+            "search_instruments",
+        )
+        assert search_rows and search_rows[0].symbol == "AAPL"
+        current, _ = _observed_read(
+            lambda: provider.get_current_price(symbol), provider.name, "get_current_price"
+        )
+        assert current is not None and current > 0
+        universe, _ = _observed_read(
+            lambda: provider.discover_universe_page("EQUITY", 0),
+            provider.name,
+            "discover_universe_page",
+        )
+        assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
     if provider.name == "eodhd":
         # EODHD documents the same EOD endpoint with d/w/m period selectors;
         # exercise the two non-daily adapter paths in the bounded live case.
@@ -651,6 +942,21 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
             )
             assert period_rows
             assert all(row.ts.tzinfo is not None and row.close > 0 for row in period_rows)
+        current, _ = _observed_read(
+            lambda: provider.get_current_price(symbol), provider.name, "get_current_price"
+        )
+        assert current is not None and current > 0
+        universe, _ = _observed_read(
+            lambda: provider.discover_universe_page("EQUITY", 0),
+            provider.name,
+            "discover_universe_page",
+        )
+        assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+    if provider.name == "marketstack":
+        current, _ = _observed_read(
+            lambda: provider.get_current_price(symbol), provider.name, "get_current_price"
+        )
+        assert current is not None and current > 0
     if provider.name == "fmp":
         profile, _ = _observed_read(
             lambda: provider.get_instrument_profile(symbol), provider.name, "get_instrument_profile"
@@ -671,7 +977,9 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert all(event.effective_date is not None for event in calendar_events)
     if provider.name == "tradier":
         expirations, _ = _observed_read(
-            lambda: provider.list_option_expirations(symbol), provider.name, "list_option_expirations"
+            lambda: provider.list_option_expirations(symbol),
+            provider.name,
+            "list_option_expirations",
         )
         assert expirations
         contracts, _ = _observed_read(
@@ -693,6 +1001,7 @@ def test_eodhd_free_plan_profile_entitlement_is_explicit():
             lambda: EODHDProvider().get_instrument_profile("AAPL"),
             "eodhd",
             "get_instrument_profile",
+            expected_http_statuses={403},
         )
     assert exc_info.value.status_code == 403
 
@@ -713,6 +1022,7 @@ def test_marketdata_app_credentialed_option_surface():
         lambda: provider.fetch_option_chain("AAPL", expiration=expiration, max_symbols=20),
         provider.name,
         "fetch_option_chain",
+        operation_cost_override=20,
     )
     assert contracts
     assert len(contracts) <= 20
@@ -720,16 +1030,58 @@ def test_marketdata_app_credentialed_option_surface():
     assert all(contract.expiry_date == expiration for contract in contracts)
     assert all(contract.right in {"call", "put"} for contract in contracts)
     assert all(contract.strike > 0 for contract in contracts)
-    quote_points, _ = _observed_read(
+
+
+def test_marketdata_app_credentialed_option_quote_history():
+    """Exercise the response-priced history path with its exact date bound."""
+
+    _require("MARKETDATA_APP_API_KEY")
+    provider = MarketDataAppProvider()
+    expirations, _ = _observed_read(
+        lambda: provider.list_option_expirations("AAPL"),
+        provider.name,
+        "list_option_expirations",
+    )
+    assert expirations
+    expiration = next((value for value in expirations if value >= date.today()), expirations[-1])
+    contracts, _ = _observed_read(
+        lambda: provider.fetch_option_chain("AAPL", expiration=expiration, max_symbols=2),
+        provider.name,
+        "fetch_option_chain",
+        operation_cost_override=2,
+    )
+    assert contracts
+    contract = contracts[0]
+    end = datetime.now(UTC) - timedelta(days=1)
+    start = end - timedelta(days=2)
+    points, measurement = _observed_read(
         lambda: provider.fetch_option_quote_history(
-            contracts[0].provider_symbol,
-            start=datetime.now(UTC) - timedelta(days=30),
-            end=datetime.now(UTC) + timedelta(days=1),
+            contract.provider_symbol,
+            start=start,
+            end=end,
         ),
         provider.name,
         "fetch_option_quote_history",
+        usage_identity=contract.provider_symbol,
+        operation_cost_override=estimate_marketdata_app_option_quote_history_credit_count(
+            start, end
+        ),
     )
-    assert isinstance(quote_points, list)
+    assert measurement.http_requests == 1
+    assert isinstance(points, list)
+    assert all(point.provider_symbol == contract.provider_symbol for point in points)
+
+
+def test_marketdata_app_response_priced_option_history_is_blocked_without_bound():
+    """Verify unbounded response-priced options history never reaches transport."""
+
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaAdmissionError,
+        reserve_live_provider_operation,
+    )
+
+    with pytest.raises(ProviderQuotaAdmissionError, match="operation cost is unreviewed"):
+        reserve_live_provider_operation("marketdata_app", "fetch_option_quote_history")
 
 
 def test_marketdata_app_credentialed_account_usage_snapshot():
@@ -752,6 +1104,20 @@ def test_marketdata_app_credentialed_account_usage_snapshot():
     assert measurement.http_requests == 1
 
 
+def test_marketdata_app_credentialed_latest_price():
+    """Exercise the provider's fixed one-credit latest-price contract."""
+
+    _require("MARKETDATA_APP_API_KEY")
+    price, measurement = _observed_read(
+        lambda: MarketDataAppProvider().get_current_price("AAPL"),
+        "marketdata_app",
+        "get_current_price",
+        usage_identity="AAPL",
+    )
+    assert measurement.http_requests > 0
+    assert price is not None and price > 0
+
+
 def test_marketdata_app_credentialed_intraday_history():
     """Exercise the documented five-minute delayed stock-candle surface."""
 
@@ -764,6 +1130,10 @@ def test_marketdata_app_credentialed_intraday_history():
         ),
         "marketdata_app",
         "fetch_ohlcv",
+        usage_identity="AAPL",
+        operation_cost_override=estimate_marketdata_app_ohlcv_credit_count(
+            Timeframe.M5, start, end
+        ),
     )
     assert measurement.http_requests > 0
     assert rows and rows[-1].close > 0
@@ -790,6 +1160,29 @@ def test_finnhub_credentialed_company_profile():
     assert events
     assert all(event.event_time.tzinfo is not None for event in events)
     assert any(event.eps_actual is not None or event.eps_estimate is not None for event in events)
+    search_rows, _ = _observed_read(
+        lambda: FinnhubProvider().search_instruments("AAPL", limit=1),
+        "finnhub",
+        "search_instruments",
+    )
+    assert search_rows and search_rows[0].symbol == "AAPL"
+    universe, _ = _observed_read(
+        lambda: FinnhubProvider().discover_universe_page("EQUITY", 0),
+        "finnhub",
+        "discover_universe_page",
+    )
+    assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
+    start, end = _bounds()
+    with pytest.raises(ProviderResponseError) as candle_error:
+        _observed_read(
+            lambda: FinnhubProvider().fetch_ohlcv(
+                "AAPL", Timeframe.D1, start, end, adjusted=False
+            ),
+            "finnhub",
+            "fetch_ohlcv",
+            expected_http_statuses={403},
+        )
+    assert candle_error.value.status_code == 403
     calendar_events, _ = _observed_read(
         lambda: FinnhubProvider().fetch_market_events(
             start=date.today() - timedelta(days=7),

@@ -79,6 +79,9 @@ operation fallback. Range/pagination-dependent history operations are either cha
 from a caller-computed estimate (for example Alpaca, Coinbase, Kraken,
 Marketstack, and Twelve Data) or remain fail-closed behind their reviewed byte
 maps; they are not represented by a misleading fixed one-request profile.
+These accounting profiles describe adapter cost only; the Coinbase and FRED
+terms/rights gates independently block direct network use until their required
+written authorities are configured.
 
 Durable quota windows are keyed by provider, documented dimension, and an
 explicit `quota_group` when the vendor's allowance is shared across
@@ -114,6 +117,26 @@ observations; they never replace the reviewed local plan, infer a reset window,
 or widen routing. Providers without a documented native usage surface remain
 represented by durable request/byte/header telemetry and are not queried
 through a guessed endpoint.
+
+For MarketData.app specifically, `/user/` is tracked as an explicit
+account-usage operation and occupies the account-wide in-flight concurrency
+lease, but its reviewed per-dimension cost map excludes `credits_per_day`.
+The native `x-api-ratelimit-consumed` value is therefore not replaced by a
+synthetic one-credit debit. This also lets a fresh durable coordinator perform
+the first account snapshot without a manually invented starting credit
+baseline; all actual data/options operations still require the exact reviewed
+plan/limit baseline before routing.
+
+Deployments may opt into a once-daily worker snapshot by setting
+`PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=true` and naming an explicit JSON list
+in `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS` (for example,
+`["marketdata_app"]`). An empty list never means all providers. The worker
+polls at 15:00 UTC, after MarketData.app's documented 09:30
+`America/New_York` reset in both daylight and standard time; the schedule is a
+poll cadence, not a quota assumption. Each named provider still passes through
+its own credentials, reviewed quota, and circuit-breaker checks, and a provider
+without an implemented native usage endpoint remains a durable no-observation
+result.
 
 Direct credentialed live probes are accounted separately in the owner-managed
 cross-session ledger. Each receipt retains a bounded operation breakdown with
@@ -154,25 +177,25 @@ decimal interpretation would allow; the contract records the basis explicitly.
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
 | Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations admitted only when the calculated weight fits |
-| Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / rolling | history is explicitly paged and reserves `ceil(requested candles / 300)` calls; keyless live evidence required |
+| Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15; candle responses cap at 300 bars | IP / rolling | route and live-read blocked by default: written Coinbase authority must cover this application's automated/AI use and persistent storage; non-redistribution remains required; rate-limit compliance alone is not legal authorization |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply; OHLC responses cap at 720 bars | IP/pair / rolling | history follows the provider `last` cursor and reserves `ceil(requested candles / 720)` calls; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | credentialed search live-proven |
-| FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and 3 MB per synchronous response; public credential capped at 10 GB downloaded/month | OAuth client / IP + dataset/account + calendar-month credential bandwidth | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested and becomes routable only with a positive reviewed result-byte bound; the default unbounded path remains fail-closed |
-| FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` plus reviewed operation-cost/terms controls | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; response-dependent partition/page cost is fail-closed by default and becomes routable only with a complete reviewed operation-cost map plus source governance controls |
-| FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v1 documents up to 120 requests/minute before HTTP 429, but does not publish the enforcement scope; the terms permit provider-adjusted limits plus series-specific copyright/redistribution restrictions. The separate v2 2-requests/second rule is not applied to this v1 adapter | provider-defined scope / rolling minute; adjustable | **numeric ceiling recorded; enforcement scope, adjustable-limit, and terms gates remain non-routable** |
-| Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; each refresh conditionally requests both files and records response headers | public service / unknown | **discovery evidence only; quota unknown; compound two-file operation is explicitly observable** |
-| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes and distinct provider-symbol claims are durable; routing still requires a complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` map (the 500-symbol pool is not request-count accounting) |
-| Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; time-series responses cap at 5,000 points and each request costs one credit | API key / minute + day | bounded history is explicitly paged by start/end range and reserves `ceil(requested points / 5,000)` credits; configured live evidence remains required |
-| Finnhub | profile/search, historical earnings, forward earnings calendar, and universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | profile, historical earnings, and forward calendar live-proven; both earnings surfaces are registered under `earnings`; free stock candles returned 403 and are explicitly non-routable |
-| Marketstack | daily EOD history and venue-scoped ticker discovery | `MARKETSTACK_API_KEY`, `MARKETSTACK_DISCOVERY_EXCHANGE` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling; EOD responses expose 100-row pagination metadata | key / calendar month | history follows returned pagination and reserves a conservative page count before execution; discovery is fail-closed until an explicit MIC/exchange code is configured, and is supplementary rather than complete US venue reconciliation; daily history live-proven |
-| EODHD | long-history daily EOD, fixture-covered fundamentals/profile adapter, US exchange list | `EODHD_API_KEY` | Free 20 API calls/day and 1,000 requests/minute; EOD free history is limited to one year; the supplied free key returned HTTP 403 for Fundamentals, while the official plan description limits free access to EOD history and exchange lists; data-heavy endpoints consume multiple calls (fundamentals/options 10, intraday/technical/news 5) | API key / minute requests + GMT calendar-day call budget | EOD daily/weekly/monthly history live-proven; Fundamentals is explicitly non-routable for the current free entitlement and its 403 is retained as typed evidence |
-| FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
+| FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and a published 3 MB synchronous-response ceiling. The adapter reserves 3,000,000 bytes per synchronous operation (decimal interpretation, conservative because FINRA does not define the byte convention); the public credential's 10 GB download allowance is locally capped at 10,000,000,000 bytes over a rolling 31 days because FINRA does not publish the exact reset instant or byte convention | OAuth client / IP + dataset/account + durable rolling 31-day public-credential byte window | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested and becomes routable only with a positive reviewed result-byte bound; the default unbounded path remains fail-closed |
+| FINRA OTC directory | Candidate `otcSecurityMaster` DAPI-shaped adapter or explicitly supplied pipe-delimited mirror; current public FINRA catalog does not establish `otcSecurityMaster` as an available dataset | `FINRA_OTC_SYMBOL_DIRECTORY_URL` plus source-evidence, operation-cost, terms, completeness, redistribution, and polling controls | FINRA's 1,200 synchronous requests/minute/IP and 3 MB/response are platform-wide ceilings only; they do not establish this candidate dataset's availability, quota applicability, or source-specific rights. Any synchronous response bound uses 3,000,000 bytes locally | configured source / no assumed provider quota | **non-routable and no live request permitted** until current FINRA documentation or written provider confirmation is recorded; prior pagination probe is transport-only historical evidence, not source authorization |
+| FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v1 documents up to 120 requests/minute before HTTP 429, but does not publish the enforcement scope; provider-adjusted limits and series-specific rights apply. Current terms also restrict specified AI/ML development/training uses and storing/caching/archiving data | provider-defined scope / rolling minute; adjustable | **non-routable by default** until quota scope, actual application use, persistent-storage authority, and per-series rights are evidenced; the separate v2 2-requests/second rule is not applied to this v1 adapter |
+| Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | Nasdaq publishes no numeric quota for these files. The client imposes a strict maximum of two HTTP requests per calendar day (one conditional request per official file); this is a local safety ceiling, not a vendor allowance | public service / client-imposed deployment-wide daily cap | bounded directory retrieval can route under the local cap; diagnostics must not describe the cap as a Nasdaq-published quota, and two-file results remain NMS-focused rather than complete OTC coverage |
+| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | Free Starter: 500 unique symbols in a conservative rolling 31-day window (the plan gives no exact symbol-pool reset anchor), 50 requests/hour, 1,000/day, and 1 GB/month bandwidth; the bandwidth reset is modeled at midnight Eastern on the first of the month | API key / rolling 31-day symbol pool, hourly/daily request windows, monthly bandwidth | EOD live-proven; response bytes and distinct provider-symbol claims are durable; routing still requires a complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` map (the 500-symbol pool is not request-count accounting). Fundamentals is not assumed included: verify the account's add-on entitlement before routing it |
+| Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; time-series responses cap at 5,000 points and each request costs one credit | API key / minute + day | bounded history is explicitly paged by start/end range and reserves `ceil(requested points / 5,000)` credits; `/stocks` discovery now sends the documented `page` + `outputsize=500` bounds and filters one asset type per page; configured live evidence remains required |
+| Finnhub | profile/search, historical earnings, forward earnings calendar, and universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | profile, historical earnings, and forward calendar live-proven; both earnings surfaces are registered under `earnings`; every reviewed operation is explicitly charged against both rate dimensions, while an operation absent from the reviewed cost profile fails closed; free stock candles returned 403 and are explicitly non-routable |
+| Marketstack | daily EOD history and venue-scoped ticker discovery | `MARKETSTACK_API_KEY`, `MARKETSTACK_DISCOVERY_EXCHANGE` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling; EOD responses expose 100-row pagination metadata | key / rolling 30-day window (pricing does not publish the monthly reset anchor) | history follows returned pagination and reserves a conservative page count before execution; discovery is fail-closed until an explicit MIC/exchange code is configured, and is supplementary rather than complete US venue reconciliation; daily history live-proven |
+| EODHD | daily EOD history (daily/weekly/monthly aggregation), fixture-covered Fundamentals/profile adapter, US exchange-symbol list | `EODHD_API_KEY` | [Free Starter plan](https://eodhd.com/lp/historical-eod-api) says 20 API-call credits/day and 20 requests/minute; EOD history is limited to one year. **Official-source conflict:** EODHD's [general API limits](https://eodhd.com/financial-apis/api-limits) and [Quick Start](https://eodhd.com/financial-apis/quick-start-with-our-financial-data-apis) state 1,000 requests/minute. Until EODHD clarifies which applies to this free account, the client enforces the narrower 20/minute. Daily credits reset at midnight GMT; Fundamentals/profile is non-routable unless the plan grants it (the supplied free key returned HTTP 403); fundamentals/options cost 10 credits and intraday/technical/news 5 when entitled | API key / conservative rolling 60-second 20-request cap + GMT calendar-day call-credit budget | EOD daily/weekly/monthly history and exchange-symbol list are free-plan paths; the provider's conflicting per-minute statements remain documented and the stricter limit is enforced |
+| FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | Configured account reports 250 calls/day and a 512 MB / 30-day bandwidth allowance; because the byte convention is unspecified, the client uses at most 500,000,000 decimal bytes. The request reset anchor is not published, so requests use a rolling 24-hour window; bandwidth is modeled as rolling 30 days | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search, current option expirations/chains with provider Greeks | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | option endpoints normalize OCC symbols, contract fields, and nested Greeks; account live evidence required |
 | MarketData.app | delayed US stocks/options candles, option expirations, current option-chain normalization, and historical/current single-contract option quotes | `MARKETDATA_APP_API_KEY` | Plan-specific: Free Forever 100/day; Starter Trial 10,000/day until configured expiry; Starter 10,000/day; Trader Trial/Trader 100,000/day. Resets 09:30 ET; 50 account-wide concurrent requests; free/trial data is at least 24h delayed and limited to one year; stock candles cost 1 credit per 1,000 returned candles (date-granular requests use a conservative full-day bound for intraday resolutions); expirations cost 1 credit/call, current chain/quote calls cost per returned contract/symbol, historical quotes/chains per 1,000 observations/contracts | key / reset-day credits + durable in-flight concurrency; configure exact plan, matching limit, and timezone-aware trial expiry separately per environment; trial quota automatically falls back to Free Forever 100/day after expiry; response-dependent candle/option costs must be estimated or bounded before routing; option-chain admission additionally requires `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` | credentialed daily-candle, expirations/option-chain, and historical option-quote adapter paths live-proven 2026-09-12; account `/user/` headers expose quota state but not Starter Trial vs paid Starter, so operator configuration is authoritative; authenticated counters persist across sessions without widening routing limits |
-| IBKR | read-only Client Portal Gateway security search, instrument profile, raw historical OHLCV for equities and futures, and latest-price snapshots; options-specific methods remain unimplemented | `IBKR_READ_ONLY_URL`, `IBKR_READ_ONLY_SESSION_COOKIE`, optional `IBKR_CONID_MAP` | Global 10 requests/sec/session; historical endpoint 50 requests/minute, max 5 concurrent, and max 1,000 bars per response; expired futures history is unavailable beyond two years after expiry; endpoint-specific pacing and penalty-box behavior apply | authenticated gateway session / rolling endpoint windows; interactive gateway login is required and may need to be renewed daily | concrete adapter is fixture-covered; raw history/latest/profile remain non-routable until a gateway session and bounded live evidence are supplied; futures should use an explicit provider `conid` mapping when symbol search is ambiguous; adjusted history is filtered before routing |
-| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Public API responses exposed a shared 1,000-request rolling-minute `X-RateLimit-Limit`/`Remaining`/`Reset` contract across assets and corporate-actions endpoints; verified 2026-09-14 and reconciled only on an exact limit match | public API / rolling minute; provider headers are retained and cumulative use is durably reconciled | bounded public metadata, price, and corporate-action reads are proven; still non-routable until API automation/partner terms and deployment jurisdiction/data-use eligibility are established |
+| IBKR | read-only Client Portal Gateway security search, instrument profile, raw historical OHLCV for equities and futures, and latest-price snapshots; options-specific methods remain unimplemented | `IBKR_READ_ONLY_URL`, `IBKR_READ_ONLY_SESSION_COOKIE`, optional `IBKR_CONID_MAP` | Global 10 requests/sec/session; REST historical endpoint 50 requests/minute and max 1,000 bars per response; the separate WebSocket historical-streaming API allows at most 5 concurrent subscriptions (not applied to this REST adapter); expired futures history is unavailable beyond two years after expiry; endpoint-specific pacing and penalty-box behavior apply | authenticated gateway session / rolling endpoint windows; interactive gateway login is required and may need to be renewed daily | concrete adapter is fixture-covered; raw history/latest/profile remain non-routable until a gateway session and bounded live evidence are supplied; futures should use an explicit provider `conid` mapping when symbol search is ambiguous; adjusted history is filtered before routing |
+| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Public API responses exposed a shared 1,000-request rolling-minute `X-RateLimit-Limit`/`Remaining`/`Reset` contract across assets and corporate-actions endpoints; verified 2026-09-14 and reconciled only on an exact limit match | public API / rolling minute; provider headers are retained and cumulative use is durably reconciled | bounded public metadata, price, and corporate-action reads are proven; still non-routable until API automation/partner terms and deployment jurisdiction/data-use eligibility are established. Runtime admission additionally requires the non-secret `XSTOCKS_MARKET_DATA_USE_AUTHORIZED`, `XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE`, `XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE=internal_automated_persistent_nonredistributed`, `XSTOCKS_MARKET_DATA_USE_REVIEWED_AT`, `XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED`, and `XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE` controls; an optional expiry can revoke admission automatically |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
-| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | Anonymous V5 traffic is bounded by the documented 600 HTTP requests per 5 seconds per IP ceiling. The separate rolling endpoint/UID headers describe authenticated API-rate state and are not a prerequisite for these unauthenticated market endpoints; they are retained as telemetry if present but are not conflated with the IP pool | shared outbound IP / rolling 5 seconds | bounded live asset + ticker probe passed; the durable router enforces the public IP ceiling without requiring absent authenticated `X-Bapi-Limit*` state; use only from an eligible non-US egress because Bybit documents U.S./Mainland-China IP restrictions |
+| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | Anonymous V5 traffic is bounded by the documented 600 HTTP requests per 5 seconds per IP ceiling. The separate rolling endpoint/UID headers describe authenticated API-rate state and are not a prerequisite for these unauthenticated market endpoints; they are retained as telemetry if present but are not conflated with the IP pool | shared outbound IP / rolling 5 seconds | bounded live asset + ticker probe is transport evidence only; production routing is now fail-closed until the deployment proves eligible non-US/non-Mainland-China egress and records explicit automated/persistent-use authority through `BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED`, `BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE`, `BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE=internal_automated_persistent_nonredistributed`, `BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT`, `BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED`, and `BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE`; an optional expiry can revoke admission automatically |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
 | Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
 | Ondo Global Markets | authenticated tokenized US stock/ETF metadata, chain addresses/ISIN/tags, indicative latest prices, display-only primary/underlying market summaries (including 24-hour price history and underlying metrics), OHLC candles, and canonical daily history with local WEEK/MONTH/YEAR rollups | `ONDO_GLOBAL_MARKETS_API_KEY` | OpenAPI documents HTTP 429/account rate limiting but no numeric quota; endpoint caching and display-only/non-oracle restrictions apply | API key/account / provider-defined | concrete metadata/latest-price/market-summary/OHLC/history adapter is fixture-covered; no live credential evidence yet; remains non-routable until account terms/quota are reviewed |
@@ -189,33 +212,55 @@ See the [official symbol-directory definitions](https://nasdaqtrader.com/Trader.
 The adapter also sends `If-None-Match` and `If-Modified-Since` on subsequent
 polls when Nasdaq returns `ETag` or `Last-Modified`, reusing the cached parsed
 file on a `304 Not Modified`. This reduces repeated downloads without
-inventing a numeric polling allowance; quota admission remains disabled until
-Nasdaq publishes a reviewed contract.
+inventing a numeric provider allowance. Because Nasdaq does not publish a
+numeric polling quota, the client separately limits itself to one conditional
+request per official file per calendar day (two requests total); this is a
+local safety policy, not a vendor-reviewed quota.
 
 The FRED adapter uses the v1 endpoint. Its [v1 errors documentation](https://fred.stlouisfed.org/docs/api/fred/errors.html)
 states that up to 120 requests per minute are allowed before HTTP 429, but it
-does not publish the enforcement scope. The [v1 API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)
+does not publish the enforcement scope. The [v1 API terms](https://fred.stlouisfed.org/legal/terms/)
 also allow the provider to adjust bandwidth and transaction limits. The
 separate [v2 errors documentation](https://fred.stlouisfed.org/docs/api/fred/v2/errors.html)
 mentions a 2-requests/second threshold for v2; the runtime deliberately does
-not apply that v2 rule to the v1 adapter. The runtime records the published
-120/minute dimension plus the unresolved enforcement-scope, adjustable-limit,
-and series-rights gates, and keeps FRED non-routable until those are reviewed. An
-operator may promote a deployment only by supplying all three non-secret
-controls: `FRED_REVIEWED_LIMIT_SCOPE` (`api_key`, `account`, `ip`, or
-`deployment`), `FRED_REVIEWED_REQUESTS_PER_MINUTE` (a conservative positive
-integer no greater than 120), and `FRED_SERIES_TERMS_REVIEWED=true`. When all
-three are present, the runtime replaces the unresolved seed dimensions with
-that explicitly reviewed conservative contract; no value is inferred from the
-generic provider defaults. The
-[FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) also
-allow the provider to change bandwidth/transaction limits, place
-series-specific copyright restrictions on third-party data, and require a
-non-endorsement notice. Missing `FRED_API_KEY` raises an explicit
+not apply that v2 rule to the v1 adapter. FRED's [current terms](https://fred.stlouisfed.org/legal/terms/)
+restrict storing, caching, or archiving FRED content by default and prohibit
+specified AI/ML development and training uses absent authorization. Some
+series also contain third-party data with separate rights. Since this
+application persists observations and may use data in automated workflows,
+FRED remains non-routable until written authority covers the actual
+application use, persistence, and each requested series. A former boolean
+“terms reviewed” switch is not proof. Promotion requires reviewed quota
+scope/evidence, `FRED_PERSISTED_STORAGE_AUTHORIZED=true` plus
+`FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE`,
+`FRED_AUTOMATED_USE_AUTHORIZED=true` plus
+`FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE`, and a non-empty
+`FRED_SERIES_RIGHTS_EVIDENCE` JSON map keyed by every FRED series ID used. The
+quota controls are `FRED_REVIEWED_LIMIT_SCOPE` (`api_key`, `account`, `ip`, or
+`deployment`), `FRED_REVIEWED_REQUESTS_PER_MINUTE` (positive and no greater
+than 120), and `FRED_REVIEWED_QUOTA_EVIDENCE`. No provider request is made while
+any applicable control is missing; a passing local policy-gate test is not
+live API evidence. The terms permit FRED to change bandwidth/transaction
+limits, require a non-endorsement notice, and reserve series-specific rights.
+Missing `FRED_API_KEY` raises an explicit
 `ProviderNotConfiguredError`; HTTP 429/418 responses are preserved as typed
 capacity failures with provider headers and `Retry-After` timestamps rather
-than returning an empty series or price. FRED remains non-routable until the
-scope and downstream usage/redistribution policy are explicitly reviewed.
+than returning an empty series or price. Do not enable a new series merely
+because another series has an authority reference.
+
+Coinbase Exchange publishes a technical public REST ceiling of 10
+requests/second/IP with a burst of 15, but that limit is not permission to use
+the data in this application. Its [market-data terms](https://www.coinbase.com/en-in/legal/market_data)
+restrict use in AI/ML development, training, or operation absent prior express
+written consent, as well as redistribution. Consequently no live Coinbase
+request or normal routing is allowed unless the exact intended automated,
+persistent, non-redistributing use has written authority recorded through
+`COINBASE_MARKET_DATA_USE_AUTHORIZED`,
+`COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE`,
+`COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE=internal_automated_persistent_nonredistributed`,
+and a current `COINBASE_MARKET_DATA_USE_REVIEWED_AT` (with an optional expiry).
+A compliant
+10 requests/second limiter does not satisfy this legal gate.
 Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
@@ -243,9 +288,9 @@ the raw row, normalizes calls/puts, bid/ask/mark/volume/open interest, and
 records nested provider Greeks when present. Each endpoint reserves one
 production-token request; no sandbox token is treated as production evidence.
 
-Tiingo and FMP publish bandwidth pools but do not publish one universal maximum
-response size for every adapter operation. The runtime therefore does not
-invent a byte ceiling. An operator who has reviewed the current endpoint
+Tiingo and FMP have plan bandwidth pools but do not publish one universal
+maximum response size for every adapter operation. The runtime therefore does
+not invent a byte ceiling. An operator who has reviewed the current endpoint
 contract may set complete JSON maps in `TIINGO_OPERATION_BYTE_BOUNDS` and
 `FMP_OPERATION_BYTE_BOUNDS`, for example:
 
@@ -264,10 +309,14 @@ Complete maps move the provider's documented bandwidth pool into the
 same durable multidimensional reservation path as request limits; response
 bytes settle the reservation after execution. Tiingo additionally publishes a
 500-unique-symbol monthly pool, which cannot be represented as one unit per
-request: repeated symbols and multi-symbol operations are tracked by the
-durable `provider_quota_identity` ledger. Missing, zero, malformed, or partial
-byte maps still leave the provider non-routable; the symbol pool itself is no
-longer approximated as request count.
+request. Because the plan does not specify the pool's exact reset anchor, the
+local identity ledger enforces a conservative rolling 31-day window; repeated
+symbols and multi-symbol operations are tracked by `provider_quota_identity`.
+The currently configured Starter plan does not establish a Fundamentals
+add-on entitlement, so Fundamentals must stay gated until separately
+verified. Missing, zero, malformed, or partial byte maps still leave
+Tiingo/FMP routing non-routable; the symbol pool itself is not approximated as
+request count.
 
 The platform uses a capability-based provider chain.  For each data type the runtime selects the
 highest-scoring available provider, falls back to the next, and so on.  Initial priorities below
@@ -289,6 +338,19 @@ the source page set is incomplete and never presents NMS/SEC evidence as proof
 of complete OTC coverage. Closing that gate requires an operator-approved OTC
 source with documented terms and a verified quota contract; no undocumented
 scraping endpoint is substituted.
+
+For an NMS run to count as complete lifecycle evidence, every declared Nasdaq
+total must equal the number of rows actually collected. A cursor that skips
+rows, terminates early, or changes its declared total fails the run and cannot
+contribute absence evidence. Rows whose venue is missing or cannot be mapped to
+the supported Nasdaq Trader MIC set (`XNAS`, `XNYS`, `ARCX`, `XASE`, `BATS`,
+`IEXG`) likewise fail closed instead of becoming venue-less listings. Successful
+NMS runs persist deterministic `venue_coverage` provenance with expected,
+observed, missing, and per-MIC row counts; this makes a complete snapshot with
+no rows for a particular venue distinguishable from malformed venue evidence.
+The FINRA OTC directory remains a candidate-only source until its independent
+availability, completeness, terms, redistribution, polling, and operation-cost
+controls are reviewed; it never receives NMS absence authority.
 
 ### Tokenized securities boundary
 
@@ -334,6 +396,19 @@ non-routable until the API-specific terms/partner permission and this
 deployment's jurisdiction/data-use eligibility are confirmed. Public responses
 may still be exercised by the bounded validation suite as transport evidence;
 they are not proof of production rights.
+
+The same fail-closed rule is enforced by normal application routing and by
+live preflight. Configure the `XSTOCKS_MARKET_DATA_USE_*` controls separately
+in each environment (the expiry is optional but, when supplied, must be
+future-dated); a key or a successful public read alone never makes xStocks
+routable.
+
+Bybit xStocks is gated independently. Bybit documents that requests from
+U.S. and Mainland-China IP addresses are restricted, so its public 600/5-second
+IP ceiling is not sufficient evidence for application routing. Configure the
+`BYBIT_XSTOCKS_MARKET_DATA_USE_*` controls only after verifying the deployment's
+actual egress and the permitted automated/persistent use; missing or expired
+controls prevent the adapter from making a transport request.
 
 Dinari's [stock-data guide](https://docs.dinari.com/docs/stock-data) documents
 provider-native Stock UUIDs, aggregate DAY/WEEK/MONTH/YEAR history, news, and
@@ -531,15 +606,18 @@ admin-only `GET /api/v1/market-data/event-consensus` endpoint, filtered by
 status, event type, instrument, or issuer. Future IPO/IPO-pipeline observations
 can additionally be materialized by the opt-in
 `app.services.market_event_prelisting` workflow. It creates one auditable
-candidate per consensus group, and only an inactive `provisional` stock
-instrument when a validated symbol is present. Conflicted evidence, malformed
-symbols, missing stock taxonomy, and unresolved venue matches are quarantined
-or left unlinked; no ticker-only merge is performed. Promotion requires one
-unique active FIGI/ISIN/CUSIP match, or an exact provider-symbol plus exchange
-MIC match across provider sources. Operators can inspect candidates via the
-admin-only `GET /api/v1/market-data/prelisting-candidates` endpoint. This is
-still a backend candidate layer, not a frontend calendar authority; no frontend
-surface is added by this branch.
+candidate per consensus group. An inactive `provisional` stock instrument is
+created only after a corroborated (or explicitly resolved) multi-provider
+consensus supplies the same valid symbol and company name, plus either the
+same venue MIC in every observation or one shared FIGI/ISIN/CUSIP observed by
+at least two providers. Single-source, missing-field, conflicting-symbol/name/
+identifier, and unresolved-venue evidence is retained as a quarantined
+candidate and cannot create or route an instrument. Promotion still requires
+one unique active FIGI/ISIN/CUSIP match, or an exact provider-symbol plus
+exchange-MIC match across provider sources. Operators can inspect candidates
+via the admin-only `GET /api/v1/market-data/prelisting-candidates` endpoint.
+This is still a backend candidate layer, not a frontend calendar authority; no
+frontend surface is added by this branch.
 
 EDGAR's filing-driven IPO pipeline can be scanned across the known issuer table
 through a separately disabled `MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED`
@@ -547,27 +625,43 @@ worker. Its durable cursor advances through issuer CIKs in bounded batches and
 records `partial` versus `complete` cycles in `market_event_scan_state`; this is
 an auditable best-effort enrichment layer, not proof of global SEC coverage.
 
-For complete SEC issuer coverage, the separately disabled
-`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED` worker pages the official
-`company_tickers.json` directory into unique CIK batches and then reuses the
-same bounded submissions parser. Its offset is durable in the scan-state
-provenance JSON, so restarts do not silently return to the first page. A
-`complete` cycle means every CIK present in that directory was attempted; it
-does not turn filing dates into listing dates or imply that the SEC directory
-is a tradability authority. Keep this path disabled until the deployment has
-reviewed the SEC fair-access budget and the intended candidate/redistribution
-use. Enabling it also requires a positive, reviewed
-`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS` bound. One
-submissions request is made per CIK in each directory page; the bound must be
-at least as large as `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS`, and zero
-is fail-closed. Issuer-row creation is a separate explicit policy controlled by
-`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`: the default
-`disabled` mode creates nothing; `create_missing` creates only missing
-`Issuer` rows from validated CIK/name evidence, records the associated ticker
-list and policy in provenance, and never creates instruments/listings, changes
-existing legal names, or deactivates records. This keeps issuer materialization
-distinct from security-master/listing reconciliation and makes the governance
-decision visible in `market_event_scan_state`.
+The separately disabled `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED` worker
+pages SEC's `company_tickers.json` ticker-association file into unique CIK
+batches and reuses the bounded submissions parser. SEC explicitly warns that
+these files do not guarantee accuracy or scope; traversing every row is not
+complete US-listed issuer/security or NMS/OTC venue reconciliation. The durable
+report is a candidate/filing-enrichment source, not a security-master or
+tradability authority. See the [SEC API guide](https://www.sec.gov/search-filings/edgar-application-programming-interfaces)
+and [SEC access guidance](https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data).
+
+The durable offset is pinned to a source fingerprint. If SEC's association
+snapshot changes mid-cycle, the scan fails and restarts from page zero rather
+than combining snapshots. A dry scan
+(`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE=disabled`)
+reports `missing_issuer_candidates`, `existing_issuers`, and identity conflicts
+without writing issuer rows. Only after an operator inspects the *complete,
+clean* dry-cycle report may the exact `completed_cycle_count` be supplied via
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT` alongside
+`create_missing`. The service verifies that the number is the latest completed
+cycle and that SEC's source fingerprint still matches. Approval is one-cycle
+only; a failed/dirty cycle, conflict, source change, or intervening cycle
+requires a new clean dry scan and review. Materialization creates only missing
+`Issuer` rows from the SEC-conformed company name and CIK, records source/ticker
+provenance, and never creates instruments/listings, changes existing names,
+or deactivates records.
+
+Scanning requires a positive,
+deployment-reviewed `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`
+bound; one submissions request is attempted per CIK in each worker invocation,
+and the bound must be at least
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS`. This is a per-invocation
+ceiling, not a provider daily allowance. Zero stays fail-closed. SEC's
+published 10 requests/second limit is an aggregate speed ceiling, not a
+daily/monthly request allowance or approval to run a full scan. The worker is
+scheduled daily when enabled, but manual retries add invocations; the
+deployment owner must set and monitor the operational budget accordingly.
+The separate NMS/OTC security-master reconciliation remains required for US
+venue completeness.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
@@ -593,12 +687,15 @@ claim options methods that are not implemented, and refuses to label raw bars
 as adjusted. Futures are addressed by the provider's contract identifier
 (`conid`); callers should configure `IBKR_CONID_MAP` when a futures symbol is
 ambiguous, and expired-futures history is subject to IBKR's two-year limit.
-Its documented 10-requests/second session ceiling, 50 historical-requests/
-minute ceiling, five-concurrent-history limit, and 1,000-bar response cap are
-recorded; the adapter remains non-routable until a gateway session and bounded
-live evidence are supplied. Credentials, quota, and
+Its documented 10-requests/second session ceiling, 50 REST historical-requests/
+minute ceiling, and 1,000-bar response cap are recorded. The five-concurrent
+limit belongs to WebSocket `smh` historical streaming, not the REST endpoint
+used by this adapter, so it is not inherited by REST routing. The adapter
+remains non-routable until a gateway session and bounded live evidence are
+supplied. Credentials, quota, and
 personal-use/redistribution terms are never inferred from an API key alone.
 The implementation follows IBKR's [historical market-data endpoint](https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data),
+[WebSocket historical market-data request](https://ibkrcampus.com/docs/web-api/v1/ws/market-data/historical-market-data-request),
 [pacing-limitations contract](https://ibkrcampus.com/docs/web-api/v1/pacing-limitations),
 [account preflight](https://ibkrcampus.com/docs/web-api/api-reference/trading/trading-accounts/get-brokerage-accounts),
 and [snapshot field-31 contract](https://ibkrcampus.com/docs/web-api/api-reference/trading/trading-market-data/get-md-snapshot).
@@ -954,7 +1051,10 @@ expiration discovery, current chains, and historical single-contract quotes.
 **Auth**: `MARKETDATA_APP_API_KEY` (Bearer token)
 
 The adapter follows the documented `/v1` endpoints and preserves OCC symbols,
-provider timestamps, quote fields, and historical null Greeks. The provider
+provider timestamps, quote fields, and historical null Greeks. Current-price
+reads use the documented delayed stock-quotes endpoint (`/v1/stocks/quotes/`)
+instead of treating a one-day candle window as a quote; this remains valid on
+weekends/holidays and for delayed or historical-only entitlements. The provider
 documents 100 daily credits on Free Forever accounts, 10,000 on Starter, and
 100,000 on Trader, reset at 09:30 America/New_York, plus a 50-request
 concurrency ceiling. Free and trial accounts are limited to data at least 24
@@ -1064,30 +1164,41 @@ the dataset request, but the reservation never undercounts a cold process.
 
 ### FINRA OTC directory (`finra_otc_directory`)
 
-This is a separate discovery adapter for FINRA's current public
-`otcSecurityMaster` DAPI dataset and for an explicitly configured
-pipe-delimited OTC/OTCBB mirror. The DAPI path resolves the newest `asOfDate`
-partition, pages to the provider's `record-total`, preserves each raw source
-record, and exposes the source URL in every page. The recommended source is:
-`https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster`.
+This adapter can parse a DAPI-shaped partitioned dataset or an explicitly
+configured pipe-delimited OTC/OTCBB mirror. Its parser resolves the newest
+`asOfDate` partition, pages to `record-total`, preserves raw source records,
+and exposes the source URL in each page. That implementation capability must
+not be confused with provider availability: the [current FINRA dataset
+catalog](https://developer.finra.org/docs) documents OTC datasets such as the
+Daily List but does not list `otcSecurityMaster`. An earlier bounded probe
+demonstrated that the candidate URL returned data at that time; it did not
+establish current documentation, completeness, contractual authorization, or
+redistribution rights. **Do not query or route this endpoint** until current
+FINRA documentation or written FINRA confirmation establishes the source and
+its authorized use. FINRA's [equity data terms](https://developer.finra.org/specific-terms-equity-data)
+and [API Terms of Service](https://developer.finra.org/finra-api-terms-service)
+must be assessed for the actual application and audience. FINRA Daily List is
+a lifecycle-delta dataset, not a complete security master, and cannot replace
+the missing complete-source decision. OTC Markets' own [market-data FAQ](https://www.otcmarkets.com/learn/faqs)
+states that OTC Markets does not offer market-data APIs and directs consumers
+to third-party vendors; its public FINRA-backed [Symbol Directory](https://otce.finra.org/otce/directories)
+is a search interface and does not document a complete, bulk, machine-readable
+security-master feed. These sources therefore do not justify silently enabling
+the candidate adapter or claiming complete OTC venue coverage.
 
-The source is publicly reachable and full pagination is covered by the live
-probe. FINRA's platform documentation publishes the synchronous 1,200
-requests/minute/IP and 3 MB response ceilings, which are recorded in the
-provider contract. The provider remains non-routable until the source URL is
-explicitly configured and operations supplies a positive reviewed
+After source confirmation, routing still requires a non-secret evidence
+reference in `FINRA_OTC_SOURCE_EVIDENCE`, an exact `FINRA_OTC_REVIEWED_SOURCE_URL`
+match for the configured `FINRA_OTC_SYMBOL_DIRECTORY_URL`, an affirmative
+`FINRA_OTC_SOURCE_REVIEWED`, a positive reviewed
 `FINRA_OTC_OPERATION_COSTS` map for both `discover_universe_page` and
-`reconcile_universe_page`. Those costs are conservative charges for the
-response-dependent cold refresh, not a guessed one-request default. Routing
-also requires independent affirmative controls for source terms,
-complete-universe interpretation, redistribution, and a positive
-`FINRA_OTC_POLL_INTERVAL_SECONDS`; these controls record review decisions but
-do not claim FINRA has published a minimum polling interval. The Daily List
-adapter remains the lifecycle-delta path and is not substituted for this
-current security master. Generic universe reconciliation also requires each
-provider's authoritative `total` metadata to be an actual integer; boolean,
-numeric-string, fractional, negative, or otherwise malformed totals fail the
-run closed instead of being coerced into a false completeness claim.
+`reconcile_universe_page`, plus independent terms, complete-universe,
+redistribution, and positive polling-interval controls. The cost map bounds
+response-dependent cold refreshes rather than assuming one request. FINRA's
+published synchronous 1,200 requests/minute/IP and 3 MB response ceilings are
+platform limits only; they do not resolve dataset availability or rights.
+Generic universe reconciliation requires authoritative `total` metadata to be
+an actual integer; boolean, numeric-string, fractional, negative, or malformed
+totals fail closed.
 
 FINRA's asynchronous Query API result payloads are documented as unbounded by
 the [FINRA platform usage limits](https://developer.finra.org/docs).
@@ -1099,6 +1210,10 @@ operation-specific reservation against the provider's durable 10 GiB monthly
 credential budget; the signed leg consumes no API-request-minute dimension and
 settles to measured bytes. The default `0` remains fail-closed and
 non-routable, because an unbounded provider result cannot be admitted safely.
+This async-only bound does not gate the synchronous `fetch_short_interest` or
+OTC Daily List `fetch_market_events` operations: both use the published 3 MB
+synchronous response ceiling and reserve that conservative maximum against the
+same monthly byte budget before settling to observed response bytes.
 
 ### SEC Company Facts (`edgar`)
 
@@ -1126,7 +1241,21 @@ MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound per split/divide
 FRED_API_KEY=your_fred_key
 FRED_REVIEWED_LIMIT_SCOPE=
 FRED_REVIEWED_REQUESTS_PER_MINUTE=0
-FRED_SERIES_TERMS_REVIEWED=false
+FRED_REVIEWED_QUOTA_EVIDENCE=
+FRED_PERSISTED_STORAGE_AUTHORIZED=false
+FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE=
+FRED_AUTOMATED_USE_AUTHORIZED=false
+FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE=
+FRED_SERIES_RIGHTS_EVIDENCE={}
+
+# Coinbase Exchange — rate limits do not imply data-use permission
+COINBASE_API_KEY=
+COINBASE_MARKET_DATA_USE_AUTHORIZED=false
+COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE=
+# Must equal internal_automated_persistent_nonredistributed if authorized.
+COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE=
+COINBASE_MARKET_DATA_USE_REVIEWED_AT=
+COINBASE_MARKET_DATA_USE_EXPIRES_AT=
 
 # CoinGecko
 COINGECKO_API_KEY=your_coingecko_demo_key
@@ -1145,8 +1274,12 @@ FINRA_TOKEN_URL=https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token
 FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
 FINRA_OTC_DAILY_LIST_URL=
-FINRA_OTC_SYMBOL_DIRECTORY_URL=https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster
+# Leave empty unless current FINRA docs or written confirmation establish this source.
+FINRA_OTC_SYMBOL_DIRECTORY_URL=
 FINRA_OTC_OPERATION_COSTS={}
+FINRA_OTC_SOURCE_REVIEWED=false
+FINRA_OTC_SOURCE_EVIDENCE=
+FINRA_OTC_REVIEWED_SOURCE_URL=
 FINRA_OTC_TERMS_REVIEWED=false
 FINRA_OTC_COMPLETENESS_REVIEWED=false
 FINRA_OTC_REDISTRIBUTION_REVIEWED=false
@@ -1174,6 +1307,13 @@ MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=
 MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS=0
 TRADIER_API_KEY=
 FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forward estimates
+BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED=false
+BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE=
+BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE=
+BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT=
+BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT=
+BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED=false
+BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE=
 
 # Optional future-listing candidate materialization (backend/worker only)
 MARKET_EVENTS_PRELISTING_ENABLED=false
@@ -1187,6 +1327,7 @@ MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED=false
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS=50
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER=100
 MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE=disabled
+MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT=0
 
 # Optional complete US universe/lifecycle reconciliation (worker only)
 MARKET_UNIVERSE_RECONCILIATION_ENABLED=false

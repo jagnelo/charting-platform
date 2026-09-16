@@ -1,11 +1,8 @@
-"""Configurable FINRA OTC Security Master adapter.
+"""FINRA-shaped OTC directory parser and discovery adapter.
 
-FINRA's current OTC site uses the public DAPI ``otcSecurityMaster`` dataset;
-the adapter also accepts the documented legacy pipe-delimited directory shape
-for an operator-approved mirror or archive. The source URL is still explicit
-configuration; the official synchronous request/payload ceilings are recorded
-in the provider contract, while source terms, completeness, polling, and
-redistribution boundaries remain operator-reviewed gates.
+The DAPI-shaped parser and delimited-file support do not establish that a
+particular source URL is currently available or authorized. Runtime routing
+requires independent source-evidence and governance controls.
 """
 
 from __future__ import annotations

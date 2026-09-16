@@ -11,12 +11,14 @@ from __future__ import annotations
 import logging
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.asset_class import InstrumentType
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.instrument_reconciliation import InstrumentReconciliationIssue
@@ -24,6 +26,7 @@ from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     CalendarExceptionKind,
     ExchangeCalendarException,
+    IdentityStatus,
     Issuer,
     MarketEvent,
     MarketUniverseLifecycleObservation,
@@ -40,6 +43,7 @@ from app.services.exchange_catalog import (
     normalize_exchange_mic,
     upsert_instrument_listing,
 )
+from app.services.exchange_sessions import is_session_complete, resolve_session_window
 from app.services.instrument_mastering import (
     ensure_internal_identifier,
     register_identifier,
@@ -57,6 +61,8 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 logger = logging.getLogger(__name__)
 
 _MISSING_CONFIRMATIONS = 3
+_NASDAQ_TRADER_SOURCE_FILES = frozenset({"nasdaqlisted", "otherlisted"})
+_NASDAQ_TRADER_VENUES = frozenset({"XNAS", "XNYS", "ARCX", "XASE", "BATS", "IEXG"})
 _ACTIVE_STATUSES = {"active", "listed", "tradable", "live"}
 _TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
@@ -180,6 +186,82 @@ def _listing_key(
     symbol: str, exchange_mic: str | None, quote_type: str
 ) -> tuple[str, str | None, str]:
     return symbol, exchange_mic, quote_type
+
+
+def _authoritative_absence_scope(provider_name: str, quote_type: str) -> str | None:
+    """Return the reviewed, complete directory scope eligible for absence evidence."""
+
+    if provider_name == "nasdaq" and quote_type.strip().upper() in {"EQUITY", "ETF"}:
+        return "US_NMS"
+    # FINRA's configured OTC security-master endpoint remains unreviewed; its
+    # Daily List is a delta feed and generic discovery APIs are corroboration,
+    # not complete authoritative snapshots.
+    return None
+
+
+def _nms_venue_coverage(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return deterministic venue evidence for an official Nasdaq snapshot.
+
+    Nasdaq Trader's two files are the complete source boundary for the NMS
+    lifecycle path, but the raw files still carry provider venue labels.  A
+    missing/unknown label must not become a venue-less listing and silently
+    escape absence handling.  Keep the observed counts in the run provenance
+    so operators can distinguish a complete snapshot with no rows for one
+    venue from a malformed row whose venue could not be canonicalised.
+    """
+
+    counts: dict[str, int] = {}
+    unknown: set[str] = set()
+    for row in rows:
+        raw_value = str(row.get("exchange") or "").strip().upper()
+        mic = normalize_exchange_mic(raw_value)
+        if mic not in _NASDAQ_TRADER_VENUES:
+            unknown.add(raw_value or "<missing>")
+            continue
+        counts[mic] = counts.get(mic, 0) + 1
+    expected = sorted(_NASDAQ_TRADER_VENUES)
+    observed = sorted(counts)
+    return {
+        "expected_mics": expected,
+        "observed_mics": observed,
+        "missing_expected_mics": sorted(set(expected) - set(observed)),
+        "row_counts": {mic: counts[mic] for mic in observed},
+        "unknown_mics": sorted(unknown),
+    }
+
+
+async def _completed_nms_session(
+    db: AsyncSession, *, exchange_mic: str | None, observed_at: datetime
+) -> tuple[date, str] | None:
+    """Resolve a completed session only for a venue covered by Nasdaq Trader."""
+
+    if exchange_mic not in _NASDAQ_TRADER_VENUES:
+        return None
+    exchange = (
+        await db.execute(select(Exchange).where(Exchange.mic == exchange_mic))
+    ).scalar_one_or_none()
+    if exchange is None or not exchange.timezone:
+        return None
+    timezone = str(exchange.timezone)
+    session_date = _utc(observed_at).astimezone(ZoneInfo(timezone)).date()
+    window = await resolve_session_window(db, exchange.id, session_date)
+    if window is None or not is_session_complete(window, now=observed_at):
+        return None
+    return session_date, timezone
+
+
+def _issuer_country_code(quote: dict[str, Any]) -> str | None:
+    """Accept an explicit ISO-style country code; CIK itself proves no domicile."""
+
+    raw_country = quote.get("country_code")
+    if raw_country in (None, ""):
+        raw_country = quote.get("country")
+    value = str(raw_country or "").strip().upper()
+    if value in {"UNITED STATES", "UNITED STATES OF AMERICA"}:
+        return "US"
+    if len(value) in {2, 3} and value.isascii() and value.isalpha():
+        return value
+    return None
 
 
 async def _instrument_type_id(db: AsyncSession, quote_type: str) -> int:
@@ -466,6 +548,7 @@ async def _reconcile_rows(
     rows: list[dict[str, Any]],
     quote_type: str,
     observed_at: datetime,
+    authoritative_lifecycle: bool = False,
     missing_confirmations: int = _MISSING_CONFIRMATIONS,
 ) -> set[tuple[str, str | None, str]]:
     active_keys: set[tuple[str, str | None, str]] = set()
@@ -577,7 +660,7 @@ async def _reconcile_rows(
                         domain_key=f"cik:{cik}",
                         legal_name=str(quote.get("longName") or quote.get("name") or symbol),
                         cik=cik,
-                        country_code="US",
+                        country_code=_issuer_country_code(quote),
                         provenance={
                             "source": provider_name,
                             "observed_at": observed_at.isoformat(),
@@ -646,7 +729,13 @@ async def _reconcile_rows(
             run.updated_count += 1
             if quote.get("longName") or quote.get("name"):
                 instrument.name = str(quote.get("longName") or quote.get("name"))
-            instrument.is_active = True
+            if instrument.is_active or authoritative_lifecycle:
+                instrument.is_active = True
+            if (
+                authoritative_lifecycle
+                and instrument.identity_status == IdentityStatus.RETIRED.value
+            ):
+                instrument.identity_status = IdentityStatus.PROVISIONAL.value
 
         listing = await upsert_instrument_listing(
             db,
@@ -655,7 +744,7 @@ async def _reconcile_rows(
             exchange_code=quote.get("exchange"),
             currency=quote.get("currency") or "USD",
             is_primary=True,
-            reactivate_existing=True,
+            reactivate_existing=authoritative_lifecycle,
             effective_at=coerce_listing_lifecycle_at(quote.get("ipo_date")),
             known_at=observed_at,
             delisted_at=coerce_listing_lifecycle_at(quote.get("delisting_date")),
@@ -677,7 +766,7 @@ async def _reconcile_rows(
             currency=quote.get("currency") or "USD",
             is_primary=True,
             extra_data={"reconciliation_run_id": run.id, "lifecycle_status": status},
-            reactivate_existing=status in _ACTIVE_STATUSES,
+            reactivate_existing=authoritative_lifecycle and status in _ACTIVE_STATUSES,
             effective_at=coerce_listing_lifecycle_at(quote.get("ipo_date")),
             known_at=observed_at,
             delisted_at=coerce_listing_lifecycle_at(quote.get("delisting_date")),
@@ -745,6 +834,24 @@ async def _mark_missing(
     observed_at: datetime,
     missing_confirmations: int,
 ) -> None:
+    absence_scope = _authoritative_absence_scope(provider_name, quote_type)
+    provenance = run.provenance if isinstance(run.provenance, dict) else {}
+    source_files = provenance.get("source_files")
+    if (
+        absence_scope is None
+        or run.status != "complete"
+        or run.quote_type.strip().upper() != quote_type.strip().upper()
+        or provenance.get("provider") != provider_name
+        or str(provenance.get("quote_type") or "").strip().upper() != quote_type.strip().upper()
+        or provenance.get("snapshot_complete") is not True
+        or provenance.get("absence_scope") != absence_scope
+        or not isinstance(source_files, list)
+        or not _NASDAQ_TRADER_SOURCE_FILES.issubset(
+            {str(source_file).strip().lower() for source_file in source_files}
+        )
+    ):
+        return
+
     observations = (
         (
             await db.execute(
@@ -757,12 +864,37 @@ async def _mark_missing(
         .scalars()
         .all()
     )
+    session_by_mic: dict[str, tuple[date, str] | None] = {}
+    completed_sessions: dict[str, str] = {}
+    absence_observed_at = _utc(run.finished_at or observed_at)
     for observation in observations:
+        if observation.exchange_mic not in _NASDAQ_TRADER_VENUES:
+            continue
         key = _listing_key(
             observation.provider_symbol, observation.exchange_mic, observation.quote_type
         )
         if key in active_keys:
             continue
+
+        mic = str(observation.exchange_mic)
+        if mic not in session_by_mic:
+            session_by_mic[mic] = await _completed_nms_session(
+                db,
+                exchange_mic=mic,
+                observed_at=absence_observed_at,
+            )
+        completed_session = session_by_mic[mic]
+        if completed_session is None:
+            continue
+        session_date, timezone = completed_session
+        if observation.last_missing_at is not None:
+            last_missing_session = (
+                _utc(observation.last_missing_at).astimezone(ZoneInfo(timezone)).date()
+            )
+            if last_missing_session == session_date:
+                continue
+
+        completed_sessions[mic] = session_date.isoformat()
         if (
             observation.lifecycle_status in {"missing", "missing_pending"}
             and not observation.present
@@ -771,8 +903,8 @@ async def _mark_missing(
         else:
             observation.consecutive_missing = 1
         observation.present = False
-        observation.last_missing_at = observed_at
-        observation.observed_at = observed_at
+        observation.last_missing_at = absence_observed_at
+        observation.observed_at = absence_observed_at
         observation.run_id = run.id
         observation.consecutive_seen = 0
         observation.lifecycle_status = (
@@ -807,6 +939,12 @@ async def _mark_missing(
             db, observation.instrument_id
         ):
             run.deactivated_count += 1
+    if completed_sessions:
+        run.provenance = {
+            **provenance,
+            "absence_scope": absence_scope,
+            "absence_session_dates": completed_sessions,
+        }
 
 
 async def reconcile_us_universe(
@@ -843,6 +981,7 @@ async def reconcile_us_universe(
                 status="running",
                 provenance={
                     "provider": resolved.provider_name,
+                    "quote_type": quote_type,
                     "complete_absence_confirmation": confirmations,
                 },
             )
@@ -853,6 +992,8 @@ async def reconcile_us_universe(
             total: int | None = None
             seen_next_urls: set[str] = set()
             seen_listing_keys: set[tuple[str, str | None, str]] = set()
+            source_files: set[str] = set()
+            source_file_evidence_complete = True
             try:
                 while True:
                     execution = await execute_provider_call(
@@ -870,6 +1011,22 @@ async def reconcile_us_universe(
                         treat_empty_as_failure=not bool(rows),
                     )
                     page = execution.result or {}
+                    raw_source_files = page.get("source_files")
+                    page_source_files = (
+                        {
+                            str(source_file).strip().lower()
+                            for source_file in raw_source_files
+                            if isinstance(source_file, str) and source_file.strip()
+                        }
+                        if isinstance(raw_source_files, list)
+                        else set()
+                    )
+                    source_files.update(page_source_files)
+                    if (
+                        resolved.provider_name == "nasdaq"
+                        and not _NASDAQ_TRADER_SOURCE_FILES.issubset(page_source_files)
+                    ):
+                        source_file_evidence_complete = False
                     await store_universe_discovery_snapshot(
                         db,
                         data_source_id=execution.data_source.id,
@@ -893,15 +1050,22 @@ async def reconcile_us_universe(
                             # Let the shared row normalizer produce the more
                             # specific missing-symbol failure below.
                             continue
+                        normalized_row_type = _row_type(quote, quote_type)
+                        if (
+                            resolved.provider_name == "nasdaq"
+                            and normalized_row_type != quote_type.strip().upper()
+                        ):
+                            raise ValueError(
+                                "discovery provider returned a quote type "
+                                f"{normalized_row_type} while reconciling {quote_type.strip().upper()}"
+                            )
                         listing_key = _listing_key(
                             symbol,
                             normalize_exchange_mic(quote.get("exchange")),
-                            _row_type(quote, quote_type),
+                            normalized_row_type,
                         )
                         if listing_key in seen_listing_keys:
-                            raise ValueError(
-                                "discovery provider returned a duplicate listing row"
-                            )
+                            raise ValueError("discovery provider returned a duplicate listing row")
                         seen_listing_keys.add(listing_key)
                     rows.extend(page_rows)
                     declared_total = page.get("total")
@@ -935,9 +1099,7 @@ async def reconcile_us_universe(
                         raise ValueError("discovery provider returned an invalid next_url")
                     if isinstance(raw_next_url, str) and raw_next_url:
                         if raw_next_url in seen_next_urls:
-                            raise ValueError(
-                                "discovery provider repeated a pagination next_url"
-                            )
+                            raise ValueError("discovery provider repeated a pagination next_url")
                         seen_next_urls.add(raw_next_url)
                     next_url = bool(raw_next_url)
                     if isinstance(next_offset, int) and next_offset > offset:
@@ -964,7 +1126,37 @@ async def reconcile_us_universe(
                             "discovery provider returned an empty page without completion evidence"
                         )
                     raise ValueError("discovery provider omitted total and completion evidence")
+                if (
+                    resolved.provider_name == "nasdaq"
+                    and quote_type.strip().upper() in {"EQUITY", "ETF"}
+                    and total is not None
+                    and len(rows) != total
+                ):
+                    raise ValueError(
+                        "nasdaq directory returned "
+                        f"{len(rows)} rows but declared total {total}"
+                    )
                 run.expected_count = total if total is not None else len(rows)
+                if resolved.provider_name == "nasdaq" and quote_type.strip().upper() in {
+                    "EQUITY",
+                    "ETF",
+                }:
+                    venue_coverage = _nms_venue_coverage(rows)
+                    run.provenance = {
+                        **(run.provenance or {}),
+                        "venue_coverage": venue_coverage,
+                        "source_file_evidence_complete": source_file_evidence_complete,
+                    }
+                    if venue_coverage["unknown_mics"]:
+                        raise ValueError(
+                            "nasdaq directory returned rows with unknown/unsupported venues: "
+                            + ", ".join(venue_coverage["unknown_mics"])
+                        )
+                absence_scope = (
+                    _authoritative_absence_scope(resolved.provider_name, quote_type)
+                    if source_file_evidence_complete
+                    else None
+                )
                 active_keys = await _reconcile_rows(
                     db,
                     run=run,
@@ -972,17 +1164,26 @@ async def reconcile_us_universe(
                     rows=rows,
                     quote_type=quote_type,
                     observed_at=observed_at,
-                )
-                await _mark_missing(
-                    db,
-                    run=run,
-                    provider_name=resolved.provider_name,
-                    quote_type=quote_type,
-                    active_keys=active_keys,
-                    observed_at=observed_at,
-                    missing_confirmations=confirmations,
+                    authoritative_lifecycle=absence_scope is not None,
                 )
                 run.status = "complete"
+                run.finished_at = _utc()
+                run.provenance = {
+                    **(run.provenance or {}),
+                    "snapshot_complete": True,
+                    "source_files": sorted(source_files),
+                    "absence_scope": absence_scope,
+                }
+                if absence_scope is not None:
+                    await _mark_missing(
+                        db,
+                        run=run,
+                        provider_name=resolved.provider_name,
+                        quote_type=quote_type,
+                        active_keys=active_keys,
+                        observed_at=observed_at,
+                        missing_confirmations=confirmations,
+                    )
             except Exception as exc:
                 # A failed/empty provider run is never treated as a complete
                 # universe.  Its snapshots and error remain inspectable.

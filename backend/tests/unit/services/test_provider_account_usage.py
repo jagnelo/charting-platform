@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderAccountUsageObservation
 from app.providers.base import ProviderAccountUsage
@@ -63,6 +64,128 @@ async def test_refresh_persists_provider_native_counters_and_stops_after_first_p
     assert row.remaining == 9994
     assert row.consumed == 6
     assert row.reset_at.replace(tzinfo=UTC) == reset_at
+
+
+@pytest.mark.asyncio
+async def test_marketdata_native_usage_reconciles_exact_coordinator_baseline(
+    db, monkeypatch, tmp_path
+):
+    source = DataSource(name="marketdata_app", base_url="https://api.marketdata.app/v1")
+    db.add(source)
+    db.flush()
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    reset_at = observed_at + timedelta(days=1)
+    policy = SimpleNamespace(
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "credits_per_day",
+                    "limit": 10000,
+                    "window_seconds": 86400,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "quota_group": "account",
+                }
+            ],
+            "reset": "09:30 America/New_York",
+        },
+        quota_scope="api_key",
+    )
+    execution = SimpleNamespace(
+        provider_name="marketdata_app",
+        data_source=source,
+        policy=policy,
+        result=ProviderAccountUsage(
+            provider="marketdata_app",
+            observed_at=observed_at,
+            unit="credits",
+            limit=10000,
+            remaining=9975,
+            consumed=None,
+            reset_at=reset_at,
+        ),
+    )
+
+    async def fake_chain(*args, **kwargs):
+        return [SimpleNamespace(provider_name="marketdata_app")]
+
+    async def fake_execute(*args, **kwargs):
+        return execution
+
+    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "quota.sqlite3"),
+    )
+
+    result = await provider_account_usage.refresh_provider_account_usage(
+        AsyncSessionAdapter(db), provider_name="marketdata_app"
+    )
+
+    assert result["baseline_reconciliations"][0]["used_units"] == 25
+    assert result["baseline_reconciliations"][0]["source"] == ("provider_account_observation")
+
+
+@pytest.mark.asyncio
+async def test_native_usage_does_not_seed_baseline_when_limit_does_not_match_reviewed_contract(
+    db, monkeypatch, tmp_path
+):
+    source = DataSource(name="marketdata_app", base_url="https://api.marketdata.app/v1")
+    db.add(source)
+    db.flush()
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    execution = SimpleNamespace(
+        provider_name="marketdata_app",
+        data_source=source,
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "credits_per_day",
+                        "limit": 100,
+                        "window_seconds": 86400,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "quota_group": "account",
+                    }
+                ],
+                "reset": "09:30 America/New_York",
+            },
+            quota_scope="api_key",
+        ),
+        result=ProviderAccountUsage(
+            provider="marketdata_app",
+            observed_at=observed_at,
+            unit="credits",
+            limit=10000,
+            remaining=9975,
+            consumed=25,
+            reset_at=observed_at + timedelta(days=1),
+        ),
+    )
+
+    async def fake_chain(*args, **kwargs):
+        return [SimpleNamespace(provider_name="marketdata_app")]
+
+    async def fake_execute(*args, **kwargs):
+        return execution
+
+    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "quota.sqlite3"),
+    )
+
+    result = await provider_account_usage.refresh_provider_account_usage(
+        AsyncSessionAdapter(db), provider_name="marketdata_app"
+    )
+
+    assert "baseline_reconciliations" not in result
+    assert result["observations"][0]["consumed"] == 25
 
 
 @pytest.mark.asyncio

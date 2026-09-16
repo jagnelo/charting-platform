@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+from app import config as app_config
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import Timeframe
 from app.providers.alpaca import (
@@ -135,6 +136,7 @@ def test_alpha_vantage_rejects_calendar_year_latest_windows():
 def test_fred_rejects_calendar_year_latest_windows():
     with pytest.raises(ProviderResponseError, match="does not support timeframe Y1"):
         FREDProvider().latest_window_start(Timeframe.Y1, 1)
+
 
 # ── Registry capability detection ────────────────────────────────────────────
 
@@ -1009,6 +1011,23 @@ class TestBinanceOHLCVParsing:
 
 
 class TestCryptoOHLCVPagination:
+    @pytest.fixture(autouse=True)
+    def allow_coinbase_fixture_transport(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.coinbase_market_data_use_authority_missing",
+            lambda: [],
+        )
+
+    def test_coinbase_requires_written_authority_before_transport(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.crypto_market_data.coinbase_market_data_use_authority_missing",
+            lambda: ["COINBASE_MARKET_DATA_USE_AUTHORIZED"],
+        )
+        with patch("app.providers.crypto_market_data.httpx.get") as get:
+            with pytest.raises(ProviderNotConfiguredError, match="written authority"):
+                CoinbaseProvider().get_current_price("BTC-USD")
+        get.assert_not_called()
+
     @pytest.mark.parametrize("provider", [CoinbaseProvider(), KrakenProvider()])
     def test_adjusted_history_is_rejected_before_transport(self, provider):
         with patch("app.providers.crypto_market_data.httpx.get") as get:
@@ -1438,7 +1457,9 @@ class TestMassiveReferenceProvider:
             mock_settings.MASSIVE_API_KEY = "key"
             mock_settings.MARKETDATA_API_KEY = ""
             mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 0
-            with pytest.raises(ProviderNotConfiguredError, match="MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"):
+            with pytest.raises(
+                ProviderNotConfiguredError, match="MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
+            ):
                 MassiveProvider().fetch_instrument_events("AAPL")
         get.assert_not_called()
 
@@ -1515,8 +1536,26 @@ class TestMassiveReferenceProvider:
         "payload,match",
         [
             ({"results": [{"ticker": "MSFT", "execution_date": "2024-01-01"}]}, "different ticker"),
-            ({"results": [{"ticker": "AAPL", "execution_date": "bad", "adjustment_type": "forward_split"}]}, "invalid execution_date"),
-            ({"results": [{"ticker": "AAPL", "execution_date": "2024-01-01", "adjustment_type": "bad"}]}, "invalid adjustment_type"),
+            (
+                {
+                    "results": [
+                        {
+                            "ticker": "AAPL",
+                            "execution_date": "bad",
+                            "adjustment_type": "forward_split",
+                        }
+                    ]
+                },
+                "invalid execution_date",
+            ),
+            (
+                {
+                    "results": [
+                        {"ticker": "AAPL", "execution_date": "2024-01-01", "adjustment_type": "bad"}
+                    ]
+                },
+                "invalid adjustment_type",
+            ),
         ],
     )
     def test_corporate_actions_reject_malformed_split_rows(self, payload, match):
@@ -1566,7 +1605,7 @@ class TestMassiveReferenceProvider:
                         "c": 12,
                         "v": 120,
                     }
-                ]
+                ],
             },
         ]
         with (
@@ -1590,7 +1629,11 @@ class TestMassiveReferenceProvider:
         assert bars[0].adjustment_version == "massive-split-adjusted"
         assert bars[0].provenance["request_id"] == "req-1"
         assert get.call_count == 2
-        assert get.call_args_list[1].args[0].startswith("https://api.massive.com/v2/aggs/ticker/AAPL/range/1/day/")
+        assert (
+            get.call_args_list[1]
+            .args[0]
+            .startswith("https://api.massive.com/v2/aggs/ticker/AAPL/range/1/day/")
+        )
         assert get.call_args_list[1].kwargs["params"]["cursor"] == "next"
 
     def test_custom_bars_reject_untrusted_cursor_and_invalid_ohlc(self):
@@ -2417,6 +2460,17 @@ class TestCryptoProviderErrorEnvelopes:
 
 
 class TestFREDOHLCVParsing:
+    @staticmethod
+    def _authorize_fred_fixture_use(configured):
+        configured.FRED_PERSISTED_STORAGE_AUTHORIZED = True
+        configured.FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE = "unit test fixture"
+        configured.FRED_AUTOMATED_USE_AUTHORIZED = True
+        configured.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE = "unit test fixture"
+        configured.FRED_SERIES_RIGHTS_EVIDENCE = {
+            series_id: "unit test fixture"
+            for series_id in app_config.FRED_MAPPED_SERIES_IDS
+        }
+
     def test_scalar_observation_becomes_ohlc_bar(self):
         provider = FREDProvider()
         fake_observations = {
@@ -2435,6 +2489,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=mock_resp),
         ):
             mock_settings.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(mock_settings)
             bars = provider.fetch_ohlcv(
                 "^TNX",
                 Timeframe.D1,
@@ -2446,6 +2501,27 @@ class TestFREDOHLCVParsing:
         assert float(bars[0].open) == float(bars[0].close) == 4.52
         assert float(bars[0].high) == float(bars[0].low) == 4.52
         assert bars[0].volume is None
+
+    def test_history_requires_exact_series_rights_before_transport(self):
+        provider = FREDProvider()
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get") as get,
+        ):
+            configured.FRED_API_KEY = "key"
+            configured.FRED_PERSISTED_STORAGE_AUTHORIZED = True
+            configured.FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE = "unit test evidence"
+            configured.FRED_AUTOMATED_USE_AUTHORIZED = True
+            configured.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE = "unit test evidence"
+            configured.FRED_SERIES_RIGHTS_EVIDENCE = {}
+            with pytest.raises(ProviderNotConfiguredError, match="DGS10"):
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 10, tzinfo=UTC),
+                )
+        get.assert_not_called()
 
     def test_http_429_is_typed_instead_of_becoming_empty_success(self):
         provider = FREDProvider()
@@ -2459,6 +2535,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             mock_settings.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(mock_settings)
             with pytest.raises(ProviderRateLimitError) as exc_info:
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2484,6 +2561,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             mock_settings.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(mock_settings)
             with pytest.raises(ProviderRateLimitError):
                 provider.get_current_price("^TNX")
 
@@ -2501,6 +2579,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2521,6 +2600,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", side_effect=failure),
         ):
             configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2540,6 +2620,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2568,6 +2649,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
             with pytest.raises(ProviderResponseError, match="FRED"):
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2587,6 +2669,7 @@ class TestFREDOHLCVParsing:
             patch("app.providers.fred.httpx.get", return_value=response),
         ):
             configured.FRED_API_KEY = "key"
+            self._authorize_fred_fixture_use(configured)
             with pytest.raises(ProviderResponseError) as exc_info:
                 provider.fetch_ohlcv(
                     "^TNX",
@@ -2897,10 +2980,10 @@ class TestEdgarTickerMap:
 
         assert [(item.symbol, item.name) for item in results] == [("AAPL", "Apple Inc.")]
 
-    def test_sec_issuer_directory_pages_unique_ciks_and_retains_ambiguous_tickers(self):
+    def test_sec_issuer_directory_pages_unique_ciks_and_fingerprints_the_source(self, monkeypatch):
         import app.providers.edgar as edgar_module
 
-        edgar_module._ticker_map = {
+        ticker_map = {
             "BETA": {"cik": 20, "title": "Beta Holdings"},
             "ALPHA": {"cik": 10, "title": "Alpha Corp"},
             "ALPHA-A": {"cik": 10, "title": "Alpha Corp"},
@@ -2914,16 +2997,22 @@ class TestEdgarTickerMap:
                 ],
             },
         }
-        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        monkeypatch.setattr(edgar_module, "_ticker_map", ticker_map)
+        monkeypatch.setattr(edgar_module, "_ticker_map_ts", edgar_module._ticker_map_ts + 9999999)
 
         provider = EdgarProvider()
         first = provider.discover_issuer_ciks_page(0, limit=2)
         second = provider.discover_issuer_ciks_page(2, limit=2)
 
         assert first["total"] == 4
+        assert first["source_fingerprint"] == second["source_fingerprint"]
+        assert len(first["source_fingerprint"]) == 64
         assert [row["cik"] for row in first["issuers"]] == ["0000000010", "0000000020"]
         assert first["issuers"][0]["tickers"] == ["ALPHA", "ALPHA-A"]
         assert [row["cik"] for row in second["issuers"]] == ["0000000030", "0000000040"]
+        ticker_map["BETA"]["title"] = "Beta Holdings Renamed"
+        changed = provider.discover_issuer_ciks_page(0, limit=2)
+        assert changed["source_fingerprint"] != first["source_fingerprint"]
 
     @pytest.mark.parametrize(
         "offset,limit",

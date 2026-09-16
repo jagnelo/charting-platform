@@ -225,6 +225,55 @@ async def reconcile_market_universe(ctx: dict) -> dict:
         return {"reconciliation": reconciliation, "coverage": coverage}
 
 
+async def refresh_provider_account_usage_snapshots(ctx: dict) -> dict:
+    """Refresh explicitly configured provider-native account counters.
+
+    Account introspection is provider traffic and is therefore never inferred
+    from a generic schedule. Deployments must enable this task and name each
+    provider explicitly; the service still applies that provider's credential,
+    quota, entitlement, and circuit-breaker gates before making a request.
+    """
+
+    from app.config import settings
+    from app.services.provider_account_usage import (
+        refresh_provider_account_usage,
+    )
+
+    if not settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED:
+        return {"skipped": True, "reason": "provider account-usage refresh disabled"}
+    configured = getattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS", [])
+    providers = tuple(
+        dict.fromkeys(
+            str(provider).strip()
+            for provider in (configured if isinstance(configured, list) else [])
+            if str(provider).strip()
+        )
+    )
+    if not providers:
+        return {"skipped": True, "reason": "no provider account-usage refresh providers configured"}
+
+    async with AsyncSessionLocal() as db:
+        results = []
+        for provider in providers:
+            try:
+                results.append(await refresh_provider_account_usage(db, provider_name=provider))
+            except Exception as exc:  # noqa: BLE001 - keep one provider failure from suppressing others.
+                results.append(
+                    {
+                        "status": "failed",
+                        "providers": [],
+                        "observations": [],
+                        "failures": [
+                            {
+                                "provider": provider,
+                                "error": bounded_redact_provider_message(exc, max_length=500),
+                            }
+                        ],
+                    }
+                )
+    return {"providers": list(providers), "results": results}
+
+
 async def refresh_market_events(ctx: dict) -> dict:
     """Persist one bounded forward market-event window when enabled."""
 
@@ -305,7 +354,7 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(ctx: dict) -> dict:
 
 
 async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
-    """Scan one durable page of the complete SEC issuer directory."""
+    """Scan one durable page of SEC ticker associations after policy gates."""
 
     from app.config import settings
     from app.services.market_event_edgar_scan import (
@@ -350,13 +399,19 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
         1,
         int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER),
     )
-    materialization_mode = str(
-        settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE
-    ).strip().lower()
+    materialization_mode = (
+        str(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE).strip().lower()
+    )
     if materialization_mode not in {"disabled", "create_missing"}:
         return {
             "skipped": True,
             "reason": "EDGAR SEC directory issuer materialization mode is invalid",
+        }
+    reviewed_cycle_count = int(settings.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT)
+    if reviewed_cycle_count < 0:
+        return {
+            "skipped": True,
+            "reason": "EDGAR SEC directory reviewed cycle count must be non-negative",
         }
     async with AsyncSessionLocal() as db:
         return await _refresh_edgar_ipo_pipeline_for_sec_directory(
@@ -367,6 +422,7 @@ async def refresh_edgar_ipo_pipeline_for_sec_directory(ctx: dict) -> dict:
             max_events_per_issuer=max_events,
             max_submissions_requests=max_submissions_requests,
             issuer_materialization_mode=materialization_mode,
+            issuer_materialization_reviewed_cycle_count=reviewed_cycle_count,
         )
 
 

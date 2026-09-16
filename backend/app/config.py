@@ -5,9 +5,36 @@ from datetime import UTC, datetime
 
 from pydantic import field_validator
 from pydantic_core import PydanticUseDefault
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    EnvSettingsSource,
+    SettingsConfigDict,
+)
 
 _SETTINGS_USE_CODE_DEFAULT = "__CODE_DEFAULT__"
+_JSON_SEED_OVERRIDE_FIELDS = {
+    "PROVIDER_RATE_LIMIT_SEEDS",
+    "PROVIDER_FRESHNESS_SEEDS",
+    "PROVIDER_USAGE_PROFILE_SEEDS",
+}
+
+
+class _CodeDefaultSentinelSourceMixin:
+    """Let the Settings validator handle the non-JSON defaults sentinel."""
+
+    def prepare_field_value(self, field_name, field, value, value_is_complex):
+        if field_name in _JSON_SEED_OVERRIDE_FIELDS and value == _SETTINGS_USE_CODE_DEFAULT:
+            return value
+        return super().prepare_field_value(field_name, field, value, value_is_complex)
+
+
+class _EnvironmentSettingsSource(_CodeDefaultSentinelSourceMixin, EnvSettingsSource):
+    pass
+
+
+class _DotEnvSettingsSource(_CodeDefaultSentinelSourceMixin, DotEnvSettingsSource):
+    pass
 
 
 class Settings(BaseSettings):
@@ -66,6 +93,12 @@ class Settings(BaseSettings):
     MARKET_DATA_REFRESH_SCHEDULE_ENABLED: bool = False
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
     MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = False
+    # Provider-native account usage is opt-in because each poll consumes the
+    # provider's own account quota. The provider list is explicit; an empty
+    # list never means "all providers" and therefore cannot create surprise
+    # external traffic when a deployment enables unrelated schedules.
+    PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED: bool = False
+    PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS: list[str] = []
     MARKET_UNIVERSE_MISSING_CONFIRMATIONS: int = 3
     # Forward market-event ingestion is opt-in. The worker persists a bounded
     # window from every eligible market_events provider; provider routing and
@@ -87,14 +120,17 @@ class Settings(BaseSettings):
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: bool = False
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: int = 50
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: int = 100
-    # One bounded SEC submissions request is made per CIK in a directory page.
-    # A positive reviewed value is required before enabling that fan-out;
-    # zero keeps the scan fail-closed even if its feature flag is set.
+    # One SEC submissions request is attempted per CIK and worker invocation.
+    # This is a per-invocation ceiling, not an SEC daily allowance. A positive
+    # reviewed value is required before enabling fan-out; zero fails closed.
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: int = 0
     # Issuer rows are never created by the directory scan unless this explicit
     # policy is selected. ``create_missing`` creates only CIK/name issuer rows;
     # it never creates instruments/listings or mutates existing legal names.
     MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE: str = "disabled"
+    # Must be set to the exact cycle number of the latest complete, clean,
+    # disabled-mode review after an operator inspects its candidate report.
+    MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT: int = 0
     # Tokenized catalogue discovery is separate from quote polling so a
     # deployment can budget metadata requests independently. It is disabled
     # until provider quotas/terms are reviewed and bounded values are set.
@@ -157,6 +193,9 @@ class Settings(BaseSettings):
     # Paid adapters may be configured and audited without entering normal
     # routing.  An explicit deployment setting is required to opt them in.
     ALLOW_PAID_PROVIDER_ROUTING: bool = False
+    # Deployment-wide emergency switch. Provider descriptors and usage remain
+    # visible when off, but no provider adapter may be selected for a call.
+    PROVIDER_ROUTING_ENABLED: bool = True
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     TOKENIZED_PROVIDER_PRIORITY: list[str] = [
@@ -225,6 +264,9 @@ class Settings(BaseSettings):
     # (or omitted dimension) is intentionally unknown and therefore not
     # routable.  Never add a generic fallback here: several vendors publish
     # endpoint-, key-, IP-, or plan-specific limits.
+    # These optional JSON overrides use a non-JSON sentinel to select the
+    # reviewed code defaults. The custom Settings sources pass only that exact
+    # sentinel through to the before-validator; explicit JSON still decodes.
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict] = {
         "alpaca": {
             "quota_contract": {
@@ -284,6 +326,25 @@ class Settings(BaseSettings):
             },
             "quota_scope": "api_key",
             "quota_source": "Alpha Vantage support documentation",
+        },
+        "nasdaq": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "directory_requests_per_market_day",
+                        "limit": 2,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "deployment",
+                        "quota_group": "nasdaq_symbol_directory",
+                        "source": "application_policy:one conditional request per official directory file per market day",
+                        "reset": "calendar_day_est",
+                    }
+                ],
+                "reset": "calendar_day_est",
+            },
+            "quota_scope": "deployment",
+            "quota_source": "client-imposed one-refresh-per-market-day ceiling; Nasdaq does not publish a numeric quota",
         },
         "openfigi": {
             "quota_contract": {
@@ -375,22 +436,27 @@ class Settings(BaseSettings):
                     },
                     {
                         "name": "download_bytes_per_calendar_month",
-                        # FINRA publishes "10 GB" without defining binary
-                        # versus decimal units. Use the decimal-byte ceiling
-                        # so the local guard cannot exceed either reading.
+                        # FINRA publishes "10 GB" and says public keys stay
+                        # disabled until the following month if exhausted,
+                        # but does not state its timezone or byte convention.
+                        # A rolling 31-day decimal ceiling is conservative
+                        # across that undocumented reset boundary.
                         "limit": 10_000_000_000,
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
                         "quota_group": "public_credential",
                         "source": "https://developer.finra.org/support",
-                        "reset": "calendar_month",
+                        "reset": "rolling",
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     },
                 ],
                 "reset": "rolling_or_provider_defined",
                 "dimension_costs_required": True,
-                "maximum_synchronous_response_bytes": 3145728,
+                # FINRA publishes a decimal 3 MB maximum but does not specify
+                # the byte convention. Reserve 3,000,000 bytes to stay below
+                # both decimal and binary interpretations.
+                "maximum_synchronous_response_bytes": 3_000_000,
             },
             "tokens_per_minute": 1200,
             "quota_scope": "ip",
@@ -398,30 +464,21 @@ class Settings(BaseSettings):
         },
         "finra_otc_directory": {
             "quota_contract": {
-                "dimensions": [
-                    {
-                        "name": "synchronous_requests_per_minute",
-                        "limit": 1200,
-                        "window_seconds": 60,
-                        "unit": "requests",
-                        "scope": "ip",
-                        "quota_group": "ip",
-                        "source": "https://developer.finra.org/node/1146",
-                        "reset": "rolling",
-                    }
+                # FINRA's current public catalog does not establish that the
+                # configured otcSecurityMaster/DAPI candidate is active or
+                # that Query API limits and terms apply to it.
+                "dimensions": [],
+                "unknown_dimensions": [
+                    "current_dataset_source",
+                    "authentication_and_quota_applicability",
+                    "data_use_terms",
                 ],
-                "reset": "rolling",
-                "maximum_synchronous_response_bytes": 3 * 1024**2,
-                # A cold snapshot requires the partition lookup plus a
-                # response-dependent number of DAPI pages. Do not charge one
-                # request when the page count cannot be known before the
-                # provider response; the adapter remains fail-closed until an
-                # operator supplies a reviewed bound/profile.
+                "reset": "provider_defined",
                 "operation_costs_required": True,
+                "source": "https://developer.finra.org/catalog",
             },
-            "tokens_per_minute": 1200,
-            "quota_scope": "ip",
-            "quota_source": "FINRA API Platform usage limits",
+            "quota_scope": "unknown",
+            "quota_source": "FINRA public dataset catalog; candidate source not established",
         },
         "coingecko": {
             "quota_contract": {
@@ -505,17 +562,19 @@ class Settings(BaseSettings):
             "quota_contract": {
                 "dimensions": [
                     {
-                        "name": "public_safe_frequency",
+                        "name": "public_requests_per_second",
                         "limit": 1,
                         "window_seconds": 1,
                         "unit": "requests",
-                        "scope": "ip_or_pair",
+                        "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://support.kraken.com/articles/206548367-what-are-the-api-rate-limits-",
+                        "limit_basis": "provider_recommended_safe_frequency",
                     }
                 ],
                 "reset": "rolling",
             },
-            "quota_scope": "ip_or_pair",
+            "quota_scope": "ip",
             "quota_source": "Kraken REST rate-limit documentation",
         },
         "xstocks": {
@@ -596,17 +655,19 @@ class Settings(BaseSettings):
             "quota_contract": {
                 "dimensions": [
                     {
-                        "name": "public_safe_frequency",
+                        "name": "public_requests_per_second",
                         "limit": 1,
                         "window_seconds": 1,
                         "unit": "requests",
-                        "scope": "ip_or_pair",
+                        "scope": "ip",
+                        "quota_group": "ip",
                         "source": "https://support.kraken.com/articles/206548367-what-are-the-api-rate-limits-",
+                        "limit_basis": "provider_recommended_safe_frequency",
                     }
                 ],
                 "reset": "rolling",
             },
-            "quota_scope": "ip_or_pair",
+            "quota_scope": "ip",
             "quota_source": "Kraken public API rate-limit documentation",
         },
         "dinari": {
@@ -640,7 +701,9 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
-                        "reset": "calendar_month_est",
+                        # Tiingo does not state the distinct-symbol pool's
+                        # reset anchor; use a conservative rolling 31 days.
+                        "reset": "rolling",
                     },
                     {
                         "name": "requests_per_hour",
@@ -736,6 +799,10 @@ class Settings(BaseSettings):
                         "source": "https://finnhub.io/docs/api",
                     },
                 ],
+                # The free account exposes two independent request-rate
+                # dimensions. Record the operation map for both instead of
+                # leaving the hard per-second reservation implicit.
+                "dimension_costs_required": True,
                 "reset": "provider_defined_minute_and_rolling_second",
             },
             "tokens_per_minute": 60,
@@ -747,12 +814,17 @@ class Settings(BaseSettings):
                 "dimensions": [
                     {
                         "name": "requests_per_minute",
-                        "limit": 1000,
+                        # The Free Starter plan card publishes a 20/min
+                        # request ceiling. EODHD's general API-limits page and
+                        # Quick Start claim 1,000/min for every plan. Because
+                        # official sources conflict, enforce the lower value
+                        # pending provider clarification/account evidence.
+                        "limit": 20,
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "https://eodhd.com/financial-apis/api-limits",
+                        "source": "https://eodhd.com/lp/historical-eod-api",
                         "reset": "rolling",
                     },
                     {
@@ -762,16 +834,21 @@ class Settings(BaseSettings):
                         "unit": "calls",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "https://eodhd.com/financial-apis/api-limits",
+                        "source": "https://eodhd.com/lp/historical-eod-api",
                         "reset": "calendar_day_gmt",
+                        "reset_source": "https://eodhd.com/financial-apis/api-limits",
                     },
                 ],
                 "reset": "per_dimension",
                 "operation_costs_required": True,
             },
-            "tokens_per_minute": 1000,
+            "tokens_per_minute": 20,
             "quota_scope": "api_key",
-            "quota_source": "EODHD API limits documentation",
+            "quota_source": (
+                "EODHD Free Starter plan pricing and API limits documentation: "
+                "https://eodhd.com/lp/historical-eod-api; "
+                "https://eodhd.com/financial-apis/api-limits"
+            ),
         },
         "fmp": {
             "quota_contract": {
@@ -793,11 +870,11 @@ class Settings(BaseSettings):
                         # The operator account reports "512 MB" without a
                         # binary-unit declaration. Keep the hard ceiling at
                         # the decimal-byte value rather than overestimating.
-                        "limit": 512_000_000,
+                        "limit": 500_000_000,
                         "unit": "bytes",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "operator_account_dashboard_2026-09-07",
+                        "source": "https://site.financialmodelingprep.com/pricing-plans",
                         "window_seconds": 2_592_000,
                         "reset": "rolling_30_days",
                         "limit_basis": "decimal_bytes_conservative_for_published_MB",
@@ -864,14 +941,16 @@ class Settings(BaseSettings):
                     {
                         "name": "requests_per_month",
                         "limit": 100,
-                        "window_seconds": 2678400,
+                        "window_seconds": 2592000,
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
                         "source": "https://marketstack.com/pricing",
                     }
                 ],
-                "reset": "calendar_month",
+                # Public pricing states 100/month but does not define the
+                # reset anchor; enforce the smaller rolling 30-day window.
+                "reset": "rolling_30_days",
             },
             "quota_scope": "api_key",
             "quota_source": "Marketstack free-plan pricing",
@@ -897,16 +976,10 @@ class Settings(BaseSettings):
                         "quota_group": "authenticated_session",
                         "source": "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data",
                     },
-                    {
-                        "name": "historical_requests_concurrent",
-                        "limit": 5,
-                        "window_seconds": 1,
-                        "unit": "concurrent_requests",
-                        "scope": "authenticated_session",
-                        "quota_group": "authenticated_session",
-                        "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
-                    },
                 ],
+                # IBKR's five-concurrent limit applies to WebSocket `smh`
+                # historical streaming subscriptions, not this adapter's
+                # REST /iserver/marketdata/history endpoint.
                 "reset": "rolling",
                 "endpoint_specific_limits": True,
                 "endpoint_constraints": {
@@ -991,6 +1064,7 @@ class Settings(BaseSettings):
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
                 "search_instruments": 1,
+                "discover_universe_page": 1,
             },
         },
         # Alpha Vantage's adapter performs exactly one ``query`` request for
@@ -1029,15 +1103,10 @@ class Settings(BaseSettings):
                 "get_current_price": 2,
             },
             "dimension_costs": {
-                # These endpoint-specific dimensions apply only to history.
+                # This endpoint-specific dimension applies only to history.
                 # Empty maps are explicit zero-cost exclusions; the runtime
                 # supplies the dynamic page cost for history operations.
                 "historical_requests_per_minute": {
-                    "search_instruments": {},
-                    "get_instrument_profile": {},
-                    "get_current_price": {},
-                },
-                "historical_requests_concurrent": {
                     "search_instruments": {},
                     "get_instrument_profile": {},
                     "get_current_price": {},
@@ -1060,8 +1129,18 @@ class Settings(BaseSettings):
                 # response-dependent charge.
                 "list_option_expirations": 1,
                 # Account introspection is a provider request and must be
-                # visible in the same durable credit ledger as data reads.
+                # visible in the same durable coordinator as data reads. The
+                # endpoint itself is not charged against the daily credit
+                # pool; its request still occupies the reviewed concurrency
+                # dimension below. Keep the positive operation cost so the
+                # call remains explicitly routable, and exclude only the
+                # provider-credit dimension with an empty per-operation map.
                 "fetch_account_usage": 1,
+            },
+            "dimension_costs": {
+                "credits_per_day": {
+                    "fetch_account_usage": {},
+                },
             },
         },
         "coinbase": {
@@ -1096,8 +1175,8 @@ class Settings(BaseSettings):
             "dimension_costs": {
                 "asynchronous_requests_per_minute_dataset": {},
                 "download_bytes_per_calendar_month": {
-                    "fetch_short_interest": 3145728,
-                    "fetch_market_events": 3145728,
+                    "fetch_short_interest": 3_000_000,
+                    "fetch_market_events": 3_000_000,
                 },
             },
         },
@@ -1148,6 +1227,28 @@ class Settings(BaseSettings):
                 "get_instrument_profile": 10,
                 "discover_universe_page": 1,
             },
+            # EODHD's endpoint rate limit is measured in HTTP requests, while
+            # Fundamentals endpoints consume provider-call credits. Keep the
+            # two units separate: one profile request consumes one RPM unit
+            # and ten daily API-call credits.
+            "dimension_costs": {
+                "requests_per_minute": {
+                    "fetch_ohlcv": 1,
+                    "fetch_latest_ohlcv": 1,
+                    "get_current_price": 1,
+                    "bulk_fetch": 1,
+                    "get_instrument_profile": 1,
+                    "discover_universe_page": 1,
+                },
+                "calls_per_day": {
+                    "fetch_ohlcv": 1,
+                    "fetch_latest_ohlcv": 1,
+                    "get_current_price": 1,
+                    "bulk_fetch": 1,
+                    "get_instrument_profile": 10,
+                    "discover_universe_page": 1,
+                },
+            },
         },
         "tiingo": {
             "mode": "multi_dimensional",
@@ -1174,6 +1275,33 @@ class Settings(BaseSettings):
                 "fetch_market_events": 1,
                 "bulk_fetch": 1,
                 "discover_universe_page": 1,
+            },
+            # Every adapter operation is one provider request in each
+            # Finnhub rate window. Keep both maps explicit so the durable
+            # reservation and admin usage view expose both provider limits.
+            "dimension_costs": {
+                "calls_per_minute": {
+                    "fetch_ohlcv": 1,
+                    "fetch_latest_ohlcv": 1,
+                    "get_current_price": 1,
+                    "search_instruments": 1,
+                    "get_instrument_profile": 1,
+                    "fetch_instrument_events": 1,
+                    "fetch_market_events": 1,
+                    "bulk_fetch": 1,
+                    "discover_universe_page": 1,
+                },
+                "hard_calls_per_second": {
+                    "fetch_ohlcv": 1,
+                    "fetch_latest_ohlcv": 1,
+                    "get_current_price": 1,
+                    "search_instruments": 1,
+                    "get_instrument_profile": 1,
+                    "fetch_instrument_events": 1,
+                    "fetch_market_events": 1,
+                    "bulk_fetch": 1,
+                    "discover_universe_page": 1,
+                },
             },
         },
         "marketstack": {
@@ -1255,6 +1383,7 @@ class Settings(BaseSettings):
             "unit_label": "requests",
             "operation_costs": {
                 "discover_tokenized_assets": 1,
+                "discover_tokenized_page": 1,
                 "get_tokenized_asset": 1,
                 "get_tokenized_price": 2,
             },
@@ -1494,7 +1623,11 @@ class Settings(BaseSettings):
             "configured_plan": "free-20-day",
             "is_free": True,
             "authentication_required": True,
-            "usage_terms": "EODHD free plan; daily and minute request ceilings and provider terms apply.",
+            "usage_terms": (
+                "EODHD Free Starter: 20 API-call credits/day, 20 requests/minute, and "
+                "documented free access to EOD history (one-year range) and exchange-symbol "
+                "lists. Fundamentals and other paid-plan endpoints are not included."
+            ),
             "history_depth": "Plan and endpoint dependent",
             "quota_policy": {
                 "history_constraints": {
@@ -1504,6 +1637,22 @@ class Settings(BaseSettings):
             },
             "venue_coverage": "Provider-supported US securities",
             "freshness_semantics": "Historical/EOD",
+            "capabilities": {
+                "instrument_metadata": {
+                    # Free Starter does not include Fundamental API access.
+                    # An unreviewed capability stays blocked even if the
+                    # global paid-routing switch is enabled; a future paid
+                    # subscription must be explicitly operator-reviewed.
+                    "configured_plan": "unreviewed",
+                    "is_free": False,
+                    "usage_terms": (
+                        "EODHD Free Starter does not include Fundamentals/profile access; "
+                        "configure an operator-reviewed plan with this endpoint entitlement "
+                        "before routing."
+                    ),
+                    "live_probe_status": "not_run",
+                }
+            },
         },
         "fmp": {
             "configured_plan": "basic-free",
@@ -1626,6 +1775,12 @@ class Settings(BaseSettings):
             "authentication_required": True,
             "usage_terms": "IBKR account, market-data entitlements, and Client Portal Gateway session required.",
             "history_depth": "Up to the documented 15-year history-period parameter, subject to entitlements and endpoint bar limits.",
+            "quota_policy": {
+                "history_constraints": {
+                    "max_lookback_years": 15,
+                    "source": "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data",
+                }
+            },
             "venue_coverage": "Account-entitled stocks, ETFs, options, futures, forex, and crypto instruments; adapter currently routes only generic metadata/history/latest price.",
             "freshness_semantics": "Gateway/session and exchange-entitlement dependent; no real-time guarantee.",
         },
@@ -1719,9 +1874,9 @@ class Settings(BaseSettings):
     # contract and are intentionally not accepted by this daily-limit gate.
     MARKETDATA_APP_REVIEWED_PLAN: str = ""
     MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: int = 0
-    # Trial entitlements must carry an explicit timezone-aware expiry.  A
-    # missing or elapsed expiry keeps the trial fail-closed; paid plans leave
-    # this unset.
+    # Trial entitlements must carry an explicit timezone-aware expiry. A
+    # missing/invalid expiry keeps trial capacity fail-closed; an elapsed,
+    # valid expiry automatically falls back to Free Forever/100 daily credits.
     MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT: datetime | None = None
     # MarketData.app current option-chain responses are billed per returned
     # contract.  A chain call may therefore be admitted only when operations
@@ -1731,6 +1886,29 @@ class Settings(BaseSettings):
     # affected.
     MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: int = 0
     XSTOCKS_API_KEY: str = ""
+    # xStocks public-read access does not by itself authorize automated,
+    # persistent collection or establish deployment-jurisdiction eligibility.
+    # Keep all application routes fail-closed until both dimensions have
+    # current operator evidence.
+    XSTOCKS_MARKET_DATA_USE_AUTHORIZED: bool = False
+    XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE: str = ""
+    XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
+    XSTOCKS_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
+    XSTOCKS_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
+    XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED: bool = False
+    XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE: str = ""
+    # Bybit's xStocks endpoints are public, but the provider documents an
+    # egress restriction for US/Mainland-China IPs.  A public response is not
+    # proof that this deployment may automate or persist the data.  Keep the
+    # adapter fail-closed until the deployment egress and the reviewed use
+    # scope are recorded explicitly.
+    BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED: bool = False
+    BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE: str = ""
+    BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
+    BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
+    BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
+    BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED: bool = False
+    BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE: str = ""
     DINARI_API_KEY_ID: str = ""
     DINARI_API_SECRET_KEY: str = ""
     # Dinari Sandbox is the safe default for the operator-provided Sandbox
@@ -1747,6 +1925,14 @@ class Settings(BaseSettings):
     # identifiers, not canonical platform identity keys.
     IBKR_CONID_MAP: dict[str, int] = {}
     COINBASE_API_KEY: str = ""
+    # Coinbase terms bar use by an AI/automated system absent prior express
+    # written consent and restrict redistribution. Keep all normal routes
+    # blocked until the exact internal, persisted/automated use is reviewed.
+    COINBASE_MARKET_DATA_USE_AUTHORIZED: bool = False
+    COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE: str = ""
+    COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
+    COINBASE_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
+    COINBASE_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
     KRAKEN_API_KEY: str = ""
     # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe
     ALPACA_API_KEY: str = ""
@@ -1766,14 +1952,18 @@ class Settings(BaseSettings):
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""
-    # FRED v1 publishes a 120-requests/minute threshold but leaves the
-    # enforcement scope and adjustable account limit subject to provider
-    # control. Keep the adapter fail-closed until operations records the
-    # deployment's reviewed conservative scope/limit and confirms the series
-    # copyright/redistribution terms for the configured use.
+    # FRED v1's numeric threshold does not identify its quota scope. Current
+    # terms prohibit persistence and specified software-development uses by
+    # default; individual series can carry separate rights. All three must be
+    # reviewed before the adapter can make a provider request.
     FRED_REVIEWED_LIMIT_SCOPE: str = ""
     FRED_REVIEWED_REQUESTS_PER_MINUTE: int = 0
-    FRED_SERIES_TERMS_REVIEWED: bool = False
+    FRED_REVIEWED_QUOTA_EVIDENCE: str = ""
+    FRED_PERSISTED_STORAGE_AUTHORIZED: bool = False
+    FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE: str = ""
+    FRED_AUTOMATED_USE_AUTHORIZED: bool = False
+    FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE: str = ""
+    FRED_SERIES_RIGHTS_EVIDENCE: dict[str, str] = {}
     # CoinGecko — crypto universe discovery and metadata (free demo key)
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
@@ -1784,17 +1974,21 @@ class Settings(BaseSettings):
     FINRA_API_BASE_URL: str = "https://api.finra.org"
     FINRA_SHORT_INTEREST_URL: str = ""
     FINRA_OTC_DAILY_LIST_URL: str = ""
-    # Official current OTC Security Master DAPI URL is documented in
-    # docs/data-providers.md; keep this empty until operations explicitly
-    # approves the source, terms, and polling contract.
+    # Candidate OTC Security Master URL only. Current public FINRA dataset docs
+    # do not list otcSecurityMaster; keep empty until current docs or written
+    # provider confirmation establishes that the source is available/authorized.
     FINRA_OTC_SYMBOL_DIRECTORY_URL: str = ""
-    # The DAPI directory's cold refresh is response/page-count dependent. A
-    # deployment must provide a reviewed conservative request charge for each
-    # runtime operation instead of inheriting a one-request default.
+    # A partitioned directory source's cold refresh is response/page-count
+    # dependent. A deployment must provide a reviewed conservative request
+    # charge per operation instead of inheriting a one-request default.
     FINRA_OTC_OPERATION_COSTS: dict[str, int] = {}
-    # These are independent governance gates: source terms, complete-universe
-    # interpretation, redistribution, and the chosen polling interval must be
-    # reviewed for the exact configured source before routing is admitted.
+    # Source availability/authorization is independently gated by a non-secret
+    # evidence reference. Terms, completeness, redistribution, and polling are
+    # further separate reviews of the exact configured source.
+    FINRA_OTC_SOURCE_REVIEWED: bool = False
+    FINRA_OTC_SOURCE_EVIDENCE: str = ""
+    # Must exactly identify the URL whose availability and rights were reviewed.
+    FINRA_OTC_REVIEWED_SOURCE_URL: str = ""
     FINRA_OTC_TERMS_REVIEWED: bool = False
     FINRA_OTC_COMPLETENESS_REVIEWED: bool = False
     FINRA_OTC_REDISTRIBUTION_REVIEWED: bool = False
@@ -1820,6 +2014,33 @@ class Settings(BaseSettings):
     # Non-secret environment/account label carried by direct live-test receipts
     # so operators cannot silently merge usage from different environments.
     PROVIDER_LIVE_USAGE_SCOPE: str = ""
+    # Provider quota admission uses a separate durable coordinator so local
+    # worktrees and direct live probes sharing a provider account do not each
+    # receive a fresh copy of that account's allowance. Local development uses
+    # an owner-only SQLite file; CI/multi-host deployments may point at a
+    # separately provisioned PostgreSQL coordinator database. The URL may
+    # contain credentials and must never be logged or copied into receipts.
+    PROVIDER_QUOTA_LEDGER_PATH: str = (
+        "~/.config/charting-platform/provider-quota/usage.sqlite3"
+    )
+    PROVIDER_QUOTA_LEDGER_DATABASE_URL: str = ""
+    # Keep settled per-window diagnostics for a bounded period. Pending and
+    # ambiguous reservations are never pruned automatically.
+    PROVIDER_QUOTA_LEDGER_RETENTION_DAYS: int = 180
+    # Non-secret aliases identify the provider account/key/IP scope that owns
+    # each native quota. Matching aliases share usage; distinct aliases isolate
+    # genuinely separate accounts. Empty mappings use a provider-specific
+    # default alias, never an API-key-derived value.
+    PROVIDER_QUOTA_ACCOUNT_SCOPES: dict[str, str] = {}
+    # A scope may be marked exclusive only when every caller of that provider
+    # account uses this same durable coordinator. This permits safe zero-based
+    # rollover after a verified starting baseline; it is not a rate-limit
+    # policy and must not be enabled for accounts used by uncoordinated clients.
+    PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES: dict[str, bool] = {}
+    # Crash recovery releases only in-flight concurrency reservations. This is
+    # added to each adapter's documented transport timeout and is not an API
+    # rate/cooldown assumption.
+    PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS: int = 10
     LATEST_PRICE_SNAPSHOT_RETENTION_DAYS: int = 30
     INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS: int = 14
     UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 30
@@ -1836,6 +2057,37 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return json.loads(v)
         return v
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        # Preserve pydantic-settings 2.2.1's source configuration while
+        # bypassing its eager JSON decoding for our exact non-JSON sentinel.
+        env_source = _EnvironmentSettingsSource(
+            settings_cls,
+            case_sensitive=env_settings.case_sensitive,
+            env_prefix=env_settings.env_prefix,
+            env_nested_delimiter=env_settings.env_nested_delimiter,
+            env_ignore_empty=env_settings.env_ignore_empty,
+            env_parse_none_str=env_settings.env_parse_none_str,
+        )
+        dotenv_source = _DotEnvSettingsSource(
+            settings_cls,
+            env_file=dotenv_settings.env_file,
+            env_file_encoding=dotenv_settings.env_file_encoding,
+            case_sensitive=dotenv_settings.case_sensitive,
+            env_prefix=dotenv_settings.env_prefix,
+            env_nested_delimiter=dotenv_settings.env_nested_delimiter,
+            env_ignore_empty=dotenv_settings.env_ignore_empty,
+            env_parse_none_str=dotenv_settings.env_parse_none_str,
+        )
+        return init_settings, env_source, dotenv_source, file_secret_settings
 
     @field_validator("IDENTIFIER_PROVIDER_PRIORITY", mode="before")
     @classmethod
@@ -1862,16 +2114,35 @@ class Settings(BaseSettings):
         return v
 
     @field_validator(
+        "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+        "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+        mode="before",
+    )
+    @classmethod
+    def parse_optional_coinbase_authority_timestamps(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator(
         "OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY",
         "PROVIDER_CHAIN_SEEDS",
         "PROVIDER_RATE_LIMIT_SEEDS",
         "PROVIDER_FRESHNESS_SEEDS",
         "PROVIDER_USAGE_PROFILE_SEEDS",
+        "PROVIDER_QUOTA_ACCOUNT_SCOPES",
+        "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES",
         "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
         "TIINGO_OPERATION_BYTE_BOUNDS",
         "FMP_OPERATION_BYTE_BOUNDS",
         "FINRA_OTC_OPERATION_COSTS",
         "IBKR_CONID_MAP",
+        "FRED_SERIES_RIGHTS_EVIDENCE",
         mode="before",
     )
     @classmethod
@@ -1926,6 +2197,30 @@ _MARKETDATA_APP_DAILY_CREDIT_LIMITS: dict[str, int] = {
     "trader_trial": 100_000,
 }
 
+FRED_MAPPED_SERIES_IDS = frozenset(
+    {
+        "DTB3",
+        "DGS5",
+        "DGS10",
+        "DGS30",
+        "FEDFUNDS",
+        "DEXUSEU",
+        "DEXUSUK",
+        "DEXJPUS",
+        "DEXCAUS",
+        "DEXMXUS",
+        "DEXSZUS",
+        "DEXUSAL",
+        "DEXCHUS",
+        "CPIAUCSL",
+        "UNRATE",
+        "GDP",
+        "T10YIE",
+        "VIXCLS",
+        "DCOILWTICO",
+    }
+)
+
 
 def provider_required_operation_byte_bounds(provider_name: str) -> tuple[str, ...]:
     """Return the complete reviewed byte-bound operation set for a provider."""
@@ -1941,6 +2236,41 @@ def provider_positive_integer(value: object) -> int | None:
     return value
 
 
+_KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
+    {
+        "09:30 America/New_York",
+        "calendar_day_est",
+        "calendar_day_gmt",
+        "calendar_day_utc",
+        "calendar_month",
+        "calendar_month_est",
+        "calendar_month_utc",
+        "fixed_minute",
+        "per_dimension",
+        "provider_defined",
+        "provider_defined_daily",
+        "provider_defined_minute_and_rolling_second",
+        "rolling",
+        "rolling_30_days",
+        "rolling_or_provider_defined",
+    }
+)
+
+
+def provider_quota_reset_is_known(value: object) -> bool:
+    """Return whether a quota reset name has reviewed window semantics.
+
+    A non-empty reset label is not enough: the coordinator must know which
+    boundary to calculate.  New provider-specific reset semantics must be
+    added to this reviewed set before they can participate in routing; an
+    unknown label therefore remains non-routable instead of silently becoming
+    an invented fixed window.
+    """
+
+    candidate = str(value or "").strip()
+    return candidate in _KNOWN_PROVIDER_QUOTA_RESETS
+
+
 def marketdata_app_reviewed_plan_pair() -> tuple[str, int] | None:
     """Return the exact operator-reviewed plan/limit pair, without expiry."""
 
@@ -1954,6 +2284,12 @@ def marketdata_app_reviewed_plan_pair() -> tuple[str, int] | None:
     return plan, expected_limit
 
 
+def _marketdata_app_policy_now_utc() -> datetime:
+    """Clock seam for precise plan-expiry boundaries and deterministic tests."""
+
+    return datetime.now(UTC)
+
+
 def marketdata_app_trial_expiry_is_valid(plan: str) -> bool:
     """Return whether a trial plan has a future timezone-aware expiry."""
 
@@ -1963,7 +2299,7 @@ def marketdata_app_trial_expiry_is_valid(plan: str) -> bool:
     return bool(
         isinstance(expires_at, datetime)
         and expires_at.tzinfo is not None
-        and expires_at.astimezone(UTC) > datetime.now(UTC)
+        and expires_at.astimezone(UTC) > _marketdata_app_policy_now_utc()
     )
 
 
@@ -1974,7 +2310,7 @@ def marketdata_app_trial_expiry_has_elapsed() -> bool:
     return bool(
         isinstance(expires_at, datetime)
         and expires_at.tzinfo is not None
-        and expires_at.astimezone(UTC) <= datetime.now(UTC)
+        and expires_at.astimezone(UTC) <= _marketdata_app_policy_now_utc()
     )
 
 
@@ -2009,6 +2345,184 @@ def provider_reviewed_flag(value: object) -> bool:
     """Accept only an actual boolean ``True`` for operator review gates."""
 
     return isinstance(value, bool) and value
+
+
+def coinbase_market_data_use_authority_missing(
+    now: datetime | None = None, *, source: object | None = None
+) -> list[str]:
+    """Require current, scoped written authority before Coinbase requests."""
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(
+        getattr(source, "COINBASE_MARKET_DATA_USE_AUTHORIZED", False)
+    ):
+        missing.append("COINBASE_MARKET_DATA_USE_AUTHORIZED")
+    if not str(
+        getattr(source, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "") or ""
+    ).strip():
+        missing.append("COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE")
+    if str(
+        getattr(source, "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "") or ""
+    ).strip() != "internal_automated_persistent_nonredistributed":
+        missing.append("COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "COINBASE_MARKET_DATA_USE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None:
+        missing.append("COINBASE_MARKET_DATA_USE_REVIEWED_AT")
+    elif reviewed_at > now:
+        missing.append("COINBASE_MARKET_DATA_USE_REVIEWED_AT")
+    expires_at = getattr(source, "COINBASE_MARKET_DATA_USE_EXPIRES_AT", None)
+    if expires_at is not None:
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            missing.append("COINBASE_MARKET_DATA_USE_EXPIRES_AT")
+        elif expires_at <= now:
+            missing.append("COINBASE_MARKET_DATA_USE_EXPIRES_AT")
+    return missing
+
+
+def xstocks_market_data_use_authority_missing(
+    now: datetime | None = None, *, source: object | None = None
+) -> list[str]:
+    """Require current xStocks automation and jurisdiction evidence."""
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(
+        getattr(source, "XSTOCKS_MARKET_DATA_USE_AUTHORIZED", False)
+    ):
+        missing.append("XSTOCKS_MARKET_DATA_USE_AUTHORIZED")
+    if not str(
+        getattr(source, "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "") or ""
+    ).strip():
+        missing.append("XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE")
+    if str(
+        getattr(source, "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "") or ""
+    ).strip() != "internal_automated_persistent_nonredistributed":
+        missing.append("XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None:
+        missing.append("XSTOCKS_MARKET_DATA_USE_REVIEWED_AT")
+    elif reviewed_at > now:
+        missing.append("XSTOCKS_MARKET_DATA_USE_REVIEWED_AT")
+    expires_at = getattr(source, "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+    if expires_at is not None:
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            missing.append("XSTOCKS_MARKET_DATA_USE_EXPIRES_AT")
+        elif expires_at <= now:
+            missing.append("XSTOCKS_MARKET_DATA_USE_EXPIRES_AT")
+    if not provider_reviewed_flag(
+        getattr(source, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", False)
+    ):
+        missing.append("XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED")
+    if not str(
+        getattr(source, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "") or ""
+    ).strip():
+        missing.append("XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE")
+    return missing
+
+
+def bybit_xstocks_market_data_use_authority_missing(
+    now: datetime | None = None, *, source: object | None = None
+) -> list[str]:
+    """Require current Bybit xStocks use and non-restricted egress evidence.
+
+    Bybit's public xStocks surface is not automatically a permitted source for
+    an automated/persistent deployment.  The egress control is separate from
+    the generic xStocks authority because Bybit documents provider-specific
+    IP-jurisdiction restrictions (US/Mainland China).
+    """
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(
+        getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED", False)
+    ):
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED")
+    if not str(
+        getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "") or ""
+    ).strip():
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE")
+    if str(
+        getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "") or ""
+    ).strip() != "internal_automated_persistent_nonredistributed":
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None:
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT")
+    elif reviewed_at > now:
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT")
+    expires_at = getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+    if expires_at is not None:
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT")
+        elif expires_at <= now:
+            missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT")
+    if not provider_reviewed_flag(
+        getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", False)
+    ):
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED")
+    if not str(
+        getattr(source, "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE", "")
+        or ""
+    ).strip():
+        missing.append("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE")
+    return missing
+
+
+def fred_data_use_controls_missing(source: object | None = None) -> list[str]:
+    """Require reviewed persisted-data and automated-use authority for FRED."""
+
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(
+        getattr(source, "FRED_PERSISTED_STORAGE_AUTHORIZED", False)
+    ):
+        missing.append("FRED_PERSISTED_STORAGE_AUTHORIZED")
+    if not str(
+        getattr(source, "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "") or ""
+    ).strip():
+        missing.append("FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE")
+    if not provider_reviewed_flag(
+        getattr(source, "FRED_AUTOMATED_USE_AUTHORIZED", False)
+    ):
+        missing.append("FRED_AUTOMATED_USE_AUTHORIZED")
+    if not str(
+        getattr(source, "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "") or ""
+    ).strip():
+        missing.append("FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE")
+    return missing
+
+
+def fred_series_rights_authorized(series_id: str, source: object | None = None) -> bool:
+    """Return whether this exact provider series has recorded rights evidence."""
+
+    source = source or settings
+    rights = getattr(source, "FRED_SERIES_RIGHTS_EVIDENCE", {})
+    if not isinstance(rights, dict):
+        return False
+    evidence = rights.get(series_id)
+    return isinstance(evidence, str) and bool(evidence.strip())
+
+
+def fred_series_rights_missing(source: object | None = None) -> list[str]:
+    """Return missing rights records for every series exposed by the adapter."""
+
+    source = source or settings
+    rights = getattr(source, "FRED_SERIES_RIGHTS_EVIDENCE", {})
+    if not isinstance(rights, dict):
+        return ["FRED_SERIES_RIGHTS_EVIDENCE"]
+    return (
+        ["FRED_SERIES_RIGHTS_EVIDENCE"]
+        if any(
+            not isinstance(rights.get(series_id), str)
+            or not rights[series_id].strip()
+            for series_id in FRED_MAPPED_SERIES_IDS
+        )
+        else []
+    )
 
 
 def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
@@ -2061,24 +2575,25 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                 seed["quota_contract"] = contract
         return seed
     if provider_name == "fred":
-        # The public v1 error contract gives a numeric threshold, but not a
-        # durable enforcement scope and permits the provider to adjust limits.
-        # Only an operator-reviewed conservative scope/limit plus an explicit
-        # series-rights review may remove those unknown dimensions. This is a
-        # configuration-controlled admission gate, never a guessed fallback.
+        # A reviewed API limit alone is not enough: this application persists
+        # observations and automated use must be covered by evidence. The
+        # adapter separately checks the exact series-rights record before each
+        # provider request.
         scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
         reviewed_limit = provider_positive_integer(
             getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         )
-        terms_reviewed = provider_reviewed_flag(
-            getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
-        )
+        quota_evidence = str(
+            getattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "") or ""
+        ).strip()
         allowed_scopes = {"api_key", "account", "ip", "deployment"}
         if (
             scope in allowed_scopes
             and reviewed_limit is not None
             and reviewed_limit <= 120
-            and terms_reviewed
+            and quota_evidence
+            and not fred_data_use_controls_missing()
+            and not fred_series_rights_missing()
             and isinstance(seed.get("quota_contract"), dict)
         ):
             contract = seed["quota_contract"]
@@ -2089,11 +2604,13 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
                     dimension["scope"] = scope
                     dimension["quota_group"] = scope
             contract["source"] = (
-                f"{contract.get('source', 'FRED v1 errors')} plus operator-reviewed "
-                "deployment admission controls"
+                f"{contract.get('source', 'FRED v1 errors')} plus separately reviewed "
+                "quota-scope and persisted-storage authority evidence"
             )
             seed["quota_scope"] = scope
-            seed["quota_source"] = "FRED v1 documented threshold plus operator-reviewed controls"
+            seed["quota_source"] = (
+                "FRED v1 threshold plus provider-confirmed quota and storage-rights evidence"
+            )
         return seed
     required = _BYTE_BOUND_OPERATIONS.get(provider_name)
     if not required:

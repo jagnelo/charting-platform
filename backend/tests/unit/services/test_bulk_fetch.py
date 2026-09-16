@@ -53,6 +53,18 @@ async def test_bulk_fetch_passes_historical_end_to_each_provider_request(monkeyp
     ]
 
 
+def test_bulk_history_start_uses_reviewed_provider_bound_and_fails_closed_for_unknown():
+    end = bulk_fetch.datetime(2026, 9, 16, tzinfo=bulk_fetch.UTC)
+
+    assert bulk_fetch._provider_bulk_history_start("massive", end) == bulk_fetch.datetime(
+        2024, 9, 16, tzinfo=bulk_fetch.UTC
+    )
+    assert bulk_fetch._provider_bulk_history_start("ibkr", end) == bulk_fetch.datetime(
+        2011, 9, 16, tzinfo=bulk_fetch.UTC
+    )
+    assert bulk_fetch._provider_bulk_history_start("alpaca", end) == bulk_fetch.EPOCH_START
+
+
 def test_bars_through_end_rejects_future_provider_rows():
     end = bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC)
     bars = [
@@ -211,5 +223,8 @@ async def test_bulk_fetch_attaches_provider_series_before_persisting(monkeypatch
     assert calls["attach"][2] is execution
     assert calls["rows"] == [bar]
     assert bar.market_series_id == 123
-    assert calls["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] > 1
+    assert calls["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] >= 1
+    assert calls["execute_kwargs"]["history_start"]("massive") == bulk_fetch.datetime(
+        2022, 1, 1, tzinfo=bulk_fetch.UTC
+    )
     assert calls["committed"] is True

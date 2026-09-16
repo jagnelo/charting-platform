@@ -237,6 +237,21 @@ def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -
     assert not module.external_service_path("frontend/src/views/Workstation.vue")
 
 
+def test_external_service_acceptance_requires_precommit_candidate_live_matrix() -> None:
+    root = Path(__file__).parents[2]
+    policy = root.joinpath("docs/agent-orchestration.md").read_text()
+    runner = root.joinpath("scripts/run-live-provider-probes.py").read_text()
+
+    assert "Before committing provider source changes" in policy
+    assert "--allow-staged-candidate" in policy
+    assert "git rev-parse HEAD^{tree}" in policy
+    assert "candidate_tree_sha" in runner
+    assert "staged_candidate_full_matrix_passed" in runner
+    assert "checkout-index" in runner
+    assert "redact_runner_output" in runner
+    assert "staged_secret_findings" in runner
+
+
 def test_dirty_paths_preserves_leading_porcelain_status_column(
     tmp_path: Path, monkeypatch
 ) -> None:

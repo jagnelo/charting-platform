@@ -44,7 +44,9 @@ def quota_group_for_dimension(capability: str, dimension: dict[str, Any]) -> str
     Providers sometimes publish an account/key-wide allowance used by several
     capabilities.  Contracts must opt into that sharing with ``quota_group``;
     otherwise the legacy capability key remains the isolated bucket.  This
-    fallback is a compatibility key, not a guessed provider limit.
+    This fallback preserves older capability-scoped counters, not a provider
+    limit. New contracts should declare an explicit grouping when several
+    capabilities share one provider/account pool.
     """
 
     configured = dimension.get("quota_group")

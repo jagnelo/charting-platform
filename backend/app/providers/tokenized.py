@@ -16,11 +16,16 @@ from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
 from math import isfinite
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import httpx
 
-from app.config import settings
+from app.config import (
+    bybit_xstocks_market_data_use_authority_missing,
+    settings,
+    xstocks_market_data_use_authority_missing,
+)
 from app.providers.base import TokenizedAssetRecord
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -117,7 +122,13 @@ def _http_json(
     attempts = max(0, min(int(retry_server_errors), 2))
     for attempt in range(attempts + 1):
         try:
-            response = httpx.get(url, params=params, headers=headers, timeout=30)
+            response = httpx.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=30,
+                follow_redirects=False,
+            )
         except httpx.RequestError as exc:
             raise ProviderResponseError(provider_name or url.split("/", 3)[2], str(exc)) from exc
         observe_response(response)
@@ -318,6 +329,16 @@ class XStocksProvider:
     base_url = "https://api.xstocks.fi/api/v2"
     description = "xStocks tokenized equity/ETF metadata, prices and corporate actions"
 
+    @staticmethod
+    def _require_market_data_authority() -> None:
+        missing = xstocks_market_data_use_authority_missing()
+        if missing:
+            raise ProviderNotConfiguredError(
+                "xStocks market-data use lacks current, scoped automation and "
+                "jurisdiction authority: "
+                + ", ".join(missing)
+            )
+
     def _headers(self) -> dict[str, str]:
         key = str(getattr(settings, "XSTOCKS_API_KEY", "") or "").strip()
         return {"X-API-KEY": key} if key else {}
@@ -372,6 +393,7 @@ class XStocksProvider:
     def discover_tokenized_assets(
         self, *, page: int = 0, page_size: int = 100
     ) -> list[TokenizedAssetRecord]:
+        self._require_market_data_authority()
         payload = _http_json(
             f"{self.base_url}/public/assets",
             provider_name=self.name,
@@ -382,6 +404,7 @@ class XStocksProvider:
         return [self._record(item) for item in nodes]
 
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
+        self._require_market_data_authority()
         payload = _http_json(
             f"{self.base_url}/public/assets/{identifier}",
             provider_name=self.name,
@@ -393,6 +416,7 @@ class XStocksProvider:
         return self._record(body)
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
+        self._require_market_data_authority()
         payload = _http_json(
             f"{self.base_url}/public/assets/{identifier}/price-data",
             provider_name=self.name,
@@ -418,6 +442,7 @@ class XStocksProvider:
         page: int = 1,
         page_size: int = 100,
     ) -> list[dict[str, Any]]:
+        self._require_market_data_authority()
         endpoint = "upcoming" if upcoming else "history"
         payload = _http_json(
             f"{self.base_url}/public/corporate-actions/{endpoint}",
@@ -550,6 +575,11 @@ class BybitXStocksProvider:
 
     @staticmethod
     def _instruments(cursor: str | None = None, limit: int = 500) -> dict[str, Any]:
+        missing = bybit_xstocks_market_data_use_authority_missing()
+        if missing:
+            raise ProviderNotConfiguredError(
+                "bybit_xstocks market-data use is not admitted: " + ", ".join(missing)
+            )
         params: dict[str, Any] = {
             "category": "spot",
             "symbolType": "xstocks",
@@ -635,6 +665,11 @@ class BybitXStocksProvider:
         return self._record(row) if row is not None else None
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
+        missing = bybit_xstocks_market_data_use_authority_missing()
+        if missing:
+            raise ProviderNotConfiguredError(
+                "bybit_xstocks market-data use is not admitted: " + ", ".join(missing)
+            )
         asset = self.get_tokenized_asset(identifier)
         payload = _http_json(
             f"{self.base_url}/v5/market/tickers",
@@ -916,6 +951,8 @@ class DinariTokenProvider:
 
     name = "dinari"
     base_url = "https://api-enterprise.sandbox.dinari.com/api/v2"
+    sandbox_origin = "https://api-enterprise.sandbox.dinari.com"
+    sandbox_base_path = "/api/v2"
     description = "Dinari dShare tokenized-stock metadata, prices, quotes, and history"
 
     def __init__(self) -> None:
@@ -945,7 +982,26 @@ class DinariTokenProvider:
 
     def _base_url(self) -> str:
         value = str(getattr(settings, "DINARI_API_BASE_URL", "") or "").strip().rstrip("/")
-        return value or self.base_url
+        value = value or self.base_url
+        try:
+            parsed = urlsplit(value)
+            valid_origin = (
+                parsed.scheme == "https"
+                and parsed.hostname == "api-enterprise.sandbox.dinari.com"
+                and parsed.port in (None, 443)
+                and parsed.username is None
+                and parsed.password is None
+                and not parsed.query
+                and not parsed.fragment
+                and parsed.path.rstrip("/") == self.sandbox_base_path
+            )
+        except ValueError:
+            valid_origin = False
+        if not valid_origin:
+            raise ProviderNotConfiguredError(
+                "dinari is sandbox-canary-only; DINARI_API_BASE_URL must use the documented Sandbox origin and /api/v2 path"
+            )
+        return f"{self.sandbox_origin}{self.sandbox_base_path}"
 
     def _headers(self) -> dict[str, str]:
         key_id = str(getattr(settings, "DINARI_API_KEY_ID", "") or "").strip()

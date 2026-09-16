@@ -346,6 +346,27 @@ def estimate_marketdata_app_latest_ohlcv_credit_count(
     return estimate_marketdata_app_ohlcv_credit_count(timeframe, bounded_start, bounded_end)
 
 
+def estimate_marketdata_app_option_quote_history_credit_count(
+    start: datetime, end: datetime
+) -> int | None:
+    """Estimate one contract's historical quote credits conservatively.
+
+    MarketData.app bills historical option quotes at one credit per 1,000
+    returned observations. The request is date-granular and a single contract
+    can contribute at most one end-of-day observation per inclusive calendar
+    day, so the inclusive date span is the reviewed upper bound. Invalid or
+    reversed ranges remain unadmitted rather than falling back to an assumed
+    one-credit request.
+    """
+
+    bounded_start = _bounded_datetime(start)
+    bounded_end = _bounded_datetime(end)
+    if bounded_end < bounded_start:
+        return None
+    span_days = max(1, (bounded_end.date() - bounded_start.date()).days + 1)
+    return max(1, ceil(span_days / 1000))
+
+
 def _number(value: Any) -> float | None:
     try:
         if isinstance(value, bool) or value in (None, "", "null", "None", "-"):
@@ -595,6 +616,64 @@ def _parallel_candle_rows(payload: Any, provider_name: str) -> list[dict[str, An
         {"t": ts, "o": open_, "h": high, "l": low, "c": close, "v": volume}
         for ts, open_, high, low, close, volume in zip(*arrays)
     ]
+
+
+def _parallel_stock_quote_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
+    """Expand MarketData.app's parallel delayed-stock-quote response.
+
+    The quotes endpoint returns one array per field.  Treat a missing or
+    mismatched array as a provider response error instead of silently pairing
+    the wrong symbol with a price.  Optional quote fields are filled with
+    ``None`` when the provider omits the whole column.
+    """
+
+    if not isinstance(payload, dict):
+        raise ProviderResponseError(provider_name, "provider returned an invalid stock-quote object")
+    status = str(payload.get("s") or "").strip().lower()
+    if status == "no_data":
+        return []
+    if status != "ok":
+        raise ProviderResponseError(
+            provider_name,
+            f"provider returned an invalid stock-quote status: {status or '<missing>'}",
+        )
+    symbols = payload.get("symbol")
+    if not isinstance(symbols, list):
+        raise ProviderResponseError(provider_name, "provider returned an invalid stock-quote symbol array")
+    expected_length = len(symbols)
+    fields = (
+        "ask",
+        "askSize",
+        "bid",
+        "bidSize",
+        "mid",
+        "last",
+        "change",
+        "changepct",
+        "volume",
+        "updated",
+        "52weekHigh",
+        "52weekLow",
+    )
+    arrays: dict[str, list[Any]] = {"symbol": symbols}
+    for field in fields:
+        value = payload.get(field)
+        if value is None:
+            arrays[field] = [None] * expected_length
+        elif not isinstance(value, list) or len(value) != expected_length:
+            raise ProviderResponseError(
+                provider_name, f"provider returned a mismatched stock-quote {field} array"
+            )
+        else:
+            arrays[field] = value
+
+    rows: list[dict[str, Any]] = []
+    for index, raw_symbol in enumerate(symbols):
+        symbol = str(raw_symbol or "").strip().upper()
+        if not symbol:
+            raise ProviderResponseError(provider_name, "provider returned a stock quote without a symbol")
+        rows.append({field: values[index] for field, values in arrays.items()})
+    return rows
 
 
 def _parallel_option_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
@@ -1201,9 +1280,23 @@ class TwelveDataProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._strict_rows(
-            self._get("stocks", {"country": "United States"}), self.name, "data"
+        # Twelve Data exposes a paged ``/stocks`` catalogue.  Always pass the
+        # page and output-size explicitly: requesting the country catalogue
+        # without those bounds can return the entire supported-symbol list,
+        # which is neither a bounded live probe nor a safe per-refresh read.
+        page_size = 500
+        page_number = (offset // page_size) + 1
+        type_filter = "ETF" if normalized == "ETF" else "Common Stock"
+        payload = self._get(
+            "stocks",
+            {
+                "country": "United States",
+                "type": type_filter,
+                "page": page_number,
+                "outputsize": page_size,
+            },
         )
+        rows = self._strict_rows(payload, self.name, "data")
         filtered: list[dict[str, Any]] = []
         for row in rows:
             symbol = _required_text(row, self.name, "symbol", "symbol")
@@ -1221,8 +1314,20 @@ class TwelveDataProvider(_RESTProvider):
                     "status": "active",
                 }
             )
-        page_size = 500
-        return {"total": len(filtered), "quotes": filtered[offset : offset + page_size]}
+        # ``count`` is the provider's total for the filtered catalogue.  Do
+        # not infer a total from the current page, which would make a complete
+        # page look like an exhausted universe.  A missing count is a
+        # malformed pagination response rather than permission to guess.
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(
+                self.name, "provider omitted the stocks pagination count"
+            )
+        total = _strict_int(payload.get("count"), self.name, "stocks pagination count")
+        if total < len(rows):
+            raise ProviderResponseError(
+                self.name, "provider returned contradictory stocks pagination metadata"
+            )
+        return {"total": total, "quotes": filtered[offset % page_size :]}
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]
@@ -1595,6 +1700,42 @@ class MarketDataAppProvider(_RESTProvider):
             key=lambda bar: bar.ts,
         )
 
+    def get_current_price(self, symbol: str) -> float | None:
+        """Return the latest provider quote without relying on a candle date.
+
+        MarketData.app exposes delayed stock quotes separately from historical
+        candles.  Using the quote endpoint is important on weekends, holidays,
+        and for plans whose candle surface is at least one day delayed: a
+        one-day candle request can legitimately return ``no_data`` even though
+        the latest delayed quote is available.
+        """
+
+        normalized_symbol = str(symbol or "").strip().upper()
+        if not normalized_symbol:
+            return None
+        payload = self._get(f"stocks/quotes/{normalized_symbol}/")
+        rows = _parallel_stock_quote_rows(payload, self.name)
+        row = next((item for item in rows if item["symbol"] == normalized_symbol), None)
+        if row is None:
+            return None
+
+        # ``last`` is the provider's most recent trade.  Fall back to the
+        # documented midpoint, then a one-sided quote, without fabricating a
+        # value when every price field is null.
+        for field in ("last", "mid"):
+            value = _number(row.get(field))
+            if value is not None:
+                return float(value)
+        bid = _number(row.get("bid"))
+        ask = _number(row.get("ask"))
+        if bid is not None and ask is not None:
+            return float((bid + ask) / 2)
+        if bid is not None:
+            return float(bid)
+        if ask is not None:
+            return float(ask)
+        return None
+
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         seconds = _TF_SECONDS.get(timeframe)
         if seconds is None:
@@ -1730,10 +1871,10 @@ class MarketDataAppProvider(_RESTProvider):
         """Fetch current or end-of-day option quotes for one OCC contract.
 
         MarketData.app prices historical quote series per 1,000 observations
-        and returns Greeks as null for historical requests. The provider's
-        response-dependent charge is intentionally not assigned a guessed
-        fixed operation cost; runtime routing stays fail-closed until an
-        operator-reviewed reservation bound is supplied.
+        and returns Greeks as null for historical requests. Callers must use
+        ``estimate_marketdata_app_option_quote_history_credit_count`` for the
+        exact inclusive date range before reserving provider quota; no fixed
+        one-request fallback is permitted.
         """
 
         bounded_start = _bounded_datetime(start)

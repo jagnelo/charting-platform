@@ -1,6 +1,12 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from app.config import provider_rate_limit_seed, settings
+from app.config import (
+    FRED_MAPPED_SERIES_IDS,
+    bybit_xstocks_market_data_use_authority_missing,
+    coinbase_market_data_use_authority_missing,
+    provider_rate_limit_seed,
+    settings,
+)
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
 from app.providers.registry import (
     get_default_discovery_provider,
@@ -249,13 +255,34 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         monkeypatch.setattr(settings, "FINRA_OTC_OPERATION_COSTS", {})
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+        monkeypatch.setattr(settings, "FINRA_OTC_REVIEWED_SOURCE_URL", "")
         monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
         monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)
         monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0)
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
-        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
+        monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FRED_SERIES_RIGHTS_EVIDENCE", {})
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_REVIEWED_AT", None)
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_EXPIRES_AT", None)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", None)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "")
         monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
         monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
         # The local worktree may be configured with an active MarketData.app
@@ -270,6 +297,10 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"
         ]
+        assert provider_routing_control_settings("finra", "fetch_short_interest") == ()
+        assert provider_missing_routing_controls("finra", "fetch_short_interest") == []
+        assert provider_routing_control_settings("finra", "fetch_market_events") == ()
+        assert provider_missing_routing_controls("finra", "fetch_market_events") == []
         assert provider_routing_control_settings("alpaca") == (
             "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
         )
@@ -305,6 +336,9 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 1024)
         assert provider_routing_control_settings("finra_otc_directory") == (
             "FINRA_OTC_OPERATION_COSTS",
+            "FINRA_OTC_SOURCE_REVIEWED",
+            "FINRA_OTC_SOURCE_EVIDENCE",
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
             "FINRA_OTC_TERMS_REVIEWED",
             "FINRA_OTC_COMPLETENESS_REVIEWED",
             "FINRA_OTC_REDISTRIBUTION_REVIEWED",
@@ -312,20 +346,106 @@ class TestProviderRegistry:
         )
         assert provider_missing_routing_controls("finra_otc_directory") == [
             "FINRA_OTC_OPERATION_COSTS",
+            "FINRA_OTC_SOURCE_REVIEWED",
+            "FINRA_OTC_SOURCE_EVIDENCE",
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
             "FINRA_OTC_TERMS_REVIEWED",
             "FINRA_OTC_COMPLETENESS_REVIEWED",
             "FINRA_OTC_REDISTRIBUTION_REVIEWED",
             "FINRA_OTC_POLL_INTERVAL_SECONDS",
         ]
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_OPERATION_COSTS",
+            {"discover_universe_page": 3, "reconcile_universe_page": 3},
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "FINRA case reference")
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", "true")
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_SOURCE_REVIEWED",
+        ]
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", " ")
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_SOURCE_EVIDENCE",
+        ]
         assert provider_routing_control_settings("fred") == (
             "FRED_REVIEWED_LIMIT_SCOPE",
             "FRED_REVIEWED_REQUESTS_PER_MINUTE",
-            "FRED_SERIES_TERMS_REVIEWED",
+            "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_PERSISTED_STORAGE_AUTHORIZED",
+            "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+            "FRED_AUTOMATED_USE_AUTHORIZED",
+            "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+            "FRED_SERIES_RIGHTS_EVIDENCE",
         )
         assert provider_missing_routing_controls("fred") == [
             "FRED_REVIEWED_LIMIT_SCOPE",
             "FRED_REVIEWED_REQUESTS_PER_MINUTE",
-            "FRED_SERIES_TERMS_REVIEWED",
+            "FRED_REVIEWED_QUOTA_EVIDENCE",
+            "FRED_PERSISTED_STORAGE_AUTHORIZED",
+            "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+            "FRED_AUTOMATED_USE_AUTHORIZED",
+            "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+            "FRED_SERIES_RIGHTS_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("coinbase") == (
+            "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        )
+        assert provider_missing_routing_controls("coinbase") == [
+            "COINBASE_MARKET_DATA_USE_AUTHORIZED",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+        ]
+        assert provider_routing_control_settings("xstocks") == (
+            "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+            "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+            "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
+            "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("xstocks") == [
+            "XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+            "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+            "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED",
+            "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+        ]
+        assert provider_routing_control_settings("bybit_xstocks") == (
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
+        )
+        assert provider_missing_routing_controls("bybit_xstocks") == [
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
         ]
         assert provider_missing_routing_controls("tiingo") == [
             "TIINGO_OPERATION_BYTE_BOUNDS"
@@ -418,11 +538,54 @@ class TestProviderRegistry:
             "FINRA_OTC_OPERATION_COSTS",
             {"discover_universe_page": 3, "reconcile_universe_page": 3},
         )
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "FINRA support case 123")
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
         monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
         assert provider_missing_routing_controls("finra_otc_directory") == []
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/anotherDataset",
+        )
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_REVIEWED_SOURCE_URL"
+        ]
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "http://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
+            "http://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_REVIEWED_SOURCE_URL"
+        ]
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_REVIEWED_SOURCE_URL",
+            "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+        )
         monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", "true")
         assert provider_missing_routing_controls("finra_otc_directory") == [
             "FINRA_OTC_TERMS_REVIEWED"
@@ -442,29 +605,101 @@ class TestProviderRegistry:
             "FINRA_OTC_OPERATION_COSTS"
         ]
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
-        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
-        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
+        monkeypatch.setattr(settings, "FRED_REVIEWED_QUOTA_EVIDENCE", "provider-confirmed scope")
+        monkeypatch.setattr(settings, "FRED_PERSISTED_STORAGE_AUTHORIZED", True)
+        monkeypatch.setattr(
+            settings,
+            "FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE",
+            "written permission for persisted data",
+        )
+        monkeypatch.setattr(settings, "FRED_AUTOMATED_USE_AUTHORIZED", True)
+        monkeypatch.setattr(
+            settings,
+            "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE",
+            "written automated-use permission",
+        )
+        monkeypatch.setattr(
+            settings,
+            "FRED_SERIES_RIGHTS_EVIDENCE",
+            {series_id: "written series terms" for series_id in FRED_MAPPED_SERIES_IDS},
+        )
         assert provider_missing_routing_controls("fred") == []
-        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", "true")
-        assert provider_missing_routing_controls("fred") == [
-            "FRED_SERIES_TERMS_REVIEWED"
-        ]
-        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", True)
         assert provider_missing_routing_controls("fred") == [
             "FRED_REVIEWED_REQUESTS_PER_MINUTE"
         ]
-        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 120)
         fred_seed = provider_rate_limit_seed("fred")
         assert fred_seed["quota_scope"] == "api_key"
         assert fred_seed["quota_contract"]["unknown_dimensions"] == []
-        assert fred_seed["quota_contract"]["dimensions"][0]["limit"] == 60
+        assert fred_seed["quota_contract"]["dimensions"][0]["limit"] == 120
         assert fred_seed["quota_contract"]["dimensions"][0]["scope"] == "api_key"
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORIZED", True)
+        monkeypatch.setattr(settings, "COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
+        monkeypatch.setattr(
+            settings,
+            "COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "internal_automated_persistent_nonredistributed",
+        )
+        monkeypatch.setattr(
+            settings,
+            "COINBASE_MARKET_DATA_USE_REVIEWED_AT",
+            datetime.now(UTC) - timedelta(minutes=1),
+        )
+        assert coinbase_market_data_use_authority_missing() == []
+        monkeypatch.setattr(
+            settings,
+            "COINBASE_MARKET_DATA_USE_EXPIRES_AT",
+            datetime.now(UTC) - timedelta(seconds=1),
+        )
+        assert coinbase_market_data_use_authority_missing() == [
+            "COINBASE_MARKET_DATA_USE_EXPIRES_AT"
+        ]
         assert provider_missing_routing_controls("tiingo") == []
         assert provider_missing_routing_controls("fmp") == []
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         assert provider_missing_routing_controls("marketdata_app") == []
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORIZED", True)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment")
+        monkeypatch.setattr(
+            settings,
+            "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "internal_automated_persistent_nonredistributed",
+        )
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", datetime.now(UTC))
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", True)
+        monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "deployment review")
+        assert provider_missing_routing_controls("xstocks") == []
+        monkeypatch.setattr(settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED", True)
+        monkeypatch.setattr(
+            settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE", "terms amendment"
+        )
+        monkeypatch.setattr(
+            settings,
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "internal_automated_persistent_nonredistributed",
+        )
+        monkeypatch.setattr(settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT", datetime.now(UTC))
+        monkeypatch.setattr(
+            settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", True
+        )
+        monkeypatch.setattr(
+            settings,
+            "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
+            "deployment review",
+        )
+        assert bybit_xstocks_market_data_use_authority_missing() == []
+        assert provider_missing_routing_controls("bybit_xstocks") == []
+        monkeypatch.setattr(
+            settings,
+            "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT",
+            datetime.now(UTC) - timedelta(seconds=1),
+        )
+        assert provider_missing_routing_controls("xstocks") == [
+            "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT"
+        ]
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10000)
         monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)

@@ -21,6 +21,8 @@ Earnings date approximation:
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import time
 from datetime import UTC, date, datetime
@@ -90,12 +92,11 @@ class EdgarProvider:
         return {"User-Agent": user_agent}
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
-        """Search the SEC's cached issuer ticker directory without provider fan-out.
+        """Search the SEC's cached ticker-association directory without fan-out.
 
-        The directory is the authoritative SEC identity/search source for US
-        issuers.  It deliberately returns only identity fields; prices and
-        tradability are resolved separately through the configured market-data
-        chain.
+        SEC cautions that these associations do not guarantee accuracy or
+        scope. This is a search aid, not an authoritative or complete US issuer
+        or security master. Prices and tradability are resolved separately.
         """
         needle = query.strip().upper()
         if not needle or limit <= 0:
@@ -147,15 +148,16 @@ class EdgarProvider:
         return {"total": len(_exchange_directory), "quotes": quotes}
 
     def discover_issuer_ciks_page(self, offset: int, *, limit: int = 250) -> dict[str, Any]:
-        """Page the complete SEC issuer ticker directory by unique CIK.
+        """Page SEC's ticker-association directory by unique CIK.
 
         ``company_tickers.json`` is an issuer/ticker directory rather than a
         listing feed.  A ticker can therefore occur more than once, while one
         issuer can publish multiple tickers.  Build a deterministic unique-CIK
         view before paging so a durable filing scan never requests the same
         submissions document twice merely because an issuer has several
-        listings.  Ambiguous ticker rows are retained as candidates; their CIK
-        evidence is still authoritative for issuer-level scanning.
+        listings. Ambiguous ticker rows are retained as candidates. SEC notes
+        that this directory does not guarantee accuracy or scope, so it is not
+        an authoritative security master or a complete US-listed universe.
         """
 
         if (
@@ -195,20 +197,35 @@ class EdgarProvider:
                     cik,
                     {
                         "cik": f"{cik:010d}",
-                        "name": str(candidate.get("title") or entry.get("title") or ticker).strip(),
                         "tickers": [],
+                        "name_candidates": [],
                     },
                 )
                 if ticker not in row["tickers"]:
                     row["tickers"].append(ticker)
-                if not row["name"]:
-                    row["name"] = ticker
+                candidate_name = str(candidate.get("title") or entry.get("title") or ticker).strip()
+                if candidate_name and candidate_name not in row["name_candidates"]:
+                    row["name_candidates"].append(candidate_name)
 
         issuers = sorted(by_cik.values(), key=lambda row: int(row["cik"]))
+        for row in issuers:
+            row["tickers"] = sorted(row["tickers"])
+            row["name_candidates"] = sorted(
+                row["name_candidates"], key=lambda name: (name.casefold(), name)
+            )
+            row["name"] = row["name_candidates"][0] if len(row["name_candidates"]) == 1 else ""
+        canonical_source = json.dumps(
+            issuers,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        source_fingerprint = hashlib.sha256(canonical_source).hexdigest()
         return {
             "total": len(issuers),
             "offset": offset,
             "limit": limit,
+            "source_fingerprint": source_fingerprint,
             "issuers": issuers[offset : offset + limit],
         }
 

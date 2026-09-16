@@ -116,7 +116,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: in_progress
+status: ready_for_human_review
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -205,16 +205,123 @@ remaining_gaps:
   - Dinari and Ondo Global Markets are now concrete fixture-covered tokenized adapters. Dinari exposes UUID metadata, fair price/quote, aggregate history, news, dividends, splits, and the generic corporate-action surface; its replacement Sandbox pair now has positive live evidence after the operator-only base URL was corrected to the documented Sandbox host. Ondo exposes metadata, indicative price, a primary/underlying market summary, and validated primary/underlying OHLC but still lacks its exact credential. Both remain non-routable because account quotas, caching, commercial/US eligibility, and redistribution terms are not yet fully verified.
   - Historical context only: the post-change live attempt at 2026-09-10T14:29Z collected 37 tests before the newly supplied Alpaca, MarketData.app, and Dinari Sandbox credentials were configured. The available provider probes recorded only aggregate request/byte telemetry outside Git; Dinari and Ondo stopped at their exact credential preflights in that run. The superseding 2026-09-11 matrix is recorded below; no historical run is treated as current acceptance evidence.
   - provider-specific incomplete contracts (FRED v1's published 120-requests/minute threshold is now paired with explicit fail-closed review controls for scope, conservative limit, and series terms; Nasdaq Trader polling; xStocks' unpublished public quota plus its official US-person/jurisdiction and redistribution restriction; Bybit xStocks endpoint/UID limits and provider-native header state; and FINRA OTC source terms/polling/redistribution approval) remain non-routable until reviewed; the separate FRED v2 2-requests/second rule is not applied to the v1 adapter; Tiingo/FMP bandwidth enforcement is implemented fail-closed and requires a complete operator-reviewed per-operation byte-bound map before promotion; Tiingo's provider-specific 500-unique-symbol monthly pool now has a durable per-window identity ledger and is no longer approximated as request count; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest, OTC Daily List, and the configurable OTC Security Master path now record the documented 1,200/minute/IP and 3 MB synchronous platform limits, with the credentialed datasets reserving the 3 MB maximum against the 10 GB monthly budget and settling to observed bytes; FINRA async signed-result accounting is implemented and fixture-tested, but remains default non-routable until a positive reviewed `FINRA_ASYNC_MAX_RESULT_BYTES` bound is supplied; the current FINRA API Terms of Service and dataset-specific redistribution/authorized-user boundary are recorded as a separate legal gate; every registered synchronous provider adapter now reports observed HTTP request counts, response bytes, and selected rate-limit headers into the runtime telemetry context; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded; Bybit's official 600/5-second/IP outer ceiling and rolling per-second endpoint/UID model are recorded, while the current public xStocks edge omitted the documented `X-Bapi-Limit*` headers during live validation, so no missing native state is guessed
+  - >-
+    2026-09-16 MarketData.app decision and bounded live verification: the owner
+    configuration uses the reviewed Starter Trial 10,000-credit reset-day pool
+    through `2026-10-11T18:09:00+01:00`, then dynamically falls back to the
+    configurable Free Forever 100-credit pool. Paid plan changes remain
+    provider-specific configuration, with paid routing separately gated.
+    Exact-boundary unit coverage and runtime entitlement/quota reseeding pass.
+    The current worktree's focused live subset passed all 5 cases with complete
+    same-run operation evidence (5 upstream requests / 15,336 response bytes;
+    the unbounded historical-option guard made zero requests). The receipt is
+    `not_current_source` because tracked source files are still dirty; it is
+    transport/usage evidence only, not exact candidate or full-matrix
+    acceptance. Do not repeat the calls just to change this status.
+    Previously outstanding non-MarketData.app contract, source, full-universe,
+    CI/deployment-secret, and final shadow gates remain open.
+  - >-
+    2026-09-16 live-matrix safety correction: the Nasdaq official directory is
+    admitted as one shared two-request cold snapshot so the deployment-local
+    daily cap cannot be consumed twice; Finnhub profile/instrument-event/
+    market-event calls are all required manifest operations; direct live pytest
+    is blocked unless launched by the manifest runner; xStocks legal/jurisdiction
+    uncertainty blocks its live preflight; and Kraken/Kraken-xStocks share one
+    IP scope with a one-second inter-case pacing guard. Capability operations
+    not yet exercised live are enumerated in `LIVE_OPERATION_DISPOSITIONS` and
+    remain acceptance gaps rather than implied coverage; full-matrix preflight
+    now blocks before the live lock while any selected disposition remains
+    unresolved.
+  - >-
+    2026-09-16 MarketData.app account-introspection accounting correction:
+    authenticated `/user/` polling now has an explicit provider-specific zero
+    `credits_per_day` dimension cost while retaining the account-wide
+    concurrency lease and durable request/response telemetry. This prevents
+    cross-session quota overcounting and allows a first native usage snapshot
+    before a manual credit baseline exists. The follow-up credentialed bounded
+    MarketData.app matrix passed 7/7 cases (9 requests, 17,241 response bytes),
+    including `/user/`; its account-usage reservation settled zero daily-credit
+    units. Actual data/options operations remain gated by the reviewed
+    plan/limit baseline. The receipt is not-current-source because the
+    worktree is dirty.
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
+  - >-
+    2026-09-16 current-source MarketData.app live verification found and fixed
+    a real latest-price integration defect: the adapter had reused a one-day
+    candle window and could return no price on a non-session date. It now uses
+    the documented delayed stock-quotes endpoint with strict parallel-array
+    validation and provider-field fallbacks. Focused fixtures pass, and the
+    corrected credentialed matrix passed 7/7 bounded cases against the
+    configured Starter Trial account. The receipt is not-current-source while
+    this worktree is dirty, so this is transport/schema evidence rather than
+    candidate acceptance.
+  - >-
+    2026-09-16 Alpaca live-test reservation overrides now cover the exact
+    bounded five-day history and two-page corporate-action probes; the runner
+    no longer classifies those test costs as unreviewed. Alpaca execution still
+    requires a current durable IP/account baseline and the separately reviewed
+    corporate-action page bound. SEC EDGAR execution was preflight-blocked by
+    the missing current IP-window baseline and made no request. These are
+    operational admission gaps, not successful live evidence.
   - the 2026-09-11T17:43:45Z matrix supersedes the earlier missing-credential run: 33/37 passed, with only Alpha Vantage IPO-calendar capacity plus the explicitly deferred Tradier, IBKR, and Ondo credential preflights remaining. The run wrote only aggregate telemetry to `/private/tmp/charting-provider-live-usage-resume.jsonl`; no credentials or payloads entered Git.
   - the post-options complete matrix rerun at 2026-09-12 collected 39 cases and passed 35. The four honest outcomes were Alpha Vantage's documented 25-requests/day IPO-calendar capacity response plus exact intentional credential preflights for Tradier, IBKR, and Ondo. xStocks returned an explicit null quote while its selected token reported a closed trading period; the test records that provider state without fabricating a price. No acceptance claim was made.
   - MarketData.app now exposes provider-native per-response credit telemetry and the runtime settles actual `X-Api-Ratelimit-Consumed` values plus cumulative remaining-credit observations when the returned limit matches the reviewed plan. Current option-chain routing still requires the explicit positive `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` bound; the default zero remains non-routable. Historical single-contract quote reservations are range-derived from the provider's documented end-of-day semantics. This closes accounting visibility but not the wider provider-terms, CI/deployment, reconciliation, or shadow gates.
+  - >-
+    2026-09-16 exact native-account reconciliation: the durable coordinator now
+    accepts a MarketData.app `/user/` snapshot as a baseline only when the
+    provider is explicitly allow-listed and the returned limit, current reset,
+    and consumed (or exact limit-minus-remaining) counter match the reviewed
+    `credits_per_day` contract. The observation is labelled
+    `provider_account_observation`; every plan/limit/window/reset mismatch and
+    every other provider remains observation-only and fail-closed. Focused
+    quota/account/live-runner coverage passed 192/192 in the dirty worktree.
+  - >-
+      2026-09-16 opt-in native-usage refresh: deployments can now schedule a
+      once-daily worker snapshot for an explicit JSON provider list through
+      `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED` and
+      `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS`. The default is disabled and an
+      empty list never means all providers; each named provider still passes its
+      normal credential/quota/entitlement/circuit-breaker gates. Compose, RPi,
+      GitHub workflow, and environment examples are wired. Focused provider
+      wiring and worker validation passed 78/78.
+  - >-
+      2026-09-16 live-preflight accounting correction: an explicitly empty
+      provider dimension-cost map now means the reviewed operation is not
+      charged against that dimension; a non-empty map that omits an operation
+      remains unknown and fails closed. Added exact bounded live-manifest
+      reservations for Binance/Coinbase/Kraken latest candles, Massive's
+      30-day daily history, and Marketstack's five-day daily history. These are
+      test-case bounds only and do not become runtime provider defaults. The
+      focused quota/live-runner suite passed 71/71; the safety preflight still
+      stopped before network access because account baselines, legal/source
+      controls, and Tiingo/FMP byte maps remain unresolved.
+  - >-
+      2026-09-16 regression completion: the full backend unit suite passed
+      `2,292/2,292` with 37 warnings after the live-preflight accounting
+      correction and manifest-cost assertion. Targeted Ruff, compile,
+      workstream validation, and diff checks passed. The pinned formatter still
+      reports pre-existing whole-file baseline reformatting; no unrelated
+      formatting rewrite was applied.
   - The live MarketData.app key returned a native 10,000-credit daily limit, which is Starter-shaped rather than the repository's conservative Free Forever 100-credit seed. Native headers remain observational; routing now requires the exact reviewed `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT` pair, with documented Free Forever/Starter/Trader values only. Quant/Prime remain outside this daily contract until their per-minute dimensions are modeled.
   - The 2026-09-12 local credentialed matrix collected 46 cases and passed 40 after the SEC live-probe isolation refinement. Alpaca paper, EDGAR, MarketData.app, and rotated Dinari Sandbox cases passed; Alpha Vantage returned typed documented 25-requests/day capacity responses for IPO-calendar and both earnings reads, while Tradier, IBKR, and Ondo remained exact intentional credential preflights. Aggregate-only usage is recorded under the owner-managed external ledger; this is not acceptance evidence.
   - The SEC directory scan now has an explicit `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS` bound and a separate issuer-materialization policy. The task refuses to run when the bound is absent, invalid, or smaller than the configured page size; direct service calls validate the same 1..500 relationship and persist the reviewed bound and materialization mode in scan-state provenance. `create_missing` creates only validated CIK/name `Issuer` rows and never instruments/listings; the default `disabled` mode remains fail-closed pending operator policy review. Dinari's official production API pricing is documented as starting at $2,000/month; Sandbox evidence remains non-production transport evidence.
   - Radar now consumes the shared provider-neutral OHLCV preflight with its exact 80-bar signal minimum. Short/incomplete local histories are withheld before `analyze_instrument`, bounded repair jobs retain an `insufficient_history` reason, and the run summary includes serialized per-instrument preflight evidence plus bounded non-secret repair-job status/request-key records when opt-in repairs are requested; focused Radar unit/API coverage passed 35/35 and 13/13, with the authoritative backend gate passing 2,415/2,415 at 81.41%. Future signal engines beyond the currently covered paths remain open.
 progress:
   completed:
+    - >-
+      Corrected MarketData.app authenticated `/user/` accounting: the
+      explicitly routable `fetch_account_usage` operation keeps its positive
+      operation entry and account-wide concurrency lease, but excludes only
+      the `credits_per_day` dimension because the native consumed-credit
+      observation is zero for account introspection. This avoids durable
+      cross-session overcounting and permits first-use snapshots without an
+      invented starting balance. Focused quota/runtime/coordinator coverage
+      passed `5/5`; the full backend unit suite passed `2,294/2,294` with 37
+      warnings. A credentialed bounded MarketData.app matrix then passed 7/7
+      cases (9 requests, 17,241 response bytes), with `/user/` settling zero
+      daily-credit units. Its receipt is not-current-source because the
+      worktree is dirty; no integration, deployment, routing activation, or
+      shadow run was performed.
     - >-
       Direct live-provider usage receipts now retain a bounded operation
       breakdown in addition to provider totals: each operation records only
@@ -374,9 +481,12 @@ progress:
     - >-
       MarketData.app trial routing now requires the explicit
       `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` setting to be a future,
-      timezone-aware ISO-8601 value. Missing, naive, or elapsed expiries keep
-      the conservative Free Forever seed and are surfaced as the exact missing
-      routing control; the live safety preflight enforces the same rule.
+      timezone-aware ISO-8601 value. Missing or naive expiries keep the
+      conservative Free Forever seed and are surfaced as the exact missing
+      routing control. A later provider-specific trial-expiry implementation
+      now treats an elapsed aware expiry as a normal transition back to Free
+      Forever/100 credits per day; this supersedes the earlier fail-closed
+      elapsed-expiry behavior recorded here.
       Focused provider-policy/wiring coverage passed 127/127; Ruff and diff
       checks passed; the authoritative Docker-backed gate passed 2,454/2,454
       at 81.68% with 89 warnings in isolated testcontainer session
@@ -2638,4 +2748,110 @@ progress:
       workstream's resources. Source checkpoint `bbaf83789` contains no
       frontend or ETF-provider adapter changes and no provider calls were
       needed.
-  next_action: Continue the provider-by-provider official-documentation/account-header audit and exact quota/usage corrections; keep FINRA otcSecurityMaster quarantined pending the user's source decision; finish NMS and staged SEC lifecycle evidence, secret-domain and future-integration enforcement, then commit/push the settled source and run the exhaustive current-source live suite. Do not start the 30-day shadow run until every other controllable gate passes.
+    - >-
+      xStocks runtime routing now enforces the same fail-closed automation-use
+      and deployment-jurisdiction authority that live preflight reports. Added
+      non-secret authority/reference/scope/review/expiry/jurisdiction controls
+      to Settings, registry diagnostics, direct adapter transport, examples,
+      standard/RPi Compose, and the GitHub live workflow. Public keys and
+      successful reads no longer imply permission for persistent automated
+      collection. Direct no-network, routing, preflight, and wiring regressions
+      pass; the focused provider/quota/wiring run passed 161/161 on rerun.
+      No provider calls or credentials were used.
+    - >-
+      2026-09-16 follow-up hardening: the current-source MarketData.app
+      focused live run passed all five bounded cases (five upstream requests,
+      15,336 response bytes; the unbounded historical-option guard made no
+      request). The live reservation planner now handles release-only
+      concurrency leases without a usage baseline and preflights two credits
+      for inclusive five-day candle spans so it cannot under-reserve its own
+      test estimator. The local Compose research-runner no longer mounts the
+      durable provider-quota ledger, with regression coverage for that
+      isolation, and GitHub now forwards `PROVIDER_FRESHNESS_SEEDS` alongside
+      the other reviewed policy maps. Full backend unit tests pass `2,256`,
+      workflow tests pass `46`, and Ruff/compile/diff/workstream checks pass.
+      The receipt is transport evidence only because the source is dirty; only
+      MarketData.app has a reconciled provider-native baseline. GitHub/RPi
+      secret-store inspection, persistent coordinator connectivity, other
+      provider baselines, and unresolved capability/legal/source gates remain
+      open.
+    - >-
+      2026-09-16 deployment hardening: RPi preflight now validates the
+      owner-only app.env plus presence of core setting names and rejects a
+      non-PostgreSQL quota-coordinator URL. After startup, backend and worker
+      each open the durable quota coordinator so ledger read/write/lockability
+      is verified before the deployment transaction can complete; routing is
+      explicitly passed to both services. Full backend units pass 2,257,
+      workflow tests 46, and static/compile/diff/workstream checks pass.
+      GitHub/RPi secret inventory, persistent coordinator connectivity, and
+      provider-native baselines beyond MarketData.app remain human-gated.
+    - >-
+      2026-09-16 final implementation-gate rerun: the authoritative
+      Docker-backed backend suite passed 2,652 tests at 81.90% combined
+      coverage with 89 warnings after all parallel edits settled; the unit
+      suite passed 2,266 and workflow tests 46. Ruff, compilation, Compose
+      contracts, workstream validation, and diff checks passed. The live
+      runner now validates its manifest/disposition inventory explicitly,
+      records human deferrals/no-request policy/expected entitlement denial
+      outcomes without treating them as data-read passes, keeps unresolved
+      capability cases fail-closed, bounds Twelve Data discovery pagination,
+      and defers Massive corporate actions to a separate provider quota
+      window. Research-runner quota-ledger isolation and RPi secret/coordinator
+      preflights are covered. Provider baselines, legal/source/universe gates,
+      target-owned secret stores, exact staged-source live evidence, deferred
+      providers, and the final shadow phase remain open.
+    - >-
+      2026-09-16 current MarketData.app live receipt: the hardened manifest
+      runner passed all seven selected bounded cases with the configured key.
+      Because the implementation remains uncommitted/dirty, the receipt is
+      correctly marked `not_current_source`; it is transport/schema evidence,
+      not staged-candidate acceptance. The same run printed the unresolved
+      provider controls and did not call any blocked provider.
+    - >-
+      2026-09-16 SEC/Nasdaq/Finnhub hardening: SEC future-listing
+      materialization now requires corroborated multi-provider consensus with
+      exact symbol/company agreement and shared venue or identity evidence;
+      ambiguous candidates are quarantined. Nasdaq NMS/equity and ETF
+      reconciliation now rejects declared-total/cursor gaps, wrong quote
+      types, duplicates, unknown venues, and unmappable MICs while recording
+      deterministic venue coverage; FINRA OTC remains outside that
+      authoritative absence scope. Finnhub now reserves both reviewed
+      dimensions, 60 calls/minute and a hard 30 calls/second ceiling, for
+      every reviewed operation while preserving explicit operator overrides.
+      Full backend units passed `2,273/2,273`; focused SEC/universe and
+      provider/quota/runtime contracts passed `313/313`; the authoritative
+      Docker-backed gate passed `2,659/2,659` at `81.90%` combined coverage
+      with 89 warnings in isolated testcontainer session
+      `22b7481d-c4a1-4d15-ae69-7900026793f8`; Ruff passed. No provider calls
+      or credentials were used. Provider-native baselines, source/legal and
+      byte controls, complete OTC reconciliation, target secret stores,
+      deferred-provider decisions, exact-current-SHA live evidence, and final
+      shadow remain open.
+    - >-
+      2026-09-16 FINRA synchronous-routing correction: the
+      `FINRA_ASYNC_MAX_RESULT_BYTES` control is now scoped only to the signed
+      `download_async_result` operation. Synchronous short-interest and OTC
+      Daily List calls remain independently eligible under the published 3 MB
+      synchronous response ceiling and durable monthly byte accounting, while
+      async result downloads remain fail-closed without a positive operator
+      bound. Focused FINRA/provider contract and runtime validation passed
+      `182/182`; Ruff and diff checks passed. No provider calls or credentials
+      were used. Exact-current-SHA live evidence and the other owner-controlled
+      provider/source/secret/universe/shadow gates remain open.
+    - >-
+      2026-09-16 continuation validation: after adding the OpenFIGI profile and
+      Bybit cursor cases, updating the manifest inventory aliases, and isolating
+      pytest from the durable live ledger, the complete backend unit suite
+      passed `2,284/2,284` with 37 warnings. The authoritative combined
+      Docker-backed unit/integration coverage gate passed `2,670/2,670` at
+      `81.90%` coverage with 89 warnings in isolated testcontainer session
+      `0e43d634-917d-4871-ab21-b0b096fad67a`; cleanup removed only this
+      workstream's resources. Compose/RPi contracts passed, workflow tests
+      passed `46/46`, Ruff check and diff checks passed, and workstream
+      validation passed for 30 records. The repository-wide integration target
+      was also attempted but stopped at its pre-existing Ruff-format gate (94
+      baseline files would be reformatted by the pinned Ruff); no unrelated
+      formatting sweep was applied. The exact staged-source live matrix and
+      all owner-controlled provider, legal, universe, secret-store, deferred
+      provider, and shadow gates remain open.
+  next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.

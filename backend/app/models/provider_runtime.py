@@ -278,9 +278,7 @@ class ProviderRequestLog(Base, TimestampMixin):
     # primary-unit amount separately so operator reports never confuse a
     # reservation with actual settled usage. Historical rows remain NULL and
     # are handled as legacy reservations by the reporting layer.
-    settled_usage_units: Mapped[Decimal | None] = mapped_column(
-        Numeric(12, 4), nullable=True
-    )
+    settled_usage_units: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
     http_requests: Mapped[int | None] = mapped_column(Integer, nullable=True)
     response_bytes: Mapped[int | None] = mapped_column(BIGINT, nullable=True)
     response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -300,9 +298,10 @@ class ProviderRequestLog(Base, TimestampMixin):
 class ProviderAccountUsageObservation(Base, TimestampMixin):
     """Provider-native account counters retained across process sessions.
 
-    These values are observations only. They never become a routing policy
-    automatically because providers may report rolling, calendar, plan, or
-    endpoint-specific windows with different semantics.
+    These values are not routing policy. An explicitly allow-listed provider
+    may reconcile an exact native counter into the durable coordinator baseline
+    when its reviewed dimension, limit, reset window, and usage semantics match;
+    providers with ambiguous or mismatched semantics remain observation-only.
     """
 
     __tablename__ = "provider_account_usage_observation"

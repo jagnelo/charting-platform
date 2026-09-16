@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import json
 from pathlib import Path
@@ -18,9 +19,7 @@ _MERGER = importlib.util.module_from_spec(_MERGER_SPEC)
 _MERGER_SPEC.loader.exec_module(_MERGER)
 
 
-def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
-    tmp_path: Path, monkeypatch
-):
+def test_live_usage_ledger_aggregates_observed_counts_without_payloads(tmp_path: Path, monkeypatch):
     ledger = tmp_path / "provider-live-usage.jsonl"
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "run-test")
@@ -60,9 +59,11 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "response_headers": {},
             "operation_usage": {
                 "get_current_price": {
+                    "dispositions": {"observed": 1},
                     "failed_operations": 0,
                     "http_requests": 1,
                     "operations": 1,
+                    "response_statuses": {},
                     "response_bytes": 25,
                 }
             },
@@ -85,9 +86,11 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             },
             "operation_usage": {
                 "fetch_series": {
+                    "dispositions": {"observed": 2},
                     "failed_operations": 0,
                     "http_requests": 3,
                     "operations": 2,
+                    "response_statuses": {},
                     "response_bytes": 150,
                 }
             },
@@ -125,6 +128,73 @@ def test_live_usage_tracks_provider_status_separately_from_process_exit(tmp_path
     assert rows["alpha_vantage"]["exit_status"] == 1
     assert rows["alpha_vantage"]["failed_operations"] == 1
     assert rows["alpha_vantage"]["process_exit_status"] == 1
+
+
+def test_live_usage_correlates_provider_observations_to_exact_pytest_case(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "case-run")
+    live_usage._reset_for_test()
+    token = live_usage.activate_case(
+        "tests/live/test_market_data_providers_live.py::test_alpaca_credentialed_profile"
+    )
+    try:
+        live_usage.record_observation(
+            "alpaca",
+            operation="get_instrument_profile",
+            http_requests=2,
+            response_bytes=40,
+            response_status_code=200,
+        )
+    finally:
+        live_usage.deactivate_case(token)
+
+    assert live_usage.flush_observations(0) == ledger
+    row = json.loads(ledger.read_text())
+    case_id = "tests/live/test_market_data_providers_live.py::test_alpaca_credentialed_profile"
+    assert row["case_usage"][case_id] == {
+        "http_requests": 2,
+        "operations": {
+            "get_instrument_profile": {
+                "dispositions": {"observed": 1},
+                "failed_operations": 0,
+                "http_requests": 2,
+                "response_bytes": 40,
+                "response_statuses": {"200": 1},
+            }
+        },
+        "response_bytes": 40,
+    }
+
+
+def test_live_usage_records_expected_entitlement_denial_separately(tmp_path, monkeypatch):
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+    monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "denial-run")
+    live_usage._reset_for_test()
+    live_usage.record_observation(
+        "eodhd",
+        operation="get_instrument_profile",
+        http_requests=1,
+        response_bytes=12,
+        success=True,
+        disposition="expected_entitlement_denial",
+        response_status_code=403,
+        case_id="tests/live/test_market_data_providers_live.py::test_eodhd_free_plan_profile_entitlement_is_explicit",
+    )
+
+    assert live_usage.flush_observations(0) == ledger
+    row = json.loads(ledger.read_text())
+    operation = row["operation_usage"]["get_instrument_profile"]
+    assert operation["failed_operations"] == 0
+    assert operation["dispositions"] == {"expected_entitlement_denial": 1}
+    assert operation["response_statuses"] == {"403": 1}
+
+
+def test_live_usage_blank_ledger_override_uses_private_default(monkeypatch):
+    monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", "  ")
+
+    assert live_usage.ledger_path() == live_usage.DEFAULT_LEDGER
 
 
 def test_live_usage_generates_fresh_uuid_when_run_id_is_not_supplied(tmp_path, monkeypatch):
@@ -176,6 +246,40 @@ def test_live_usage_preflight_fails_before_provider_calls_when_ledger_unwritable
 
     with pytest.raises(RuntimeError, match="ledger is not writable"):
         live_usage.ensure_ledger_writable()
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_httpx_live_transport_requires_active_durable_quota_admission(monkeypatch, is_async):
+    import httpx
+
+    monkeypatch.setenv("RUN_LIVE_PROVIDER_TESTS", "1")
+    live_usage.install_httpx_quota_admission_guard(patcher=monkeypatch)
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={"ok": True}))
+
+    if is_async:
+
+        async def send():
+            async with httpx.AsyncClient(transport=transport) as client:
+                with pytest.raises(RuntimeError, match="no active durable quota reservation"):
+                    await client.get("https://provider.example.test/quote")
+                token = live_usage.activate_request_admission()
+                try:
+                    response = await client.get("https://provider.example.test/quote")
+                finally:
+                    live_usage.deactivate_request_admission(token)
+                assert response.json() == {"ok": True}
+
+        asyncio.run(send())
+    else:
+        with httpx.Client(transport=transport) as client:
+            with pytest.raises(RuntimeError, match="no active durable quota reservation"):
+                client.get("https://provider.example.test/quote")
+            token = live_usage.activate_request_admission()
+            try:
+                response = client.get("https://provider.example.test/quote")
+            finally:
+                live_usage.deactivate_request_admission(token)
+            assert response.json() == {"ok": True}
 
 
 @pytest.mark.parametrize("scope", ["", "x" * 129, "x\nlabel"])

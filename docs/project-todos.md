@@ -1,5 +1,42 @@
 # Project TODO Memory
 
+### 2026-09-16 — MarketData.app account-introspection charge correction
+
+- [x] Treat authenticated `/user/` account usage as a provider-specific,
+      explicitly routable operation that consumes the account-wide concurrency
+      lease but zero daily credits, matching the native `x-api-ratelimit-consumed`
+      observation. This prevents durable cross-session quota overcounting and
+      permits first-use account snapshots without inventing a starting credit
+      baseline. Actual market-data/options calls still require the reviewed
+      plan/limit baseline. Focused quota/runtime/coordinator coverage passes
+      5/5; the bounded credentialed MarketData.app matrix passed 7/7 cases
+      (9 requests, 17,241 response bytes), including `/user/`; its account
+      usage reservation settled with zero daily-credit units. The full backend
+      unit suite passes 2,294/2,294. The receipt is not-current-source while
+      this worktree remains dirty.
+
+### 2026-09-16 — Live-preflight provider-cost correction
+
+- [x] Treat explicitly empty per-dimension operation-cost maps as reviewed
+      zero-cost exclusions while keeping omitted operations in non-empty maps
+      fail-closed. Add exact bounded live-manifest reservations for the current
+      Binance/Coinbase/Kraken latest-candle, Massive daily-history, and
+      Marketstack daily-history cases. Focused quota/live-runner coverage passes
+      71/71 and the full backend unit suite passes 2,292/2,292; provider
+      baselines, legal/source controls, byte maps, target secret stores, and
+      current-source live acceptance remain open.
+
+### 2026-09-16 — Opt-in provider-native account-usage refresh
+
+- [x] Add a disabled-by-default daily worker path for provider-native account
+      usage snapshots. Deployments must enable
+      `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED` and name an explicit JSON list
+      in `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS`; an empty list never means
+      all providers. Compose/RPi/GitHub wiring, failure isolation, and worker
+      scheduling are covered. The full backend unit suite passes `2,290/2,290`;
+      provider baselines, source/legal review, target-owned secret stores, and
+      the final shadow run remain open.
+
 ### 2026-09-14 — Operation-attributed live-provider usage receipts
 
 - [x] Extend the owner-managed live usage receipt and merger with a bounded
@@ -1450,9 +1487,12 @@ current capability/quota ledger.
       be applied to the v1 adapter. Unknown dimensions are now surfaced
       explicitly and FRED remains non-routable until its v1 contract and terms
       are reviewed.
-- [x] Correct EODHD's provider contract to distinguish its documented 1,000
-      requests/minute transport ceiling from the separate 20 API-calls/day
-      free-plan budget, and charge the documented 10-call fundamentals cost.
+- [x] Record EODHD's conflicting official per-minute statements: its Free
+      Starter plan card says 20 requests/minute while its general limits page
+      and Quick Start say 1,000/minute for every plan. Enforce the conservative
+      20/minute plus 20 daily credits for this Free Starter account; provider
+      clarification/account evidence remains an explicit gap. Charge documented
+      endpoint credit weights only where the configured plan is entitled.
 - [x] Enforce MarketData.app's documented 50-request account-wide concurrency
       ceiling with a durable release-only in-flight quota dimension shared by
       direct calls and queued workload leases.
@@ -1551,9 +1591,12 @@ current capability/quota ledger.
       repeated-missing confirmation, lifecycle events, identity issues, and
       core D1 coverage snapshots. Nasdaq public directory discovery is retained
       as NMS venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage, and the
-      configurable FINRA OTC directory is present as an explicitly gated OTC
-      discovery path, with full live pagination proven against the official
-      `otcSecurityMaster` DAPI snapshot; source terms and quota remain gated.
+      FINRA OTC directory parser is present, but its `otcSecurityMaster` source
+      is now treated as unverified: current public FINRA dataset documentation
+      does not list it. A historical pagination probe is transport evidence
+      only. The provider is non-routable and is not queried until current docs
+      or written FINRA confirmation establishes availability and authorized
+      use; FINRA Daily List alone is not a complete directory.
 - [ ] Activate reviewed optional-provider entitlements, reconcile the complete
       US venue universe in production, and complete the separate post-merge
       30-day observation run. New routing remains disabled until the workstream
@@ -16872,7 +16915,7 @@ The current source also passes the focused authenticated top-down browser slice 
       response-dependent routing gates fail-closed until their exact reviewed
       contracts are supplied; this live rerun is transport/schema evidence only.
 
-### 2026-09-12 — Complete SEC issuer-directory scan path
+### 2026-09-12 — SEC ticker-association scan path
 
 - [x] Add a separate SEC directory-backed issuer CIK pager that deduplicates
       ambiguous ticker rows by CIK, retains all associated tickers, validates
@@ -16883,14 +16926,17 @@ The current source also passes the focused authenticated top-down browser slice 
       simultaneous legacy issuer-table and directory scans to prevent quota
       double-spend.
 - [x] Add disabled-by-default configuration, worker scheduling, Compose wiring,
-      unit regressions, and a live SEC probe that proves complete unique-CIK
-      pagination. The full backend unit suite passed `1,922/1,922` before the
+      unit regressions, and a live SEC probe that proves traversal of the
+      SEC ticker-association snapshot with unique CIK pagination. The SEC says
+      these files do not guarantee accuracy or scope; this does not prove
+      complete US-listed security or venue coverage. The full backend unit suite passed `1,922/1,922` before the
       final mutual-exclusion regression, which also passes; the live probe
       passed `1/1` and recorded only aggregate telemetry outside Git.
-- [ ] Keep activation separately reviewed: this catalogue is an issuer
-      directory, not a tradability/listing-date guarantee. Production SEC
-      request budgeting, canonical issuer materialization policy, and the
-      broader NMS/OTC reconciliation and provider-terms gates remain open.
+- [ ] Keep activation separately reviewed: production SEC request budgeting,
+      canonical issuer materialization, broader NMS/OTC reconciliation, and
+      provider-terms gates remain open. The corrected materialization flow now
+      requires a complete clean dry cycle, exact reviewed cycle count, and
+      unchanged source fingerprint before creating only missing Issuer rows.
 
 ### 2026-09-12 — Isolated SEC directory live probe
 
@@ -17335,3 +17381,17 @@ The current source also passes the focused authenticated top-down browser slice 
       files changed.
 - [ ] Dinari historical routing and the disabled worker still require reviewed
       quota, commercial, US-eligibility, caching, and redistribution terms.
+
+### 2026-09-16 — SEC/prelisting strong-evidence quarantine
+
+- [x] Tighten future-listing materialization so an inactive provisional
+      instrument is created only from a corroborated/resolved multi-provider
+      consensus with exact symbol and company-name agreement, plus either an
+      exact shared venue MIC or a stable FIGI/ISIN/CUSIP observed by at least
+      two providers. Single-source, missing-field, and conflicting evidence
+      now remains an auditable quarantined candidate; a legacy provisional row
+      is also forced inactive/quarantined if later evidence becomes ambiguous.
+- [x] Add regressions for single-source SEC evidence and conflicting symbols;
+      focused prelisting coverage passes `8/8`, Ruff, compileall, and diff
+      checks pass. No live SEC calls, credentials, migrations, frontend files,
+      or ETF-provider adapter files were involved.

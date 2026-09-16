@@ -63,6 +63,7 @@ from app.models.market_data_foundation import (
     ProviderRoutingDecision,
     ProviderShadowObservation,
     ProviderWorkloadLease,
+    SecIssuerDirectoryCandidate,
     ShortInterestObservation,
 )
 from app.models.market_map import MarketMapCache, MarketMapSnapshot
@@ -160,6 +161,7 @@ __all__ = [
     "MarketEventConsensus",
     "MarketEventPrelistingCandidate",
     "MarketEventScanState",
+    "SecIssuerDirectoryCandidate",
     "MarketRefreshJob",
     "MarketUniverseReconciliationRun",
     "MarketUniverseLifecycleObservation",

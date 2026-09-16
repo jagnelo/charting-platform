@@ -336,3 +336,10 @@ def test_rpi_preflight_checks_configured_remote_architecture(
     )
     assert expected in captured[0]
     assert f"does not match {platform}" in captured[0]
+    assert "required_name in SECRET_KEY POSTGRES_PASSWORD CORS_ORIGINS" in captured[0]
+    assert "missing or empty deployment setting" in captured[0]
+    assert "grep -Eq \"^$required_name=.+$\" \"$env_file\"" in captured[0]
+    assert "PROVIDER_QUOTA_LEDGER_DATABASE_URL must be PostgreSQL" in captured[0]
+    assert "ensure_provider_quota_coordinator(require_persistent_coordinator=True)" in text(
+        "scripts/rpi.py"
+    )

@@ -1,12 +1,16 @@
 """Backend-only market-data governance and diagnostics endpoints."""
 
+import asyncio
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
+from app.config import provider_rate_limit_seed
 from app.database import get_db
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
@@ -28,6 +32,7 @@ from app.models.market_data_foundation import (
     ProviderQuotaWindow,
     ProviderRoutingDecision,
     ProviderShadowObservation,
+    SecIssuerDirectoryCandidate,
     ShortInterestObservation,
 )
 from app.models.provider_observation import LatestPriceSnapshot
@@ -36,8 +41,39 @@ from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
 from app.providers.errors import redact_provider_message
 from app.services.market_data_monitoring import build_shadow_report
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    ProviderQuotaCoordinatorError,
+    normalize_quota_evidence_reference,
+    provider_quota_baseline_status,
+    provider_quota_coordinator_summary,
+    reconcile_provider_quota_baseline,
+)
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
+
+
+class ProviderQuotaBaselineRequest(BaseModel):
+    """Explicit operator attestation for an exact provider quota window."""
+
+    provider: str = Field(min_length=1, max_length=100)
+    capability: ProviderCapability
+    dimension: str = Field(min_length=1, max_length=128)
+    used_units: int = Field(ge=0)
+    observed_at: datetime
+    evidence_reference: str = Field(min_length=1, max_length=256)
+
+    @field_validator("observed_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("observed_at must include a timezone")
+        return value
+
+    @field_validator("evidence_reference")
+    @classmethod
+    def require_non_secret_evidence_reference(cls, value: str) -> str:
+        return normalize_quota_evidence_reference(value)
 
 
 def _refresh_lease_expired(job: MarketRefreshJob, now: datetime) -> bool:
@@ -355,6 +391,108 @@ async def list_provider_quota(
     ]
 
 
+@router.get("/quota-coordinator")
+async def get_provider_quota_coordinator(
+    provider: str | None = Query(default=None, min_length=1, max_length=100),
+    _admin: User = Depends(require_admin),
+):
+    """Expose cross-worktree/live reservations by provider-account scope."""
+
+    return await asyncio.to_thread(
+        provider_quota_coordinator_summary,
+        provider_name=provider,
+    )
+
+
+@router.get("/quota-coordinator/baselines")
+async def get_provider_quota_coordinator_baselines(
+    provider: str = Query(min_length=1, max_length=100),
+    capability: ProviderCapability = Query(...),
+    dimension: str | None = Query(default=None, min_length=1, max_length=128),
+    _admin: User = Depends(require_admin),
+):
+    """Expose exact current-window baseline and remaining headroom per dimension."""
+
+    seed = provider_rate_limit_seed(provider)
+    contract = seed.get("quota_contract")
+    if not isinstance(contract, dict) or not contract.get("dimensions"):
+        raise HTTPException(status_code=404, detail="provider quota contract not found")
+    policy = SimpleNamespace(
+        quota_scope=seed.get("quota_scope", ""),
+        quota_contract=contract,
+    )
+    dimensions = [
+        str(item.get("name"))
+        for item in contract["dimensions"]
+        if isinstance(item, dict)
+        and item.get("name")
+        and (dimension is None or str(item.get("name")) == dimension)
+    ]
+    if dimension is not None and not dimensions:
+        raise HTTPException(status_code=404, detail="provider quota dimension not found")
+    try:
+        rows = await asyncio.gather(
+            *(
+                asyncio.to_thread(
+                    provider_quota_baseline_status,
+                    provider_name=provider,
+                    capability=capability.value,
+                    policy=policy,
+                    dimension_name=name,
+                )
+                for name in dimensions
+            )
+        )
+    except ProviderQuotaAdmissionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ProviderQuotaCoordinatorError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "provider": provider,
+        "capability": capability.value,
+        "dimensions": rows,
+    }
+
+
+@router.post("/quota-coordinator/baselines", status_code=status.HTTP_201_CREATED)
+async def reconcile_provider_quota_coordinator_baseline(
+    body: ProviderQuotaBaselineRequest,
+    current_user: User = Depends(require_admin),
+):
+    """Record verified current-window usage before a provider can be admitted.
+
+    Limits, unit, account scope, quota group, and reset-window boundaries are
+    derived from the reviewed provider contract; the request only supplies the
+    observed usage and a non-secret evidence reference.
+    """
+
+    seed = provider_rate_limit_seed(body.provider)
+    contract = seed.get("quota_contract")
+    if not isinstance(contract, dict) or not contract.get("dimensions"):
+        raise HTTPException(status_code=404, detail="provider quota contract not found")
+    policy = SimpleNamespace(
+        quota_scope=seed.get("quota_scope", ""),
+        quota_contract=contract,
+    )
+    try:
+        return await asyncio.to_thread(
+            reconcile_provider_quota_baseline,
+            provider_name=body.provider,
+            capability=body.capability.value,
+            policy=policy,
+            dimension_name=body.dimension,
+            used_units=body.used_units,
+            observed_at=body.observed_at,
+            evidence_reference=body.evidence_reference,
+            source="operator_dashboard_attestation",
+            actor_user_id=current_user.id,
+        )
+    except ProviderQuotaAdmissionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ProviderQuotaCoordinatorError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @router.get("/capacity-events")
 async def list_provider_capacity_events(
     provider_id: int | None = None,
@@ -600,6 +738,171 @@ async def list_market_event_scan_state(
         }
         for row in rows
     ]
+
+
+@router.get("/sec-directory-candidates")
+async def list_sec_directory_candidates(
+    cycle_number: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Return paginated SEC issuer-admission decisions for admin review only."""
+
+    state = (
+        await db.execute(
+            select(MarketEventScanState).where(
+                MarketEventScanState.scan_key == "edgar:ipo_pipeline:sec_directory"
+            )
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        raise HTTPException(status_code=404, detail="No SEC issuer-directory scan is recorded")
+
+    provenance = state.provenance if isinstance(state.provenance, dict) else {}
+    active_cycle = provenance.get("active_cycle_number")
+    latest_completed_cycle = provenance.get("last_completed_report_cycle_number")
+    if isinstance(active_cycle, bool) or not isinstance(active_cycle, int) or active_cycle < 1:
+        active_cycle = None
+    if (
+        isinstance(latest_completed_cycle, bool)
+        or not isinstance(latest_completed_cycle, int)
+        or latest_completed_cycle < 1
+    ):
+        latest_completed_cycle = None
+
+    if cycle_number is None:
+        if state.status in {"running", "partial"} and active_cycle is not None:
+            cycle_number = active_cycle
+        else:
+            cycle_number = latest_completed_cycle or active_cycle
+    if cycle_number is None:
+        raise HTTPException(status_code=404, detail="No SEC directory candidate cycle is recorded")
+
+    count_query = select(func.count(SecIssuerDirectoryCandidate.id)).where(
+        SecIssuerDirectoryCandidate.cycle_number == cycle_number
+    )
+    candidate_count = int((await db.execute(count_query)).scalar_one())
+    query = (
+        select(SecIssuerDirectoryCandidate)
+        .where(SecIssuerDirectoryCandidate.cycle_number == cycle_number)
+        .order_by(
+            SecIssuerDirectoryCandidate.directory_offset,
+            SecIssuerDirectoryCandidate.cik,
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    candidates = (await db.execute(query)).scalars().all()
+    report_query = (
+        select(SecIssuerDirectoryCandidate)
+        .where(SecIssuerDirectoryCandidate.cycle_number == cycle_number)
+        .order_by(SecIssuerDirectoryCandidate.directory_offset)
+        .limit(1)
+    )
+    first = (await db.execute(report_query)).scalars().first()
+
+    # The scan-state row supplies metadata for a currently empty directory;
+    # otherwise the durable candidate rows preserve the cycle even after a
+    # later scan has replaced the active cursor.
+    is_current_cycle = cycle_number == active_cycle
+    directory_total = first.directory_total if first else None
+    source_fingerprint = first.source_fingerprint if first else None
+    materialization_mode = first.materialization_mode if first else None
+    cycle_status = first.cycle_status if first else None
+    cycle_complete = first.cycle_complete if first else False
+    cycle_clean = first.cycle_clean if first else None
+    cycle_failure_count = first.cycle_failure_count if first else None
+    if is_current_cycle:
+        directory_total = (
+            directory_total
+            if directory_total is not None
+            else provenance.get("active_directory_total")
+        )
+        source_fingerprint = source_fingerprint or provenance.get("active_source_fingerprint")
+        materialization_mode = materialization_mode or provenance.get("active_materialization_mode")
+        cycle_status = cycle_status or state.status
+        cycle_complete = bool(provenance.get("cycle_complete", cycle_complete))
+        if cycle_complete and cycle_clean is None:
+            cycle_clean = provenance.get("last_completed_cycle_clean")
+        cycle_failure_count = (
+            cycle_failure_count
+            if cycle_failure_count is not None
+            else provenance.get("active_cycle_failures", state.last_failure_count)
+        )
+    elif cycle_number == latest_completed_cycle:
+        directory_total = (
+            directory_total
+            if directory_total is not None
+            else provenance.get("last_completed_directory_total")
+        )
+        source_fingerprint = source_fingerprint or provenance.get(
+            "last_completed_source_fingerprint"
+        )
+        materialization_mode = materialization_mode or provenance.get(
+            "last_completed_materialization_mode"
+        )
+        cycle_status = cycle_status or "complete"
+        cycle_complete = True
+        cycle_clean = (
+            cycle_clean if cycle_clean is not None else provenance.get("last_completed_cycle_clean")
+        )
+        cycle_failure_count = (
+            cycle_failure_count
+            if cycle_failure_count is not None
+            else provenance.get("last_completed_cycle_failures")
+        )
+    if candidate_count == 0 and not is_current_cycle and cycle_number != latest_completed_cycle:
+        raise HTTPException(
+            status_code=404,
+            detail="SEC directory candidate cycle is unavailable or outside retention",
+        )
+    if directory_total is None and cycle_number == latest_completed_cycle:
+        directory_total = provenance.get("last_completed_directory_total")
+    if directory_total is None:
+        directory_total = candidate_count
+
+    return {
+        "cycle_number": cycle_number,
+        "cycle_count": state.cycle_count if is_current_cycle else None,
+        "cycle_status": cycle_status,
+        "cycle_complete": bool(cycle_complete),
+        "cycle_clean": cycle_clean,
+        "cycle_failure_count": cycle_failure_count,
+        "materialization_mode": materialization_mode,
+        "directory_total": int(directory_total),
+        "candidate_count": candidate_count,
+        "source_fingerprint": source_fingerprint,
+        "offset": offset,
+        "limit": limit,
+        "next_offset": offset + len(candidates)
+        if offset + len(candidates) < candidate_count
+        else None,
+        "candidates": [
+            {
+                "directory_offset": candidate.directory_offset,
+                "cik": candidate.cik,
+                "conformed_name": candidate.conformed_name,
+                "name_candidates": candidate.name_candidates,
+                "tickers": candidate.tickers,
+                "admission_decision": candidate.admission_decision,
+                "decision_reason": candidate.decision_reason,
+                "matched_issuer": (
+                    {
+                        "id": candidate.matched_issuer_id,
+                        "domain_key": candidate.matched_issuer_domain_key,
+                        "legal_name": candidate.matched_issuer_legal_name,
+                    }
+                    if candidate.matched_issuer_id is not None
+                    or candidate.matched_issuer_domain_key is not None
+                    else None
+                ),
+                "observed_at": candidate.observed_at,
+            }
+            for candidate in candidates
+        ],
+    }
 
 
 @router.get("/fundamentals")

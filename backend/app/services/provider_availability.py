@@ -32,6 +32,7 @@ from app.models.provider_runtime import (
 from app.providers import (
     get_provider,
     provider_is_configured,
+    provider_missing_routing_controls,
     provider_supports_adjustment,
 )
 from app.providers.errors import bounded_redact_provider_message
@@ -41,6 +42,7 @@ CLASSIFICATIONS = {
     "success",
     "not_configured",
     "entitlement_exclusion",
+    "routing_control_exclusion",
     "authentication",
     "quota_rate_limit",
     "dns_transport",
@@ -75,6 +77,7 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         ProviderCapability.OPTIONS_CURRENT: {"symbol": "SPY"},
         ProviderCapability.MARKET_EVENTS: {
             "symbol": "SPY",
+            "cik": "0000320193",
             "start": (datetime.now(UTC) - timedelta(days=7)).date().isoformat(),
             "end": datetime.now(UTC).date().isoformat(),
         },
@@ -95,7 +98,9 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
     return dict(values[capability])
 
 
-def representative_operation(capability: ProviderCapability) -> str | None:
+def representative_operation(
+    capability: ProviderCapability, provider_name: str | None = None
+) -> str | None:
     """Return the concrete adapter operation exercised by an availability probe.
 
     Configuration is sometimes operation-scoped.  Marketstack history/latest
@@ -107,6 +112,12 @@ def representative_operation(capability: ProviderCapability) -> str | None:
     ``*_API_KEY`` heuristic.
     """
 
+    if capability == ProviderCapability.MARKET_EVENTS and str(provider_name or "").lower() == "edgar":
+        # EDGAR exposes filing-driven IPO candidates by issuer/CIK, not the
+        # calendar-wide ``fetch_market_events(start, end)`` endpoint used by
+        # other market-event providers. Keep its availability operation
+        # aligned with the dedicated service and reviewed quota entry.
+        return "fetch_ipo_pipeline_events"
     return {
         ProviderCapability.ACCOUNT_USAGE: "fetch_account_usage",
         ProviderCapability.INSTRUMENT_SEARCH: "search_instruments",
@@ -213,6 +224,8 @@ async def default_probe(
         ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
     }.get(capability)
+    if capability == ProviderCapability.MARKET_EVENTS and provider_name.lower() == "edgar":
+        method_name = "fetch_ipo_pipeline_events"
     if method_name is None:
         raise RuntimeError(f"no representative probe contract for {capability.value}")
     method = getattr(provider, method_name)
@@ -235,10 +248,18 @@ async def default_probe(
     }:
         args = {"symbol": request["symbol"]}
     if capability == ProviderCapability.MARKET_EVENTS:
-        args = {
-            "start": date.fromisoformat(request["start"]),
-            "end": date.fromisoformat(request["end"]),
-        }
+        if provider_name.lower() == "edgar":
+            args = {
+                "cik": request.get("cik", "0000320193"),
+                "start": date.fromisoformat(request["start"]),
+                "end": date.fromisoformat(request["end"]),
+                "max_events": 1,
+            }
+        else:
+            args = {
+                "start": date.fromisoformat(request["start"]),
+                "end": date.fromisoformat(request["end"]),
+            }
     if capability == ProviderCapability.PRICE_HISTORY:
         args = {"symbol": request["symbol"], "timeframe": Timeframe.D1, "limit": request["limit"]}
     if capability == ProviderCapability.UNIVERSE_DISCOVERY:
@@ -366,7 +387,7 @@ async def run_availability_probes(
     provider_locks: dict[str, asyncio.Lock] = {}
     for policy, source, entitlement in rows:
         request = representative_request(policy.capability)
-        operation = representative_operation(policy.capability)
+        operation = representative_operation(policy.capability, source.name)
         classification = "success"
         success = False
         error_message = None
@@ -376,16 +397,54 @@ async def run_availability_probes(
             not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}
         ):
             classification = "entitlement_exclusion"
+        elif missing_controls := provider_missing_routing_controls(source.name, operation):
+            classification = "routing_control_exclusion"
+            error_message = "non-routable: missing " + ", ".join(missing_controls)
         elif not provider_configured(source, entitlement, operation=operation):
             classification = "not_configured"
         else:
             try:
                 lock = provider_locks.setdefault(source.name, asyncio.Lock())
                 async with lock:
+                    if probe is not None:
+                        probe_call = probe(source.name, policy.capability, request)
+                    else:
+                        # Availability probes are real provider calls too. Use
+                        # the same capability/operation resolver, durable
+                        # quota reservation, telemetry, health and settlement
+                        # path as application traffic instead of invoking an
+                        # adapter directly outside runtime accounting. The
+                        # small executor bridge keeps the existing async
+                        # ``default_probe`` contract (including async
+                        # adapters) while the runtime owns the reservation.
+                        from app.services.provider_runtime import execute_provider_call
+
+                        if operation is None:
+                            raise RuntimeError(
+                                f"no representative operation for {policy.capability.value}"
+                            )
+
+                        probe_call = execute_provider_call(
+                            db,
+                            policy.capability,
+                            operation,
+                            provider_name=source.name,
+                            invoke=lambda _provider, _symbol: asyncio.run(
+                                default_probe(source.name, policy.capability, request)
+                            ),
+                            response_items=lambda result: (
+                                len(result)
+                                if isinstance(result, dict | list | tuple | set)
+                                else 1
+                            ),
+                            treat_empty_as_failure=False,
+                        )
                     value = await asyncio.wait_for(
-                        (probe or default_probe)(source.name, policy.capability, request),
+                        probe_call,
                         timeout=max(0.1, settings.PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS),
                     )
+                    if probe is None:
+                        value = value.result
                 classification = classify_response(value)
                 success = classification == "success"
             except Exception as exc:  # noqa: BLE001 - classification is the durable contract.
@@ -402,7 +461,11 @@ async def run_availability_probes(
                 .limit(1)
             )
         ).scalar_one_or_none()
-        excluded = classification in {"not_configured", "entitlement_exclusion"}
+        excluded = classification in {
+            "not_configured",
+            "entitlement_exclusion",
+            "routing_control_exclusion",
+        }
         effective_failure = not success and not excluded
         streak = (
             0 if success or excluded else int(previous.consecutive_failures if previous else 0) + 1

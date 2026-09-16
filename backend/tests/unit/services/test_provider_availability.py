@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -16,6 +16,7 @@ from app.services.provider_availability import (
     representative_operation,
     representative_request,
     response_shape,
+    run_availability_probes,
 )
 
 
@@ -66,6 +67,38 @@ async def test_tokenized_history_availability_probe_uses_distinct_operation(monk
 
     assert result == []
     assert calls == [{"identifier": "AAPL", "timespan": "DAY"}]
+
+
+@pytest.mark.asyncio
+async def test_edgar_market_event_availability_probe_uses_ipo_pipeline_contract(monkeypatch):
+    calls = []
+
+    class EdgarProvider:
+        name = "edgar"
+
+        def fetch_ipo_pipeline_events(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        "app.services.provider_availability.get_provider",
+        lambda _name: EdgarProvider(),
+    )
+
+    capability = ProviderCapability.MARKET_EVENTS
+    request = representative_request(capability)
+    assert representative_operation(capability, "edgar") == "fetch_ipo_pipeline_events"
+    result = await default_probe("edgar", capability, request)
+
+    assert result == []
+    assert calls == [
+        {
+            "cik": "0000320193",
+            "start": date.fromisoformat(request["start"]),
+            "end": date.fromisoformat(request["end"]),
+            "max_events": 1,
+        }
+    ]
 
 
 def test_representative_contract_covers_each_capability():
@@ -243,3 +276,65 @@ def test_notification_policy_covers_first_failure_cooldown_and_recovery(monkeypa
         )
         == "recovery"
     )
+
+
+@pytest.mark.asyncio
+async def test_availability_skips_finra_otc_until_source_controls_are_reviewed(db, monkeypatch):
+    from app.models.data_source import DataSource
+    from app.models.provider_runtime import ProviderPolicy
+
+    source = DataSource(
+        name="finra_otc_directory",
+        base_url="https://api.finra.org",
+        is_active=True,
+    )
+    db.add(source)
+    db.flush()
+    db.add(
+        ProviderPolicy(
+            data_source_id=source.id,
+            capability=ProviderCapability.UNIVERSE_DISCOVERY,
+            is_enabled=True,
+            is_pinned=True,
+            base_priority=1,
+        )
+    )
+    db.flush()
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
+    calls = []
+
+    class AsyncSessionFacade:
+        def add(self, value):
+            db.add(value)
+
+        async def execute(self, statement):
+            return db.execute(statement)
+
+        async def flush(self):
+            db.flush()
+
+        async def commit(self):
+            db.commit()
+
+    async def probe(provider_name, capability, request):
+        calls.append((provider_name, capability, request))
+        return {"rows": []}
+
+    await run_availability_probes(
+        AsyncSessionFacade(), "daily_core", probe=probe
+    )
+
+    from app.models.provider_runtime import ProviderAvailabilityObservation
+
+    observation = db.query(ProviderAvailabilityObservation).one()
+    assert calls == []
+    assert observation.classification == "routing_control_exclusion"
+    assert observation.success is False
+    assert "FINRA_OTC_SOURCE_REVIEWED" in observation.error_message
+    assert observation.consecutive_failures == 0

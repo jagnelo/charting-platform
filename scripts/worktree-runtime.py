@@ -46,6 +46,7 @@ PORT_BASES = {
 
 SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
 DEFAULT_SHARED_ENV = Path.home() / ".config" / "charting-platform" / "app.env"
+DEFAULT_QUOTA_LEDGER_DIR = Path.home() / ".config" / "charting-platform" / "provider-quota"
 SHARED_ENV_TARGETS = (Path(".env"), Path("backend/.env.dev"))
 
 
@@ -343,12 +344,30 @@ def install_shared_env_links() -> Path | None:
     return source
 
 
+def ensure_shared_quota_ledger_dir() -> Path:
+    """Create the private, non-secret host directory shared across worktrees."""
+
+    directory = DEFAULT_QUOTA_LEDGER_DIR
+    if directory.is_symlink():
+        raise SystemExit(f"refusing a symlink quota-ledger directory: {directory}")
+    try:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if not stat.S_ISDIR(directory.stat().st_mode):
+            raise SystemExit(f"quota-ledger path must be a directory: {directory}")
+        os.chmod(directory, 0o700)
+    except OSError as exc:
+        raise SystemExit(f"could not prepare private quota-ledger directory: {directory}") from exc
+    return directory
+
+
 def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
     install_shared_env_links()
+    quota_ledger_dir = ensure_shared_quota_ledger_dir()
     with locked_registry() as data:
         allocation = allocate(data)
         remove_unregistered_env_files(data)
         env = environment(allocation)
+        env["PROVIDER_QUOTA_LEDGER_HOST_DIR"] = str(quota_ledger_dir)
         path = env_file_path()
         Path(env["WORKTREE_RUNTIME_STATE"]).mkdir(parents=True, exist_ok=True)
         path.write_text(

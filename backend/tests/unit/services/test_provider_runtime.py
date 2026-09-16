@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -17,8 +18,10 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
+from app.providers.base import ProviderAccountUsage
 from app.providers.registry import get_provider_usage_profile
 from app.providers.telemetry import observe_response
+from app.services.provider_quota_coordinator import provider_quota_coordinator_summary
 from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ResolvedProvider,
@@ -170,8 +173,7 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         "api-credits-left": "5",
     }
     windows = {
-        item.dimension: item
-        for item in db.execute(select(ProviderQuotaWindow)).scalars().all()
+        item.dimension: item for item in db.execute(select(ProviderQuotaWindow)).scalars().all()
     }
     assert windows["requests_per_minute"].consumed_units == 1
     assert windows["response_bytes"].consumed_units == len(b"measured-response")
@@ -475,6 +477,16 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
 
 
 @pytest.mark.asyncio
+async def test_provider_routing_emergency_switch_keeps_all_adapters_out_of_chain(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", False)
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert chain == []
+
+
+@pytest.mark.asyncio
 async def test_provider_chain_filters_raw_only_provider_for_adjusted_history(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPHA_VANTAGE_API_KEY", "configured-key")
@@ -555,6 +567,68 @@ async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeyp
 
 
 @pytest.mark.asyncio
+async def test_eodhd_free_plan_migrates_and_blocks_unentitled_fundamentals_even_when_paid_routing_enabled(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    current_seeds = deepcopy(settings.PROVIDER_ENTITLEMENT_SEEDS)
+    current_eodhd_seed = deepcopy(current_seeds["eodhd"])
+    legacy_eodhd_seed = deepcopy(current_eodhd_seed)
+    legacy_eodhd_seed.pop("capabilities")
+    legacy_seeds = deepcopy(current_seeds)
+    legacy_seeds["eodhd"] = legacy_eodhd_seed
+
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", legacy_seeds)
+    monkeypatch.setattr(settings, "EODHD_API_KEY", "configured-test-key")
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
+    await seed_provider_runtime(async_db)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "eodhd")).scalar_one()
+    metadata_entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_METADATA,
+        )
+    ).scalar_one()
+    assert metadata_entitlement.configured_plan == "free-20-day"
+    assert metadata_entitlement.is_free is True
+
+    # Existing rows on the repository-managed free plan must pick up the
+    # newly recorded capability-level Fundamentals exclusion on reseed.
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", current_seeds)
+    await seed_provider_runtime(async_db)
+    db.expire_all()
+    metadata_entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_METADATA,
+        )
+    ).scalar_one()
+    assert metadata_entitlement.configured_plan == "unreviewed"
+    assert metadata_entitlement.is_free is False
+
+    # Pretend positive live evidence exists to prove the plan gate itself
+    # remains fail-closed when the global paid-routing switch is enabled.
+    reviewed_test_seeds = deepcopy(current_seeds)
+    reviewed_test_seeds["eodhd"]["capabilities"]["instrument_metadata"][
+        "live_probe_status"
+    ] = "passed"
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", reviewed_test_seeds)
+    metadata_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.INSTRUMENT_METADATA,
+        operation="get_instrument_profile",
+    )
+    assert all(provider.provider_name != "eodhd" for provider in metadata_chain)
+
+    free_history_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        adjusted=False,
+    )
+    assert any(provider.provider_name == "eodhd" for provider in free_history_chain)
+@pytest.mark.asyncio
 async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_plan(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter")
@@ -562,9 +636,7 @@ async def test_marketdata_app_entitlement_and_quota_follow_explicit_reviewed_pla
 
     await seed_provider_runtime(async_db)
 
-    source = db.execute(
-        select(DataSource).where(DataSource.name == "marketdata_app")
-    ).scalar_one()
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
     entitlement = db.execute(
         select(ProviderEntitlement).where(
             ProviderEntitlement.data_source_id == source.id,
@@ -599,9 +671,7 @@ async def test_marketdata_trial_expiry_reseeds_entitlement_and_quota_to_free_for
     )
 
     await seed_provider_runtime(async_db)
-    source = db.execute(
-        select(DataSource).where(DataSource.name == "marketdata_app")
-    ).scalar_one()
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
     entitlement = db.execute(
         select(ProviderEntitlement).where(
             ProviderEntitlement.data_source_id == source.id,
@@ -668,6 +738,43 @@ async def test_marketdata_app_account_usage_can_be_polled_before_plan_review(db,
         operation_cost_overrides={"marketdata_app": 1},
     )
     assert all(item.provider_name != "marketdata_app" for item in price_chain)
+
+
+@pytest.mark.asyncio
+async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator(db, monkeypatch):
+    """The free account snapshot must not require an invented credit baseline."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 0)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT", None)
+
+    await seed_provider_runtime(async_db)
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+
+    result = await execute_provider_call(
+        async_db,
+        ProviderCapability.ACCOUNT_USAGE,
+        "fetch_account_usage",
+        provider_name="marketdata_app",
+        invoke=lambda _provider, _symbol: ProviderAccountUsage(
+            provider="marketdata_app",
+            observed_at=observed_at,
+            unit="credits",
+            limit=100,
+            remaining=100,
+            consumed=0,
+            reset_at=observed_at + timedelta(days=1),
+        ),
+        response_items=lambda value: 1 if value is not None else 0,
+        treat_empty_as_failure=True,
+    )
+
+    assert result.provider_name == "marketdata_app"
+    summary = provider_quota_coordinator_summary(provider_name="marketdata_app")
+    assert all(row["dimension"] != "credits_per_day" for row in summary["windows"])
+    assert any(row["dimension"] == "concurrent_requests" for row in summary["windows"])
 
 
 @pytest.mark.asyncio
@@ -772,6 +879,63 @@ async def test_paid_routing_switch_does_not_bypass_unreviewed_entitlement(db, mo
 
 
 @pytest.mark.asyncio
+async def test_dinari_sandbox_never_enters_normal_provider_routing_even_when_reviewed(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "dinari")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.TOKENIZED_ASSETS,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.TOKENIZED_ASSETS,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    policy.quota_scope = "api_key"
+    policy.quota_source = "test-only complete Sandbox allowance"
+    policy.quota_contract = {
+        "reset": "calendar_day_utc",
+        "dimensions": [
+            {
+                "name": "requests_per_day",
+                "limit": 100,
+                "window_seconds": 86400,
+                "unit": "requests",
+                "scope": "api_key",
+                "quota_group": "dinari-sandbox-test",
+                "source": "unit-test fixture only",
+            }
+        ],
+    }
+    entitlement.configured_plan = "reviewed-sandbox-fixture"
+    entitlement.is_free = False
+    entitlement.authentication_required = False
+    entitlement.live_probe_status = "passed"
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "fixture-id")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "fixture-secret")
+    monkeypatch.setattr(
+        "app.services.provider_runtime.seed_provider_runtime",
+        lambda _db: _async_noop(),
+    )
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.TOKENIZED_ASSETS)
+
+    assert all(item.provider_name != "dinari" for item in chain)
+
+
+async def _async_noop():
+    return None
+
+
+@pytest.mark.asyncio
 async def test_runtime_seeding_is_idempotent_for_entitlement_revisions(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
@@ -798,6 +962,47 @@ async def test_runtime_seeding_is_idempotent_for_entitlement_revisions(db):
         .all()
     )
     assert len(first_count) == len(second_count) == 1
+
+
+@pytest.mark.asyncio
+async def test_marketdata_trial_seed_keeps_dynamic_quota_and_revision_idempotent(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_PLAN", "starter_trial")
+    monkeypatch.setattr(settings, "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", 10_000)
+    monkeypatch.setattr(
+        settings,
+        "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
+        datetime(2030, 1, 1, tzinfo=UTC),
+    )
+
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "marketdata_app")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    first_revision = entitlement.revision
+    first_policy = dict(entitlement.quota_policy)
+
+    await seed_provider_runtime(async_db)
+
+    revisions = (
+        db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == source.id,
+                ProviderEntitlementRevision.capability == ProviderCapability.ACCOUNT_USAGE,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert entitlement.configured_plan == "marketdata-starter_trial-operator-reviewed"
+    assert entitlement.revision == first_revision
+    assert entitlement.quota_policy == first_policy
+    assert entitlement.quota_policy["contract"]["dimensions"][0]["limit"] == 10_000
+    assert len(revisions) == 1
 
 
 @pytest.mark.asyncio
@@ -864,6 +1069,8 @@ async def test_new_workstation_chain_excludes_implicit_yfinance_fallback(db, mon
 @pytest.mark.asyncio
 async def test_otc_directory_requires_explicit_source_before_resolution(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "")
     monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
     monkeypatch.setattr(
         settings,
@@ -916,14 +1123,30 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
     await seed_provider_runtime(async_db)
     chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
 
-    # A source URL is necessary but not sufficient: response-dependent DAPI
-    # pagination also requires the reviewed operation/terms controls.
+    # A source URL is necessary but not sufficient: source evidence and the
+    # response-dependent pagination/terms controls are independent gates.
     assert all(item.provider_name != "finra_otc_directory" for item in chain)
 
     monkeypatch.setattr(
         settings,
         "FINRA_OTC_OPERATION_COSTS",
         {"discover_universe_page": 3, "reconcile_universe_page": 3},
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
+    await seed_provider_runtime(async_db)
+    chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
+
+    # Even every older cost/terms/completeness control cannot admit the
+    # undocumented candidate before its source-specific evidence gate passes.
+    assert all(item.provider_name != "finra_otc_directory" for item in chain)
+
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_EVIDENCE", "FINRA support case 123")
+    monkeypatch.setattr(
+        settings, "FINRA_OTC_REVIEWED_SOURCE_URL", "https://example.test/otc-directory.txt"
     )
     monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
     monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)

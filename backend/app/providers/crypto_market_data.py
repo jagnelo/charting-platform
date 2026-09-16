@@ -8,8 +8,10 @@ from typing import Any
 
 import httpx
 
+from app.config import coinbase_market_data_use_authority_missing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import (
+    ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
     provider_response_headers,
@@ -43,6 +45,15 @@ def _require_raw_history(provider_name: str, adjusted: bool) -> None:
 
 _COINBASE_CANDLES_PER_REQUEST = 300
 _KRAKEN_CANDLES_PER_REQUEST = 720
+
+
+def _require_coinbase_market_data_authority() -> None:
+    missing = coinbase_market_data_use_authority_missing()
+    if missing:
+        raise ProviderNotConfiguredError(
+            "coinbase market-data use lacks current, scoped written authority: "
+            + ", ".join(missing)
+        )
 
 
 def _estimate_request_count(
@@ -197,6 +208,7 @@ class CoinbaseProvider:
             raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
         if end <= start:
             return []
+        _require_coinbase_market_data_authority()
         product = _coinbase_product(symbol)
         # Coinbase caps each response at 300 candles. Page the requested range
         # explicitly and deduplicate boundary candles; the caller's runtime
@@ -280,6 +292,7 @@ class CoinbaseProvider:
         )
 
     def get_current_price(self, symbol: str) -> float | None:
+        _require_coinbase_market_data_authority()
         payload = _get_json(
             self.name,
             f"{self.base_url}/products/{_coinbase_product(symbol)}/ticker",
@@ -292,6 +305,7 @@ class CoinbaseProvider:
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.upper() != "CRYPTOCURRENCY":
             return {"total": 0, "quotes": []}
+        _require_coinbase_market_data_authority()
         products_payload = _get_json(self.name, f"{self.base_url}/products", timeout=30)
         if not isinstance(products_payload, list):
             raise ProviderResponseError(self.name, "Coinbase returned an invalid products array")

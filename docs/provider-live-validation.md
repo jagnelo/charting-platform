@@ -4,14 +4,37 @@ The live matrix is intentionally separate from normal unit/integration runs:
 
 ```sh
 PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
-  rtk uv run --project backend python scripts/run-live-provider-probes.py
+  rtk uv run --project backend python scripts/run-live-provider-probes.py \
+  --allow-staged-candidate
 ```
 
-The command performs a preflight, prints every missing environment variable,
-runs one bounded read per provider (including the public tokenized-security
-matrix), and returns non-zero when a credential or usage-attribution preflight
-is blocked. A missing credential is never reported as a passing skip. The
-wrapper returns exit code `2` for an incomplete credential/usage preflight.
+The command performs a preflight, prints missing inputs and non-routable
+controls, runs the exact manifest-backed provider cases (including the public
+tokenized-security matrix), and returns non-zero when credential, usage,
+quota, or source-admission checks block a required case. A missing credential
+is never reported as a passing skip. The
+pre-commit `--allow-staged-candidate` mode requires every tracked change to be
+staged, no unstaged or untracked paths, no credential-bearing paths, and no
+configured/credential-shaped secrets in staged additions. It materializes that
+index into a temporary, isolated source tree and
+runs pytest from that exact tree, then prints its `git write-tree` ID; it does
+not modify the workstream ledger before the candidate is committed. Candidate
+mode is full-matrix-only, captures and redacts pytest output, and refuses to
+start network calls if credentials, usage scope, durable quota admission, or
+the FINRA source-review admission is incomplete. It also blocks a full run
+before spending quota when a required case is known to be unsafe: Coinbase's
+written automated-use authority is missing, FRED's quota/storage/series rights
+are unresolved, or the candidate FINRA OTC source is not currently confirmed.
+Nasdaq publishes no numeric quota, but a separate local two-request-per-day
+cap bounds its two official files; that cap is not represented as a vendor
+allowance. After
+a green full matrix, commit the unchanged index, verify `git rev-parse
+HEAD^{tree}` matches the printed tree ID, and then record the commit/tree and
+redacted result in the branch workstream. Any missing credential, failed or
+skipped case, quota response, missing same-run operation evidence, or source
+change blocks that commit. The wrapper
+returns exit code `2` for an incomplete credential/usage preflight or a
+non-passing staged candidate.
 For focused implementation follow-up, the same lock, usage ledger, preflight,
 and manifest can select one or more provider suites without spending other
 providers' quotas:
@@ -45,15 +68,76 @@ Tiingo/FMP byte-bound maps. A direct adapter read can therefore be green while
 its provider remains non-routable:
 missing, invalid, partial, or non-positive safety controls are reported
 explicitly and never guessed.
+The same preflight validates xStocks' explicit automation-use and deployment-
+jurisdiction controls; its public rate-limit headers do not bypass that gate.
+Bybit xStocks is gated separately: its documented 600/5-second public IP
+ceiling does not bypass the provider's U.S./Mainland-China egress restriction.
+The live runner and direct adapter require the non-secret
+`BYBIT_XSTOCKS_MARKET_DATA_USE_*` authority and egress-jurisdiction controls
+before making a request.
 The same preflight reports whether the non-secret
 `MARKETSTACK_DISCOVERY_EXCHANGE` venue scope is configured; history can still
 be probed with only the key, but discovery remains non-routable without it.
+Coinbase's live case is blocked before transport until its exact internal,
+automated, persistent, non-redistributed use has current written authority
+recorded in the scoped `COINBASE_MARKET_DATA_USE_*` settings. FRED remains
+blocked unless the quota scope, persisted/automated-use authority, and rights
+evidence for every series exposed by the adapter are configured. These gates
+are sent through local, RPi, and GitHub live environments but default false or
+empty; a successful transport-only probe would not establish these rights.
 Before invoking pytest, the wrapper acquires an exclusive local lock at
 `~/.config/charting-platform/provider-live.lock` (override with
 `PROVIDER_LIVE_LOCK_FILE`). A second worktree on the same host therefore exits
-with code `3` without making provider calls. This coordinates local worktrees
-only; GitHub and deployed environments still need separate provider accounts,
-environment concurrency controls, or an operator-approved shared-key window.
+with code `3` without making provider calls. This lock is only local
+single-runner serialization; quota admission is handled separately by the
+durable provider-quota coordinator before each live operation. Local worktrees
+share the owner-only SQLite coordinator by default. GitHub live validation
+requires a persistent PostgreSQL coordinator and fails closed without it. A
+deployment's default named-volume SQLite coordinator is durable for its
+backend/worker containers but is not shared with GitHub or another host. If
+those environments use credentials whose quota belongs to the same provider
+account, point them to the same persistent coordinator and configure matching
+`PROVIDER_QUOTA_ACCOUNT_SCOPES`; separate API keys alone do not prove separate
+provider quota pools. Independently owned accounts may use isolated
+coordinators and scopes.
+The coordinator does not infer that an empty local ledger means an unused
+provider account. A new finite dimension has an unknown starting balance and
+blocks routing/probes until it receives an exact active-window baseline.
+Currently, an administrator records a provider-dashboard attestation at
+`POST /api/v1/market-data/quota-coordinator/baselines`; inspect the aggregate
+coordinator at `GET /api/v1/market-data/quota-coordinator` and exact current
+dimension status at
+`GET /api/v1/market-data/quota-coordinator/baselines?provider=...&capability=...`.
+The status reports unknown/verified state, snapshot usage, local settled debits
+since that snapshot, in-flight reservations, and remaining headroom. The
+request supplies only provider, capability, dimension, used units,
+timezone-aware observation time, and a structured evidence locator; unit,
+limit, quota group, account scope, and reset window are derived from the
+reviewed provider contract. Use a reference such as
+`dashboard:marketdata-app:2026-09-16`: a source, provider, and date or
+human-readable descriptive slug. Do not include free text, URLs, screenshots,
+API keys, bearer tokens, token-labeled values, or opaque key-shaped references;
+legacy evidence values outside this grammar are withheld from admin responses.
+Reconcile each applicable finite dimension separately; never translate one
+unit type to another. For a fixed reset window, a newer provider snapshot
+cannot erase coordinator-confirmed local debits. For a rolling window, an
+equal-time replay cannot lower the baseline, but a strictly newer provider
+snapshot may decrease as older usage ages out; local settled debits after that
+snapshot are counted separately.
+
+The general quota-coordinator summary resolves active limits from the current
+provider contract, including plan and expiry settings, and exposes the stored
+limit separately as `recorded_limit_units`. If providers sharing a bucket
+disagree or the current contract cannot be uniquely matched, current limit and
+headroom are unknown rather than stale persisted values.
+
+`PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES` is an explicit JSON map of exact
+scope aliases to booleans. Mark a scope `true` only after confirming every
+client of that provider account uses the same durable coordinator. A verified
+scope can safely roll a zero baseline forward at a provider-defined fixed reset
+or after a full rolling window elapses. Leave it unset if manual scripts,
+uncoordinated deployments, or other clients may spend the same allowance; in
+that case refresh the baseline for each active window.
 Each live pytest process also appends measured per-provider operation, HTTP
 request, and response-byte totals to the external
 `~/.config/charting-platform/provider-live-usage.jsonl` ledger (override with
@@ -61,6 +145,58 @@ request, and response-byte totals to the external
 application database's durable runtime quota windows; it makes direct live-test
 consumption visible across local sessions without storing credentials or
 payloads.
+
+Provider-native account-usage snapshots may reconcile a baseline automatically
+only when the provider adapter has an explicit exact mapping for the reviewed
+dimension. The current implementation permits this for MarketData.app's
+`credits_per_day` account pool when `/user/` returns the matching reviewed
+limit, a current reset timestamp, and a valid consumed counter (or an exact
+`limit - remaining` equivalent). The reconciliation is labelled
+`provider_account_observation` and uses the same durable coordinator. A plan,
+limit, window, or reset mismatch remains observation-only and cannot widen
+routing. Other providers still require operator attestation because their
+native usage surfaces do not establish an equivalent dimension safely.
+
+The durable coordinator also contains a reservation-linked live-receipt
+registry (`provider_quota_ledger_live_receipt`). This is the authoritative
+link between a live test observation and the exact quota reservation that was
+admitted in that coordinator. Each registry row stores only the reservation
+ID, provider, operation, run ID, usage scope, bounded receipt status, and
+reconciliation timestamps/state; it never stores credentials, response
+payloads, request/byte measurements, or inferred quota units. The wrapper
+registers the row after the operation settles, including when a provider
+failure leaves the reservation unresolved.
+
+Before a new live matrix makes any network request, the runner opens the same
+durable coordinator and reconciles every registered non-reconciled receipt.
+Pending reservations are recovered conservatively using the units originally
+reserved by the coordinator, never measurements copied from a JSONL artifact.
+Settled or not-sent reservations are idempotent no-ops. An uncertain or
+lease-expired reservation, a missing reservation, or an identity mismatch
+blocks the run and requires provider-native/operator reconciliation. Legacy
+JSONL rows have no reservation ID and are therefore never imported into this
+registry or used to alter quota accounting. This ordering prevents a crashed
+live process from silently starting another quota-consuming run against an
+unknown reservation state.
+
+The two receipt surfaces have deliberately different authority:
+
+* The coordinator's reservation and live-receipt tables are authoritative for
+  admission, settlement, and recovery within the configured provider account
+  scope. They must be backed up with the quota ledger/database.
+* `provider-live-usage.jsonl` and GitHub's uploaded JSONL artifact are
+  redacted, aggregate audit evidence. They remain useful for measured
+  request/operation/byte reporting and manual account reconciliation, but they
+  are observational only: they do not create reservations, settle a
+  reservation, infer a provider limit/reset, or change routing. The checked-in
+  merger may deduplicate them into an owner-managed audit ledger, but it must
+  not be treated as a substitute for the durable coordinator.
+
+If the coordinator or its receipt registry cannot be opened, written, locked,
+or reconciled, the live runner fails closed before transport. Restore the
+coordinator from a trusted backup or record a fresh exact provider baseline
+for every affected finite dimension before enabling that provider again; an
+empty replacement database is not evidence of zero external usage.
 Each receipt row also contains a bounded `operation_usage` map keyed by the
 explicit adapter operation (for example `get_instrument_profile` or
 `fetch_tokenized_historical_prices`). Each entry contains only operation count,
@@ -69,6 +205,20 @@ without this map remain valid and are reported with an empty operation
 breakdown. The admin usage response exposes the normalized breakdown under
 `live_test_usage.operation_breakdown`; these observations remain separate from
 runtime reservations and never infer a provider quota or reset window.
+The live wrapper supplies one fresh run ID and records each observation under
+the exact pytest node ID. Candidate receipts require current-run evidence for
+every manifest case and required operation; prior ledger rows cannot satisfy
+the check. MarketData.app's unbounded historical-option test is separately
+typed as a no-request policy block, not transport evidence. EODHD's expected
+free-plan profile `403` is recorded as an explicit entitlement denial rather
+than a successful data response or an unexpected provider failure. A passing
+pytest count without these correlated observations cannot produce a green
+matrix receipt. The receipt distinguishes required live reads, expected
+entitlement denials, intentional no-request policy cases, user-deferred
+providers, and unresolved operational bounds. Only unresolved dispositions
+keep capability evidence incomplete; policy and denial rows remain visible as
+non-data coverage and cannot be mistaken for a successful quote or history
+read.
 When `RUN_LIVE_PROVIDER_TESTS=1`, the live pytest session first opens the
 configured ledger for a zero-byte append and exits with code `2` before any
 provider test runs if that path is not writable. This prevents a filesystem
@@ -76,6 +226,10 @@ permission failure at teardown from spending provider quota without a receipt.
 The same startup check requires a bounded, printable
 `PROVIDER_LIVE_USAGE_SCOPE`; direct pytest invocations cannot silently create
 new unattributed `unspecified` receipts.
+Direct live pytest is additionally rejected unless the manifest runner marks
+the process with its internal matrix-run marker; this keeps approved provider
+deferrals and routing/legal preflight controls in force for every external
+request.
 The ledger is opened and permission-hardened to owner-only mode (`0600`) during
 that preflight, and each flushed batch is `fsync`'d before the lock is released.
 This protects cross-session usage evidence against a permissive pre-existing
@@ -92,6 +246,14 @@ observed by the transport (remaining credits, reset times, `Retry-After`, FINRA
 record bounds, or Binance/Bybit weight state); auth and payload headers are
 rejected. This snapshot is observational evidence, never a substitute for
 provider-account reconciliation or runtime quota reservations.
+The live test helpers make that distinction executable: every direct provider
+operation first reserves its exact reviewed quota dimensions in the durable
+coordinator, then marks the request context admitted. Opt-in live pytest
+sessions install synchronous and asynchronous HTTPX transport guards that
+reject any request without that active reservation before it is sent. All
+current external provider adapters use HTTPX; a future adapter using another
+transport must add an equivalent tested pre-send guard before it can be
+admitted to the live manifest.
 Each provider row distinguishes `exit_status` (whether an operation for that
 provider failed), `failed_operations`, and `process_exit_status` (the overall
 pytest/matrix result). This prevents an unrelated expected credential or quota
@@ -117,24 +279,29 @@ names are in `.env.example` and the provider ledger; never put values in Git.
 
 GitHub uses the separate manually dispatched
 `Credentialed Provider Live Validation` workflow. Configure its
-`provider-live-validation` environment with same-named environment secrets and
-with `EDGAR_USER_AGENT` and `FINRA_OTC_SYMBOL_DIRECTORY_URL` environment
-variables. Put the reviewed non-secret safety settings
+`provider-live-staging` environment for staging runs and its
+`provider-live-master` environment for master runs, with same-named
+environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmation)
+`FINRA_OTC_SYMBOL_DIRECTORY_URL` environment variables. Put the reviewed non-secret safety settings
 `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`, `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES`, `FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
+`FINRA_OTC_SOURCE_REVIEWED`, `FINRA_OTC_SOURCE_EVIDENCE`,
 `FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
 `TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
-`PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_USAGE_PROFILE_SEEDS`,
+`PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_FRESHNESS_SEEDS`,
+`PROVIDER_USAGE_PROFILE_SEEDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
-and `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans,
+`MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` for trial plans, and
+`ALLOW_PAID_PROVIDER_ROUTING` (default `false`),
 and `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` in the same environment's
 configuration variables. The SEC directory controls
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED`,
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS`,
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER`,
 `MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS`, and
-`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE` are also
-passed through as non-secret variables. The workflow passes these controls
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE`, and
+`MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT` are also passed
+through as non-secret variables. The workflow passes these controls
 through without inventing entitlements. Configure each environment
 independently; a GitHub variable never inherits the local `~/.config` setting.
 The local MarketData.app account uses the reviewed Starter Trial/10,000 daily
@@ -267,32 +434,28 @@ the integration contract without fabricating an IPO or holiday row; non-empty
 rows are useful additional evidence but are not required for transport
 correctness.
 
-On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
-the official FINRA OTC Security Master URL, the public/keyless matrix passed
-`9/9`, including full SEC ticker/exchange-directory pagination, full Nasdaq
-directory pagination for both equities and ETFs, and full FINRA OTC DAPI
-pagination:
-
-```sh
-RUN_LIVE_PROVIDER_TESTS=1 EDGAR_USER_AGENT='charting-platform live-validation ops@example.invalid' \
-  FINRA_OTC_SYMBOL_DIRECTORY_URL='https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster' \
-  rtk uv run --project backend pytest tests/live/test_market_data_providers_live.py \
-  -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken or finra_otc_directory' \
-  --no-header -q --no-cov
-# 9 passed, 15 deselected
-```
+Historical note: a bounded run on 2026-09-05 returned a successful response
+from the then-configured FINRA OTC candidate and exercised full pagination.
+Subsequent review found that the current public FINRA catalog does not list
+`otcSecurityMaster`. This old transport result is not source-availability,
+completeness, or rights evidence and is not an instruction to repeat the call.
+The live test now skips before network access unless source review and a
+non-secret evidence reference are configured; a skip is not acceptance proof.
 
 A later bounded rerun passed the other six keyless probes but received an honest
 OpenFIGI HTTP 429 after additional anonymous traffic. After the documented
 anonymous window reset, the bounded keyless matrix passed again; the
 intermediate 429 remains recorded as rate-limit evidence, not hidden.
 
-The standalone venue-disambiguated OpenFIGI probe also passed `1/1`:
+The historical standalone venue-disambiguated OpenFIGI probe passed `1/1`, but
+that direct test predates the manifest's durable quota reservation and usage
+ledger. It is not current acceptance evidence and must not be run as a
+standalone live check. Use the manifest-backed runner instead:
 
 ```sh
-RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
-  tests/live/test_openfigi_live.py -m live --no-header -q --no-cov
-# 1 passed
+PROVIDER_LIVE_USAGE_SCOPE=local-dev RUN_LIVE_PROVIDER_TESTS=1 \
+  rtk uv run --project backend python scripts/run-live-provider-probes.py \
+  --provider openfigi
 ```
 
 The latest backend deterministic gate on the current corrective revision is:
@@ -407,28 +570,58 @@ every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
 `FMP_OPERATION_BYTE_BOUNDS` JSON maps. When complete maps are present, the
 runtime reserves the documented bandwidth pool before execution and settles it
 to measured response bytes; incomplete or invalid maps remain fail-closed.
+Per-dimension operation maps follow the same fail-closed rule: an explicitly
+empty map is a reviewed zero-cost exclusion for that dimension (for example, a
+synchronous FINRA read against the separate asynchronous-dataset pool), while
+a non-empty map that omits an operation is unreviewed. The manifest runner may
+add a positive, operation-specific reservation bound only for a bounded live
+case whose adapter estimator is already reviewed; that bound is not a runtime
+default and does not widen provider routing for arbitrary ranges.
 The usage summary derives `window_ends_at` from each policy's explicit calendar
 reset (including Eastern-time month/day and 09:30 ET boundaries), rather than
 adding a nominal 31-day duration. Fixed and rolling windows retain their
 duration semantics, so active-window diagnostics expire at the same boundary
 used by admission across short months and daylight-saving transitions.
 Tiingo's first-of-month Eastern bandwidth reset and FMP's rolling 30-day
-bandwidth reset are represented in the durable calendar-window engine. Tiingo's
-500-symbol monthly pool is enforced by the durable `provider_quota_identity`
-ledger, which claims each normalized provider symbol once per window and does
-not approximate repeated calls as new symbols. FINRA's synchronous short-interest and OTC Daily List
-calls reserve the documented 3 MB maximum response against the 10 GB monthly
-credential budget and settle to measured bytes; its asynchronous
+bandwidth reset are represented in the durable calendar-window engine.
+Tiingo's 500-symbol monthly pool is enforced by the durable
+`provider_quota_identity` ledger, which claims each normalized provider symbol
+once per conservative rolling 31-day window because the plan does not specify
+the pool's exact reset anchor. FINRA's synchronous short-interest and OTC
+Daily List calls reserve a maximum 3,000,000 response bytes (the conservative
+decimal interpretation of FINRA's ambiguous 3 MB ceiling) against a 10 GB
+credential pool modeled as a rolling 31-day window because the exact reset
+anchor and byte convention are not stated; measured bytes settle the
+reservation. Its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful
 direct adapter. A positive `FINRA_ASYNC_MAX_RESULT_BYTES` promotes the signed
-download operation into the durable monthly byte reservation; the default `0`
+download operation into the durable rolling-window byte reservation; the default `0`
 remains non-routable because provider results are otherwise unbounded. FRED v1
 records the official 120-requests/minute threshold but remains non-routable
-until the deployment supplies the explicit reviewed controls
-`FRED_REVIEWED_LIMIT_SCOPE`, `FRED_REVIEWED_REQUESTS_PER_MINUTE` (1..120), and
-`FRED_SERIES_TERMS_REVIEWED=true`; these controls make the operator's
-conservative decision observable without pretending the provider's adjustable
-scope is fixed. Nasdaq Trader's polling allowance remains unpublished. IBKR
+until reviewed quota-scope evidence, written persistent-storage and
+automated-use authority, and rights evidence for each series are supplied.
+Controls include `FRED_REVIEWED_LIMIT_SCOPE`,
+`FRED_REVIEWED_REQUESTS_PER_MINUTE` (1..120),
+`FRED_REVIEWED_QUOTA_EVIDENCE`,
+`FRED_PERSISTED_STORAGE_AUTHORIZED=true`,
+`FRED_PERSISTED_STORAGE_AUTHORITY_EVIDENCE`,
+`FRED_AUTOMATED_USE_AUTHORIZED=true`,
+`FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE`, and the per-series
+`FRED_SERIES_RIGHTS_EVIDENCE` JSON map. The old boolean terms-review control
+is not accepted as permission. Until all applicable controls are satisfied,
+the FRED live case checks the policy gate without making an API request and is
+not external live evidence. Coinbase's 10 public requests/second rate limit
+does not establish legal permission: its live case also makes no request until
+written authority covers automated/AI use and persistent, non-redistributing
+use; the configured evidence fields are
+`COINBASE_MARKET_DATA_USE_AUTHORIZED`,
+`COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE`,
+`COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE`, and
+`COINBASE_MARKET_DATA_USE_REVIEWED_AT` (plus the optional
+`COINBASE_MARKET_DATA_USE_EXPIRES_AT`). Nasdaq Trader publishes no numeric
+polling allowance; the runtime instead enforces a client-imposed cap of two
+conditional file requests per calendar day, not a claim about Nasdaq's quota.
+IBKR
 now has a concrete read-only Client Portal Gateway adapter for security search,
 raw historical equity/futures bars, and latest-price snapshots. The gateway
 login remains interactive and session-bound; no options capability is claimed,
@@ -476,6 +669,41 @@ cache-aware: the cache-populating read must produce transport evidence, while
 subsequent locally served pages are validated for completeness without being
 misreported as new network calls.
 
+Historical operation-gap snapshot (2026-09-10): an earlier checkout listed
+FINRA asynchronous submit/poll/download; Massive search/discovery and
+IPO/calendar continuation; Alpha Vantage search/quote/discovery; Marketstack
+discovery; Tiingo search; Twelve Data search/quote/discovery; EODHD/FMP
+discovery; Binance/Kraken full-range, quote, and discovery; Coinbase's
+full-range/quote/discovery; and direct tokenized metadata as unresolved. That
+list is retained only as provenance. It is not a current claim: subsequent
+manifest and adapter work changed several entries, and a prose list must not
+override the exact source checkout.
+
+Current-source inventory checkpoint (2026-09-16): the authoritative operation
+surface is the combination of `LIVE_REQUIRED_OPERATIONS`,
+`LIVE_OPERATION_DISPOSITIONS`, explicit method aliases, service-operation
+aliases, and the manifest in `scripts/run-live-provider-probes.py`. The pure
+`provider_method_inventory_errors()`/`live_matrix_inventory_errors()` checks
+fail closed when a public concrete provider method is absent from the required
+manifest, a reviewed alias, a local-only exclusion, or an explicit
+disposition. Current aliases include `fetch_latest_ohlcv` -> `fetch_ohlcv` and
+the bounded service paths `fetch_rfr_ohlcv`, `bulk_fetch`, and
+`reconcile_universe_page`; these aliases provide accounting/coverage
+classification, not additional endpoint evidence. The runner also emits
+these maps and all current dispositions in the redacted evidence object.
+
+The runner's current preflight output, not this document, is the source of
+truth for unresolved capability coverage. In particular, an empty disposition
+map for a provider means that no unresolved disposition is recorded for the
+methods represented by its manifest/aliases; it does not by itself prove
+complete universe, history-depth, or entitlement coverage. Before claiming a
+capability-exhaustive run, execute the exact current-source manifest and
+resolve every `deferred`/`blocked` disposition that the preflight reports.
+Expected entitlement denials, intentional no-request policy blocks, and
+explicit user deferrals remain visible in receipts but are typed separately
+from unresolved live coverage. Focused provider runs may collect transport
+evidence, but they cannot override an unresolved full-matrix disposition.
+
 The current operator environment has Alpaca and MarketData.app credentials and
 an EDGAR contact, and their bounded probes pass. The intentionally deferred
 credential domains are `TRADIER_API_KEY`, `IBKR_READ_ONLY_URL` plus
@@ -510,20 +738,25 @@ operation byte maps remain non-routable because their reviewed controls are not
 configured.
 
 The wrapper also reports the remaining provider-specific admission gates
-explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,
-Nasdaq Trader's unpublished polling allowance, xStocks' unpublished public
+explicitly: Coinbase's written-use authority, FRED's v1 limit scope/adjustable-
+limit/storage/automation/per-series-rights review, Nasdaq Trader's unpublished
+vendor quota (bounded locally by two file requests per calendar day), xStocks' unpublished public
 quota plus its official US-person/jurisdiction/redistribution restriction,
 and Bybit's endpoint/UID header state. A positive live read for any of these
 providers is therefore not treated as routing admission.
 
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
-`https://api.marketdata.app/v1` (not `/api/v1`). The checked-in contract records
-the documented 100-credit daily free window, its 09:30 America/New_York reset,
-and the 50-request concurrent ceiling; the adapter path, Bearer-auth shape, and
-durable release-only in-flight reservation are covered by fixture/unit tests.
-A credentialed live read passed on 2026-09-11, but the provider remains subject
-to the documented quota/terms review before routing admission.
+`https://api.marketdata.app/v1` (not `/api/v1`). At the user's direction, count
+the 30-day trial from 2026-09-11 18:09 Europe/Lisbon. The
+per-provider configuration therefore uses the 10,000-credit daily Starter
+Trial allowance until the explicit expiry `2026-10-11T18:09:00+01:00`, then
+falls back to the Free Forever 100/day allowance; an operator can revise plan,
+limit, and expiry for a later upgrade. The reset is 09:30 America/New_York and
+the account-wide concurrent ceiling is 50. The adapter path, Bearer-auth
+shape, and durable release-only in-flight reservation are fixture/unit tested.
+A credentialed live read passed on 2026-09-11; this historical evidence does
+not verify the current source tree or prove remaining account/legal gates.
 
 After the FMP live-preflight correction, the complete manifest was rerun at
 `2026-09-10T03:36Z` with the existing operator-owned keys plus temporary
@@ -1123,8 +1356,23 @@ Accepted reviewed plan identifiers are `free_forever`, `starter_trial`,
 `trader_trial`, `starter`, and `trader`; trial identifiers remain explicitly
 time-limited and are not silently treated as perpetual paid plans. A trial
 also requires `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT` to be a future,
-timezone-aware ISO-8601 value; missing, naive, or elapsed expiries remain
-non-routable.
+timezone-aware ISO-8601 value. Missing or naive trial expiries remain
+non-routable. An elapsed but valid trial expiry is not an error: runtime quota
+and entitlement automatically fall back to Free Forever at 100 credits/day.
+The `/user/` account-introspection operation itself is explicitly excluded
+from the daily credit dimension because the native consumed-credit header is
+zero for that endpoint; it still reserves the account-wide concurrency lease
+and is persisted in the durable request/response ledger. This provider-specific
+zero-cost declaration permits the first usage snapshot without fabricating a
+starting balance and does not relax the baseline gate for data/options calls.
+
+The corrected current dirty-worktree bounded rerun on 2026-09-16 passed 7/7
+MarketData.app cases (9 upstream requests, 17,241 response bytes), including
+the `/user/` snapshot. Its reservation-linked receipt shows the account-usage
+call held only the concurrency lease and settled zero daily-credit units. The
+receipt is intentionally `not_current_source` until the implementation is
+committed and revalidated at the exact candidate SHA; it is transport and
+quota-settlement evidence, not promotion evidence.
 
 On 2026-09-13, the complete lock-protected matrix was rerun against the
 existing owner-managed environment with the external usage ledger enabled. It
@@ -1302,3 +1550,17 @@ accepted into the mode-0600 owner-managed ledger with `accepted=4`; no
 credentials or provider payloads entered Git. This remains transport/schema
 evidence only and does not promote any unreviewed quota, account-plan,
 commercial, redistribution, or response-dependent routing control.
+
+On 2026-09-16, the current-source MarketData.app focused matrix was rerun
+against the configured Starter Trial account and the durable local coordinator.
+The first run exposed a real adapter defect: `get_current_price` reused a
+one-day candle window and returned `None` when the delayed candle surface had
+no observation for the current date. The adapter now uses the documented
+`/v1/stocks/quotes/{symbol}/` endpoint, validates its parallel arrays without
+truncation, and falls back from last trade to midpoint/bid/ask only when those
+provider fields are present. The corrected rerun passed `7/7` cases (account
+usage, daily and five-minute candles, option expirations/chain, bounded
+historical option quotes, the deliberate no-request guard, and latest price).
+The receipt is current transport/schema evidence only because the worktree is
+uncommitted; the Starter Trial `10,000/day` plan and its configured expiry
+remain the authoritative local quota contract.

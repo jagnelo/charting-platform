@@ -1,3 +1,4 @@
+import importlib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -387,12 +388,107 @@ async def test_edgar_directory_scan_rejects_unknown_materialization_mode(monkeyp
     }
 
 
+@pytest.mark.asyncio
+async def test_edgar_directory_scan_passes_exact_reviewed_cycle_count(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED", True)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_UNIVERSE_SCAN_ENABLED", False)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS", 3)
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS", 2)
+    monkeypatch.setattr(
+        settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE", "create_missing"
+    )
+    monkeypatch.setattr(settings, "MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT", 17)
+    calls = []
+
+    class FakeSessionContext:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, *_args):
+            return False
+
+    async def fake_refresh(db, **kwargs):
+        calls.append((db, kwargs))
+        return {"status": "blocked", "completed_cycle_count": 17}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", FakeSessionContext)
+    monkeypatch.setattr(
+        "app.services.market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_sec_directory",
+        fake_refresh,
+    )
+    result = await data_tasks.refresh_edgar_ipo_pipeline_for_sec_directory({})
+
+    assert result == {"status": "blocked", "completed_cycle_count": 17}
+    assert calls[0][1]["issuer_materialization_reviewed_cycle_count"] == 17
+    assert calls[0][1]["issuer_materialization_mode"] == "create_missing"
+
+
 def test_edgar_directory_scan_is_registered_in_worker_functions():
     assert arq_worker.scheduled_edgar_ipo_directory_scan in arq_worker.WorkerSettings.functions
 
 
 def test_market_event_prelisting_is_registered_in_worker_functions():
     assert arq_worker.scheduled_market_event_prelisting in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
+async def test_market_universe_reconciliation_skips_when_disabled(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", False)
+    calls = []
+
+    async def fake_reconcile(ctx):
+        calls.append(ctx)
+        return {"status": "reconciled"}
+
+    monkeypatch.setattr(data_tasks, "reconcile_market_universe", fake_reconcile)
+
+    result = await arq_worker.scheduled_market_universe_reconciliation({"redis": "test"})
+
+    assert result == {"skipped": True, "reason": "market-universe reconciliation disabled"}
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_market_universe_reconciliation_delegates_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", True)
+    calls = []
+
+    async def fake_reconcile(ctx):
+        calls.append(ctx)
+        return {"status": "complete", "coverage": {"completed": 2}}
+
+    monkeypatch.setattr(data_tasks, "reconcile_market_universe", fake_reconcile)
+
+    result = await arq_worker.scheduled_market_universe_reconciliation({"redis": "test"})
+
+    assert result == {"status": "complete", "coverage": {"completed": 2}}
+    assert calls == [{"redis": "test"}]
+
+
+def test_market_universe_reconciliation_cron_is_daily_and_flag_guarded(monkeypatch):
+    original_enabled = settings.MARKET_UNIVERSE_RECONCILIATION_ENABLED
+    try:
+        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", False)
+        importlib.reload(arq_worker)
+        assert not any(
+            job.coroutine is arq_worker.scheduled_market_universe_reconciliation
+            for job in arq_worker.WorkerSettings.cron_jobs
+        )
+
+        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", True)
+        importlib.reload(arq_worker)
+        matching_jobs = [
+            job
+            for job in arq_worker.WorkerSettings.cron_jobs
+            if job.coroutine is arq_worker.scheduled_market_universe_reconciliation
+        ]
+
+        assert len(matching_jobs) == 1
+        assert matching_jobs[0].hour == 21
+        assert matching_jobs[0].minute == 0
+    finally:
+        monkeypatch.setattr(settings, "MARKET_UNIVERSE_RECONCILIATION_ENABLED", original_enabled)
+        importlib.reload(arq_worker)
 
 
 @pytest.mark.asyncio
@@ -797,6 +893,123 @@ async def test_provider_availability_schedules_are_disabled_without_explicit_liv
 
     assert await arq_worker.scheduled_daily_provider_availability({}) == {"status": "disabled"}
     assert await arq_worker.scheduled_weekly_provider_availability({}) == {"status": "disabled"}
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_is_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", False)
+
+    assert await arq_worker.scheduled_provider_account_usage_refresh({}) == {
+        "skipped": True,
+        "reason": "provider account-usage refresh disabled",
+    }
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicated_providers(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
+        ["marketdata_app", " marketdata_app ", ""],
+    )
+    calls = []
+
+    class SessionContext:
+        async def __aenter__(self):
+            return "db"
+
+        async def __aexit__(self, *_args):
+            return None
+
+    async def fake_refresh(db, *, provider_name):
+        calls.append((db, provider_name))
+        return {"status": "refreshed", "providers": [provider_name]}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(
+        "app.services.provider_account_usage.refresh_provider_account_usage",
+        fake_refresh,
+    )
+
+    result = await data_tasks.refresh_provider_account_usage_snapshots({})
+
+    assert result == {
+        "providers": ["marketdata_app"],
+        "results": [{"status": "refreshed", "providers": ["marketdata_app"]}],
+    }
+    assert calls == [("db", "marketdata_app")]
+
+
+@pytest.mark.asyncio
+async def test_provider_account_usage_refresh_continues_after_one_provider_failure(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS",
+        ["first_provider", "second_provider"],
+    )
+
+    class SessionContext:
+        async def __aenter__(self):
+            return "db"
+
+        async def __aexit__(self, *_args):
+            return None
+
+    calls = []
+
+    async def fake_refresh(_db, *, provider_name):
+        calls.append(provider_name)
+        if provider_name == "first_provider":
+            raise RuntimeError("provider credential rejected")
+        return {"status": "refreshed", "providers": [provider_name]}
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(
+        "app.services.provider_account_usage.refresh_provider_account_usage",
+        fake_refresh,
+    )
+
+    result = await data_tasks.refresh_provider_account_usage_snapshots({})
+
+    assert calls == ["first_provider", "second_provider"]
+    assert result["results"][0]["status"] == "failed"
+    assert result["results"][0]["failures"][0]["provider"] == "first_provider"
+    assert result["results"][1] == {
+        "status": "refreshed",
+        "providers": ["second_provider"],
+    }
+
+
+def test_provider_account_usage_refresh_is_registered_only_as_an_opt_in_cron(monkeypatch):
+    original_enabled = settings.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED
+    try:
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", False)
+        importlib.reload(arq_worker)
+        assert (
+            arq_worker.scheduled_provider_account_usage_refresh
+            in arq_worker.WorkerSettings.functions
+        )
+        assert not any(
+            job.coroutine is arq_worker.scheduled_provider_account_usage_refresh
+            for job in arq_worker.WorkerSettings.cron_jobs
+        )
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", True)
+        importlib.reload(arq_worker)
+        matching_jobs = [
+            job
+            for job in arq_worker.WorkerSettings.cron_jobs
+            if job.coroutine is arq_worker.scheduled_provider_account_usage_refresh
+        ]
+        assert len(matching_jobs) == 1
+        assert matching_jobs[0].hour == 15
+        assert matching_jobs[0].minute == 0
+    finally:
+        monkeypatch.setattr(settings, "PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED", original_enabled)
+        importlib.reload(arq_worker)
 
 
 @pytest.mark.asyncio

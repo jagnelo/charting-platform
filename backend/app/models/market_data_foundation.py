@@ -680,6 +680,58 @@ class MarketEventScanState(Base, TimestampMixin):
     )
 
 
+class SecIssuerDirectoryCandidate(Base, TimestampMixin):
+    """Row-level, reviewable decision from a bounded SEC issuer-directory scan.
+
+    This is deliberately an issuer admission report, not a security master:
+    rows can describe an existing issuer, a would-create candidate, or a
+    fail-closed identity conflict. The report contains no instrument/listing
+    writes and is retained across worker restarts for operator review.
+    """
+
+    __tablename__ = "sec_issuer_directory_candidate"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    cycle_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    directory_offset: Mapped[int] = mapped_column(Integer, nullable=False)
+    directory_total: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    materialization_mode: Mapped[str] = mapped_column(String(24), nullable=False)
+    cik: Mapped[str] = mapped_column(String(10), nullable=False)
+    conformed_name: Mapped[str] = mapped_column(String(300), nullable=False)
+    name_candidates: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    tickers: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    admission_decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    decision_reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    cycle_status: Mapped[str] = mapped_column(String(24), nullable=False, default="running")
+    cycle_complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cycle_clean: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    cycle_failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    matched_issuer_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    matched_issuer_domain_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    matched_issuer_legal_name: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    matched_issuer: Mapped[Issuer | None] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("cycle_number", "cik", name="uq_sec_issuer_directory_candidate_cycle_cik"),
+        Index(
+            "ix_sec_issuer_directory_candidate_cycle_page",
+            "cycle_number",
+            "directory_offset",
+            "cik",
+        ),
+        Index(
+            "ix_sec_issuer_directory_candidate_decision",
+            "cycle_number",
+            "admission_decision",
+        ),
+    )
+
+
 class FundamentalFact(Base, TimestampMixin):
     """Point-in-time raw/curated fundamental observation."""
 

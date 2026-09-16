@@ -20,12 +20,21 @@ from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
-from app.providers.errors import bounded_redact_provider_message
+from app.providers.errors import ProviderNotConfiguredError, bounded_redact_provider_message
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data import _attach_provider_series, persist_price_history_bars
 from app.services.market_data_identity import normalize_identifier_value
 from app.services.market_data_persistence import persist_market_event
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
+
+_NON_PERSISTING_TOKENIZED_CANARIES = frozenset({"dinari"})
+
+
+def _ensure_provider_data_may_be_persisted(provider_name: str) -> None:
+    if str(provider_name or "").strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
+        raise ProviderNotConfiguredError(
+            "Dinari Sandbox is canary-only; its responses cannot enter application persistence"
+        )
 
 
 def tokenized_domain_key(provider: str, asset_id: str) -> str:
@@ -313,6 +322,7 @@ async def upsert_tokenized_asset(
     *,
     source_payload: dict[str, Any] | None = None,
 ) -> Instrument:
+    _ensure_provider_data_may_be_persisted(record.provider)
     type_id = await ensure_instrument_type(db, "Tokenized Securities", "Tokenized Security")
     domain_key = tokenized_domain_key(record.provider, record.asset_id)
     instrument = (
@@ -452,6 +462,11 @@ async def refresh_tokenized_assets(
     chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_ASSETS)
     if provider_name:
         chain = [item for item in chain if item.provider_name == provider_name]
+    chain = [
+        item
+        for item in chain
+        if item.provider_name.strip().lower() not in _NON_PERSISTING_TOKENIZED_CANARIES
+    ]
     if not chain:
         return {"status": "no_qualified_provider", "providers": [], "assets": 0}
 
@@ -557,6 +572,11 @@ async def refresh_tokenized_events(
     chain = await resolve_provider_chain(db, ProviderCapability.TOKENIZED_CORPORATE_ACTIONS)
     if provider_name:
         chain = [item for item in chain if item.provider_name == provider_name]
+    chain = [
+        item
+        for item in chain
+        if item.provider_name.strip().lower() not in _NON_PERSISTING_TOKENIZED_CANARIES
+    ]
 
     supported = [
         item
@@ -707,6 +727,16 @@ async def refresh_tokenized_prices(
     refreshed: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     for detail, instrument in rows:
+        if detail.provider_name.strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
+            failures.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": detail.provider_name,
+                    "provider_asset_id": detail.provider_asset_id,
+                    "error": "sandbox_canary_data_is_not_persistable",
+                }
+            )
+            continue
         identifier = detail.provider_asset_id or detail.token_symbol
         if not identifier:
             failures.append(
@@ -858,12 +888,16 @@ async def refresh_tokenized_historical_prices(
     resolved_by_provider = {
         item.provider_name: item
         for item in chain
+        if item.provider_name.strip().lower() not in _NON_PERSISTING_TOKENIZED_CANARIES
         if callable(getattr(item.provider, "fetch_tokenized_historical_prices", None))
     }
     refreshed: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     unsupported: list[str] = []
     for detail, instrument in rows:
+        if detail.provider_name.strip().lower() in _NON_PERSISTING_TOKENIZED_CANARIES:
+            unsupported.append(detail.provider_name)
+            continue
         resolved = resolved_by_provider.get(detail.provider_name)
         identifier = detail.provider_asset_id or detail.token_symbol
         if resolved is None or not identifier:

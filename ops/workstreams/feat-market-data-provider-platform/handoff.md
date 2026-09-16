@@ -1,5 +1,184 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 MarketData.app account-introspection accounting checkpoint
+
+- Corrected the provider-specific `/user/` account-usage path: it retains a
+  positive explicit operation entry and the account-wide concurrency lease, but
+  its `credits_per_day` dimension map is explicitly empty because the native
+  `x-api-ratelimit-consumed` observation shows that account introspection does
+  not spend daily data credits. This avoids overcounting the durable
+  cross-session ledger and permits a first snapshot before a credit baseline
+  exists; actual market-data/options operations remain baseline-gated.
+- Added regression coverage for the exact dimension reservation and fresh
+  coordinator bootstrap. Focused checks passed `5/5`; the complete backend
+  unit suite passed `2,294/2,294` with 37 warnings. No provider calls were
+  made by this change. The source remains dirty and no integration,
+  deployment, routing activation, or shadow run was performed.
+- Re-ran the credentialed bounded MarketData.app matrix after the correction:
+  `7/7` cases passed (`9` requests, `17,241` response bytes), including the
+  `/user/` account snapshot. The reservation ledger shows that account-usage
+  call held only the concurrency lease and settled zero daily-credit units.
+  Receipt run `8ba09662-b60c-4a3d-91d4-df2dea206c76` is correctly marked
+  `not_current_source` because this worktree is dirty; it is transport and
+  quota-settlement evidence, not exact-candidate acceptance.
+
+## 2026-09-16 live-preflight accounting checkpoint
+
+- The safety-only preflight was rerun after the native-account refresh work. It
+  remains correctly blocked before provider transport: provider baselines are
+  absent for the configured accounts, Coinbase use authority and several
+  source/legal controls are unresolved, and Tiingo/FMP byte maps remain empty.
+  No provider quota was consumed.
+- Fixed a coordinator defect where an explicitly reviewed empty per-dimension
+  cost map was treated as an unknown cost. Empty maps now mean “this operation
+  does not consume this dimension”; non-empty maps that omit an operation still
+  fail closed. Added exact manifest-only reservation bounds for the bounded
+  Binance/Coinbase/Kraken latest-candle, Massive 30-day daily-history, and
+  Marketstack five-day daily-history cases. These are live-test bounds, not
+  provider-wide defaults.
+- Focused quota/live-runner regression passed `71/71` without coverage. The
+  complete backend unit suite then passed `2,292/2,292` with 37 warnings;
+  targeted Ruff, compile, workstream validation, and `git diff --check` all
+  passed. The pinned formatter still reports existing whole-file baseline
+  reformatting and no broad formatting sweep was applied.
+- The MarketData.app owner configuration remains outside Git and is confirmed as
+  `starter_trial` / 10,000 daily credits through `2026-10-11T18:09:00+01:00`,
+  then Free Forever / 100. Its scheduled native-usage refresh is opt-in and
+  disabled by default.
+
+## 2026-09-16 opt-in native-usage refresh checkpoint
+
+- Added a disabled-by-default daily worker path for provider-native account
+  snapshots. A deployment must explicitly set
+  `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED=true` and provide a JSON provider
+  list; an empty list never fans out to all providers. The worker polls at
+  15:00 UTC and still routes each named provider through its own credential,
+  quota, entitlement, and circuit-breaker gates. Compose/RPi, GitHub workflow,
+  and environment examples are wired; no external call was made by this
+  change.
+- Focused provider wiring and worker validation passed `78/78`; Ruff checks,
+  compilation, and diff checks passed. The full current-source live matrix,
+  provider baselines, legal/source gates, target-owned secret stores, and final
+  shadow phase remain open.
+- The complete backend unit suite was rerun after this wiring change: `2,290`
+  passed with 37 warnings. This is current dirty-worktree evidence, not exact
+  staged-candidate or live-provider acceptance.
+
+## 2026-09-16 exact native-account reconciliation checkpoint
+
+- Provider-native account usage is now reconciled into the durable quota
+  coordinator only for an explicit exact mapping: MarketData.app's
+  `credits_per_day` pool when `/user/` returns the reviewed limit, a current
+  reset timestamp, and valid consumed (or exact `limit - remaining`) usage.
+  The reconciliation is labelled `provider_account_observation`; plan/limit/
+  window/reset mismatches remain observation-only and fail closed. Focused
+  quota/account/live-runner regression coverage passed `192/192` without
+  coverage instrumentation. This is dirty-worktree evidence and does not
+  promote the full live matrix.
+
+## 2026-09-16 continuation validation checkpoint
+
+- The current implementation remains in the assigned dirty feature worktree;
+  no commit, integration, deployment, routing activation, or shadow run was
+  performed. The live-operation inventory now includes the OpenFIGI profile
+  and Bybit cursor cases, explicit `fetch_latest_ohlcv`/service aliases, and
+  a structural check over concrete provider public methods. Pytest execution
+  no longer writes synthetic live receipts to the durable validation ledger
+  unless `PROVIDER_LIVE_VALIDATION_WRITE=1` is explicitly set.
+- Complete backend unit validation passed `2,284/2,284` with 37 warnings. The
+  authoritative combined Docker-backed unit/integration coverage gate passed
+  `2,670/2,670` at `81.90%` with 89 warnings, using isolated testcontainer
+  session `0e43d634-917d-4871-ab21-b0b096fad67a`; cleanup removed only this
+  workstream's resources. Compose/RPi contract checks passed, workflow tests
+  passed `46/46`, Ruff check and diff checks passed, and workstream validation
+  passed for 30 records.
+- Stack-backed research-runner isolation probes passed: the sandbox denied the
+  expected namespace, mount, ptrace, network, subprocess, and host-write
+  escapes, and the configured resource ceilings/identity were observed. The
+  full browser suite completed with `150 passed`, `109 skipped`, and one
+  unrelated frontend-only failure in `F8r-python-library-narrow`; no
+  market-data/provider backend E2E failure was reported. The temporary
+  branch-scoped stack and volumes were then torn down without a host-wide
+  prune. These results are recorded as current dirty-worktree evidence, not
+  exact-candidate acceptance.
+- The repository-wide `make validate-integration` target was attempted and
+  stopped at its existing Ruff-format stage: the pinned formatter reports 94
+  baseline files that would be reformatted, including files outside this
+  provider change. No broad unrelated formatting rewrite was applied. This is
+  a validation limitation, not a provider-test failure.
+- The exact current-source full live matrix remains intentionally unrun for
+  acceptance: its staged-candidate preflight still requires all provider
+  baselines, byte/legal/source controls, SEC/NMS/OTC gates, target-owned
+  secret/coordinator verification, and deferred-provider decisions. The
+  existing MarketData.app focused receipt remains `not_current_source` and is
+  not relabeled. ETF constituent adapter ownership remains with the parallel
+  `feat/etf-holdings-constituents` branch; this branch only supplies the shared
+  canonical identity/provider contract.
+- A fresh full-matrix safety-only runner invocation using the owner-managed
+  local environment stopped before network access with exit `2`. It reported
+  the expected unknown provider-account baselines, unresolved byte/weighted
+  operation costs, legal/source controls, and capability dispositions; no
+  provider quota was consumed. This is current dirty-worktree preflight
+  evidence, not a failed transport test and not exact-candidate acceptance.
+- Current official-source review further confirms the OTC blocker: OTC Markets'
+  FAQ says it does not offer market-data APIs, while the FINRA-backed public
+  Symbol Directory is a search interface rather than a documented complete
+  bulk security-master feed. The candidate FINRA OTC adapter therefore remains
+  disabled; no source or completeness claim was inferred from the interface.
+- The focused quota/coordinator/live-runner regression suite was rerun without
+  coverage instrumentation: `186 passed` in 3.79 seconds. This verifies the
+  provider-specific accounting and live-preflight changes after the current
+  documentation/source reconciliation.
+
+## 2026-09-16 resumed implementation checkpoint
+
+- The active session resumed the approved corrective plan in the exact branch
+  worktree. The owner-managed MarketData.app configuration is provider-specific
+  and remains outside Git: `starter_trial` / 10,000 credits per reset-day until
+  `2026-10-11T18:09:00+01:00`, then `free_forever` / 100 credits per reset-day.
+  The exact expiry boundary is covered at one second before, the instant, and
+  one second after; runtime reseeds the quota/entitlement to Free Forever after
+  expiry. Paid-plan changes remain configurable by plan/limit/expiry and require
+  `ALLOW_PAID_PROVIDER_ROUTING`; `/user/` headers do not infer the plan.
+- The bounded MarketData.app live subset passed `5/5` cases against the active
+  worktree: small authenticated read, intraday history, option expirations and
+  bounded option chain, account usage snapshot, and the response-priced
+  historical-option policy guard. The first four operations made a total of
+  five upstream HTTP requests and recorded `15,336` response bytes; the
+  historical-option guard made zero requests. Same-run operation evidence was
+  complete. This subset was protected by the local durable quota coordinator
+  and recorded in the owner-managed usage ledger; it is account-usage history,
+  not full-matrix or promotion evidence.
+- The receipt is honestly `not_current_source`: 50 tracked source paths were
+  dirty, so the run proves bounded live behavior for this worktree state only,
+  not an exact committed/staged candidate. Preserve the receipt; do not relabel
+  it or repeat these calls solely to change its status. The eventual acceptance
+  run must use the exact complete staged candidate and full manifest.
+- Deployment isolation was tightened alongside that correction: local Compose
+  now bind-mounts the owner-managed durable quota ledger into both trusted
+  `backend` and `worker` processes, while the network-disabled `research-runner`
+  receives neither quota variables nor the ledger mount. RPi keeps the named
+  quota volume on backend/worker only. Regression coverage asserts both sides
+  of this boundary. RPi preflight also checks core deployment assignments are
+  present and non-empty without echoing their values, and still rejects a
+  non-PostgreSQL coordinator URL.
+- The full live candidate still blocks before network access on unsafe or
+  unresolved provider cases, including FRED v1 storage/quota review, Nasdaq
+  polling allowance, a documented/authorized complete OTC source, xStocks
+  usage/legal eligibility, FINRA async result bounds, Alpaca/Massive action
+  page bounds, and Tiingo/FMP byte maps. Other explicit open gates remain the
+  SEC staging/materialization cycle, complete NMS/OTC reconciliation,
+  environment-owned GitHub/deployment quota and secret stores, deferred
+  Tradier/IBKR/Ondo credentials/terms, and the separately authorized final
+  30-day shadow phase. Focused live success does not clear these gates.
+- Exact next action: finish source and documentation reconciliation, run the
+  current focused/unit and authoritative integration gates, then continue
+  provider-specific contract/source audits and the complete universe/secret
+  store gates. Only after all intended implementation paths and safe live
+  controls are settled, stage the complete intended tree and run the required
+  full candidate matrix; stop at `ready_for_human_review`, without integration,
+  deployment, or shadow activation.
+
 ## 2026-09-15 implementation resumption
 
 - The user approved a complete corrective implementation phase. The current
@@ -9,7 +188,8 @@
   reconciliation, staged SEC/prelisting handling, four isolated credential
   domains, live-validation workflow enforcement, and Dinari Sandbox isolation.
 - Confirmed choices: free providers only; aggregate future spend cap 20/month;
-  Marketstack stays Free; FINRA is the OTC security-master authority; Nasdaq
+  Marketstack stays Free; FINRA Daily List is the known OTC lifecycle source,
+  while a complete OTC security-master source remains unresolved; Nasdaq
   Trader files refresh conditionally once per completed market day; three
   complete daily authoritative absences before listing deactivation; FINRA
   async downloads require exact pre-reserved size; prelisting instruments are
@@ -31,8 +211,100 @@
   controls and incorrect unknown-quota gates; finish universe reconciliation,
   secret-domain wiring, integration policy enforcement, and current-SHA live
   validation. Do not change frontend or ETF-provider adapter ownership.
-- Active session: `2d683fe6-c28c-4164-b66e-7dcc57cd03d5`; branch starts at
+- Active session: `1664f75d-6049-4ac2-9753-c2d250b4bc70` (authorized takeover
+  from `2d683fe6-c28c-4164-b66e-7dcc57cd03d5`); branch starts at
   synchronized source `da06e560b1aaa0e5399e1e9565f174abe925bda8`.
+
+## 2026-09-15 resumed implementation checkpoint
+
+- The human approved continuing the implementation after the model switch.
+  The interrupted worktree claim was transferred using the repository's exact
+  takeover guard; the existing active unbounded goal was resumed, not replaced.
+- MarketData.app's current key uses `starter_trial` / 10,000 credits per
+  provider reset-day, expiring at `2026-10-11T18:09:00+01:00`; this is an
+  operator-configured, timezone-aware trial expiry. The integration switches
+  to the separately configurable `free_forever` / 100 credits per reset-day
+  after expiry. Paid plan upgrades remain a per-environment plan + quota
+  configuration; `/user/` does not distinguish trial from paid Starter.
+- Latest corrective implementation since the last workstream note closes the
+  provider-availability monitor bypass for providers with missing routing
+  controls; binds FINRA source approval to the exact credential-free HTTPS
+  endpoint; prevents the live test from running without that exact review;
+  and hardens the staged full-matrix candidate gate (exact staged tree,
+  full-matrix-only, complete credential/source preflight before network,
+  secret scanning, captured/redacted output, and no pre-commit ledger writes).
+  The historical browser/backend/Compose receipts below remain valid for their
+  recorded worktree source, but were taken before these latest changes. The
+  focused suite most recently passed 86 tests, targeted Ruff passed, diff
+  checks passed, and Compose contract checks exited successfully. The UV
+  cache-boundary `agent-context` retry succeeded; an initial normal preflight
+  and one initial checkpoint were blocked before product execution/state
+  capture. No provider endpoint was called during this resumed session.
+- A read-only usage-scope audit confirmed that `ProviderQuotaWindow` is durable
+  only when all processes share one application database. Local worktrees use
+  separate databases; direct live-suite usage remains an observational JSONL
+  ledger settled after test teardown, so it neither reserves quota before a
+  call nor constrains runtime admission. GitHub live validation currently has
+  one environment and does not reconcile previous receipts before network use;
+  deployed hosts have no verified shared direct-probe ledger mount. This leaves
+  AC-DURABLE-CROSS-SESSION-USAGE open and requires a provider/account-scoped
+  durable admission design plus explicit per-environment credential/storage
+  provisioning. No credential values or stores were read.
+- The active dirty changeset is still in progress; do not create a commit or
+  claim live acceptance until its exact staged candidate passes the complete
+  required matrix. Current dirty-path inventory:
+
+  ```text
+  .env.example
+  .github/workflows/ci.yml
+  .github/workflows/provider-live.yml
+  Makefile
+  backend/.env.example
+  backend/app/config.py
+  backend/app/providers/edgar.py
+  backend/app/providers/finra_otc_directory.py
+  backend/app/providers/registry.py
+  backend/app/routers/options_exposure.py
+  backend/app/services/instrument_events.py
+  backend/app/services/market_event_edgar_scan.py
+  backend/app/services/provider_availability.py
+  backend/app/services/provider_runtime.py
+  backend/app/tasks/data_tasks.py
+  backend/app/workers/arq_worker.py
+  backend/tests/live/test_market_data_providers_live.py
+  backend/tests/unit/providers/test_new_providers.py
+  backend/tests/unit/routers/test_options_exposure.py
+  backend/tests/unit/services/test_instrument_events.py
+  backend/tests/unit/services/test_market_event_edgar_scan.py
+  backend/tests/unit/services/test_provider_availability.py
+  backend/tests/unit/services/test_provider_quota_contract.py
+  backend/tests/unit/services/test_provider_registry.py
+  backend/tests/unit/services/test_provider_runtime.py
+  backend/tests/unit/test_live_provider_runner.py
+  backend/tests/unit/test_provider_secret_wiring.py
+  backend/tests/unit/workers/test_arq_worker.py
+  deploy/rpi/compose.yml
+  docker-compose.e2e.yml
+  docker-compose.yml
+  docs/agent-orchestration.md
+  docs/data-providers.md
+  docs/deployment.md
+  docs/project-todos.md
+  docs/provider-live-validation.md
+  ops/workstreams/feat-market-data-provider-platform/handoff.md
+  ops/workstreams/feat-market-data-provider-platform/session.json
+  ops/workstreams/feat-market-data-provider-platform/validation.jsonl
+  scripts/run-live-provider-probes.py
+  tests/e2e/.env.example
+  tests/workflow/test_agent_session.py
+  ```
+- Exact next action: inspect the provider-specific quota contract and durable
+  usage paths with the read-only audit already underway; design and implement
+  cross-session reservations/reconciliation without assuming one request equals
+  one provider unit. Keep provider calls blocked until pre-call usage and the
+  outstanding FINRA source gate can be reconciled. Re-run the authoritative
+  backend/browser gates after source changes settle; the full candidate live
+  matrix remains acceptance-required and cannot be claimed from focused tests.
 
 ## 2026-09-15 changeset context: exact provider configuration and live-gate enforcement
 
@@ -112,6 +384,61 @@
   terms, provider legal/quota/response-size controls, separate CI/deployment
   secret stores, Dinari sandbox persistence isolation, future non-Strategy
   evaluator coverage, and the separately authorized final 30-day shadow run.
+
+## Active context: SEC directory gate and full-stack provider startup fixes
+
+- Scope: make the SEC ticker-directory scan report read-only candidate counts on
+  its initial disabled-materialization cycle; require a completed clean scan,
+  an explicitly reviewed cycle number, and an operator-selected `create_missing`
+  mode before any new Issuer row can be inserted. Pin a durable cycle to one
+  source fingerprint so a changing SEC directory cannot be mislabeled a
+  complete snapshot. Keep this source explicitly distinct from Nasdaq/FINRA
+  venue-complete security-master reconciliation. Close the full-stack defects
+  discovered while validating this context: environment sentinel parsing and
+  idempotent, concurrency-safe provider entitlement revision seeding.
+- Owned paths: `.env.example`, `backend/.env.example`,
+  `.github/workflows/provider-live.yml`, `docker-compose.yml`,
+  `deploy/rpi/compose.yml`, `backend/app/config.py`,
+  `backend/app/providers/edgar.py`, `backend/app/services/market_event_edgar_scan.py`,
+  `backend/app/services/provider_runtime.py`,
+  `backend/app/tasks/data_tasks.py`, `backend/tests/live/test_market_data_providers_live.py`,
+  `backend/tests/unit/providers/test_new_providers.py`,
+  `backend/tests/unit/services/test_market_event_edgar_scan.py`,
+  `backend/tests/unit/services/test_provider_runtime.py`,
+  `backend/tests/unit/services/test_provider_quota_contract.py`,
+  `backend/tests/unit/test_provider_secret_wiring.py`,
+  `backend/tests/unit/workers/test_arq_worker.py`, `docs/data-providers.md`,
+  `docs/deployment.md`, `docs/provider-live-validation.md`, and this handoff.
+  No frontend or ETF-adapter path is included.
+- Current evidence/context: SEC's public ticker-association files are search
+  aids and explicitly not guaranteed accurate or complete for venue scope; the
+  submissions API itself is keyless and SEC publishes an aggregate 10 requests
+  per second ceiling. Existing code already defaults the directory scan off
+  and has a zero submissions-request budget; do not enable a daily scan or
+  invent a request budget during this context. The first full-stack startup also
+  exposed that Pydantic Settings 2.2.1 eagerly JSON-decodes the non-JSON
+  `__CODE_DEFAULT__` sentinel before its field validator; the environment and
+  dotenv sources now pass that exact sentinel through, preserving explicit JSON
+  overrides and code defaults. SEC pagination now rejects rows beyond the
+  snapshot's remaining total before filing reads or issuer writes.
+- Validation so far: focused SEC/provider/config/worker coverage passed
+  `332/332`; changed Python files pass Ruff check and format, and an isolated
+  app import with all three policy-map sentinels resolves each to a `dict`.
+  The combined Docker backend gate passed at `81.78%`. The repaired stack now
+  reaches healthy status, but browser E2E failed at test 19/260: two repeated
+  `ACCOUNT_USAGE` seed attempts collided at the unique entitlement-revision
+  constraint. Logs show the MarketData.app repository seed resets its dynamic
+  quota policy on every resolution, incrementing revisions continuously; this
+  must be fixed and tested before the browser gate is considered green. One
+  OpenFIGI mapping HTTP call also occurred as an E2E side effect; do not claim
+  the browser suite was network-isolated or treat its provider usage as a live
+  matrix pass. No explicit live-matrix run was made.
+- Exact next action: make effective entitlement seeding idempotent, make
+  revision snapshot insertion conflict-safe across shared processes, add a
+  regression for the configured MarketData.app trial and no-op seed repeats,
+  then rerun focused/backend gates and the full branch-scoped stack/browser
+  suite. Keep the SEC directory scan disabled and its submissions budget at
+  zero; no SEC live cycle or request allowance is authorized by this context.
 
 Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
@@ -2600,3 +2927,472 @@ changed.
   provider/backtest/alert coverage passed `260/260`; Ruff and diff checks
   passed. No provider calls, credentials, frontend, or ETF-provider adapter
   files changed.
+
+- The local owner-only MarketData.app config was verified without reading or
+  printing credentials: `starter_trial`, 10,000 credits/day, expiring
+  `2026-10-11T18:09:00+01:00` (30 days from the supplied Sep 11 18:09 Lisbon
+  email time). The provider-specific settings automatically fall back to the
+  configurable Free Forever 100/day contract after expiry; paid plan changes
+  require an explicit new plan/limit configuration.
+
+- Full-stack browser validation now runs with both `PROVIDER_ROUTING_ENABLED`
+  disabled and a test-only deny-all HTTP(S) proxy on backend/worker. The first
+  isolated run exposed a missing `E2E_SEED_MARKET_DATA=true` startup setting;
+  after enabling the existing deterministic fixture, the complete Playwright
+  suite passed `151/260`, skipped `109` suite-declared cases, and had zero
+  failures. The egress proxy log was empty. The branch-scoped browser stack and
+  its disposable database/cache volumes were removed after the run.
+
+- Earlier browser validation had unexpectedly reached external services
+  before egress isolation was added: telemetry showed 78 SEC and 78 OpenFIGI
+  requests and one MarketData.app expiration lookup, for which the ledger
+  settled one MarketData.app credit. This incident was disclosed; subsequent
+  browser validation ran behind the deny proxy and produced no outbound
+  attempts.
+
+- The authoritative Docker-backed backend unit/integration coverage gate
+  exited successfully on the current worktree state: `2,550/2,550` collected
+  tests passed, combined line coverage `81.79%` (`50,071/61,217` lines). These
+  browser/backend receipts describe the uncommitted source state identified
+  by HEAD `73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3`; they are not yet the final
+  clean-source provider-live evidence.
+
+- The owner-managed provider-live ledger shows that the latest Sep 15 full
+  matrix spent 96 HTTP requests and about 23 MB across the selected roster,
+  including approximately 2.97 MB from FINRA. Its receipt recorded `43/46`
+  and `not_current_source`; it is preserved as usage history, not acceptance
+  evidence for the current uncommitted source. Avoid another broad matrix until
+  the exact source is committed and the bounded run plan reconciles provider
+  usage first.
+
+- E2E egress isolation is now enforced by keeping application/data services on
+  an internal-only Compose network. A separate host-port relay on a second
+  network exposes only fixed destinations (`frontend:80`, `backend:8000`) and
+  has no provider credentials. The initial internal-network-only setup blocked
+  host-published ports, so it was replaced by this fixed relay design. On the
+  active stack, a raw backend socket to public HTTPS returned blocked while
+  both local host-relayed `/health` probes returned HTTP 200; the focused
+  `F8n-crosshair` test passed `1/1`, then the full Playwright suite passed
+  `151/260` with zero failures and 109 suite-declared skips. The deny-proxy log
+  remained empty. `make test-compose-contract` also passed for the two-network
+  design. The branch-scoped browser stack was subsequently stopped and its
+  test-only containers, images, volumes, and network were cleaned without
+  host-wide pruning.
+  These receipts describe the uncommitted source at HEAD
+  `73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3`, not a clean committed source.
+
+- Official-source audit found a critical mismatch in the approved OTC snapshot
+  assumption: current FINRA documentation catalogs `otcDailyList` and other
+  OTC-market datasets but contains no `otcSecurityMaster` entry, while FINRA's
+  current Equity terms cover otcMarket datasets and allow non-commercial
+  personal/professional use with attribution/no-charge/no-further-redistribution
+  conditions. OTC Markets says it does not provide market-data APIs; its U.S.
+  Security Master file specification exists, but no low-cost/free API or
+  redistribution-ready route has been confirmed. The local source URL is set to
+  `api.finra.org/data/group/otcMarket/name/otcSecurityMaster`, which is not
+  enough to establish current documentation/authorization. Do not mark complete
+  OTC coverage or enable FINRA-directory routing until the provider confirms
+  the endpoint/data rights or an alternative source is authorized and priced.
+  Evidence links: [FINRA dataset catalog](https://developer.finra.org/docs),
+  [FINRA Equity Data terms](https://developer.finra.org/specific-terms-equity-data),
+  [FINRA public credential scope](https://developer.finra.org/fees/public),
+  [OTC Markets API FAQ](https://www.otcmarkets.com/learn/faqs),
+  [OTC Markets U.S. Security Master specification](https://www.otcmarkets.com/files/US-Security-Master-File-Specification%20-%20v1.0.pdf),
+  and [Nasdaq Data Link OTC Markets product](https://data.nasdaq.com/databases/OTCM).
+
+- Implementation follow-up: routing now has two additional explicit FINRA OTC
+  admission controls, `FINRA_OTC_SOURCE_REVIEWED` and the non-secret
+  `FINRA_OTC_SOURCE_EVIDENCE` reference. Even if the legacy terms,
+  completeness, redistribution, cost, and polling fields are all affirmative,
+  the candidate remains non-routable until both source controls are valid.
+  Compose (local and RPi), the credentialed GitHub workflow, diagnostics,
+  examples, and tests carry the new fields. The live probe skips before making
+  a request unless this source evidence is present; that skip remains an open
+  acceptance gate, not passing live evidence. The parser's prior live result is
+  explicitly demoted to historical transport evidence in operator docs. No
+  current live FINRA OTC request was made during this change.
+
+- User decision still needed: either keep FINRA OTC non-routable while the
+  agent assesses documented alternatives under the approved spend cap, obtain
+  written FINRA confirmation for this exact source, or explicitly accept an
+  incomplete OTC scope. No option is inferred from the previous selection of
+  FINRA as the desired authority because current source documentation does not
+  establish the candidate dataset.
+
+- Validation after the source gate: focused provider/runtime/secret-wiring/
+  live-runner tests passed `96/96`; Ruff check passed for the changed Python
+  paths. The exact FINRA live case was run with its source-review flag false,
+  and skipped before any network request (not a live pass). The authoritative
+  Docker-backed backend gate passed `2,551/2,551`, `81.79%` line coverage
+  (`50,077/61,223` lines); testcontainers were absent afterward. Compose
+  standard/E2E/RPi contracts passed, all `45` workflow tests passed, and the
+  repository validator accepted all `30` workstream records. Receipts are
+  appended at 2026-09-15 in `validation.jsonl`. All are from the uncommitted
+  worktree at HEAD `73d1d1aa6ee41bd82e1f5b1bff57f422d2b610c3`; app/test code was
+  unchanged during the authoritative backend run, though later workstream
+  bookkeeping remains uncommitted.
+
+## 2026-09-16 corrective implementation checkpoint
+
+- Added provider-specific legal-use gates at both routing and direct adapter
+  boundaries: Coinbase requires current scoped written authority for internal
+  automated persistent non-redistributed use; FRED requires reviewed storage and
+  automated-use evidence plus rights evidence for every mapped series. Both
+  default fail closed and are wired through examples, Compose/RPi, GitHub live
+  workflow, live preflight, and fixture/live tests. No external calls were made
+  for Coinbase or FRED during this checkpoint.
+- Added durable row-level SEC issuer-directory candidate reports with CIK/name/
+  ticker evidence, admission decision/reason, source fingerprint, cycle status,
+  and matched issuer. Dry scans remain default and do not create issuers,
+  instruments, or listings; `create_missing` still requires the exact clean
+  reviewed dry cycle. Reports retain three cycles and are available only to
+  admins through `GET /api/v1/market-data/sec-directory-candidates` with
+  pagination. Migration `a9b0c1d2e3f4` is the current Alembic head.
+- Corrected provider-contract evidence: Nasdaq is bounded by a deployment-local
+  two-official-file/calendar-day cap (not a vendor quota), Marketstack uses a
+  rolling 30-day 100-request window, FINRA synchronous byte reservations use
+  the conservative decimal 3,000,000-byte ceiling, and EODHD's conflicting
+  official minute-limit statements are recorded with the stricter 20/minute
+  Free Starter enforcement pending provider clarification.
+- Focused validation: 412 backend unit tests passed after updating the
+  MarketData.app trial-aware quota expectations; SEC scan/admin tests passed;
+  provider policy/registry/quota/secret-wiring suites passed; Ruff and
+  `git diff --check` passed; workstream validator passed all 30 records.
+  `make branch-validate` could not run because the environment's `uv` cache is
+  inaccessible, so the repository validator was run directly with the checked-
+  in backend virtualenv. No commit, integration, deployment, or new live
+  provider request was performed.
+- Remaining acceptance gates are unchanged: current full staged live matrix,
+  provider-specific legal/entitlement confirmations, complete NMS/OTC source
+  reconciliation, SEC policy review/materialization, shared GitHub/RPi/
+  deployment secret and quota stores, and the separately authorized final
+  shadow phase. The branch remains in progress and is not ready for integration.
+
+## 2026-09-16 live-matrix safety correction
+
+- The manifest now treats the Nasdaq directory as one shared two-request cold
+  snapshot; the duplicate cold-read case is no longer selected in the full
+  matrix, preventing the deployment-local two-requests/day cap from being
+  consumed twice. The full pagination case remains the acceptance case.
+- Finnhub's profile, instrument-event, and market-event calls are all required
+  operations. A regression test locks that manifest contract.
+- Direct `pytest -m live` execution now fails closed unless launched by
+  `scripts/run-live-provider-probes.py`; the runner supplies the marker after
+  applying credential, legal/routing, approved-deferral, and durable-ledger
+  gates. This prevents deferred providers or unmetered legacy tests from
+  reaching transport. The redundant unmetered standalone OpenFIGI live test
+  was removed; the manifest-backed case remains the sole acceptance path.
+- xStocks legal/jurisdiction uncertainty is now a blocking live preflight, and
+  Kraken/xStocks shared-IP pacing leaves a documented one-second bucket between
+  the generic Kraken and tokenized Kraken cases.
+- `LIVE_OPERATION_DISPOSITIONS` records capability operations that are not yet
+  live-required (including FINRA async downloads, discovery/search/calendar
+  endpoints, full crypto variants, and tokenized direct metadata). These are
+  explicit acceptance gaps or policy blocks, not implied coverage.
+- Validation after these corrections: 440 focused backend unit tests passed;
+  live-runner/secret-wiring tests passed 47/47; Ruff, compilation, diff check,
+  and the workstream validator (`30` records) passed. No new provider API
+  request, commit, integration, or deployment was performed. The branch
+  remains in progress and is not ready for integration.
+- The live evidence evaluator now machine-blocks a matrix receipt when any
+  selected provider has an unresolved entry in `LIVE_OPERATION_DISPOSITIONS`;
+  a passing bounded case therefore cannot be mistaken for capability-complete
+  acceptance. Regression coverage passed 25/25 for the live runner after this
+  change.
+- A current local full-matrix preflight was run with the owner-managed
+  environment and stopped before transport (exit `2`): the durable shared
+  quota ledger path was unavailable in this sandbox, selected capability
+  dispositions remain unresolved, and Coinbase, Dinari, FINRA OTC, FRED,
+  xStocks, Tiingo/FMP byte maps, and other reviewed safety controls remain
+  non-routable. Nasdaq and MarketData.app controls were recognized as
+  routable. The receipt is preflight evidence only; no provider request was
+  made.
+- Quota-preflight diagnostics now preserve the coordinator's safe typed reason
+  (for example, an inaccessible or non-private ledger directory) instead of
+  collapsing every local-store failure into one generic message; the diagnostic
+  regression test is included in the live-runner suite.
+- Full-matrix preflight now stops before acquiring the live-run lock or making
+  requests when selected providers still have unresolved capability
+  dispositions. Focused provider runs may still collect bounded transport
+  evidence, but their receipt remains explicitly incomplete until every
+  selected capability is closed.
+
+## 2026-09-16 xStocks runtime admission correction
+
+- xStocks now has the same fail-closed legal/data-use boundary in normal
+  application routing that the live preflight already enforced. A public API
+  key or a successful public read is not treated as permission for continuous
+  automated persistence, partner integration, or deployment from an ineligible
+  jurisdiction.
+- Added explicit non-secret controls for automation authority, authority
+  reference/scope, review timestamp, optional expiry, jurisdiction admission,
+  and jurisdiction evidence. They are wired through Settings, the provider
+  registry, the direct xStocks adapter boundary, local/backend examples,
+  standard/RPi Compose, and the GitHub live workflow. Missing or stale values
+  fail closed before `httpx` transport.
+- Added regression coverage for the direct no-network guard, routing-control
+  diagnostics, preflight routability, and deployment/workflow/example parity.
+  The xStocks provider fixture suite and quota-coordinator suite pass; Ruff
+  passes. The first combined run exposed one existing process-contention flake
+  in the atomic quota test; rerunning the same focused suite passed `161/161`.
+- No xStocks or other provider request was made. The full branch remains
+  non-routable/not ready for integration until current terms, jurisdiction,
+  durable quota-store access, and capability-complete live evidence are
+  separately admitted.
+
+## 2026-09-16 quota/live hardening follow-up
+
+- The current-source MarketData.app focused runner invocation completed all five
+  bounded cases: account usage, daily and five-minute candles, option
+  expirations/chain, and the no-request historical-option safety case. It
+  measured five upstream requests and 15,336 response bytes; the receipt is
+  transport/usage evidence only because the worktree is intentionally dirty.
+- Fixed the live reservation planner's release-only concurrency path so a
+  concurrency lease never requires a nonexistent usage baseline. The planner
+  now also reserves two credits for the date-granular five-day MarketData.app
+  candle cases, covering the inclusive six-calendar-day boundary and preventing
+  runner preflight from under-accounting the test estimator.
+- Removed the local Compose research-runner's accidental mount of the durable
+  provider-quota ledger. Added a wiring regression proving that user-supplied
+  research code receives neither the ledger volume nor quota environment
+  variables. RPi already had no such mount.
+- GitHub's protected provider-live workflow now passes the reviewed
+  `PROVIDER_FRESHNESS_SEEDS` override alongside rate-limit and usage-profile
+  overrides; deployment docs list the same configuration dimension.
+- Validation after this follow-up: full backend unit suite `2,256 passed` with
+  37 warnings; workflow tests `46 passed`; Ruff, Python compilation, diff
+  check, and workstream validation all passed. No frontend or ETF-provider
+  files changed, and no credentials were written to the repository.
+- Secret-store audit remains open: GitHub environment inventory/reviewers and
+  persistent PostgreSQL coordinator connectivity are not inspectable from this
+  session; only MarketData.app has a reconciled provider-native baseline. Other
+  finite provider dimensions must remain non-routable until individually
+  reconciled, and local/GitHub/RPi stores must not share keys without a
+  deliberate account-scope/coordinator decision.
+
+## 2026-09-16 deployment preflight hardening
+
+- RPi preflight now checks for the core deployment setting names
+  `SECRET_KEY`, `POSTGRES_PASSWORD`, and `CORS_ORIGINS` without printing their
+  values, validates any configured quota-coordinator URL as PostgreSQL, and
+  retains the owner-only `shared/app.env` mode check.
+- After the new release starts, the deployment transaction opens the durable
+  provider-quota coordinator from both backend and worker. A failure to create,
+  read, write, or lock the shared ledger aborts the transaction and triggers
+  the existing rollback path; no deployment is reported healthy on an
+  unverified quota store.
+- RPi Compose now passes `PROVIDER_ROUTING_ENABLED` explicitly to backend and
+  worker (default `true`, overrideable in the target-owned env). Documentation
+  records the new preflight/post-start checks.
+- Validation after this change: full backend unit suite `2,257 passed` with 37
+  warnings; workflow tests `46 passed`; Ruff, compilation, diff check, and
+  workstream validation passed. No provider calls, credentials, frontend, or
+  ETF-provider adapter files were touched.
+
+## 2026-09-16 MarketData.app quote-path correction
+
+- A credentialed MarketData.app rerun was intentionally allowed through the
+  durable local coordinator. Six of seven bounded cases passed; the latest
+  price case returned `None` because the adapter incorrectly derived a current
+  price from a one-day candle window, which is empty on a non-session date for
+  a delayed/history-only entitlement.
+- Replaced that path with the documented delayed stock-quotes endpoint. The
+  response parser validates every parallel array, selects the requested symbol,
+  and applies the provider's last/mid/bid/ask fallback without fabricating a
+  value. Added fixture coverage for the endpoint, midpoint fallback, and
+  mismatched arrays.
+- The corrected credentialed rerun passed `7/7` selected cases. The receipt is
+  current transport/schema evidence only because this worktree remains dirty;
+  no credentials or response payloads entered Git. The MarketData.app trial
+  plan remains configured outside Git as `starter_trial`/10,000 daily credits
+  through `2026-10-11T18:09:00+01:00`, then Free Forever/100.
+- Added explicit Alpaca live-test reservation overrides for the bounded
+  five-day history (two pages) and two-page corporate-action cases so the
+  runner no longer treats those test bounds as unreviewed operation costs.
+  Alpaca live execution still correctly stops when its durable account/IP
+  baseline is unknown and when the separate corporate-action routing bound is
+  absent.
+- SEC EDGAR focused execution was also attempted; it stopped before transport
+  because the local durable ledger has no current SEC IP-window baseline. No
+  SEC request was made by that attempt. This is an operational admission gap,
+  not a test pass.
+
+## 2026-09-16 final implementation-gate rerun
+
+- The authoritative Docker-backed backend gate completed successfully after
+  all parallel edits settled: `2,652 passed`, `81.90%` combined coverage, and
+  89 warnings. The isolated test-container session was cleaned without a
+  host-wide prune.
+- The backend unit suite is `2,266 passed` with 37 warnings; workflow tests are
+  `46 passed`; Ruff, Python compilation, Compose/deployment contracts,
+  workstream validation, and `git diff --check` all pass.
+- The live runner now has a canonical disposition taxonomy and structural
+  manifest validation. Human deferrals, explicit no-request policy cases, and
+  documented entitlement denials remain visible in receipts without being
+  misreported as successful data reads; unresolved `deferred`/`blocked`
+  operations still fail closed. Massive corporate-action pagination is
+  explicitly deferred to a separate quota window rather than spending beyond
+  the documented Basic five-call/minute allowance. Twelve Data discovery now
+  uses bounded, validated pagination.
+- Research-runner isolation is verified: it receives neither the durable quota
+  ledger volume nor quota environment variables; only trusted backend/worker
+  services share the ledger. RPi core secret-name and PostgreSQL coordinator
+  preflight checks are covered without printing secret values.
+- No frontend files or ETF-provider adapter files changed, and no credential
+  values or provider payloads were written to the repository.
+- Remaining acceptance gates are unchanged: current provider/account usage
+  baselines beyond MarketData.app, provider-specific byte/budget maps, SEC
+  issuer-materialization and complete NMS/OTC reconciliation, target-owned
+  GitHub/RPi/deployment secret/coordinator verification, unresolved legal/data
+  use controls, user-deferred Tradier/IBKR/Ondo, exact staged-source full live
+  matrix, and the separately authorized 30-day shadow phase.
+
+## 2026-09-16 current MarketData.app live receipt
+
+- With the hardened runner and settled implementation, the configured
+  MarketData.app key passed all seven selected bounded cases again. The runner
+  correctly recorded `not_current_source` because the implementation is
+  intentionally uncommitted/dirty; this is current transport/schema evidence,
+  not staged-candidate acceptance. The same preflight listed the exact
+  unresolved provider controls and made no calls to blocked providers.
+
+## 2026-09-16 interrupted implementation checkpoint inventory
+
+This checkpoint intentionally remains an implementation handoff rather than a
+closure or integration claim. The current source tree is dirty because the
+approved provider-platform implementation and its tests are not committed in
+this session. The exact next action is to resume from this handoff, reconcile
+the owner-controlled quota/secret/source/legal gates, then rerun the complete
+current-SHA provider matrix only after those gates are admitted. Do not merge,
+deploy, activate routing, or start the 30-day shadow phase from this checkpoint.
+
+The current validation evidence is: authoritative Docker backend gate `2,652
+passed`, `81.90%` combined coverage, 89 warnings; backend unit suite `2,266
+passed`, 37 warnings; workflow tests `46 passed`; Ruff, Python compilation,
+Compose/deployment contracts, workstream validation, and `git diff --check`
+passed; current configured MarketData.app focused live subset `7/7` with
+`not_current_source` receipt status. The full current-SHA live matrix is not
+accepted because the worktree is dirty and provider/account baselines,
+provider-specific bounds, source/legal controls, deployment stores, and
+deferred-provider gates remain unresolved.
+
+The exact dirty-path inventory at this checkpoint is:
+
+```text
+.env.example
+.github/workflows/ci.yml
+.github/workflows/provider-live.yml
+Makefile
+backend/.env.example
+backend/app/config.py
+backend/app/models/__init__.py
+backend/app/models/market_data_foundation.py
+backend/app/providers/crypto_market_data.py
+backend/app/providers/edgar.py
+backend/app/providers/finra_otc_directory.py
+backend/app/providers/fred.py
+backend/app/providers/optional_market_data.py
+backend/app/providers/registry.py
+backend/app/providers/tokenized.py
+backend/app/routers/market_data_admin.py
+backend/app/routers/options_exposure.py
+backend/app/services/instrument_events.py
+backend/app/services/market_event_edgar_scan.py
+backend/app/services/market_universe.py
+backend/app/services/options_data.py
+backend/app/services/provider_availability.py
+backend/app/services/provider_routing.py
+backend/app/services/provider_runtime.py
+backend/app/services/tokenized_assets.py
+backend/app/tasks/data_tasks.py
+backend/app/workers/arq_worker.py
+backend/tests/conftest.py
+backend/tests/live/conftest.py
+backend/tests/live/live_usage.py
+backend/tests/live/test_market_data_providers_live.py
+backend/tests/live/test_openfigi_live.py
+backend/tests/live/test_tokenized_providers_live.py
+backend/tests/unit/providers/test_direct_transport_instrumentation.py
+backend/tests/unit/providers/test_new_providers.py
+backend/tests/unit/providers/test_optional_market_data.py
+backend/tests/unit/providers/test_tokenized.py
+backend/tests/unit/routers/test_market_data_admin_router.py
+backend/tests/unit/services/test_instrument_events.py
+backend/tests/unit/services/test_market_event_edgar_scan.py
+backend/tests/unit/services/test_market_universe.py
+backend/tests/unit/services/test_provider_availability.py
+backend/tests/unit/services/test_provider_quota_contract.py
+backend/tests/unit/services/test_provider_registry.py
+backend/tests/unit/services/test_provider_runtime.py
+backend/tests/unit/services/test_tokenized_assets.py
+backend/tests/unit/test_live_provider_runner.py
+backend/tests/unit/test_provider_live_usage.py
+backend/tests/unit/test_provider_secret_wiring.py
+backend/tests/unit/workers/test_arq_worker.py
+deploy/rpi/compose.yml
+docker-compose.yml
+docs/agent-orchestration.md
+docs/data-providers.md
+docs/deployment.md
+docs/project-todos.md
+docs/provider-live-validation.md
+ops/workstreams/feat-market-data-provider-platform/handoff.md
+ops/workstreams/feat-market-data-provider-platform/plan.yaml
+ops/workstreams/feat-market-data-provider-platform/session.json
+ops/workstreams/feat-market-data-provider-platform/validation.jsonl
+scripts/rpi.py
+scripts/run-live-provider-probes.py
+scripts/worktree-runtime.py
+tests/workflow/test_agent_session.py
+tests/workflow/test_staging_workflow.py
+backend/alembic/versions/a9b0c1d2e3f4_add_sec_issuer_directory_candidates.py
+backend/app/services/provider_quota_coordinator.py
+backend/tests/unit/routers/test_options_exposure.py
+backend/tests/unit/services/test_provider_quota_coordinator.py
+docker-compose.e2e.yml
+tests/e2e/
+```
+
+## 2026-09-16 SEC/Nasdaq/Finnhub hardening and authoritative gate
+
+- SEC future-listing materialization now requires corroborated, resolved
+  multi-provider evidence with exact symbol/company agreement and either a
+  shared venue MIC or a shared FIGI/ISIN/CUSIP from at least two sources.
+  Single-source, incomplete, conflicting, and unresolved-venue candidates are
+  quarantined; later ambiguous evidence can quarantine legacy provisional
+  records rather than silently activating them.
+- Nasdaq NMS/equity and ETF reconciliation now fails closed on declared-total
+  or cursor gaps, wrong quote types, duplicate listing keys, unknown venues,
+  and unmappable MICs. Successful reconciliation records deterministic
+  expected/observed/missing MIC coverage and per-MIC counts. FINRA OTC remains
+  explicitly outside the authoritative Nasdaq absence scope pending its own
+  complete source reconciliation.
+- Finnhub routing now models both reviewed dimensions: 60 calls/minute and a
+  hard 30 calls/second ceiling. Every reviewed operation reserves both
+  dimensions, while existing operator overrides remain preserved when config
+  promotion refreshes the provider row.
+- Validation after these changes: full backend unit suite `2,273/2,273`;
+  focused SEC/universe and provider/quota/runtime contracts `313/313`;
+  authoritative Docker-backed backend gate `2,659/2,659`, `81.90%` combined
+  coverage, 89 warnings, isolated testcontainer session
+  `22b7481d-c4a1-4d15-ae69-7900026793f8`; Ruff passed. No provider calls or
+  credentials were used by these checks.
+- This does not close the branch. The exact current-SHA live matrix is still
+  unaccepted while the worktree is dirty and provider-native baselines,
+  byte/account/source/legal controls, complete OTC reconciliation, target
+  secret-store verification, deferred-provider decisions, and the final shadow
+  gate remain owner-controlled. Do not integrate, deploy, activate routing,
+  or begin the 30-day shadow run from this checkpoint.
+
+## 2026-09-16 FINRA synchronous-routing correction
+
+- FINRA's `FINRA_ASYNC_MAX_RESULT_BYTES` control is now scoped only to the
+  signed `download_async_result` operation. Synchronous short-interest and OTC
+  Daily List calls remain independently eligible under the published 3 MB
+  synchronous response ceiling and the existing durable monthly byte budget;
+  async result downloads remain fail-closed until a positive operator bound is
+  supplied.
+- Focused FINRA/provider contract and runtime validation passed `182/182`,
+  Ruff and `git diff --check` passed, and no provider calls or credentials
+  were used. This is source-dirty evidence and is not exact-current-SHA live
+  acceptance.

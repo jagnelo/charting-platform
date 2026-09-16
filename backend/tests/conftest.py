@@ -59,6 +59,70 @@ def isolate_external_provider_credentials(request, monkeypatch):
         monkeypatch.setattr(settings, name, "")
 
 
+@pytest.fixture(autouse=True)
+def isolate_provider_quota_coordinator(request, monkeypatch, tmp_path):
+    """Keep non-live tests from reading or spending the owner's durable ledger."""
+
+    if request.node.get_closest_marker("live") is not None:
+        return
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {})
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES", {})
+
+    # Most runtime tests use synthetic provider responses and are testing a
+    # provider operation, not account setup. Give those isolated fixture
+    # accounts an explicit zero baseline. Dedicated coordinator tests exercise
+    # the production fail-closed path with no such fixture attestation.
+    import app.services.provider_quota_coordinator as coordinator
+    from app.services.provider_runtime import quota_dimensions
+
+    original_reserve = coordinator.reserve_provider_quota_async
+
+    async def reserve_with_fixture_baseline(**kwargs):
+        policy = kwargs.get("policy")
+        provider = str(kwargs.get("provider_name") or "")
+        capability = str(kwargs.get("capability") or "price_history")
+        current = kwargs.get("now") or datetime.now(UTC)
+        dimension_units = kwargs.get("dimension_units") or {}
+        for dimension in quota_dimensions(policy):
+            name = str(dimension.get("name") or "")
+            if not name or not dimension_units.get(name):
+                continue
+            if str(dimension.get("unit") or "").lower() in {
+                "concurrent_requests",
+                "concurrency",
+            }:
+                continue
+            status = coordinator.provider_quota_baseline_status(
+                provider_name=provider,
+                capability=capability,
+                policy=policy,
+                dimension_name=name,
+                now=current,
+            )
+            if status["status"] == "unknown":
+                coordinator.reconcile_provider_quota_baseline(
+                    provider_name=provider,
+                    capability=capability,
+                    policy=policy,
+                    dimension_name=name,
+                    used_units=0,
+                    observed_at=current,
+                    evidence_reference="test-fixture:fixture:isolated-pytest-account",
+                    now=current,
+                )
+        return await original_reserve(**kwargs)
+
+    monkeypatch.setattr(
+        coordinator,
+        "reserve_provider_quota_async",
+        reserve_with_fixture_baseline,
+    )
+
+
 def _record_testcontainer(container) -> None:
     """Persist session IDs so scoped cleanup can find abandoned Ryuk resources."""
     try:

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -31,6 +31,54 @@ def _authenticated_tokenized_provider_settings(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "unit-dinari-key-id")
     monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "unit-dinari-secret")
     monkeypatch.setattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "unit-ondo-key")
+    monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "unit-test:xstocks-terms",
+    )
+    monkeypatch.setattr(
+        settings,
+        "XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_automated_persistent_nonredistributed",
+    )
+    monkeypatch.setattr(
+        settings,
+        "XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        datetime.now(UTC) - timedelta(minutes=1),
+    )
+    monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+    monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE",
+        "unit-test:deployment-jurisdiction",
+    )
+    monkeypatch.setattr(settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "unit-test:bybit-terms",
+    )
+    monkeypatch.setattr(
+        settings,
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "internal_automated_persistent_nonredistributed",
+    )
+    monkeypatch.setattr(
+        settings,
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT",
+        datetime.now(UTC) - timedelta(minutes=1),
+    )
+    monkeypatch.setattr(settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT", None)
+    monkeypatch.setattr(
+        settings, "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", True
+    )
+    monkeypatch.setattr(
+        settings,
+        "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
+        "unit-test:non-restricted-egress",
+    )
 
 
 def test_tokenized_domain_key_is_provider_scoped_and_stable():
@@ -70,6 +118,28 @@ def test_xstocks_record_preserves_underlying_and_chain_deployment():
     assert record.contract_address == "So111"
     assert record.multiplier == Decimal("0.97")
     assert record.collateral["deployments"][0]["address"] == "So111"
+
+
+def test_xstocks_requires_market_data_authority_before_transport(monkeypatch):
+    monkeypatch.setattr(
+        "app.providers.tokenized.xstocks_market_data_use_authority_missing",
+        lambda: ["XSTOCKS_MARKET_DATA_USE_AUTHORIZED"],
+    )
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match="market-data use"):
+            XStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    get.assert_not_called()
+
+
+def test_bybit_xstocks_requires_egress_authority_before_transport(monkeypatch):
+    monkeypatch.setattr(
+        "app.providers.tokenized.bybit_xstocks_market_data_use_authority_missing",
+        lambda: ["BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED"],
+    )
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match="bybit_xstocks market-data use"):
+            BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1)
+    get.assert_not_called()
 
 
 def test_robinhood_record_keeps_debt_security_backing_semantics():
@@ -536,6 +606,27 @@ def test_dinari_stock_cursor_metadata_is_strict(monkeypatch, metadata):
 def test_dinari_defaults_to_documented_sandbox_host(monkeypatch):
     monkeypatch.setattr(settings, "DINARI_API_BASE_URL", "")
     assert DinariTokenProvider()._base_url() == "https://api-enterprise.sandbox.dinari.com/api/v2"
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://api-enterprise.sbt.dinari.com/api/v2",
+        "https://api-enterprise.dinari.com/api/v2",
+        "http://api-enterprise.sandbox.dinari.com/api/v2",
+        "https://api-enterprise.sandbox.dinari.com.evil.example/api/v2",
+        "https://api-enterprise.sandbox.dinari.com/other",
+        "https://user:password@api-enterprise.sandbox.dinari.com/api/v2",
+    ],
+)
+def test_dinari_rejects_non_sandbox_or_ambiguous_base_urls_before_http(
+    monkeypatch, base_url
+):
+    monkeypatch.setattr(settings, "DINARI_API_BASE_URL", base_url)
+    with patch("app.providers.tokenized.httpx.get") as get:
+        with pytest.raises(ProviderNotConfiguredError, match="sandbox-canary-only"):
+            DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
+    get.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -1157,23 +1248,12 @@ def test_dinari_sandbox_persistent_500_remains_typed_after_retry_bound(monkeypat
     assert get.call_count == 3
 
 
-def test_dinari_production_host_does_not_inherit_sandbox_retry_policy(monkeypatch):
-    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
-    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
-    monkeypatch.setattr(
-        settings,
-        "DINARI_API_BASE_URL",
-        "https://api-enterprise.sbt.dinari.com/api/v2",
-    )
-    response = httpx.Response(
-        500,
-        request=httpx.Request("GET", "https://api-enterprise.sbt.dinari.com/api/v2/market_data/stocks/"),
-    )
+def test_dinari_requests_never_follow_redirects(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_BASE_URL", "")
+    response = _response({"data": [_dinari_stock()], "pagination_metadata": {"next": None}})
     with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
-        with pytest.raises(ProviderResponseError) as exc_info:
-            DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
-    assert exc_info.value.status_code == 500
-    get.assert_called_once()
+        DinariTokenProvider().discover_tokenized_assets(page=0, page_size=1)
+    assert get.call_args.kwargs["follow_redirects"] is False
 
 
 def test_tokenized_http_non_rate_status_does_not_retry_other_providers():

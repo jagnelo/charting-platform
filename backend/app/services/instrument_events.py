@@ -17,9 +17,18 @@ from app.models.instrument_event import (
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.providers.massive import estimate_corporate_actions_request_count
 from app.services.instrument_mastering import ensure_external_identifier
-from app.services.provider_runtime import ProviderNoDataError, execute_provider_call
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    ProviderQuotaUnknownError,
+    execute_provider_call,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +56,9 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         "fetch_instrument_events",
         instrument_id=instrument.id,
         operation_cost_overrides=operation_cost_overrides or None,
-        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
         invoke=lambda provider, _provider_symbol: provider.fetch_instrument_events(
             provider_symbol_for_instrument(instrument, provider.name)
         ),
@@ -213,6 +224,17 @@ async def ensure_instrument_events_loaded(
             logger.info(
                 "No routable instrument-event provider for %s; serving stored events",
                 instrument.symbol,
+            )
+        except (
+            ProviderNotConfiguredError,
+            ProviderRateLimitError,
+            ProviderResponseError,
+            ProviderQuotaUnknownError,
+        ) as exc:
+            logger.warning(
+                "Instrument-event refresh unavailable for %s; serving stored events (%s)",
+                instrument.symbol,
+                exc.__class__.__name__,
             )
 
 

@@ -31,7 +31,11 @@ from math import isfinite
 
 import httpx
 
-from app.config import settings
+from app.config import (
+    fred_data_use_controls_missing,
+    fred_series_rights_authorized,
+    settings,
+)
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -56,6 +60,19 @@ def _assert_key() -> None:
         "Get a free key at fred.stlouisfed.org/docs/api/api_key.html and set it in .env.dev."
     )
     raise ProviderNotConfiguredError("fred requires FRED_API_KEY")
+
+
+def _assert_data_use_authority(series_id: str) -> None:
+    """Fail before transport unless global and exact-series rights are recorded."""
+
+    missing = fred_data_use_controls_missing(settings)
+    if not fred_series_rights_authorized(series_id, settings):
+        missing.append(f"FRED_SERIES_RIGHTS_EVIDENCE[{series_id}]")
+    if missing:
+        raise ProviderNotConfiguredError(
+            "fred data use is not authorized by the configured evidence controls: "
+            + ", ".join(missing)
+        )
 
 
 def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
@@ -150,6 +167,7 @@ class FREDProvider:
             raise ProviderResponseError(
                 self.name, f"FRED does not support timeframe {timeframe.value}"
             )
+        _assert_data_use_authority(series_id)
 
         try:
             r = httpx.get(
@@ -258,6 +276,7 @@ class FREDProvider:
         if series_id is None:
             return None
         _assert_key()
+        _assert_data_use_authority(series_id)
         try:
             r = httpx.get(
                 f"{_BASE}/series/observations",

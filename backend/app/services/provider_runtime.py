@@ -6,6 +6,7 @@ import logging
 import random
 import time
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -13,11 +14,14 @@ from typing import Any, TypeVar
 
 import httpx
 from sqlalchemy import or_, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
     marketdata_app_reviewed_plan,
     provider_positive_integer,
+    provider_quota_reset_is_known,
     provider_rate_limit_seed,
     settings,
 )
@@ -115,10 +119,10 @@ async def record_entitlement_revision(
     if existing is not None:
         return existing
 
-    snapshot = ProviderEntitlementRevision(
-        data_source_id=entitlement.data_source_id,
-        capability=entitlement.capability,
-        revision=revision,
+    snapshot_values = {
+        "data_source_id": entitlement.data_source_id,
+        "capability": entitlement.capability,
+        "revision": revision,
         **{
             field_name: (
                 dict(getattr(entitlement, field_name) or {})
@@ -129,11 +133,43 @@ async def record_entitlement_revision(
             )
             for field_name in _ENTITLEMENT_FIELDS
         },
-        change_reason=change_reason,
-    )
-    db.add(snapshot)
-    await db.flush()
-    return snapshot
+        "change_reason": change_reason,
+    }
+    dialect_name = db.get_bind().dialect.name
+    insert_statement = {
+        "postgresql": postgresql_insert,
+        "sqlite": sqlite_insert,
+    }.get(dialect_name)
+    if insert_statement is not None:
+        # Backend and worker startup, or simultaneous first resolutions, can
+        # snapshot the same immutable revision concurrently. Let the unique
+        # key arbitrate that race instead of poisoning one caller's session.
+        await db.execute(
+            insert_statement(ProviderEntitlementRevision)
+            .values(**snapshot_values)
+            .on_conflict_do_nothing(
+                index_elements=[
+                    ProviderEntitlementRevision.data_source_id,
+                    ProviderEntitlementRevision.capability,
+                    ProviderEntitlementRevision.revision,
+                ]
+            )
+        )
+    else:
+        db.add(ProviderEntitlementRevision(**snapshot_values))
+        await db.flush()
+    recorded = (
+        await db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == entitlement.data_source_id,
+                ProviderEntitlementRevision.capability == entitlement.capability,
+                ProviderEntitlementRevision.revision == revision,
+            )
+        )
+    ).scalar_one_or_none()
+    if recorded is None:
+        raise RuntimeError("provider entitlement revision snapshot was not persisted")
+    return recorded
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -235,11 +271,7 @@ def _is_positive_operation_cost(value: Any) -> bool:
         parsed = Decimal(str(value))
     except (TypeError, ValueError, ArithmeticError):
         return False
-    return (
-        parsed.is_finite()
-        and parsed > 0
-        and parsed == parsed.to_integral_value()
-    )
+    return parsed.is_finite() and parsed > 0 and parsed == parsed.to_integral_value()
 
 
 def _positive_integer_cost(value: Any) -> int | None:
@@ -474,12 +506,8 @@ def _consumed_dimension_costs(
         if unit in {"byte", "bytes"}:
             # If an adapter did not emit telemetry, retain the full
             # reservation rather than under-reporting a bandwidth budget.
-            observed_requests = _nonnegative_integer(
-                getattr(measurement, "http_requests", 0) or 0
-            )
-            observed_bytes = _nonnegative_integer(
-                getattr(measurement, "response_bytes", 0) or 0
-            )
+            observed_requests = _nonnegative_integer(getattr(measurement, "http_requests", 0) or 0)
+            observed_bytes = _nonnegative_integer(getattr(measurement, "response_bytes", 0) or 0)
             if observed_requests is None or observed_bytes is None:
                 raise ProviderQuotaUnknownError(
                     f"Invalid transport measurement for {name} during settlement"
@@ -588,19 +616,11 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
         unit = str(dimension.get("unit") or "").lower()
         limit = int(dimension["limit"])
         window_seconds = int(dimension["window_seconds"])
-        if (
-            unit in {"credit", "credits"}
-            and window_seconds == 60
-            and "twelvedata.com" in source
-        ):
+        if unit in {"credit", "credits"} and window_seconds == 60 and "twelvedata.com" in source:
             if used is not None and left is not None and used + left == limit:
                 totals[name] = min(used, limit)
             continue
-        if (
-            unit in {"request", "requests"}
-            and window_seconds == 60
-            and "tradier.com" in source
-        ):
+        if unit in {"request", "requests"} and window_seconds == 60 and "tradier.com" in source:
             try:
                 allowed = int(headers["x-ratelimit-allowed"])
                 token_used = int(headers["x-ratelimit-used"])
@@ -623,11 +643,7 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             if 0 <= weight_used <= limit:
                 totals[name] = weight_used
             continue
-        if (
-            unit in {"request", "requests"}
-            and window_seconds == 60
-            and "docs.xstocks.fi" in source
-        ):
+        if unit in {"request", "requests"} and window_seconds == 60 and "docs.xstocks.fi" in source:
             # The xStocks public API currently returns a shared limit/remaining
             # snapshot on anonymous public endpoints. Reconcile only the exact
             # observed contract; missing or changed headers remain telemetry
@@ -660,11 +676,7 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             if header_limit == limit and 0 <= remaining <= header_limit:
                 totals[name] = header_limit - remaining
             continue
-        if (
-            unit in {"credit", "credits"}
-            and window_seconds == 86400
-            and "marketdata.app" in source
-        ):
+        if unit in {"credit", "credits"} and window_seconds == 86400 and "marketdata.app" in source:
             try:
                 header_limit = int(headers["x-api-ratelimit-limit"])
                 remaining = int(headers["x-api-ratelimit-remaining"])
@@ -696,6 +708,77 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             if header_limit == limit and 0 <= remaining <= header_limit:
                 totals[name] = header_limit - remaining
     return totals
+
+
+def _coordinator_settlement(
+    policy: ProviderPolicy, measurement: Any, reserved_units: dict[str, int]
+) -> tuple[dict[str, int], set[str]]:
+    """Use exact transport evidence; retain worst-case debit when ambiguous."""
+
+    requests = _nonnegative_integer(getattr(measurement, "http_requests", 0) or 0)
+    response_bytes = _nonnegative_integer(getattr(measurement, "response_bytes", 0) or 0)
+    if requests is None or response_bytes is None or requests <= 0:
+        return {}, set(reserved_units)
+    observed: dict[str, int] = {}
+    unknown: set[str] = set()
+    dimensions_by_name = {
+        str(item.get("name")): item for item in quota_dimensions(policy)
+    }
+    for name, reserved in reserved_units.items():
+        unit = str(dimensions_by_name.get(name, {}).get("unit") or "").lower()
+        if unit in {"concurrent_requests", "concurrency"}:
+            continue
+        if unit in {"byte", "bytes"}:
+            # Transport instrumentation observes full response bodies. A
+            # timeout without a complete response leaves the reservation
+            # ambiguous; it is not converted into a smaller guessed debit.
+            observed[name] = response_bytes
+        else:
+            # Operation-specific request/credit/weight costs are the reviewed
+            # provider contract. A received response proves the operation ran.
+            observed[name] = reserved
+    return observed, unknown
+
+
+async def _settle_coordinator_best_effort(
+    reservation: Any,
+    *,
+    policy: ProviderPolicy,
+    measurement: Any | None,
+    reserved_units: dict[str, int],
+    not_sent: bool = False,
+) -> None:
+    # Provider-native cumulative headers are intentionally not copied into the
+    # independent durable coordinator here. They may include calls from other
+    # clients and can overlap the coordinator's own settled reservations;
+    # applying a total as a per-call debit would either double-count or erase
+    # an active baseline. Exact native snapshots use the explicit
+    # account-usage reconciliation path instead; this settlement records only
+    # the reviewed operation cost and measured bytes for this reservation.
+    from app.services.provider_quota_coordinator import (
+        ProviderQuotaCoordinatorError,
+        settle_provider_quota_async,
+    )
+
+    if reservation is None:
+        return
+    if not_sent:
+        observed = {name: 0 for name in reserved_units}
+        unknown: set[str] = set()
+    else:
+        observed, unknown = _coordinator_settlement(policy, measurement, reserved_units)
+    try:
+        await settle_provider_quota_async(
+            reservation,
+            observed_dimension_units=observed,
+            unknown_dimensions=unknown,
+            release_identities=not_sent,
+        )
+    except ProviderQuotaCoordinatorError as exc:
+        # The independent reservation remains charged after a settlement
+        # outage. Do not undo a successful provider response or risk releasing
+        # capacity that may already have been consumed remotely.
+        logger.error("provider quota settlement unavailable: %s", exc)
 
 
 def provider_contract_operation_cost_known(
@@ -771,11 +854,14 @@ def provider_contract_operation_cost_known(
                 return False
             if _positive_integer_cost(dimension_cost) is None:
                 return False
-    if any(
-        str(dimension.get("unit") or "").lower()
-        in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
-        for dimension in quota_dimensions(policy)
-    ) and not str(usage_identity or "").strip():
+    if (
+        any(
+            str(dimension.get("unit") or "").lower()
+            in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+            for dimension in quota_dimensions(policy)
+        )
+        and not str(usage_identity or "").strip()
+    ):
         return False
     return True
 
@@ -939,9 +1025,7 @@ def _apply_policy_defaults(
         if contract_refreshed:
             policy.quota_contract = dict(seeded_contract)
             policy.quota_verified_at = (
-                datetime.now(UTC)
-                if not quota_contract_missing_dimensions(policy)
-                else None
+                datetime.now(UTC) if not quota_contract_missing_dimensions(policy) else None
             )
     # Do not backfill missing policy-level provenance on an existing row. A
     # scope/source removal may be an intentional operator quarantine, and
@@ -1062,7 +1146,9 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
     """
 
     contract = policy.quota_contract or {}
-    if not isinstance(contract, dict) or not str(contract.get("reset") or "").strip():
+    if not isinstance(contract, dict) or not provider_quota_reset_is_known(
+        contract.get("reset")
+    ):
         return []
     dimensions = contract.get("dimensions")
     if not isinstance(dimensions, list) or not dimensions:
@@ -1081,6 +1167,8 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
             or not str(item.get("source") or "").strip()
             or not str(item.get("scope") or policy.quota_scope or "").strip()
         ):
+            return []
+        if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
             return []
         # A quota group is optional for backward compatibility, but an
         # explicitly supplied value must be non-blank.  Blank grouping would
@@ -1132,8 +1220,12 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
             else:
                 name = str(item or "unknown").strip()
             missing.append(f"quota_contract.untracked_constraints.{name}")
-    if not str(contract.get("reset") or "").strip():
-        missing.append("quota_contract.reset")
+    if not provider_quota_reset_is_known(contract.get("reset")):
+        missing.append(
+            "quota_contract.reset"
+            if not str(contract.get("reset") or "").strip()
+            else "quota_contract.reset.unknown"
+        )
     dimensions = contract.get("dimensions")
     if not isinstance(dimensions, list) or not dimensions:
         missing.append("quota_contract.dimensions")
@@ -1152,6 +1244,8 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
                 valid = bool(str(value or "").strip())
             if not valid:
                 missing.append(f"{prefix}.{field_name}")
+        if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
+            missing.append(f"{prefix}.reset.unknown")
     return missing
 
 
@@ -1347,7 +1441,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     quota_verified_at=None,
                     freshness_seconds=freshness,
                 )
-                if rate_seed.get("quota_contract") and not quota_contract_missing_dimensions(policy):
+                if rate_seed.get("quota_contract") and not quota_contract_missing_dimensions(
+                    policy
+                ):
                     policy.quota_verified_at = datetime.now(UTC)
                 db.add(policy)
             entitlement = (
@@ -1359,6 +1455,14 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 )
             ).scalar_one_or_none()
             entitlement_was_new = entitlement is None
+            entitlement_revision_before = 1
+            entitlement_values_before = None
+            if entitlement is not None:
+                entitlement_revision_before = int(entitlement.revision or 1)
+                entitlement_values_before = {
+                    field_name: deepcopy(getattr(entitlement, field_name))
+                    for field_name in _ENTITLEMENT_FIELDS
+                }
             if entitlement is None:
                 entitlement = ProviderEntitlement(
                     data_source_id=data_source.id,
@@ -1407,6 +1511,10 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 "unreviewed",
                 "free-forever",
                 "account-plan-review-required",
+                # EODHD's repository-managed free-plan seed also contains
+                # capability-specific endpoint entitlements. Refresh rows
+                # created before that distinction was recorded.
+                "free-20-day",
             }
             if provider_name == "marketdata_app":
                 repository_seed_plans.update(
@@ -1423,22 +1531,13 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 )
             if (
                 not entitlement_was_new
-                and str(entitlement.configured_plan or "").strip().lower()
-                in repository_seed_plans
+                and str(entitlement.configured_plan or "").strip().lower() in repository_seed_plans
                 and entitlement_seed
             ):
                 # Upgrade rows created by older builds without overwriting an
                 # operator-reviewed entitlement.
-                prior_values = {
-                    field_name: getattr(entitlement, field_name) for field_name in entitlement_seed
-                }
                 for field_name, value in entitlement_seed.items():
                     setattr(entitlement, field_name, value)
-                if any(
-                    prior_values[field_name] != value
-                    for field_name, value in entitlement_seed.items()
-                ):
-                    entitlement.revision = int(entitlement.revision or 1) + 1
             elif (
                 not entitlement_was_new
                 and str(entitlement.live_probe_status or "not_run").strip().lower()
@@ -1449,7 +1548,6 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 # Promote only repository-recorded positive evidence. Never
                 # downgrade or overwrite an operator-managed passing status.
                 entitlement.live_probe_status = str(entitlement_seed["live_probe_status"])
-                entitlement.revision = int(entitlement.revision or 1) + 1
             elif entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
             if (
@@ -1467,6 +1565,14 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 entitlement.quota_policy = quota_policy
             if entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
+            if entitlement_values_before is not None:
+                entitlement_values_after = {
+                    field_name: deepcopy(getattr(entitlement, field_name))
+                    for field_name in _ENTITLEMENT_FIELDS
+                }
+                entitlement.revision = entitlement_revision_before + int(
+                    entitlement_values_after != entitlement_values_before
+                )
             await record_entitlement_revision(db, entitlement, change_reason="runtime_seed")
             _apply_policy_defaults(
                 policy,
@@ -1520,6 +1626,8 @@ async def resolve_provider_chain(
     history_start: HistoryStartSpec | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
+    if not settings.PROVIDER_ROUTING_ENABLED:
+        return []
     rows = (
         await db.execute(
             select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
@@ -1566,6 +1674,12 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        if data_source.name == "dinari":
+            # This credential is Sandbox-only. Sandbox records are live-canary
+            # evidence, never application routing candidates; do not let a
+            # paid-routing flag, custom quota seed, or stale database policy
+            # admit synthetic provider responses to normal persistence paths.
+            continue
         if capability == ProviderCapability.PRICE_HISTORY and not provider_supports_adjustment(
             data_source.name, adjusted
         ):
@@ -1573,9 +1687,7 @@ async def resolve_provider_chain(
         if capability == ProviderCapability.PRICE_HISTORY and history_start is not None:
             try:
                 provider_history_start = (
-                    history_start(data_source.name)
-                    if callable(history_start)
-                    else history_start
+                    history_start(data_source.name) if callable(history_start) else history_start
                 )
             except Exception:  # noqa: BLE001 - a failed bound must fail closed.
                 continue
@@ -1592,8 +1704,7 @@ async def resolve_provider_chain(
         # bypass the operator entitlement review boundary.
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         account_usage_probe = (
-            capability == ProviderCapability.ACCOUNT_USAGE
-            and operation == "fetch_account_usage"
+            capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
         )
         if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
             continue
@@ -1796,9 +1907,7 @@ async def execute_provider_call(
 
     for resolved in chain:
         resolved_usage_identity = (
-            usage_identity(resolved.provider_name)
-            if callable(usage_identity)
-            else usage_identity
+            usage_identity(resolved.provider_name) if callable(usage_identity) else usage_identity
         )
         if resolved_usage_identity is None:
             resolved_usage_identity = provider_symbol
@@ -1834,8 +1943,7 @@ async def execute_provider_call(
         release_only_dimensions = {
             str(dimension["name"])
             for dimension in quota_dimensions(resolved.policy)
-            if str(dimension.get("unit") or "").lower()
-            in {"concurrent_requests", "concurrency"}
+            if str(dimension.get("unit") or "").lower() in {"concurrent_requests", "concurrency"}
         }
         # A runtime call participates in the same durable multi-dimensional
         # budget used by queued workloads.  This prevents concurrent workers
@@ -1850,19 +1958,59 @@ async def execute_provider_call(
         operation_units = _positive_integer_cost(usage_units)
         if operation_units is None:
             raise ProviderQuotaUnknownError(
-                f"No valid integral operation cost for "
-                f"{resolved.data_source.name}/{operation}"
+                f"No valid integral operation cost for " f"{resolved.data_source.name}/{operation}"
             )
-        reservations = await reserve_provider_contract(
-            db,
-            resolved=resolved,
-            capability=capability.value,
-            units=operation_units,
-            dimension_units=dimension_units,
-            usage_identity=resolved_usage_identity,
-            now=datetime.now(UTC),
-        )
+        semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
+        await semaphore.acquire()
+        try:
+            reservations = await reserve_provider_contract(
+                db,
+                resolved=resolved,
+                capability=capability.value,
+                units=operation_units,
+                dimension_units=dimension_units,
+                usage_identity=resolved_usage_identity,
+                now=datetime.now(UTC),
+            )
+        except BaseException:
+            semaphore.release()
+            raise
         if reservations is None:
+            semaphore.release()
+            continue
+        from app.services.provider_quota_coordinator import reserve_provider_quota_async
+
+        try:
+            coordinator_reservation = await reserve_provider_quota_async(
+                provider_name=resolved.provider_name,
+                capability=capability.value,
+                operation=operation,
+                policy=resolved.policy,
+                dimension_units=dimension_units,
+                usage_identity=resolved_usage_identity,
+                now=datetime.now(UTC),
+            )
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            semaphore.release()
+            raise
+        if coordinator_reservation is None:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            semaphore.release()
             continue
         if (
             resolved.policy.tokens_per_minute is not None
@@ -1877,43 +2025,90 @@ async def execute_provider_call(
                     success=False,
                     reserved_dimension_units=dimension_units,
                     consumed_dimension_units={name: 0 for name in dimension_units},
-                    consume_on_failure_dimensions=distinct_dimensions,
                     release_only_dimensions=release_only_dimensions,
                 )
-                continue
-        log_row = ProviderRequestLog(
-            data_source_id=resolved.data_source.id,
-            capability=capability,
-            operation=operation,
-            operation_family=_operation_family(operation),
-            instrument_id=instrument_id,
-            provider_symbol=provider_symbol,
-            requested_at=datetime.now(UTC),
-            usage_mode=usage_mode,
-            usage_unit_label=usage_unit_label,
-            usage_units=usage_units,
-        )
-        db.add(log_row)
-        await db.flush()
-
-        semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
-        started = time.perf_counter()
-        measurement, measurement_token = activate_provider_telemetry()
-        try:
-            async with semaphore:
-                # ``run_in_executor`` does not propagate ContextVar state by
-                # itself.  Copy the context after activation so synchronous
-                # adapters can report transport bytes from their worker
-                # thread without changing their domain return types.
-                invocation_context = contextvars.copy_context()
-                result = await loop.run_in_executor(
-                    None,
-                    invocation_context.run,
-                    lambda: invoke(resolved.provider, provider_symbol),
+                await _settle_coordinator_best_effort(
+                    coordinator_reservation,
+                    policy=resolved.policy,
+                    measurement=None,
+                    reserved_units=dimension_units,
+                    not_sent=True,
                 )
+                semaphore.release()
+                continue
+        try:
+            log_row = ProviderRequestLog(
+                data_source_id=resolved.data_source.id,
+                capability=capability,
+                operation=operation,
+                operation_family=_operation_family(operation),
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                requested_at=datetime.now(UTC),
+                usage_mode=usage_mode,
+                usage_unit_label=usage_unit_label,
+                usage_units=usage_units,
+            )
+            db.add(log_row)
+            await db.flush()
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=None,
+                reserved_units=dimension_units,
+                not_sent=True,
+            )
+            semaphore.release()
+            raise
+        started = time.perf_counter()
+        try:
+            measurement, measurement_token = activate_provider_telemetry()
+        except BaseException:
+            settle_provider_contract(
+                reservations,
+                units=operation_units,
+                success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units={name: 0 for name in dimension_units},
+                release_only_dimensions=release_only_dimensions,
+            )
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=None,
+                reserved_units=dimension_units,
+                not_sent=True,
+            )
+            semaphore.release()
+            raise
+        try:
+            # ``run_in_executor`` does not propagate ContextVar state by
+            # itself. Copy it after activation so synchronous adapters can
+            # report transport bytes without changing their return types.
+            invocation_context = contextvars.copy_context()
+            result = await loop.run_in_executor(
+                None,
+                invocation_context.run,
+                lambda: invoke(resolved.provider, provider_symbol),
+            )
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=measurement,
+                reserved_units=dimension_units,
+            )
             count = response_items(result) if response_items is not None else None
             is_empty = result is None or count == 0
             if treat_empty_as_failure and is_empty:
@@ -1945,9 +2140,7 @@ async def execute_provider_call(
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=consumed_dimension_units,
                 consume_on_failure_dimensions=distinct_dimensions,
-                observed_dimension_totals=_observed_dimension_totals(
-                    resolved.policy, measurement
-                ),
+                observed_dimension_totals=_observed_dimension_totals(resolved.policy, measurement),
                 release_only_dimensions=release_only_dimensions,
             )
             if instrument_id is not None:
@@ -1970,6 +2163,12 @@ async def execute_provider_call(
             log_row.http_requests = measurement.http_requests
             log_row.response_bytes = measurement.response_bytes
             log_row.response_headers = dict(measurement.response_headers)
+            await _settle_coordinator_best_effort(
+                coordinator_reservation,
+                policy=resolved.policy,
+                measurement=measurement,
+                reserved_units=dimension_units,
+            )
             rate_error = provider_rate_limit_error(
                 resolved.provider_name,
                 exc,
@@ -2084,6 +2283,7 @@ async def execute_provider_call(
             continue
         finally:
             deactivate_provider_telemetry(measurement_token)
+            semaphore.release()
 
     if not chain and instrument_id is not None:
         raise ProviderNoDataError(
@@ -2142,62 +2342,64 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
         )
         status_rows.append(
             {
-            "provider": data_source.name,
-            "capability": policy.capability.value,
-            "supported_capabilities": data_source.supported_capabilities or [],
-            "is_enabled": policy.is_enabled,
-            "is_pinned": policy.is_pinned,
-            "auto_weight_enabled": policy.auto_weight_enabled,
-            "base_priority": policy.base_priority,
-            "effective_score": float(policy.effective_score),
-            "learned_weight": float(policy.learned_weight),
-            "max_concurrency": policy.max_concurrency,
-            "tokens_per_minute": policy.tokens_per_minute,
-            "burst_capacity": policy.burst_capacity,
-            "cooldown_seconds": policy.cooldown_seconds,
-            "quota_contract": policy.quota_contract,
-            "quota_scope": policy.quota_scope,
-            "quota_source": policy.quota_source,
-            "quota_verified_at": policy.quota_verified_at,
-            "quota_state": "known" if policy_has_known_quota(policy) else "unknown",
-            "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
-            "operation_costs_configured": provider_contract_operation_costs_configured(
-                policy, data_source
-            ),
-            "credentials_configured": provider_is_configured(data_source.name),
-            "required_environment_variables": list(provider_required_settings(data_source.name)),
-            "missing_environment_variables": provider_missing_settings(data_source.name),
-            "required_routing_control_variables": list(routing_control_settings),
-            "missing_routing_control_variables": missing_routing_controls,
-            "entitlement_state": (
-                "reviewed"
-                if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
-                else "unreviewed"
-            ),
-            "live_probe_status": entitlement.live_probe_status,
-            "routing_eligible": bool(
-                policy.is_enabled
-                and policy_has_known_quota(policy)
-                and provider_is_configured(data_source.name)
-                and not missing_routing_controls
-                and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
-                and str(entitlement.live_probe_status or "not_run").strip().lower()
-                in {"passed", "not_required"}
-                and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
-                and provider_contract_operation_costs_configured(policy, data_source)
-            ),
-            "freshness_seconds": policy.freshness_seconds,
-            "failure_streak": health.failure_streak,
-            "last_success_at": health.last_success_at,
-            "last_failure_at": health.last_failure_at,
-            "circuit_open_until": health.circuit_open_until,
-            "ewma_latency_ms": float(health.ewma_latency_ms),
-            "ewma_success_rate": float(health.ewma_success_rate),
-            "ewma_completeness": float(health.ewma_completeness),
-            "ewma_freshness": float(health.ewma_freshness),
-            "ewma_consistency": float(health.ewma_consistency),
-            "last_error_type": health.last_error_type,
-            "last_error_message": health.last_error_message,
+                "provider": data_source.name,
+                "capability": policy.capability.value,
+                "supported_capabilities": data_source.supported_capabilities or [],
+                "is_enabled": policy.is_enabled,
+                "is_pinned": policy.is_pinned,
+                "auto_weight_enabled": policy.auto_weight_enabled,
+                "base_priority": policy.base_priority,
+                "effective_score": float(policy.effective_score),
+                "learned_weight": float(policy.learned_weight),
+                "max_concurrency": policy.max_concurrency,
+                "tokens_per_minute": policy.tokens_per_minute,
+                "burst_capacity": policy.burst_capacity,
+                "cooldown_seconds": policy.cooldown_seconds,
+                "quota_contract": policy.quota_contract,
+                "quota_scope": policy.quota_scope,
+                "quota_source": policy.quota_source,
+                "quota_verified_at": policy.quota_verified_at,
+                "quota_state": "known" if policy_has_known_quota(policy) else "unknown",
+                "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
+                "operation_costs_configured": provider_contract_operation_costs_configured(
+                    policy, data_source
+                ),
+                "credentials_configured": provider_is_configured(data_source.name),
+                "required_environment_variables": list(
+                    provider_required_settings(data_source.name)
+                ),
+                "missing_environment_variables": provider_missing_settings(data_source.name),
+                "required_routing_control_variables": list(routing_control_settings),
+                "missing_routing_control_variables": missing_routing_controls,
+                "entitlement_state": (
+                    "reviewed"
+                    if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
+                    else "unreviewed"
+                ),
+                "live_probe_status": entitlement.live_probe_status,
+                "routing_eligible": bool(
+                    policy.is_enabled
+                    and policy_has_known_quota(policy)
+                    and provider_is_configured(data_source.name)
+                    and not missing_routing_controls
+                    and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
+                    and str(entitlement.live_probe_status or "not_run").strip().lower()
+                    in {"passed", "not_required"}
+                    and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
+                    and provider_contract_operation_costs_configured(policy, data_source)
+                ),
+                "freshness_seconds": policy.freshness_seconds,
+                "failure_streak": health.failure_streak,
+                "last_success_at": health.last_success_at,
+                "last_failure_at": health.last_failure_at,
+                "circuit_open_until": health.circuit_open_until,
+                "ewma_latency_ms": float(health.ewma_latency_ms),
+                "ewma_success_rate": float(health.ewma_success_rate),
+                "ewma_completeness": float(health.ewma_completeness),
+                "ewma_freshness": float(health.ewma_freshness),
+                "ewma_consistency": float(health.ewma_consistency),
+                "last_error_type": health.last_error_type,
+                "last_error_message": health.last_error_message,
             }
         )
     return status_rows

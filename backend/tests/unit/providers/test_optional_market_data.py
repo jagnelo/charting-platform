@@ -24,6 +24,7 @@ from app.providers.optional_market_data import (
     TwelveDataProvider,
     estimate_marketdata_app_latest_ohlcv_credit_count,
     estimate_marketdata_app_ohlcv_credit_count,
+    estimate_marketdata_app_option_quote_history_credit_count,
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
 )
@@ -204,6 +205,37 @@ def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
 
     assert len(bars) == 1
     assert bars[0].ts == datetime(2024, 1, 2, 21, tzinfo=UTC)
+
+
+def test_twelve_data_discovery_requests_explicit_bounded_pages():
+    provider = TwelveDataProvider()
+    payload = {
+        "count": 501,
+        "data": [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc",
+                "exchange": "NASDAQ",
+                "currency": "USD",
+                "type": "Common Stock",
+            }
+        ],
+        "status": "ok",
+    }
+    with patch.object(provider, "_get", return_value=payload) as get:
+        page = provider.discover_universe_page("EQUITY", 500)
+
+    assert page["total"] == 501
+    assert page["quotes"][0]["symbol"] == "AAPL"
+    get.assert_called_once_with(
+        "stocks",
+        {
+            "country": "United States",
+            "type": "Common Stock",
+            "page": 2,
+            "outputsize": 500,
+        },
+    )
 
 
 @pytest.mark.parametrize(
@@ -815,16 +847,16 @@ def test_marketdata_app_latest_credit_estimate_uses_provider_date_window():
     assert estimate_marketdata_app_latest_ohlcv_credit_count(Timeframe.MN, 1, now=now) is None
 
 
-def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
+def test_marketdata_app_current_price_uses_documented_delayed_quote_endpoint():
     provider = MarketDataAppProvider()
     payload = {
         "s": "ok",
-        "t": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
-        "o": [100],
-        "h": [102],
-        "l": [99],
-        "c": [101],
-        "v": [1234],
+        "symbol": ["AAPL"],
+        "bid": [100],
+        "ask": [102],
+        "mid": [101],
+        "last": [101.5],
+        "updated": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
     }
     with (
         patch("app.providers.optional_market_data.settings") as configured,
@@ -834,14 +866,31 @@ def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
         ) as get,
     ):
         configured.MARKETDATA_APP_API_KEY = "demo"
-        with patch.object(
-            provider,
-            "latest_window_start",
-            return_value=datetime(2024, 1, 1, tzinfo=UTC),
-        ):
-            assert provider.get_current_price("AAPL") == 101.0
+        assert provider.get_current_price("AAPL") == 101.5
 
-    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL/"
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/quotes/AAPL/"
+
+
+def test_marketdata_app_current_price_falls_back_to_bid_ask_midpoint():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "symbol": ["AAPL"], "bid": [100], "ask": [102]}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        assert provider.get_current_price("AAPL") == 101.0
+
+
+def test_marketdata_app_current_price_rejects_mismatched_quote_arrays():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "symbol": ["AAPL"], "last": [101], "bid": [100, 99]}
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="mismatched stock-quote bid"):
+            provider.get_current_price("AAPL")
 
 
 def test_marketdata_app_fetches_account_usage_from_unversioned_user_endpoint():
@@ -1061,6 +1110,24 @@ def test_marketdata_app_rejects_option_chain_bound_below_two_symbols():
         configured.MARKETDATA_APP_API_KEY = "demo"
         with pytest.raises(ProviderResponseError, match="symbol bound"):
             provider.fetch_option_chain("AAPL", max_symbols=1)
+
+
+def test_marketdata_app_option_quote_history_estimator_is_inclusive_and_fail_closed():
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    assert estimate_marketdata_app_option_quote_history_credit_count(start, start) == 1
+    assert (
+        estimate_marketdata_app_option_quote_history_credit_count(
+            start, start + timedelta(days=999)
+        )
+        == 1
+    )
+    assert (
+        estimate_marketdata_app_option_quote_history_credit_count(
+            start, start + timedelta(days=1000)
+        )
+        == 2
+    )
+    assert estimate_marketdata_app_option_quote_history_credit_count(start, start - timedelta(days=1)) is None
 
 
 def test_marketdata_app_parses_historical_option_quote_arrays():

@@ -795,16 +795,42 @@ provider-specific fixtures and a bounded live case to the manifest; a
 registry entry without a live case or a concrete documented exclusion fails
 the workflow checks.
 
-After provider source changes are committed, run the complete lock-protected
-provider live matrix from that exact source SHA. A focused `--provider` probe,
-fixture, successful HTTP status alone, or a skipped test is not full-matrix
-evidence. Missing credentials, exhausted quotas, provider errors, and
-unresolved terms must be recorded as such and cannot be described as a passing
-integration. An intentionally deferred provider may remain excluded only when
-the branch workstream records the human-approved deferral and the provider is
-non-routable. Commit the redacted validation receipt; subsequent commits that
-change provider behavior, provider docs/contracts, tests, credentials wiring,
-or deployment integration invalidate that live evidence and require a rerun.
+Every direct external request made by an opt-in live case must be preceded by
+a durable provider-specific quota reservation. The live pytest harness guards
+both synchronous and asynchronous HTTPX sends so an unwrapped call is rejected
+before transport, not merely flagged after the case. An empty durable ledger
+is not a zero-usage attestation: finite dimensions require a current-window
+baseline from provider-native usage or explicit operator evidence. Preserve
+provider-specific units, reset windows, account scopes, and cumulative
+snapshot semantics; never infer credits, bytes, weights, or identity-pool usage
+from request counts. A new transport library
+is not permitted in provider adapters/live tests until an equivalent
+reservation-aware pre-send guard and unit regression are added.
+
+Before committing provider source changes, stage the complete implementation
+candidate and run the complete lock-protected provider live matrix with
+`--allow-staged-candidate`. That mode accepts only an exact Git index snapshot:
+all tracked changes must be staged, the working tree must match the index, no
+untracked files may remain, credential-bearing paths are rejected, and staged
+additions are scanned for configured credentials and credential-shaped values.
+The
+runner prints the candidate tree ID and a redacted receipt but does not append
+that receipt to the workstream while the candidate is uncommitted. The live
+tests execute from a temporary checkout exported directly from the Git index,
+not from the mutable working directory. Candidate mode rejects focused runs,
+missing provider credentials, usage scope, and unreviewed source prerequisites
+before making network calls, and redacts captured test output. Commit only
+after the full matrix passes with no missing credentials, failures, or skips
+(except providers explicitly deferred by the human and kept non-routable).
+Immediately verify `git rev-parse HEAD^{tree}` equals the tested candidate tree
+ID, then append the receipt with both the resulting commit SHA and tree ID.
+Any mismatch or provider-related source change invalidates the proof and
+requires a new full matrix. A focused `--provider` probe, fixture, successful
+HTTP status alone, or skipped test is never full-matrix evidence. Exhausted
+quotas, provider errors, and unresolved terms are recorded as blockers and
+cannot be described as a passing integration. Providers with a missing source
+or authorization gate stay non-routable and block acceptance until resolved
+or explicitly deferred by the human.
 
 Live validation may consume the same account quota as other environments. Use
 the provider-live lock, record the environment scope, and never pass

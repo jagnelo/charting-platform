@@ -29,7 +29,7 @@
   test-uplot-contract \
   test-visual-policy \
   test-compose-contract \
-  test-migration-compatibility test-research-runner-probes test-live-provider-probes \
+  test-migration-compatibility test-research-runner-probes test-live-provider-probes test-live-provider-candidate \
   branch-tests \
   validate-integration validate-focused-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-archive-operational-tail worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
@@ -184,6 +184,7 @@ test-visual-policy:
 test-compose-contract:
 	@echo "▶  Compose and deployment contract validation..."
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml config >/dev/null
+	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --format json | python -c 'import json,sys; c=json.load(sys.stdin); assert c["services"]["backend"]["environment"]["HTTPS_PROXY"]=="http://provider-egress-deny:3128"; assert c["services"]["worker"]["environment"]["HTTPS_PROXY"]=="http://provider-egress-deny:3128"; assert c["services"]["backend"]["environment"]["PROVIDER_ROUTING_ENABLED"]=="false"; assert c["services"]["worker"]["environment"]["PROVIDER_ROUTING_ENABLED"]=="false"; assert c["networks"]["charting"]["internal"] is True; assert c["networks"]["host-access"]["driver"]=="bridge"; assert set(c["services"]["host-port-relay"]["networks"])=={"charting","host-access"}; assert len(c["services"]["host-port-relay"]["ports"])==2; assert "provider-egress-deny" in c["services"]; compile(c["services"]["provider-egress-deny"]["healthcheck"]["test"][-1],"<proxy-healthcheck>","exec"); compile(c["services"]["host-port-relay"]["healthcheck"]["test"][-1],"<host-relay-healthcheck>","exec"); compile(open("tests/e2e/host_port_relay.py").read(),"<host-port-relay>","exec")'
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
 
 test-migration-compatibility:
@@ -204,6 +205,10 @@ test-research-runner-probes:
 test-live-provider-probes:
 	@echo "▶  Risk-based reviewed live provider probes..."
 	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py
+
+test-live-provider-candidate:
+	@echo "▶  Full staged-candidate live provider acceptance matrix..."
+	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py --allow-staged-candidate
 
 branch-tests:
 	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
@@ -233,11 +238,11 @@ test-stack-up:
 	trap 'status=$$?; if test "$$status" -ne 0; then $(MAKE) test-stack-down || true; fi; exit $$status' EXIT INT TERM; \
 	$(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
 	$(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER; \
-	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose up -d --no-build --force-recreate --wait
+	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --no-build --force-recreate --wait
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
-	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose down -v
+	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v
 	@$(MAKE) agent-resource-cleanup
 
 test: test-unit test-int test-fe

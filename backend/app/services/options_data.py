@@ -23,6 +23,9 @@ from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.providers.base import OptionContractRecord
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.optional_market_data import (
+    estimate_marketdata_app_option_quote_history_credit_count,
+)
 from app.services.instrument_mastering import (
     _mark_field_provenance,
     ensure_instrument_type,
@@ -30,6 +33,10 @@ from app.services.instrument_mastering import (
 )
 from app.services.provider_runtime import ProviderNoDataError, execute_provider_call
 from app.services.risk_free_rate import get_risk_free_rate
+
+# Backward-compatible private name retained for existing service tests and
+# callers while the reviewed estimator now lives with the provider adapter.
+_marketdata_option_quote_credit_bound = estimate_marketdata_app_option_quote_history_credit_count
 
 
 def _now_utc() -> datetime:
@@ -102,18 +109,6 @@ def _snapshot_hash(records: list[OptionContractRecord], expiration: date) -> str
         for record in sorted(records, key=lambda item: item.provider_symbol)
     ]
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
-
-
-def _marketdata_option_quote_credit_bound(start: datetime, end: datetime) -> int:
-    """Return the conservative credit reservation for one contract's EOD range.
-
-    MarketData.app charges one credit per 1,000 returned observations. The
-    provider's range is inclusive, so equal endpoints represent one possible
-    observation and a 1,001-calendar-day range must reserve two credits.
-    """
-
-    span_days = max(1, (end.date() - start.date()).days + 1)
-    return max(1, (span_days + 999) // 1000)
 
 
 async def _upsert_dataset_state(
@@ -692,7 +687,11 @@ async def sync_option_quote_history(
     # contract and cost one credit per 1,000 returned quotes.  A date range
     # therefore gives an exact conservative bound: at most one observation
     # per calendar day, with weekends/holidays reducing the actual charge.
-    marketdata_quote_bound = _marketdata_option_quote_credit_bound(start, end)
+    marketdata_quote_bound = estimate_marketdata_app_option_quote_history_credit_count(
+        start, end
+    )
+    if marketdata_quote_bound is None:
+        return
     try:
         execution = await execute_provider_call(
             db,

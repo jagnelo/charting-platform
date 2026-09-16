@@ -57,7 +57,10 @@ def test_direct_provider_adapters_report_http_usage(monkeypatch):
         _assert_transport(lambda: CoinGeckoProvider()._get("/search", {"query": "A"}))
 
     coinbase_response = _response({"price": "1"})
-    with patch("app.providers.crypto_market_data.httpx.get", return_value=coinbase_response):
+    with patch(
+        "app.providers.crypto_market_data.coinbase_market_data_use_authority_missing",
+        return_value=[],
+    ), patch("app.providers.crypto_market_data.httpx.get", return_value=coinbase_response):
         _assert_transport(lambda: CoinbaseProvider().get_current_price("BTC-USD"))
 
     kraken_response = _response({"result": {"XXBTZUSD": {"c": ["1"]}}})

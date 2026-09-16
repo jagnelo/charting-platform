@@ -997,7 +997,14 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                 execution = await execute_provider_call(
                     db,
                     ProviderCapability.INSTRUMENT_METADATA,
-                    "sync_instrument_profile",
+                    # Keep the runtime operation name identical to the
+                    # provider contract and availability probe.  The sync
+                    # task is a workload, not a distinct upstream endpoint;
+                    # using a private name here bypassed the reviewed
+                    # ``get_instrument_profile`` cost/entitlement entry for
+                    # several providers and made the call fail closed for the
+                    # wrong reason.
+                    "get_instrument_profile",
                     instrument_id=inst.id,
                     usage_identity=lambda provider_name: provider_symbol_for_instrument(
                         inst, provider_name

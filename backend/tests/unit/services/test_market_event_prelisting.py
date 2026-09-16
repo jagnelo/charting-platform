@@ -118,6 +118,67 @@ async def test_conflicted_consensus_is_quarantined_without_instrument(db):
 
 
 @pytest.mark.asyncio
+async def test_single_source_future_listing_is_quarantined_without_provisional_instrument(db):
+    db.add(
+        _event(
+            source="edgar",
+            key="edgar:ipo:single-source",
+            payload={"symbol": "SOLO", "name": "Solo Holdings", "exchange_mic": "XNAS"},
+        )
+    )
+    db.flush()
+
+    result = await materialize_prelisting_candidates(AsyncSessionAdapter(db))
+
+    candidate = db.execute(select(MarketEventPrelistingCandidate)).scalar_one()
+    assert result["quarantined"] == 1
+    assert result["instruments_created"] == 0
+    assert candidate.status == "quarantined"
+    assert candidate.instrument_id is None
+    assert "no reconciled provider consensus" in candidate.resolution["reason"]
+    assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_corroborated_future_listing_with_conflicting_symbol_is_quarantined(db):
+    consensus = _consensus(db)
+    db.add_all(
+        [
+            _event(
+                source="alpaca",
+                key="alpaca:ipo:conflicting-symbol",
+                consensus_id=consensus.id,
+                payload={
+                    "symbol": "ALFA",
+                    "name": "Alpha Future Co",
+                    "exchange_mic": "XNAS",
+                },
+            ),
+            _event(
+                source="edgar",
+                key="edgar:ipo:conflicting-symbol",
+                consensus_id=consensus.id,
+                payload={
+                    "symbol": "BETA",
+                    "name": "Alpha Future Co",
+                    "exchange_mic": "XNAS",
+                },
+            ),
+        ]
+    )
+    db.flush()
+
+    result = await materialize_prelisting_candidates(AsyncSessionAdapter(db))
+
+    candidate = db.execute(select(MarketEventPrelistingCandidate)).scalar_one()
+    assert result["quarantined"] == 1
+    assert result["instruments_created"] == 0
+    assert candidate.status == "quarantined"
+    assert "disagree on the proposed symbol" in candidate.resolution["reason"]
+    assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
 async def test_malformed_symbol_is_skipped_without_guessing_identity(db):
     db.add(_event(source="fmp", key="fmp:ipo:bad", payload={"symbol": "BAD SYMBOL"}))
     db.flush()
