@@ -1196,3 +1196,17 @@ The exact implementation tree passed all 159 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Engine conformance and authoritative-release checkpoint
+
+`conformance.py` adds `EngineConformanceEvidence` and
+`EngineConformanceReport` with explicit required checks for multi-instrument
+accounting, native order/fill/cost behavior, deterministic replay, lifecycle,
+and forward event-tape parity. Missing checks fail closed; a complete release
+candidate is compatible evidence only, while `authoritative` is true only for
+a complete stable release. No engine is imported or started by this contract.
+
+The exact implementation tree passed all 163 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus runtime, frontend, integration, promotion,
+and deployment paths remain unchanged.

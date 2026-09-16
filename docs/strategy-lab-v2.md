@@ -350,6 +350,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   secrets, and positive wall/CPU/memory/output limits; execution requests that
   ask for forbidden access or missing pins are rejected with explicit reasons.
   This contract does not itself create containers or enforce OS limits.
+- `conformance.py` defines the engine release/conformance evidence gate. The
+  required multi-instrument accounting, native order/fill/cost, deterministic
+  replay, lifecycle, and forward-event-tape checks are explicit; complete
+  release-candidate evidence is compatibility-only, and only a complete stable
+  release can be marked authoritative.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
