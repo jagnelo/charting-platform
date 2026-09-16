@@ -99,6 +99,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resolution. A repeated key with the same attempt/payload/queue replays the
   existing request; a reused key with different content is an explicit
   conflict. Redis/outbox publication still requires an atomic adapter.
+- `progress.py` defines ordered worker progress, cancellation intents, and
+  resumable progress state. Updates cannot reorder, change the total, move
+  backward, or mutate terminal states; cancellation is idempotent and must end
+  in an explicit cancelled terminal update.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
   validation checks the strategy's declared instrument scope.

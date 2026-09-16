@@ -1077,3 +1077,17 @@ The exact implementation tree passed all 125 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Progress/cancellation, database/API,
 workers, artifact-store, Compose, Nautilus, frontend, integration, promotion,
 and deployment paths remain unchanged.
+
+## 2026-09-16 - Progress and cancellation checkpoint
+
+`progress.py` adds typed ordered worker progress updates, idempotent
+`CancellationRequest` records, and `ExecutionProgressState`. Progress totals
+and completed units are monotonic, terminal states cannot be updated, and a
+requested cancellation can only finish with an explicit cancelled terminal
+update. These are storage-neutral control semantics for future resumable
+workers; Redis, database persistence, and process interruption remain open.
+
+The exact implementation tree passed all 129 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Retry/recovery, database/API, worker,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.
