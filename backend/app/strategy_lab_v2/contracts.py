@@ -62,6 +62,7 @@ class SensitivityEvidenceLevel(StrEnum):
     UNPAIRED = "unpaired"
     SHARED_SEED_ONLY = "shared_seed_only"
     PAIRING_CLAIM_UNVERIFIED = "pairing_claim_unverified"
+    VERIFIED_PAIRED = "verified_paired"
 
 
 TRIAL_SEED_DERIVATION_VERSION = "strategy-lab.trial-seed.sha256-canonical-63.v1"
@@ -1383,6 +1384,30 @@ class KeyedRandomStreamPairingClaim:
 
 
 @dataclass(frozen=True, slots=True)
+class KeyedRandomStreamPairingReceipt:
+    """Deterministic receipt emitted after keyed draw streams are verified."""
+
+    claim: KeyedRandomStreamPairingClaim
+    verifier_version: str
+    verification_digest: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.claim, KeyedRandomStreamPairingClaim):
+            raise TypeError("claim must use KeyedRandomStreamPairingClaim")
+        _nonempty(self.verifier_version, "verifier_version")
+        require_sha256_digest(self.verification_digest, field_name="verification_digest")
+        expected_digest = content_digest(
+            {"claim": self.claim, "verifier_version": self.verifier_version}
+        )
+        if self.verification_digest != expected_digest:
+            raise ValueError("verification_digest must bind the claim and verifier version")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
 class SensitivityComparisonEvidence:
     """Successful runs plus the strongest currently supported randomization evidence.
 
@@ -1393,11 +1418,15 @@ class SensitivityComparisonEvidence:
     the engine build has passed registered conformance checks. No such verifier
     is implemented here, so a keyed-stream claim remains explicitly unverified
     and absence of pairing evidence does not prove statistical independence.
+    A verifier receipt upgrades the provenance classification to verified
+    pairing, but downstream comparison remains descriptive and does not infer
+    statistical significance by itself.
     """
 
     baseline_result: RunResultManifest
     variant_result: RunResultManifest
     pairing_claim: KeyedRandomStreamPairingClaim | None = None
+    pairing_receipt: KeyedRandomStreamPairingReceipt | None = None
 
     def __post_init__(self) -> None:
         baseline = self.baseline_result
@@ -1434,6 +1463,13 @@ class SensitivityComparisonEvidence:
 
         shared_seed_group = self._shares_seed_group()
         claim = self.pairing_claim
+        receipt = self.pairing_receipt
+        if claim is not None and receipt is not None:
+            raise ValueError("sensitivity evidence cannot include both a pairing claim and receipt")
+        if receipt is not None:
+            if not isinstance(receipt, KeyedRandomStreamPairingReceipt):
+                raise TypeError("pairing_receipt must use KeyedRandomStreamPairingReceipt")
+            claim = receipt.claim
         if claim is not None:
             if not isinstance(claim, KeyedRandomStreamPairingClaim):
                 raise TypeError("pairing_claim must use KeyedRandomStreamPairingClaim")
@@ -1480,6 +1516,8 @@ class SensitivityComparisonEvidence:
 
     @property
     def evidence_level(self) -> SensitivityEvidenceLevel:
+        if self.pairing_receipt is not None:
+            return SensitivityEvidenceLevel.VERIFIED_PAIRED
         if self.pairing_claim is not None:
             return SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
         if self._shares_seed_group():

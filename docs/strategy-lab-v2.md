@@ -122,8 +122,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   fixed experiment scope, scenario, and replicate, and records the seed group
   needed for later matching. This is not evidence of paired random draws:
   stateful/unkeyed engine streams may diverge when strategies take different
-  paths. Statistical pairing stays unavailable until an engine/runtime attests
-  compatible deterministic keyed-stream semantics. The
+  paths. `pairing.py` now verifies decoded content-addressed keyed streams
+  against registered engine-conformance and stream-contract identities. It
+  rejects duplicate or unmatched keys and differing draw values, then emits a
+  deterministic verification receipt. The
   `SensitivityComparisonEvidence` distinguishes unpaired results (which does
   not prove statistical independence), a matched shared seed group only, and an
   unverified keyed-stream pairing claim. Equal integer seeds without matching
@@ -131,8 +133,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   pairing claim binds both successful attempts and their engine build, declares
   complete draw-key alignment, and references trace/pairing artifacts in both
   result manifests. It cannot authenticate those bytes or engine conformance, so
-  it deliberately does not label a claim as verified pairing; that requires a
-  future trusted verifier/registration receipt. `sensitivity.py` adds a
+  it deliberately does not label a claim as verified pairing; a receipt from
+  the keyed-stream verifier is required. `sensitivity.py` adds a
   descriptive one-factor metric comparison over successful results. It requires
   identical parameter keys with exactly one canonically different value,
   matches metrics by `(name, gross/net basis)`, and requires equal non-null
@@ -151,7 +153,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   comparator cannot authenticate their referenced documents.
   The scenario digest binds the declared scenario but is not a separate typed
   evaluation-window contract. Valid paired inference still needs aligned
-  per-observation results or a future trusted keyed-stream verifier.
+  per-observation results; the receipt only establishes random-stream pairing
+  provenance and does not infer significance.
   Replicates are explicit; infrastructure retries remain attempts of the same
   scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
@@ -248,6 +251,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   stays at v6 because this metadata addition does not change metric formulas.
 - `lifecycle.py` contains pure attempt/forward state transitions and event
   anomaly classification.
+- `pairing.py` verifies exact keyed common-random draw alignment and emits a
+  content-bound receipt that can upgrade sensitivity provenance to
+  `verified_paired`; it does not perform statistical inference.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

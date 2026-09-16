@@ -33,11 +33,17 @@ from app.strategy_lab_v2.contracts import (
     RunResultManifest,
     ScientificTrial,
     SensitivityComparisonEvidence,
+    SensitivityEvidenceLevel,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
     TrialRandomization,
     TrialSeedPolicy,
+)
+from app.strategy_lab_v2.pairing import (
+    KEYED_STREAM_VERIFIER_VERSION,
+    KeyedRandomDraw,
+    verify_keyed_random_stream_pairing,
 )
 from app.strategy_lab_v2.sensitivity import (
     MetricDeltaUnavailable,
@@ -252,6 +258,112 @@ def _metric(
 
 def _compare(evidence: SensitivityComparisonEvidence):
     return compare_one_factor_metric(evidence, metric_name="total_return", basis=MetricBasis.NET)
+
+
+def test_keyed_stream_verifier_requires_exact_draw_alignment_and_values() -> None:
+    baseline = (
+        KeyedRandomDraw("scenario-0:step-0", Decimal("0.125")),
+        KeyedRandomDraw("scenario-0:step-1", Decimal("0.875")),
+    )
+    variant = (
+        KeyedRandomDraw("scenario-0:step-1", Decimal("0.875")),
+        KeyedRandomDraw("scenario-0:step-0", Decimal("0.125")),
+    )
+    receipt = verify_keyed_random_stream_pairing(
+        baseline_attempt_id="attempt-baseline",
+        variant_attempt_id="attempt-variant",
+        engine_build_digest=content_digest("engine-build"),
+        engine_conformance_fingerprint=content_digest("engine-conformance"),
+        stream_contract_fingerprint=content_digest("stream-contract"),
+        baseline_draws=baseline,
+        variant_draws=variant,
+    )
+    assert receipt.verifier_version == KEYED_STREAM_VERIFIER_VERSION
+    assert receipt.claim.matched_draw_count == 2
+    assert receipt.claim.unmatched_baseline_draw_count == 0
+    assert receipt.claim.unmatched_variant_draw_count == 0
+
+    with pytest.raises(ValueError, match="align exactly"):
+        verify_keyed_random_stream_pairing(
+            baseline_attempt_id="attempt-baseline",
+            variant_attempt_id="attempt-variant",
+            engine_build_digest=content_digest("engine-build"),
+            engine_conformance_fingerprint=content_digest("engine-conformance"),
+            stream_contract_fingerprint=content_digest("stream-contract"),
+            baseline_draws=baseline,
+            variant_draws=variant[:-1],
+        )
+    with pytest.raises(ValueError, match="value mismatch"):
+        verify_keyed_random_stream_pairing(
+            baseline_attempt_id="attempt-baseline",
+            variant_attempt_id="attempt-variant",
+            engine_build_digest=content_digest("engine-build"),
+            engine_conformance_fingerprint=content_digest("engine-conformance"),
+            stream_contract_fingerprint=content_digest("stream-contract"),
+            baseline_draws=baseline,
+            variant_draws=(
+                KeyedRandomDraw("scenario-0:step-0", Decimal("0.125")),
+                KeyedRandomDraw("scenario-0:step-1", Decimal("0.5")),
+            ),
+        )
+
+
+def test_verified_pairing_receipt_upgrades_sensitivity_provenance_only() -> None:
+    source = _result_pair()
+    baseline_result = _replicate_result(
+        source.baseline_result,
+        parameters={"lookback": 20},
+        replicate_index=0,
+        replicate_count=1,
+        value=Decimal("0.1"),
+        shared_seed=True,
+    )
+    variant_result = _replicate_result(
+        source.variant_result,
+        parameters={"lookback": 30},
+        replicate_index=0,
+        replicate_count=1,
+        value=Decimal("0.1"),
+        shared_seed=True,
+    )
+    evidence = SensitivityComparisonEvidence(baseline_result, variant_result)
+    receipt = verify_keyed_random_stream_pairing(
+        baseline_attempt_id=evidence.baseline_result.attempt_id,
+        variant_attempt_id=evidence.variant_result.attempt_id,
+        engine_build_digest=evidence.baseline_result.engine_build_digest,
+        engine_conformance_fingerprint=content_digest("engine-conformance"),
+        stream_contract_fingerprint=content_digest("stream-contract"),
+        baseline_draws=(KeyedRandomDraw("draw-0", Decimal("0.25")),),
+        variant_draws=(KeyedRandomDraw("draw-0", Decimal("0.25")),),
+    )
+    claim = receipt.claim
+    required_digests = tuple(
+        dict.fromkeys(
+            (
+                claim.baseline_trace_digest,
+                claim.variant_trace_digest,
+                claim.fingerprint,
+                claim.paired_draws_digest,
+            )
+        )
+    )
+    baseline_artifacts = evidence.baseline_result.output_artifacts + tuple(
+        ArtifactManifest(digest, 32, "application/octet-stream", "1", digest)
+        for digest in required_digests
+    )
+    variant_artifacts = evidence.variant_result.output_artifacts + tuple(
+        ArtifactManifest(digest, 32, "application/octet-stream", "1", digest)
+        for digest in required_digests
+    )
+    paired = SensitivityComparisonEvidence(
+        replace(evidence.baseline_result, output_artifacts=baseline_artifacts),
+        replace(evidence.variant_result, output_artifacts=variant_artifacts),
+        pairing_receipt=receipt,
+    )
+    assert paired.evidence_level is SensitivityEvidenceLevel.VERIFIED_PAIRED
+    delta = _compare(paired)
+    assert isinstance(delta, OneFactorMetricDelta)
+    assert delta.evidence_level is SensitivityEvidenceLevel.VERIFIED_PAIRED
 
 
 def _replicate_result(
