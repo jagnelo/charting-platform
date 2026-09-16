@@ -3623,3 +3623,9 @@ the authoritative record for this replay; it made zero provider calls.
   coverage passed `266/266`; no provider calls or credentials were used.
 - The complete backend unit suite then passed `2,304/2,304` with 37 warnings;
   no external provider calls were made.
+
+- The exact-source full live runner at `4899dfbfa92cd51379f5e97bdfe60012a459d3d1`
+  stopped before network access with exit `2`. It reported the expected
+  unresolved provider baselines/cost maps and legal/source gates, including
+  FINRA OTC source admission; the new parser did not widen routing. Zero
+  provider calls and zero shared-key quota were consumed.
