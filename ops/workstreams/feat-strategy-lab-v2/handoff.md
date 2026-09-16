@@ -2182,3 +2182,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Snapshot coverage verification checkpoint
+
+`snapshot_coverage.py` now composes per-series coverage attestation checks into
+one snapshot-bound admission result. It requires exactly one attestation for
+each frozen series, rejects missing, duplicate, unexpected, incomplete, or
+semantically mismatched evidence, and preserves deterministic report and
+attestation identities. Provider acquisition and execution adapters still own
+fetching the evidence and enforcing this receipt before a run starts.
+
+The exact implementation tree passed all 443 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

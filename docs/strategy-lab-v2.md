@@ -462,6 +462,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   the report retains deterministic evidence identities. The verifier performs
   no provider I/O, repair, or inference; the adapter must supply the attestation
   before execution is enabled.
+- `snapshot_coverage.py` composes those per-series checks into the snapshot
+  admission boundary. It requires exactly one attestation for every frozen
+  series, rejects missing, duplicate, unexpected, incomplete, or mismatched
+  evidence, and returns a deterministic snapshot-bound verification receipt.
+  Provider acquisition and execution adapters still own fetching the evidence
+  and enforcing this receipt before a run starts.
 - `runtime_execution.py` binds a strategy runtime request to its package/source,
   frozen input bundle, declared entrypoint, and isolation profile. Allowed
   requests advance through ordered accepted/running/terminal receipts; exact
