@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Current-source OpenFIGI keyless matrix
+
+- After a fresh native rate-limit observation (`1/1`, one request, 8,812
+  response bytes), the exact current source `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`
+  passed the bounded OpenFIGI keyless matrix (`3/3`, three requests, 87,895
+  response bytes) for stable-identifier mapping, profile resolution, and
+  account usage.
+- The receipts are redacted in `validation.jsonl`; no provider payloads or
+  credentials were persisted. This proves anonymous-mode transport and
+  native-header accounting only; keyed-mode limits remain separately
+  unproven because no OpenFIGI key is configured.
+
 ## 2026-09-17 Current-source Dinari Sandbox canary
 
 - The exact current source `67dc4e3736caceb3464f6f42de75a38e5933e813`

@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current OpenFIGI keyless validation at source
+      `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`: a fresh native usage
+      observation passed `1/1` with one request and 8,812 response bytes;
+      the immediately-following bounded mapping/profile/account matrix passed
+      `3/3` with three requests and 87,895 response bytes. Anonymous-mode
+      native-header accounting is proven; keyed-mode evidence remains absent
+      because no OpenFIGI key is configured.
+    - >-
       2026-09-17 exact-current Dinari Sandbox canary at source
       `67dc4e3736caceb3464f6f42de75a38e5933e813` passed `1/1` under the
       transient 32-request application cap. It made 14 bounded requests and

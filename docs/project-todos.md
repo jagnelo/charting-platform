@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-source OpenFIGI keyless matrix
+
+- [x] Refresh OpenFIGI's anonymous native rate-limit state (`1/1`, one
+      request, 8,812 response bytes), then run its bounded keyless matrix at
+      source `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`. Mapping, profile
+      resolution, and account usage passed `3/3` with three requests and
+      87,895 response bytes; receipts are redacted and durable.
+- [ ] Keep keyed-mode OpenFIGI limits unproven until an API key is supplied;
+      do not infer keyed allowances from anonymous evidence.
+
 ### 2026-09-17 — Current-source Dinari Sandbox canary
 
 - [x] Run the isolated Dinari Sandbox canary at source
