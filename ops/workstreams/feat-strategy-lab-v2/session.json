@@ -127,7 +127,7 @@
   "head": "bc538df9fb76f18ec6532843d4f3a37bef1a636e",
   "implementation_sha": "bc538df9fb76f18ec6532843d4f3a37bef1a636e",
   "last_checkpoint": "2026-09-16T16:28:41.957480+00:00",
-  "last_human_progress_update": "2026-09-16T16:28:04.088442+00:00",
+  "last_human_progress_update": "2026-09-16T16:35:00.156270+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -140,10 +140,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "Stable Nautilus release, schema migration, application wiring, and other shared-path gates remain open.",
-    "current_phase": "gated-nautilus-runner",
-    "next_action": "Continue package-owned Strategy Lab v2 implementation while preserving provider, ETF, TC2000, Nautilus, API, persistence, and worker boundaries.",
+    "current_phase": "runtime-result-materialization",
+    "next_action": "Continue package-owned Strategy Lab v2 implementation with an engine-neutral orchestration contract while preserving provider, ETF, TC2000, Nautilus, API, persistence, and worker boundaries.",
     "total": 18,
-    "updated_at": "2026-09-16T16:28:04.088176+00:00"
+    "updated_at": "2026-09-16T16:35:00.155862+00:00"
   },
   "remote": "bc538df9fb76f18ec6532843d4f3a37bef1a636e",
   "remote_sha": "bc538df9fb76f18ec6532843d4f3a37bef1a636e",
