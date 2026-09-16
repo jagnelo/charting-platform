@@ -22,6 +22,17 @@
   environment blocker for the Docker-backed integration gate, not a unit or
   provider-live failure.
 
+## 2026-09-16 exact-current preflight after Alpaca reset-header hardening
+
+- At committed source `994114f3a`, the manifest full-matrix preflight exited
+  `2` before transport with `0/0` cases and zero provider requests. It
+  preserved the current provider-specific quota/cost/baseline blockers, the
+  required legal/source/safety blockers, and the unresolved capability live
+  dispositions. The owner-local durable ledger lock/health path passed.
+- MarketData.app remains the only relevant provider with its reviewed account
+  plan and option-chain controls currently routable; the full matrix remains
+  intentionally fail-closed and the 30-day shadow phase remains disabled.
+
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 
 - At committed source `0220ae07e`, the owner-local durable-ledger preflight
