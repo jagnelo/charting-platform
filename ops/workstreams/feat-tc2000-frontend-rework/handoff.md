@@ -12988,6 +12988,30 @@ integration remains deferred until their branches reach staging. This is a
 complete product slice and exact-gate receipt, not closure of the overall
 workstream.
 
+## 2026-09-16 - Market Map readiness state announcements
+
+Product commit `5e0afa47` gives `MarketMapTool` explicit live-region semantics
+for Python evaluation, benchmark coverage, and history readiness: loading states
+are polite atomic statuses and request failures are assertive atomic alerts. No
+map, data, provider, or fallback behavior changed.
+
+Focused MarketMapTool coverage passed `54/54`; full frontend Vitest passed
+`1,116/1,116`; vue-tsc and the production build passed with the existing
+large-chunk warning; TC scope/self-tests, workstream validation, and
+`git diff --check` passed.
+
+The first exact gate hit the unchanged F8u-signal asset-create timeout. A fresh
+branch-stack targeted retry passed that flow `1/1` in `8.8s`. The definitive
+Docker-authorized exact gate then exited `0`, completing all repository stages,
+authenticated functional Chromium, and all four visual projects. Branch-scoped
+teardown removed the assigned containers, volumes, network, generated images,
+and test sessions; post-gate resource accounting reported zero resources with
+accounting complete. No provider-platform, ETF, visual-baseline, threshold,
+mask, skip, V25-media, or acceptance-policy behavior changed. Provider/ETF
+consumer integration remains deferred until both upstream branches reach
+staging, and this is a complete exact-gate receipt for the slice, not closure of
+the overall workstream.
+
 Next: select the next bounded TC-owned R1/R5/R6 item, preserve the visual
 oracles, and consume provider/ETF contracts only after their staging
 promotion.

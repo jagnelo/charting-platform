@@ -255,10 +255,10 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_code_library_state_accessibility_exact_gate_passed
+  current_phase: R6_market_map_readiness_state_accessibility_exact_gate_passed
   next_action: >-
     Select and implement the next bounded TC-owned R1/R5/R6 roadmap item now
-    that the CodeLibrary state accessibility slice has passed the exact
+    that the Market Map readiness-state accessibility slice has passed the exact
     full_stack_browser gate. Keep provider/ETF consumer work deferred until
     both upstream branches reach staging, and do not retry origin
     synchronization under the existing private-origin safeguard without newly
@@ -266,7 +266,7 @@ progress:
   current_blocker: >-
     No active TC-owned product or validation blocker: the exact
     PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk
-    make validate-integration gate passed at product tip 1015fdb78c2e3b34d99d8ad3573b94c8cc6cf322
+    make validate-integration gate passed at product tip 5e0afa47ea34c0c9b47638f63cbc94626c17c7d9
     through all repository stages, authenticated functional Chromium, and all
     four visual projects, with clean branch-scoped teardown and zero post-gate
     resources.
