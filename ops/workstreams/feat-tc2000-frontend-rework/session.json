@@ -51,7 +51,10 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,14 +113,14 @@
   "goal_request_state": "fulfilled",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7742cbaf5b8988d5fc9839d5d33363fa168abd1e",
-  "implementation_sha": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+  "head": "db53896e11d270d4b7f58d96319e23473ed8f312",
+  "implementation_sha": "4effb9328a0b295de26d33774e5c2d1978cf24ee",
   "interrupted": false,
-  "last_checkpoint": "2026-09-16T22:17:55.097556+00:00",
+  "last_checkpoint": "2026-09-16T22:52:36.479970+00:00",
   "last_human_progress_update": "2026-09-16T22:48:29.205298+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Signal Replay exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "f8b7770841db4667390a009eb73af96eedb66bbca7f643f2bd35a00c660059aa",
+  "next_action": "Select the next bounded TC-owned R1/R5/R6 item; preserve the Optimization Leaderboard exact-gate receipt and keep provider and ETF consumer work deferred until both branches reach staging.",
+  "plan_hash": "6a321261f9199c0d1d5a8cb7c1c059eed1455a4b9c90293cad17bd9d9f0cacfb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,11 +141,11 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin feat/tc2000-frontend-rework",
-    "current_local_head": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
-    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+    "current_local_head": "4effb9328a0b295de26d33774e5c2d1978cf24ee",
+    "current_pending_range": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..4effb9328a0b295de26d33774e5c2d1978cf24ee",
     "failure_category": "a previous exact payload was rejected by the private-origin safeguard; this updated pending range was not retried without trusted exact-payload authorization; read-only remote lookup succeeds",
-    "head_at_product_checkpoint": "49e643a8c0c664daedddeac82334a6fd60f5b8eb",
-    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..49e643a8c0c664daedddeac82334a6fd60f5b8eb",
+    "head_at_product_checkpoint": "4effb9328a0b295de26d33774e5c2d1978cf24ee",
+    "range_at_product_checkpoint": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629..4effb9328a0b295de26d33774e5c2d1978cf24ee",
     "remote": "origin",
     "remote_tracking_sha": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
     "status": "committed_locally_pending_push"
