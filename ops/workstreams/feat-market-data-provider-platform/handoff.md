@@ -3715,3 +3715,11 @@ the authoritative record for this replay; it made zero provider calls.
   focused invocation also passed all tests but returned the repository's
   expected global coverage-threshold exit because it intentionally ran only
   the focused subset. Workstream validation and `git diff --check` passed.
+
+## 2026-09-16 current unit validation
+
+- The complete backend unit suite passed `2,311/2,311` with 37 warnings in
+  `103.71s` using the exact feature checkout. The unqualified integration
+  suite was not accepted as a failure signal because its Testcontainers setup
+  could not access the local Docker socket (`PermissionError`); the earlier
+  Docker-backed authoritative gate remains the relevant integration evidence.
