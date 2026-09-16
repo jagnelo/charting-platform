@@ -63,6 +63,8 @@
       <button
         class="sidebar-toggle-strip"
         :title="sidebarCollapsed ? 'Expand strategy list' : 'Collapse strategy list'"
+        :aria-label="sidebarCollapsed ? 'Expand strategy list' : 'Collapse strategy list'"
+        :aria-expanded="sidebarCollapsed ? 'false' : 'true'"
         type="button"
         @click="sidebarCollapsed = !sidebarCollapsed"
       >

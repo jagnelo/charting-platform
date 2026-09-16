@@ -742,11 +742,19 @@ describe('StrategyLabView', () => {
 
     await flushPromises()
 
-    await wrapper.get('.sidebar-toggle-strip').trigger('click')
-    expect(wrapper.get('.strategy-sidebar').classes()).toContain('strategy-sidebar--collapsed')
+    const toggle = wrapper.get('.sidebar-toggle-strip')
+    expect(toggle.attributes('aria-label')).toBe('Collapse strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
 
-    await wrapper.get('.sidebar-toggle-strip').trigger('click')
+    await toggle.trigger('click')
+    expect(wrapper.get('.strategy-sidebar').classes()).toContain('strategy-sidebar--collapsed')
+    expect(toggle.attributes('aria-label')).toBe('Expand strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+
+    await toggle.trigger('click')
     expect(wrapper.get('.strategy-sidebar').classes()).not.toContain('strategy-sidebar--collapsed')
+    expect(toggle.attributes('aria-label')).toBe('Collapse strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
   })
 
   it('shows the benchmark coverage note with an explicit year when benchmark data starts later', async () => {
