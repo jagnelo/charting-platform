@@ -2082,6 +2082,23 @@ deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
 
+## 2026-09-16 - Lease-expiry completion rejection checkpoint
+
+When a bounded Nautilus process returns after its lease has expired,
+`execute_worker_handoff` preserves the process evidence but returns a typed
+rejection without materializing runtime state. This keeps late output available
+to the explicit crash/expiry recovery path while preventing an expired lease
+from publishing normal success or failure. Launch-time and completion-time
+lease checks are both exercised without starting any process for stale launch
+inputs.
+
+The exact implementation tree passed all 430 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
+
 ## 2026-09-16 - Lease-aware idempotent recovery checkpoint
 
 The recovery ledger now binds an ordered lease-release observation as well as

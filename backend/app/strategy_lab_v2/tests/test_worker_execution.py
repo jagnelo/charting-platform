@@ -184,3 +184,32 @@ def test_worker_handoff_rejects_expired_lease_before_spawn(tmp_path: Path) -> No
     assert rejected.decision is WorkerExecutionDecision.REJECTED
     assert rejected.nautilus_result is None
     assert rejected.rejection_reason == "worker lease is not active at process start"
+
+
+def test_worker_handoff_does_not_materialize_after_lease_expiry(tmp_path: Path) -> None:
+    values = _fixtures()
+    _, admission, *_ = values
+    lease = LeaseObservationState(
+        ExecutionAttemptLease(
+            admission.attempt_id,
+            admission.worker_id,
+            "lease-1",
+            NOW,
+            NOW,
+            NOW + timedelta(seconds=1),
+        )
+    )
+    result = execute_worker_handoff(
+        _plan(values),
+        *values,
+        worker_pool=_pool(values),
+        lease_state=lease,
+        started_at=NOW,
+        observed_at=NOW + timedelta(seconds=2),
+        docker_binary=_fake_binary(tmp_path, "printf 'ok'"),
+    )
+    assert result.decision is WorkerExecutionDecision.REJECTED
+    assert result.nautilus_result is not None
+    assert result.nautilus_result.status is NautilusRunStatus.SUCCEEDED
+    assert result.runtime_result is None
+    assert result.rejection_reason == "worker lease is no longer active at process completion"
