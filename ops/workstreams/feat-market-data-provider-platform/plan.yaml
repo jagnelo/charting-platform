@@ -723,6 +723,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 Compose and workflow contract validation at source
+      `5fd3544b6`: `make test-compose-contract` passed for the main and RPi
+      Compose files, including the provider environment and egress/network
+      assertions, and `make test-workflow` passed `46/46` workflow tests with
+      the isolated UV cache. This verifies static CI/deployment contracts;
+      target secret-store contents and deployment authorization remain
+      owner-controlled gates.
+    - >-
       2026-09-17 Docker-backed integration validation at source
       `5fd3544b64cc38851c2a82a44cfe54128dba7e73`: `make test-int` passed all
       `386` PostgreSQL/Redis integration tests in `354.16s`. The isolated

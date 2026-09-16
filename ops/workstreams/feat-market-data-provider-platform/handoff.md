@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Compose and workflow contract validation
+
+- `make test-compose-contract` passed for the main and RPi Compose files,
+  including the egress-deny/E2E network assertions and provider environment
+  wiring. `make test-workflow` passed all `46` workflow tests using the
+  isolated UV cache. The initial default-cache attempt was only an environment
+  permission failure; no code or provider state was changed.
+- These checks verify static deployment/CI contracts, not the presence of
+  GitHub/RPi/production secret values or permission to deploy. Those target
+  secret-store and deployment gates remain owner-controlled.
+
 ## 2026-09-17 PostgreSQL/Redis integration validation
 
 - The Docker-backed `make test-int` gate passed `386` integration tests in

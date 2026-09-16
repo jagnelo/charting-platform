@@ -17720,3 +17720,12 @@ The current source also passes the focused authenticated top-down browser slice 
       calls were used.
 - [ ] Provider-specific quota/legal/source, complete-universe, target secret
       store, deployment, routing-promotion, and final shadow gates remain open.
+
+### 2026-09-17 — Compose and workflow contract validation
+
+- [x] `make test-compose-contract` passed for the main and RPi Compose files,
+      including provider environment and egress/network assertions, and
+      `make test-workflow` passed `46/46` workflow tests with the isolated UV
+      cache.
+- [ ] Static wiring does not prove GitHub/RPi/production secret-store contents
+      or deployment authorization; those owner-controlled gates remain open.
