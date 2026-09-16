@@ -13034,3 +13034,20 @@ integration gate remains the next required evidence at this product tip.
 The branch remains `committed_locally_pending_push` under the recorded
 private-origin safeguard. Provider-platform and ETF consumer integration stays
 deferred until both upstream branches reach staging.
+
+## 2026-09-16 - Python editor exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration`
+gate passed at product tip `ee8f77bee` (metadata tip `65394443e`). All
+repository stages, authenticated functional Chromium, and all four visual
+projects completed with exit 0. The branch-scoped teardown removed the assigned
+containers, volumes, network, generated images, and test sessions; follow-up
+resource accounting reported zero containers, volumes, test sessions, known
+bytes, and unknown components.
+
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
+or acceptance-policy behavior changed. The branch remains
+`committed_locally_pending_push` under the private-origin safeguard, and
+provider/ETF consumer integration remains deferred until both branches reach
+staging.
