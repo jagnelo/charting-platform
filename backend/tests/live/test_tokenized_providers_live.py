@@ -113,8 +113,12 @@ def _observed_read(
                 success=False,
                 reservation_id=reservation.reservation_id if reservation else None,
             )
-        assert measurement.http_requests > 0
-        assert measurement.response_bytes > 0
+        # A canary cap can deliberately reject before transport, so zero
+        # measured requests is an honest local-admission outcome. Normal
+        # provider reservations still require a measured provider response.
+        if not canary:
+            assert measurement.http_requests > 0
+            assert measurement.response_bytes > 0
         raise
     finally:
         deactivate_request_admission(admission_token)
