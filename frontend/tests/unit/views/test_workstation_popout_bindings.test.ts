@@ -245,6 +245,24 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('gives the compact factory-reset control an explicit accessible name', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const resetButton = wrapper.get('button[aria-label="Reset factory workspace"]')
+    expect(resetButton.text()).toBe('')
+    expect(await resetButton.attributes('title')).toBe('Reset factory workspace')
+    await resetButton.trigger('click')
+    expect(confirm).toHaveBeenCalledWith('Reset this factory workspace? Your current layout changes will be replaced.')
+    expect(harness.workspace.resetFactoryWorkspace).toHaveBeenCalledTimes(1)
+    confirm.mockRestore()
+    wrapper.unmount()
+  })
+
   it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
     routeState.params = { windowKey: 'missing-tool' }
     const wrapper = mount(WorkstationView, {

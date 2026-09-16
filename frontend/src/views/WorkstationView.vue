@@ -144,7 +144,7 @@
           <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
       </div>
-      <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
+      <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" aria-label="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
       <span class="workstation__workspace-name">{{ workspaceStore.workspace?.name ?? 'Loading workspace…' }}</span>
     </div>
 
