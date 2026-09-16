@@ -359,6 +359,27 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Current-source evidence was refreshed at `a9a8ea7f8de464cb3d0b4ae11f79eacd25613031`:
+      the isolated backend unit suite passed `2,317/2,317` with 70.66% total
+      coverage and 37 warnings; MarketData.app's bounded credentialed matrix
+      passed `7/7` (9 requests, 17,241 response bytes); Alpaca, SEC EDGAR, and
+      Dinari Sandbox stopped before network access when their provider-specific
+      active-window/canary controls were not safely admitted. Redacted receipts
+      are committed; no routing, deployment, integration, frontend, or ETF
+      adapter changes were made.
+    - >-
+      CoinGecko Demo usage semantics were independently audited. Its official
+      `/key` usage endpoint is Pro-only: the configured Demo key returned HTTP
+      401/error `10005`. The implementation records that the Demo key cannot
+      provide a native monthly usage baseline through this endpoint and keeps
+      the monthly reset boundary unknown rather than inventing one.
+    - >-
+      EODHD native account usage was rechecked at source
+      `a9a8ea7f8de464cb3d0b4ae11f79eacd25613031`; the focused case passed `1/1`
+      but the provider still reported `apiRequestsDate=2026-09-15` on
+      2026-09-16. The runtime therefore kept the daily baseline observation-only
+      and did not promote a stale counter into a current quota window.
+    - >-
       Migration compatibility was replayed against staging parent
       `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`: the previous-release
       `/health` smoke passed and all `30` changed migration files passed.
