@@ -203,6 +203,12 @@ remaining_gaps:
     still requires an operator-supplied OpenFIGI API key; no keyed limit is
     inferred from the anonymous run.
   - >-
+    The configured MarketData.app Starter Trial bounded matrix passed 7/7 at
+    `6dc03d90`: account usage, daily/five-minute candles, latest price,
+    option expirations/chain, bounded historical option quotes, and the
+    deliberate no-request guard for unbounded response-priced history. Trial
+    expiry and paid-plan limits remain explicit provider configuration.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and

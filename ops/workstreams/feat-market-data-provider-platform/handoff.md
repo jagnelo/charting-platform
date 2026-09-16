@@ -62,6 +62,17 @@
   fixture-covered and requires an operator-supplied OpenFIGI key for live
   evidence; no keyed limit is inferred from the anonymous run.
 
+## 2026-09-16 MarketData.app current trial matrix
+
+- The configured Starter Trial account's bounded provider matrix passed `7/7`
+  at source `6dc03d90`: account usage, daily/five-minute candles, latest
+  price, option expirations/chain, bounded historical option quotes, and the
+  deliberate zero-request guard for unbounded response-priced history.
+- The receipt recorded the provider's actual request/credit telemetry without
+  persisting credentials or payloads. The trial expiry and Free Forever
+  fallback remain configuration-driven; paid-plan changes still require an
+  explicit plan/limit update.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses
