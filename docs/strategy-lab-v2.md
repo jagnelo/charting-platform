@@ -547,8 +547,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
   Lua compare-and-set script. The idempotency key and stream append are staged
   atomically, exact retries replay, changed payloads conflict, and failed
-  `XADD` operations remove their marker. Redis remains transport-only; the
-  authoritative state and outbox records stay in the persistence adapter.
+  `XADD` operations remove their marker. It also creates consumer groups
+  idempotently, decodes content-addressed entries, reclaims idle pending
+  deliveries, and acknowledges entries with typed failure evidence. Redis
+  remains transport-only; the authoritative state and outbox records stay in
+  the persistence adapter.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

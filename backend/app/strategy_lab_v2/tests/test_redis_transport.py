@@ -15,8 +15,11 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 class FakeRedis:
-    def __init__(self, result=1) -> None:
+    def __init__(self, result=1, *, stream_response=None, claim_response=None, ack_result=1) -> None:
         self.result = result
+        self.stream_response = stream_response
+        self.claim_response = claim_response
+        self.ack_result = ack_result
         self.calls: list[tuple] = []
 
     async def eval(self, *args):
@@ -24,6 +27,26 @@ class FakeRedis:
         if isinstance(self.result, Exception):
             raise self.result
         return self.result
+
+    async def xgroup_create(self, **kwargs):
+        self.calls.append(("xgroup_create", kwargs))
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+    async def xreadgroup(self, **kwargs):
+        self.calls.append(("xreadgroup", kwargs))
+        return self.stream_response
+
+    async def xautoclaim(self, **kwargs):
+        self.calls.append(("xautoclaim", kwargs))
+        return self.claim_response
+
+    async def xack(self, *args):
+        self.calls.append(("xack", args))
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.ack_result
 
 
 def _envelope(*, key: str = "dispatch-1"):
@@ -96,3 +119,56 @@ def test_transport_keys_and_namespace_are_validated() -> None:
         transport.stream_key("")
     with pytest.raises(ValueError, match="control"):
         transport.stream_key("bad\nqueue")
+
+
+@pytest.mark.asyncio
+async def test_consumer_group_creation_is_idempotent_and_decodes_entries() -> None:
+    fields = {
+        b"message_id": _envelope().message_id.encode(),
+        b"attempt_id": b"attempt-1",
+        b"payload_digest": content_digest("payload").encode(),
+        b"request_fingerprint": _envelope().request.fingerprint.encode(),
+    }
+    redis = FakeRedis(
+        stream_response=[(b"strategy-lab:v2:stream:backtest", [(b"1-0", fields)])],
+        claim_response=[b"2-0", [(b"1-1", fields)], []],
+    )
+    transport = RedisDispatchTransport(redis)
+    created = await transport.ensure_group("backtest", "workers")
+    assert created.decision.value == "created"
+    entries = await transport.read_group("backtest", "workers", "worker-1")
+    assert len(entries) == 1
+    assert entries[0].message_id == _envelope().message_id
+    assert entries[0].stream_id == "1-0"
+    reclaimed = await transport.reclaim_pending(
+        "backtest", "workers", "worker-1", min_idle_ms=1000
+    )
+    assert reclaimed[0].stream_id == "1-1"
+    ack = await transport.acknowledge("backtest", "workers", "1-0")
+    assert ack.acknowledged
+
+
+@pytest.mark.asyncio
+async def test_group_busy_and_acknowledgement_failures_are_typed() -> None:
+    existing = await RedisDispatchTransport(
+        FakeRedis(RuntimeError("BUSYGROUP Consumer Group name already exists"))
+    ).ensure_group("backtest", "workers")
+    assert existing.decision.value == "existing"
+    failed = await RedisDispatchTransport(FakeRedis(RuntimeError("down"))).acknowledge(
+        "backtest", "workers", "1-0"
+    )
+    assert not failed.acknowledged
+    assert failed.rejection_reason
+    not_ack = await RedisDispatchTransport(FakeRedis(ack_result=0)).acknowledge(
+        "backtest", "workers", "1-0"
+    )
+    assert not not_ack.acknowledged
+
+
+@pytest.mark.asyncio
+async def test_malformed_stream_response_fails_closed() -> None:
+    transport = RedisDispatchTransport(
+        FakeRedis(stream_response=[("stream", [("1-0", {"missing": "field"})])])
+    )
+    with pytest.raises(ValueError, match="incomplete"):
+        await transport.read_group("backtest", "workers", "worker-1")
