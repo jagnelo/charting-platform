@@ -178,7 +178,9 @@ remaining_gaps:
     Markets' official Overnight/US Security Master specifications are now
     recorded as the concrete candidate path; access delivery, quota/cadence,
     complete-coverage evidence, and redistribution rights remain owner- and
-    provider-controlled, so no OTC master adapter or routing is enabled.
+    provider-controlled. The candidate parser now validates the official
+    pipe-delimited shape, but source delivery and OTC master routing remain
+    disabled until those controls are authorized.
   - >-
     Massive's official free Stocks Basic terms are personal,
     non-business/non-commercial, and non-redistributed. The implementation now
