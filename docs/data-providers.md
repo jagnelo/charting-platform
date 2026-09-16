@@ -98,8 +98,9 @@ diagnostics expose both the request capability and bucket group.
 Local request logs and quota windows are durable across processes and sessions,
 but they cannot know a provider's account-side counters unless that provider
 publishes an introspection endpoint.  Such counters therefore have a separate
-`account_usage` capability and observation table.  The current concrete
-implementation is MarketData.app's authenticated `GET /user/` endpoint:
+`account_usage` capability and observation table. The current concrete
+implementations are MarketData.app's authenticated `GET /user/` endpoint,
+Twelve Data's `/api_usage` endpoint, and EODHD's `/user` endpoint:
 
 ```sh
 POST /api/v1/providers/usage/account/refresh   # admin-only, explicit poll
@@ -116,7 +117,10 @@ limit/remaining/consumed/reset/options values are stored verbatim as
 observations; they never replace the reviewed local plan, infer a reset window,
 or widen routing. Providers without a documented native usage surface remain
 represented by durable request/byte/header telemetry and are not queried
-through a guessed endpoint. Twelve Data's native minute-credit observation can
+through a guessed endpoint. EODHD daily usage can reconcile only a current-date
+`calls_per_day` baseline whose returned limit matches the reviewed contract;
+its minute headers remain observational while the provider's official
+minute-limit sources conflict. Twelve Data's native minute-credit observation can
 reconcile the exact reviewed `credits_per_minute` coordinator baseline; its
 separately documented daily allowance is stored as an observation only until
 the provider exposes a stable daily counter.

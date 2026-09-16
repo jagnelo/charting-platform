@@ -212,7 +212,7 @@ class Settings(BaseSettings):
         # capability/quota gates as data reads.  Both adapters remain
         # opt-in at the worker level; this list only makes them resolvable
         # when an operator explicitly requests a snapshot.
-        "account_usage": ["marketdata_app", "twelve_data"],
+        "account_usage": ["marketdata_app", "twelve_data", "eodhd"],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.

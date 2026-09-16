@@ -7,6 +7,9 @@
   dimension, records matching `X-RateLimit-Limit`/`Remaining` headers as a
   separate minute dimension when present, and never invents a reset timestamp
   for a stale reported usage date.
+- EODHD is now included in the explicit `account_usage` capability chain; the
+  operation remains opt-in and baseline-gated, so merely configuring the key
+  cannot cause an unreviewed usage poll or data route.
 - Native daily baseline reconciliation is allow-listed only when the returned
   date is the current UTC date, the next-midnight-GMT reset is explicit, and
   the limit matches the reviewed contract. The unresolved official 20 versus
