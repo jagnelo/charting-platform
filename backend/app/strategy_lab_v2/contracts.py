@@ -1042,6 +1042,7 @@ class SessionReturnDistribution:
     effective_tail_observation_counts: tuple[int | None, ...]
     observation_digest: str
     metrics: tuple[MetricValue, ...]
+    returns_flow_adjusted: bool = False
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
@@ -1075,6 +1076,10 @@ class SessionReturnDistribution:
             self.external_flows_occurred, bool
         ):
             raise TypeError("external_flows_occurred must be a bool or None")
+        if not isinstance(self.returns_flow_adjusted, bool):
+            raise TypeError("returns_flow_adjusted must be a bool")
+        if self.returns_flow_adjusted and self.external_flows_occurred is not True:
+            raise ValueError("flow-adjusted distributions require external-flow occurrence evidence")
         if self.external_cash_flow_reports_complete != (self.external_flows_occurred is not None):
             raise ValueError(
                 "complete flow reports require occurrence evidence; incomplete reports must be unknown"
@@ -1108,7 +1113,7 @@ class SessionReturnDistribution:
         eligible = (
             self.coverage_complete
             and self.external_cash_flow_reports_complete
-            and self.external_flows_occurred is False
+            and (self.external_flows_occurred is False or self.returns_flow_adjusted)
             and self.observed_sessions >= self.minimum_observations
         )
         for count in tail_counts:

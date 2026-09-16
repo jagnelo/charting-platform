@@ -205,9 +205,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reconciles the event cash amount; missing or incomplete flow evidence
   withholds both linked and elapsed-time annualized returns. Annualization uses
   an explicit days-per-year convention and elapsed UTC duration, so irregular
-  spacing is not treated as a fixed session cadence. Calendar-period aggregation
-  now consumes the same boundary evidence; rolling and distribution aggregators
-  still require their own boundary-aware wiring before they consume these values.
+  spacing is not treated as a fixed session cadence. Calendar-period, rolling,
+  and session-distribution aggregators now consume the same boundary evidence;
+  flow-adjusted status is retained on distribution summaries.
   `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
   baseline/variant summary over complete replicate arms. It requires one result
   per planned replicate index, one canonical parameter change, identical fixed
@@ -216,8 +216,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   mean, nearest-rank median/minimum/maximum, and configured nearest-rank
   quantiles. The result exposes only the signed difference of arm means; it does
   not rank candidates, estimate significance, or claim independence or paired
-  inference. Remaining gaps include boundary-aware wiring for rolling/distribution
-  aggregators, margin/capital utilization, financing outside fill reports, and
+  inference. Remaining gaps include true margin/capital utilization beyond
+  supported cash-equity notional exposure, financing outside fill reports, and
   trusted paired inference.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a

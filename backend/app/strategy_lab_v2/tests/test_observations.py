@@ -948,7 +948,7 @@ def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() ->
     assert metrics["rolling_net_pnl"].value == Decimal(2000)
     assert metrics["rolling_return"].value is None
     assert metrics["rolling_return"].null_reason == (
-        "rolling window contains external cash flows; time-weighted return is not implemented"
+        "external cash-flow boundary valuations are required for every reported event"
     )
     assert metrics["rolling_annualized_volatility"].value is None
     assert metrics["rolling_maximum_drawdown"].value is None
@@ -970,7 +970,7 @@ def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() ->
     assert net_zero_metrics["rolling_net_pnl"].value == Decimal(7000)
     assert net_zero_metrics["rolling_return"].value is None
     assert net_zero_metrics["rolling_return"].null_reason == (
-        "rolling window contains external cash flows; time-weighted return is not implemented"
+        "external cash-flow boundary valuations are required for every reported event"
     )
 
     withdrawal_first = _equity_interval(
@@ -1000,6 +1000,41 @@ def test_rolling_equity_metrics_separate_cash_flow_pnl_and_unavailable_risk() ->
         )[-1].metrics
     )
     assert withdrawal_metrics["rolling_net_pnl"].value == Decimal(2000)
+
+    boundary_first = replace(
+        first,
+        ending_equity=Decimal("110000"),
+        external_cash_flow_boundaries=(
+            ExternalCashFlowBoundaryObservation(
+                point=ObservationPoint(datetime(2024, 1, 2, 17, 0, tzinfo=UTC), 4),
+                pre_flow_equity=Decimal("105000"),
+                post_flow_equity=Decimal("110000"),
+                external_cash_flow=Decimal("5000"),
+                engine_evidence_digest=EVIDENCE,
+            ),
+        ),
+    )
+    boundary_second = replace(second, starting_equity=Decimal("110000"), ending_equity=Decimal("111000"))
+    boundary_point = calculate_rolling_equity_metrics(
+        (boundary_first, boundary_second),
+        calendar=calendar,
+        window_sessions=2,
+        periods_per_year=252,
+        risk_free_return_per_period=Decimal(0),
+    )[-1]
+    boundary_metrics = _metric_map(boundary_point.metrics)
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        expected_boundary_return = (
+            Decimal("105000") / Decimal("100000") * Decimal("111000") / Decimal("110000")
+            - Decimal(1)
+        )
+    assert boundary_metrics["rolling_return"].value is not None
+    assert abs(boundary_metrics["rolling_return"].value - expected_boundary_return) <= Decimal("1e-33")
+    assert boundary_metrics["rolling_maximum_drawdown"].value == Decimal(0)
+    assert "geometrically linked pre/post-flow" in boundary_metrics[
+        "rolling_return"
+    ].calculation_basis
 
     partial_flow = replace(
         first,
@@ -1351,11 +1386,30 @@ def test_session_return_distribution_metrics_fail_closed_on_coverage_and_flow_ev
     assert flow_result.observed_sessions == 2
     assert all(item.value is None for item in flow_result.metrics)
     assert all(
-        item.null_reason
-        == "external cash-flow events make close-to-close returns unsuitable until "
-        "time-weighted returns are implemented"
+        item.null_reason == "external cash-flow boundary valuations are required for every reported event"
         for item in flow_result.metrics
     )
+
+    boundary_flow = replace(
+        intervals[0],
+        ending_equity=Decimal("110000"),
+        external_cash_flow=Decimal("5000"),
+        external_cash_flow_occurred=True,
+        external_cash_flow_boundaries=(
+            ExternalCashFlowBoundaryObservation(
+                point=ObservationPoint(datetime(2024, 1, 2, 17, 0, tzinfo=UTC), 4),
+                pre_flow_equity=Decimal("105000"),
+                post_flow_equity=Decimal("110000"),
+                external_cash_flow=Decimal("5000"),
+                engine_evidence_digest=EVIDENCE,
+            ),
+        ),
+    )
+    boundary_distribution = calculate_session_return_distribution_metrics(
+        (boundary_flow, replace(intervals[1], starting_equity=Decimal("110000"))), **common
+    )
+    assert boundary_distribution.returns_flow_adjusted
+    assert all(item.value is not None for item in boundary_distribution.metrics)
 
     partial_flow = replace(
         intervals[0],

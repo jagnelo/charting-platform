@@ -1070,6 +1070,47 @@ def _validated_equity_intervals(
     return intervals, session_by_label
 
 
+def _time_weighted_interval_result(
+    interval: AccountEquityIntervalObservation,
+) -> tuple[Decimal, tuple[Decimal, ...]] | None:
+    """Return one interval's growth and normalized wealth marks, if evidenced."""
+
+    if interval.external_cash_flow_occurred is True and not interval.external_cash_flow_boundaries:
+        return None
+    previous_equity = interval.starting_equity
+    growth = Decimal(1)
+    wealth_marks = [Decimal(1)]
+    for boundary in interval.external_cash_flow_boundaries:
+        if previous_equity <= 0:
+            return None
+        growth_to_boundary = boundary.pre_flow_equity / previous_equity
+        growth *= growth_to_boundary
+        wealth_marks.append(growth)
+        previous_equity = boundary.post_flow_equity
+    if previous_equity <= 0:
+        if interval.ending_equity != 0:
+            return None
+        growth = Decimal(0)
+    else:
+        growth *= interval.ending_equity / previous_equity
+    wealth_marks.append(growth)
+    return growth, tuple(wealth_marks)
+
+
+def _time_weighted_interval_results(
+    intervals: Sequence[AccountEquityIntervalObservation],
+) -> tuple[tuple[Decimal, tuple[Decimal, ...]], ...] | None:
+    """Return all flow-adjusted interval results, or ``None`` when incomplete."""
+
+    results: list[tuple[Decimal, tuple[Decimal, ...]]] = []
+    for interval in intervals:
+        result = _time_weighted_interval_result(interval)
+        if result is None:
+            return None
+        results.append(result)
+    return tuple(results)
+
+
 @deterministic_decimal_math
 def calculate_calendar_period_metrics(
     observations: Sequence[AccountEquityIntervalObservation],
@@ -1168,15 +1209,18 @@ def calculate_calendar_period_metrics(
             else None
         )
         if period_complete and flow_reports_complete and has_external_flows:
-            weighted_metrics = calculate_time_weighted_return_metrics(
-                period_intervals,
-                calendar=calendar,
-            )
-            weighted_return = next(
-                item for item in weighted_metrics if item.name == "time_weighted_return"
-            )
-            period_return = weighted_return.value
-            return_null_reason = weighted_return.null_reason
+            weighted_results = _time_weighted_interval_results(period_intervals)
+            if weighted_results is None:
+                period_return = None
+                return_null_reason = (
+                    "external cash-flow boundary valuations are required for every reported event"
+                )
+            else:
+                period_growth = Decimal(1)
+                for interval_growth, _ in weighted_results:
+                    period_growth *= interval_growth
+                period_return = period_growth - Decimal(1)
+                return_null_reason = None
         else:
             period_return = (
                 None
@@ -1287,34 +1331,15 @@ def calculate_time_weighted_return_metrics(
     if not flow_reports_complete:
         null_reason = "one or more external cash-flow reports are incomplete"
     else:
-        growth = Decimal(1)
-        for interval in intervals:
-            boundaries = interval.external_cash_flow_boundaries
-            if interval.external_cash_flow_occurred is True and not boundaries:
-                null_reason = (
-                    "external cash-flow boundary valuations are required for every reported event"
-                )
-                break
-            previous_equity = interval.starting_equity
-            interval_growth = Decimal(1)
-            for boundary in boundaries:
-                if previous_equity <= 0:
-                    null_reason = "a zero post-flow equity prevents a subsequent linked return"
-                    break
-                interval_growth *= boundary.pre_flow_equity / previous_equity
-                previous_equity = boundary.post_flow_equity
-            if null_reason is not None:
-                break
-            if previous_equity <= 0:
-                if interval.ending_equity != 0:
-                    null_reason = "a zero post-flow equity prevents a subsequent linked return"
-                    break
-                interval_growth = Decimal(0)
-            else:
-                interval_growth *= interval.ending_equity / previous_equity
-            growth *= interval_growth
-        if null_reason is None:
-            linked_growth = growth
+        weighted_results = _time_weighted_interval_results(intervals)
+        if weighted_results is None:
+            null_reason = (
+                "external cash-flow boundary valuations are required for every reported event"
+            )
+        else:
+            linked_growth = Decimal(1)
+            for interval_growth, _ in weighted_results:
+                linked_growth *= interval_growth
 
     elapsed = intervals[-1].end_point.event_time - intervals[0].start_point.event_time
     elapsed_seconds = Decimal(elapsed.days * 86_400 + elapsed.seconds) + Decimal(
@@ -1485,11 +1510,14 @@ def calculate_rolling_equity_metrics(
             if not flow_reports_complete
             else None
         )
+        weighted_results = None
+        if flow_report_null_reason is None and has_external_flows:
+            weighted_results = _time_weighted_interval_results(window_intervals)
         flow_return_null_reason = (
             flow_report_null_reason
             if flow_report_null_reason is not None
-            else "rolling window contains external cash flows; time-weighted return is not implemented"
-            if has_external_flows
+            else "external cash-flow boundary valuations are required for every reported event"
+            if has_external_flows and weighted_results is None
             else None
         )
         observation_digest = content_digest(window_intervals)
@@ -1542,12 +1570,30 @@ def calculate_rolling_equity_metrics(
         else:
             first_interval = window_intervals[0]
             last_interval = window_intervals[-1]
-            rolling_return = last_interval.ending_equity / first_interval.starting_equity - Decimal(
-                1
-            )
-            returns = tuple(
-                item.ending_equity / item.starting_equity - Decimal(1) for item in window_intervals
-            )
+            if weighted_results is None:
+                rolling_return = (
+                    last_interval.ending_equity / first_interval.starting_equity - Decimal(1)
+                )
+                returns = tuple(
+                    item.ending_equity / item.starting_equity - Decimal(1)
+                    for item in window_intervals
+                )
+                equity_values = (window_intervals[0].starting_equity,) + tuple(
+                    item.ending_equity for item in window_intervals
+                )
+            else:
+                rolling_growth = Decimal(1)
+                equity_values_list = [Decimal(1)]
+                returns_list: list[Decimal] = []
+                for interval_growth, wealth_marks in weighted_results:
+                    returns_list.append(interval_growth - Decimal(1))
+                    equity_values_list.extend(
+                        rolling_growth * mark for mark in wealth_marks[1:]
+                    )
+                    rolling_growth *= interval_growth
+                rolling_return = rolling_growth - Decimal(1)
+                returns = tuple(returns_list)
+                equity_values = tuple(equity_values_list)
             if len(returns) < minimum_risk_observations:
                 annualized_volatility = None
                 sharpe_ratio = None
@@ -1593,9 +1639,6 @@ def calculate_rolling_equity_metrics(
                     )
                     sortino_null_reason = None
 
-            equity_values = (window_intervals[0].starting_equity,) + tuple(
-                item.ending_equity for item in window_intervals
-            )
             running_peak = equity_values[0]
             drawdowns: list[Decimal] = []
             current_drawdown_duration = 0
@@ -1617,6 +1660,11 @@ def calculate_rolling_equity_metrics(
             ).sqrt()
 
         metric_calculation_basis = basis
+        return_calculation_basis = (
+            "geometrically linked pre/post-flow subperiod returns; "
+            if weighted_results is not None
+            else "last close equity divided by first interval opening equity minus one; "
+        )
         values: tuple[MetricValue, ...] = (
             _value(
                 "rolling_net_pnl",
@@ -1636,10 +1684,7 @@ def calculate_rolling_equity_metrics(
                 unit="fraction",
                 basis=MetricBasis.NET,
                 sample_size=sample_size,
-                calculation_basis=(
-                    "last close equity divided by first interval opening equity minus one; "
-                    f"{metric_calculation_basis}"
-                ),
+                calculation_basis=f"{return_calculation_basis}{metric_calculation_basis}",
                 null_reason=equity_metric_null_reason,
             ),
             _value(
@@ -1728,7 +1773,7 @@ def calculate_rolling_equity_metrics(
                 "window_sessions": window_sessions,
                 "session_interval_convention": "actual_close_to_close_intervals",
                 "external_cash_flow_policy": (
-                    "subtract complete flows from net pnl; suppress return and risk metrics for flows or incomplete reports"
+                    "subtract complete flows from net pnl; use explicit pre/post boundaries for flow-bearing return and risk metrics"
                 ),
             },
             calculation_parameters_by_metric={
@@ -1783,7 +1828,8 @@ def calculate_session_return_distribution_metrics(
     The inclusive requested range must have one actual session-close interval per
     trading session, with each opening mark at the preceding actual session close.
     Incomplete coverage or external-flow evidence withholds every distribution
-    value; cash-flow-adjusted P&L is not treated as a time-weighted return.
+    value unless each flow has explicit pre/post boundary marks, in which case
+    session returns use the same geometrically linked time-weighted convention.
     """
 
     if type(start_session_label) is not date or type(end_session_label) is not date:
@@ -1852,26 +1898,36 @@ def calculate_session_return_distribution_metrics(
     expected_sessions = len(expected_labels)
 
     null_reason = None
+    weighted_results = None
     if not coverage_complete:
         null_reason = "requested session range is missing observations or preceding actual session-close marks"
     elif not flow_reports_complete:
         null_reason = "one or more external cash-flow reports are incomplete"
     elif external_flows_occurred:
-        null_reason = (
-            "external cash-flow events make close-to-close returns unsuitable until "
-            "time-weighted returns are implemented"
-        )
+        weighted_results = _time_weighted_interval_results(intervals)
+        if weighted_results is None:
+            null_reason = (
+                "external cash-flow boundary valuations are required for every reported event"
+            )
     elif observed_sessions < minimum_observations:
         null_reason = f"at least {minimum_observations} session-return observations are required"
     eligible = null_reason is None
-    returns = (
-        tuple(item.ending_equity / item.starting_equity - Decimal(1) for item in intervals)
-        if eligible
-        else ()
-    )
+    if eligible:
+        if weighted_results is not None:
+            returns = tuple(item[0] - Decimal(1) for item in weighted_results)
+        else:
+            returns = tuple(item.ending_equity / item.starting_equity - Decimal(1) for item in intervals)
+    else:
+        returns = ()
+    returns_flow_adjusted = weighted_results is not None and external_flows_occurred is True
     sorted_returns = tuple(sorted(returns))
+    return_basis_prefix = (
+        "trading-session flow-adjusted time-weighted returns; "
+        if returns_flow_adjusted
+        else "trading-session close-to-close simple returns; "
+    )
     basis = (
-        "trading-session close-to-close simple returns; "
+        f"{return_basis_prefix}"
         f"inclusive_range={start_session_label.isoformat()}..{end_session_label.isoformat()}; "
         f"expected_sessions={expected_sessions}; observed_sessions={observed_sessions}; "
         f"coverage_complete={str(coverage_complete).lower()}; "
@@ -1967,9 +2023,15 @@ def calculate_session_return_distribution_metrics(
             MetricEvidenceReference("session_calendar", calendar.fingerprint),
         ),
         common_calculation_parameters={
-            "return_convention": "simple_close_to_close_session_returns",
+            "return_convention": (
+                "geometrically_linked_pre_post_flow_session_returns"
+                if returns_flow_adjusted
+                else "simple_close_to_close_session_returns"
+            ),
             "coverage_policy": "one interval per actual session with preceding actual close mark",
-            "external_cash_flow_policy": "suppress distributions for external or incompletely reported flows",
+            "external_cash_flow_policy": (
+                "require explicit pre/post boundaries for flow-bearing returns; suppress incomplete evidence"
+            ),
         },
         calculation_parameters_by_metric=distribution_parameters,
     )
@@ -1992,6 +2054,7 @@ def calculate_session_return_distribution_metrics(
         effective_tail_observation_counts=tuple(tail_counts),
         observation_digest=observation_digest,
         metrics=structured_metrics,
+        returns_flow_adjusted=returns_flow_adjusted,
     )
 
 
