@@ -23,6 +23,7 @@ from app.strategy_lab_v2.contracts import (
     DataSeriesManifest,
     DataSnapshot,
     EventGranularity,
+    KeyedRandomStreamPairingClaim,
     MetricBasis,
     MetricSet,
     MetricValue,
@@ -32,6 +33,8 @@ from app.strategy_lab_v2.contracts import (
     RunAttempt,
     RunResultManifest,
     ScientificTrial,
+    SensitivityComparisonEvidence,
+    SensitivityEvidenceLevel,
     SharedRiskPolicy,
     StrategyPackage,
     StrategyPackageFormat,
@@ -892,6 +895,163 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         ),
         created_at=created,
     )
+
+    def result_for_trial(trial: ScientificTrial, attempt_id: str) -> RunResultManifest:
+        attempt = RunAttempt(
+            attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, created
+        )
+        trial_metrics = replace(
+            metric_set,
+            metric_set_id=f"metrics-{attempt_id}",
+            trial_id=trial.trial_id,
+            attempt_id=attempt_id,
+        )
+        return replace(result, trial=trial, attempt=attempt, metric_set=trial_metrics)
+
+    equal_seed_trial = ScientificTrial.create(
+        experiment_fingerprint=result.experiment_fingerprint,
+        snapshot_fingerprint=result.snapshot_fingerprint,
+        preflight_report=report,
+        parameter_set={"lookback": 30},
+        seed=result.seed,
+    )
+    equal_seed_result = result_for_trial(equal_seed_trial, "attempt-equal-seed")
+    assert (
+        SensitivityComparisonEvidence(result, equal_seed_result).evidence_level
+        is SensitivityEvidenceLevel.UNPAIRED
+    )
+
+    shared_designs = build_trial_designs(
+        ({"lookback": 20}, {"lookback": 30}),
+        ({},),
+        seed=17,
+        seed_policy=TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE,
+        replicate_count=2,
+        scope_fingerprint=result.experiment_fingerprint,
+    )
+
+    def trial_for_design(index: int) -> ScientificTrial:
+        design = shared_designs[index]
+        return ScientificTrial.create(
+            experiment_fingerprint=result.experiment_fingerprint,
+            snapshot_fingerprint=result.snapshot_fingerprint,
+            preflight_report=report,
+            parameter_set=design.parameters,
+            scenario=design.scenario,
+            seed=design.seed,
+            randomization=design.randomization,
+        )
+
+    shared_baseline = result_for_trial(trial_for_design(0), "attempt-shared-baseline")
+    shared_variant = result_for_trial(trial_for_design(2), "attempt-shared-variant")
+    shared_evidence = SensitivityComparisonEvidence(shared_baseline, shared_variant)
+    assert shared_evidence.evidence_level is SensitivityEvidenceLevel.SHARED_SEED_ONLY
+
+    different_replicate = result_for_trial(trial_for_design(3), "attempt-different-replicate")
+    assert (
+        SensitivityComparisonEvidence(shared_baseline, different_replicate).evidence_level
+        is SensitivityEvidenceLevel.UNPAIRED
+    )
+    retry_of_result = result_for_trial(result.trial, "attempt-sensitivity-retry")
+    with pytest.raises(ValueError, match="not sensitivity replicates"):
+        SensitivityComparisonEvidence(result, retry_of_result)
+
+    baseline_trace_digest = content_digest({"stream-trace": "baseline"})
+    variant_trace_digest = content_digest({"stream-trace": "variant"})
+    paired_draws_digest = content_digest({"aligned-keyed-draws": 4})
+    pairing_claim = KeyedRandomStreamPairingClaim(
+        baseline_attempt_id=shared_baseline.attempt_id,
+        variant_attempt_id=shared_variant.attempt_id,
+        engine_build_digest=shared_baseline.engine_build_digest,
+        engine_conformance_fingerprint=content_digest({"engine-conformance": "keyed-v1"}),
+        stream_contract_fingerprint=content_digest({"stream-contract": "keyed-v1"}),
+        baseline_trace_digest=baseline_trace_digest,
+        variant_trace_digest=variant_trace_digest,
+        paired_draws_digest=paired_draws_digest,
+        matched_draw_count=4,
+    )
+
+    def artifact_for(digest: str) -> ArtifactManifest:
+        return ArtifactManifest(digest, 64, "application/json", "1", digest)
+
+    paired_baseline = replace(
+        shared_baseline,
+        output_artifacts=(
+            *shared_baseline.output_artifacts,
+            artifact_for(baseline_trace_digest),
+            artifact_for(paired_draws_digest),
+            artifact_for(pairing_claim.fingerprint),
+        ),
+    )
+    paired_variant = replace(
+        shared_variant,
+        output_artifacts=(
+            *shared_variant.output_artifacts,
+            artifact_for(variant_trace_digest),
+            artifact_for(paired_draws_digest),
+            artifact_for(pairing_claim.fingerprint),
+        ),
+    )
+    paired_evidence = SensitivityComparisonEvidence(
+        paired_baseline, paired_variant, pairing_claim
+    )
+    assert (
+        paired_evidence.evidence_level
+        is SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
+    )
+    assert paired_evidence.fingerprint == SensitivityComparisonEvidence(
+        paired_baseline, paired_variant, pairing_claim
+    ).fingerprint
+
+    incomplete_baseline = replace(
+        paired_baseline,
+        output_artifacts=tuple(
+            item
+            for item in paired_baseline.output_artifacts
+            if item.content_digest != pairing_claim.fingerprint
+        ),
+    )
+    with pytest.raises(ValueError, match="referenced by both results"):
+        SensitivityComparisonEvidence(incomplete_baseline, paired_variant, pairing_claim)
+    with pytest.raises(ValueError, match="bind these result attempts"):
+        SensitivityComparisonEvidence(
+            paired_baseline,
+            paired_variant,
+            replace(pairing_claim, baseline_attempt_id="different-attempt"),
+        )
+    with pytest.raises(ValueError, match="one shared seed group"):
+        SensitivityComparisonEvidence(
+            paired_baseline,
+            different_replicate,
+            replace(pairing_claim, variant_attempt_id=different_replicate.attempt_id),
+        )
+    with pytest.raises(ValueError, match="complete draw-key alignment"):
+        replace(pairing_claim, unmatched_variant_draw_count=1)
+    different_observation_basis = replace(
+        shared_variant.metric_set,
+        values=(
+            replace(
+                shared_variant.metric_set.values[0],
+                calculation_basis="same versioned formula; variant observation digest differs",
+            ),
+        ),
+    )
+    assert (
+        SensitivityComparisonEvidence(
+            shared_baseline,
+            replace(shared_variant, metric_set=different_observation_basis),
+        ).evidence_level
+        is SensitivityEvidenceLevel.SHARED_SEED_ONLY
+    )
+    with pytest.raises(ValueError, match="fixed execution context"):
+        SensitivityComparisonEvidence(
+            shared_baseline,
+            replace(
+                shared_variant,
+                engine_build_digest=content_digest({"engine-build": "different"}),
+            ),
+        )
+
     retry_attempt = RunAttempt(
         "attempt-result-2", trial.trial_id, 2, AttemptState.SUCCEEDED, created + timedelta(days=1)
     )

@@ -50,6 +50,12 @@ class TrialSeedPolicy(StrEnum):
     SHARED_PER_SCENARIO_REPLICATE = "shared_per_scenario_replicate"
 
 
+class SensitivityEvidenceLevel(StrEnum):
+    UNPAIRED = "unpaired"
+    SHARED_SEED_ONLY = "shared_seed_only"
+    PAIRING_CLAIM_UNVERIFIED = "pairing_claim_unverified"
+
+
 TRIAL_SEED_DERIVATION_VERSION = "strategy-lab.trial-seed.sha256-canonical-63.v1"
 EXPLICIT_SEED_DERIVATION_VERSION = "explicit-seed.v1"
 
@@ -1236,6 +1242,161 @@ class RunResultManifest:
                 "metric_definition_version": self.metric_definition_version,
             }
         )
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class KeyedRandomStreamPairingClaim:
+    """Run-bound pairing claim that is not authoritative until externally verified."""
+
+    baseline_attempt_id: str
+    variant_attempt_id: str
+    engine_build_digest: str
+    engine_conformance_fingerprint: str
+    stream_contract_fingerprint: str
+    baseline_trace_digest: str
+    variant_trace_digest: str
+    paired_draws_digest: str
+    matched_draw_count: int
+    unmatched_baseline_draw_count: int = 0
+    unmatched_variant_draw_count: int = 0
+
+    def __post_init__(self) -> None:
+        for name in ("baseline_attempt_id", "variant_attempt_id"):
+            _nonempty(getattr(self, name), name)
+        if self.baseline_attempt_id == self.variant_attempt_id:
+            raise ValueError("paired stream evidence must reference distinct run attempts")
+        for name in (
+            "engine_build_digest",
+            "engine_conformance_fingerprint",
+            "stream_contract_fingerprint",
+            "baseline_trace_digest",
+            "variant_trace_digest",
+            "paired_draws_digest",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+        for name in (
+            "matched_draw_count",
+            "unmatched_baseline_draw_count",
+            "unmatched_variant_draw_count",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        if self.matched_draw_count == 0:
+            raise ValueError("paired stream evidence requires at least one matched draw")
+        if self.unmatched_baseline_draw_count or self.unmatched_variant_draw_count:
+            raise ValueError("paired stream evidence requires complete draw-key alignment")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+@dataclass(frozen=True, slots=True)
+class SensitivityComparisonEvidence:
+    """Successful runs plus the strongest currently supported randomization evidence.
+
+    This class classifies randomization provenance only; it does not compare
+    metric values/semantics or assert statistical significance. It validates
+    provenance links and artifact references. The artifact store/worker must
+    verify the referenced bytes and emit a verified pairing receipt only after
+    the engine build has passed registered conformance checks. No such verifier
+    is implemented here, so a keyed-stream claim remains explicitly unverified
+    and absence of pairing evidence does not prove statistical independence.
+    """
+
+    baseline_result: RunResultManifest
+    variant_result: RunResultManifest
+    pairing_claim: KeyedRandomStreamPairingClaim | None = None
+
+    def __post_init__(self) -> None:
+        baseline = self.baseline_result
+        variant = self.variant_result
+        if not isinstance(baseline, RunResultManifest) or not isinstance(
+            variant, RunResultManifest
+        ):
+            raise TypeError("sensitivity evidence requires two RunResultManifest values")
+        if baseline.trial.trial_id == variant.trial.trial_id:
+            raise ValueError("retries of one scientific trial are not sensitivity replicates")
+        if baseline.trial.parameter_set == variant.trial.parameter_set:
+            raise ValueError("sensitivity comparisons must change strategy parameters")
+        if baseline.attempt.attempt_id == variant.attempt.attempt_id:
+            raise ValueError("sensitivity comparisons require distinct successful attempts")
+
+        comparable_context = (
+            baseline.experiment_fingerprint == variant.experiment_fingerprint
+            and baseline.snapshot_fingerprint == variant.snapshot_fingerprint
+            and baseline.capability_contract_digest == variant.capability_contract_digest
+            and baseline.trial.scenario == variant.trial.scenario
+            and baseline.portfolio_fingerprint == variant.portfolio_fingerprint
+            and baseline.strategy_package_fingerprints == variant.strategy_package_fingerprints
+            and baseline.engine_name == variant.engine_name
+            and baseline.engine_version == variant.engine_version
+            and baseline.engine_build_digest == variant.engine_build_digest
+            and baseline.allocation_definition_version == variant.allocation_definition_version
+            and baseline.dependency_catalog_digest == variant.dependency_catalog_digest
+            and baseline.assumptions_digest == variant.assumptions_digest
+        )
+        if not comparable_context:
+            raise ValueError("sensitivity results must share their fixed execution context")
+
+        shared_seed_group = self._shares_seed_group()
+        claim = self.pairing_claim
+        if claim is not None:
+            if not isinstance(claim, KeyedRandomStreamPairingClaim):
+                raise TypeError("pairing_claim must use KeyedRandomStreamPairingClaim")
+            if not shared_seed_group:
+                raise ValueError("a keyed-stream pairing claim requires one shared seed group")
+            if (
+                claim.baseline_attempt_id != baseline.attempt_id
+                or claim.variant_attempt_id != variant.attempt_id
+            ):
+                raise ValueError("keyed-stream pairing claim must bind these result attempts")
+            if claim.engine_build_digest != baseline.engine_build_digest:
+                raise ValueError("keyed-stream pairing claim must bind the result engine build")
+            if claim.baseline_trace_digest not in baseline.output_artifact_digests:
+                raise ValueError("baseline random-stream trace must be a result output artifact")
+            if claim.variant_trace_digest not in variant.output_artifact_digests:
+                raise ValueError("variant random-stream trace must be a result output artifact")
+            for result in (baseline, variant):
+                output_digests = result.output_artifact_digests
+                if (
+                    claim.fingerprint not in output_digests
+                    or claim.paired_draws_digest not in output_digests
+                ):
+                    raise ValueError(
+                        "pairing claim and paired-draw artifacts must be referenced by both results"
+                    )
+
+    def _shares_seed_group(self) -> bool:
+        baseline = self.baseline_result.trial
+        variant = self.variant_result.trial
+        left = baseline.randomization
+        right = variant.randomization
+        return (
+            left.policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE
+            and right.policy is TrialSeedPolicy.SHARED_PER_SCENARIO_REPLICATE
+            and left.seed_group_fingerprint is not None
+            and left.seed_group_fingerprint == right.seed_group_fingerprint
+            and left.scope_fingerprint is not None
+            and left.scope_fingerprint == right.scope_fingerprint
+            and left.master_seed == right.master_seed
+            and left.seed == right.seed
+            and left.replicate_index == right.replicate_index
+            and left.replicate_count == right.replicate_count
+        )
+
+    @property
+    def evidence_level(self) -> SensitivityEvidenceLevel:
+        if self.pairing_claim is not None:
+            return SensitivityEvidenceLevel.PAIRING_CLAIM_UNVERIFIED
+        if self._shares_seed_group():
+            return SensitivityEvidenceLevel.SHARED_SEED_ONLY
+        return SensitivityEvidenceLevel.UNPAIRED
 
     @property
     def fingerprint(self) -> str:

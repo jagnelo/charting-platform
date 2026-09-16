@@ -123,8 +123,22 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   needed for later matching. This is not evidence of paired random draws:
   stateful/unkeyed engine streams may diverge when strategies take different
   paths. Statistical pairing stays unavailable until an engine/runtime attests
-  compatible deterministic keyed-stream semantics. Replicates are explicit;
-  infrastructure retries remain attempts of the same scientific trial.
+  compatible deterministic keyed-stream semantics. The
+  `SensitivityComparisonEvidence` distinguishes unpaired results (which does
+  not prove statistical independence), a matched shared seed group only, and an
+  unverified keyed-stream pairing claim. Equal integer seeds without matching
+  scope/scenario/replicate provenance remain unpaired. The contract checks that a
+  pairing claim binds both successful attempts and their engine build, declares
+  complete draw-key alignment, and references trace/pairing artifacts in both
+  result manifests. It cannot authenticate those bytes or engine conformance, so
+  it deliberately does not label a claim as verified pairing; that requires a
+  future trusted verifier/registration receipt. It classifies randomization
+  provenance only; it does not compare metric semantics or calculate metric
+  deltas. This model does not calculate paired statistical significance:
+  current metric sets are scalar summaries, so valid paired inference still
+  needs aligned per-observation results or verified keyed draw outputs.
+  Replicates are explicit; infrastructure retries remain attempts of the same
+  scientific trial.
 - `metrics.py` v6 computes Decimal account P&L/return, drawdown duration, Ulcer,
   annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
