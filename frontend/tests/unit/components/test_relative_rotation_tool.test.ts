@@ -41,6 +41,8 @@ describe('RelativeRotationTool', () => {
     await nextTick()
     expect(wrapper.text()).toContain('improving->leading')
     expect(wrapper.text()).toContain('63°')
+    expect(wrapper.get('.rotation-tool__plot').attributes('role')).toBe('img')
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
