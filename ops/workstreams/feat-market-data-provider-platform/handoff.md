@@ -3498,3 +3498,20 @@ tests/e2e/
   legal/source controls, universe reconciliation, target secret stores, and
   deferred-provider decisions. The branch remains at
   `ready_for_human_review` until those owner-controlled gates are resolved.
+
+## 2026-09-16 Twelve Data native-baseline reconciliation
+
+- Twelve Data's `/api_usage` observation is now allow-listed for one exact
+  coordinator reconciliation: the reviewed `credits_per_minute` dimension
+  when the provider returns the documented used/left headers, matching limit,
+  and a current fixed-minute reset. The separate 800-credit daily contract
+  remains observation-only because the endpoint does not expose a stable
+  daily counter shape; no daily usage is fabricated from the minute headers.
+- Focused provider/account/quota checks passed `211/211`; the complete backend
+  unit suite passed `2,300/2,300` with 37 warnings. Ruff and diff checks passed;
+  no external provider calls were made.
+- This improves post-bootstrap cross-session reconciliation but does not waive
+  the initial-baseline gate: a fresh account still requires an exact operator
+  baseline or an explicitly admitted native snapshot path before quota-spending
+  live operations. The full live matrix and the other provider/legal/source,
+  reconciliation, deployment-secret, and shadow gates remain open.

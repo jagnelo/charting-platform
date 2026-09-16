@@ -116,7 +116,10 @@ limit/remaining/consumed/reset/options values are stored verbatim as
 observations; they never replace the reviewed local plan, infer a reset window,
 or widen routing. Providers without a documented native usage surface remain
 represented by durable request/byte/header telemetry and are not queried
-through a guessed endpoint.
+through a guessed endpoint. Twelve Data's native minute-credit observation can
+reconcile the exact reviewed `credits_per_minute` coordinator baseline; its
+separately documented daily allowance is stored as an observation only until
+the provider exposes a stable daily counter.
 
 For MarketData.app specifically, `/user/` is tracked as an explicit
 account-usage operation and occupies the account-wide in-flight concurrency

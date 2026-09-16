@@ -192,6 +192,85 @@ async def test_named_provider_usage_dimensions_persist_as_separate_rows(db, monk
 
 
 @pytest.mark.asyncio
+async def test_twelve_data_native_minute_usage_reconciles_exact_coordinator_baseline(
+    db, monkeypatch, tmp_path
+):
+    source = DataSource(name="twelve_data", base_url="https://api.twelvedata.com")
+    db.add(source)
+    db.flush()
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    reset_at = observed_at.replace(second=0) + timedelta(minutes=1)
+    execution = SimpleNamespace(
+        provider_name="twelve_data",
+        data_source=source,
+        policy=SimpleNamespace(
+            quota_contract={
+                "dimensions": [
+                    {
+                        "name": "credits_per_minute",
+                        "limit": 8,
+                        "window_seconds": 60,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                    }
+                ],
+                "reset": "fixed_minute",
+            },
+            quota_scope="api_key",
+        ),
+        result=ProviderAccountUsage(
+            provider="twelve_data",
+            observed_at=observed_at,
+            unit="credits",
+            account_plan="Basic",
+            dimensions=(
+                ProviderAccountUsageDimension(
+                    name="credits_per_minute",
+                    unit="credits",
+                    limit=8,
+                    remaining=5,
+                    consumed=3,
+                    reset_at=reset_at,
+                ),
+                ProviderAccountUsageDimension(
+                    name="credits_per_day",
+                    unit="credits",
+                    limit=800,
+                    remaining=None,
+                    consumed=None,
+                    reset_at=None,
+                ),
+            ),
+        ),
+    )
+
+    async def fake_chain(*args, **kwargs):
+        return [SimpleNamespace(provider_name="twelve_data")]
+
+    async def fake_execute(*args, **kwargs):
+        return execution
+
+    monkeypatch.setattr(provider_account_usage, "resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(provider_account_usage, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "quota.sqlite3"),
+    )
+
+    result = await provider_account_usage.refresh_provider_account_usage(
+        AsyncSessionAdapter(db), provider_name="twelve_data"
+    )
+
+    assert result["baseline_reconciliations"][0]["dimension"] == "credits_per_minute"
+    assert result["baseline_reconciliations"][0]["used_units"] == 3
+    assert result["baseline_reconciliations"][0]["source"] == (
+        "provider_account_observation"
+    )
+
+
+@pytest.mark.asyncio
 async def test_native_usage_does_not_seed_baseline_when_limit_does_not_match_reviewed_contract(
     db, monkeypatch, tmp_path
 ):
