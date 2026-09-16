@@ -1,5 +1,14 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 migration and workflow-enforcement checkpoint
+
+- Migration compatibility was replayed against the recorded staging parent
+  `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`: previous-release schema smoke
+  passed (`/health` 200), checked-out schema was the current branch, and all
+  `30` changed migration files passed compatibility validation.
+- Workflow helper tests passed `46/46`. No provider calls, deployment, or
+  protected-branch mutation occurred.
+
 ## 2026-09-16 full-stack and local secret-contract checkpoint
 
 - The exact committed implementation passed the Docker-backed combined backend

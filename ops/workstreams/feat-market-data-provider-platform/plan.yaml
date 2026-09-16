@@ -320,6 +320,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      Migration compatibility was replayed against staging parent
+      `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`: the previous-release
+      `/health` smoke passed and all `30` changed migration files passed.
+      Workflow helper/enforcement tests also passed `46/46`. These checks made
+      no external provider calls and changed no protected branch.
+    - >-
       The exact committed implementation passed the Docker-backed combined
       backend unit/integration gate: `2,680` tests, `81.94%` total coverage,
       and 89 warnings. The isolated testcontainer session was cleaned without
