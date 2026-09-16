@@ -305,4 +305,4 @@ progress:
   total: 18
   current_phase: engine-neutral-core
   current_blocker: none
-  next_action: obtain exact-payload authorization for the committed replicate-summary range, synchronize through the approved Git path, then inspect the next engine-neutral metric gap from a clean boundary; preserve the no-ranking/no-inference boundary and all upstream/shared-path gates
+  next_action: inspect the next engine-neutral metric gap from the synchronized clean boundary, then implement only a bounded package-owned slice; preserve the no-ranking/no-inference boundary and all upstream/shared-path gates
