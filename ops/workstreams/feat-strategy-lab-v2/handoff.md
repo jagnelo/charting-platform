@@ -980,3 +980,17 @@ The exact implementation tree passed all 107 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Runtime artifact storage, retention
 enforcement, persistence, API, worker, Compose, Nautilus, frontend,
 integration, promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Result artifact integrity checkpoint
+
+`result_integrity.py` adds a pure result-level verification contract for
+successful `RunResultManifest` records. It requires one unique, verified
+payload receipt for every referenced output artifact, reports missing,
+unexpected, foreign, or unverified digests deterministically, and binds the
+coverage result to the full manifest fingerprint. It performs no storage I/O
+and does not certify engine semantics or publication atomicity.
+
+The exact implementation tree passed all 107 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Execution-attempt lifecycle, persistence,
+API, worker, artifact-store, Compose, Nautilus, frontend, integration,
+promotion, and deployment paths remain unchanged.

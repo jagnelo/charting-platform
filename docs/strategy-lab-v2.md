@@ -99,6 +99,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   create-if-absent or reuse-existing plan and exposes whether the retention
   class requires a pin. It never overwrites an existing content address or
   performs publication itself.
+- `result_integrity.py` verifies one-to-one coverage of every output artifact
+  referenced by a successful `RunResultManifest`, rejecting missing,
+  unexpected, duplicate, foreign, or unverified receipts before a result can be
+  treated as complete. It does not read storage or certify engine semantics.
 - `allocation.py` resolves event-aligned component target-position intents using
   typed policies, preserves existing component-attributed positions, records
   deterministic conflicts, and returns proposed versus risk-approved account targets.

@@ -8,6 +8,7 @@ from typing import cast
 import pytest
 
 from app.strategy_lab_v2.allocation import ALLOCATION_DEFINITION_VERSION
+from app.strategy_lab_v2.artifacts import artifact_content_digest, verify_artifact_payload
 from app.strategy_lab_v2.canonical import canonical_json, content_digest
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
@@ -68,6 +69,7 @@ from app.strategy_lab_v2.rebalance import (
     RebalanceCadence,
     RebalanceTrigger,
 )
+from app.strategy_lab_v2.result_integrity import verify_run_result_artifacts
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
     OrderIntent,
@@ -944,6 +946,25 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         ),
         created_at=created,
     )
+
+    raw_payload = b"engine-result"
+    raw_digest = artifact_content_digest(raw_payload)
+    raw_artifact = ArtifactManifest(
+        raw_digest,
+        len(raw_payload),
+        "application/octet-stream",
+        "1",
+        raw_digest,
+    )
+    raw_result = replace(result, output_artifacts=(raw_artifact,))
+    integrity = verify_artifact_payload(raw_artifact, raw_payload)
+    result_integrity = verify_run_result_artifacts(raw_result, (integrity,))
+    assert result_integrity.accepted
+    assert result_integrity.result_fingerprint == content_digest(raw_result)
+    assert result_integrity.verified_artifact_digests == (raw_digest,)
+    assert not verify_run_result_artifacts(raw_result, ()).accepted
+    with pytest.raises(ValueError, match="unique by expected digest"):
+        verify_run_result_artifacts(raw_result, (integrity, integrity))
 
     def result_for_trial(trial: ScientificTrial, attempt_id: str) -> RunResultManifest:
         attempt = RunAttempt(
