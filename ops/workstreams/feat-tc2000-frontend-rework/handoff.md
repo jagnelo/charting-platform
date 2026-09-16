@@ -13358,3 +13358,14 @@ V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
 integration remains deferred until both branches reach staging; this is a
 complete exact-gate receipt for the Coverage Summary slice, not closure of the
 overall workstream.
+## 2026-09-16 - Excursion Bars empty-state accessibility
+
+Product commit `bcdb78bc6` gives `ExcursionBars`' no-intratrade-excursion-data
+state an explicit polite, atomic status announcement. Numerical rendering,
+uPlot lifecycle, and visible layout behavior are unchanged.
+
+Focused ExcursionBars coverage passed `2/2`; full frontend Vitest passed
+`1,120/1,120`; `vue-tsc` and production build passed with the existing
+large-chunk warning; TC scope/self-tests and `git diff --check` passed. The exact
+full-stack/browser gate is pending at this product tip. Provider/ETF consumer
+integration remains deferred until both branches reach staging.
