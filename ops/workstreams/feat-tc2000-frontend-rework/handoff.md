@@ -13080,3 +13080,21 @@ Focused CodeLibraryTool coverage passed 8/8; full frontend Vitest passed
 large-chunk warning; and `git diff --check` passed. No provider-platform, ETF,
 visual-oracle, or acceptance-policy behavior changed. The exact full-stack
 integration gate remains required at the combined product tip.
+
+## 2026-09-16 - Strategy/Python library exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration`
+gate passed at product tip `9778511ef` (documentation tip `3868df1c1`) with
+exit 0 through all repository stages, authenticated functional Chromium, and
+all four visual projects. Branch-scoped teardown removed the assigned
+containers, volumes, network, generated images, and test sessions; post-gate
+resource accounting reported zero containers, volumes, test sessions, known
+bytes, and unknown components.
+
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
+or acceptance-policy behavior changed. The branch remains
+`committed_locally_pending_push` under the private-origin safeguard, and
+provider/ETF consumer integration remains deferred until both branches reach
+staging. This is a complete exact-gate receipt for the current combined slice,
+not closure of the overall workstream.
