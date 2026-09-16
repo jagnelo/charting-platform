@@ -2165,3 +2165,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic submission-dispatch staging checkpoint
+
+`submission_dispatch.py` now composes asynchronous submission idempotency with
+the matching worker dispatch envelope. It requires the same attempt,
+idempotency key, and payload identity on both sides; a receipt retry can repair
+a dispatch lost after receipt persistence, while a dispatch without a tracked
+submission is rejected. The immutable receipt ledger and dispatch proposal are
+returned together for one future compare-and-set transaction; no route, queue,
+or database I/O is performed by the package contract.
+
+The exact implementation tree passed all 439 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

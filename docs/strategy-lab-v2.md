@@ -334,6 +334,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and payload digest while excluding transport timestamps; resolution returns
   202 acceptance/replay or 409 conflict, and contradictory prior receipts fail
   closed. Receipt creation performs no queue, database, or worker I/O.
+- `submission_dispatch.py` composes that 202 receipt with the matching worker
+  dispatch envelope. Submission and dispatch identities must bind to the same
+  attempt, idempotency key, and payload; a receipt retry may repair a missing
+  dispatch, but an existing dispatch without a receipt is a conflict. The
+  returned receipt ledger and dispatch proposal remain storage-neutral for one
+  compare-and-set transaction.
 - `outcomes.py` defines ordered accepted/running/succeeded/failed/cancelled
   outcome updates bound to one submission and attempt. Success requires a
   content-addressed result, failures carry a typed `ApiError`, and exact
