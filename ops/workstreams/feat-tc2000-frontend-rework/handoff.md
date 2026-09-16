@@ -13098,3 +13098,33 @@ or acceptance-policy behavior changed. The branch remains
 provider/ETF consumer integration remains deferred until both branches reach
 staging. This is a complete exact-gate receipt for the current combined slice,
 not closure of the overall workstream.
+
+## 2026-09-16 - Relative Rotation plot semantics
+
+Product commit `e72e7a4` gives the Relative Rotation uPlot host the semantic
+`role="img"` that matches its existing accessible label, so assistive
+technology can discover the trend/momentum plane. Pointer hover/click
+selection, layout, requests, and the companion keyboard table remain
+unchanged.
+
+Focused RelativeRotationTool coverage passed 10/10; full frontend Vitest
+passed 1,106/1,106; frontend type-check and production build passed with the
+existing large-chunk warning; the TC scope guard passed for 63 changed paths
+with all six self-tests; workstream validation and `git diff --check` passed.
+
+## 2026-09-16 - Relative Rotation exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make validate-integration`
+gate passed at product tip `e72e7a4` through all repository stages,
+authenticated functional Chromium, and all four visual projects. Branch-scoped
+teardown removed the assigned containers, volumes, network, generated images,
+and test sessions; post-gate resource accounting reported zero containers,
+volumes, test sessions, known bytes, and unknown components.
+
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
+or acceptance-policy behavior changed. The branch remains
+`committed_locally_pending_push` under the private-origin safeguard, and
+provider/ETF consumer integration remains deferred until both branches reach
+staging. This is a complete exact-gate receipt for this narrow slice, not
+closure of the overall workstream.
