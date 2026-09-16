@@ -442,6 +442,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   supported imports expose a converted identity, exact retries replay, and
   changed payload or mapping content conflicts. Reports permanently reject any
   replay-equivalence claim.
+- `search_state.py` defines an immutable candidate-level search checkpoint.
+  Candidates retain their scientific trial fingerprint while infrastructure
+  attempts can start, fail, and retry. Active-attempt conflicts, terminal
+  result conflicts, cancellation requests, and monotonic timestamps fail
+  closed; exact starts, terminal receipts, and cancellation retries replay.
+  Cancellation blocks new work but still requires explicit terminal receipts,
+  and the module exposes no ranking or profitability verdict.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

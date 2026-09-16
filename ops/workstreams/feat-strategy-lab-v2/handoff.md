@@ -1489,3 +1489,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is a
 durable adapter implementation only after upstream shared-path reconciliation;
 preserve all execution-authorization and ownership gates.
+
+## 2026-09-16 - Resumable search-candidate checkpoint
+
+`search_state.py` adds immutable `SearchCandidateState` and
+`SearchExecutionState` records plus start, terminal-receipt, and cancellation
+resolutions. Candidate scientific trial identities remain fixed while failed
+infrastructure attempts can retry with incremented attempt lineage. Active
+attempt and terminal-receipt conflicts reject, exact repeats replay, and
+monotonic timestamps are enforced. Cancellation is idempotent, blocks new
+starts, and requires workers to publish explicit cancelled receipts; it does
+not rank candidates or issue profitability claims.
+
+The exact implementation tree passed all 270 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is a
+durable adapter implementation only after upstream shared-path reconciliation;
+preserve all execution-authorization and ownership gates.
