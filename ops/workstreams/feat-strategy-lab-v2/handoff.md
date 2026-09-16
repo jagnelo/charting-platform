@@ -1875,3 +1875,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Gated Nautilus runner checkpoint
+
+`nautilus_runner.py` closes the process handoff after `plan_nautilus_execution`
+and before a future isolated Nautilus worker. It refuses rejected plans,
+non-Nautilus identities, and sandbox-plan drift without spawning; ready plans
+delegate exclusively to the bounded sandbox adapter. Sandbox success/failure,
+timeouts, output limits, and start errors remain content-bound, and the
+authoritative flag is preserved only for a successful plan already cleared by
+the stable-conformance gate.
+
+The exact implementation tree passed all 399 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

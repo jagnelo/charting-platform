@@ -569,6 +569,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   idempotent inserts and guarded updates, and rolls back on concurrent races.
   It exposes the future additive schema contract but never creates tables or
   registers models; migrations remain a shared-path gate.
+- `nautilus_runner.py` is the final process handoff after the Nautilus
+  execution gate. Rejected, non-Nautilus, or sandbox-mismatched plans return
+  before process creation; ready plans execute only through the bounded sandbox
+  adapter and preserve authoritative status only for successful gated runs.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
