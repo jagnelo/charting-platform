@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-current preflight after unresolved-reset hardening
+
+- At committed source `92ee86fd1`, the owner-ledger lock-protected full
+  provider runner stopped before transport with exit `2`, `0/0` cases, and
+  zero provider requests. The coordinator health/locking path passed; the
+  exact receipt is appended to `validation.jsonl`.
+- The report contains `94` provider-specific quota/cost/baseline blockers,
+  `7` required live capability-safety blockers, and `22` unresolved capability
+  dispositions. Finnhub now reports its unresolved minute reset boundary
+  explicitly rather than treating a usage baseline as sufficient.
+- MarketData.app account-plan and option-chain controls remain the only
+  relevant routing controls reported routable. This is fail-closed safety
+  evidence, not transport acceptance, deployment authorization, routing
+  activation, or shadow-run authorization.
+
 ## 2026-09-16 unresolved reset labels now fail closed in every reservation path
 
 - The quota contract now distinguishes an auditable `provider_defined` label

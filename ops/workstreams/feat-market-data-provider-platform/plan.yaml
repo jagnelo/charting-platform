@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The exact current-source preflight at `92ee86fd1` stopped before transport
+    with `0/0` cases and zero provider requests after the unresolved-reset
+    hardening. It records `94` provider-specific quota/cost/baseline blockers,
+    `7` required live capability-safety blockers, and `22` unresolved
+    capability dispositions. The changed Finnhub diagnostics now identify its
+    unresolved minute reset boundary directly; no provider baseline is treated
+    as a substitute for a calculable reset.
+  - >-
     The reset-safety hardening at the current implementation source separates
     schema/audit labels from admission-safe reset boundaries. Provider-defined
     labels can remain visible in an unverified contract, but neither runtime
