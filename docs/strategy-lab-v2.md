@@ -511,6 +511,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   original state, while exact retries replay only when all three identities
   agree. Persistence adapters still own the compare-and-set transaction and
   transport; this contract performs no I/O or engine work.
+- `api_resources.py` defines typed public resource identifiers, immutable
+  resource documents, and snapshot-bound collection envelopes for the future
+  versioned REST surface. Collection items, resource types, opaque cursors, and
+  snapshot digests must agree before a page can be returned; attributes,
+  relationships, and metadata are frozen and content-addressed.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

@@ -1688,3 +1688,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Typed API resource envelope checkpoint
+
+`api_resources.py` adds immutable public resource identifiers/documents and
+snapshot-bound collection envelopes over the existing cursor and typed-error
+contracts. Resource types, item identities, relationship targets, opaque
+cursor resource, and snapshot digest must agree; mutable JSON fields are
+recursively frozen and every envelope has a deterministic content identity.
+The module remains route- and persistence-neutral, so no shared router or
+frontend path was modified.
+
+The exact implementation tree passed all 339 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
