@@ -86,10 +86,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-a4470b6785"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -125,9 +122,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bfe116afc88fefbd7d0425eb7547a9c3190aa79f",
+  "head": "e9fdd5b1502bd994733797790b67665a1a6a12c1",
   "implementation_sha": "bfe116afc88fefbd7d0425eb7547a9c3190aa79f",
-  "last_checkpoint": "2026-09-16T17:49:57.843424+00:00",
+  "last_checkpoint": "2026-09-16T17:50:34.593869+00:00",
   "last_human_progress_update": "2026-09-16T17:49:47.154325+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -146,7 +143,7 @@
     "total": 18,
     "updated_at": "2026-09-16T17:49:47.154000+00:00"
   },
-  "remote": "bfe116afc88fefbd7d0425eb7547a9c3190aa79f",
+  "remote": "e9fdd5b1502bd994733797790b67665a1a6a12c1",
   "remote_sha": "bfe116afc88fefbd7d0425eb7547a9c3190aa79f",
   "remote_synchronized": true,
   "retained_docker_resources": [],
