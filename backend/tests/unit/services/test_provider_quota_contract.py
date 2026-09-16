@@ -468,6 +468,16 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
         "get_instrument_profile": 100_000,
     }
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", bounds)
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "")
+    monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "")
+    blocked = provider_rate_limit_seed("tiingo")
+    assert blocked["quota_contract"]["untracked_constraints"]
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
+    monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "rolling")
+    monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "symbol review")
+    monkeypatch.setattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "hourly review")
     seed = provider_rate_limit_seed("tiingo")
     contract = seed["quota_contract"]
     assert contract["untracked_constraints"] == []
@@ -486,10 +496,8 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
         quota_source=seed["quota_source"],
         quota_contract=contract,
     )
-    assert not policy_has_known_quota(policy)
-    assert "quota_contract.unknown_dimensions.unique_symbols_reset_anchor" in (
-        quota_contract_missing_dimensions(policy)
-    )
+    assert policy_has_known_quota(policy)
+    assert quota_contract_missing_dimensions(policy) == []
     source = DataSource(
         name="tiingo",
         config={"usage_tracking": get_provider_usage_profile("tiingo")},
@@ -513,6 +521,42 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", malformed)
     seed = provider_rate_limit_seed("tiingo")
     assert seed["quota_contract"].get("untracked_constraints")
+
+
+def test_fmp_byte_pool_requires_independent_reset_review(monkeypatch):
+    bounds = {
+        "fetch_ohlcv": 1_000_000,
+        "fetch_latest_ohlcv": 1_000_000,
+        "get_current_price": 100_000,
+        "bulk_fetch": 1_000_000,
+        "get_instrument_profile": 100_000,
+        "fetch_market_events": 100_000,
+        "discover_universe_page": 100_000,
+    }
+    monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", bounds)
+    monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
+    monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
+    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
+    blocked = provider_rate_limit_seed("fmp")["quota_contract"]
+    assert blocked["untracked_constraints"]
+    assert blocked["unknown_dimensions"] == [
+        "calls_daily_reset_anchor",
+        "bandwidth_reset_anchor",
+    ]
+
+    monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
+    monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
+    monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
+    monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    promoted = provider_rate_limit_seed("fmp")
+    contract = promoted["quota_contract"]
+    assert contract["unknown_dimensions"] == []
+    assert contract["untracked_constraints"] == []
+    assert contract["reset"] == "per_dimension"
+    assert next(item for item in contract["dimensions"] if item["name"] == "calls_per_day")["reset"] == "calendar_day_utc"
+    assert next(item for item in contract["dimensions"] if item["name"] == "bandwidth_bytes_per_30_days")["reset"] == "rolling_30_days"
+    assert promoted["_byte_reservation_bounds"] == bounds
 
 
 def test_finra_async_download_requires_positive_bound_for_monthly_reservation(monkeypatch):

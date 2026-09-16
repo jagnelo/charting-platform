@@ -2060,7 +2060,23 @@ class Settings(BaseSettings):
     # Without a complete map the corresponding bandwidth-constrained provider
     # remains fail-closed and non-routable.
     TIINGO_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
+    # Tiingo leaves the 500-unique-symbol reset anchor and 50/hour boundary
+    # unspecified in the reviewed sources. Keep both pools fail-closed until
+    # independently reviewed reset semantics and evidence are configured.
+    TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: str = ""
+    TIINGO_REVIEWED_HOURLY_RESET: str = ""
+    TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: str = ""
+    TIINGO_HOURLY_QUOTA_EVIDENCE: str = ""
     FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
+    # FMP publishes separate daily-call and 30-day bandwidth pools, but the
+    # configured account evidence does not establish either reset boundary.
+    # Keep both dimensions fail-closed until each boundary and its current
+    # evidence are supplied explicitly; never infer a calendar or rolling
+    # window from the provider's headline allowance.
+    FMP_REVIEWED_DAILY_RESET: str = ""
+    FMP_REVIEWED_BANDWIDTH_RESET: str = ""
+    FMP_DAILY_QUOTA_EVIDENCE: str = ""
+    FMP_BANDWIDTH_QUOTA_EVIDENCE: str = ""
     TWELVE_DATA_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
     # Finnhub publishes independent minute and second request ceilings. Keep
@@ -3063,6 +3079,159 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             seed["quota_source"] = (
                 "Finnhub account limits plus independent operator-reviewed reset evidence"
             )
+        return seed
+    if provider_name == "tiingo":
+        # Tiingo publishes the distinct-symbol and hourly pools but not their
+        # reset anchors. Promote only when those independent boundaries and
+        # the response-byte map have all been explicitly reviewed.
+        unique_reset = str(
+            getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "") or ""
+        ).strip()
+        hourly_reset = str(
+            getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "") or ""
+        ).strip()
+        unique_evidence = str(
+            getattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        hourly_evidence = str(
+            getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        if not (
+            provider_quota_reset_is_admission_safe(unique_reset)
+            and provider_quota_reset_is_admission_safe(hourly_reset)
+            and unique_evidence
+            and hourly_evidence
+        ):
+            return seed
+        required = _BYTE_BOUND_OPERATIONS.get(provider_name)
+        if not required:
+            return seed
+        bounds = provider_operation_byte_bounds(provider_name)
+        if any(operation not in bounds for operation in required):
+            return seed
+        contract = seed.get("quota_contract")
+        if not isinstance(contract, dict):
+            return seed
+        untracked = list(contract.get("untracked_constraints") or [])
+        byte_constraint = next(
+            (
+                item
+                for item in untracked
+                if isinstance(item, dict)
+                and str(item.get("unit") or "").lower() in {"byte", "bytes"}
+            ),
+            None,
+        )
+        if byte_constraint is None:
+            return seed
+        contract["untracked_constraints"] = [
+            item for item in untracked if item is not byte_constraint
+        ]
+        dimensions = list(contract.get("dimensions") or [])
+        if not any(
+            item.get("name") == byte_constraint.get("name")
+            for item in dimensions
+            if isinstance(item, dict)
+        ):
+            dimensions.append(dict(byte_constraint))
+        contract["dimensions"] = dimensions
+        contract["reset"] = "per_dimension"
+        contract["unknown_dimensions"] = []
+        for dimension in dimensions:
+            if not isinstance(dimension, dict):
+                continue
+            if dimension.get("name") == "unique_symbols_per_month":
+                dimension["reset"] = unique_reset
+            elif dimension.get("name") == "requests_per_hour":
+                dimension["reset"] = hourly_reset
+        contract["dimension_costs_required"] = True
+        contract["operation_costs_required"] = True
+        contract["source"] = (
+            f"{contract.get('source', 'Tiingo pricing and API documentation')} plus "
+            "operator-reviewed distinct-symbol/hourly reset evidence"
+        )
+        seed["quota_contract"] = contract
+        seed["quota_source"] = (
+            "Tiingo plan allowance plus operator-reviewed distinct-symbol/hourly reset evidence"
+        )
+        seed["_byte_reservation_bounds"] = bounds
+        return seed
+    if provider_name == "fmp":
+        # FMP exposes independent daily-call and bandwidth pools. Neither
+        # reset anchor is admitted from an operator's remembered plan value;
+        # both must be named with calculable semantics and backed by current
+        # evidence before the byte pool can be reserved at runtime.
+        daily_reset = str(
+            getattr(settings, "FMP_REVIEWED_DAILY_RESET", "") or ""
+        ).strip()
+        bandwidth_reset = str(
+            getattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "") or ""
+        ).strip()
+        daily_evidence = str(
+            getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        bandwidth_evidence = str(
+            getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
+        ).strip()
+        if not (
+            provider_quota_reset_is_admission_safe(daily_reset)
+            and provider_quota_reset_is_admission_safe(bandwidth_reset)
+            and daily_evidence
+            and bandwidth_evidence
+        ):
+            return seed
+        required = _BYTE_BOUND_OPERATIONS.get(provider_name)
+        if not required:
+            return seed
+        bounds = provider_operation_byte_bounds(provider_name)
+        if any(operation not in bounds for operation in required):
+            return seed
+        contract = seed.get("quota_contract")
+        if not isinstance(contract, dict):
+            return seed
+        untracked = list(contract.get("untracked_constraints") or [])
+        byte_constraint = next(
+            (
+                item
+                for item in untracked
+                if isinstance(item, dict)
+                and str(item.get("unit") or "").lower() in {"byte", "bytes"}
+            ),
+            None,
+        )
+        if byte_constraint is None:
+            return seed
+        contract["untracked_constraints"] = [
+            item for item in untracked if item is not byte_constraint
+        ]
+        dimensions = list(contract.get("dimensions") or [])
+        if not any(
+            item.get("name") == byte_constraint.get("name")
+            for item in dimensions
+            if isinstance(item, dict)
+        ):
+            dimensions.append(dict(byte_constraint))
+        contract["dimensions"] = dimensions
+        contract["reset"] = "per_dimension"
+        contract["unknown_dimensions"] = []
+        for dimension in dimensions:
+            if not isinstance(dimension, dict):
+                continue
+            if dimension.get("name") == "calls_per_day":
+                dimension["reset"] = daily_reset
+            elif dimension.get("name") == byte_constraint.get("name"):
+                dimension["reset"] = bandwidth_reset
+        contract["dimension_costs_required"] = True
+        contract["operation_costs_required"] = True
+        contract["source"] = (
+            f"{contract.get('source', 'FMP account and pricing evidence')} plus "
+            "operator-reviewed daily/bandwidth reset evidence"
+        )
+        seed["quota_contract"] = contract
+        seed["quota_source"] = (
+            "FMP account allowance plus operator-reviewed daily/bandwidth reset evidence"
+        )
+        seed["_byte_reservation_bounds"] = bounds
         return seed
     if provider_name == "fred":
         # A reviewed API limit alone is not enough: this application persists

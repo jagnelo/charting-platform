@@ -331,7 +331,15 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_AUTHORIZED", False)
         monkeypatch.setattr(settings, "XSTOCKS_MARKET_DATA_USE_JURISDICTION_EVIDENCE", "")
         monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
+        monkeypatch.setattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
+        monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "")
+        monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "")
         monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
+        monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
+        monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
+        monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "")
+        monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
         # The local worktree may be configured with an active MarketData.app
         # trial. This diagnostics test verifies the unconfigured path, so keep
         # its account-plan inputs hermetic instead of inheriting local env.
@@ -560,9 +568,19 @@ class TestProviderRegistry:
             "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
         ]
         assert provider_missing_routing_controls("tiingo") == [
-            "TIINGO_OPERATION_BYTE_BOUNDS"
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
+            "TIINGO_REVIEWED_HOURLY_RESET",
+            "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
+            "TIINGO_HOURLY_QUOTA_EVIDENCE",
         ]
-        assert provider_missing_routing_controls("fmp") == ["FMP_OPERATION_BYTE_BOUNDS"]
+        assert provider_missing_routing_controls("fmp") == [
+            "FMP_OPERATION_BYTE_BOUNDS",
+            "FMP_REVIEWED_DAILY_RESET",
+            "FMP_REVIEWED_BANDWIDTH_RESET",
+            "FMP_DAILY_QUOTA_EVIDENCE",
+            "FMP_BANDWIDTH_QUOTA_EVIDENCE",
+        ]
         assert provider_routing_control_settings("marketdata_app") == (
             "MARKETDATA_APP_REVIEWED_PLAN",
             "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
@@ -604,6 +622,10 @@ class TestProviderRegistry:
                 "discover_universe_page": 1,
             },
         )
+        monkeypatch.setattr(settings, "FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
+        monkeypatch.setattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
+        monkeypatch.setattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "daily review")
+        monkeypatch.setattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "bandwidth review")
         assert provider_missing_routing_controls("finra") == []
         monkeypatch.setattr(
             settings,
@@ -616,7 +638,11 @@ class TestProviderRegistry:
             },
         )
         assert provider_missing_routing_controls("tiingo") == [
-            "TIINGO_OPERATION_BYTE_BOUNDS"
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
+            "TIINGO_REVIEWED_HOURLY_RESET",
+            "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
+            "TIINGO_HOURLY_QUOTA_EVIDENCE",
         ]
         monkeypatch.setattr(
             settings,
@@ -630,6 +656,10 @@ class TestProviderRegistry:
                 "get_instrument_profile": 1,
             },
         )
+        monkeypatch.setattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
+        monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "rolling")
+        monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "symbol review")
+        monkeypatch.setattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "hourly review")
         assert provider_missing_routing_controls("tiingo") == [
             "TIINGO_OPERATION_BYTE_BOUNDS"
         ]

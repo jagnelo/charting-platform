@@ -614,8 +614,20 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
         "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
         "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
     ),
-    "tiingo": ("TIINGO_OPERATION_BYTE_BOUNDS",),
-    "fmp": ("FMP_OPERATION_BYTE_BOUNDS",),
+    "tiingo": (
+        "TIINGO_OPERATION_BYTE_BOUNDS",
+        "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
+        "TIINGO_REVIEWED_HOURLY_RESET",
+        "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
+        "TIINGO_HOURLY_QUOTA_EVIDENCE",
+    ),
+    "fmp": (
+        "FMP_OPERATION_BYTE_BOUNDS",
+        "FMP_REVIEWED_DAILY_RESET",
+        "FMP_REVIEWED_BANDWIDTH_RESET",
+        "FMP_DAILY_QUOTA_EVIDENCE",
+        "FMP_BANDWIDTH_QUOTA_EVIDENCE",
+    ),
     # MarketData.app account plans have distinct daily credit pools.  Native
     # response headers are telemetry; admission uses only this explicit
     # operator-reviewed plan/limit pair.
@@ -924,6 +936,60 @@ def provider_missing_routing_controls(
         if not second_evidence:
             missing.append("FINNHUB_SECOND_QUOTA_EVIDENCE")
         return missing
+    if name == "fmp":
+        missing: list[str] = []
+        configured_map = getattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {}) or {}
+        operations = provider_required_operation_byte_bounds(name)
+        if not isinstance(configured_map, dict) or not all(
+            isinstance(configured_map.get(operation), int)
+            and not isinstance(configured_map.get(operation), bool)
+            and configured_map[operation] > 0
+            for operation in operations
+        ):
+            missing.append("FMP_OPERATION_BYTE_BOUNDS")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "FMP_REVIEWED_DAILY_RESET", "")
+        ):
+            missing.append("FMP_REVIEWED_DAILY_RESET")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "FMP_REVIEWED_BANDWIDTH_RESET", "")
+        ):
+            missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
+        if not str(getattr(settings, "FMP_DAILY_QUOTA_EVIDENCE", "") or "").strip():
+            missing.append("FMP_DAILY_QUOTA_EVIDENCE")
+        if not str(
+            getattr(settings, "FMP_BANDWIDTH_QUOTA_EVIDENCE", "") or ""
+        ).strip():
+            missing.append("FMP_BANDWIDTH_QUOTA_EVIDENCE")
+        return list(dict.fromkeys(missing))
+    if name == "tiingo":
+        missing: list[str] = []
+        configured_map = getattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {}) or {}
+        operations = provider_required_operation_byte_bounds(name)
+        if not isinstance(configured_map, dict) or not all(
+            isinstance(configured_map.get(operation), int)
+            and not isinstance(configured_map.get(operation), bool)
+            and configured_map[operation] > 0
+            for operation in operations
+        ):
+            missing.append("TIINGO_OPERATION_BYTE_BOUNDS")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
+        ):
+            missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
+        if not provider_quota_reset_is_admission_safe(
+            getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "")
+        ):
+            missing.append("TIINGO_REVIEWED_HOURLY_RESET")
+        if not str(
+            getattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "") or ""
+        ).strip():
+            missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
+        if not str(
+            getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
+        ).strip():
+            missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
+        return list(dict.fromkeys(missing))
     if name == "coinbase":
         return coinbase_market_data_use_authority_missing()
     if name == "xstocks":

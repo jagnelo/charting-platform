@@ -124,7 +124,15 @@ PROVIDER_SAFETY_SETTINGS = {
     "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED",
     "BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE",
     "TIINGO_OPERATION_BYTE_BOUNDS",
+    "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
+    "TIINGO_REVIEWED_HOURLY_RESET",
+    "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
+    "TIINGO_HOURLY_QUOTA_EVIDENCE",
     "FMP_OPERATION_BYTE_BOUNDS",
+    "FMP_REVIEWED_DAILY_RESET",
+    "FMP_REVIEWED_BANDWIDTH_RESET",
+    "FMP_DAILY_QUOTA_EVIDENCE",
+    "FMP_BANDWIDTH_QUOTA_EVIDENCE",
     "MARKETDATA_APP_REVIEWED_PLAN",
     "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT",
     "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT",
@@ -493,7 +501,15 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
     assert (
         "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     )
+    assert "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: ${{ vars.TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET || '' }}" in workflow
+    assert "TIINGO_REVIEWED_HOURLY_RESET: ${{ vars.TIINGO_REVIEWED_HOURLY_RESET || '' }}" in workflow
+    assert "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: ${{ vars.TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE || '' }}" in workflow
+    assert "TIINGO_HOURLY_QUOTA_EVIDENCE: ${{ vars.TIINGO_HOURLY_QUOTA_EVIDENCE || '' }}" in workflow
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    assert "FMP_REVIEWED_DAILY_RESET: ${{ vars.FMP_REVIEWED_DAILY_RESET || '' }}" in workflow
+    assert "FMP_REVIEWED_BANDWIDTH_RESET: ${{ vars.FMP_REVIEWED_BANDWIDTH_RESET || '' }}" in workflow
+    assert "FMP_DAILY_QUOTA_EVIDENCE: ${{ vars.FMP_DAILY_QUOTA_EVIDENCE || '' }}" in workflow
+    assert "FMP_BANDWIDTH_QUOTA_EVIDENCE: ${{ vars.FMP_BANDWIDTH_QUOTA_EVIDENCE || '' }}" in workflow
     assert (
         "MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}" in workflow
     )
@@ -562,7 +578,15 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE=" in example
     assert "FRED_SERIES_RIGHTS_EVIDENCE={}" in example
     assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
+    assert "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET=" in example
+    assert "TIINGO_REVIEWED_HOURLY_RESET=" in example
+    assert "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE=" in example
+    assert "TIINGO_HOURLY_QUOTA_EVIDENCE=" in example
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
+    assert "FMP_REVIEWED_DAILY_RESET=" in example
+    assert "FMP_REVIEWED_BANDWIDTH_RESET=" in example
+    assert "FMP_DAILY_QUOTA_EVIDENCE=" in example
+    assert "FMP_BANDWIDTH_QUOTA_EVIDENCE=" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN=" in example
     assert "MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=0" in example
     assert "MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT=" in example
@@ -678,7 +702,15 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED", "false")
     monkeypatch.setenv("BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE", "")
     monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "{}")
+    monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
+    monkeypatch.setenv("TIINGO_REVIEWED_HOURLY_RESET", "")
+    monkeypatch.setenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
+    monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "")
+    monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "")
+    monkeypatch.setenv("FMP_DAILY_QUOTA_EVIDENCE", "")
+    monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_PLAN", "")
     monkeypatch.setenv("MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT", "0")
     monkeypatch.setenv("MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS", "0")
@@ -815,7 +847,21 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1, "bulk_fetch": 1, "get_instrument_profile": 1, "fetch_market_events": 1, "discover_universe_page": 1}',
     )
     statuses = routing_safety_preflight()
+    assert statuses["tiingo"].startswith("non-routable: missing reviewed controls for")
+    assert statuses["fmp"].startswith("non-routable: missing reviewed controls for")
+
+    monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
+    monkeypatch.setenv("TIINGO_REVIEWED_HOURLY_RESET", "rolling")
+    monkeypatch.setenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "symbol review")
+    monkeypatch.setenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "hourly review")
+    statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
+
+    monkeypatch.setenv("FMP_REVIEWED_DAILY_RESET", "calendar_day_utc")
+    monkeypatch.setenv("FMP_REVIEWED_BANDWIDTH_RESET", "rolling_30_days")
+    monkeypatch.setenv("FMP_DAILY_QUOTA_EVIDENCE", "current account evidence")
+    monkeypatch.setenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "current plan evidence")
+    statuses = routing_safety_preflight()
     assert statuses["fmp"] == "routable"
 
     monkeypatch.setenv(
@@ -823,7 +869,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": true, "bulk_fetch": 1, "search_instruments": 1, "get_instrument_profile": 1}',
     )
     statuses = routing_safety_preflight()
-    assert statuses["tiingo"].startswith("non-routable: missing positive bounds")
+    assert statuses["tiingo"].startswith("non-routable: missing reviewed controls for")
 
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     monkeypatch.setenv("ALLOW_PAID_PROVIDER_ROUTING", "true")

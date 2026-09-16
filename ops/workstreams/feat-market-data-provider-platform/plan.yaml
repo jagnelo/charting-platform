@@ -189,6 +189,31 @@ remaining_gaps:
     Focused coverage is 153/153 and the full backend unit gate is 2,354/2,354
     with 37 warnings at 70.75% coverage. No provider request was made.
   - >-
+    FMP's configured 250-calls/day and 512 MB/30-day bandwidth pools now have
+    independent provider-specific admission controls. A complete
+    `FMP_OPERATION_BYTE_BOUNDS` map is insufficient: routing also requires
+    admission-safe `FMP_REVIEWED_DAILY_RESET` and
+    `FMP_REVIEWED_BANDWIDTH_RESET` values plus independent current evidence
+    (`FMP_DAILY_QUOTA_EVIDENCE` and `FMP_BANDWIDTH_QUOTA_EVIDENCE`). Blank or
+    invalid controls preserve the unresolved contract and fail closed; no
+    reset boundary is inferred. The controls are wired through local/RPi
+    Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
+    155/155 and the complete backend unit gate passes 2,357/2,357 with 37
+    warnings at 70.79% coverage.
+  - >-
+    Tiingo's 500-unique-symbol monthly and 50-request/hour pools now have
+    independent provider-specific admission controls. A complete
+    `TIINGO_OPERATION_BYTE_BOUNDS` map is insufficient: routing also requires
+    admission-safe `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET` and
+    `TIINGO_REVIEWED_HOURLY_RESET` values plus independent current evidence
+    (`TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE` and
+    `TIINGO_HOURLY_QUOTA_EVIDENCE`). The already documented EST daily and
+    monthly bandwidth boundaries remain explicit; blank or invalid controls
+    preserve the unresolved symbol/hour contract and fail closed. Controls are
+    wired through local/RPi Compose and GitHub live CI. Focused coverage passes
+    155/155 and the complete backend unit gate passes 2,357/2,357 with 37
+    warnings at 70.77% coverage.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no provider-published
     reset boundary/timezone. Commit `2f72ad2d6635750032a5f9cdd3aacf4e71bd62a1`
     makes this an explicit provider-specific admission control rather than a

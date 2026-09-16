@@ -1677,10 +1677,40 @@ def routing_safety_preflight() -> dict[str, str]:
             or isinstance(parsed[operation], bool)
             or parsed[operation] <= 0
         ]
+        if provider == "tiingo" and not missing:
+            if not provider_quota_reset_is_admission_safe(
+                os.getenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "").strip()
+            ):
+                missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
+            if not provider_quota_reset_is_admission_safe(
+                os.getenv("TIINGO_REVIEWED_HOURLY_RESET", "").strip()
+            ):
+                missing.append("TIINGO_REVIEWED_HOURLY_RESET")
+            if not os.getenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "").strip():
+                missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
+            if not os.getenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "").strip():
+                missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
+        if provider == "fmp" and not missing:
+            if not provider_quota_reset_is_admission_safe(
+                os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
+            ):
+                missing.append("FMP_REVIEWED_DAILY_RESET")
+            if not provider_quota_reset_is_admission_safe(
+                os.getenv("FMP_REVIEWED_BANDWIDTH_RESET", "").strip()
+            ):
+                missing.append("FMP_REVIEWED_BANDWIDTH_RESET")
+            if not os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip():
+                missing.append("FMP_DAILY_QUOTA_EVIDENCE")
+            if not os.getenv("FMP_BANDWIDTH_QUOTA_EVIDENCE", "").strip():
+                missing.append("FMP_BANDWIDTH_QUOTA_EVIDENCE")
         result[provider] = (
             "routable"
             if not missing
-            else f"non-routable: missing positive bounds for {', '.join(missing)}"
+            else (
+                f"non-routable: missing reviewed controls for {', '.join(missing)}"
+                if provider in {"tiingo", "fmp"}
+                else f"non-routable: missing positive bounds for {', '.join(missing)}"
+            )
         )
     return result
 

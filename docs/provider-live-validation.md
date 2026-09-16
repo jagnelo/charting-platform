@@ -416,7 +416,11 @@ environment secrets and with `EDGAR_USER_AGENT` and (only after source confirmat
 `FINRA_OTC_REVIEWED_SOURCE_URL`, `FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL`,
 `FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
 `FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
-`TIINGO_OPERATION_BYTE_BOUNDS`, `FMP_OPERATION_BYTE_BOUNDS`,
+`TIINGO_OPERATION_BYTE_BOUNDS`, `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET`,
+`TIINGO_REVIEWED_HOURLY_RESET`, `TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE`,
+`TIINGO_HOURLY_QUOTA_EVIDENCE`, `FMP_OPERATION_BYTE_BOUNDS`,
+`FMP_REVIEWED_DAILY_RESET`, `FMP_REVIEWED_BANDWIDTH_RESET`,
+`FMP_DAILY_QUOTA_EVIDENCE`, and `FMP_BANDWIDTH_QUOTA_EVIDENCE`,
 `PROVIDER_RATE_LIMIT_SEEDS`, `PROVIDER_FRESHNESS_SEEDS`,
 `PROVIDER_USAGE_PROFILE_SEEDS`,
 `MARKETDATA_APP_REVIEWED_PLAN`, `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`,
@@ -557,7 +561,8 @@ preserved in event provenance. This is positive transport/shape evidence for
 the configured account, not a promotion of FMP routing: the provider-reported
 512 MB bandwidth pool has provider-defined reset semantics that remain
 unconfirmed, and it still requires a complete operator-reviewed
-`FMP_OPERATION_BYTE_BOUNDS` map, and analyst-estimate/price-target endpoints
+`FMP_OPERATION_BYTE_BOUNDS` map plus separately reviewed daily/bandwidth reset
+controls and evidence, and analyst-estimate/price-target endpoints
 remain outside this adapter until their plan entitlements are separately
 validated.
 
@@ -717,9 +722,13 @@ consumption. Other byte ceilings and dynamic response-header/account budgets
 are not implicitly guessed. Tiingo and FMP remain non-routable unless the
 deployment supplies a positive, provider-reviewed maximum response size for
 every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
-`FMP_OPERATION_BYTE_BOUNDS` JSON maps. When complete maps are present, the
-runtime reserves the documented bandwidth pool before execution and settles it
-to measured response bytes; incomplete or invalid maps remain fail-closed.
+`FMP_OPERATION_BYTE_BOUNDS` JSON maps. FMP additionally requires independent
+reviewed reset labels and evidence for its daily-call and bandwidth pools.
+Tiingo additionally requires independent reviewed reset labels and evidence
+for its distinct-symbol and hourly pools.
+When all controls are present, the runtime reserves the documented bandwidth
+pool before execution and settles it to measured response bytes; incomplete or
+invalid maps or reset controls remain fail-closed.
 EODHD now exposes its documented `/user` account snapshot as two named
 observations when available: the daily `apiRequests`/`dailyRateLimit` pool and
 the response-header minute request pool. The daily observation is eligible to

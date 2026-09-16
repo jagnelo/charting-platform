@@ -1,5 +1,31 @@
 # Project TODO Memory
 
+### 2026-09-16 — FMP independent quota-reset admission controls
+
+- [x] Add explicit FMP controls for the independent 250-calls/day and
+      512 MB/30-day bandwidth pools: `FMP_REVIEWED_DAILY_RESET`,
+      `FMP_REVIEWED_BANDWIDTH_RESET`, `FMP_DAILY_QUOTA_EVIDENCE`, and
+      `FMP_BANDWIDTH_QUOTA_EVIDENCE`. A complete response-byte map alone no
+      longer promotes FMP; blank or invalid controls keep routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable provider documentation. Focused coverage passes
+      `155/155`; the full backend unit suite passes `2,357/2,357` with 37
+      warnings. Reset semantics remain intentionally unresolved until current
+      provider/account evidence is reviewed.
+
+### 2026-09-16 — Tiingo independent quota-reset admission controls
+
+- [x] Add explicit Tiingo controls for the independent 500-unique-symbol
+      monthly and 50-request/hour pools: `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET`,
+      `TIINGO_REVIEWED_HOURLY_RESET`, `TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE`,
+      and `TIINGO_HOURLY_QUOTA_EVIDENCE`. A complete response-byte map alone
+      no longer promotes Tiingo; documented EST daily/monthly boundaries stay
+      explicit and unresolved symbol/hour controls remain fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable documentation. Focused coverage passes
+      `155/155`; the full backend unit suite passes `2,357/2,357` with 37
+      warnings. No Tiingo provider request was made by this change.
+
 ### 2026-09-16 — Native account-usage baseline refresh
 
 - [x] Re-run the provider-specific account-usage-only live cases for Alpaca,
