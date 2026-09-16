@@ -60,6 +60,13 @@
   `37/37`; the corrected live transport evidence is pending a clean
   committed source and a just-in-time native one-minute baseline refresh.
 
+- At committed source `4d1ed8622`, the just-in-time native usage refresh and
+  expanded Binance matrix both passed. The matrix covered latest history,
+  direct 30-day daily history, current price, universe discovery, and native
+  request-weight usage (`3/3` cases; the receipt is in `validation.jsonl`).
+  The direct range consumed two measured HTTP pages, matching the reviewed
+  bound; no arbitrary-range cost was inferred.
+
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 
 - At committed source `0220ae07e`, the owner-local durable-ledger preflight
