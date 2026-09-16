@@ -470,6 +470,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reservation without a matching receipt fail closed. Ledger and worker-pool
   updates are returned together for a future adapter transaction; no queue,
   persistence, process, or engine I/O occurs here.
+- `search_dispatch.py` stages candidate start, execution admission, and queue
+  idempotency as one storage-neutral resolution. A saturation, cancellation,
+  authorization/runtime rejection, or dispatch conflict returns the original
+  candidate, admission ledger, and worker pool, preventing orphaned running
+  work. Exact retries replay the candidate, admission, and dispatch evidence;
+  a newly admitted attempt cannot silently reuse an existing queue message.
+  Persistence and queue publication remain adapter-owned.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

@@ -1580,3 +1580,21 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Atomic search-dispatch checkpoint
+
+`search_dispatch.py` adds a storage-neutral composition of candidate start,
+execution admission, serial worker capacity, and dispatch idempotency. The
+resolution returns the original search, admission, and worker states whenever a
+later gate rejects, saturates, or conflicts, so adapters cannot persist an
+orphaned running candidate or worker reservation. Exact retries replay all
+three layers; a newly admitted attempt cannot reuse an existing queue message
+without an admission receipt. Queue/database publication remains outside this
+package.
+
+The exact implementation tree passed all 310 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
