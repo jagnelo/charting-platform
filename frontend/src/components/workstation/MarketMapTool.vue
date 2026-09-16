@@ -304,7 +304,7 @@ import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
 import { describeMarketMap } from '@/lib/workstation/marketMapAccessibility'
-import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -1078,6 +1078,7 @@ const visibleCells = computed(() => {
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
 const visibleLayoutGroups = computed<MarketMapLayoutGroup[]>(() => layoutMarketMapGroupsFromLayout(visibleLayoutCells.value))
 const useCanvasTiles = computed(() => visibleLayoutCells.value.length > LARGE_MAP_CANVAS_THRESHOLD)
+const canvasHitTestIndex = computed(() => buildMarketMapHitTestIndex(visibleLayoutCells.value))
 const marketMapAccessibilityId = computed(() => `market-map-summary-${(sourceId.value || 'empty').replace(/[^a-z0-9_-]+/gi, '-')}`)
 const marketMapAccessibilitySummary = computed(() => {
   const current = map.value
@@ -1188,7 +1189,7 @@ function canvasCellAt(event: MouseEvent): MarketMapLayoutCell | null {
   if (!bounds.width || !bounds.height) return null
   const x = ((event.clientX - bounds.left) / bounds.width) * 100
   const y = ((event.clientY - bounds.top) / bounds.height) * 100
-  return visibleLayoutCells.value.find(cell => x >= cell.x && x <= cell.x + cell.width && y >= cell.y && y <= cell.y + cell.height) ?? null
+  return findMarketMapCell(canvasHitTestIndex.value, x, y)
 }
 function handleCanvasHover(event: MouseEvent) {
   hoveredCell.value = canvasCellAt(event)

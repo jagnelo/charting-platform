@@ -338,6 +338,70 @@ export interface MarketMapLayoutGroup {
   member_count: number
 }
 
+/**
+ * Fixed normalized-space grid used for large canvas hit testing.  The canvas
+ * itself is responsive, so indexing the layout in the same 0..100 coordinate
+ * space keeps pointer lookup independent of device pixels and viewport size.
+ */
+export const MARKET_MAP_HIT_TEST_GRID_SIZE = 32
+
+export type MarketMapHitTestIndex = Map<number, MarketMapLayoutCell[]>
+
+function hitTestBucketCoordinate(value: number, gridSize: number): number {
+  return Math.min(gridSize - 1, Math.max(0, Math.floor((value / 100) * gridSize)))
+}
+
+function hitTestBucketKey(x: number, y: number, gridSize: number): number {
+  return hitTestBucketCoordinate(y, gridSize) * gridSize + hitTestBucketCoordinate(x, gridSize)
+}
+
+/**
+ * Index layout cells into a uniform grid while retaining source order in each
+ * bucket.  The latter preserves the existing first-match behaviour for exact
+ * shared edges and any malformed overlapping geometry.
+ */
+export function buildMarketMapHitTestIndex(
+  cells: MarketMapLayoutCell[],
+  gridSize = MARKET_MAP_HIT_TEST_GRID_SIZE,
+): MarketMapHitTestIndex {
+  const index: MarketMapHitTestIndex = new Map()
+  if (gridSize < 1 || !Number.isFinite(gridSize)) return index
+  const buckets = Math.max(1, Math.floor(gridSize))
+  for (const cell of cells) {
+    if (![cell.x, cell.y, cell.width, cell.height].every(Number.isFinite)) continue
+    const left = Math.min(cell.x, cell.x + cell.width)
+    const right = Math.max(cell.x, cell.x + cell.width)
+    const top = Math.min(cell.y, cell.y + cell.height)
+    const bottom = Math.max(cell.y, cell.y + cell.height)
+    const minX = hitTestBucketCoordinate(left, buckets)
+    const maxX = hitTestBucketCoordinate(right, buckets)
+    const minY = hitTestBucketCoordinate(top, buckets)
+    const maxY = hitTestBucketCoordinate(bottom, buckets)
+    for (let bucketY = minY; bucketY <= maxY; bucketY += 1) {
+      for (let bucketX = minX; bucketX <= maxX; bucketX += 1) {
+        const key = bucketY * buckets + bucketX
+        const bucket = index.get(key)
+        if (bucket) bucket.push(cell)
+        else index.set(key, [cell])
+      }
+    }
+  }
+  return index
+}
+
+/** Resolve a normalized-space pointer through the precomputed hit-test grid. */
+export function findMarketMapCell(
+  index: MarketMapHitTestIndex,
+  x: number,
+  y: number,
+  gridSize = MARKET_MAP_HIT_TEST_GRID_SIZE,
+): MarketMapLayoutCell | null {
+  if (gridSize < 1 || !Number.isFinite(gridSize) || !Number.isFinite(x) || !Number.isFinite(y)) return null
+  const buckets = Math.max(1, Math.floor(gridSize))
+  const candidates = index.get(hitTestBucketKey(x, y, buckets)) ?? []
+  return candidates.find(cell => x >= cell.x && x <= cell.x + cell.width && y >= cell.y && y <= cell.y + cell.height) ?? null
+}
+
 interface LayoutItem {
   key: string
   area: number

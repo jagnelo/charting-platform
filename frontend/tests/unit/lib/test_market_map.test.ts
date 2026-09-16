@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layoutMarketMapCells, layoutMarketMapGroups } from '@/lib/workstation/marketMap'
+import { buildMarketMapHitTestIndex, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroups } from '@/lib/workstation/marketMap'
 
 describe('market map layout', () => {
   it('fills a deterministic rectangle and preserves area ordering', () => {
@@ -94,5 +94,30 @@ describe('market map layout', () => {
     expect(layoutMarketMapGroups([
       { instrument_id: 1, symbol: 'A', name: 'A', group_path: [], area_value: 1, color_value: 0, coverage: 1, warnings: [] },
     ])).toEqual([])
+  })
+
+  it('uses bounded spatial candidates for dense canvas hit testing while preserving edge order', () => {
+    const cells = Array.from({ length: 10000 }, (_, index) => ({
+      instrument_id: index + 1,
+      symbol: `SYM${index + 1}`,
+      name: `Synthetic ${index + 1}`,
+      group_path: [],
+      area_value: 1,
+      color_value: 0,
+      coverage: 1,
+      warnings: [],
+      x: index % 100,
+      y: Math.floor(index / 100),
+      width: 1,
+      height: 1,
+    }))
+    const index = buildMarketMapHitTestIndex(cells)
+    const candidates = index.get(16 * 32 + 16) ?? []
+
+    expect(candidates.length).toBeLessThan(cells.length)
+    expect(findMarketMapCell(index, 50.5, 50.5)).toBe(cells[5050])
+    // Shared edges retain the original first-match ordering.
+    expect(findMarketMapCell(index, 50, 50.5)).toBe(cells[5049])
+    expect(findMarketMapCell(index, -0.1, 50.5)).toBeNull()
   })
 })
