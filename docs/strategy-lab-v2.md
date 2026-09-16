@@ -516,6 +516,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   versioned REST surface. Collection items, resource types, opaque cursors, and
   snapshot digests must agree before a page can be returned; attributes,
   relationships, and metadata are frozen and content-addressed.
+- `storage.py` defines the persistence adapter boundary: versioned aggregate
+  snapshots, content-addressed create/update mutations, compare-and-set
+  preconditions, deterministic transaction ordering, and idempotent receipts.
+  Conflicts and missing aggregates return the original state, while exact
+  request retries replay the recorded committed set. PostgreSQL mapping and
+  transaction execution remain outside this pure contract.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

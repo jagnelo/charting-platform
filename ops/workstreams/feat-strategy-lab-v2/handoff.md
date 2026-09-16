@@ -1705,3 +1705,20 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Compare-and-set storage contract checkpoint
+
+`storage.py` adds the persistence-facing boundary for versioned aggregate
+snapshots. Mutations carry create or compare-and-set preconditions, transaction
+requests are content-addressed and deterministically ordered, and receipts make
+retries idempotent. Missing aggregates, version/state drift, create collisions,
+and contradictory historical receipts fail closed while preserving the
+original aggregate set. A future PostgreSQL adapter can map this plan to one
+transaction; no database, Redis, or filesystem I/O occurs here.
+
+The exact implementation tree passed all 346 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
