@@ -10,7 +10,7 @@
         <span>Adjusted daily bars</span><b>{{ daily.bar_count.toLocaleString() }}</b>
         <span>Local range</span><b>{{ formatRange(daily.oldest, daily.newest) }}</b>
       </div>
-      <p v-else class="coverage-summary__state">No local adjusted daily observations.</p>
+      <p v-else class="coverage-summary__state" role="status" aria-live="polite" aria-atomic="true">No local adjusted daily observations.</p>
       <div v-if="datasetStates.length" class="coverage-summary__datasets">
         <span>Dataset state</span>
         <ul>

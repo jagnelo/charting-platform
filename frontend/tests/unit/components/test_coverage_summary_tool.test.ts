@@ -95,6 +95,17 @@ describe('CoverageSummaryTool', () => {
     expect(wrapper.find('[role="region"][aria-label="SPY coverage"]').attributes('aria-busy')).toBe('false')
   })
 
+  it('announces the missing daily coverage state politely', async () => {
+    apiGet.mockResolvedValue({ local_coverage: {}, dataset_states: [] })
+    const wrapper = mountTool({ props: { symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No local adjusted daily observations.'))
+    const empty = wrapper.get('.coverage-summary__state')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
   it('deduplicates canonical coverage hydration across linked windows', async () => {
     apiGet.mockResolvedValue({ local_coverage: {}, dataset_states: [] })
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
