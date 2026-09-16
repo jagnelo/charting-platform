@@ -1841,3 +1841,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Bounded Redis worker-pump checkpoint
+
+`worker_consumer.py` adds the bounded consumer-side orchestration around the
+Redis group/relay contracts. Each poll ensures the group, reclaims idle pending
+entries before reading new work, and caps the batch. Each handler must return a
+content-matched receipt; only a completed receipt is acknowledged. Retry,
+rejection, handler-content drift, and acknowledgement failures preserve the
+pending delivery and return typed evidence, leaving authoritative state and
+isolated engine execution to the handler/worker adapter.
+
+The exact implementation tree passed all 389 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

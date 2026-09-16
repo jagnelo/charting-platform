@@ -557,6 +557,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   idempotency key and proposes the published outbox state only after enqueue or
   exact replay; Redis conflicts and failures preserve the pending state so a
   later relay can retry safely.
+- `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
+  consumer group, reclaims idle deliveries before reading new entries, and
+  requires an explicit handler receipt. Only a content-matched completed
+  receipt is acknowledged; retry, rejection, handler-content drift, and Redis
+  acknowledgement failure leave the delivery unacknowledged with typed
+  evidence.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
