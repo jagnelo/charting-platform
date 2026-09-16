@@ -69,6 +69,11 @@ PROVIDER_WORKFLOW_CONFIGURATION_SETTINGS = {
 PROVIDER_SAFETY_SETTINGS = {
     "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
     "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+    "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+    "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+    "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+    "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+    "MASSIVE_MARKET_DATA_USE_EXPIRES_AT",
     "FINRA_ASYNC_MAX_RESULT_BYTES",
     "FINRA_OTC_OPERATION_COSTS",
     "FINRA_OTC_SOURCE_REVIEWED",
@@ -378,6 +383,14 @@ def test_live_workflow_is_branch_scoped_environment_isolated_and_maps_each_secre
         in workflow
     )
     assert (
+        "MASSIVE_MARKET_DATA_USE_AUTHORIZED: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORIZED || 'false' }}"
+        in workflow
+    )
+    assert (
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}"
+        in workflow
+    )
+    assert (
         "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     )
     assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
@@ -485,6 +498,8 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
     assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0" in example
+    assert "MASSIVE_MARKET_DATA_USE_AUTHORIZED=false" in example
+    assert "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=" in example
     assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
     assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
     assert "FRED_REVIEWED_QUOTA_EVIDENCE=" in example
@@ -569,6 +584,11 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0")
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "false")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_REVIEWED_AT", "")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_EXPIRES_AT", "")
     monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
     monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
     monkeypatch.setenv("FRED_REVIEWED_QUOTA_EVIDENCE", "")
@@ -605,6 +625,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["finra async result bytes"].startswith("non-routable:")
     assert statuses["alpaca corporate actions"].startswith("non-routable:")
     assert statuses["massive corporate actions"].startswith("non-routable:")
+    assert statuses["massive market-data use"].startswith("non-routable:")
     assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["coinbase market-data use"].startswith("non-routable:")
@@ -686,8 +707,16 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["alpaca corporate actions"] == "routable"
     monkeypatch.setenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "2")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORIZED", "true")
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "Massive personal-use terms review")
+    monkeypatch.setenv(
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "personal_noncommercial_nonredistributed",
+    )
+    monkeypatch.setenv("MASSIVE_MARKET_DATA_USE_REVIEWED_AT", "2026-09-16T00:00:00+00:00")
     statuses = routing_safety_preflight()
     assert statuses["massive corporate actions"] == "routable"
+    assert statuses["massive market-data use"] == "routable"
 
     monkeypatch.setenv(
         "FINRA_OTC_OPERATION_COSTS",

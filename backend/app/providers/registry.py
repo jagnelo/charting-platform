@@ -16,6 +16,7 @@ from app.config import (
     marketdata_app_reviewed_plan_pair,
     marketdata_app_trial_expiry_has_elapsed,
     marketdata_app_trial_expiry_is_valid,
+    massive_market_data_use_authority_missing,
     provider_positive_integer,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
@@ -547,7 +548,13 @@ _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     # default. The adapter remains directly testable while routing is closed
     # until this non-secret bound is configured.
     "alpaca": ("ALPACA_CORPORATE_ACTIONS_MAX_PAGES",),
-    "massive": ("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",),
+    "massive": (
+        "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+        "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+    ),
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
     "finra_otc_directory": (
         "FINRA_OTC_OPERATION_COSTS",
@@ -678,7 +685,11 @@ def provider_routing_control_settings(
     if name == "alpaca" and operation is not None and operation != "fetch_instrument_events":
         return ()
     if name == "massive" and operation is not None and operation != "fetch_instrument_events":
-        return ()
+        return tuple(
+            control
+            for control in _ROUTING_CONTROL_SETTINGS[name]
+            if control != "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
+        )
     # The async signed-result bound is independent from FINRA's synchronous
     # short-interest and OTC Daily List calls. Those dataset operations already
     # reserve the published 3 MB synchronous response ceiling against the
@@ -731,10 +742,14 @@ def provider_missing_routing_controls(
         )
         return [] if configured is not None else list(required)
     if name == "massive":
+        missing = massive_market_data_use_authority_missing()
         configured = provider_positive_integer(
             getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
         )
-        return [] if configured is not None else list(required)
+        if operation is None or operation == "fetch_instrument_events":
+            if configured is None:
+                missing.append("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES")
+        return list(dict.fromkeys(missing))
     if name == "finra_otc_directory":
         configured_map = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
         operations = ("discover_universe_page", "reconcile_universe_page")

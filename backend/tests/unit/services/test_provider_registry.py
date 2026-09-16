@@ -253,6 +253,11 @@ class TestProviderRegistry:
     def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
         monkeypatch.setattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", False)
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "")
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE", "")
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", None)
+        monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", None)
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         monkeypatch.setattr(settings, "FINRA_OTC_OPERATION_COSTS", {})
         monkeypatch.setattr(settings, "FINRA_OTC_SOURCE_REVIEWED", False)
@@ -313,16 +318,35 @@ class TestProviderRegistry:
         ) == ["ALPACA_CORPORATE_ACTIONS_MAX_PAGES"]
         assert provider_routing_control_settings("massive") == (
             "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+            "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
         )
         assert provider_missing_routing_controls("massive") == [
-            "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
+            "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+            "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
         ]
         assert provider_missing_routing_controls(
             "massive", "get_instrument_profile"
-        ) == []
+        ) == [
+            "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+        ]
         assert provider_missing_routing_controls(
             "massive", "fetch_instrument_events"
-        ) == ["MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"]
+        ) == [
+            "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT",
+            "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
+        ]
         monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", True)
         assert provider_missing_routing_controls("alpaca") == [
             "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"

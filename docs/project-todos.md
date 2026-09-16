@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-16 — Massive free-plan use-scope gate
+
+- [x] Record Massive's official Stocks Basic restriction that free access is
+      for personal, non-business, non-commercial, non-redistributed use. The
+      provider key alone no longer admits metadata, history, or event routing:
+      a deployment must explicitly configure the reviewed use scope, reference,
+      review timestamp, and existing event-page bound. Invalid or expired
+      attestations remain fail-closed. Focused registry/preflight/wiring tests
+      pass 47/47; the broader provider/quota/runtime/live-runner set passes
+      435/435; the full backend unit suite passes 2,300/2,300. No provider
+      calls or credentials were used by this change.
+
 ### 2026-09-16 — MarketData.app account-introspection charge correction
 
 - [x] Treat authenticated `/user/` account usage as a provider-specific,

@@ -1956,6 +1956,14 @@ class Settings(BaseSettings):
     # Massive's split and dividend endpoints are independently cursor-paginated;
     # this bound applies to each endpoint and the runtime reserves twice it.
     MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: int = 0
+    # Massive's free Stocks Basic terms grant personal, non-business,
+    # non-commercial, non-redistributed use only.  Keep every Massive route
+    # fail-closed until the deployment records that exact use scope.
+    MASSIVE_MARKET_DATA_USE_AUTHORIZED: bool = False
+    MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE: str = ""
+    MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE: str = ""
+    MASSIVE_MARKET_DATA_USE_REVIEWED_AT: datetime | None = None
+    MASSIVE_MARKET_DATA_USE_EXPIRES_AT: datetime | None = None
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""
@@ -2385,6 +2393,47 @@ def coinbase_market_data_use_authority_missing(
             missing.append("COINBASE_MARKET_DATA_USE_EXPIRES_AT")
         elif expires_at <= now:
             missing.append("COINBASE_MARKET_DATA_USE_EXPIRES_AT")
+    return missing
+
+
+def massive_market_data_use_authority_missing(
+    now: datetime | None = None, *, source: object | None = None
+) -> list[str]:
+    """Require an explicit attestation for Massive's personal-use license.
+
+    Massive's free Stocks Basic terms are narrower than a generic API
+    entitlement: they permit personal, non-business, non-commercial use and
+    prohibit redistribution/third-party application use.  The application
+    cannot infer that legal scope from a configured key, so all routes remain
+    quarantined until the deployment records it explicitly.
+    """
+
+    now = now or datetime.now(UTC)
+    source = source or settings
+    missing: list[str] = []
+    if not provider_reviewed_flag(
+        getattr(source, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", False)
+    ):
+        missing.append("MASSIVE_MARKET_DATA_USE_AUTHORIZED")
+    if not str(
+        getattr(source, "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", "") or ""
+    ).strip():
+        missing.append("MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE")
+    if str(
+        getattr(source, "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE", "") or ""
+    ).strip() != "personal_noncommercial_nonredistributed":
+        missing.append("MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE")
+    reviewed_at = getattr(source, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", None)
+    if not isinstance(reviewed_at, datetime) or reviewed_at.tzinfo is None:
+        missing.append("MASSIVE_MARKET_DATA_USE_REVIEWED_AT")
+    elif reviewed_at > now:
+        missing.append("MASSIVE_MARKET_DATA_USE_REVIEWED_AT")
+    expires_at = getattr(source, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", None)
+    if expires_at is not None:
+        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
+            missing.append("MASSIVE_MARKET_DATA_USE_EXPIRES_AT")
+        elif expires_at <= now:
+            missing.append("MASSIVE_MARKET_DATA_USE_EXPIRES_AT")
     return missing
 
 

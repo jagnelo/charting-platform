@@ -916,6 +916,7 @@ LIVE_EXPECTED_ENTITLEMENT_DENIALS = {
 LIVE_PREFLIGHT_ROUTING_CONTROLS = {
     "fred": ("fred",),
     "coinbase": ("coinbase market-data use",),
+    "massive": ("massive market-data use",),
     "nasdaq": ("nasdaq",),
     "finra_otc_directory": ("finra otc directory",),
     "dinari": ("dinari sandbox canary quota",),
@@ -1183,6 +1184,7 @@ def routing_safety_preflight() -> dict[str, str]:
         bybit_xstocks_market_data_use_authority_missing,
         FRED_MAPPED_SERIES_IDS,
         coinbase_market_data_use_authority_missing,
+        massive_market_data_use_authority_missing,
         xstocks_market_data_use_authority_missing,
     )
 
@@ -1196,6 +1198,22 @@ def routing_safety_preflight() -> dict[str, str]:
             return None
 
     live_settings = SimpleNamespace(
+        MASSIVE_MARKET_DATA_USE_AUTHORIZED=os.getenv(
+            "MASSIVE_MARKET_DATA_USE_AUTHORIZED", ""
+        ).strip().lower()
+        in {"1", "true", "yes"},
+        MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE=os.getenv(
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE", ""
+        ),
+        MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE=os.getenv(
+            "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE", ""
+        ),
+        MASSIVE_MARKET_DATA_USE_REVIEWED_AT=_env_datetime(
+            "MASSIVE_MARKET_DATA_USE_REVIEWED_AT"
+        ),
+        MASSIVE_MARKET_DATA_USE_EXPIRES_AT=_env_datetime(
+            "MASSIVE_MARKET_DATA_USE_EXPIRES_AT"
+        ),
         COINBASE_MARKET_DATA_USE_AUTHORIZED=os.getenv(
             "COINBASE_MARKET_DATA_USE_AUTHORIZED", ""
         ).strip().lower()
@@ -1284,6 +1302,12 @@ def routing_safety_preflight() -> dict[str, str]:
         "routable"
         if massive_pages > 0
         else "non-routable: positive reviewed MASSIVE_CORPORATE_ACTIONS_MAX_PAGES required"
+    )
+    massive_use_missing = massive_market_data_use_authority_missing(source=live_settings)
+    result["massive market-data use"] = (
+        "routable"
+        if not massive_use_missing
+        else "non-routable: missing " + ", ".join(massive_use_missing)
     )
     async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
     try:

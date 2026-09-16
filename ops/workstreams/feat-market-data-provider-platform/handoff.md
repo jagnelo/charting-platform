@@ -3528,3 +3528,26 @@ tests/e2e/
   events, but it does not establish a complete current OTC security master.
   The existing FINRA OTC candidate therefore stays fail-closed until an
   authorized complete source and terms are supplied.
+
+## 2026-09-16 Massive use-scope admission hardening
+
+- Massive's official Stocks Basic terms were reviewed and recorded as a
+  provider-specific legal/use control: free access is personal,
+  non-business, non-commercial, and non-redistributed. A configured API key
+  therefore no longer makes Massive metadata, history, or event routes
+  eligible by itself.
+- Added explicit non-secret controls for the attestation boolean, authority
+  reference, exact use scope, review timestamp, and optional expiry. Registry
+  diagnostics and live preflight report the missing controls without exposing
+  values; Compose/RPi, environment examples, and GitHub workflow mappings are
+  wired with fail-closed defaults. The existing corporate-action page bound
+  remains required for event routing.
+- Focused registry/wiring tests passed `47/47`; the broader provider/quota/
+  runtime/live-runner regression set passed `435/435`; the complete backend
+  unit suite passed `2,300/2,300`; Compose contracts, workflow tests, Ruff,
+  compilation, workstream validation, and diff checks passed. No provider
+  calls or credentials were used.
+- This is not a routing promotion or legal authorization. The exact staged
+  live matrix, provider baselines, complete OTC source, target-owned secret
+  stores, and final shadow gate remain open. No frontend or ETF-provider
+  adapter files changed.

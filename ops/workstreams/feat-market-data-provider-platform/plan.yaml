@@ -180,6 +180,14 @@ remaining_gaps:
     complete-coverage evidence, and redistribution rights remain owner- and
     provider-controlled, so no OTC master adapter or routing is enabled.
   - >-
+    Massive's official free Stocks Basic terms are personal,
+    non-business/non-commercial, and non-redistributed. The implementation now
+    requires an explicit provider-specific use-scope attestation, review
+    reference/timestamp, optional expiry, and the existing corporate-action
+    page bound before routing any Massive capability. This is a fail-closed
+    policy control, not a legal authorization or a live-routing promotion; the
+    exact staged matrix and any broader commercial entitlement remain open.
+  - >-
     The final current-head lock-protected live matrix at source `0b27192eb`
     collected 49 manifest cases and passed 43/49, including both the Alpaca
     AAPL and BTC-USD authenticated asset-profile probes. The three Alpha
