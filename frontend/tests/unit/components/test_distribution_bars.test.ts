@@ -90,6 +90,19 @@ describe('DistributionBars', () => {
     vi.unstubAllGlobals()
   })
 
+  it('announces missing trade detail when histogram data has no plotted trades', async () => {
+    vi.mocked(uPlot).mockClear()
+    const wrapper = mount(DistributionBars, {
+      props: { rows: [{ lower: -1, upper: 0, count: 2 }], trades: [] },
+    })
+    await nextTick()
+
+    const status = wrapper.get('.r-outcome-map__no-trades')
+    expect(status.attributes('role')).toBe('status')
+    expect(status.attributes('aria-live')).toBe('polite')
+    expect(status.attributes('aria-atomic')).toBe('true')
+  })
+
   it('does not treat a null R multiple as a zero-valued trade', async () => {
     vi.mocked(uPlot).mockClear()
     const wrapper = mount(DistributionBars, {
@@ -101,6 +114,10 @@ describe('DistributionBars', () => {
     await nextTick()
 
     expect(vi.mocked(uPlot)).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('No closed trade R multiples yet.')
+    const status = wrapper.get('.r-outcome-map__empty')
+    expect(status.text()).toBe('No closed trade R multiples yet.')
+    expect(status.attributes('role')).toBe('status')
+    expect(status.attributes('aria-live')).toBe('polite')
+    expect(status.attributes('aria-atomic')).toBe('true')
   })
 })

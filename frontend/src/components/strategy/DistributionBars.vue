@@ -26,7 +26,13 @@
         @focus="showTooltip(trade.key, $event)"
         @blur="hideTooltip"
       />
-      <div v-if="!plottedTrades.length" class="r-outcome-map__no-trades">
+      <div
+        v-if="!plottedTrades.length"
+        class="r-outcome-map__no-trades"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         Histogram available, but no closed trade detail rows were provided.
       </div>
     </div>
@@ -56,7 +62,7 @@
       </div>
     </Teleport>
   </div>
-  <div v-else class="r-outcome-map__empty">
+  <div v-else class="r-outcome-map__empty" role="status" aria-live="polite" aria-atomic="true">
     {{ emptyLabel }}
   </div>
 </template>
