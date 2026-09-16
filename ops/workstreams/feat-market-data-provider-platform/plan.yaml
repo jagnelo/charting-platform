@@ -161,6 +161,14 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The committed-source full-matrix preflight at `6e9df43bb` stopped before
+    transport with zero provider requests (`101` provider quota/cost/baseline
+    blockers, `7` required live capability-safety blockers, and `22`
+    unresolved capability dispositions). Owner-local durable-ledger health and
+    locking passed. This is current fail-closed evidence, not live acceptance;
+    provider baselines, legal/source controls, complete-universe admission,
+    deployment secret stores, and the final shadow gate remain open.
+  - >-
     The exact current-source isolated backend unit gate at `ee10f89dd` passed
     `2,324/2,324` with 70.67% coverage and 37 warnings. The Alpha Vantage
     production reset-boundary correction and its explicit reviewed test

@@ -1,5 +1,19 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source full-matrix safety preflight after Alpha correction
+
+- At committed source `6e9df43bb`, the lock-protected full provider runner
+  stopped before transport with exit `2`: `0/0` cases and zero provider
+  requests. Owner-local durable-ledger health/locking succeeded; the receipt
+  is appended to `validation.jsonl`.
+- The current report contains 101 provider-specific quota/cost/baseline
+  blockers, 7 required live capability-safety blockers, and 22 unresolved
+  capability dispositions. It also preserves the three user-deferred
+  providers and the MarketData.app-specific routable account-plan control.
+- The Alpha Vantage reset-boundary correction is now reflected in this
+  current-source report. This is fail-closed safety evidence only; it does
+  not promote routing, authorize deployment, or start shadow monitoring.
+
 ## 2026-09-16 exact-source Alpha Vantage/unit validation
 
 - The complete isolated backend unit suite passed `2,324/2,324` at exact
