@@ -1270,13 +1270,13 @@
       preflights remaining.
 - [ ] Obtain operator review of the bound, option entitlements, and
       redistribution terms before enabling current-chain routing.
-- [ ] Record the current MarketData.app account plan explicitly. The live key
-      returned a native 10,000-credit daily limit (Starter-shaped) on
-      2026-09-12, while the repository seed remains the documented
-      Free-Forever 100-credit contract. Do not widen admission until the
-      operator confirms the plan and sets the matching
-      `MARKETDATA_APP_REVIEWED_PLAN` / `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT`
-      pair; Quant/Prime require a separate per-minute contract model.
+- [x] Record the current MarketData.app account plan explicitly. The owner
+      confirmed the 30-day Starter Trial and its 10,000-credit daily pool;
+      `MARKETDATA_APP_REVIEWED_PLAN=starter_trial`, the matching
+      `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=10000`, and the timezone-aware
+      expiry are configured outside Git. The runtime downgrades to
+      Free-Forever/100 after expiry. Quant/Prime still require a separate
+      per-minute contract model.
 - [x] Wire the MarketData.app account-plan/limit gate through routing
       diagnostics, local/RPi Compose, the manual GitHub live workflow, and
       environment examples, including the operation-specific option-chain
