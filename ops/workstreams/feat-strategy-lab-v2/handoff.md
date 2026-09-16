@@ -1224,3 +1224,17 @@ The exact implementation tree passed all 166 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus runtime, frontend, integration, promotion,
 and deployment paths remain unchanged.
+
+## 2026-09-16 - Restart-safe progress checkpoint
+
+`progress_checkpoint.py` adds `ProgressCheckpoint` and
+`apply_progress_checkpoint()`. Applied progress update identities are retained
+for exact replay; only the next contiguous sequence advances the state, while
+gaps and stale/conflicting updates return explicit decisions without mutation.
+Terminal and cancellation semantics continue to be enforced by the existing
+progress state machine, and persistence/transport remain adapter-owned.
+
+The exact implementation tree passed all 170 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus runtime, frontend, integration, promotion,
+and deployment paths remain unchanged.

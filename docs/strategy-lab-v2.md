@@ -360,6 +360,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   authoritative build with matching evidence can publish; already-published
   manifests replay idempotently, while build, runtime, conformance, or artifact
   mismatches reject without changing the result record.
+- `progress_checkpoint.py` adds restart-safe progress checkpoints retaining
+  every applied update fingerprint. Only the next contiguous sequence advances
+  state; exact repeats replay, gaps wait for missing updates, and stale or
+  conflicting updates fail closed. Durable storage and stream transport remain
+  outside this pure contract.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
