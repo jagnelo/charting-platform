@@ -1153,3 +1153,17 @@ The exact implementation tree passed all 147 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
 artifact-store, Compose, Nautilus, frontend, integration, promotion, and
 deployment paths remain unchanged.
+
+## 2026-09-16 - Asynchronous outcome/idempotency checkpoint
+
+`outcomes.py` adds ordered `OutcomeUpdate` and `ExecutionOutcome` values for
+accepted, running, succeeded, failed, and cancelled execution states. Updates
+are bound to the original submission and attempt; successful outcomes require
+an immutable result digest, failures carry a typed API error, and exact repeats
+replay while stale, foreign, regressive, or conflicting updates fail closed.
+The state transition helper performs no persistence or engine I/O.
+
+The exact implementation tree passed all 151 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. API routes, durable persistence, workers,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.

@@ -334,6 +334,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and payload digest while excluding transport timestamps; resolution returns
   202 acceptance/replay or 409 conflict, and contradictory prior receipts fail
   closed. Receipt creation performs no queue, database, or worker I/O.
+- `outcomes.py` defines ordered accepted/running/succeeded/failed/cancelled
+  outcome updates bound to one submission and attempt. Success requires a
+  content-addressed result, failures carry a typed `ApiError`, and exact
+  repeats replay the existing terminal state while regressions, foreign
+  identities, stale timestamps, and conflicting sequences fail closed.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 
