@@ -77,6 +77,14 @@ class WorkerExecutionResolution:
             WorkerExecutionDecision.REPLAY_EXISTING,
         } and (self.nautilus_result is None or self.runtime_result is None):
             raise ValueError("completed worker executions require process and runtime evidence")
+        if self.decision is not WorkerExecutionDecision.REJECTED:
+            assert self.runtime_result is not None
+            if self.runtime_result.decision is RuntimeResultDecision.REJECT:
+                raise ValueError("completed worker executions cannot contain rejected runtime evidence")
+            if self.runtime_result.decision.value != self.decision.value:
+                raise ValueError("worker execution decision must match runtime result decision")
+        elif self.runtime_result is not None and self.runtime_result.decision is not RuntimeResultDecision.REJECT:
+            raise ValueError("rejected worker executions require rejected runtime evidence")
 
     @property
     def fingerprint(self) -> str:

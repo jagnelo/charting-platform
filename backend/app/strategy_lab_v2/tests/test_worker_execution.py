@@ -68,6 +68,9 @@ def test_worker_handoff_revalidates_then_runs_gated_nautilus(tmp_path: Path) -> 
     assert result.runtime_result is not None
     assert result.runtime_result.state.sequence == 2
 
+    with pytest.raises(ValueError, match="must match runtime result"):
+        replace(result, decision=WorkerExecutionDecision.FAILED)
+
 
 def test_worker_handoff_returns_typed_failure_evidence(tmp_path: Path) -> None:
     values = _fixtures()

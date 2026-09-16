@@ -591,7 +591,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   reservation identity, invokes only the gated Nautilus runner, and returns
   typed process plus runtime evidence. Stale/rejected handoffs or released
   capacity cannot spawn; successful, failed, and runtime-rejected outcomes
-  remain storage-neutral for a later compare-and-set transaction.
+  remain storage-neutral for a later compare-and-set transaction. The typed
+  resolution also rejects a contradictory worker decision/runtime-result pair
+  before it can be settled.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, releases the matching

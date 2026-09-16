@@ -2043,3 +2043,7 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+The worker resolution contract also now rejects a contradictory terminal
+decision/runtime-result pair, so a forged success/failure label cannot reach
+capacity settlement or later result publication.
