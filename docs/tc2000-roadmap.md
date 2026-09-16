@@ -11675,9 +11675,19 @@ tree, and output identity into the isolated runner. Research Results passed
 `48/48`, full frontend Vitest `1,102/1,102`, type-check/build, Strategy Lab API
 `29/29`, breadth workspace integration `2/2` across Boolean/numeric/tree paths,
 and Strategy queue unit coverage `16/16`; Ruff, formatting, and diff checks
-passed. The exact full-stack/browser gate is pending at this new product tip.
-No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
-or acceptance-policy behavior changed.
+passed. The exact full-stack/browser gate receipt for this product tip follows
+below. No provider-platform, ETF, visual-baseline, threshold, mask, skip,
+V25-media, or acceptance-policy behavior changed.
+
+Exact full-stack/browser receipt at the same R5 product tip (2026-09-16): the
+first run stopped only on a transient F8k popup-recovery assertion after 169
+functional passes and 107 documented skips; a fresh-stack retry passed F8k
+`1/1`, and the exact rerun passed backend unit/integration `1,619`, frontend
+Vitest `1,102/1,102`, authenticated Chromium `170` with `107` documented
+skips, and all four visual projects `104/104`. Docker teardown and exact
+TC2000-builder cleanup were branch-scoped and clean. No provider-platform,
+ETF, visual-oracle, baseline, threshold, mask, skip, V25-media, or
+acceptance-policy behavior changed.
 
 ### R6 — Close visual, resilience, accessibility and performance evidence
 

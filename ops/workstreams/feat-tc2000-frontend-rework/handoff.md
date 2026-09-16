@@ -25,7 +25,14 @@ reached the functional Chromium stage and had `169` passes, `107` documented
 skips, and one F8k popup-recovery failure while restoring the Float control;
 Docker teardown completed cleanly. A fresh branch-stack targeted retry passed
 that scenario `1/1` in `4.9s`, classifying the failure as transient test state;
-the exact full-stack/browser gate is being rerun at this product tip. No
+The exact full-stack/browser rerun then passed at product tip `61c4ae34a`
+(documentation tip `31894da50`): backend unit/integration coverage passed
+`1,619`, frontend Vitest passed `1,102/1,102`, lint/format/type-check/build,
+Compose/provider contracts, and research-runner probes passed, authenticated
+functional Chromium passed `170` with `107` documented skips, and all four
+visual projects passed `104/104`. The branch-scoped stack teardown removed
+containers, volumes, network, four generated images, and test sessions; exact
+stale TC2000 builders were removed without a host-wide prune. No
 provider-platform, ETF, visual baseline, threshold, mask, skip, V25 media, or
 acceptance-policy behavior changed.
 
