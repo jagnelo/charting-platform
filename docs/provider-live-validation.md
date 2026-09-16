@@ -632,9 +632,10 @@ seed the durable `calls_per_day` baseline only when the returned
 `apiRequestsDate` is the current UTC date and the reset is the next midnight
 GMT; a stale date or a mismatched reviewed limit remains observation-only. The
 official EODHD sources still conflict between 20 and 1,000 requests/minute.
-The contract records that conflict, keeps 20/minute only as the conservative
-reviewed ceiling, and leaves the minute dimension non-routable until the plan
-limit and reset semantics are clarified with provider/account evidence.
+The contract records that conflict and uses the documented Free Starter
+20/minute value as the conservative reviewed ceiling; it does not substitute
+the broader 1,000/minute claim until the plan and reset semantics are clarified
+with provider/account evidence.
 Per-dimension operation maps follow the same fail-closed rule: an explicitly
 empty map is a reviewed zero-cost exclusion for that dimension (for example, a
 synchronous FINRA read against the separate asynchronous-dataset pool), while

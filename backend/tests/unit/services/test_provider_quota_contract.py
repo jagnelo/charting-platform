@@ -1844,7 +1844,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         eodhd["dimensions"][0]["limit_basis"]
         == "conservative lower published value pending provider clarification"
     )
-    assert eodhd["unknown_dimensions"] == ["published_minute_limit_conflict"]
+    assert eodhd.get("unknown_dimensions", []) == []
     assert eodhd["source_conflicts"] == [
         {
             "source": "https://eodhd.com/financial-apis/api-limits",

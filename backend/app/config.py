@@ -852,7 +852,6 @@ class Settings(BaseSettings):
                 ],
                 "reset": "per_dimension",
                 "operation_costs_required": True,
-                "unknown_dimensions": ["published_minute_limit_conflict"],
                 "source_conflicts": [
                     {
                         "source": "https://eodhd.com/financial-apis/api-limits",

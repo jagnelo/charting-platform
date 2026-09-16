@@ -1,14 +1,31 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD conflict-scope correction and unit replay
+
+- Narrowed the EODHD conflict handling after the first full unit replay showed
+  that a provider-level `unknown_dimensions` marker would incorrectly disable
+  the separately reviewed daily/history paths. The contract now records the
+  source conflict and retains the documented Free Starter 20/minute ceiling as
+  the conservative reviewed value; it does not admit the broader 1,000/minute
+  claim or invent a replacement limit.
+- Focused regression coverage passed `100/100`; the complete isolated backend
+  unit suite passed `2,311/2,311` with 37 warnings. Ruff, compilation, and diff
+  checks passed. The default integration-enabled pytest command could not
+  start its Redis/Testcontainers fixtures because the local Docker socket is
+  unavailable to this sandbox; the previously recorded Docker-backed gate is
+  unchanged and remains the authoritative integration evidence.
+- No provider request, routing activation, deployment, frontend change, or ETF
+  provider-adapter change occurred.
+
 ## 2026-09-16 EODHD published-limit conflict hardening
 
 - Recorded the official EODHD conflict directly in the provider quota contract:
   the historical-plan page publishes 20 requests/minute while the general
   limits page claims 1,000 requests/minute for every plan.
-- The runtime keeps the lower 20/minute value only as a conservative reviewed
-  ceiling, marks the minute dimension as unresolved/non-routable, and records
-  both source URLs and the conflicting claim. The daily 20-call GMT-reset pool
-  remains separately represented and is not affected by this minute conflict.
+- The runtime keeps the lower 20/minute value as the conservative reviewed
+  ceiling and records both source URLs and the conflicting claim. The daily
+  20-call GMT-reset pool remains separately represented and is not affected by
+  this minute conflict; the broader 1,000/minute claim is not admitted.
 - Updated the provider-live-validation procedure and contract regression
   assertions. Focused quota-contract tests passed `98/98`; Ruff, compilation,
   and diff checks passed. Commit: `bf3235c2d`.
