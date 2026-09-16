@@ -1598,3 +1598,22 @@ entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
 promotion, and deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Worker recovery checkpoint
+
+`worker_recovery.py` adds a pure composition of admission evidence, lease
+identity/status, serial worker reservation release, and the existing bounded
+retry planner. Crash, expiry, transient, and artifact-publication failures
+release the worker slot and can materialize a new queued attempt linked to the
+same scientific trial. Successful attempts become no-ops; cancellation and
+exhausted/non-retryable failures become terminal without retry. Missing
+admission/worker evidence, invalid lease-expiry claims, and absent retry
+identities fail closed. Attempt persistence, scheduling, and engine lifecycle
+remain adapter responsibilities.
+
+The exact implementation tree passed all 314 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, artifact-store, Compose, Nautilus runtime, frontend, integration,
+promotion, and deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.

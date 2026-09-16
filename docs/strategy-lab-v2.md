@@ -477,6 +477,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   work. Exact retries replay the candidate, admission, and dispatch evidence;
   a newly admitted attempt cannot silently reuse an existing queue message.
   Persistence and queue publication remain adapter-owned.
+- `worker_recovery.py` composes an admitted attempt's lease, worker reservation,
+  and deterministic infrastructure-retry plan. It releases capacity and
+  materializes a new queued attempt against the same scientific trial for
+  crash/expiry/transient failures, while successful or non-retryable attempts
+  close without a retry. Missing admission evidence, worker drift, invalid
+  lease-expiry claims, and missing retry identities fail closed; no attempt
+  transition, scheduling, or engine invocation is performed.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
