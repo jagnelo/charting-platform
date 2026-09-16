@@ -817,3 +817,20 @@ boundary-aware metric work is limited to rolling-window and session-distribution
 aggregators; no shared provider, ETF, TC2000, persistence, API, worker,
 Compose, Nautilus, frontend, integration, promotion, or deployment paths were
 changed.
+
+## 2026-09-16 - Rolling and distribution boundary wiring checkpoint
+
+Product commit `f7bb6383bcdafb3695c07061b313fc7c71f6e9b5` completes the
+boundary-aware metric wiring. Rolling windows now use geometrically linked
+flow-adjusted returns and normalized wealth marks for volatility, Sharpe,
+Sortino, drawdown, duration, and Ulcer calculations. Session-return
+distributions use the same per-session factors and retain
+`returns_flow_adjusted` provenance on the typed summary contract.
+
+The exact implementation tree passed all 83 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`; the consolidated range was published under
+the explicit destination authorization and local/remote HEAD match at
+`f7bb6383bcdafb3695c07061b313fc7c71f6e9b5`. The next bounded engine-neutral
+metric slice is capital/margin utilization or financing evidence. No provider,
+ETF, TC2000, persistence, API, worker, Compose, Nautilus, frontend,
+integration, promotion, or deployment paths were changed.
