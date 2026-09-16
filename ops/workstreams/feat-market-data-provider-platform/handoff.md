@@ -98,6 +98,14 @@
   missing canary admission. This is an explicit provider-specific blocker,
   not an integration-success claim.
 
+## 2026-09-16 workflow validation note
+
+- The repository `make branch-validate` wrapper could not start because this
+  macOS host has not accepted the Xcode/Apple SDK license (`xcodebuild`
+  exit `69`). The underlying workstream validator was run directly with the
+  feature checkout's Python environment and passed: `30` workstream records
+  validated. Ruff, compilation, and `git diff --check` also passed.
+
 - At committed source `4d1ed8622`, the just-in-time native usage refresh and
   expanded Binance matrix both passed. The matrix covered latest history,
   direct 30-day daily history, current price, universe discovery, and native
