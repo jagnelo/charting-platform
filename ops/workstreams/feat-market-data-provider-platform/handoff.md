@@ -4592,6 +4592,10 @@ the authoritative record for this replay; it made zero provider calls.
   same fail-closed result (`0/0` cases, zero provider requests) and is recorded
   in `validation.jsonl` with the three missing control names; no generic Dinari
   quota was inferred.
+- After the follow-up pre-transport admission-error fix (`fc9ca215b`), the
+  exact-current canary preflight again stopped before network (`0/0`, zero
+  provider requests) and recorded the same three missing controls at that
+  source. The focused canary/runner/ledger suite remains `65/65`.
 - Focused canary/runner/ledger coverage passed `65/65`; Ruff, compile, workflow
   YAML parsing, and diff checks passed. The complete backend suite passed
   `2,727/2,727` executable tests with `464` expected skips and `89` warnings;
