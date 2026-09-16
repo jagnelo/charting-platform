@@ -24,9 +24,10 @@ effect; schema migration, application wiring, Redis/outbox dispatch, and worker
 integration remain gated.
 
 The focused command-adapter suite passed 5 tests; the full Strategy Lab v2
-package passed 536 tests with Ruff, MyPy, and `git diff --check` clean. Full
-branch and Docker-backed combined coverage gates will be rerun after this
-checkpoint.
+package passed 536 tests with Ruff, MyPy, and `git diff --check` clean. All
+five declared branch checks passed. The Docker-backed combined gate passed
+2,183 tests with 83.12% total coverage (required threshold: 75%), with setup
+and cleanup successful.
 
 ## 2026-09-16 - Durable submission/dispatch staging checkpoint
 
