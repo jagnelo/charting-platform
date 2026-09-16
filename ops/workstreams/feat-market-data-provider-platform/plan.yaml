@@ -618,6 +618,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 GitHub target-secret-store verification recheck: `gh auth
+      status` confirms that only the invalid `jagnelo-symbiotech` session is
+      installed; the desired `jagnelo` owner session is unavailable. No
+      GitHub state was mutated. Static workflow wiring remains locally
+      validated, but protected `provider-live-staging` and
+      `provider-live-master` secret/variable presence remains an owner-auth
+      gate.
+    - >-
       2026-09-16 MarketData.app trial configuration verification: the
       owner-managed local environment contains the selected `starter_trial`,
       `10000` daily-credit limit, and timezone-aware

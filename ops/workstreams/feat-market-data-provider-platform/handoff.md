@@ -1,5 +1,16 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 GitHub target-secret-store verification recheck
+
+- `gh auth status` was rechecked from the feature worktree. The only installed
+  GitHub session is `jagnelo-symbiotech`, and its token is invalid; the desired
+  `jagnelo` owner session is not available to inspect the protected
+  `provider-live-staging`/`provider-live-master` environments.
+- No GitHub secret, variable, workflow, or repository state was mutated. The
+  static workflow wiring remains validated locally, but target-store presence
+  and values are still unverified until the owner authenticates `gh` as
+  `jagnelo` (or supplies equivalent owner-authorized access).
+
 ## 2026-09-16 MarketData.app trial configuration verification
 
 - The owner-managed local environment at `~/.config/charting-platform/app.env`
