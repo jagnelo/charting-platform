@@ -586,6 +586,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   immutable worker handoff. It rejects identity drift, already-started runtime
   state, output-limit changes, and unauthorized authoritative execution before
   any process or queue adapter is called.
+- `result_materialization.py` binds engine-neutral result evidence to an
+  immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
+  output-artifact identities must agree; exact retries replay an existing
+  manifest and changed content conflicts. The manifest remains unpublished
+  until artifact-integrity and authoritative publication gates succeed.
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed

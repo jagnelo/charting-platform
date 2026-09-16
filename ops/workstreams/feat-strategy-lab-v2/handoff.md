@@ -1943,3 +1943,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Engine-result materialization checkpoint
+
+`result_materialization.py` adds an engine-neutral result adapter that binds
+typed engine evidence to the immutable `RunResultManifest` required by the
+publication and completion gates. It verifies trial/attempt, metric, snapshot,
+strategy-package, and output-artifact identities, preserves engine/build and
+dependency provenance, replays an exact existing manifest, and conflicts on
+changed content. It performs no artifact writes or publication and does not
+claim engine authority by itself.
+
+The exact implementation tree passed all 413 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice is an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
