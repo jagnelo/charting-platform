@@ -82,6 +82,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   derivation version. Generated assignments verify their effective seed against
   the supported seed-group digest; unsupported derivation versions fail closed.
 - `capabilities.py` implements strict/degraded capability-cell preflight.
+  `execution_capabilities.py` binds that data decision to a registered engine
+  build and conformance fingerprint, failing closed when product, execution,
+  or account semantics are not supported. Non-authoritative engines may be
+  executable for compatibility evidence but cannot publish authoritative
+  results.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
   validation checks the strategy's declared instrument scope.

@@ -1008,3 +1008,16 @@ The exact implementation tree passed all 110 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Capability execution preflight, persistence,
 API, worker, artifact-store, Compose, Nautilus, frontend, integration,
 promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Engine capability-binding checkpoint
+
+`execution_capabilities.py` adds a typed binding between the strict/degraded
+data preflight and a registered engine build/conformance identity. Product,
+execution-model, and account-model gaps fail closed; a non-authoritative engine
+can provide compatibility evidence but cannot publish authoritative results.
+The binding is engine-neutral and performs no runtime loading or execution.
+
+The exact implementation tree passed all 113 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Forward-event/result-state handling,
+persistence, API, worker, artifact-store, Compose, Nautilus, frontend,
+integration, promotion, and deployment paths remain unchanged.
