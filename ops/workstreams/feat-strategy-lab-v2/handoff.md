@@ -868,3 +868,19 @@ The exact implementation tree passed 88 Strategy Lab v2 package tests, Ruff,
 MyPy, and `git diff --check`. Trusted paired-stream inference remains the next
 metric gap. No provider, ETF, TC2000, persistence, API, worker, Compose,
 Nautilus, frontend, integration, promotion, or deployment paths were changed.
+
+## 2026-09-16 - Keyed common-random stream verification checkpoint
+
+The next engine-neutral slice adds `pairing.py` with typed
+`KeyedRandomDraw` inputs and `verify_keyed_random_stream_pairing()`. The
+verifier requires registered engine-build/conformance and stream-contract
+digests, rejects empty, duplicate, unmatched, or value-mismatched draws, and
+emits a deterministic `KeyedRandomStreamPairingReceipt`. Sensitivity evidence
+can bind that receipt and is classified as `verified_paired`; the downstream
+comparison remains descriptive and makes no significance or ranking claim.
+
+The exact implementation tree passed 90 Strategy Lab v2 package tests, Ruff,
+MyPy, and `git diff --check`. Aligned per-observation inferential metrics,
+ranking, significance, and all shared persistence/API/worker/runtime gates
+remain open. No provider, ETF, TC2000, persistence, API, worker, Compose,
+Nautilus, frontend, integration, promotion, or deployment paths were changed.
