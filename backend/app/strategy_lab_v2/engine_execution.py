@@ -12,7 +12,10 @@ from app.strategy_lab_v2.conformance import (
 )
 from app.strategy_lab_v2.execution import ExecutionAuthorization
 from app.strategy_lab_v2.runtime_execution import StrategyRuntimePreflight
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    validate_sandbox_command_plan,
+)
 
 
 class EngineExecutionDecision(StrEnum):
@@ -101,6 +104,10 @@ def plan_nautilus_execution(
         raise TypeError("requested_authoritative must be a boolean")
 
     reasons: list[str] = []
+    try:
+        validate_sandbox_command_plan(sandbox_plan)
+    except ValueError:
+        reasons.append("sandbox_plan_not_hardened")
     if authorization.trial_id.strip() == "" or authorization.attempt_id.strip() == "":
         reasons.append("authorization_identity_missing")
     if not runtime_preflight.accepted:

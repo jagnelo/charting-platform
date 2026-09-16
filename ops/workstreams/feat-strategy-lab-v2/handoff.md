@@ -2500,3 +2500,17 @@ The Docker-backed combined gate then completed 2,158 tests with 83.02% total
 coverage (required threshold: 75%), with setup and cleanup successful.
 Schema/API/worker/Compose integration and stable Nautilus execution remain
 deferred behind the existing gates.
+
+## 2026-09-16 - Sandbox-gated planner checkpoint
+
+The engine and worker orchestration gates now validate the hardened sandbox
+argv before returning a ready plan. A manually constructed plan with missing
+isolation controls is rejected during planning and cannot be persisted or
+dispatched as ready; the executor retains its independent last-mile check.
+
+The focused gate/worker regression set passed 26 tests, and the complete
+Strategy Lab v2 package passed 512 tests with Ruff, MyPy, and `git diff --check`.
+The Docker-backed combined gate completed 2,159 tests with 83.03% total
+coverage (required threshold: 75%), and Docker setup/cleanup succeeded.
+Schema/API/worker/Compose integration and stable Nautilus execution remain
+deferred behind the existing gates.

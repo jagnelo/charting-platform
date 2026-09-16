@@ -614,10 +614,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   production command boundary.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
-  identity, and complete conformance evidence. Only a compatible Nautilus
-  build can run; authoritative runs additionally require stable release
-  evidence and an authoritative authorization, and no engine process is
-  started while any gate is missing.
+  identity, hardened sandbox argv validation, and complete conformance
+  evidence. Only a compatible Nautilus build can run; authoritative runs
+  additionally require stable release evidence and an authoritative
+  authorization, and no engine process is started while any gate is missing.
 - `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
   Lua compare-and-set script. The idempotency key and stream append are staged
   atomically, exact retries replay, changed payloads conflict, and failed
@@ -657,9 +657,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   artifacts still require the result-publication gates.
 - `execution_orchestration.py` binds authorization, worker admission, runtime
   preflight/state, sandbox planning, and the gated Nautilus plan into one
-  immutable worker handoff. It rejects identity drift, already-started runtime
-  state, output-limit changes, and unauthorized authoritative execution before
-  any process or queue adapter is called.
+  immutable worker handoff. It rejects identity drift, unhardened sandbox
+  plans, already-started runtime state, output-limit changes, and unauthorized
+  authoritative execution before any process or queue adapter is called.
 - `worker_execution.py` revalidates that handoff immediately before process
   creation, including the admission's active serial `WorkerPoolState`,
   reservation identity, and active `LeaseObservationState` at an explicit

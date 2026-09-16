@@ -26,7 +26,10 @@ from app.strategy_lab_v2.runtime_execution import (
     StrategyRuntimePreflight,
     StrategyRuntimeRequest,
 )
-from app.strategy_lab_v2.sandbox import SandboxCommandPlan
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    validate_sandbox_command_plan,
+)
 
 
 class ExecutionOrchestrationDecision(StrEnum):
@@ -142,6 +145,10 @@ def plan_execution_orchestration(
             raise TypeError(f"{name} must be a {expected_type.__name__}")
 
     reasons: list[str] = []
+    try:
+        validate_sandbox_command_plan(sandbox_plan)
+    except ValueError:
+        reasons.append("sandbox_plan_not_hardened")
     expected_admission_request = ExecutionAdmissionRequest(
         authorization_fingerprint=authorization.fingerprint,
         runtime_request_fingerprint=runtime_request.fingerprint,

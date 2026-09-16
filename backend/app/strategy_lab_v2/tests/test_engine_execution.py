@@ -64,7 +64,30 @@ def _plan(request: StrategyRuntimeRequest) -> SandboxCommandPlan:
     return SandboxCommandPlan(
         request.fingerprint,
         content_digest("profile"),
-        ("docker", "run", "--rm"),
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--init",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges:true",
+            "--user=65532:65532",
+            "--workdir=/workspace",
+            "--memory=536870912",
+            "--ulimit=cpu=300",
+            "--ulimit=fsize=1024",
+            "--pids-limit=256",
+            "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=67108864",
+            "--mount=type=bind,src=/tmp/strategy-input,dst=/inputs/bundle,readonly",
+            "--mount=type=bind,src=/tmp/strategy-output,dst=/outputs/result,rw",
+            "--env=STRATEGY_ATTEMPT_ID=attempt-1",
+            f"--env=STRATEGY_INPUT_BUNDLE_DIGEST={content_digest('inputs')}",
+            f"runtime@{content_digest('runtime-image')}",
+            "python",
+            "runner",
+        ),
         10,
         1024,
     )
@@ -157,6 +180,35 @@ def test_mismatched_runtime_or_failed_conformance_rejects_before_invocation() ->
     assert result.decision is EngineExecutionDecision.REJECT
     assert "sandbox_runtime_request_mismatch" in result.rejection_reasons
     assert "engine_conformance_failed" in result.rejection_reasons
+
+
+def test_engine_gate_rejects_forged_unhardened_sandbox_plan() -> None:
+    trial, attempt, source, capability, lease = _execution_fixture(authoritative=True)
+    from app.strategy_lab_v2.execution import authorize_execution
+
+    authorization = authorize_execution(
+        trial, attempt, source, capability, lease, now=NOW.replace(second=3)
+    )
+    request, runtime = _runtime()
+    evidence, report = _conformance()
+    forged = SandboxCommandPlan(
+        request.fingerprint,
+        content_digest("profile"),
+        ("docker", "run", "--rm"),
+        10,
+        1024,
+    )
+    result = plan_nautilus_execution(
+        authorization,
+        runtime,
+        evidence,
+        report,
+        forged,
+        data_snapshot_fingerprint=content_digest("snapshot"),
+    )
+    assert result.decision is EngineExecutionDecision.REJECT
+    assert result.authoritative is False
+    assert "sandbox_plan_not_hardened" in result.rejection_reasons
 
 
 def test_engine_plan_rejects_invalid_inputs_and_authority_shape() -> None:
