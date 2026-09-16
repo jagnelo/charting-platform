@@ -4,6 +4,16 @@ import { describe, expect, it } from 'vitest'
 import WalkForwardSegments from '@/components/strategy/WalkForwardSegments.vue'
 
 describe('WalkForwardSegments', () => {
+  it('announces the empty state politely', () => {
+    const wrapper = mount(WalkForwardSegments, { props: { segments: [] } })
+    const empty = wrapper.get('.walk-forward-panel__empty')
+
+    expect(empty.text()).toBe('No walk-forward segments yet.')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
   it('renders segment summaries and details', async () => {
     const wrapper = mount(WalkForwardSegments, {
       props: {

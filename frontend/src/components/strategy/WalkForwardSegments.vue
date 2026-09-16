@@ -53,7 +53,7 @@
       </div>
     </div>
   </div>
-  <div v-else class="walk-forward-panel__empty">
+  <div v-else class="walk-forward-panel__empty" role="status" aria-live="polite" aria-atomic="true">
     {{ emptyLabel }}
   </div>
 </template>
