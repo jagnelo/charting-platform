@@ -13014,3 +13014,23 @@ but the overall workstream remains in progress.
 
 Next: select the next bounded TC-owned R1/R5/R6 item while preserving visual
 oracles and the staging-only provider/ETF consumer boundary.
+
+## 2026-09-16 - Python editor suggestion status association
+
+Product commit `ee8f77bee` completes a narrow R6 accessibility slice in
+`PythonSourceEditor.vue`. Each editor instance now derives a stable status ID,
+conditionally exposes it through the native textarea's `aria-describedby`
+while suggestions are active, and applies the same ID to the existing hidden
+`role=status` announcement. Escape removes the conditional association;
+multiple linked editors retain unique IDs. Native textarea, listbox,
+keyboard, insertion, and suggestion behavior remain unchanged.
+
+Focused PythonSourceEditor coverage passed 5/5; full frontend Vitest passed
+1,104/1,104; frontend type-check and production build passed with the existing
+large-chunk warning; and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed. The exact full-stack
+integration gate remains the next required evidence at this product tip.
+
+The branch remains `committed_locally_pending_push` under the recorded
+private-origin safeguard. Provider-platform and ETF consumer integration stays
+deferred until both upstream branches reach staging.
