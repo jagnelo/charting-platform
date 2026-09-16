@@ -197,6 +197,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   external-flow event withholds the entire distribution; simple close-to-close
   returns are not presented as flow-adjusted time-weighted returns. Histogram
   bins and sensitivity ranking/inference are not part of this summary.
+  `calculate_time_weighted_return_metrics()` now provides a strict,
+  engine-neutral flow-adjusted return path. Each reported external event must
+  carry explicit pre-flow and post-flow equity boundary marks whose difference
+  reconciles the event cash amount; missing or incomplete flow evidence
+  withholds both linked and elapsed-time annualized returns. Annualization uses
+  an explicit days-per-year convention and elapsed UTC duration, so irregular
+  spacing is not treated as a fixed session cadence. Existing calendar, rolling,
+  and distribution aggregators still require their own boundary-aware wiring
+  before they consume these values.
   `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
   baseline/variant summary over complete replicate arms. It requires one result
   per planned replicate index, one canonical parameter change, identical fixed
@@ -205,9 +214,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   mean, nearest-rank median/minimum/maximum, and configured nearest-rank
   quantiles. The result exposes only the signed difference of arm means; it does
   not rank candidates, estimate significance, or claim independence or paired
-  inference. Remaining gaps include irregular-time annualized metrics, margin/
-  capital utilization, financing outside fill reports, and trusted paired
-  inference.
+  inference. Remaining gaps include boundary-aware wiring for calendar/rolling/
+  distribution aggregators, margin/capital utilization, financing outside fill
+  reports, and trusted paired inference.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.

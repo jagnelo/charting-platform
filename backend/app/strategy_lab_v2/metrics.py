@@ -55,6 +55,8 @@ _METRIC_FORMULAS = {
     "maximum_drawdown_duration": "longest count of sampled observations below the running peak",
     "ulcer_index": "square root of the mean squared observed drawdown fractions",
     "annualized_return": "terminal equity growth compounded by periods_per_year / return_count",
+    "time_weighted_return": "geometrically linked subperiod returns excluding external cash-flow jumps",
+    "time_weighted_annualized_return": "time-weighted growth compounded over elapsed UTC duration",
     "calmar_ratio": "annualized return divided by the absolute maximum drawdown fraction",
     "recovery_factor": "net account P&L in base currency divided by maximum peak-to-trough loss in base currency",
     "annualized_volatility": "sample standard deviation of simple returns multiplied by square root of periods_per_year",
@@ -1229,6 +1231,138 @@ def calculate_calendar_period_metrics(
             )
         )
     return tuple(metrics)
+
+
+@deterministic_decimal_math
+def calculate_time_weighted_return_metrics(
+    observations: Sequence[AccountEquityIntervalObservation],
+    *,
+    calendar: SessionCalendarSnapshot,
+    annualization_days: Decimal = Decimal("365.2425"),
+    basis: MetricBasis = MetricBasis.NET,
+) -> tuple[MetricValue, ...]:
+    """Link returns while explicitly removing external cash-flow jumps.
+
+    Every interval with ``external_cash_flow_occurred=True`` must carry one
+    :class:`ExternalCashFlowBoundaryObservation` per event. The pre/post marks
+    make the event's cash jump observable and keep it out of the geometric
+    return chain. Incomplete native flow reports or missing boundaries withhold
+    both metrics rather than falling back to a cash-flow-adjusted P&L.
+
+    ``annualization_days`` is an explicit elapsed-time convention, so irregular
+    interval spacing is never silently treated as a fixed session cadence.
+    """
+
+    if not isinstance(basis, MetricBasis):
+        raise TypeError("basis must be a MetricBasis")
+    if (
+        not isinstance(annualization_days, Decimal)
+        or not annualization_days.is_finite()
+        or annualization_days <= 0
+    ):
+        raise ValueError("annualization_days must be a finite positive Decimal")
+
+    intervals, _ = _validated_equity_intervals(observations, calendar)
+    observation_digest = content_digest(intervals)
+    flow_reports_complete = all(
+        item.external_cash_flow_report_status is ExternalCashFlowReportStatus.COMPLETE
+        for item in intervals
+    )
+    annualization_basis = f"elapsed UTC duration; {annualization_days} days per year"
+    null_reason: str | None = None
+    linked_growth: Decimal | None = None
+    if not flow_reports_complete:
+        null_reason = "one or more external cash-flow reports are incomplete"
+    else:
+        growth = Decimal(1)
+        for interval in intervals:
+            boundaries = interval.external_cash_flow_boundaries
+            if interval.external_cash_flow_occurred is True and not boundaries:
+                null_reason = (
+                    "external cash-flow boundary valuations are required for every reported event"
+                )
+                break
+            previous_equity = interval.starting_equity
+            interval_growth = Decimal(1)
+            for boundary in boundaries:
+                if previous_equity <= 0:
+                    null_reason = "a zero post-flow equity prevents a subsequent linked return"
+                    break
+                interval_growth *= boundary.pre_flow_equity / previous_equity
+                previous_equity = boundary.post_flow_equity
+            if null_reason is not None:
+                break
+            if previous_equity <= 0:
+                if interval.ending_equity != 0:
+                    null_reason = "a zero post-flow equity prevents a subsequent linked return"
+                    break
+                interval_growth = Decimal(0)
+            else:
+                interval_growth *= interval.ending_equity / previous_equity
+            growth *= interval_growth
+        if null_reason is None:
+            linked_growth = growth
+
+    elapsed = intervals[-1].end_point.event_time - intervals[0].start_point.event_time
+    elapsed_seconds = Decimal(elapsed.days * 86_400 + elapsed.seconds) + Decimal(
+        elapsed.microseconds
+    ) / Decimal(1_000_000)
+    if null_reason is None and elapsed_seconds <= 0:
+        null_reason = "elapsed observation duration must be positive"
+    time_weighted_return = None if linked_growth is None else linked_growth - Decimal(1)
+    if null_reason is not None:
+        annualized_return = None
+        annualized_null_reason = null_reason
+    elif linked_growth is None or linked_growth <= 0:
+        annualized_return = None
+        annualized_null_reason = "non-positive linked growth prevents annualization"
+    else:
+        year_seconds = annualization_days * Decimal(86_400)
+        annualized_return = linked_growth ** (year_seconds / elapsed_seconds) - Decimal(1)
+        annualized_null_reason = None
+
+    basis_text = (
+        "geometrically linked pre/post-flow subperiod returns; "
+        f"observations={observation_digest}; calendar={calendar.fingerprint}; "
+        f"elapsed_seconds={elapsed_seconds}"
+    )
+    return _finalize_metric_values(
+        (
+            _value(
+                "time_weighted_return",
+                time_weighted_return,
+                unit="fraction",
+                basis=basis,
+                sample_size=len(intervals),
+                calculation_basis=(
+                    "geometric linking of returns between explicit pre-flow and post-flow marks; "
+                    f"{basis_text}"
+                ),
+                null_reason=null_reason,
+            ),
+            _value(
+                "time_weighted_annualized_return",
+                annualized_return,
+                unit="fraction",
+                basis=basis,
+                sample_size=len(intervals),
+                annualization_basis=annualization_basis,
+                calculation_basis=(
+                    "time-weighted growth compounded by elapsed UTC duration; " f"{basis_text}"
+                ),
+                null_reason=annualized_null_reason,
+            ),
+        ),
+        evidence_references=(
+            MetricEvidenceReference("account_equity_intervals", observation_digest),
+            MetricEvidenceReference("session_calendar", calendar.fingerprint),
+        ),
+        common_calculation_parameters={
+            "return_convention": "geometrically_linked_subperiod_returns",
+            "external_cash_flow_policy": "requires_complete_reports_and_explicit_pre_post_boundaries",
+            "annualization_days": annualization_days,
+        },
+    )
 
 
 @deterministic_decimal_math

@@ -30,6 +30,7 @@ from app.strategy_lab_v2.metrics import (
     calculate_exposure_utilization_metrics,
     calculate_rolling_equity_metrics,
     calculate_session_return_distribution_metrics,
+    calculate_time_weighted_return_metrics,
 )
 from app.strategy_lab_v2.observations import (
     AccountEquityIntervalObservation,
@@ -37,6 +38,7 @@ from app.strategy_lab_v2.observations import (
     CostReportStatus,
     ExecutionCostComponent,
     ExecutionCostKind,
+    ExternalCashFlowBoundaryObservation,
     ExternalCashFlowReportStatus,
     FillCostObservation,
     ObservationPoint,
@@ -622,6 +624,104 @@ def test_calendar_period_partial_and_external_flow_returns() -> None:
     assert (
         unavailable_flow_metrics["calendar_period_return:monthly:month:2024-01"].null_reason
         == "one or more external cash-flow reports are incomplete"
+    )
+
+
+def test_time_weighted_returns_exclude_explicit_cash_flow_jumps_and_annualize_elapsed_time() -> (
+    None
+):
+    calendar = _january_calendar()
+    interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 3),
+        "100000",
+        "121000",
+        flow="5000",
+    )
+    interval = replace(
+        interval,
+        external_cash_flow_boundaries=(
+            ExternalCashFlowBoundaryObservation(
+                point=ObservationPoint(datetime(2024, 1, 2, 17, 0, tzinfo=UTC), 2),
+                pre_flow_equity=Decimal("105000"),
+                post_flow_equity=Decimal("110000"),
+                external_cash_flow=Decimal("5000"),
+                engine_evidence_digest=EVIDENCE,
+            ),
+        ),
+    )
+
+    metrics = {
+        item.name: item
+        for item in calculate_time_weighted_return_metrics(
+            (interval,), calendar=calendar, annualization_days=Decimal("365")
+        )
+    }
+    assert metrics["time_weighted_return"].value == Decimal("0.155")
+    assert metrics["time_weighted_annualized_return"].value is not None
+    assert metrics["time_weighted_annualized_return"].annualization_basis == (
+        "elapsed UTC duration; 365 days per year"
+    )
+    calculation_definition = metrics["time_weighted_return"].calculation_definition
+    assert calculation_definition is not None
+    assert calculation_definition.parameters["external_cash_flow_policy"] == (
+        "requires_complete_reports_and_explicit_pre_post_boundaries"
+    )
+
+
+def test_time_weighted_returns_require_complete_boundary_evidence_and_reconcile_amounts() -> None:
+    calendar = _january_calendar()
+    interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 3),
+        "100000",
+        "110000",
+        flow="5000",
+    )
+    metrics = calculate_time_weighted_return_metrics((interval,), calendar=calendar)
+    assert all(item.value is None for item in metrics)
+    assert all(
+        item.null_reason
+        == "external cash-flow boundary valuations are required for every reported event"
+        for item in metrics
+    )
+
+    with pytest.raises(ValueError, match="reconcile the interval flow amount"):
+        replace(
+            interval,
+            external_cash_flow_boundaries=(
+                ExternalCashFlowBoundaryObservation(
+                    point=ObservationPoint(datetime(2024, 1, 2, 17, 0, tzinfo=UTC), 2),
+                    pre_flow_equity=Decimal("100000"),
+                    post_flow_equity=Decimal("101000"),
+                    external_cash_flow=Decimal("1000"),
+                    engine_evidence_digest=EVIDENCE,
+                ),
+            ),
+        )
+
+
+def test_time_weighted_returns_withhold_incomplete_flow_reports() -> None:
+    calendar = _january_calendar()
+    interval = _equity_interval(
+        calendar,
+        date(2024, 1, 2),
+        ObservationPoint(datetime(2023, 12, 29, 21, 0, tzinfo=UTC), 1),
+        ObservationPoint(datetime(2024, 1, 2, 21, 0, tzinfo=UTC), 3),
+        "100000",
+        "110000",
+        flow=None,
+        flow_status=ExternalCashFlowReportStatus.PARTIAL,
+    )
+    metrics = calculate_time_weighted_return_metrics((interval,), calendar=calendar)
+    assert all(item.value is None for item in metrics)
+    assert all(
+        item.null_reason == "one or more external cash-flow reports are incomplete"
+        for item in metrics
     )
 
 

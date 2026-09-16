@@ -68,6 +68,43 @@ class ExternalCashFlowReportStatus(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
+@dataclass(frozen=True, slots=True, order=True)
+class ExternalCashFlowBoundaryObservation:
+    """Authoritative pre/post marks bracketing one external cash-flow event.
+
+    A boundary is deliberately separate from the interval's net flow report:
+    time-weighted returns need a valuation immediately before and after every
+    event so the cash jump can be excluded from the linked return factors.
+    ``post_flow_equity - pre_flow_equity`` must equal the reported event amount.
+    The parent account interval binds the boundary to its portfolio, run,
+    currency, and interior event range.
+    """
+
+    point: ObservationPoint
+    pre_flow_equity: Decimal
+    post_flow_equity: Decimal
+    external_cash_flow: Decimal
+    engine_evidence_digest: str
+
+    @deterministic_decimal_math
+    def __post_init__(self) -> None:
+        if not isinstance(self.point, ObservationPoint):
+            raise TypeError("point must be an ObservationPoint")
+        for name in ("pre_flow_equity", "post_flow_equity", "external_cash_flow"):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal) or not value.is_finite():
+                raise ValueError(f"{name} must be a finite Decimal")
+        if self.pre_flow_equity <= 0:
+            raise ValueError("pre_flow_equity must be positive")
+        if self.post_flow_equity < 0:
+            raise ValueError("post_flow_equity must be non-negative")
+        if self.external_cash_flow == 0:
+            raise ValueError("external_cash_flow boundary amounts must be non-zero")
+        if self.post_flow_equity - self.pre_flow_equity != self.external_cash_flow:
+            raise ValueError("post_flow_equity must equal pre_flow_equity plus external_cash_flow")
+        require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionCostComponent:
     """One engine-reported fill cash effect in native and account currency.
@@ -202,8 +239,9 @@ class AccountEquityIntervalObservation:
     this distinguishes a verified no-flow interval from offsetting flows whose
     net amount is zero. Partial reports may provide a known subtotal and positive
     occurrence evidence, while unavailable reports provide neither. Net P&L is
-    trusted only for complete reports. Return calculations remain undefined for
-    intervals with external flows until a time-weighted method is selected.
+    trusted only for complete reports. Return calculations with external flows
+    require explicit pre/post boundary valuations in the time-weighted return
+    calculator.
     """
 
     portfolio_fingerprint: str
@@ -219,6 +257,7 @@ class AccountEquityIntervalObservation:
     external_cash_flow_report_status: ExternalCashFlowReportStatus
     base_currency: str
     engine_evidence_digest: str
+    external_cash_flow_boundaries: tuple[ExternalCashFlowBoundaryObservation, ...] = ()
 
     @deterministic_decimal_math
     def __post_init__(self) -> None:
@@ -287,6 +326,33 @@ class AccountEquityIntervalObservation:
             self, "base_currency", _currency_code(self.base_currency, "base_currency")
         )
         require_sha256_digest(self.engine_evidence_digest, field_name="engine_evidence_digest")
+        boundaries = tuple(self.external_cash_flow_boundaries)
+        if any(not isinstance(item, ExternalCashFlowBoundaryObservation) for item in boundaries):
+            raise TypeError(
+                "external_cash_flow_boundaries must contain ExternalCashFlowBoundaryObservation values"
+            )
+        if tuple(sorted(boundaries, key=lambda item: item.point)) != boundaries:
+            raise ValueError("external cash-flow boundaries must be strictly ordered")
+        if len({item.point for item in boundaries}) != len(boundaries):
+            raise ValueError("external cash-flow boundaries must have unique points")
+        if any(
+            item.point <= self.start_point or item.point >= self.end_point for item in boundaries
+        ):
+            raise ValueError(
+                "external cash-flow boundaries must fall strictly inside the account interval"
+            )
+        if boundaries and self.external_cash_flow_occurred is not True:
+            raise ValueError("external cash-flow boundaries require occurrence evidence")
+        if boundaries and self.external_cash_flow is not None:
+            boundary_total = sum(
+                (item.external_cash_flow for item in boundaries),
+                Decimal(0),
+            )
+            if boundary_total != self.external_cash_flow:
+                raise ValueError(
+                    "external cash-flow boundaries must reconcile the interval flow amount"
+                )
+        object.__setattr__(self, "external_cash_flow_boundaries", boundaries)
 
 
 @dataclass(frozen=True, slots=True)
