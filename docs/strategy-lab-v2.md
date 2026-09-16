@@ -155,6 +155,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   routing. Gross settlement debits and minimum remaining-cash buffers withhold
   the entire batch; missing order estimates or currency capacity fail closed.
   Product cash flows, conversions, and settlement timing remain adapter-owned.
+- `shock_construction.py` expands explicitly typed shock dimensions into stable
+  scenario definitions and content-addressed identities. It never applies
+  shocks, infers cross-asset effects, or calculates stressed equity; those
+  operations remain engine/account-adapter responsibilities.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared

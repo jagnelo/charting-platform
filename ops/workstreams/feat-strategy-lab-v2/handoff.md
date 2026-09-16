@@ -2325,3 +2325,19 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Deterministic shock-definition checkpoint
+
+`shock_construction.py` now expands caller-supplied typed shock dimensions into
+stable Cartesian-product definitions. Every scenario and leg is immutable and
+content-addressed, duplicate or ambiguous dimensions are rejected, and matrix
+size is bounded explicitly. The package does not apply shocks to prices or
+positions, infer cross-asset effects, or calculate stressed equity; adapters
+must use these identities when producing stress observations.
+
+The exact implementation tree passed all 489 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.
