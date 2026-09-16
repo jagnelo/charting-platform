@@ -2469,3 +2469,18 @@ The exact data-bound execution checkpoint also passed the repository-wide
 Docker-backed coverage gate: 2,156 tests completed with 83.02% total coverage
 (required threshold: 75%), with Docker setup and cleanup successful. The branch
 checks and workstream validation remain green.
+
+## 2026-09-16 - Deterministic strategy wall-clock preflight checkpoint
+
+Static strategy-source validation now rejects calls to `now`, `today`, and
+`utcnow`, including aliased receivers, while continuing to allow typed datetime
+values as declared inputs. The violation is content-addressed and deterministic;
+this closes a replay-integrity loophole without treating static analysis as the
+runtime sandbox boundary.
+
+The exact package tree passed 510 focused Strategy Lab v2 tests, Ruff, MyPy,
+and `git diff --check`. The subsequent Docker-backed combined coverage gate
+completed successfully and reports 83.03% total coverage (required threshold:
+75%), with the existing setup/cleanup path intact. Provider/API/database/worker/
+Compose integration and stable Nautilus execution remain deferred behind the
+existing gates.

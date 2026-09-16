@@ -43,6 +43,11 @@ _FORBIDDEN_CALLS = frozenset(
         "vars",
     }
 )
+# ``datetime`` and ``date`` are useful for typed event values, but obtaining
+# the current clock from a strategy would make a replay depend on wall time.
+# Attribute calls are checked independently of the receiver so aliases such as
+# ``clock.now()`` cannot bypass the static preflight.
+_FORBIDDEN_CALL_ATTRIBUTES = frozenset({"now", "today", "utcnow"})
 _FORBIDDEN_ATTRIBUTES = frozenset(
     {
         "__builtins__",
@@ -128,6 +133,10 @@ def validate_strategy_source(
             function_name = node.func.id if isinstance(node.func, ast.Name) else None
             if function_name in _FORBIDDEN_CALLS:
                 violations.append(f"forbidden_call@{node_location(node)}: {function_name}")
+            elif isinstance(node.func, ast.Attribute) and node.func.attr in _FORBIDDEN_CALL_ATTRIBUTES:
+                violations.append(
+                    f"forbidden_wall_clock@{node_location(node)}: {node.func.attr}"
+                )
         elif isinstance(node, ast.Attribute):
             if node.attr in _FORBIDDEN_ATTRIBUTES or node.attr.startswith("__"):
                 violations.append(f"forbidden_attribute@{node_location(node)}: {node.attr}")

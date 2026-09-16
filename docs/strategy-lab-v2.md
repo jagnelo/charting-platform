@@ -120,10 +120,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   validation checks the strategy's declared instrument scope.
 - `strategy_validation.py` performs deterministic static source preflight before
   a strategy package can reach a future runtime. It rejects disallowed imports,
-  relative imports, dynamic-code/file/network calls, and private-object
-  introspection, while binding the result to the exact source digest. This is
-  an early rejection layer only; it is not a substitute for the separately
-  required isolated runtime and resource controls.
+  relative imports, dynamic-code/file/network calls, private-object
+  introspection, and wall-clock calls (`now`, `today`, and `utcnow`), while
+  binding the result to the exact source digest. This is an early rejection
+  layer only; it is not a substitute for the separately required isolated
+  runtime and resource controls.
 - `artifacts.py` verifies an already-read immutable payload against its
   `ArtifactManifest` using raw-byte SHA-256 and exact byte length, returning a
   digest-bound receipt with typed mismatch reasons. Retrieval, atomic

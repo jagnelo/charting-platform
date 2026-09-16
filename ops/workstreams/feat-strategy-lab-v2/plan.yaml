@@ -307,6 +307,6 @@ progress:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
     - combined-coverage-and-branch-validation
   total: 18
-  current_phase: data-bound-execution-admission-ready-for-human-review
+  current_phase: deterministic-strategy-preflight-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then implement additive persistence/API/worker integration without changing the engine-neutral boundary

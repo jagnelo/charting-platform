@@ -76,6 +76,21 @@ def run(source):
     assert any("forbidden_name" in item and "eval" in item for item in result.violations)
 
 
+def test_strategy_source_validation_rejects_wall_clock_calls_even_with_aliases() -> None:
+    result = validate_strategy_source(
+        """
+from datetime import date, datetime
+
+def run():
+    return datetime.now(), date.today(), clock.utcnow()
+"""
+    )
+    assert not result.accepted
+    assert sum(item.endswith(": now") for item in result.violations) == 1
+    assert sum(item.endswith(": today") for item in result.violations) == 1
+    assert sum(item.endswith(": utcnow") for item in result.violations) == 1
+
+
 def test_strategy_source_validation_is_deterministic_for_syntax_errors() -> None:
     source = "def broken(:\n    pass\n"
     first = validate_strategy_source(source)
