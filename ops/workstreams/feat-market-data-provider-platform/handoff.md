@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD published-limit conflict hardening
+
+- Recorded the official EODHD conflict directly in the provider quota contract:
+  the historical-plan page publishes 20 requests/minute while the general
+  limits page claims 1,000 requests/minute for every plan.
+- The runtime keeps the lower 20/minute value only as a conservative reviewed
+  ceiling, marks the minute dimension as unresolved/non-routable, and records
+  both source URLs and the conflicting claim. The daily 20-call GMT-reset pool
+  remains separately represented and is not affected by this minute conflict.
+- Updated the provider-live-validation procedure and contract regression
+  assertions. Focused quota-contract tests passed `98/98`; Ruff, compilation,
+  and diff checks passed. Commit: `bf3235c2d`.
+- No provider request, routing activation, deployment, frontend change, or ETF
+  provider-adapter change occurred.
+
 ## 2026-09-16 EODHD account-usage integration checkpoint
 
 - Added the documented EODHD `/user` account-usage adapter. It retains the
