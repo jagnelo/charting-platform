@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 EODHD native-usage observation
+
+- Performed one bounded credentialed `GET /api/user` call using the existing
+  owner-managed key. The redacted response was HTTP 200 with
+  `subscriptionType=free`, `apiRequests=3`, `apiRequestsDate=2026-09-15`,
+  `dailyRateLimit=20`, and headers `X-RateLimit-Limit=1200`,
+  `X-RateLimit-Remaining=1199`.
+- The daily usage date is stale relative to the current UTC date, so the
+  runtime correctly refused to seed a current `calls_per_day` baseline. The
+  observed 1,200/minute header also does not widen the reviewed 20/minute
+  contract while official plan documentation conflicts. EODHD therefore
+  remains baseline-gated and no subsequent EODHD live operation was attempted.
+- Updated the operator procedure to accurately list EODHD daily and Twelve
+  Data minute native-baseline reconciliation alongside MarketData.app. The
+  provider call was not persisted as a quota baseline or treated as a live
+  pass; no secret or raw payload was recorded.
+
 ## 2026-09-16 EODHD conflict-scope correction and unit replay
 
 - Narrowed the EODHD conflict handling after the first full unit replay showed

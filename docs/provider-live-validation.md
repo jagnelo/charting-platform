@@ -149,12 +149,13 @@ payloads.
 Provider-native account-usage snapshots may reconcile a baseline automatically
 only when the provider adapter has an explicit exact mapping for the reviewed
 dimension. The current implementation permits this for MarketData.app's
-`credits_per_day` account pool when `/user/` returns the matching reviewed
-limit, a current reset timestamp, and a valid consumed counter (or an exact
-`limit - remaining` equivalent). The reconciliation is labelled
+`credits_per_day` pool, EODHD's `calls_per_day` pool, and Twelve Data's
+`credits_per_minute` pool when the provider response returns the matching
+reviewed limit, a current reset timestamp, and a valid consumed counter (or an
+exact `limit - remaining` equivalent). Each reconciliation is labelled
 `provider_account_observation` and uses the same durable coordinator. A plan,
 limit, window, or reset mismatch remains observation-only and cannot widen
-routing. Other providers still require operator attestation because their
+routing. Other provider pools still require operator attestation because their
 native usage surfaces do not establish an equivalent dimension safely.
 
 ### Updating a provider plan or establishing a new baseline
