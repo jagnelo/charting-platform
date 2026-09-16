@@ -591,6 +591,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   plus runtime evidence. Stale/rejected handoffs cannot spawn; successful,
   failed, and runtime-rejected outcomes remain storage-neutral for a later
   compare-and-set transaction.
+- `worker_settlement.py` closes the serial worker lifecycle after any bounded
+  handoff, including a pre-process rejection. It verifies the orchestration
+  plan is still bound to the admission and pool profile, releases the matching
+  reservation only once, and records content-addressed evidence. Exact retries
+  replay an already-released reservation; changed evidence, an active pool
+  with an existing receipt, or a missing/mismatched reservation fails closed.
 - `result_materialization.py` binds engine-neutral result evidence to an
   immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
   output-artifact identities must agree; exact retries replay an existing

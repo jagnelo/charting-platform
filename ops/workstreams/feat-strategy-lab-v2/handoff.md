@@ -2007,3 +2007,22 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice is an
 engine-neutral orchestration contract within the package-owned boundary;
 preserve the execution-admission and ownership gates.
+
+## 2026-09-16 - Worker-capacity settlement checkpoint
+
+`worker_settlement.py` closes one admitted worker reservation after a bounded
+worker handoff. It binds the execution evidence to the admission and
+orchestration plan, checks the worker profile and reservation identity, and
+returns an immutable pool plus append-only settlement ledger proposal. Both
+successful process results and pre-process handoff rejections release capacity,
+while exact retries replay only when the reservation is already released with
+matching evidence. Changed release evidence, a missing or mismatched
+reservation, an active pool alongside an existing receipt, and release times
+before acquisition are rejected without partial state changes.
+
+The exact implementation tree passed all 426 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral orchestration contract within the package-owned boundary;
+preserve the execution-admission and ownership gates.
