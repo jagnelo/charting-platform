@@ -13,9 +13,11 @@
   when overage billing is not enabled. These are audit metadata only; the
   account's overage setting and reset boundary remain operator/provider review
   gates.
-- Focused quota-contract tests and the workstream validator must pass before
-  this metadata is treated as current-source evidence. No frontend or ETF
-  provider adapter file changed.
+- Focused quota-contract tests passed `99/99`; the complete backend unit gate
+  then passed `2,322/2,322` with 70.65% coverage, Ruff passed, and the
+  workstream validator passed. No frontend or ETF provider adapter file
+  changed. This is documentation/contract evidence only and does not promote
+  Marketstack routing.
 
 ## 2026-09-16 CoinGecko exact-source preflight
 

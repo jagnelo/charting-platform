@@ -377,8 +377,10 @@ progress:
       records the provider-specific per-symbol charging, API-error exclusion,
       75/90/100% notifications, 5% overdraft, and 120% disable behavior as
       audit metadata; account overage configuration and reset-boundary review
-      remain explicit gates. Focused quota tests and workstream validation are
-      required evidence for this documentation-only correction.
+      remain explicit gates. Focused quota tests passed 99/99, the complete
+      backend unit gate passed 2,322/2,322 at 70.65% coverage, Ruff passed,
+      and workstream validation passed. This remains documentation/contract
+      evidence, not routing admission.
     - >-
       2026-09-16 exact-source CoinGecko preflight at `40801db55` stopped before
       network access with exit `2`. The corrected calendar-month contract was
