@@ -13210,3 +13210,32 @@ V25-media, or acceptance-policy behavior changed. Provider/ETF consumer
 integration remains deferred until both branches reach staging, and this is a
 complete exact-gate receipt for the slice, not closure of the overall
 workstream.
+## 2026-09-16 - CodeLibrary loading and filtered-empty state announcements
+
+Product commit `1015fdb78` gives `CodeLibraryTool` explicit polite, atomic
+status semantics for its initial loading notice and filtered-empty notice.
+Existing request failures and Python-source validation results retain their
+assertive-error/polite-success live-region behavior. Asset persistence,
+filtering, validation, and version operations are unchanged.
+
+Focused CodeLibraryTool coverage passed `9/9`; full frontend Vitest passed
+`1,114/1,114`; `vue-tsc` and the production build passed with the existing
+large-chunk warning; TC scope validation passed for 67 changed paths with all
+six self-tests; and `git diff --check` passed. The exact full-stack/browser
+gate is pending at this product tip.
+## 2026-09-16 - CodeLibrary exact integration gate
+
+The exact
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache rtk make
+validate-integration` gate exited `0` at product tip `1015fdb78`. It completed
+all repository stages, authenticated functional Chromium, and all four TC2000
+visual projects. Branch-scoped teardown removed the assigned containers,
+volumes, network, generated images, and test sessions; post-gate
+`agent-resource-status` reported zero containers, volumes, test sessions,
+known bytes, and unknown components with accounting complete.
+
+No provider-platform, ETF, visual-baseline, threshold, mask, skip, V25-media,
+or acceptance-policy behavior changed. Provider/ETF consumer integration
+remains deferred until both upstream branches reach staging; this is a complete
+exact-gate receipt for the CodeLibrary slice, not closure of the overall
+workstream.
