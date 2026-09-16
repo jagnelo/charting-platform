@@ -25,8 +25,8 @@
       </div>
     </form>
     <p v-if="error" class="code-library-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
-    <p v-else-if="loading && !assets.length" class="code-library-tool__notice">Loading user-owned assets…</p>
-    <p v-else-if="!filteredAssets.length" class="code-library-tool__notice">No matching Python assets.</p>
+    <p v-else-if="loading && !assets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading user-owned assets…</p>
+    <p v-else-if="!filteredAssets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">No matching Python assets.</p>
     <div v-else class="code-library-tool__assets" role="list">
       <article v-for="asset in filteredAssets" :key="asset.id" class="code-library-tool__asset" :class="{ 'code-library-tool__asset--archived': asset.is_archived }" role="listitem">
         <div class="code-library-tool__asset-main">

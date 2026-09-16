@@ -22,6 +22,28 @@ describe('CodeLibraryTool', () => {
       : Promise.resolve({}))
   })
 
+  it('announces loading and filtered-empty library states politely', async () => {
+    let resolveAssets!: (value: unknown[]) => void
+    apiGet.mockImplementationOnce(() => new Promise(resolve => { resolveAssets = resolve }))
+    const wrapper = mount(CodeLibraryTool)
+    await Promise.resolve()
+
+    const loading = wrapper.get('.code-library-tool__notice')
+    expect(loading.text()).toContain('Loading user-owned assets')
+    expect(loading.attributes('role')).toBe('status')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    resolveAssets([])
+    await flushPromises()
+    const empty = wrapper.get('.code-library-tool__notice')
+    expect(empty.text()).toContain('No matching Python assets')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
   it('loads, filters, clones, and archives user-owned assets', async () => {
     apiPost.mockImplementation((path: string, body: Record<string, unknown>) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
