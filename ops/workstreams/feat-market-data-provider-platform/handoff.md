@@ -1,5 +1,15 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Native account-usage baseline refresh
+
+- Re-ran the bounded account-usage-only live cases from the committed source
+  for Alpaca, EODHD, Twelve Data, and MarketData.app. Each passed `1/1` with
+  exactly one upstream request; aggregate-only receipts are durable in
+  `validation.jsonl` and no broader market-data operation was spent.
+- This refresh improves current usage evidence only. It does not promote a
+  provider whose reset, legal-use, byte/cost, entitlement, or plan controls
+  remain unresolved, and it does not activate routing or shadow mode.
+
 ## 2026-09-16 Alpaca independent reset-boundary admission control
 
 - Alpaca's documented 200-requests/minute account pool remains

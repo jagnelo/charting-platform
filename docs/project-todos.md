@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-16 — Native account-usage baseline refresh
+
+- [x] Re-run the provider-specific account-usage-only live cases for Alpaca,
+      EODHD, Twelve Data, and MarketData.app from the committed source. All
+      four passed `1/1` with exactly one bounded request each; redacted
+      aggregate receipts are appended to `validation.jsonl` and no history,
+      quote, options, or discovery pulls were made.
+- [ ] Continue reconciling each provider's native observation against its
+      exact durable quota dimensions; a passing usage snapshot does not itself
+      authorize ordinary routing when reset semantics, terms, or plan limits
+      remain unresolved.
+
 ### 2026-09-16 — Alpaca independent reset-boundary admission control
 
 - [x] Keep Alpaca's documented 200-requests/minute account ceiling separate
