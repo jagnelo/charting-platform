@@ -1003,7 +1003,9 @@ def test_twelve_data_credentialed_account_usage_snapshot():
     )
     assert usage is not None
     assert usage.provider == "twelve_data"
-    assert usage.account_plan
+    # The live /api_usage response may omit the optional plan body field;
+    # absence is preserved as ``None`` rather than inferred from the key.
+    assert usage.account_plan is None or usage.account_plan.strip()
     assert measurement.http_requests == 1
     dimensions = {dimension.name: dimension for dimension in usage.dimensions}
     assert set(dimensions) == {"credits_per_minute"}
