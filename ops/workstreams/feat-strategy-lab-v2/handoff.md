@@ -966,3 +966,17 @@ Ruff, MyPy, and `git diff --check`. Static source preflight remains an early
 rejection layer rather than the runtime security boundary. Persistence, API,
 worker, artifact-store, Compose, Nautilus, frontend, integration, promotion,
 and deployment paths remain unchanged.
+
+## 2026-09-16 - Artifact publication-plan checkpoint
+
+`artifact_publication.py` adds a storage-neutral publication decision that can
+only be produced from a verified `ArtifactIntegrityReceipt`. It requires
+immutable create-if-absent semantics, reuses an already-present content
+address without overwriting it, and exposes pin requirements from the manifest
+retention class. It performs no storage I/O and does not claim atomicity until a
+future adapter implements and tests that operation.
+
+The exact implementation tree passed all 107 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Runtime artifact storage, retention
+enforcement, persistence, API, worker, Compose, Nautilus, frontend,
+integration, promotion, and deployment paths remain unchanged.

@@ -95,6 +95,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `ArtifactManifest` using raw-byte SHA-256 and exact byte length, returning a
   digest-bound receipt with typed mismatch reasons. Retrieval, atomic
   publication, retention, and storage I/O remain adapter/worker concerns.
+- `artifact_publication.py` turns verified receipts into a storage-neutral
+  create-if-absent or reuse-existing plan and exposes whether the retention
+  class requires a pin. It never overwrites an existing content address or
+  performs publication itself.
 - `allocation.py` resolves event-aligned component target-position intents using
   typed policies, preserves existing component-attributed positions, records
   deterministic conflicts, and returns proposed versus risk-approved account targets.
