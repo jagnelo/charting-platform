@@ -185,6 +185,12 @@ remaining_gaps:
     trial expiry, and weight-window semantics remain enforced as documented
     rather than replaced by a generic quota.
   - >-
+    The current-head full-matrix admission audit at source `221b1e2a` stopped
+    before transport with 0/0 cases and zero provider requests. It retains the
+    fail-closed provider quota/baseline/reset, live-operation disposition,
+    legal/source, byte/cost, universe, secret-store, and shadow blockers;
+    bounded native usage passes are not treated as broader acceptance.
+  - >-
     Binance's explicit account-usage bootstrap passed 1/1 and its subsequent
     bounded manifest matrix passed 3/3 at source
     `1d54845c4af8aabff2e16e876f81d3473f5b90c5`, making 7 upstream requests and

@@ -30,6 +30,17 @@
   and Binance's provider-specific weight window remain governed by their
   existing contracts; no new generic quota was inferred.
 
+## 2026-09-16 current-head admission audit
+
+- The current-head full-matrix preflight at source `221b1e2a` stopped before
+  transport with `0/0` cases and zero provider requests. It continues to fail
+  closed on provider-specific quota/baseline/reset contracts, unresolved live
+  operation dispositions, legal/source controls (including Massive, Coinbase,
+  FRED, xStocks, Bybit, Dinari, and FINRA OTC), byte/cost bounds, and the
+  deployment/secret/universe/shadow gates.
+- This receipt is safety evidence only. Passing the bounded native usage cases
+  does not promote any provider beyond the exact dimensions they proved.
+
 ## 2026-09-16 OpenFIGI native usage reconciliation
 
 - OpenFIGI now exposes a bounded `fetch_account_usage` observation that uses
