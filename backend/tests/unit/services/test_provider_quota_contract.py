@@ -155,6 +155,28 @@ def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
     assert coinbase["quota_contract"]["dimensions"][0]["window_seconds"] == 1
 
 
+def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced():
+    alpaca = provider_rate_limit_seed("alpaca")["quota_contract"]
+    assert alpaca["dimensions"][0]["limit"] == 200
+    assert alpaca["reset"] == "provider_defined"
+    assert alpaca["unknown_dimensions"] == ["historical_api_call_window_reset"]
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="account",
+        quota_source="Alpaca market data API documentation",
+        quota_contract=alpaca,
+    )
+    assert "quota_contract.unknown_dimensions.historical_api_call_window_reset" in (
+        quota_contract_missing_dimensions(policy)
+    )
+
+    massive = provider_rate_limit_seed("massive")["quota_contract"]
+    assert massive["dimensions"][0]["limit"] == 5
+    assert massive["reset"] == "provider_defined"
+    assert massive["unknown_dimensions"] == ["requests_per_minute_reset_boundary"]
+
+
 @pytest.mark.asyncio
 async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db, monkeypatch):
     monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")

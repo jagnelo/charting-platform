@@ -538,7 +538,10 @@ async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypa
     db.commit()
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
-    assert any(item.provider_name == "alpaca" for item in chain)
+    # Positive transport evidence cannot override the unresolved provider
+    # reset boundary; the contract must be promoted with exact window
+    # evidence before Alpaca can enter the runtime chain.
+    assert all(item.provider_name != "alpaca" for item in chain)
 
 
 @pytest.mark.asyncio

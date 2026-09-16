@@ -1,5 +1,21 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 provider reset-boundary hardening
+
+- Alpaca and Massive now retain their published per-minute ceilings (200 and
+  5 respectively) but no longer encode `rolling_or_provider_defined`, which
+  the runtime could interpret as rolling. Each contract records its unresolved
+  reset boundary explicitly and remains non-routable until exact active-window
+  evidence is admitted. Alpaca's response-header reconciliation remains
+  available; this change does not invent a reset or alter provider adapters.
+- Provider catalog rows now state the unresolved reset semantics and the
+  resulting routing gate. Added regression coverage for both contracts and
+  updated the Alpaca live-evidence test to ensure transport success cannot
+  override the unresolved contract.
+- Focused quota/runtime tests passed `150/150`; the complete isolated backend
+  unit suite passed `2,312/2,312` with 37 warnings. No provider request,
+  deployment, frontend change, or ETF-provider adapter change occurred.
+
 ## 2026-09-16 current-source MarketData.app live receipt
 
 - The bounded credentialed MarketData.app matrix passed `7/7` at source

@@ -285,7 +285,13 @@ class Settings(BaseSettings):
                         "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
                     }
                 ],
-                "reset": "rolling_or_provider_defined",
+                # Alpaca publishes the 200/minute ceiling and exposes reset
+                # headers, but the plan documentation does not establish the
+                # initial window boundary. Do not interpret a compound label
+                # as a guessed rolling window before exact evidence is
+                # admitted.
+                "reset": "provider_defined",
+                "unknown_dimensions": ["historical_api_call_window_reset"],
             },
             "tokens_per_minute": 200,
             "quota_scope": "account",
@@ -304,7 +310,12 @@ class Settings(BaseSettings):
                         "source": "https://massive.com/stocks",
                     }
                 ],
-                "reset": "rolling_or_provider_defined",
+                # Massive publishes five calls/minute but does not document
+                # whether the minute pool is fixed or rolling. Keep the
+                # conservative ceiling visible while routing remains closed
+                # until the active reset boundary is evidenced.
+                "reset": "provider_defined",
+                "unknown_dimensions": ["requests_per_minute_reset_boundary"],
             },
             "tokens_per_minute": 5,
             "quota_scope": "api_key",
