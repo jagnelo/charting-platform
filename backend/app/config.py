@@ -375,6 +375,12 @@ class Settings(BaseSettings):
                     }
                 ],
                 "reset": "rolling",
+                "endpoint_constraints": {
+                    "mapping": {
+                        "max_jobs_per_request": 5,
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                },
             },
             "tokens_per_minute": 25,
             "quota_scope": "ip_or_api_key",
@@ -2726,6 +2732,63 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     """
 
     seed = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {}))
+    if provider_name == "openfigi":
+        # OpenFIGI publishes separate request and payload limits for
+        # anonymous and API-key traffic. Select the exact contract for the
+        # current environment; never approximate the keyed six-second burst
+        # as a generic per-minute fallback.
+        authenticated = bool(str(getattr(settings, "OPENFIGI_API_KEY", "") or "").strip())
+        contract = seed.get("quota_contract")
+        if isinstance(contract, dict):
+            if authenticated:
+                contract["dimensions"] = [
+                    {
+                        "name": "mapping_requests_per_6_seconds",
+                        "limit": 25,
+                        "window_seconds": 6,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "quota_group": "api_key",
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                ]
+                contract["endpoint_constraints"] = {
+                    "mapping": {
+                        "max_jobs_per_request": 100,
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                }
+                # Keep the policy-level provenance stable so an existing
+                # anonymous row refreshes to the keyed contract on restart;
+                # the dimension itself carries the exact API-key scope.
+                seed["quota_scope"] = "ip_or_api_key"
+                seed["quota_source"] = "OpenFIGI API documentation"
+                # Durable reservations enforce the exact six-second window;
+                # the legacy minute bucket cannot represent its burst safely.
+                seed.pop("tokens_per_minute", None)
+            else:
+                contract["dimensions"] = [
+                    {
+                        "name": "mapping_requests_per_minute",
+                        "limit": 25,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "quota_group": "ip",
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                ]
+                contract["endpoint_constraints"] = {
+                    "mapping": {
+                        "max_jobs_per_request": 5,
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                }
+                seed["quota_scope"] = "ip_or_api_key"
+                seed["quota_source"] = "OpenFIGI API documentation"
+                seed["tokens_per_minute"] = 25
+            seed["quota_contract"] = contract
+        return seed
     if provider_name == "marketdata_app":
         reviewed_plan = marketdata_app_reviewed_plan()
         if reviewed_plan is not None:

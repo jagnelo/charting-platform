@@ -11,6 +11,7 @@ from app.providers.errors import (
     ProviderRateLimitError,
     ProviderResponseError,
     provider_response_headers,
+    provider_retry_at_from_headers,
     raise_for_provider_error_envelope,
     redact_provider_message,
 )
@@ -120,23 +121,20 @@ class OpenFigiProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
+        response_capacity_headers = provider_response_headers(response)
         if hasattr(response, "raise_for_status"):
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
                 status_code = getattr(response, "status_code", None)
-                headers = {
-                    key.lower(): value
-                    for key, value in dict(getattr(response, "headers", {}) or {}).items()
-                    if key.lower() in {"retry-after", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"}
-                }
                 message = redact_provider_message(str(exc))
                 if status_code in {418, 429}:
                     raise ProviderRateLimitError(
                         self.name,
                         message or "OpenFIGI request rate-limited",
+                        retry_at=provider_retry_at_from_headers(response_capacity_headers),
                         status_code=status_code,
-                        headers=headers,
+                        headers=response_capacity_headers,
                     ) from exc
                 raise ProviderResponseError(
                     self.name,
@@ -147,7 +145,11 @@ class OpenFigiProvider:
             status_code = getattr(response, "status_code", None)
             if status_code in {418, 429}:
                 raise ProviderRateLimitError(
-                    self.name, "OpenFIGI request rate-limited", status_code=status_code
+                    self.name,
+                    "OpenFIGI request rate-limited",
+                    retry_at=provider_retry_at_from_headers(response_capacity_headers),
+                    status_code=status_code,
+                    headers=response_capacity_headers,
                 )
             raise ProviderResponseError(
                 self.name, "OpenFIGI request failed", status_code=status_code
@@ -158,7 +160,7 @@ class OpenFigiProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "OpenFIGI returned invalid JSON") from exc
         raise_for_provider_error_envelope(
-            self.name, raw_payload, response.status_code, headers=provider_response_headers(response)
+            self.name, raw_payload, response.status_code, headers=response_capacity_headers
         )
         if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
             raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")

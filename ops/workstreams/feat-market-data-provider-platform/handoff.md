@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 OpenFIGI keyed/anonymous quota contract audit
+
+- Current official OpenFIGI documentation distinguishes anonymous and keyed
+  mapping traffic: anonymous is limited to 25 requests/minute and five
+  jobs/request; keyed mapping is 25 requests/6 seconds and 100 jobs/request.
+  Native `ratelimit-limit`, `ratelimit-remaining`, and `ratelimit-reset`
+  headers are preserved, and HTTP 429 denotes an exhausted window.
+- The runtime seed now selects the exact anonymous IP-scoped contract when
+  `OPENFIGI_API_KEY` is empty and the exact API-key-scoped six-second contract
+  when it is configured. The keyed path intentionally does not synthesize a
+  legacy per-minute token bucket; durable reservations enforce the published
+  six-second window. Focused contract coverage verifies both paths.
+- No OpenFIGI credential was added or exposed; the existing bounded keyless
+  live matrix remains the only external transport evidence.
+
 ## 2026-09-16 exact-current coordinator-backed safety preflight
 
 - At source `13585d253`, the live runner was replayed with owner-local access

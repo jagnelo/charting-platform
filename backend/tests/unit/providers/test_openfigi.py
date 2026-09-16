@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from app.providers.base import InstrumentProfile
-from app.providers.errors import ProviderResponseError
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.telemetry import activate, deactivate
 
@@ -140,6 +140,37 @@ def test_openfigi_transport_failure_is_typed(monkeypatch):
     with pytest.raises(ProviderResponseError) as exc_info:
         OpenFigiProvider().fetch_stable_identifiers("AAPL")
     assert exc_info.value.provider_name == "openfigi"
+
+
+def test_openfigi_rate_limit_preserves_standard_headers_and_retry(monkeypatch):
+    class RateLimitedClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def post(self, *args, **kwargs):
+            response = FakeResponse({}, status_code=429)
+            response.headers = {
+                "ratelimit-limit": "25",
+                "ratelimit-remaining": "0",
+                "ratelimit-reset": "6",
+            }
+            return response
+
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", RateLimitedClient)
+    with pytest.raises(ProviderRateLimitError) as exc_info:
+        OpenFigiProvider().fetch_stable_identifiers("AAPL")
+    assert exc_info.value.headers == {
+        "ratelimit-limit": "25",
+        "ratelimit-remaining": "0",
+        "ratelimit-reset": "6",
+    }
+    assert exc_info.value.retry_at is not None
 
 
 def test_openfigi_invalid_json_is_typed(monkeypatch):

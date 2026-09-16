@@ -161,6 +161,15 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    OpenFIGI's current official contract is exact for both traffic modes:
+    anonymous mapping is 25 requests/minute with five jobs/request, while an
+    API key is 25 requests per six seconds with 100 jobs/request. Runtime
+    selection is environment-specific and uses the keyed contract only when
+    `OPENFIGI_API_KEY` is present; no credentialed live proof exists because
+    no OpenFIGI key has been supplied. Native `ratelimit-*` headers remain
+    observable and typed 429 handling remains required for current transport
+    evidence.
+  - >-
     Direct credentialed account-usage probes now hand exact native snapshots
     for MarketData.app and Twelve Data into the durable coordinator after the
     live reservation settles, so those two active pools no longer remain

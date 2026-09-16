@@ -1185,6 +1185,32 @@ def test_nasdaq_directory_uses_a_client_imposed_daily_ceiling_not_a_vendor_quota
     assert "does not publish a numeric quota" in provider_rate_limit_seed("nasdaq")["quota_source"]
 
 
+def test_openfigi_switches_between_exact_anonymous_and_keyed_contracts(monkeypatch):
+    monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "")
+    anonymous = provider_rate_limit_seed("openfigi")
+    anonymous_dimension = anonymous["quota_contract"]["dimensions"][0]
+    assert anonymous_dimension["name"] == "mapping_requests_per_minute"
+    assert anonymous_dimension["limit"] == 25
+    assert anonymous_dimension["window_seconds"] == 60
+    assert anonymous_dimension["scope"] == "ip"
+    assert anonymous["tokens_per_minute"] == 25
+    assert anonymous["quota_contract"]["endpoint_constraints"]["mapping"][
+        "max_jobs_per_request"
+    ] == 5
+
+    monkeypatch.setattr(settings, "OPENFIGI_API_KEY", "reviewed-key")
+    keyed = provider_rate_limit_seed("openfigi")
+    keyed_dimension = keyed["quota_contract"]["dimensions"][0]
+    assert keyed_dimension["name"] == "mapping_requests_per_6_seconds"
+    assert keyed_dimension["limit"] == 25
+    assert keyed_dimension["window_seconds"] == 6
+    assert keyed_dimension["scope"] == "api_key"
+    assert "tokens_per_minute" not in keyed
+    assert keyed["quota_contract"]["endpoint_constraints"]["mapping"][
+        "max_jobs_per_request"
+    ] == 100
+
+
 def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["marketdata_app"]
     contract = seed["quota_contract"]
