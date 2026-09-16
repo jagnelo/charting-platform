@@ -610,6 +610,33 @@ def test_alpaca_credentialed_latest_price():
     assert price is not None and price > 0
 
 
+def test_alpaca_credentialed_account_usage_snapshot():
+    """Observe Alpaca's native request-window headers without charging data routing."""
+
+    _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
+    usage, measurement = _observed_read(
+        lambda: AlpacaProvider().fetch_account_usage(),
+        "alpaca",
+        "fetch_account_usage",
+    )
+    assert usage is not None
+    assert usage.provider == "alpaca"
+    assert usage.account_plan == "market_data_headers"
+    assert measurement.http_requests == 1
+    dimensions = {dimension.name: dimension for dimension in usage.dimensions}
+    assert set(dimensions) == {"market_data_requests_per_minute"}
+    window = dimensions["market_data_requests_per_minute"]
+    assert window.limit is not None and window.limit > 0
+    assert window.remaining is not None and 0 <= window.remaining <= window.limit
+    assert window.consumed == window.limit - window.remaining
+    assert window.reset_at is not None and window.reset_at.tzinfo is not None
+    # Alpaca's reset semantics are deliberately still unresolved for ordinary
+    # routing; this snapshot is observation-only until that boundary is
+    # reviewed. The runner must not claim baseline reconciliation here.
+    reconciliation = reconcile_native_account_usage("alpaca", usage)
+    assert [item["status"] for item in reconciliation] == ["not_reconciled"]
+
+
 def test_alpaca_credentialed_profile():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     profile, _ = _observed_read(

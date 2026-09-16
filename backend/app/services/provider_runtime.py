@@ -581,6 +581,12 @@ def _account_usage_bootstrap_dimension_costs(
                 policy=policy,
                 dimension_name=str(dimension["name"]),
             )
+        except ProviderQuotaUnknownError:
+            # A provider-defined reset is intentionally unresolved during
+            # bootstrap. Treat that pool as unknown for this zero-cost native
+            # observation; do not turn the observation into a guessed window.
+            unknown.add(str(dimension["name"]))
+            continue
         except (
             ProviderQuotaAdmissionError,
             ProviderQuotaCoordinatorError,
@@ -1437,6 +1443,45 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     )
 
 
+def policy_allows_account_usage_bootstrap(
+    policy: ProviderPolicy, operation: str | None
+) -> bool:
+    """Allow only a native usage snapshot when the provider pool is unresolved.
+
+    This exception is deliberately narrower than normal quota admission.  A
+    provider must opt in with ``account_usage_bootstrap``, expose at least one
+    finite usage dimension plus a separate concurrency lease for the snapshot,
+    and have no untracked constraints.  The finite pool is reserved at zero
+    until its native counters are observed; ordinary data operations still
+    require ``policy_has_known_quota``.
+    """
+
+    if operation != "fetch_account_usage":
+        return False
+    contract = dict(getattr(policy, "quota_contract", None) or {})
+    bootstrap = contract.get("account_usage_bootstrap")
+    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+        return False
+    if not str(bootstrap.get("source") or "").strip():
+        return False
+    if contract.get("unknown_dimensions") or contract.get("untracked_constraints"):
+        return False
+    dimensions = quota_dimensions(policy)
+    if not dimensions:
+        return False
+    finite = False
+    concurrency = False
+    for dimension in dimensions:
+        if not _dimension_applies_to_operation(dimension, operation):
+            continue
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit in {"concurrent_requests", "concurrency"}:
+            concurrency = True
+        else:
+            finite = True
+    return finite and concurrency
+
+
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
     """Parse standard retry/reset headers without inventing a provider delay."""
 
@@ -1927,10 +1972,16 @@ async def resolve_provider_chain(
         if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= now:
             continue
         if not policy_has_known_quota(policy):
-            # An adapter may be perfectly valid code while its current plan,
-            # key/IP scope, or window is unknown.  That is an observable
-            # configuration state, never a reason to guess a safe default.
-            continue
+            # A provider-native account snapshot may be the mechanism that
+            # establishes the first exact usage observation.  Permit only the
+            # explicit zero-cost bootstrap contract; ordinary data operations
+            # remain fail-closed while the provider reset semantics are
+            # unresolved.
+            if not (
+                capability == ProviderCapability.ACCOUNT_USAGE
+                and policy_allows_account_usage_bootstrap(policy, operation)
+            ):
+                continue
         if operation is not None and not provider_contract_operation_cost_known(
             policy,
             data_source,
@@ -2497,6 +2548,8 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
         diagnostic_operation = (
             "fetch_instrument_events"
             if policy.capability == ProviderCapability.INSTRUMENT_EVENTS
+            else "fetch_account_usage"
+            if policy.capability == ProviderCapability.ACCOUNT_USAGE
             else "__capability__"
         )
         routing_control_settings = provider_routing_control_settings(
@@ -2504,6 +2557,12 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
         )
         missing_routing_controls = provider_missing_routing_controls(
             data_source.name, diagnostic_operation
+        )
+        quota_known = policy_has_known_quota(policy)
+        bootstrap_only = (
+            not quota_known
+            and policy.capability == ProviderCapability.ACCOUNT_USAGE
+            and policy_allows_account_usage_bootstrap(policy, "fetch_account_usage")
         )
         status_rows.append(
             {
@@ -2524,7 +2583,13 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "quota_scope": policy.quota_scope,
                 "quota_source": policy.quota_source,
                 "quota_verified_at": policy.quota_verified_at,
-                "quota_state": "known" if policy_has_known_quota(policy) else "unknown",
+                "quota_state": (
+                    "known"
+                    if quota_known
+                    else "bootstrap_only"
+                    if bootstrap_only
+                    else "unknown"
+                ),
                 "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
                 "operation_costs_configured": provider_contract_operation_costs_configured(
                     policy, data_source
@@ -2544,7 +2609,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "live_probe_status": entitlement.live_probe_status,
                 "routing_eligible": bool(
                     policy.is_enabled
-                    and policy_has_known_quota(policy)
+                    and (quota_known or bootstrap_only)
                     and provider_is_configured(data_source.name)
                     and not missing_routing_controls
                     and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"

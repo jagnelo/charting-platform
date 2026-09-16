@@ -18,7 +18,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.providers.base import ProviderAccountUsage
+from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
 from app.providers.registry import get_provider_usage_profile
 from app.providers.telemetry import observe_response
 from app.services.provider_quota_coordinator import provider_quota_coordinator_summary
@@ -797,6 +797,74 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
     summary = provider_quota_coordinator_summary(provider_name="marketdata_app")
     assert all(row["dimension"] != "credits_per_day" for row in summary["windows"])
     assert any(row["dimension"] == "concurrent_requests" for row in summary["windows"])
+
+
+@pytest.mark.asyncio
+async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting_data(
+    db, monkeypatch
+):
+    """Alpaca's native header snapshot is allowed without guessing its reset window."""
+
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "configured-secret")
+
+    await seed_provider_runtime(async_db)
+    account_usage_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.ACCOUNT_USAGE,
+        operation="fetch_account_usage",
+    )
+    assert any(item.provider_name == "alpaca" for item in account_usage_chain)
+
+    price_chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        operation="fetch_ohlcv:D1",
+        operation_cost_overrides={"alpaca": 1},
+    )
+    assert all(item.provider_name != "alpaca" for item in price_chain)
+
+    observed_at = datetime.now(UTC).replace(microsecond=0)
+    result = await execute_provider_call(
+        async_db,
+        ProviderCapability.ACCOUNT_USAGE,
+        "fetch_account_usage",
+        provider_name="alpaca",
+        invoke=lambda _provider, _symbol: ProviderAccountUsage(
+            provider="alpaca",
+            observed_at=observed_at,
+            unit="requests",
+            limit=200,
+            remaining=199,
+            consumed=1,
+            reset_at=observed_at + timedelta(seconds=30),
+            account_plan="market_data_headers",
+            dimensions=(
+                ProviderAccountUsageDimension(
+                    name="market_data_requests_per_minute",
+                    unit="requests",
+                    limit=200,
+                    remaining=199,
+                    consumed=1,
+                    reset_at=observed_at + timedelta(seconds=30),
+                ),
+            ),
+        ),
+        response_items=lambda value: 1 if value is not None else 0,
+        treat_empty_as_failure=True,
+    )
+
+    assert result.provider_name == "alpaca"
+    summary = provider_quota_coordinator_summary(provider_name="alpaca")
+    assert any(
+        row["dimension"] == "account_usage_probe_concurrency"
+        for row in summary["windows"]
+    )
+    assert all(
+        row["dimension"] != "market_data_requests_per_minute"
+        for row in summary["windows"]
+    )
 
 
 @pytest.mark.asyncio

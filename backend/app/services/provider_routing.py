@@ -28,6 +28,7 @@ from app.models.provider_runtime import ProviderCapability
 from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ResolvedProvider,
+    policy_allows_account_usage_bootstrap,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
     provider_history_entitlement_matches,
@@ -378,7 +379,11 @@ async def reserve_provider_contract(
     if dimension_units is not None and not isinstance(dimension_units, dict):
         return None
     if not policy_has_known_quota(resolved.policy):
-        return None
+        if not (
+            capability == ProviderCapability.ACCOUNT_USAGE.value
+            and policy_allows_account_usage_bootstrap(resolved.policy, "fetch_account_usage")
+        ):
+            return None
     windows: list[ProviderQuotaWindow] = []
     reset = str((resolved.policy.quota_contract or {}).get("reset") or "")
     in_flight_dimensions = {

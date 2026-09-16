@@ -154,6 +154,7 @@ class TestRegistryCapabilities:
 
     def test_alpaca_capabilities(self):
         caps = set(list_provider_capabilities("alpaca"))
+        assert "account_usage" in caps
         assert "price_history" in caps
         assert "adjusted_price_history" in caps
         assert "latest_price" in caps
@@ -328,6 +329,62 @@ class TestAlpacaCredentialWarning:
                     datetime(2024, 1, 1, tzinfo=UTC),
                     datetime(2024, 2, 1, tzinfo=UTC),
                 )
+
+    def test_account_usage_observes_native_request_window_headers(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.headers = {
+            "x-ratelimit-limit": "200",
+            "x-ratelimit-remaining": "199",
+            "x-ratelimit-reset": str(int(datetime.now(UTC).timestamp()) + 30),
+        }
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"bars": {"AAPL": {"c": 1}}}
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            usage = AlpacaProvider().fetch_account_usage()
+
+        assert usage is not None
+        assert usage.provider == "alpaca"
+        assert usage.account_plan == "market_data_headers"
+        assert usage.dimensions[0].name == "market_data_requests_per_minute"
+        assert usage.dimensions[0].limit == 200
+        assert usage.dimensions[0].remaining == 199
+        assert usage.dimensions[0].consumed == 1
+        assert usage.reset_at is not None and usage.reset_at.tzinfo is not None
+        assert get.call_args.args[0] == "https://data.alpaca.markets/v2/stocks/bars/latest"
+
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"x-ratelimit-limit": "200", "x-ratelimit-remaining": "199"},
+            {
+                "x-ratelimit-limit": "200",
+                "x-ratelimit-remaining": "199",
+                "x-ratelimit-reset": "not-an-epoch",
+            },
+        ],
+    )
+    def test_account_usage_rejects_missing_or_malformed_reset_header(self, headers):
+        response = MagicMock()
+        response.status_code = 200
+        response.headers = headers
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"bars": {"AAPL": {"c": 1}}}
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError, match="native limit/remaining/reset"):
+                AlpacaProvider().fetch_account_usage()
 
     def test_discover_universe_page_raises_when_no_credentials(self):
         provider = AlpacaProvider()

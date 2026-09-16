@@ -161,7 +161,8 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
     alpaca = provider_rate_limit_seed("alpaca")["quota_contract"]
     assert alpaca["dimensions"][0]["limit"] == 200
     assert alpaca["reset"] == "provider_defined"
-    assert alpaca["unknown_dimensions"] == ["historical_api_call_window_reset"]
+    assert alpaca["dimensions"][0]["name"] == "market_data_requests_per_minute"
+    assert alpaca["account_usage_bootstrap"]["enabled"] is True
     policy = ProviderPolicy(
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,
@@ -169,7 +170,7 @@ def test_alpaca_and_massive_minute_reset_boundaries_fail_closed_until_evidenced(
         quota_source="Alpaca market data API documentation",
         quota_contract=alpaca,
     )
-    assert "quota_contract.unknown_dimensions.historical_api_call_window_reset" in (
+    assert "quota_contract.dimensions[0].reset.unresolved" in (
         quota_contract_missing_dimensions(policy)
     )
 
@@ -2155,6 +2156,7 @@ def test_single_request_provider_profiles_are_explicit():
             "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
             "get_instrument_profile": 1,
+            "fetch_account_usage": 1,
         },
         "massive": {
             "search_instruments": 1,

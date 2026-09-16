@@ -212,7 +212,7 @@ class Settings(BaseSettings):
         # capability/quota gates as data reads. These adapters remain opt-in
         # at the worker level; this list only makes them resolvable when an
         # operator explicitly requests a snapshot.
-        "account_usage": ["marketdata_app", "twelve_data", "eodhd", "binance"],
+        "account_usage": ["marketdata_app", "twelve_data", "eodhd", "binance", "alpaca"],
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
         # configurations are filtered by provider capability at runtime too.
@@ -276,22 +276,38 @@ class Settings(BaseSettings):
             "quota_contract": {
                 "dimensions": [
                     {
-                        "name": "historical_api_calls",
+                        "name": "market_data_requests_per_minute",
                         "limit": 200,
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "account",
                         "quota_group": "account",
                         "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
-                    }
+                    },
+                    {
+                        "name": "account_usage_probe_concurrency",
+                        "limit": 1,
+                        "window_seconds": 1,
+                        "unit": "concurrent_requests",
+                        "scope": "deployment",
+                        "quota_group": "account_usage_probe",
+                        "source": "application_policy:provider_native_baseline_bootstrap",
+                        "reset": "rolling",
+                        "applies_to_operations": ["fetch_account_usage"],
+                    },
                 ],
                 # Alpaca publishes the 200/minute ceiling and exposes reset
                 # headers, but the plan documentation does not establish the
                 # initial window boundary. Do not interpret a compound label
                 # as a guessed rolling window before exact evidence is
-                # admitted.
+                # admitted. The explicitly enabled account-usage bootstrap
+                # can make one uncharged native-header observation while the
+                # ordinary provider pool remains unroutable.
                 "reset": "provider_defined",
-                "unknown_dimensions": ["historical_api_call_window_reset"],
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "source": "application_policy:provider_native_baseline_bootstrap",
+                },
             },
             "tokens_per_minute": 200,
             "quota_scope": "account",
@@ -1135,6 +1151,10 @@ class Settings(BaseSettings):
                 "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
                 "get_instrument_profile": 1,
+                # The native usage snapshot is one bounded market-data read;
+                # its provider request pool is excluded during bootstrap and
+                # only the local concurrency lease is charged.
+                "fetch_account_usage": 1,
             },
         },
         "massive": {

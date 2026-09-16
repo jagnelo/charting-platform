@@ -34,10 +34,13 @@ from app.providers.base import (
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
 )
 from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderResponseError,
+    provider_response_headers,
     redact_provider_message,
 )
 from app.providers.telemetry import observe_response
@@ -129,6 +132,78 @@ class AlpacaProvider:
             raise ProviderNotConfiguredError(
                 "alpaca requires ALPACA_API_KEY and ALPACA_SECRET_KEY"
             )
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None:
+        """Observe Alpaca's native market-data request-window headers.
+
+        Alpaca does not expose a separate account-usage endpoint.  A bounded
+        latest-bar request is therefore used solely as a native usage
+        observation.  The response must include the provider's exact limit,
+        remaining count, and future epoch reset header; missing or malformed
+        headers fail closed.  The configured policy still decides whether the
+        observed pool may be used for ordinary routing.
+        """
+
+        self._require_configured()
+        url = f"{_DATA_BASE}/stocks/bars/latest"
+        params = {"symbols": "AAPL", "feed": settings.ALPACA_DATA_FEED}
+        try:
+            response = httpx.get(url, params=params, headers=self._headers(), timeout=30)
+            observe_response(response)
+            response.raise_for_status()
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, "Alpaca account-usage transport failure") from exc
+
+        headers = provider_response_headers(response)
+        try:
+            limit = int(headers["x-ratelimit-limit"])
+            remaining = int(headers["x-ratelimit-remaining"])
+            reset_epoch = int(headers["x-ratelimit-reset"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "Alpaca omitted its native limit/remaining/reset headers",
+            ) from exc
+
+        observed_at = datetime.now(UTC)
+        try:
+            reset_at = datetime.fromtimestamp(reset_epoch, tz=UTC)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name, "Alpaca returned an invalid native reset timestamp"
+            ) from exc
+        if (
+            limit <= 0
+            or remaining < 0
+            or remaining > limit
+            or reset_epoch <= 0
+            or reset_at <= observed_at
+        ):
+            raise ProviderResponseError(
+                self.name, "Alpaca returned invalid native request-window counters"
+            )
+
+        dimension = ProviderAccountUsageDimension(
+            name="market_data_requests_per_minute",
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+            account_plan="market_data_headers",
+            dimensions=(dimension,),
+        )
 
     # ── Price History ─────────────────────────────────────────────────────────
 

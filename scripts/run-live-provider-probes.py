@@ -130,6 +130,10 @@ LIVE_PROVIDER_CASES = {
             "test_alpaca_credentialed_intraday_history",
         ),
         ("test_market_data_providers_live.py", "test_alpaca_credentialed_latest_price"),
+        (
+            "test_market_data_providers_live.py",
+            "test_alpaca_credentialed_account_usage_snapshot",
+        ),
         ("test_market_data_providers_live.py", "test_alpaca_credentialed_profile"),
         (
             "test_market_data_providers_live.py",
@@ -363,6 +367,7 @@ LIVE_REQUIRED_OPERATIONS = {
     "alpaca": {
         "fetch_ohlcv",
         "get_current_price",
+        "fetch_account_usage",
         "get_instrument_profile",
         "discover_universe_page",
         "fetch_instrument_events",
@@ -2679,14 +2684,16 @@ def main() -> int:
     selected_providers = set(arguments.provider or [])
     account_usage_only = bool(getattr(arguments, "account_usage_only", False))
     if account_usage_only and selected_providers not in (
+        {"alpaca"},
         {"marketdata_app"},
         {"twelve_data"},
         {"eodhd"},
         {"binance"},
     ):
         print(
-            "account-usage-only requires exactly one of --provider marketdata_app, "
-            "--provider twelve_data, --provider eodhd, or --provider binance"
+            "account-usage-only requires exactly one of --provider alpaca, "
+            "marketdata_app, --provider twelve_data, --provider eodhd, or "
+            "--provider binance"
         )
         return 2
     if arguments.allow_staged_candidate and (
