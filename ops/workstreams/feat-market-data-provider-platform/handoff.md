@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 exact-source receipts after reset hardening
+
+- Replayed the bounded MarketData.app suite at source
+  `fb8fc4a6737eb257a6f9766d1e3a0c433bf183dc`; all `7/7` selected cases passed
+  and the runner settled usage through the shared durable local coordinator.
+- Replayed the EODHD selected-provider preflight at the same source; it exited
+  `2` before transport because both EODHD active pools still lack exact current
+  baselines. The redacted receipt also preserves the unrelated safety gates.
+- These receipts supersede earlier non-current-source live evidence. No
+  additional EODHD request was made by the preflight, and no deployment,
+  routing activation, frontend, or ETF-adapter change occurred.
+
 ## 2026-09-16 provider reset-boundary hardening
 
 - Alpaca and Massive now retain their published per-minute ceilings (200 and
