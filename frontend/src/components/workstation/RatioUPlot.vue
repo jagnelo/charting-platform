@@ -9,8 +9,8 @@
       </template>
       <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label><span>{{ status }}</span>
     </div>
-    <div v-if="error" class="ratio-chart__state ratio-chart__state--error">{{ error }}</div>
-    <div v-else-if="!hasPoints" class="ratio-chart__state">No aligned local bars.</div>
+    <div v-if="error" class="ratio-chart__state ratio-chart__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
+    <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">No aligned local bars.</div>
     <div v-else ref="host" class="ratio-chart__host" />
     <small v-if="warning" class="ratio-chart__warning">{{ warning }}</small>
   </div>
