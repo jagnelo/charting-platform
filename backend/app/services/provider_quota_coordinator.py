@@ -1734,7 +1734,11 @@ def _reservation_plan_for_live_probe(
 ) -> tuple[str, dict[str, int], list[dict[str, Any]]]:
     """Build the exact same kind of provider-specific plan for direct probes."""
 
-    from app.config import provider_quota_reset_is_known, provider_rate_limit_seed
+    from app.config import (
+        provider_quota_reset_is_admission_safe,
+        provider_quota_reset_is_known,
+        provider_rate_limit_seed,
+    )
     from app.providers.registry import get_provider_usage_profile
     from app.services.provider_routing import _window_start_for_dimension
 
@@ -1818,11 +1822,11 @@ def _reservation_plan_for_live_probe(
                 str(value) for value in applies_to
             }:
                 continue
-        if "reset" in dimension and not provider_quota_reset_is_known(
-            dimension.get("reset")
-        ):
+        effective_reset = dimension.get("reset", contract.get("reset"))
+        if not provider_quota_reset_is_admission_safe(effective_reset):
+            suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
             raise ProviderQuotaAdmissionError(
-                f"provider dimension reset semantics are unreviewed for live operation {provider_name}/{operation}/{name}"
+                f"provider dimension reset semantics are {suffix} for live operation {provider_name}/{operation}/{name}"
             )
         unit = str(dimension.get("unit") or "").lower()
         if name in bootstrap_unknown:

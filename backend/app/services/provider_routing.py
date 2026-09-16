@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import provider_quota_reset_is_admission_safe
 from app.models.market_data_foundation import (
     ProviderQuotaIdentity,
     ProviderQuotaWindow,
@@ -65,6 +66,10 @@ def _window_start_for_dimension(
 
     window_start = None
     dimension_reset = str(dimension.get("reset") or reset)
+    if not provider_quota_reset_is_admission_safe(dimension_reset):
+        raise ProviderQuotaUnknownError(
+            f"provider quota reset boundary is unresolved: {dimension_reset or 'missing'}"
+        )
     window_seconds = int(dimension["window_seconds"])
     if dimension_reset == "calendar_month_est" and window_seconds >= 2_500_000:
         eastern = now.astimezone(ZoneInfo("America/New_York"))

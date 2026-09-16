@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import (
     marketdata_app_reviewed_plan,
     provider_positive_integer,
+    provider_quota_reset_is_admission_safe,
     provider_quota_reset_is_known,
     provider_rate_limit_seed,
     settings,
@@ -1344,8 +1345,10 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
                 valid = bool(str(value or "").strip())
             if not valid:
                 missing.append(f"{prefix}.{field_name}")
-        if "reset" in item and not provider_quota_reset_is_known(item.get("reset")):
-            missing.append(f"{prefix}.reset.unknown")
+        effective_reset = item.get("reset", contract.get("reset"))
+        if not provider_quota_reset_is_admission_safe(effective_reset):
+            suffix = "unknown" if not provider_quota_reset_is_known(effective_reset) else "unresolved"
+            missing.append(f"{prefix}.reset.{suffix}")
     return missing
 
 
@@ -1378,7 +1381,16 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     # this includes policy-level scope/source provenance and prevents a
     # complete-looking JSON contract loaded from an older or externally edited
     # row from bypassing the same fail-closed checks used by admin updates.
-    return not quota_contract_missing_dimensions(policy) and bool(quota_dimensions(policy))
+    dimensions = quota_dimensions(policy)
+    if quota_contract_missing_dimensions(policy) or not dimensions:
+        return False
+    contract = dict(policy.quota_contract or {})
+    return all(
+        provider_quota_reset_is_admission_safe(
+            item.get("reset", contract.get("reset"))
+        )
+        for item in dimensions
+    )
 
 
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:

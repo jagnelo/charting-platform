@@ -2403,6 +2403,15 @@ _KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
     }
 )
 
+_UNRESOLVED_PROVIDER_QUOTA_RESETS = frozenset(
+    {
+        "provider_defined",
+        "provider_defined_daily",
+        "provider_defined_minute_and_rolling_second",
+        "rolling_or_provider_defined",
+    }
+)
+
 
 def provider_quota_reset_is_known(value: object) -> bool:
     """Return whether a quota reset name has reviewed window semantics.
@@ -2416,6 +2425,19 @@ def provider_quota_reset_is_known(value: object) -> bool:
 
     candidate = str(value or "").strip()
     return candidate in _KNOWN_PROVIDER_QUOTA_RESETS
+
+
+def provider_quota_reset_is_admission_safe(value: object) -> bool:
+    """Return whether a reset label identifies a calculable boundary.
+
+    ``provider_defined`` is intentionally a valid audit/schema label, but it
+    is not a runtime window.  The provider must either document the boundary
+    or an operator must replace it with an explicit calendar/fixed/rolling
+    contract before reservation code may calculate a window.
+    """
+
+    candidate = str(value or "").strip()
+    return provider_quota_reset_is_known(candidate) and candidate not in _UNRESOLVED_PROVIDER_QUOTA_RESETS
 
 
 def marketdata_app_reviewed_plan_pair() -> tuple[str, int] | None:

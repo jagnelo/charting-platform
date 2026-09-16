@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-16 — Provider-defined quota reset admission hardening
+
+- [x] Prevent unresolved provider-defined reset labels from being interpreted
+      as rolling or epoch windows. The shared admission predicate now permits
+      those labels only as auditable, unverified policy state; runtime and
+      direct live-probe reservations require an explicit calculable reset for
+      every dimension. Explicit dimension-level calendar/fixed/rolling resets
+      remain supported. Focused quota coverage passed `101/101`, and the full
+      backend unit gate passed `2,324/2,324` with 70.68% coverage. Provider
+      baseline, legal/source, deployment-secret, universe, and shadow gates
+      remain separate and fail-closed.
+
 ### 2026-09-16 — Direct live account-usage baseline handoff
 
 - [x] Make the direct live account-usage probes reconcile exact native

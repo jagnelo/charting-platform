@@ -161,6 +161,16 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    The reset-safety hardening at the current implementation source separates
+    schema/audit labels from admission-safe reset boundaries. Provider-defined
+    labels can remain visible in an unverified contract, but neither runtime
+    nor direct live-probe reservations can convert them into rolling or epoch
+    buckets; every dimension must carry an explicit calculable boundary before
+    routing. Focused quota coverage passed `101/101`, and the full backend unit
+    gate passed `2,324/2,324` with 70.68% coverage. This closes a repository-
+    controlled safety gap but does not resolve the provider-owned reset
+    evidence or other remaining live/legal/source/secret/shadow gates.
+  - >-
     The exact committed-source full-matrix preflight at `427579521` stopped
     before transport with zero provider requests. It records `99` provider
     quota/cost/baseline blockers, `7` required live capability-safety blockers,

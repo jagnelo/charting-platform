@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 unresolved reset labels now fail closed in every reservation path
+
+- The quota contract now distinguishes an auditable `provider_defined` label
+  from an admission-safe calculable reset. Unresolved provider-defined,
+  provider-defined-daily, composed provider-defined, and rolling-or-provider-
+  defined labels cannot become rolling or epoch buckets in either runtime
+  reservations or direct live-probe reservations.
+- Explicit dimension-level calendar/fixed/rolling resets remain usable even
+  when a parent contract is `per_dimension` or provider-defined. Admins may
+  still store unresolved contracts as unverified review state, but routing and
+  live transport remain fail-closed and diagnostics retain their dimensions.
+- Focused quota coverage passed `101/101`; the full backend unit gate passed
+  `2,324/2,324` with 70.68% coverage and 37 warnings. Ruff, diff, and
+  workstream validation passed. No provider calls or credentials were used.
+
 ## 2026-09-16 exact-current safety preflight after quota-reset documentation correction
 
 - At committed source `da65066bc`, the owner-ledger lock-protected full

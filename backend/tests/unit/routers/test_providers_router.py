@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
 from app.config import settings
@@ -180,12 +181,18 @@ class TestProvidersRouter:
         assert missing_contract.status_code == 400
         assert "explicit replacement" in missing_contract.json()["detail"]
 
+        reviewed_replacement = deepcopy(quota_target["quota_contract"])
+        # The seeded Finnhub policy intentionally keeps its minute/second
+        # reset boundary provider-defined. A complete admin replacement must
+        # supply an explicit boundary for every dimension before admission.
+        for dimension in reviewed_replacement["dimensions"]:
+            dimension["reset"] = "rolling"
         complete_contract = client.patch(
             quota_url,
             headers=admin_headers,
             json={
                 "tokens_per_minute": 60,
-                "quota_contract": quota_target["quota_contract"],
+                "quota_contract": reviewed_replacement,
                 "quota_source": quota_target["quota_source"],
             },
         )
@@ -224,7 +231,7 @@ class TestProvidersRouter:
             quota_url,
             headers=admin_headers,
             json={
-                "quota_contract": quota_target["quota_contract"],
+                "quota_contract": reviewed_replacement,
                 "quota_scope": quota_target["quota_scope"],
                 "quota_source": quota_target["quota_source"],
             },

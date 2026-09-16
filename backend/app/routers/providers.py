@@ -479,6 +479,7 @@ async def update_provider_policy(
                 "quota_contract.untracked_constraints.",
             )
         )
+        and not item.endswith(".reset.unresolved")
     ]
     if quota_fields.intersection(changes):
         if "quota_contract" not in changes:

@@ -10,6 +10,7 @@ import app.config as app_config
 from app.config import (
     FRED_MAPPED_SERIES_IDS,
     Settings,
+    provider_quota_reset_is_admission_safe,
     provider_quota_reset_is_known,
     provider_rate_limit_seed,
     settings,
@@ -23,6 +24,7 @@ from app.providers.registry import (
     supported_provider_names,
 )
 from app.services.provider_routing import (
+    _window_start_for_dimension,
     reserve_provider_contract,
     reserve_provider_quota,
     settle_provider_contract,
@@ -359,6 +361,8 @@ def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
 
 def test_unknown_quota_reset_semantics_fail_closed_in_runtime_contract():
     assert provider_quota_reset_is_known("provider_defined_daily")
+    assert not provider_quota_reset_is_admission_safe("provider_defined_daily")
+    assert provider_quota_reset_is_admission_safe("rolling")
     assert not provider_quota_reset_is_known("one_request_per_whatever")
     policy = ProviderPolicy(
         data_source_id=1,
@@ -381,6 +385,22 @@ def test_unknown_quota_reset_semantics_fail_closed_in_runtime_contract():
     )
     assert not quota_dimensions(policy)
     assert "quota_contract.reset.unknown" in quota_contract_missing_dimensions(policy)
+
+
+def test_unresolved_provider_reset_cannot_be_converted_to_a_local_window():
+    with pytest.raises(ProviderQuotaUnknownError, match="reset boundary is unresolved"):
+        _window_start_for_dimension(
+            {
+                "name": "requests_per_day",
+                "limit": 1,
+                "window_seconds": 86400,
+                "unit": "requests",
+                "scope": "api_key",
+                "source": "operator-dashboard",
+            },
+            reset="provider_defined",
+            now=datetime(2026, 9, 5, 12, tzinfo=UTC),
+        )
 
 
 def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
@@ -2356,7 +2376,7 @@ async def test_calendar_day_reservation_changes_at_utc_midnight(db):
 
 
 @pytest.mark.asyncio
-async def test_provider_defined_daily_reservation_uses_conservative_rolling_boundary(db):
+async def test_provider_defined_daily_reservation_fails_closed_without_boundary(db):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(name="provider-defined-daily", is_active=True)
     db.add(source)
@@ -2409,9 +2429,10 @@ async def test_provider_defined_daily_reservation_uses_conservative_rolling_boun
         units=1,
         now=start + timedelta(seconds=86400 + 1),
     )
-    assert first is not None
+    assert first is None
     assert before_expiry is None
-    assert after_expiry is not None
+    assert after_expiry is None
+    assert db.execute(select(ProviderQuotaWindow)).scalars().all() == []
 
 
 @pytest.mark.asyncio
