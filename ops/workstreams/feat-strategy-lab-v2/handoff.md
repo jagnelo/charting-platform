@@ -2291,3 +2291,20 @@ entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
 deployment paths remain unchanged. The next bounded slice remains an
 engine-neutral contract within the package-owned boundary; preserve the
 execution-admission and ownership gates.
+
+## 2026-09-16 - Adapter-supplied liquidity gate checkpoint
+
+`liquidity_risk.py` now layers an explicit liquidity gate over stress, margin,
+and order routing. Each instrument capacity binds available quantity, available
+base notional, estimated slippage, and valuation evidence. The gate aggregates
+the full routed batch per instrument, rejects missing capacity, and withholds
+every order on participation or slippage breaches while preserving upstream
+rejections. It does not infer volume, construct fills, or promise execution
+quality.
+
+The exact implementation tree passed all 478 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Database/API routes, durable worker
+entrypoints, Compose, Nautilus runtime, frontend, integration, promotion, and
+deployment paths remain unchanged. The next bounded slice remains an
+engine-neutral contract within the package-owned boundary; preserve the
+execution-admission and ownership gates.

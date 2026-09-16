@@ -146,6 +146,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   over the margin/routing decision. Loss-fraction and minimum-equity policy
   breaches withhold the entire batch while retaining shock/evidence identities;
   the package does not construct shocks or claim a solvency verdict.
+- `liquidity_risk.py` layers adapter-supplied available quantity/notional and
+  slippage evidence over stress, margin, and routing. Per-instrument batch
+  participation and slippage ceilings are evaluated all-or-nothing; missing
+  capacity is explicit and the contract makes no fill-quality guarantee.
 - `order_routing.py` converts explicit `OrderIntent` quantities into
   digest-bound, adapter-supplied product-risk base-notional estimates, validates
   lot/tick/currency/model evidence, and applies the same all-or-nothing shared
