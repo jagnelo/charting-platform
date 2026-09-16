@@ -57,8 +57,23 @@
   unresolved full-range disposition. The first live execution showed the
   exact 30-day interval uses two pages, so the reviewed test bound is two
   request weights rather than one. Focused runner unit coverage passed
-  `37/37`; the corrected live transport evidence is pending a clean
-  committed source and a just-in-time native one-minute baseline refresh.
+  `37/37`. After a just-in-time native one-minute baseline refresh, the
+  corrected current-source live matrix passed `3/3` (keyless history,
+  bounded daily history, and native account usage); the receipt is redacted
+  and records the two-request bound without widening arbitrary-history costs.
+
+## 2026-09-16 complete backend unit validation after Binance coverage
+
+- The exact feature checkout passed the complete backend unit suite:
+  `2,329 passed`, `37 warnings`, `70.69%` total coverage, in `191.53s`.
+  This includes the live-runner manifest and Binance bounded-history
+  regressions. No provider calls were made by the unit suite and no
+  credentials or payloads entered Git.
+- The unqualified integration suite remains environment-blocked when its
+  Testcontainers setup cannot access the local Docker socket; this unit result
+  does not claim Docker-backed or full-provider acceptance. Provider-specific
+  quota/baseline, legal/source, universe, deployment-secret, and shadow gates
+  remain open.
 
 - At committed source `4d1ed8622`, the just-in-time native usage refresh and
   expanded Binance matrix both passed. The matrix covered latest history,
