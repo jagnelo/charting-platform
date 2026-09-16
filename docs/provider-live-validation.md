@@ -1563,6 +1563,7 @@ truncation, and falls back from last trade to midpoint/bid/ask only when those
 provider fields are present. The corrected rerun passed `7/7` cases (account
 usage, daily and five-minute candles, option expirations/chain, bounded
 historical option quotes, the deliberate no-request guard, and latest price).
-The receipt is current transport/schema evidence only because the worktree is
-uncommitted; the Starter Trial `10,000/day` plan and its configured expiry
-remain the authoritative local quota contract.
+The receipt is exact committed provider-source evidence for
+`2f6e7384a57eafa9c284c88880d18f402a2c261e`; the later `d59819476` commit only
+records the receipt and handoff. The Starter Trial `10,000/day` plan and its
+configured expiry remain the authoritative local quota contract.
