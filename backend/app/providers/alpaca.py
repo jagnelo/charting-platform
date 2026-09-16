@@ -147,6 +147,11 @@ class AlpacaProvider:
         self._require_configured()
         url = f"{_DATA_BASE}/stocks/bars/latest"
         params = {"symbols": "AAPL", "feed": settings.ALPACA_DATA_FEED}
+        # Capture the observation instant before transport. Alpaca's reset
+        # epoch may be crossed while the response is in flight; comparing it
+        # only with post-response wall time would reject a valid boundary that
+        # was still future when the provider evaluated the request.
+        observed_at = datetime.now(UTC)
         try:
             response = httpx.get(url, params=params, headers=self._headers(), timeout=30)
             observe_response(response)
@@ -167,7 +172,6 @@ class AlpacaProvider:
                 "Alpaca omitted its native limit/remaining/reset headers",
             ) from exc
 
-        observed_at = datetime.now(UTC)
         try:
             reset_at = datetime.fromtimestamp(reset_epoch, tz=UTC)
         except (OverflowError, OSError, ValueError) as exc:
