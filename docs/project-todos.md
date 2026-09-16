@@ -17710,3 +17710,13 @@ The current source also passes the focused authenticated top-down browser slice 
       populate the three controls in each environment, then replay the EODHD
       live matrix from the committed source. A passing `/user` snapshot alone
       does not promote the conflicting minute pool.
+
+### 2026-09-17 — Docker-backed integration validation
+
+- [x] Re-run `make test-int` at source `5fd3544b6` after the EODHD quota
+      coordinator/bootstrap fixes. All `386` PostgreSQL/Redis integration
+      tests passed in `354.16s`; the isolated testcontainer session was
+      cleaned without host-wide pruning and no provider credentials or live
+      calls were used.
+- [ ] Provider-specific quota/legal/source, complete-universe, target secret
+      store, deployment, routing-promotion, and final shadow gates remain open.

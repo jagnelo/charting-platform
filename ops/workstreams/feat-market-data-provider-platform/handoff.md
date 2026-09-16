@@ -1,5 +1,17 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 PostgreSQL/Redis integration validation
+
+- The Docker-backed `make test-int` gate passed `386` integration tests in
+  `354.16s` against isolated PostgreSQL/Redis testcontainers at source
+  `5fd3544b6`. Repository cleanup removed the branch-scoped test session
+  without host-wide pruning; no provider live calls or credentials were used.
+- This validates the finalized EODHD coordinator change through the
+  database-backed integration boundary in addition to the `2,362/2,362` unit
+  gate. It does not promote provider routing or close the remaining
+  owner-controlled quota, legal/source, universe, secret-store, deployment,
+  or shadow gates.
+
 ## 2026-09-16 EODHD bounded bootstrap live verification
 
 - Commits `d190251d1` and `b97533bf8` close the planner gap identified by the first safety

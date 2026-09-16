@@ -723,6 +723,15 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 Docker-backed integration validation at source
+      `5fd3544b64cc38851c2a82a44cfe54128dba7e73`: `make test-int` passed all
+      `386` PostgreSQL/Redis integration tests in `354.16s`. The isolated
+      testcontainer session was cleaned without host-wide pruning and no
+      provider credentials or live calls were used. This strengthens backend
+      integration evidence for the finalized EODHD coordinator path but does
+      not close provider/legal/source, complete-universe, secret-store,
+      deployment, routing-promotion, or shadow gates.
+    - >-
       2026-09-16 exact-current full live preflight after the Tiingo correction:
       source `feff096d8` passed the owner-ledger lock/health checks and
       stopped before transport with exit `2`, `0/0` cases, and zero provider
