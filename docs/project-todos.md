@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-16 — Alpaca fixed historical-start entitlement
+
+- [x] Model Alpaca Basic's documented stock/ETF history start (`2016-01-01`)
+      as a fixed `earliest_date` constraint rather than leaving bulk hydration
+      at an epoch sentinel or approximating the bound as a drifting number of
+      years. Routing and bulk-fetch admission share the same parser, and
+      malformed, future, mixed, or missing bound forms fail closed. Focused
+      routing/bulk coverage passes `43/43`; Ruff passes. Provider quota reset,
+      account-baseline, terms, and live transport gates remain separate.
+
 ### 2026-09-16 — `per_dimension` reset and live-preflight fail-closed handling
 
 - [x] Treat `per_dimension` as an unresolved meta-label unless every

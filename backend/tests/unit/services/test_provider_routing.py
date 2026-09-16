@@ -40,12 +40,44 @@ def test_history_entitlement_enforces_calendar_year_bound():
     ) == (False, "history_depth_exceeded")
 
 
+def test_history_entitlement_accepts_fixed_provider_earliest_date():
+    entitlement = _history_entitlement(
+        history_constraints={
+            "earliest_date": "2016-01-01",
+            "source": "reviewed",
+        }
+    )
+    assert provider_history_entitlement_matches(
+        entitlement,
+        datetime(2016, 1, 1, tzinfo=UTC),
+        now=datetime(2026, 9, 16, tzinfo=UTC),
+    ) == (True, None)
+    assert provider_history_entitlement_matches(
+        entitlement,
+        datetime(2015, 12, 31, 23, 59, tzinfo=UTC),
+        now=datetime(2026, 9, 16, tzinfo=UTC),
+    ) == (False, "history_depth_exceeded")
+    future_entitlement = _history_entitlement(
+        history_constraints={"earliest_date": "2027-01-01", "source": "reviewed"}
+    )
+    assert provider_history_entitlement_matches(
+        future_entitlement,
+        datetime(2026, 9, 16, tzinfo=UTC),
+        now=datetime(2026, 9, 16, tzinfo=UTC),
+    ) == (False, "history_depth_invalid")
+
+
 @pytest.mark.parametrize(
     ("quota_policy", "expected_reason"),
     [
         ({}, "history_depth_unknown"),
         ({"history_constraints": {}}, "history_depth_invalid"),
         ({"history_constraints": {"max_lookback_years": True}}, "history_depth_invalid"),
+        ({"history_constraints": {"earliest_date": "not-a-date"}}, "history_depth_invalid"),
+        (
+            {"history_constraints": {"earliest_date": "2016-01-01", "max_lookback_years": 2}},
+            "history_depth_invalid",
+        ),
         (
             {"history_constraints": {"max_lookback_years": 2, "max_lookback_days": 730}},
             "history_depth_invalid",

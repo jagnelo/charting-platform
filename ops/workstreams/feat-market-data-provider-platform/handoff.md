@@ -1,5 +1,18 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 Alpaca fixed historical-start contract
+
+- Alpaca's official Basic market-data plan publishes US stock/ETF historical
+  data since 2016. The entitlement now records the fixed
+  `earliest_date=2016-01-01` bound, and both normal history routing and
+  epoch-style bulk hydration use the shared parser. The implementation does
+  not convert that published calendar start into a drifting relative-years
+  approximation.
+- Missing, malformed, future, mixed, and ambiguous bound forms remain
+  fail-closed. Focused routing/bulk coverage passed `43/43` and Ruff passed.
+  No provider calls or credentials were used; Alpaca quota-reset/baseline,
+  entitlement/terms, and exact-source transport gates remain open.
+
 ## 2026-09-16 exact-current preflight after `per_dimension` hardening
 
 - At committed source `620b96701`, the owner-local durable-ledger

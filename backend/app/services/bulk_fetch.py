@@ -21,7 +21,7 @@ Design principles:
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -59,7 +59,10 @@ from app.services.market_data import (
     _record_bar_observations,
     _touch_ohlcv_dataset_state,
 )
-from app.services.provider_runtime import execute_provider_call
+from app.services.provider_runtime import (
+    execute_provider_call,
+    provider_history_bound_start,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -125,22 +128,8 @@ def _provider_bulk_history_start(provider_name: str, end: datetime) -> datetime:
     if not isinstance(constraints, dict):
         return EPOCH_START
 
-    raw_years = constraints.get("max_lookback_years")
-    raw_days = constraints.get("max_lookback_days")
-    if (raw_years is None) == (raw_days is None):
-        return EPOCH_START
-    raw_value = raw_years if raw_years is not None else raw_days
-    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
-        return EPOCH_START
-    if raw_years is not None:
-        try:
-            return normalized_end.replace(year=normalized_end.year - raw_value)
-        except ValueError:
-            # Preserve the runtime entitlement check's conservative leap-day
-            # convention instead of requesting one day beyond the reviewed
-            # calendar-year boundary.
-            return normalized_end.replace(year=normalized_end.year - raw_value, month=2, day=28)
-    return normalized_end - timedelta(days=raw_value)
+    earliest, _reason = provider_history_bound_start(constraints, now=normalized_end)
+    return earliest or EPOCH_START
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

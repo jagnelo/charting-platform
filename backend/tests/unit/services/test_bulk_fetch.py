@@ -62,7 +62,9 @@ def test_bulk_history_start_uses_reviewed_provider_bound_and_fails_closed_for_un
     assert bulk_fetch._provider_bulk_history_start("ibkr", end) == bulk_fetch.datetime(
         2011, 9, 16, tzinfo=bulk_fetch.UTC
     )
-    assert bulk_fetch._provider_bulk_history_start("alpaca", end) == bulk_fetch.EPOCH_START
+    assert bulk_fetch._provider_bulk_history_start("alpaca", end) == bulk_fetch.datetime(
+        2016, 1, 1, tzinfo=bulk_fetch.UTC
+    )
 
 
 def test_bars_through_end_rejects_future_provider_rows():

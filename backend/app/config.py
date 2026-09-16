@@ -1588,7 +1588,13 @@ class Settings(BaseSettings):
             "is_free": True,
             "authentication_required": True,
             "usage_terms": "Free IEX feed with plan/quota and redistribution restrictions; review before deployment.",
-            "history_depth": "Plan-dependent historical bars",
+            "history_depth": "Basic stock/ETF history since 2016; latest data is limited to the documented delayed feed",
+            "quota_policy": {
+                "history_constraints": {
+                    "earliest_date": "2016-01-01",
+                    "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
+                }
+            },
             "venue_coverage": "IEX US equities; provider-defined universe",
             "freshness_semantics": "Delayed/limited free feed",
         },

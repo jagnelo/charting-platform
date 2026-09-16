@@ -161,6 +161,12 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
+    Alpaca Basic's official stock/ETF history start is now represented as a
+    fixed `earliest_date=2016-01-01` entitlement bound, shared by normal
+    routing and bulk hydration. Focused routing/bulk coverage passed `43/43`
+    and Ruff passed. The provider's quota-reset/baseline, terms, and exact
+    current-source transport gates remain independently open.
+  - >-
     The exact-current preflight at committed source `620b96701` stopped before
     transport with exit `2`, `0/0` cases, and zero provider requests after the
     `per_dimension` hardening. It records `94` provider-specific

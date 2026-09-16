@@ -8,7 +8,8 @@ import time
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from datetime import time as wall_time
 from decimal import Decimal
 from typing import Any, TypeVar
 
@@ -189,8 +190,9 @@ def provider_history_entitlement_matches(
     ``history_depth`` is intentionally descriptive and cannot safely answer a
     routing question. A provider that wants to admit a bounded historical
     request must therefore publish a machine-readable ``history_constraints``
-    object in its entitlement ``quota_policy``. The supported bounds are
-    calendar years (for plans documented as "N years") and calendar days.
+    object in its entitlement ``quota_policy``. The supported bounds are a
+    fixed provider-advertised ``earliest_date``, calendar years (for plans
+    documented as "N years"), and calendar days.
     Missing, ambiguous, or malformed constraints remain non-routable rather
     than becoming an invented allowance.
     """
@@ -204,21 +206,56 @@ def provider_history_entitlement_matches(
     if not isinstance(constraints, dict):
         return False, "history_depth_unknown"
 
-    raw_years = constraints.get("max_lookback_years")
-    raw_days = constraints.get("max_lookback_days")
-    has_years = raw_years is not None
-    has_days = raw_days is not None
-    if has_years == has_days:
-        return False, "history_depth_invalid"
-    raw_value = raw_years if has_years else raw_days
-    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
-        return False, "history_depth_invalid"
-
     current = _as_utc(now or datetime.now(UTC))
     requested = _as_utc(history_start)
     if requested > current:
         return False, "history_start_invalid"
-    if has_years:
+    earliest, reason = provider_history_bound_start(constraints, now=current)
+    if earliest is None:
+        return False, reason or "history_depth_invalid"
+    if requested < earliest:
+        return False, "history_depth_exceeded"
+    return True, None
+
+
+def provider_history_bound_start(
+    constraints: dict[str, Any], *, now: datetime
+) -> tuple[datetime | None, str | None]:
+    """Resolve one reviewed history constraint to its earliest timestamp.
+
+    Exactly one bound form is accepted. A fixed ``earliest_date`` is used for
+    providers that publish a calendar start instead of a relative lookback;
+    malformed or future values fail closed rather than becoming an unlimited
+    request.
+    """
+
+    current = _as_utc(now)
+    raw_earliest = constraints.get("earliest_date")
+    raw_years = constraints.get("max_lookback_years")
+    raw_days = constraints.get("max_lookback_days")
+    present = [
+        raw_earliest is not None,
+        raw_years is not None,
+        raw_days is not None,
+    ]
+    if sum(present) != 1:
+        return None, "history_depth_invalid"
+    if raw_earliest is not None:
+        if not isinstance(raw_earliest, str) or not raw_earliest.strip():
+            return None, "history_depth_invalid"
+        try:
+            parsed = date.fromisoformat(raw_earliest.strip())
+        except ValueError:
+            return None, "history_depth_invalid"
+        earliest = datetime.combine(parsed, wall_time.min, tzinfo=UTC)
+        if earliest > current:
+            return None, "history_depth_invalid"
+        return earliest, None
+
+    raw_value = raw_years if raw_years is not None else raw_days
+    if isinstance(raw_value, bool) or not isinstance(raw_value, int) or raw_value <= 0:
+        return None, "history_depth_invalid"
+    if raw_years is not None:
         try:
             earliest = current.replace(year=current.year - raw_value)
         except ValueError:
@@ -227,9 +264,7 @@ def provider_history_entitlement_matches(
             earliest = current.replace(year=current.year - raw_value, month=2, day=28)
     else:
         earliest = current - timedelta(days=raw_value)
-    if requested < earliest:
-        return False, "history_depth_exceeded"
-    return True, None
+    return earliest, None
 
 
 @dataclass(slots=True)

@@ -172,9 +172,12 @@ re-reviewed when credentials or billing plans change.
 Historical routing also requires a machine-readable lookback contract in the
 provider entitlement. The descriptive `history_depth` field remains useful for
 operator diagnostics, but it cannot admit a date-bounded request by itself.
-Providers with a documented finite lookback publish
-`quota_policy.history_constraints.max_lookback_years` (or the equivalent
-`max_lookback_days`); malformed, missing, or ambiguous bounds fail closed.
+Providers with a documented finite lookback publish exactly one of
+`quota_policy.history_constraints.earliest_date` (for a fixed provider-
+advertised calendar start), `max_lookback_years`, or the equivalent
+`max_lookback_days`; malformed, missing, future, or ambiguous bounds fail
+closed. A fixed date is preferred when the provider publishes a calendar start
+so the contract does not drift as the current date advances.
 Normal bounded OHLCV fetches pass their requested start date through this gate.
 Epoch-style bulk hydration intentionally omits that admission bound so each
 provider can return the maximum history it actually exposes, with the result
@@ -865,6 +868,11 @@ fail-closed until a positive, conservative `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`
 bound is reviewed for the deployment; the bound is reserved as the worst-case
 request cost and the adapter raises before issuing an unreserved page. Direct
 live probes may still exercise the full cursor with the default zero control.
+
+The official Basic market-data plan publishes US stock/ETF historical data
+since 2016, with the free feed's documented delayed/latest-data restriction.
+The entitlement therefore uses the fixed machine-readable bound
+`earliest_date=2016-01-01`; bulk history never sends an invented epoch start.
 
 **Capabilities**
 
