@@ -110,6 +110,10 @@ LIVE_PROVIDER_CASES = {
         ("test_market_data_providers_live.py", "test_binance_keyless_crypto_history"),
         (
             "test_market_data_providers_live.py",
+            "test_binance_keyless_bounded_daily_history",
+        ),
+        (
+            "test_market_data_providers_live.py",
             "test_binance_keyless_account_usage_snapshot",
         ),
     ),
@@ -344,6 +348,7 @@ LIVE_REQUIRED_OPERATIONS = {
     },
     "nasdaq": {"discover_universe_page"},
     "binance": {
+        "fetch_ohlcv",
         "fetch_latest_ohlcv",
         "get_current_price",
         "discover_universe_page",
@@ -506,6 +511,10 @@ LIVE_OPERATION_COST_OVERRIDES = {
         # request weight (including the wrapper's lookback padding); this is
         # a test-case bound, not a runtime default for arbitrary ranges.
         "fetch_latest_ohlcv": 2,
+        # A direct 30-day daily range fits in one Binance klines page. Keep
+        # this bound attached to that exact live case; wider ranges must use a
+        # caller-supplied estimate rather than inheriting it.
+        "fetch_ohlcv": 1,
     },
     "coinbase": {
         # The bounded manifest requests one daily candle.  Coinbase's
@@ -618,9 +627,7 @@ LIVE_OPERATION_DISPOSITIONS = {
         "search_instruments": "deferred by user: IBKR account/session integration is not admitted",
         "futures_history": "deferred by user: IBKR account/session integration is not admitted",
     },
-    "binance": {
-        "fetch_ohlcv": "deferred: full-range aggregation case not yet approved",
-    },
+    "binance": {},
     "coinbase": {
         "fetch_ohlcv": "blocked: Coinbase market-data legal-use authority missing",
         "get_current_price": "blocked: Coinbase market-data legal-use authority missing",

@@ -485,6 +485,24 @@ def test_binance_keyless_crypto_history():
     assert universe["quotes"] and universe["total"] >= len(universe["quotes"])
 
 
+def test_binance_keyless_bounded_daily_history():
+    """Exercise the direct range path separately from latest-window history."""
+
+    end = datetime.now(UTC)
+    start = end - timedelta(days=30)
+    rows, measurement = _observed_read(
+        lambda: BinanceProvider().fetch_ohlcv(
+            "BTC-USD", Timeframe.D1, start, end, adjusted=False
+        ),
+        "binance",
+        "fetch_ohlcv",
+        operation_cost_override=1,
+    )
+    assert measurement.http_requests == 1
+    assert rows and rows[-1].close > 0
+    assert all(row.ts.tzinfo is not None for row in rows)
+
+
 def test_binance_keyless_account_usage_snapshot():
     """Exercise Binance's native fixed-minute request-weight counter."""
 

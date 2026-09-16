@@ -47,6 +47,17 @@
   native usage endpoint is not being misrepresented as complete provider
   acceptance; only the exact eligible Binance dimension changed state.
 
+## 2026-09-16 Binance direct-range live coverage
+
+- Added a manifest-backed direct `fetch_ohlcv` case for a bounded 30-day
+  daily BTC-USD range. The case reserves exactly one Binance request weight
+  for that one-page range and does not become a runtime cost default for
+  arbitrary history windows.
+- The Binance operation is now a required live operation rather than an
+  unresolved full-range disposition. Focused runner unit coverage passed
+  `37/37`; live transport evidence is pending a clean committed source and
+  a just-in-time native one-minute baseline refresh.
+
 ## 2026-09-16 exact-current preflight after Alpaca history contract
 
 - At committed source `0220ae07e`, the owner-local durable-ledger preflight
