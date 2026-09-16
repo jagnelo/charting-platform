@@ -219,9 +219,62 @@ This operational checkpoint updates only the following branch-owned records:
 - `ops/workstreams/feat-strategy-lab-v2/session.json`
 - `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
 
-## Active changeset - Trial seed-sharing and replicate provenance
+## 2026-09-16 - Replicate seed and sensitivity evidence checkpoints
 
-This next implementation context owns only
+The seed-provenance implementation is committed locally as
+`6ec5074e696a4333dd9fe5b59ec0f693fb0477f9`, with its separate ops record at
+`cefa6c468501c990676587f0e39287f9976bc56b`. It adds deterministic replicate
+seed schedules while preserving the default single-trial identity and legacy
+seed path. Focused validation passed 60 package tests, Ruff, MyPy (18 source
+files), and `git diff --check`.
+
+The sensitivity-evidence implementation is committed locally as
+`69faca1941157ff1597e209ce6d2679af08fcd70`, with its separate ops record at
+`f19db3e634b822f1cf27257e18d7ea33b3332137`. It distinguishes unpaired runs,
+shared-seed provenance, and unverified keyed-stream pairing claims; it does not
+assert statistical independence or calculate numeric deltas. Focused validation
+passed 60 package tests, Ruff, MyPy (18 source files), and `git diff --check`;
+the workstream validator passed all 30 records after the checkpoint update.
+
+The recorded origin remains
+`d2497f43084d52d3e66b40a91be25dd2678620be`. The private-origin publication
+hold remains unchanged: no push was attempted for these exact ranges and no
+alternate publication route is authorized.
+
+## Scope recorded - stable metric calculation identity and run evidence
+
+This bounded engine-neutral context owns only
+`backend/app/strategy_lab_v2/contracts.py`,
+`backend/app/strategy_lab_v2/metrics.py`,
+`backend/app/strategy_lab_v2/tests/test_metrics.py`,
+`backend/app/strategy_lab_v2/tests/test_observations.py`, and
+`docs/strategy-lab-v2.md`. It introduces a versioned structured
+calculation definition and typed evidence references on calculated metrics.
+The stable calculation fingerprint excludes observed values, sample sizes,
+display strings, and run evidence; per-family effective parameters are recorded
+where they change calculation semantics. Formula version v6 remains unchanged.
+No metric deltas, statistical inference, comparator, API, persistence, worker,
+runtime, Compose, frontend, provider, ETF, TC2000, or shared path is included.
+
+Exact focused checks pass: 62 Strategy Lab v2 tests (`--no-cov` to avoid the
+repository-wide coverage threshold on this focused selection), Ruff, MyPy (18
+source files), and `git diff --check`. Independent read-only review initially
+found an overbroad annualization parameter on cadence-independent metrics; it
+was narrowed to annualized/risk-adjusted metrics and re-reviewed with no
+remaining P0-P2 issue. The formula compatibility test now confirms that changing
+`periods_per_year` preserves total-return identity while changing annualized
+return identity.
+
+The five product files listed above were committed locally in
+`f34fb2564d62c8721f1b518ca093876271f3e3ca`; the later checkpoint below records
+that completed changeset. Keep the existing publication hold; do not push
+without exact-payload authorization. The enclosing operational checkpoint SHA
+will be verified externally with `git rev-parse` rather than written into
+itself.
+
+## Completed context - Trial seed-sharing and replicate provenance
+
+This implementation context owned only
 `backend/app/strategy_lab_v2/contracts.py`,
 `backend/app/strategy_lab_v2/experiments.py`,
 `backend/app/strategy_lab_v2/tests/test_core.py`, and
@@ -310,12 +363,62 @@ exact-payload authorization for the private origin is unavailable; do not
 publish through another route. The separate ops checkpoint will be committed
 after these implementation results are recorded.
 
-Next bounded slice: separate stable metric calculation semantics/configuration
-identity from run-specific observation evidence before adding numeric
-one-factor sensitivity deltas. Keep paired statistical inference deferred until
-the worker has a trusted keyed-stream verifier and aligned per-observation
-outputs. Preserve all provider, ETF, TC2000, shared runtime, persistence, API,
-worker, Compose, and frontend boundaries.
+The next bounded slice in that handoff, separating stable calculation identity
+from run-specific evidence, was implemented in
+`f34fb2564d62c8721f1b518ca093876271f3e3ca` and is recorded below. Numeric
+one-factor descriptive sensitivity deltas remain the next metric slice. Keep
+paired statistical inference deferred until the worker has a trusted keyed-
+stream verifier and aligned per-observation outputs. Preserve all provider,
+ETF, TC2000, shared runtime, persistence, API, worker, Compose, and frontend
+boundaries.
+
+This checkpoint updates only these branch-owned records:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
+
+## 2026-09-16 - Metric calculation identity and evidence checkpoint
+
+The implementation changeset is committed locally as
+`f34fb2564d62c8721f1b518ca093876271f3e3ca`. It adds a versioned structured
+calculation definition and typed evidence references to metric values. Stable
+fingerprints bind metric identity, units, basis, formula version, and only
+effective calculation parameters; observed values, sample sizes, display text,
+null state, and run-specific evidence do not alter that calculation identity.
+All eight current metric families emit stable formula IDs, Decimal context,
+effective parameters where semantically relevant, and typed input/calendar/fill/
+attribution evidence. The catalog remains v6 because estimator formulas did
+not change. This is an identity primitive, not a metric comparator.
+
+Exact focused validation passed: 62 package tests with `--no-cov`, Ruff, MyPy
+(18 source files), and `git diff --check`. The initial focused pytest invocation
+ran under the repository-wide coverage threshold and exited nonzero at 7.24%
+coverage versus the required 55%; it was rerun successfully with `--no-cov`.
+`make branch-validate` passed all 30 workstream records on the documented
+elevated retry after the default sandbox blocked UV cache metadata access.
+Independent review caught an overbroad `periods_per_year` parameter on
+cadence-independent metrics; the implementation was narrowed and re-reviewed
+with no remaining P0-P2 issue. This package-only evidence does not satisfy the
+full-stack/DB/Redis/API/worker/Compose/Nautilus acceptance gates.
+
+The local branch is 20 commits ahead of recorded
+`origin/feat/strategy-lab-v2` at
+`d2497f43084d52d3e66b40a91be25dd2678620be`. The exact pending range ends at
+`f34fb2564d62c8721f1b518ca093876271f3e3ca`. No push was attempted: exact-payload
+authorization for the private origin remains unavailable, and no alternate
+transport is authorized. The default sandbox denied UV cache metadata access
+for repository workflow commands; the exact session-status command succeeded
+on the documented narrow elevated retry. No sandbox setting was changed, and
+no other worktree or shared/provider/frontend path was touched.
+
+Next bounded implementation context: add run-scoped descriptive one-factor
+metric deltas using `MetricValue.calculation_fingerprint` to require compatible
+calculation semantics. Preserve unpaired/shared-seed provenance labels; do not
+claim statistical significance or paired inference without trusted keyed-stream
+verification and aligned per-observation outputs. Only the three branch-owned
+workstream records below remain in this checkpoint; stop this session after
+the ops checkpoint per the repository soft-stop rule.
 
 This checkpoint updates only these branch-owned records:
 
