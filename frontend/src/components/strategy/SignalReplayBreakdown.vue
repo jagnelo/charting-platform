@@ -49,7 +49,7 @@
       </p>
     </div>
   </div>
-  <div v-else class="signal-replay__empty">
+  <div v-else class="signal-replay__empty" role="status" aria-live="polite" aria-atomic="true">
     {{ emptyLabel }}
   </div>
 </template>
