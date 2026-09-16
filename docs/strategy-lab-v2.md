@@ -91,6 +91,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   one immutable `ExecutionAuthorization`. A future worker must obtain this
   authorization before invoking an engine adapter; it carries no source bytes,
   secrets, or external-service handles.
+- `forward_state.py` provides immutable, fingerprinted forward checkpoints with
+  processed, buffered, correction, duplicate, and out-of-order evidence.
+  Accepted/gap/correction records are idempotent when replayed, while anomaly
+  counts remain observable for each newly observed event.
 - `sdk.py` exposes declared read-only inputs and typed order/target-position
   intents. Every declared field is required on each provided event; intent
   validation checks the strategy's declared instrument scope.

@@ -305,4 +305,4 @@ progress:
   total: 18
   current_phase: engine-neutral-core
   current_blocker: none
-  next_action: inspect and implement the next bounded engine-neutral forward-state persistence/idempotency contract slice; preserve the execution-authorization gate, static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates
+  next_action: inspect and implement the next bounded engine-neutral worker dispatch/idempotency contract slice; preserve the execution-authorization gate, static-preflight/runtime-isolation boundary, no-ranking/no-inference boundary, and all upstream/shared-path gates

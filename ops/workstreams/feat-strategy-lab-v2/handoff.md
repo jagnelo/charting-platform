@@ -1049,3 +1049,17 @@ The exact implementation tree passed all 116 Strategy Lab v2 package tests,
 Ruff, MyPy, and `git diff --check`. Forward-state persistence/idempotency,
 database/API, workers, artifact-store, Compose, Nautilus, frontend,
 integration, promotion, and deployment paths remain unchanged.
+
+## 2026-09-16 - Forward checkpoint idempotency checkpoint
+
+`forward_state.py` adds immutable, fingerprinted `ForwardStateCheckpoint`
+records containing the `ForwardInstance`, processed/buffered/correction event
+sets, and duplicate/out-of-order counters. `apply_checkpoint_observation()`
+replays accepted, gap, and correction records idempotently, removes buffered
+events only after contiguous acceptance, and never rewrites the decision
+cursor for anomalies or corrections. It performs no persistence or event I/O.
+
+The exact implementation tree passed all 120 Strategy Lab v2 package tests,
+Ruff, MyPy, and `git diff --check`. Worker dispatch/idempotency, database/API,
+artifact-store, Compose, Nautilus, frontend, integration, promotion, and
+deployment paths remain unchanged.

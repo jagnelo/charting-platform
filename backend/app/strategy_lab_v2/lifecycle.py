@@ -264,7 +264,7 @@ def apply_forward_event_observation(
             raise ValueError("accepted observation cursor must end at the event sequence")
         if observation.next_cursor.last_event_id != event.event_id:
             raise ValueError("accepted observation cursor must end at the event identity")
-        if event.sequence <= instance.last_event_sequence:
+        if instance.last_event_id is not None and event.sequence <= instance.last_event_sequence:
             raise ValueError("accepted event sequence must advance the instance cursor")
         if event.arrived_at < instance.updated_at:
             raise ValueError("event arrival time cannot move instance time backwards")
@@ -285,10 +285,16 @@ def apply_forward_event_observation(
     # A non-advancing observation may still carry a richer cursor time; the
     # instance contract stores only identity/sequence, so reject accidental
     # cursor movement rather than silently dropping it.
-    if (
-        observation.next_cursor.last_sequence != instance.last_event_sequence
-        or observation.next_cursor.last_event_id != instance.last_event_id
-    ):
+    instance_has_event = instance.last_event_id is not None
+    cursor_matches = (
+        observation.next_cursor.last_event_id == instance.last_event_id
+        and (
+            observation.next_cursor.last_sequence == instance.last_event_sequence
+            if instance_has_event
+            else observation.next_cursor.last_sequence in {-1, instance.last_event_sequence}
+        )
+    )
+    if not cursor_matches:
         raise ValueError("non-accepted observation must not advance the instance cursor")
     return instance
 
