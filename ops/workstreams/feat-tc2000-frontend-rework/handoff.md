@@ -1,5 +1,29 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-16 — R6 chart-comparison accessibility
+
+Product commit `e11ce1f47` gives the chart comparison add and remove controls
+explicit accessible names (`Add comparison` and `Remove <symbol>`), while
+preserving their existing title text, visible content, and click behavior. The
+F9c template-comparison flow now locates both controls by role/name so the
+browser assertion protects the intended accessibility contract instead of
+only the tooltip title.
+
+Focused workstation/pop-out coverage passed `31/31`; frontend `vue-tsc` and
+the production build passed (with the existing large-chunk warning);
+`git diff --check` passed; and an authenticated branch-scoped Chromium check
+confirmed the named add button, added `RSP`, named `Remove RSP` button, and
+removal back to zero matching controls. The isolated Docker stack was rebuilt
+and torn down cleanly, removing its containers, volumes, network, four
+generated images, and test sessions. No provider-platform, ETF, visual
+baseline, threshold, mask, skip, V25 media, or acceptance-policy behavior
+changed.
+
+The broader goal remains active/in progress: no TC-owned validation blocker is
+present, provider/ETF consumer integration remains deferred until both
+upstream branches reach staging, and origin synchronization remains a
+separate operational hold under the recorded private-origin safeguard.
+
 ## 2026-09-16 — R6 clone-layout accessibility and exact-tip gate receipt
 
 Product commit `a624ffaf5` gives the compact WorkstationView layout-clone `+`
