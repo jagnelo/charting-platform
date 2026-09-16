@@ -2440,3 +2440,13 @@ provider-platform branch still owns data fetching, repair, and evidence
 retrieval, while schema migrations, application/API wiring, workers, Compose,
 stable Nautilus execution, frontend integration, promotion, and deployment stay
 deferred behind their existing gates.
+
+## 2026-09-16 - Acquisition checkpoint combined-gate evidence
+
+The exact synchronized acquisition checkpoint passed all five executable branch
+checks and the repository-wide Docker-backed coverage gate. The focused suite
+now contains 503 passing tests; the combined backend suite completed 2,150
+tests with 83.00% total coverage (required threshold: 75%), and Docker setup
+and cleanup completed successfully. Ruff, MyPy, `git diff --check`, and
+workstream validation also passed. No shared provider, ETF, TC2000, runtime,
+migration, API, worker, Compose, or frontend path was changed.
