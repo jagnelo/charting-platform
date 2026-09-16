@@ -267,11 +267,61 @@ commit boundary, `HEAD` is `6ec5074e696a4333dd9fe5b59ec0f693fb0477f9` and
 `d2497f43084d52d3e66b40a91be25dd2678620be`; the exact range is
 `d2497f43084d52d3e66b40a91be25dd2678620be..6ec5074e696a4333dd9fe5b59ec0f693fb0477f9`.
 No push of this range was attempted because exact-payload authorization for the
-private origin is unavailable. Do not use an alternate transport. Exact next
-action: finish this separate operational checkpoint, then continue with an
-engine-neutral sensitivity result model that distinguishes independent,
-shared-seed-only, and genuinely paired evidence; keyed-stream eligibility stays
-deferred to engine conformance.
+private origin is unavailable. Do not use an alternate transport. The separate
+ops checkpoint for this seed-provenance slice was committed locally before the
+next sensitivity-evidence implementation recorded below. Do not treat this
+implementation-only range as a new authorization to publish the full branch.
+
+## 2026-09-16 - Sensitivity randomization-evidence checkpoint
+
+The implementation is committed locally as
+`69faca1941157ff1597e209ce6d2679af08fcd70`. It adds an engine-neutral
+`SensitivityComparisonEvidence` contract that requires successful results to
+share their fixed execution context and distinguishes `unpaired`,
+`shared_seed_only`, and `pairing_claim_unverified`. An equal integer seed alone
+does not establish a common randomization group; matched scenario/replicate seed
+provenance is required for the shared-seed-only label. A structurally complete
+keyed-stream claim binds both attempts, the engine build, trace artifacts, and a
+matched-draw artifact, but the contract deliberately cannot authenticate these
+artifacts or prove engine conformance. No verified paired-stream or statistical
+independence classification is emitted until a trusted verifier/registration
+receipt exists. Retries of one scientific trial are not treated as sensitivity
+replicates. This contract classifies randomization provenance only; it does not
+compare metric semantics, calculate metric deltas, or perform paired inference.
+
+Independent review initially identified overclaims around independence and
+unverified paired evidence, plus an invalid exact comparison of run-dependent
+metric calculation-basis strings. The implementation now uses neutral
+`unpaired` and unverified-claim levels, and separates provenance classification
+from metric compatibility. Re-review found no remaining P0-P2 issue.
+
+Exact implementation-commit validation passed: 60 package tests, Ruff, MyPy
+(18 source files), and `git diff --check`. `make branch-validate` passed all 30
+records on an elevated retry after the default sandbox denied UV cache metadata
+access; this was the repository validator only. These focused checks do not
+satisfy the DB/Redis/API/worker/Compose/Nautilus/security/full-stack acceptance
+gates.
+
+At this implementation boundary, local HEAD is
+`69faca1941157ff1597e209ce6d2679af08fcd70`, 18 commits ahead of recorded
+`origin/feat/strategy-lab-v2`
+(`d2497f43084d52d3e66b40a91be25dd2678620be`). No push was attempted because
+exact-payload authorization for the private origin is unavailable; do not
+publish through another route. The separate ops checkpoint will be committed
+after these implementation results are recorded.
+
+Next bounded slice: separate stable metric calculation semantics/configuration
+identity from run-specific observation evidence before adding numeric
+one-factor sensitivity deltas. Keep paired statistical inference deferred until
+the worker has a trusted keyed-stream verifier and aligned per-observation
+outputs. Preserve all provider, ETF, TC2000, shared runtime, persistence, API,
+worker, Compose, and frontend boundaries.
+
+This checkpoint updates only these branch-owned records:
+
+- `ops/workstreams/feat-strategy-lab-v2/handoff.md`
+- `ops/workstreams/feat-strategy-lab-v2/session.json`
+- `ops/workstreams/feat-strategy-lab-v2/validation.jsonl`
 
 The soft-stop `agent-session-checkpoint` completed under the existing session
 claim. Its `dirty_paths` capture dropped the leading `b` from the first modified

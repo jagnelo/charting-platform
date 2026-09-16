@@ -123,18 +123,18 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6ec5074e696a4333dd9fe5b59ec0f693fb0477f9",
-  "implementation_sha": "6ec5074e696a4333dd9fe5b59ec0f693fb0477f9",
-  "last_checkpoint": "2026-09-16T00:41:56.302658+00:00",
+  "head": "69faca1941157ff1597e209ce6d2679af08fcd70",
+  "implementation_sha": "69faca1941157ff1597e209ce6d2679af08fcd70",
+  "last_checkpoint": "2026-09-16T01:03:54.902492+00:00",
   "last_human_progress_update": "2026-09-15T23:57:53.794974+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit the separate workstream checkpoint, then define the engine-neutral sensitivity evidence model distinguishing independent, shared-seed-only, and genuinely paired results.",
+  "next_action": "Commit the separate sensitivity-evidence checkpoint, then separate stable metric calculation semantics/configuration from run-specific evidence before adding numeric one-factor sensitivity deltas.",
   "parent_branch": "staging",
   "pending_push": {
     "attempted": false,
     "branch": "feat/strategy-lab-v2",
     "command": "rtk git push origin feat/strategy-lab-v2",
-    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..6ec5074e696a4333dd9fe5b59ec0f693fb0477f9",
+    "range": "d2497f43084d52d3e66b40a91be25dd2678620be..69faca1941157ff1597e209ce6d2679af08fcd70",
     "reason": "Exact-payload authorization for the private origin is unavailable.",
     "remote": "origin"
   },
@@ -145,10 +145,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "engine-neutral-sensitivity-evidence",
-    "next_action": "Commit the separate workstream checkpoint, then define the engine-neutral sensitivity evidence model distinguishing independent, shared-seed-only, and genuinely paired results.",
+    "current_phase": "engine-neutral-sensitivity-randomization-evidence",
+    "next_action": "Commit the separate sensitivity-evidence checkpoint, then separate stable metric calculation semantics/configuration from run-specific evidence before adding numeric one-factor sensitivity deltas.",
     "total": 18,
-    "updated_at": "2026-09-16T00:41:15+00:00"
+    "updated_at": "2026-09-16T01:01:21+00:00"
   },
   "publication_state": "committed_locally_pending_push",
   "remote": "d2497f43084d52d3e66b40a91be25dd2678620be",
