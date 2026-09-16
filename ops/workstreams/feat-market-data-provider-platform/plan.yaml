@@ -372,6 +372,18 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-16 current-source native account-usage refresh: the four
+      supported account snapshots (MarketData.app, Twelve Data, EODHD, and
+      Binance) each passed `1/1` at source
+      `ea42ce3dcade07fb0744e9a176dc0d2924857b6a` through the normal lock,
+      durable reservation, telemetry, coordinator, and redacted receipt path.
+      Fresh reconciled observations now exist for MarketData.app's 10,000
+      credits/day pool, Twelve Data's 8 credits/minute pool, and Binance's
+      6,000 request-weight/minute pool. EODHD's `/user` date remains stale,
+      so its daily pool remains observation-only. Four requests were made;
+      no secrets or provider payloads entered Git. This is focused native
+      usage evidence, not full-matrix acceptance or routing activation.
+    - >-
       2026-09-16 exact-current full-matrix preflight at source `f52bfd9e0`
       exited `2` before transport. The new Binance fixed-minute native
       baseline had legitimately expired before the broader matrix could use

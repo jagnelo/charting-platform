@@ -1,5 +1,23 @@
 # feat/market-data-provider-platform
 
+## 2026-09-16 current-source native usage refresh
+
+- The four supported native account-usage probes were replayed separately at
+  exact source `ea42ce3dcade07fb0744e9a176dc0d2924857b6a`: MarketData.app,
+  Twelve Data, EODHD, and Binance each passed `1/1` through the normal lock,
+  reservation, telemetry, and redacted receipt path. Four provider requests
+  were made; no payloads or secrets entered Git.
+- The durable owner-local ledger now has fresh reconciled observations for
+  MarketData.app (`credits_per_day`, limit 10,000, used 0), Twelve Data
+  (`credits_per_minute`, limit 8, used 1), and Binance
+  (`request_weight_per_minute`, limit 6,000, used 1). EODHD still reports a
+  stale daily usage date, so its daily pool remains observation-only rather
+  than being fabricated as current.
+- These focused receipts establish provider-native usage evidence only; they
+  do not activate the other provider capabilities. The broader matrix still
+  requires the remaining exact baselines, safety/legal/source controls,
+  universe reconciliation, secret-store verification, and final shadow gate.
+
 ## 2026-09-16 current full-matrix fail-closed preflight
 
 - At exact committed source `f52bfd9e0`, the lock-protected full provider
