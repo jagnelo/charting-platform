@@ -73,7 +73,9 @@ The forward state machine never represents broker order submission. Admission
 revalidates each supplied observation against the persisted sequence cursor,
 rejecting forged accepted/gap classifications and cursor movement; buffered
 event IDs remain content-bound, so a changed retry is a conflict rather than a
-silent replacement.
+silent replacement. Canonical forward event and cursor timestamps normalize
+aware offsets to UTC before comparison and fingerprinting, keeping equivalent
+instants on one replay identity.
 
 ## Current engine-neutral package
 

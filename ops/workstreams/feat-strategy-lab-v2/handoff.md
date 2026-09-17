@@ -194,6 +194,17 @@ unchanged. Focused runtime protocol coverage passes 23 tests and the complete
 Strategy Lab v2 package passes 700 tests; worker activation, application
 wiring, and stable Nautilus execution remain deferred.
 
+## 2026-09-17 - Canonical forward event-time identities
+
+`CanonicalForwardEvent` and `ForwardCursor` now normalize every aware
+`event_time`, `arrived_at`, and cursor timestamp to UTC during construction.
+Offset-equivalent canonical events therefore compare and fingerprint
+identically, preventing false content conflicts and replay divergence at the
+forward boundary. Focused forward lifecycle/admission coverage passes 28 tests
+and the complete Strategy Lab v2 package passes 701 tests; persistence migration,
+event-stream wiring, worker activation, and stable Nautilus execution remain
+deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
