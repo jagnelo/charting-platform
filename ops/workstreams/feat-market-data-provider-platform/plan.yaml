@@ -753,7 +753,10 @@ progress:
       bounded 24-request Sandbox canary 1/1. This is transport/schema evidence
       only and does not promote Dinari to routing because Sandbox quota and
       commercial terms remain unknown. Receipts contain aggregate telemetry
-      only; no frontend or ETF files changed.
+      only; Alpaca's configured paper credentials also passed the account-usage
+      only live case 1/1 (one request, 125 response bytes), while its reset
+      boundary and current evidence remain unresolved. No frontend or ETF files
+      changed.
     - >-
       2026-09-17 EODHD routing-control regression correction: the diagnostic
       path no longer rejects a positive reviewed minute entitlement merely

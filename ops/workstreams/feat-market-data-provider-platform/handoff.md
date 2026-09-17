@@ -12,6 +12,10 @@
   canary (`1/1` test) under a `24`-request process cap. This is transport and
   schema evidence only; Sandbox quota/commercial terms remain unknown and the
   provider is not promoted to ordinary routing.
+- Alpaca's configured paper credentials also passed the account-usage-only live
+  case (`1/1`, one request, 125 response bytes). This records the native
+  account-usage transport, but the provider's reset boundary and current quota
+  evidence remain unresolved, so ordinary Alpaca routing stays fail-closed.
 - The receipts contain aggregate request/byte telemetry only. No credential,
   response payload, frontend file, or ETF-provider adapter changed.
 

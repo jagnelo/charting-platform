@@ -11,6 +11,9 @@
       `24`-request canary: `1/1` passed. Keep this as Sandbox transport/schema
       evidence only; unknown Sandbox quota/commercial terms keep ordinary
       routing disabled.
+- [x] Run Alpaca's configured paper credentials through the account-usage-only
+      live case: `1/1` passed with one request. Keep ordinary routing disabled
+      until the reset boundary and current quota evidence are reviewed.
 - [x] Verify the live receipts contain only redacted aggregate telemetry while
       the durable owner-local quota ledger remains outside Git; no secrets or
       provider payloads were persisted.
