@@ -12,6 +12,27 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable lease-heartbeat integration
+
+`worker_service.py` now accepts an optional durable lease-observation writer.
+When enabled, one ordered content-addressed heartbeat is emitted at each
+configured interval while the fresh serial process runs; the service advances
+only on an `APPLY`/exact replay with the expected sequence and leaves the
+stream entry pending if persistence rejects or contradicts a heartbeat. The
+entrypoint accepts a two- or three-item callback factory result, passes the
+third callback through Redis runtime composition, and exposes namespaced
+heartbeat interval/extension configuration. Completion persistence and worker
+capacity settlement remain authoritative injected adapters, so a heartbeat
+failure cannot be acknowledged as a completed dispatch.
+
+The focused worker-service/entrypoint tests passed (10 tests), package Ruff and
+MyPy passed, the branch gate passed 761 package tests, and the exact backend
+gate passed 2,410 tests with 83.77% combined coverage (required threshold:
+75%). Branch-scoped Docker resources were cleaned with no retained
+testcontainer sessions. Forward-capacity settlement integration, Compose
+activation, stable Nautilus conformance, upstream contract reconciliation,
+and full repository integration remain deferred.
+
 ## 2026-09-17 - Explicit local worker entrypoint
 
 `worker_entrypoint.py` now owns the local dedicated-worker lifecycle without

@@ -1096,7 +1096,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   It materializes each authenticated durable payload, runs the handoff off the
   event loop in the serial executor, and delegates completion persistence to an
   injected writer before the transport can acknowledge the entry. The Redis
-  runtime factory exposes this composition without starting it implicitly.
+  runtime factory exposes this composition without starting it implicitly. An
+  optional durable lease-observation writer emits ordered, content-addressed
+  heartbeats while the serial process runs; unexpected sequence/state or
+  persistence rejection leaves the entry pending for recovery.
 - `worker_entrypoint.py` is the explicit local process boundary for that
   composition. It validates namespaced environment configuration, runs startup
   migrations before connecting Redis, builds the shared PostgreSQL persistence
