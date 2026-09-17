@@ -36,12 +36,13 @@
 ## 2026-09-17 current-source backend acceptance replay
 
 - The combined backend unit and Docker-backed integration gate passed
-  `2,759/2,759` with `89` warnings and `82.04%` coverage, above the
+  `2,760/2,760` with `89` warnings and `82.04%` coverage, above the
   repository's 75% threshold. Docker Server `29.7.2` and the repository
   Postgres/Redis testcontainers were available; this corrects the earlier
   sandbox-only Docker-socket failure.
 - The gate was replayed after the implementation commit at source
-  `f63d94b08`; the prior `2,757/2,757` receipt remains historical. No
+  `9fbc6d986`; the prior `2,757/2,757` and `2,759/2,759` receipts remain
+  historical. No
   frontend files, ETF
   provider adapters, credentials, or external payloads were changed.
 

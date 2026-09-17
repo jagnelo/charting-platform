@@ -752,10 +752,11 @@ progress:
       `14/14`; the gateway/session and provider-account gates remain deferred.
     - >-
       2026-09-17 committed-source Docker-backed backend acceptance replay passed
-      `2,759/2,759` executable unit and integration tests with `89` warnings
-      and `82.04%` coverage. Docker Server `29.7.2` and repository
-      Postgres/Redis testcontainers were available; no provider requests,
-      credentials, frontend files, or ETF-provider adapters were involved.
+      `2,760/2,760` executable unit and integration tests with `89` warnings
+      and `82.04%` coverage at source `9fbc6d986`. Docker Server `29.7.2` and
+      repository Postgres/Redis testcontainers were available; no provider
+      requests, credentials, frontend files, or ETF-provider adapters were
+      involved.
     - >-
       2026-09-17 Nasdaq Trader's application-owned directory ceiling now has
       an explicit `baseline_mode: local_zero` contract. The first local
