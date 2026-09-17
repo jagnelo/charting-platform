@@ -307,12 +307,15 @@ class Settings(BaseSettings):
                         "applies_to_operations": ["fetch_account_usage"],
                     },
                 ],
-                # Alpaca's Market Data OpenAPI defines this as a per-minute
-                # request pool and exposes the native reset epoch. Runtime
-                # admission still reconciles the exact limit/remaining/reset
-                # headers from the configured account; it never synthesizes a
-                # baseline when those headers are absent or stale.
-                "reset": "fixed_minute",
+                # Alpaca documents a 200-requests/minute pool and exposes a
+                # native reset epoch for the next quota change, but does not
+                # publish a fixed calendar-minute boundary. Use the
+                # conservative rolling 60-second envelope for durable
+                # admission; native limit/remaining/reset headers establish
+                # the active account baseline and remain authoritative
+                # telemetry. This is an application safety envelope, not a
+                # claim that Alpaca uses a rolling window internally.
+                "reset": "rolling",
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",

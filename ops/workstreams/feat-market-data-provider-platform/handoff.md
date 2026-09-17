@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Alpaca native reset-window correction
+
+- Alpaca's current official market-data documentation publishes a
+  200-requests/minute Basic pool and the OpenAPI contract describes
+  `X-RateLimit-Reset` as the Unix epoch when the remaining quota changes. It
+  does not publish a fixed calendar-minute boundary.
+- The quota seed now uses a conservative rolling 60-second safety envelope,
+  not an invented fixed-minute reset. The provider-native account-usage
+  snapshot is allow-listed as the first control-plane request and seeds the
+  durable active baseline only when limit, remaining, and a future reset epoch
+  all match the reviewed contract. No daily allowance is inferred.
+- Invalid optional reset overrides cannot replace the rolling safety envelope.
+  Corporate-action cursor pagination remains independently durable and
+  unbounded in retention; `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` only controls
+  per-invocation fairness and never discards later pages.
+- Focused quota/account-usage coverage passed `5/5` selected tests. One
+  bounded native usage request was made for reset-shape verification; no
+  credentials or provider payloads were persisted.
+
 ## 2026-09-17 lossless, resumable provider-event ingestion
 
 - Replaced the Alpaca corporate-action page bound with a durable cursor
@@ -26,13 +45,12 @@
 - No frontend files, ETF constituent adapters, credentials, or external
   payloads were changed. Deployment migration application and a credentialed
   worker resume probe remain environment gates.
-- The current owner-local Alpaca live replay selected seven credentialed cases,
-  but the durable shared Alpaca ledger admitted only the native usage snapshot;
-  the remaining six calls were correctly refused before transport because the
-  configured key's recorded quota was exhausted. The native snapshot remains
-  observation-only because its reset timestamp did not prove the active window.
-  This is a live-environment evidence limitation, not a data-retention or
-  pagination failure.
+- The current owner-local Alpaca replay before the rolling-window correction
+  selected seven credentialed cases, but the durable shared ledger admitted
+  only the native usage snapshot; the remaining six calls were correctly
+  refused before transport because the old fixed-window contract could not
+  reconcile the provider's reset epoch. That historical receipt is retained
+  as evidence of the fail-closed behavior, not as current acceptance evidence.
 - Host-backed integration validation was subsequently rerun with the running
   Docker daemon (`29.7.2`) and passed `386/386` in `358.18s` using the
   repository's Postgres/Redis testcontainers. The earlier failure was only the

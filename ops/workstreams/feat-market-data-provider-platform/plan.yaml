@@ -161,22 +161,20 @@ execution_plan:
     - frontend changes and ETF constituent provider adapters
 remaining_gaps:
   - >-
-    Alpaca's documented 200-requests/minute account pool still lacks a
-    provider-published fixed/rolling reset boundary in the current evidence.
-    The new provider-specific `ALPACA_REVIEWED_RESET` and
-    `ALPACA_QUOTA_EVIDENCE` controls (commits `8808f6ba` and `582931f1`)
-    keep ordinary routing
-    fail-closed until an admission-safe label and current evidence are
-    configured. Commits `8808f6ba` and `582931f1` implement the gate and CI
-    wiring. The explicit `fetch_account_usage` bootstrap remains eligible
-    to observe native reset headers; `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` is a
-    separate event-pagination bound. Commit `316a1486` also retains valid
-    current/previous reset-header observations without treating them as
-    future reconciliation boundaries. Focused coverage is 424/424 and the
-    full backend unit gate is 2,356/2,356 with 37 warnings at 70.76%
-    coverage. The committed-source account-usage live case passed 1/1 with
-    one authenticated request and 125 response bytes; ordinary routing and
-    event routing remain closed.
+    Resolved in the current source: Alpaca's official market-data contract
+    documents a 200-requests/minute pool and native
+    `X-RateLimit-Limit`/`Remaining`/`Reset` headers, but does not state a
+    fixed calendar-minute boundary. The runtime now models a conservative
+    rolling 60-second safety envelope and admits the native account-usage
+    bootstrap as the only first request; a matching current
+    limit/remaining/reset snapshot seeds the durable active baseline before
+    history, latest, metadata, or event reads. No daily allowance is inferred.
+    An optional `ALPACA_REVIEWED_RESET` override remains configuration-only for
+    a future plan, and invalid overrides cannot replace the rolling safety
+    envelope. Corporate-action cursors are independently persisted and resumed
+    without a retention bound. The remaining Alpaca gates are current-source
+    full-matrix evidence and terms/redistribution review, not an unresolved
+    reset assumption.
   - >-
     Finnhub's observed 60-calls/minute and 30-calls/second ceilings are
     independent pools, but the provider does not supply a reviewed reset
@@ -744,6 +742,15 @@ remaining_gaps:
       phase remain open.
 progress:
   completed:
+    - >-
+      2026-09-17 Alpaca quota correction: official documentation describes a
+      200-requests/minute market-data pool and a native reset epoch for the
+      next quota change, not a fixed calendar-minute boundary. The contract
+      now uses a conservative rolling 60-second safety envelope; the native
+      account-usage snapshot is allow-listed to establish the current durable
+      baseline before metered reads, and matching limit/remaining/reset values
+      are required. Focused quota/account-usage coverage passed 5/5 selected
+      tests after the change. No credentials or payloads were persisted.
     - >-
       2026-09-17 added the requirement-by-requirement acceptance audit to
       `docs/provider-live-validation.md` at source `247718a6f`. It separates

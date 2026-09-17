@@ -157,10 +157,10 @@ def test_provider_seeds_do_not_reintroduce_generic_limiter_defaults():
     assert coinbase["quota_contract"]["dimensions"][0]["window_seconds"] == 1
 
 
-def test_alpaca_native_minute_boundary_is_distinct_from_unresolved_providers():
+def test_alpaca_native_minute_pool_uses_rolling_safety_envelope():
     alpaca = provider_rate_limit_seed("alpaca")["quota_contract"]
     assert alpaca["dimensions"][0]["limit"] == 200
-    assert alpaca["reset"] == "fixed_minute"
+    assert alpaca["reset"] == "rolling"
     assert alpaca["dimensions"][0]["name"] == "market_data_requests_per_minute"
     assert alpaca["account_usage_bootstrap"]["enabled"] is True
     policy = ProviderPolicy(
@@ -239,9 +239,10 @@ def test_alpaca_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):
     monkeypatch.setattr(settings, "ALPACA_REVIEWED_RESET", "fixed_minute")
     monkeypatch.setattr(settings, "ALPACA_QUOTA_EVIDENCE", "")
     contract = provider_rate_limit_seed("alpaca")["quota_contract"]
-    assert contract["reset"] == "fixed_minute"
+    # An invalid optional override must not replace the safe rolling envelope.
+    assert contract["reset"] == "rolling"
     assert contract["unknown_dimensions"] == ["operator_reset_override_invalid"]
-    assert contract["dimensions"][0].get("reset") == "fixed_minute"
+    assert contract["dimensions"][0].get("reset") == "rolling"
 
 
 def test_alpha_vantage_reviewed_reset_promotes_only_explicit_evidence(monkeypatch):

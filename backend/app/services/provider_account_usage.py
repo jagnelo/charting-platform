@@ -46,6 +46,12 @@ _NATIVE_BASELINE_DIMENSIONS: dict[str, tuple[str, str]] = {
     # headers. The dimension is anonymous 25/minute or keyed 25/6-seconds,
     # selected by provider_rate_limit_seed at runtime.
     "openfigi": ("mapping_requests_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
+    # Alpaca's native market-data headers expose the active 200-request pool
+    # and the next quota-change epoch. The reviewed contract uses a rolling
+    # 60-second safety envelope because Alpaca does not publish a fixed
+    # calendar-minute boundary; the native snapshot is therefore required to
+    # establish the current durable baseline before metered reads.
+    "alpaca": ("market_data_requests_per_minute", ProviderCapability.ACCOUNT_USAGE.value),
 }
 
 

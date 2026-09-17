@@ -23,10 +23,10 @@ supplies, its priority level per capability, and where to configure its credenti
 > provider: its capability must carry `passed` (or genuinely `not_required`)
 > live-probe evidence. Historical bounded transport evidence exists for EDGAR,
 > Alpaca, MarketData.app, and the Dinari Sandbox pair, but it is not by itself
-> current-source acceptance. The latest exact-source Alpaca work proves only
-> its native account-usage header snapshot; ordinary Alpaca routing remains
-> fail-closed because the live reset value did not prove a calculable minute
-> window. The latest SEC EDGAR manifest preflight stopped before transport
+> current-source acceptance. The latest exact-source Alpaca work proves its
+> native account-usage header snapshot and rolling safety-envelope bootstrap;
+> ordinary Alpaca routing still requires current-source live evidence and the
+> separate terms gate. The latest SEC EDGAR manifest preflight stopped before transport
 > because the documented IP window has no current durable baseline. Tradier,
 > Ondo, and IBKR are intentionally deferred. None of these observations
 > overrides the separate quota, terms, entitlement, and reconciliation gates.
@@ -104,10 +104,11 @@ publishes an introspection endpoint.  Such counters therefore have a separate
 implementations are MarketData.app's authenticated `GET /user/` endpoint,
 Twelve Data's `/api_usage` endpoint, EODHD's `/user` endpoint, Binance's
 public `/api/v3/time` endpoint (which exposes its native one-minute request
-weight header), and Alpaca's bounded latest-bar observation of its native
-limit/remaining/reset headers. Alpaca's observation is currently diagnostic
-only: its reset value has not established a stable admission-safe window, so
-it cannot seed ordinary routing:
+weight header), and Alpaca's bounded observation of its native
+limit/remaining/reset headers. Alpaca documents a 200-requests/minute pool but
+does not publish a fixed calendar-minute boundary; the runtime therefore uses
+a conservative rolling 60-second safety envelope and only seeds the durable
+active baseline from a matching native snapshot:
 
 ```sh
 POST /api/v1/providers/usage/account/refresh   # admin-only, explicit poll
@@ -195,7 +196,7 @@ decimal interpretation would allow; the contract records the basis explicitly.
 
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
-| Alpaca | US stocks/ETFs + crypto OHLCV, latest, authenticated asset metadata (exchange/status/tradability/provider asset UUID), corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL`, optional `ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE` | 200 historical API calls/min on the documented Basic market-data plan; corporate-actions pages accept 1–1,000 records; `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled against the fixed-minute contract. Alpaca's official [market-data OpenAPI](https://github.com/alpacahq/cli/blob/main/api/specs/market-data-api.json) defines the reset header as the epoch when remaining quota changes | account / fixed minute for current documented plan; free IEX feed restriction applies; paper/live assets host is explicit; every corporate-action page is persisted and resumed; Alpaca UUID is provider-native and is not promoted to a canonical FIGI/CIK | history/latest, metadata, account usage, and cursor pagination are fixture/live-covered; optional reset/evidence settings only document future plan changes |
+| Alpaca | US stocks/ETFs + crypto OHLCV, latest, authenticated asset metadata (exchange/status/tradability/provider asset UUID), corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL`, optional `ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE` | 200 historical API calls/min on the documented Basic market-data plan; corporate-actions pages accept 1–1,000 records; `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled against a rolling safety envelope. Alpaca's official [market-data OpenAPI](https://github.com/alpacahq/cli/blob/main/api/specs/market-data-api.json) defines the reset header as the epoch when remaining quota changes | account / rolling 60-second safety envelope; free IEX feed restriction applies; paper/live assets host is explicit; every corporate-action page is persisted and resumed; Alpaca UUID is provider-native and is not promoted to a canonical FIGI/CIK | history/latest, metadata, account usage, and cursor pagination are fixture/live-covered; the native account snapshot establishes the active baseline before metered routing; optional reset/evidence settings document future plan changes |
 | Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV, historical splits and dividends for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates, and corporate actions; the published plan does not state the minute reset boundary; aggregate pages accept at most 50,000 base aggregates; splits/dividends accept at most 5,000 rows and may continue with `next_url` | API key / minute reset boundary remains explicit and terms-gated; validated history and corporate-action cursors are followed until completion; metadata overview costs one request | reference, metadata, adjusted daily, raw five-minute history, and corporate actions remain gated by the unresolved reset/terms attestation. The legacy page-bound setting no longer excludes pages; a configured key alone is not legal authorization |
 | Alpha Vantage | Raw daily, weekly, and monthly OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); daily `compact` output is latest 100 points, while documented weekly/monthly series expose long historical ranges; adjusted daily history is premium and weekly/monthly endpoints are raw; `EARNINGS` is one query per symbol; the provider does not publish the daily reset boundary/timezone | API key / provider-defined day (reset boundary unresolved) | raw daily/weekly/monthly history and bounded earnings normalization are fixture-covered; adjusted history is rejected explicitly; a range older than the 100-point daily compact window fails closed instead of returning a partial slice; IPO-calendar remains subject to its documented capacity response; daily-capacity routing remains fail-closed until `ALPHA_VANTAGE_REVIEWED_RESET` plus non-empty `ALPHA_VANTAGE_QUOTA_EVIDENCE` are configured from current evidence |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT`, `EDGAR_REVIEWED_RESET`, `EDGAR_QUOTA_EVIDENCE` | 10 requests/sec total across an IP; the SEC source does not define whether the enforcement window is fixed or rolling | IP / provider-defined until reviewed | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only; routing remains fail-closed until the reviewed reset/evidence pair is configured |
