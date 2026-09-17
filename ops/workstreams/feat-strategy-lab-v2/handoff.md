@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Artifact path-integrity regression hardening
+
+`LocalArtifactStore` now rejects broken target symlinks before treating a
+content address as missing. The existing fail-closed path and digest checks
+therefore cover both live and dangling symlink escapes, with a regression test
+at the latest exact branch tip.
+
+The full Strategy Lab v2 package remains at 739 passing tests; the exact
+backend gate passed 2,388 tests with 83.75% combined coverage (required
+threshold: 75%). Branch-scoped Docker resources were cleaned and no retained
+testcontainer sessions remain. Isolated worker process/runtime execution,
+migration startup, orphan/scheduled artifact cleanup, upstream contract
+reconciliation, and stable Nautilus activation remain deferred.
+
 ## 2026-09-17 - Cancellable worker scheduling
 
 `RedisDispatchWorkerScheduler` now runs one bounded Redis worker-pump cycle at

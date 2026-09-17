@@ -409,6 +409,10 @@ remaining_gaps:
       `RedisDispatchRuntime.worker_scheduler()` composes this seam while
       handler execution, process lifecycle, lease heartbeats, and engine
       disposal remain injected worker responsibilities.
+  - >-
+      `LocalArtifactStore` now rejects dangling target symlinks before missing
+      content handling, preserving fail-closed path and digest verification;
+      the regression is covered at the exact branch tip.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -472,6 +476,7 @@ progress:
     - strategy-lab-v2-durable-dispatch-payload-materialization
     - strategy-lab-v2-retention-authorized-artifact-byte-lifecycle
     - strategy-lab-v2-cancellable-worker-scheduling
+    - strategy-lab-v2-artifact-symlink-integrity-hardening
   total: 18
   current_phase: strategy-lab-v2-cancellable-worker-scheduling-staging-ready-for-human-review
   current_blocker: isolated worker process/runtime execution, migration startup, orphan/scheduled artifact cleanup, stable Nautilus release, and full repository integration remain open
