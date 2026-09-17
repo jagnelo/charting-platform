@@ -326,6 +326,7 @@ remaining_gaps:
   - A restricted custom-metric boundary now executes source-bound callables over frozen Decimal observations, emits versioned typed metrics with input evidence, and strips exception text; container worker activation and API/persistence wiring remain open.
   - Custom-metric execution now has a strict tagged-JSON request/result protocol and mounted-file CLI with duplicate-field rejection, source/definition identity, result fingerprints, and atomic typed-result publication; worker image activation, persistence, API wiring, and scheduling remain open.
   - Custom-metric entrypoint validation now rejects non-string declarations and resolves dotted callable paths through the restricted namespace; wire-helper exports are lazy to preserve package import safety.
+  - Custom metrics now support immutable uniquely fingerprinted ordered batches, strict batch request/result envelopes, and a batch CLI mode for deterministic metric sweeps; container worker activation and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -358,7 +359,8 @@ progress:
     - restricted-custom-metric-boundary
     - custom-metric-wire-protocol-and-cli
     - custom-metric-entrypoint-and-export-hardening
+    - custom-metric-batch-runtime-and-wire-protocol
   total: 18
-  current_phase: custom-metric-wire-protocol-and-cli-staging-ready-for-human-review
+  current_phase: custom-metric-batch-runtime-and-wire-protocol-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

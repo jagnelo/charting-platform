@@ -155,6 +155,64 @@ def _normalize_observations(
     return MappingProxyType({name: normalized[name] for name in sorted(normalized)})
 
 
+def _normalize_parameters(parameters: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    raw_parameters: Mapping[str, Any] = {} if parameters is None else parameters
+    if not isinstance(raw_parameters, Mapping):
+        raise TypeError("parameters must be a mapping")
+    frozen_parameters = freeze_json(raw_parameters)
+    if not isinstance(frozen_parameters, Mapping):
+        raise TypeError("parameters must be a mapping")
+    return frozen_parameters
+
+
+@dataclass(frozen=True, slots=True)
+class CustomMetricInvocation:
+    """Immutable source-bound input for one metric in a deterministic batch."""
+
+    source: str
+    definition: CustomMetricDefinition
+    observations: Mapping[str, Sequence[Any]]
+    parameters: Mapping[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.source, str):
+            raise TypeError("custom metric source must be a string")
+        if not isinstance(self.definition, CustomMetricDefinition):
+            raise TypeError("definition must be a CustomMetricDefinition")
+        object.__setattr__(self, "observations", _normalize_observations(self.observations))
+        object.__setattr__(self, "parameters", _normalize_parameters(self.parameters))
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+def run_custom_metrics(
+    invocations: Sequence[CustomMetricInvocation],
+) -> tuple[CustomMetricInvocationResult, ...]:
+    """Run a non-empty, uniquely identified batch in input order."""
+
+    if not isinstance(invocations, Sequence) or isinstance(invocations, str | bytes):
+        raise TypeError("custom metric invocations must be a sequence")
+    values = tuple(invocations)
+    if not values:
+        raise ValueError("custom metric invocations must not be empty")
+    if any(not isinstance(item, CustomMetricInvocation) for item in values):
+        raise TypeError("custom metric invocations must contain CustomMetricInvocation values")
+    fingerprints = tuple(item.fingerprint for item in values)
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("custom metric invocation fingerprints must be unique")
+    return tuple(
+        run_custom_metric(
+            item.source,
+            definition=item.definition,
+            observations=item.observations,
+            parameters=item.parameters,
+        )
+        for item in values
+    )
+
+
 def _load_metric_callable(source: str, entrypoint: str) -> Callable[..., Any]:
     module_name, _separator, callable_name = entrypoint.partition(":")
     namespace: dict[str, Any] = {
@@ -196,12 +254,7 @@ def run_custom_metric(
     if not isinstance(definition, CustomMetricDefinition):
         raise TypeError("definition must be a CustomMetricDefinition")
     frozen_observations = _normalize_observations(observations)
-    raw_parameters: Mapping[str, Any] = {} if parameters is None else parameters
-    if not isinstance(raw_parameters, Mapping):
-        raise TypeError("parameters must be a mapping")
-    frozen_parameters = freeze_json(raw_parameters)
-    if not isinstance(frozen_parameters, Mapping):
-        raise TypeError("parameters must be a mapping")
+    frozen_parameters = _normalize_parameters(parameters)
     input_digest = content_digest(frozen_observations)
     parameters_digest = content_digest(frozen_parameters)
     request_fingerprint = content_digest(
@@ -275,7 +328,9 @@ def run_custom_metric(
 __all__ = [
     "CUSTOM_METRIC_DEFINITION_VERSION",
     "CustomMetricDefinition",
+    "CustomMetricInvocation",
     "CustomMetricInvocationResult",
     "CustomMetricStatus",
     "run_custom_metric",
+    "run_custom_metrics",
 ]

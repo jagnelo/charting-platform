@@ -875,7 +875,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   source/definition identity, and result fingerprints; `custom_metric_runner.py`
   provides a mounted-file CLI with atomic typed-result publication. Entrypoint
   paths are validated and resolved deterministically, including dotted callable
-  attributes. Production use still requires the hardened no-network container.
+  attributes. The same protocol also supports uniquely fingerprinted ordered
+  batches for exhaustive metric sweeps, and the CLI can execute those batches
+  without changing the single-invocation contract. Production use still
+  requires the hardened no-network container.
 - Every invocation result also carries the immutable SDK manifest fingerprint
   used for validation, allowing a host adapter to reject a result produced
   under a different strategy contract even when source/context identities are

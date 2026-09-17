@@ -11,10 +11,16 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from app.strategy_lab_v2.custom_metrics import CustomMetricStatus, run_custom_metric
+from app.strategy_lab_v2.custom_metrics import (
+    CustomMetricStatus,
+    run_custom_metric,
+    run_custom_metrics,
+)
 from strategy_runtime.custom_metric_protocol import (
     deserialize_custom_metric_invocation,
+    deserialize_custom_metric_invocation_batch,
     serialize_custom_metric_result,
+    serialize_custom_metric_result_batch,
 )
 from strategy_runtime.runner import _absolute_path, _atomic_write
 
@@ -27,15 +33,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     latter never includes exception text in the output file.
     """
 
-    parser = argparse.ArgumentParser(description="run one Strategy Lab custom metric")
+    parser = argparse.ArgumentParser(description="run Strategy Lab custom metric input")
     parser.add_argument("--request", required=True, help="absolute mounted invocation JSON")
     parser.add_argument("--result", required=True, help="absolute result JSON destination")
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="interpret the request and result as deterministic custom-metric batches",
+    )
     args = parser.parse_args(argv)
     try:
         request_path = _absolute_path(args.request, "request path")
         result_path = _absolute_path(args.result, "result path")
+        request_payload = Path(request_path).read_text(encoding="utf-8")
+        if args.batch:
+            invocations = deserialize_custom_metric_invocation_batch(request_payload)
+            results = run_custom_metrics(invocations)
+            _atomic_write(result_path, serialize_custom_metric_result_batch(results))
+            return 0 if all(item.status is CustomMetricStatus.SUCCEEDED for item in results) else 2
         source, definition, observations, parameters = deserialize_custom_metric_invocation(
-            Path(request_path).read_text(encoding="utf-8")
+            request_payload
         )
         result = run_custom_metric(
             source,

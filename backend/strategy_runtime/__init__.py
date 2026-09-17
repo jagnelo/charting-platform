@@ -32,11 +32,16 @@ from strategy_runtime.runner import (
 
 _CUSTOM_METRIC_EXPORTS = frozenset(
     {
+        "CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION",
         "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
         "deserialize_custom_metric_invocation",
+        "deserialize_custom_metric_invocation_batch",
         "deserialize_custom_metric_result",
+        "deserialize_custom_metric_result_batch",
         "serialize_custom_metric_invocation",
+        "serialize_custom_metric_invocation_batch",
         "serialize_custom_metric_result",
+        "serialize_custom_metric_result_batch",
     }
 )
 
@@ -70,9 +75,14 @@ __all__ = [
     "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
+    "CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION",
     "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
     "deserialize_custom_metric_invocation",
+    "deserialize_custom_metric_invocation_batch",
     "deserialize_custom_metric_result",
+    "deserialize_custom_metric_result_batch",
     "serialize_custom_metric_invocation",
+    "serialize_custom_metric_invocation_batch",
     "serialize_custom_metric_result",
+    "serialize_custom_metric_result_batch",
 ]

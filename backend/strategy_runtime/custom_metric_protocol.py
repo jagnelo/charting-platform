@@ -12,6 +12,7 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     MetricBasis,
     MetricCalculationDefinition,
@@ -20,6 +21,7 @@ from app.strategy_lab_v2.contracts import (
 )
 from app.strategy_lab_v2.custom_metrics import (
     CustomMetricDefinition,
+    CustomMetricInvocation,
     CustomMetricInvocationResult,
     CustomMetricStatus,
 )
@@ -32,6 +34,7 @@ from strategy_runtime.protocol import (
 )
 
 CUSTOM_METRIC_WIRE_PROTOCOL_VERSION = "strategy-lab.custom-metric-runtime.v1"
+CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION = "strategy-lab.custom-metric-runtime.batch.v1"
 
 
 def _encode_definition(definition: CustomMetricDefinition) -> dict[str, Any]:
@@ -74,20 +77,42 @@ def serialize_custom_metric_invocation(
 ) -> str:
     """Serialize one deterministic source-bound custom-metric request."""
 
-    if not isinstance(source, str):
-        raise TypeError("custom metric source must be a string")
-    if not isinstance(definition, CustomMetricDefinition):
-        raise TypeError("definition must be a CustomMetricDefinition")
-    if not isinstance(observations, Mapping):
-        raise TypeError("observations must be a mapping")
-    if parameters is not None and not isinstance(parameters, Mapping):
-        raise TypeError("parameters must be a mapping")
-    payload = {
+    invocation = CustomMetricInvocation(source, definition, observations, parameters)
+    payload = _encode_invocation(invocation)
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _encode_invocation(invocation: CustomMetricInvocation) -> dict[str, Any]:
+    if not isinstance(invocation, CustomMetricInvocation):
+        raise TypeError("invocation must be a CustomMetricInvocation")
+    return {
         "protocol_version": CUSTOM_METRIC_WIRE_PROTOCOL_VERSION,
-        "source": source,
-        "definition": _encode_definition(definition),
-        "observations": _encode_value(observations),
-        "parameters": _encode_value(parameters if parameters is not None else {}),
+        "source": invocation.source,
+        "definition": _encode_definition(invocation.definition),
+        "observations": _encode_value(invocation.observations),
+        "parameters": _encode_value(invocation.parameters),
+    }
+
+
+def serialize_custom_metric_invocation_batch(
+    invocations: Sequence[CustomMetricInvocation],
+) -> str:
+    """Serialize a deterministic batch of uniquely identified metric inputs."""
+
+    if not isinstance(invocations, Sequence) or isinstance(invocations, str | bytes):
+        raise TypeError("custom metric invocations must be a sequence")
+    values = tuple(invocations)
+    if not values:
+        raise ValueError("custom metric invocations must not be empty")
+    if any(not isinstance(item, CustomMetricInvocation) for item in values):
+        raise TypeError("custom metric invocations must contain CustomMetricInvocation values")
+    fingerprints = tuple(item.fingerprint for item in values)
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("custom metric invocation fingerprints must be unique")
+    payload = {
+        "protocol_version": CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION,
+        "invocations": [_encode_invocation(item) for item in values],
+        "fingerprint": content_digest(values),
     }
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -106,12 +131,53 @@ def deserialize_custom_metric_invocation(
         raise ValueError("custom metric invocation fields are invalid")
     if item["protocol_version"] != CUSTOM_METRIC_WIRE_PROTOCOL_VERSION:
         raise ValueError("unsupported custom metric runtime protocol version")
+    invocation = _decode_invocation(item)
+    assert invocation.parameters is not None
+    return invocation.source, invocation.definition, invocation.observations, invocation.parameters
+
+
+def _decode_invocation(value: Any) -> CustomMetricInvocation:
+    item = _mapping(value, "custom metric invocation")
+    required = {"protocol_version", "source", "definition", "observations", "parameters"}
+    if set(item) != required:
+        raise ValueError("custom metric invocation fields are invalid")
+    if item["protocol_version"] != CUSTOM_METRIC_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported custom metric runtime protocol version")
     source = item["source"]
     if not isinstance(source, str):
         raise TypeError("custom metric source must be a string")
     observations = _mapping(_decode_value(item["observations"]), "observations")
     parameters = _mapping(_decode_value(item["parameters"]), "parameters")
-    return source, _decode_definition(item["definition"]), observations, parameters
+    return CustomMetricInvocation(
+        source,
+        _decode_definition(item["definition"]),
+        observations,
+        parameters,
+    )
+
+
+def deserialize_custom_metric_invocation_batch(
+    payload: str,
+) -> tuple[CustomMetricInvocation, ...]:
+    """Decode and verify a strict custom-metric input batch."""
+
+    if not isinstance(payload, str) or not payload.strip():
+        raise ValueError("custom metric invocation batch payload must not be empty")
+    root = _load_json(payload, "custom metric invocation batch payload")
+    item = _mapping(root, "custom metric invocation batch")
+    if set(item) != {"protocol_version", "invocations", "fingerprint"}:
+        raise ValueError("custom metric invocation batch fields are invalid")
+    if item["protocol_version"] != CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported custom metric runtime batch protocol version")
+    values = tuple(_decode_invocation(raw) for raw in _list(item["invocations"], "invocations"))
+    if not values:
+        raise ValueError("custom metric invocations must not be empty")
+    fingerprints = tuple(value.fingerprint for value in values)
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("custom metric invocation fingerprints must be unique")
+    if item["fingerprint"] != content_digest(values):
+        raise ValueError("custom metric invocation batch fingerprint does not match its payload")
+    return values
 
 
 def _encode_metric(metric: MetricValue) -> dict[str, Any]:
@@ -256,10 +322,69 @@ def deserialize_custom_metric_result(payload: str) -> CustomMetricInvocationResu
     return result
 
 
+def serialize_custom_metric_result_batch(
+    results: Sequence[CustomMetricInvocationResult],
+) -> str:
+    """Serialize a deterministic batch of typed custom-metric outcomes."""
+
+    if not isinstance(results, Sequence) or isinstance(results, str | bytes):
+        raise TypeError("custom metric results must be a sequence")
+    values = tuple(results)
+    if not values:
+        raise ValueError("custom metric results must not be empty")
+    if any(not isinstance(item, CustomMetricInvocationResult) for item in values):
+        raise TypeError(
+            "custom metric results must contain CustomMetricInvocationResult values"
+        )
+    fingerprints = tuple(item.fingerprint for item in values)
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("custom metric result fingerprints must be unique")
+    payload = {
+        "protocol_version": CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION,
+        "results": [json.loads(serialize_custom_metric_result(item)) for item in values],
+        "fingerprint": content_digest(values),
+    }
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def deserialize_custom_metric_result_batch(
+    payload: str,
+) -> tuple[CustomMetricInvocationResult, ...]:
+    """Decode and verify a strict custom-metric result batch."""
+
+    if not isinstance(payload, str) or not payload.strip():
+        raise ValueError("custom metric result batch payload must not be empty")
+    root = _load_json(payload, "custom metric result batch payload")
+    item = _mapping(root, "custom metric result batch")
+    if set(item) != {"protocol_version", "results", "fingerprint"}:
+        raise ValueError("custom metric result batch fields are invalid")
+    if item["protocol_version"] != CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION:
+        raise ValueError("unsupported custom metric runtime batch protocol version")
+    values = tuple(
+        deserialize_custom_metric_result(
+            json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        )
+        for raw in _list(item["results"], "results")
+    )
+    if not values:
+        raise ValueError("custom metric results must not be empty")
+    fingerprints = tuple(value.fingerprint for value in values)
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("custom metric result fingerprints must be unique")
+    if item["fingerprint"] != content_digest(values):
+        raise ValueError("custom metric result batch fingerprint does not match its payload")
+    return values
+
+
 __all__ = [
+    "CUSTOM_METRIC_BATCH_WIRE_PROTOCOL_VERSION",
     "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
     "deserialize_custom_metric_invocation",
+    "deserialize_custom_metric_invocation_batch",
     "deserialize_custom_metric_result",
+    "deserialize_custom_metric_result_batch",
     "serialize_custom_metric_invocation",
+    "serialize_custom_metric_invocation_batch",
     "serialize_custom_metric_result",
+    "serialize_custom_metric_result_batch",
 ]

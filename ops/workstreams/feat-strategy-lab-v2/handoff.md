@@ -3273,6 +3273,20 @@ tip passed the Docker-backed combined coverage gate: 2,330 tests with 83.68%
 total coverage, above the required 75% threshold; setup and cleanup completed
 successfully.
 
+## 2026-09-17 - Custom-metric batch runtime checkpoint
+
+Custom metrics now have an immutable `CustomMetricInvocation` record and an
+ordered `run_custom_metrics()` batch primitive. Duplicate invocation identities
+are rejected, inputs are frozen at the boundary, and each typed result retains
+its own source/definition/input evidence. The strict wire protocol adds a
+content-addressed batch request/result envelope, while the mounted-file CLI
+supports `--batch` with all-or-nothing success status and atomic publication.
+This is intended for exhaustive local metric sweeps; the containing no-network
+worker and durable application scheduling remain deferred.
+
+Focused batch coverage passed 13 tests with Ruff and MyPy green. Branch and
+combined coverage evidence will be refreshed at the committed tip.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:

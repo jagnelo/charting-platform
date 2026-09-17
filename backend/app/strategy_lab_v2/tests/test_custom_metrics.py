@@ -8,8 +8,10 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import MetricBasis
 from app.strategy_lab_v2.custom_metrics import (
     CustomMetricDefinition,
+    CustomMetricInvocation,
     CustomMetricStatus,
     run_custom_metric,
+    run_custom_metrics,
 )
 
 SAFE_SOURCE = """
@@ -139,3 +141,27 @@ class Metrics:
     result = run_custom_metric(source, definition=definition, observations={})
     assert result.status is CustomMetricStatus.SUCCEEDED
     assert result.metric is not None and result.metric.value == Decimal("1")
+
+
+def test_custom_metric_batch_is_immutable_ordered_and_rejects_duplicate_inputs() -> None:
+    first = CustomMetricInvocation(
+        SAFE_SOURCE,
+        _definition(),
+        {"returns": [Decimal("0.10"), Decimal("0.20")]},
+        {"offset": Decimal("0.05")},
+    )
+    second = CustomMetricInvocation(
+        SAFE_SOURCE,
+        _definition(),
+        {"returns": [Decimal("0.30"), Decimal("0.40")]},
+        {"offset": Decimal("0.05")},
+    )
+    results = run_custom_metrics((first, second))
+    assert tuple(item.status for item in results) == (
+        CustomMetricStatus.SUCCEEDED,
+        CustomMetricStatus.SUCCEEDED,
+    )
+    assert results[0].metric is not None and results[0].metric.value == Decimal("0.20")
+    assert results[1].metric is not None and results[1].metric.value == Decimal("0.40")
+    with pytest.raises(ValueError, match="fingerprints must be unique"):
+        run_custom_metrics((first, first))
