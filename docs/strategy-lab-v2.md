@@ -11,8 +11,12 @@ An immutable strategy version declares its SDK version, exact dependency
 artifacts, parameter schema/defaults, and content digest. A portfolio version
 binds strategy versions to instrument scopes, capital budgets, priorities,
 and typed/versioned shared-risk and optional calendar-rebalance policies. The
-core plans deterministic schedule boundaries from a complete pinned calendar;
-applying them to allocation or engine orders/fills remains deferred. A
+core plans deterministic schedule boundaries from a complete pinned calendar,
+and its pure rebalance-allocation gate applies targets only at the exact
+scheduled UTC boundary. A missed boundary is classified by the occurrence's
+explicit fail-run or skip-occurrence policy; it is never silently caught up at
+a later event. Engine adapters still own event-tape mapping, order sizing, and
+fills. A
 `TargetPositionIntent.target_fraction` is a fraction of the emitting component's
 share of current account equity; the host multiplies it by that component's
 capital weight. Targets are bounded by the component's capital budget unless an
@@ -191,8 +195,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   session-close-after-events timing. Calendar identity is content-addressed;
   weekly/monthly/etc. schedules require complete bucket coverage so missing
   dates cannot be silently treated as holidays. DST/overnight timing is carried
-  by explicit UTC instants. The output is only a decision boundary; it does not
-  imply same-price fills, infer missed events, fetch calendars, or create orders.
+  by explicit UTC instants. `rebalance_allocation.py` composes that boundary
+  with typed target intents and the existing allocation/risk gate: only an
+  exact event applies targets, while before-boundary, fail-run misfire, and
+  skip-occurrence outcomes are immutable, content-addressed decisions. Neither
+  module implies same-price fills, infers a catch-up event, fetches calendars,
+  or creates orders.
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and
