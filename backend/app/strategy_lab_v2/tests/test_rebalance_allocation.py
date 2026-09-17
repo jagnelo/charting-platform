@@ -66,8 +66,17 @@ def _portfolio(
             risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
         ),
     )
+    occurrence_identity = {
+        "policy_fingerprint": policy.fingerprint,
+        "calendar_fingerprint": CALENDAR,
+        "session_id": "XNYS:2024-01-02",
+        "session_label": event.date(),
+        "event_time": event,
+        "trigger": policy.trigger,
+        "cadence_period": "month:2024-01",
+    }
     scheduled = ScheduledRebalance(
-        occurrence_id=content_digest({"occurrence": event.isoformat()}),
+        occurrence_id=content_digest(occurrence_identity),
         policy_fingerprint=policy.fingerprint,
         calendar_fingerprint=CALENDAR,
         session_id="XNYS:2024-01-02",
@@ -186,6 +195,17 @@ def test_calendar_identity_and_policy_presence_are_required() -> None:
     with pytest.raises(ValueError, match="calendar is stale or mismatched"):
         apply_scheduled_rebalance(portfolio, snapshot, stale_calendar, _intents())
 
+    stale_misfire = replace(
+        scheduled,
+        misfire_policy=RebalanceMisfirePolicy.SKIP_OCCURRENCE,
+    )
+    with pytest.raises(ValueError, match="misfire policy is stale or mismatched"):
+        apply_scheduled_rebalance(portfolio, snapshot, stale_misfire, _intents())
+
+    forged_occurrence = replace(scheduled, occurrence_id=content_digest("forged"))
+    with pytest.raises(ValueError, match="occurrence identity is invalid"):
+        apply_scheduled_rebalance(portfolio, snapshot, forged_occurrence, _intents())
+
     without_policy = replace(portfolio, rebalance_policy=None)
     with pytest.raises(ValueError, match="no calendar rebalance policy"):
         apply_scheduled_rebalance(without_policy, snapshot, scheduled, _intents())
@@ -203,7 +223,20 @@ def test_exact_boundary_retains_allocation_risk_rejection() -> None:
     # Rebuild the schedule against the changed portfolio policy identity.
     constrained_policy = constrained.rebalance_policy
     assert constrained_policy is not None
-    scheduled = replace(scheduled, policy_fingerprint=constrained_policy.fingerprint)
+    occurrence_identity = {
+        "policy_fingerprint": constrained_policy.fingerprint,
+        "calendar_fingerprint": scheduled.calendar_fingerprint,
+        "session_id": scheduled.session_id,
+        "session_label": scheduled.session_label,
+        "event_time": scheduled.event_time,
+        "trigger": scheduled.trigger,
+        "cadence_period": scheduled.cadence_period,
+    }
+    scheduled = replace(
+        scheduled,
+        policy_fingerprint=constrained_policy.fingerprint,
+        occurrence_id=content_digest(occurrence_identity),
+    )
     result = apply_scheduled_rebalance(
         constrained,
         _snapshot(constrained, EVENT),

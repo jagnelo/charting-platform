@@ -145,6 +145,23 @@ def apply_scheduled_rebalance(
         raise ValueError("scheduled rebalance policy is stale or mismatched")
     if scheduled.calendar_fingerprint != policy.calendar_fingerprint:
         raise ValueError("scheduled rebalance calendar is stale or mismatched")
+    if scheduled.trigger is not policy.trigger:
+        raise ValueError("scheduled rebalance trigger is stale or mismatched")
+    if scheduled.misfire_policy is not policy.misfire_policy:
+        raise ValueError("scheduled rebalance misfire policy is stale or mismatched")
+    expected_occurrence_id = content_digest(
+        {
+            "policy_fingerprint": scheduled.policy_fingerprint,
+            "calendar_fingerprint": scheduled.calendar_fingerprint,
+            "session_id": scheduled.session_id,
+            "session_label": scheduled.session_label,
+            "event_time": scheduled.event_time,
+            "trigger": scheduled.trigger,
+            "cadence_period": scheduled.cadence_period,
+        }
+    )
+    if scheduled.occurrence_id != expected_occurrence_id:
+        raise ValueError("scheduled rebalance occurrence identity is invalid")
 
     requests = component_targets_from_intents(
         portfolio,
