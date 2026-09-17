@@ -89,7 +89,9 @@ async def test_snapshot_coverage_adapter_preserves_rejected_reason_and_conflicts
     session = FakeSession()
     adapter = PostgresSnapshotCoverageAdapter(lambda: session)
     await adapter.ensure(principal="owner-a", resolution=resolution)
-    assert (await adapter.load(principal="owner-a", snapshot_fingerprint=snapshot.fingerprint)).rejection_reason
+    loaded = await adapter.load(principal="owner-a", snapshot_fingerprint=snapshot.fingerprint)
+    assert loaded is not None
+    assert loaded.rejection_reason
     changed = type(resolution)(
         resolution.decision,
         resolution.snapshot_fingerprint,
@@ -122,4 +124,3 @@ def test_snapshot_coverage_schema_is_explicit_and_validated() -> None:
     assert "PRIMARY KEY (owner_id, snapshot_fingerprint)" in schema.statements[0]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresSnapshotCoverageSchema(resolution_table="unsafe;drop")
-
