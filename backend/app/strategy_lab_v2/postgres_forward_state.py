@@ -269,6 +269,46 @@ class PostgresForwardStateAdapter:
                 current = await self._load_checkpoint(session, owner_id, instance_id)
                 return current[0] if current is not None else None
 
+    async def load_all(self, *, principal: Any) -> tuple[ForwardInstance, ...]:
+        """Read every authenticated forward instance in deterministic order."""
+
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, instance_id, portfolio_fingerprint,
+                               warmup_snapshot_fingerprint, carry_in_mode, state,
+                               last_event_id, last_event_sequence, correction_count,
+                               created_at, updated_at, processed_event_ids_json,
+                               buffered_event_ids_json, correction_event_ids_json,
+                               duplicate_count, out_of_order_count,
+                               instance_fingerprint, checkpoint_fingerprint
+                        FROM {self._schema.instance_table}
+                        WHERE owner_id = :owner_id
+                        ORDER BY instance_id ASC
+                        FOR UPDATE
+                        """
+                    ),
+                    {"owner_id": owner_id},
+                )
+                instances: list[ForwardInstance] = []
+                for row in result.mappings():
+                    instance, checkpoint = _decode_checkpoint(row)
+                    if row.get("owner_id") != owner_id or row.get("instance_id") != instance.instance_id:
+                        raise ValueError("PostgreSQL forward instance owner/identity drifted")
+                    if row.get("instance_fingerprint") != content_digest(instance):
+                        raise ValueError("PostgreSQL forward instance fingerprint does not match bytes")
+                    if row.get("checkpoint_fingerprint") != checkpoint.fingerprint:
+                        raise ValueError("PostgreSQL forward checkpoint fingerprint does not match bytes")
+                    instances.append(instance)
+                ordered = tuple(sorted(instances, key=lambda item: item.instance_id))
+                if tuple(instances) != ordered:
+                    raise ValueError("PostgreSQL forward instances are not deterministically ordered")
+                return ordered
+
     async def transition(
         self,
         *,

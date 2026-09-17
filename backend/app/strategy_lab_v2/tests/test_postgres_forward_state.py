@@ -64,8 +64,15 @@ class FakeSession:
         sql = str(statement)
         values = dict(params or {})
         if "FROM strategy_lab_v2_forward_instances" in sql:
-            row = self.instances.get((values["owner_id"], values["instance_id"]))
-            return FakeResult([] if row is None else [row])
+            if "instance_id" in values:
+                row = self.instances.get((values["owner_id"], values["instance_id"]))
+                return FakeResult([] if row is None else [row])
+            rows = [
+                row
+                for (owner, _), row in self.instances.items()
+                if owner == values["owner_id"]
+            ]
+            return FakeResult(sorted(rows, key=lambda row: row["instance_id"]))
         if "FROM strategy_lab_v2_forward_warmups" in sql:
             row = self.warmups.get((values["owner_id"], values["instance_id"]))
             return FakeResult([] if row is None else [row])
@@ -170,6 +177,30 @@ async def test_forward_adapter_transitions_completes_warmup_and_replays() -> Non
     loaded = await adapter.load_instance(principal="owner-1", instance_id="instance-1")
     assert loaded is not None
     assert loaded.state is ForwardState.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_forward_adapter_lists_owner_instances_deterministically() -> None:
+    session = FakeSession()
+    adapter = PostgresForwardStateAdapter(lambda: session)
+    first = _instance()
+    second = ForwardInstance(
+        "instance-2",
+        first.portfolio_fingerprint,
+        first.warmup_snapshot_fingerprint,
+        first.carry_in_mode,
+        first.state,
+        None,
+        0,
+        0,
+        NOW,
+        NOW,
+    )
+    await adapter.ensure_instance(principal="owner-1", instance=first)
+    await adapter.ensure_instance(principal="owner-1", instance=second)
+
+    assert await adapter.load_all(principal="owner-1") == (first, second)
+    assert await adapter.load_all(principal="owner-2") == ()
 
 
 @pytest.mark.asyncio
