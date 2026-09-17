@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable result-manifest checkpoint
+
+`postgres_result_materialization.py` now retains immutable `RunResultManifest`
+values as owner-scoped canonical JSON projections. Pure manifest validation is
+run before registration; one attempt binds to one manifest identity, exact
+retries replay, changed candidates conflict, and payload plus record
+fingerprints are authenticated on every read. The adapter exposes the compact
+identity projection for later API reads without attempting nested contract
+decoding, and does not write artifact bytes or publish official results.
+
+The focused result-manifest persistence suite passes 4 tests. Package/static
+and combined coverage evidence will be recorded after this boundary is
+committed and rerun; upstream reconciliation and stable Nautilus execution
+remain open gates.
+
 ## 2026-09-17 - Durable runtime-execution checkpoint
 
 `postgres_runtime_execution.py` now maps accepted `RuntimeExecutionState`

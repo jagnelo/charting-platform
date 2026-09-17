@@ -738,6 +738,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   sandbox materialization commits running and terminal evidence atomically.
   Process execution, artifact bytes, migrations, authorization, and official
   result publication remain separate integration concerns.
+- `postgres_result_materialization.py` retains immutable `RunResultManifest`
+  payloads as owner-scoped canonical JSON projections. Pure manifest validation
+  runs before registration, attempt identities are single-bound, exact retries
+  replay, changed candidates conflict, and payload/record fingerprints are
+  authenticated on every read. Nested manifest decoding, artifact bytes,
+  migrations, authorization, and publication remain separate integration
+  concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

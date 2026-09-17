@@ -366,6 +366,12 @@ class PostgresRuntimeExecutionAdapter:
             return RuntimeStateResolution(
                 RuntimeStateDecision.NOT_FOUND, None, "runtime execution state was not found"
             )
+        if execution_plan.attempt_id != state.attempt_id:
+            return RuntimeStateResolution(
+                RuntimeStateDecision.REJECT,
+                state,
+                "Nautilus execution plan references a different attempt",
+            )
         checked = materialize_nautilus_result(
             state, execution_plan, sandbox_plan, run_result, observed_at=observed_at
         )
