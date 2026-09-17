@@ -27,6 +27,7 @@ from app.strategy_lab_v2.custom_metrics import (
 )
 from strategy_runtime.protocol import (
     _decode_value,
+    _dump_json,
     _encode_value,
     _list,
     _load_json,
@@ -79,7 +80,7 @@ def serialize_custom_metric_invocation(
 
     invocation = CustomMetricInvocation(source, definition, observations, parameters)
     payload = _encode_invocation(invocation)
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "custom metric invocation payload")
 
 
 def _encode_invocation(invocation: CustomMetricInvocation) -> dict[str, Any]:
@@ -114,7 +115,7 @@ def serialize_custom_metric_invocation_batch(
         "invocations": [_encode_invocation(item) for item in values],
         "fingerprint": content_digest(values),
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "custom metric batch invocation payload")
 
 
 def deserialize_custom_metric_invocation(
@@ -280,7 +281,7 @@ def serialize_custom_metric_result(result: CustomMetricInvocationResult) -> str:
         "error_digest": result.error_digest,
     }
     payload["fingerprint"] = result.fingerprint
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "custom metric result payload")
 
 
 def deserialize_custom_metric_result(payload: str) -> CustomMetricInvocationResult:
@@ -344,7 +345,7 @@ def serialize_custom_metric_result_batch(
         "results": [json.loads(serialize_custom_metric_result(item)) for item in values],
         "fingerprint": content_digest(values),
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "custom metric batch result payload")
 
 
 def deserialize_custom_metric_result_batch(

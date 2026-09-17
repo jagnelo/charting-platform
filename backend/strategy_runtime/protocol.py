@@ -83,6 +83,15 @@ def _load_json(payload: str, field_name: str) -> Any:
         raise ValueError(f"{field_name} is not valid JSON") from error
 
 
+def _dump_json(value: Any, field_name: str) -> str:
+    """Serialize a canonical envelope while enforcing the mounted wire limit."""
+
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    if len(payload.encode("utf-8")) > MAX_WIRE_PAYLOAD_BYTES:
+        raise ValueError(f"{field_name} exceeds the {MAX_WIRE_PAYLOAD_BYTES}-byte limit")
+    return payload
+
+
 def _iso_datetime(value: datetime) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("wire datetimes must be timezone-aware")
@@ -509,7 +518,7 @@ def serialize_invocation(
         "entrypoint": entrypoint,
         "max_intents_per_event": max_intents_per_event,
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "invocation payload")
 
 
 def deserialize_invocation(payload: str) -> tuple[str, StrategySdkManifest, StrategyContext, str, int]:
@@ -581,7 +590,7 @@ def serialize_invocation_batch(
         "entrypoint": entrypoint,
         "max_intents_per_event": max_intents_per_event,
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "batch invocation payload")
 
 
 def deserialize_invocation_batch(
@@ -670,7 +679,7 @@ def serialize_invocation_result(result: Any) -> str:
     """Serialize a :class:`StrategyInvocationResult` without exception text."""
 
     payload = _invocation_result_payload(result)
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "result payload")
 
 
 def deserialize_invocation_result(payload: str) -> Any:
@@ -766,7 +775,7 @@ def serialize_invocation_batch_result(results: Sequence[Any]) -> str:
         "results": [_invocation_result_payload(result) for result in result_tuple],
         "fingerprint": content_digest(result_tuple),
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return _dump_json(payload, "batch result payload")
 
 
 def deserialize_invocation_batch_result(payload: str) -> tuple[Any, ...]:

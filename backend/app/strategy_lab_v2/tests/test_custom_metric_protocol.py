@@ -100,6 +100,22 @@ def test_custom_metric_wire_rejects_duplicate_fields() -> None:
         deserialize_custom_metric_invocation(duplicate)
 
 
+def test_custom_metric_serializers_reject_oversized_outbound_envelopes() -> None:
+    source = "x" * MAX_WIRE_PAYLOAD_BYTES
+    with pytest.raises(ValueError, match="byte limit"):
+        serialize_custom_metric_invocation(
+            source=source,
+            definition=CustomMetricDefinition(
+                name="oversized",
+                unit="fraction",
+                basis=MetricBasis.NET,
+                source_digest=content_digest(source),
+                entrypoint="custom_metric:calculate",
+            ),
+            observations={},
+        )
+
+
 def test_custom_metric_batch_wire_round_trips_and_verifies_fingerprint() -> None:
     invocations = (
         CustomMetricInvocation(

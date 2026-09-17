@@ -401,6 +401,17 @@ def test_protocol_rejects_oversized_inbound_payload_before_json_decode() -> None
         deserialize_invocation(oversized)
 
 
+def test_protocol_serializers_reject_oversized_outbound_envelopes() -> None:
+    source = "x" * MAX_WIRE_PAYLOAD_BYTES
+    with pytest.raises(ValueError, match="byte limit"):
+        serialize_invocation(
+            source=source,
+            manifest=_manifest(source),
+            context=_context(),
+            entrypoint="strategy.main:Strategy",
+        )
+
+
 def test_cli_rejects_oversized_request_before_reading_unbounded_text(tmp_path) -> None:
     request = tmp_path / "oversized-request.json"
     result_path = tmp_path / "result.json"
