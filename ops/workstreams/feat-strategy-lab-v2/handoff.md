@@ -3207,6 +3207,23 @@ coverage (required threshold: 75%), with setup and cleanup successful.
 Schema/API/worker/Compose integration and stable Nautilus execution remain
 deferred behind the existing gates.
 
+## 2026-09-17 - SDK UTC event-time normalization checkpoint
+
+`MarketEvent` and `StrategyContext` now normalize every aware event time to
+UTC at construction while retaining strict rejection of naive datetimes. This
+keeps direct SDK callers aligned with the runtime wire protocol: event/context
+scope checks, frozen-tape replay, and content fingerprints all operate on one
+canonical instant representation. The focused Strategy Lab package passed 666
+tests with Ruff, MyPy, `git diff --check`, and workstream validation green.
+
+The repository-level Docker-backed coverage attempt reached the integration
+suite but could not start the configured PostgreSQL test service on port 52440;
+it ended with 2,087 passed, 1 failed (a worker contract test that passes in
+isolation), and 226 setup errors from connection refusal. The integration
+environment failure is independent of this SDK change and Docker cleanup
+completed. Provider/API/database/worker/Compose integration and stable Nautilus
+execution remain deferred behind the existing ownership and release gates.
+
 ## 2026-09-17 - Snapshot-bound event-tape/SDK binding checkpoint
 
 `bind_event_tape()` now verifies that a frozen replay tape belongs to the exact
