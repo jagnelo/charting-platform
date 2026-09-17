@@ -32,8 +32,10 @@
   `credits_per_minute`. Its separate `credits_per_day` pool has no cumulative
   counter, so the full Twelve Data matrix now stops before transport with an
   explicit daily-baseline blocker. The failed attempt made zero data requests.
-- Focused runner/quota/account-usage tests pass; commit and current-source
-  preflight evidence are the remaining recording steps for this correction.
+- Focused runner/quota/account-usage tests pass (`223/223`), and the latest
+  committed-source Twelve Data preflight at `9d71152b0` is recorded in
+  `validation.jsonl` as `0/0` with zero data requests and the explicit daily
+  baseline blockers. This is fail-closed evidence, not a data-matrix pass.
 
 ## 2026-09-17 FMP daily-cap safety-envelope completion
 
