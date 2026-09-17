@@ -12,6 +12,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Cancellable worker scheduling
+
+`RedisDispatchWorkerScheduler` now runs one bounded Redis worker-pump cycle at
+a time until an explicit stop signal or test cycle cap. Interval values are
+finite and positive, sleep is injected for deterministic control, and callers
+can select the authenticated durable-payload materializer before their
+two-argument handler runs. `RedisDispatchRuntime.worker_scheduler()` exposes
+the same composition on the application-owned Redis lifecycle; it does not
+start a process, claim a lease, invoke Nautilus, or hide handler failures.
+
+The full Strategy Lab v2 package passed 739 tests with Ruff/MyPy green. The
+exact backend gate then passed 2,388 tests with 83.75% combined coverage
+(required threshold: 75%); branch-scoped Docker resources were cleaned and no
+retained testcontainer sessions remain. Isolated worker process/runtime
+execution, migration startup, orphan/scheduled artifact cleanup, upstream
+contract reconciliation, and stable Nautilus activation remain deferred.
+
 ## 2026-09-17 - Retention-authorized artifact byte lifecycle
 
 `artifact_store.py` now exposes a guarded `collect()` operation that verifies

@@ -1029,6 +1029,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   a two-argument materialized handler. Missing or malformed payloads remain
   pending for retry or an explicit poison-message policy; payload bytes are
   not placed in Redis stream fields.
+- `RedisDispatchWorkerScheduler` adds the bounded application scheduling seam:
+  each cycle remains batch-limited, cancellation is explicit, and tests can
+  inject sleep or a finite cycle cap. The runtime factory composes it without
+  owning process lifecycle, lease heartbeats, engine disposal, or handler
+  execution policy.
 - `dispatch_payload.py` defines the immutable canonical payload record used by
   that worker handoff. PostgreSQL submission persistence stores one record per
   digest, verifies byte length and canonical decoded content on every read, and

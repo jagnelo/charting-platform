@@ -402,6 +402,13 @@ remaining_gaps:
       `LocalArtifactRetentionService` and the shared persistence bundle wire
       this lifecycle to the existing retention adapter; orphan reconciliation
       and scheduled cleanup remain caller-owned.
+  - >-
+      `RedisDispatchWorkerScheduler` now runs bounded Redis worker cycles until
+      explicit cancellation, with finite interval validation, optional durable
+      payload materialization, injected sleep, and a deterministic cycle cap.
+      `RedisDispatchRuntime.worker_scheduler()` composes this seam while
+      handler execution, process lifecycle, lease heartbeats, and engine
+      disposal remain injected worker responsibilities.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -464,7 +471,8 @@ progress:
     - strategy-lab-v2-atomic-submission-outbox-staging
     - strategy-lab-v2-durable-dispatch-payload-materialization
     - strategy-lab-v2-retention-authorized-artifact-byte-lifecycle
+    - strategy-lab-v2-cancellable-worker-scheduling
   total: 18
-  current_phase: strategy-lab-v2-retention-authorized-artifact-byte-lifecycle-staging-ready-for-human-review
-  current_blocker: worker process/runtime integration, migration startup, orphan/scheduled artifact cleanup, stable Nautilus release, and full repository integration remain open
-  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, worker process/runtime integration, and orphan/scheduled artifact cleanup without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-cancellable-worker-scheduling-staging-ready-for-human-review
+  current_blocker: isolated worker process/runtime execution, migration startup, orphan/scheduled artifact cleanup, stable Nautilus release, and full repository integration remain open
+  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, isolated worker process/runtime execution, and orphan/scheduled artifact cleanup without changing the engine-neutral boundary
