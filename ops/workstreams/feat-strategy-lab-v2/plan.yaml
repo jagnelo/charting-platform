@@ -386,6 +386,13 @@ remaining_gaps:
       outbox relay and bounded worker-pump transports. Health checks, worker
       process/task lifecycle, migration startup, and runtime activation remain
       caller-owned.
+  - >-
+      `dispatch_payload.py` and the additive `ff1a2b3c4d5e` migration retain
+      canonical, content-addressed submission payload bytes separately from
+      Redis. Submission receipt, dispatch intent, payload record, and outbox
+      row are staged atomically; workers can resolve and re-authenticate a
+      payload by digest before invoking a materialized handler. Missing or
+      malformed payloads remain unacknowledged for retry/poison handling.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -446,7 +453,8 @@ progress:
     - strategy-lab-v2-bounded-outbox-relay-scheduling
     - strategy-lab-v2-redis-runtime-lifecycle
     - strategy-lab-v2-atomic-submission-outbox-staging
+    - strategy-lab-v2-durable-dispatch-payload-materialization
   total: 18
-  current_phase: strategy-lab-v2-atomic-submission-outbox-staging-staging-ready-for-human-review
-  current_blocker: worker/runtime integration, migration startup, artifact byte/retention lifecycle, stable Nautilus release, and full repository integration remain open
-  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, isolated worker/runtime integration, and artifact byte/retention lifecycle without changing the engine-neutral boundary
+  current_phase: strategy-lab-v2-durable-dispatch-payload-materialization-staging-ready-for-human-review
+  current_blocker: worker process/runtime integration, migration startup, artifact byte/retention lifecycle, stable Nautilus release, and full repository integration remain open
+  next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add migration startup, worker process/runtime integration, and artifact byte/retention lifecycle without changing the engine-neutral boundary

@@ -1018,7 +1018,18 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   requires an explicit handler receipt. Only a content-matched completed
   receipt is acknowledged; retry, rejection, handler-content drift, and Redis
   acknowledgement failure leave the delivery unacknowledged with typed
-  evidence.
+  evidence. `handle_materialized_once()` adds the durable handoff: it resolves
+  canonical payload bytes through an injected content-addressed loader,
+  re-authenticates the payload digest and decoded mapping, and only then calls
+  a two-argument materialized handler. Missing or malformed payloads remain
+  pending for retry or an explicit poison-message policy; payload bytes are
+  not placed in Redis stream fields.
+- `dispatch_payload.py` defines the immutable canonical payload record used by
+  that worker handoff. PostgreSQL submission persistence stores one record per
+  digest, verifies byte length and canonical decoded content on every read, and
+  deduplicates equivalent payloads across owner-scoped submissions. The
+  additive `ff1a2b3c4d5e` migration creates this table; startup migration
+  execution and process-level worker activation remain integration gates.
 - `postgres_storage.py` maps the compare-and-set aggregate contract to one
   SQLAlchemy async transaction. It locks requested aggregate/receipt rows,
   preserves canonical state identity through a versioned JSON codec, uses

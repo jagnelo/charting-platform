@@ -12,6 +12,25 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable dispatch-payload materialization
+
+`dispatch_payload.py` now defines immutable canonical payload records with
+byte-length and decoded-content authentication. The additive
+`ff1a2b3c4d5e` migration creates a content-addressed PostgreSQL payload table;
+submission receipt, dispatch intent, payload bytes, and execution outbox are
+staged in one transaction, with shared-payload deduplication and tamper
+rejection. `PostgresSubmissionDispatchAdapter.load_payload()` is the
+worker-facing lookup surface, and `RedisDispatchWorker.handle_materialized_once()`
+resolves that record by stream digest before invoking a handler. Missing or
+malformed records stay unacknowledged for retry/poison-message policy.
+
+Focused payload/submission/worker/migration tests passed (18 tests), the full
+Strategy Lab v2 package passed 734 tests, and Ruff/MyPy were green. The exact
+backend coverage gate and branch checkpoint remain to be run for this slice.
+Worker process/runtime execution, migration startup, artifact byte/retention
+lifecycle, upstream contract reconciliation, and stable Nautilus activation
+remain deferred.
+
 ## 2026-09-17 - Atomic submission-to-outbox staging
 
 `postgres_submission.py` now binds each accepted API submission to the shared
