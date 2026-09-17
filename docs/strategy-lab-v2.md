@@ -690,7 +690,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `app.main` registers this router at
   `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
   unchanged. Remaining resource projections, worker effects, and engine
-  execution are still explicit gates.
+  execution are still explicit gates; richer mutation/result-publication
+  routes and artifact byte lifecycle remain outside this seam.
 - `outbox_application.py` adds the application-owned relay seam on top of the
   shared persistence bundle. `OutboxRelayService` loads the authenticated
   PostgreSQL outbox, relays only available messages through the idempotent Redis
