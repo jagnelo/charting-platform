@@ -1382,10 +1382,11 @@ class DinariTokenProvider:
     ) -> list[dict[str, Any]]:
         """Read one documented split page and retain only its next cursor.
 
-        Dinari's cursor is opaque and scoped to the exact feed/limit.  A
-        caller must therefore request pages in order on the same adapter
-        instance; this prevents accidental cross-feed reuse and avoids an
-        unbounded loop that could consume a partner quota unexpectedly.
+        Dinari's cursor is opaque and scoped to the exact feed/limit. A caller
+        must therefore request pages in order and carry the durable cursor
+        forward when an adapter instance is replaced; this prevents accidental
+        cross-feed reuse and avoids an unbounded loop that could consume a
+        partner quota unexpectedly.
         """
 
         self._require_configured()
