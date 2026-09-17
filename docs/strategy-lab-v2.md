@@ -1100,6 +1100,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   optional durable lease-observation writer emits ordered, content-addressed
   heartbeats while the serial process runs; unexpected sequence/state or
   persistence rejection leaves the entry pending for recovery.
+- An optional terminal writer receives `WorkerCompletionContext`, binding the
+  exact stream entry, materialized immutable request, process resolution, and
+  UTC completion observation before returning the typed acknowledgement receipt.
+  This keeps terminal outcome/result publication and atomic worker-capacity
+  release in an explicit application callback, while preserving the existing
+  two-argument completion writer for transport-only adapters.
 - `worker_entrypoint.py` is the explicit local process boundary for that
   composition. It validates namespaced environment configuration, runs startup
   migrations before connecting Redis, builds the shared PostgreSQL persistence

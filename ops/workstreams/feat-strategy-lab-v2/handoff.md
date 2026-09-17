@@ -12,6 +12,28 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Explicit terminal/result completion context
+
+`worker_service.py` now exposes an optional terminal writer that receives an
+immutable `WorkerCompletionContext`: the exact Redis entry, the materialized
+`WorkerExecutionRequest`, the `WorkerProcessResolution`, and a UTC observation
+time. Its typed `WorkerHandleResult` is used as the completion receipt before
+the scheduler can acknowledge the stream entry; the legacy two-argument
+completion writer remains supported when no terminal writer is configured.
+`WorkerServiceCallbacks` and the local entrypoint accept this optional fourth
+callback alongside materialization, completion, and lease heartbeat. This is
+the explicit seam for binding `materialize_worker_terminal`, result-completion
+publication, and atomic capacity release without placing outcome/metric policy
+inside Redis transport.
+
+The focused worker-service/entrypoint tests passed (11 tests); branch
+validation passed 764 package tests; and the exact backend gate passed 2,413
+tests with 83.76% combined coverage (required threshold: 75%). Branch-scoped
+Docker resources were cleaned with no retained testcontainer sessions.
+Concrete terminal/result adapter implementations, Compose activation, stable
+Nautilus conformance, upstream contract reconciliation, and full repository
+integration remain deferred.
+
 ## 2026-09-17 - Atomic worker lease/capacity settlement
 
 `PostgresWorkerStateAdapter.release_capacity()` now closes the worker-side
