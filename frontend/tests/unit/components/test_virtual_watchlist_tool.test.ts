@@ -55,6 +55,37 @@ describe('VirtualWatchlistTool', () => {
     wrapper.unmount()
   })
 
+  it('links each column editor trigger to its mounted dialog', async () => {
+    const first = mount(VirtualWatchlistTool, { props: { label: 'First list', rows } })
+    const second = mount(VirtualWatchlistTool, { props: { label: 'Second list', rows } })
+
+    const firstColumns = first.get('button[aria-label="Columns"]')
+    const secondColumns = second.get('button[aria-label="Columns"]')
+    const firstColumnId = firstColumns.attributes('aria-controls')
+    const secondColumnId = secondColumns.attributes('aria-controls')
+    expect(firstColumnId).toBeTruthy()
+    expect(secondColumnId).toBeTruthy()
+    expect(firstColumnId).not.toBe(secondColumnId)
+    expect(firstColumns.attributes('aria-expanded')).toBe('false')
+    expect(first.find(`#${firstColumnId}`).exists()).toBe(false)
+
+    await firstColumns.trigger('click')
+    expect(first.get(`#${firstColumnId}`).attributes('aria-labelledby')).toBe(firstColumns.attributes('id'))
+    expect(first.get('button[aria-label="Columns"]').attributes('aria-expanded')).toBe('true')
+    expect(second.find(`[id="${secondColumnId}"]`).exists()).toBe(false)
+
+    const firstSets = first.get('button[aria-label="Column sets"]')
+    const firstSetId = firstSets.attributes('aria-controls')
+    expect(firstSetId).toBeTruthy()
+    expect(firstSetId).not.toBe(firstColumnId)
+    await firstSets.trigger('click')
+    expect(first.get(`[id="${firstSetId}"]`).attributes('aria-labelledby')).toBe(firstSets.attributes('id'))
+    expect(first.find(`[id="${firstColumnId}"]`).exists()).toBe(false)
+
+    first.unmount()
+    second.unmount()
+  })
+
   it('gives each column visibility checkbox a concise accessible name', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {
