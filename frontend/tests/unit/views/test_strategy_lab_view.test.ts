@@ -1471,6 +1471,44 @@ describe('StrategyLabView', () => {
     expect(wrapper.get(`#${stateMenuId}`).attributes('aria-label')).toBe('States')
   })
 
+  it('supports keyboard navigation and focus recovery for result exports', async () => {
+    const wrapper = mount(StrategyLabView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    await flushPromises()
+    const trigger = wrapper.get('[aria-label="Export"]')
+    const menuId = trigger.attributes('aria-controls')
+    expect(menuId).toMatch(/-export-menu$/)
+    expect(trigger.attributes('aria-haspopup')).toBe('menu')
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+    const menu = wrapper.get(`#${menuId}`)
+    expect(menu.attributes('role')).toBe('menu')
+    expect(menu.attributes('aria-label')).toBe('Export options')
+    const items = menu.findAll('[role="menuitem"]')
+    expect(items).toHaveLength(2)
+    expect(document.activeElement).toBe(items[0].element)
+
+    await items[0].trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(items[1].element)
+    await items[1].trigger('keydown', { key: 'Home' })
+    expect(document.activeElement).toBe(items[0].element)
+    await items[0].trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    expect(wrapper.find(`#${menuId}`).exists()).toBe(false)
+    expect(document.activeElement).toBe(trigger.element)
+
+    wrapper.unmount()
+  })
+
   it('publishes only resolved benchmark symbols and limits subset runs to selected universe symbols', async () => {
     const wrapper = mountView()
 

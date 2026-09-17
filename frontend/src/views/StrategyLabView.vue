@@ -1151,11 +1151,16 @@
               </button>
               <div ref="exportMenuRef" class="export-menu" @click.stop>
                 <button
+                  ref="exportMenuTrigger"
                   class="btn-secondary btn-icon-only export-menu__trigger"
                   type="button"
                   title="Export"
                   aria-label="Export"
-                  @click="exportMenuOpen = !exportMenuOpen"
+                  aria-haspopup="menu"
+                  :aria-expanded="exportMenuOpen ? 'true' : 'false'"
+                  :aria-controls="exportMenuId"
+                  @click="toggleExportMenu"
+                  @keydown="handleExportMenuTriggerKeydown"
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M8 2.5v7" />
@@ -1164,9 +1169,9 @@
                   </svg>
                   <span class="export-menu__caret">{{ exportMenuOpen ? '▴' : '▾' }}</span>
                 </button>
-                <div v-if="exportMenuOpen" class="export-menu__panel">
-                  <button type="button" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
-                  <button type="button" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
+                <div v-if="exportMenuOpen" :id="exportMenuId" class="export-menu__panel" role="menu" aria-label="Export options" @keydown="handleExportMenuKeydown">
+                  <button type="button" role="menuitem" tabindex="-1" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
+                  <button type="button" role="menuitem" tabindex="-1" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
                 </div>
               </div>
             </div>
@@ -1773,6 +1778,7 @@ const runHistoryId = `${strategyInstanceId}-run-history`
 const runSubsetMenuId = `${strategyInstanceId}-run-subset-menu`
 const radarSetupMenuId = `${strategyInstanceId}-radar-setup-menu`
 const radarStateMenuId = `${strategyInstanceId}-radar-state-menu`
+const exportMenuId = `${strategyInstanceId}-export-menu`
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
 const availableBaskets = ref<Basket[]>([])
@@ -1831,6 +1837,7 @@ const showAdvancedRunOptions = ref(false)
 const runSubsetMenuOpen = ref(false)
 const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
+const exportMenuTrigger = ref<HTMLButtonElement | null>(null)
 const runHistoryExpanded = ref(false)
 const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
@@ -4349,8 +4356,70 @@ async function refreshPaperForwardRun() {
   strategyLab.selectedRunId = refreshed.id
 }
 
-function handleExport(kind: 'summary' | 'trades') {
+function exportMenuItems() {
+  return Array.from(exportMenuRef.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+}
+
+function focusExportMenuItem(index: number) {
+  const items = exportMenuItems()
+  if (!items.length) return
+  const resolvedIndex = index < 0 ? items.length - 1 : Math.min(index, items.length - 1)
+  items[Math.max(0, resolvedIndex)]?.focus()
+}
+
+function setExportMenuOpen(open: boolean, focusIndex = 0) {
+  exportMenuOpen.value = open
+  if (!open) return
+  void nextTick(() => focusExportMenuItem(focusIndex))
+}
+
+function toggleExportMenu() {
+  setExportMenuOpen(!exportMenuOpen.value)
+}
+
+function closeExportMenuToTrigger() {
+  if (!exportMenuOpen.value) return
   exportMenuOpen.value = false
+  void nextTick(() => exportMenuTrigger.value?.focus())
+}
+
+function handleExportMenuTriggerKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    setExportMenuOpen(true, event.key === 'ArrowUp' ? exportMenuItems().length - 1 : 0)
+  }
+}
+
+function handleExportMenuKeydown(event: KeyboardEvent) {
+  const items = exportMenuItems()
+  const target = event.target instanceof HTMLElement ? event.target : null
+  const currentIndex = target ? items.indexOf(target as HTMLButtonElement) : -1
+  if (!items.length) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeExportMenuToTrigger()
+    return
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    focusExportMenuItem((currentIndex + 1 + items.length) % items.length)
+  } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+    event.preventDefault()
+    focusExportMenuItem((currentIndex - 1 + items.length) % items.length)
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    focusExportMenuItem(0)
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    focusExportMenuItem(items.length - 1)
+  } else if ((event.key === 'Enter' || event.key === ' ') && target) {
+    event.preventDefault()
+    target.click()
+  }
+}
+
+function handleExport(kind: 'summary' | 'trades') {
+  closeExportMenuToTrigger()
   if (kind === 'summary') {
     exportSummaryJson()
     return
