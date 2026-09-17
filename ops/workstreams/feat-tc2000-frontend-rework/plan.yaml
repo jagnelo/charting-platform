@@ -21,7 +21,7 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No TC-owned product or validation blocker is present after the definitive
-  exact gate passed at product tip a981101c. Provider-platform and ETF consumer
+  exact gate passed at product tip 7057262e. Provider-platform and ETF consumer
   integration remains a sequencing gate until both upstream branches reach
   staging; shared-path reconciliation and the final post-staging exact gate
   remain pending. Origin synchronization remains a separate operational hold
@@ -259,17 +259,18 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_market_map_group_state_accessibility_exact_gate_passed
+  current_phase: R6_breadth_drilldown_state_accessibility_exact_gate_passed
   next_action: >-
-    Preserve all prior disclosure and export-menu receipts plus the Market Map
-    hierarchy/breadcrumb aria-pressed receipt and its definitive exact-gate
-    result at a981101c. Continue with the next bounded TC-owned R1/R5/R6 item;
-    keep provider/ETF consumer work deferred until both upstream branches reach
-    staging. Do not retry origin synchronization under the existing
-    private-origin safeguard without newly accepted exact-payload authorization.
+    Preserve all prior disclosure, export-menu, Market Map, and breadth
+    drilldown aria-pressed receipts plus the definitive exact-gate result at
+    product tip 7057262e. Continue with the next bounded TC-owned R1/R5/R6
+    item; keep provider/ETF consumer work deferred until both upstream branches
+    reach staging. Do not retry origin synchronization under the existing
+    private-origin safeguard without newly accepted exact-payload
+    authorization.
   current_blocker: >-
     No TC-owned product or validation blocker is present after the definitive
-    exact gate passed at product tip a981101c. Provider-platform and ETF
+    exact gate passed at product tip 7057262e. Provider-platform and ETF
     consumer integration remains a sequencing gate until both upstream branches
     reach staging; shared-path reconciliation and the final post-staging exact
     gate remain pending. Origin synchronization remains a separate operational
@@ -308,6 +309,8 @@ historical_implementation_records:
   - "Product commit 07bafee7 exposes the existing unavailable-popout recovery message as an assertive alert/live region for assistive technology. Focused workstation/pop-out tests passed 28/28; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit 4daf9b95 makes the concise workstation footer recovery message a polite, atomic status announcement for assistive technology. Focused workstation/pop-out tests passed 27/27 with role=status, aria-live=polite, and aria-atomic=true asserted; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
 historical_implementation_records_continued:
+  - "Product commit 7057262ee exposes explicit aria-pressed state for breadth drilldown controls: family-role constituent selectors, generic breadth Pass/Fail filters, moving-average above/below controls, 52-week/new-high-low and trend drilldowns, and the active drilldown header. The authenticated F8s-breadth-family-ratio flow now verifies selected/unselected state and uses keyboard activation for the dense overlay control; focused and full frontend checks passed, with no provider-platform, ETF, visual-oracle, or acceptance-policy changes."
+  - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 7057262eeb10933ce5947426e8e7fa87e4edacee: backend combined coverage passed 1,621 unit and 408 integration tests at 82.26% total coverage; frontend Vitest passed 1,151/1,151; type-check/build, Compose/provider contracts, branch-scoped Docker health, and research-runner probes passed; authenticated functional Chromium passed 170 with 107 documented skips; and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; resource accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the breadth-drilldown state semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commit 83bcb722 adds a visually hidden accessible description to hydrated workstation pop-outs clarifying that monitor placement and native window controls are browser/OS managed. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, and the unchanged exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit caff874b adds a named focusable pop-out landmark with post-hydration keyboard focus. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, the fresh-stack F8u-boolean reproduction passed 1/1, and the exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1 canonical family/provider-history readiness and R2-R7 evidence."
   - "Product tip 80f7f266 adds an accessible labelled readiness status for canonical universe provenance (registry, family count, point-in-time/latest mode, missing-family count, and provider-call boundary) without provider calls, route selection, readiness inference, fallback, visual-oracle, or acceptance-policy changes. Full frontend Vitest passed 970/970; type-check/build passed; rebuilt authenticated Chromium passed both evidence assertions 2/2; teardown/resource accounting were clean. The corrected exact-tip gate at docs b57e5893 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs."

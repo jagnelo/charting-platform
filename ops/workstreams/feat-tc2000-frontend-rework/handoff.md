@@ -1,5 +1,37 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 breadth-drilldown state accessibility and definitive gate
+
+Product commit `7057262e` exposes the selected state of breadth controls
+through explicit `aria-pressed` semantics: family-role constituent selectors,
+generic breadth Pass/Fail filters, moving-average above/below controls,
+52-week/new-high-low and trend drilldowns, and the active drilldown header.
+The authenticated `F8s-breadth-family-ratio` flow verifies selected and
+unselected states, including keyboard activation through the dense rendered
+history surface. Focused/full frontend checks, type-check, and production
+build passed; no provider-platform, ETF, visual-oracle, or acceptance-policy
+behavior changed.
+
+The definitive raw-capture exact gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` passed
+at product tip
+`7057262eeb10933ce5947426e8e7fa87e4edacee`: backend combined coverage passed
+`1,621` unit and `408` integration tests at `82.26%`; frontend Vitest passed
+`1,151/1,151`; type-check/build, Compose/provider contracts, branch-scoped
+Docker health, and research-runner probes passed; authenticated functional
+Chromium passed `170` with `107` documented skips; and all four visual
+projects passed `104/104`. Teardown removed the assigned containers, volumes,
+network, four generated images, and test sessions; resource accounting
+reported zero retained resources. The standard `/usr/bin/make` wrapper remains
+unavailable because of host Xcode license status `69`; the installed
+CommandLineTools Make binary ran the same target.
+
+The broader goal remains active: provider/ETF consumer integration is still
+sequenced behind staging, after which shared paths require semantic
+reconciliation and another exact-tip gate. This slice does not integrate,
+promote, deploy, or mutate another worktree.
+
 ## 2026-09-18 — R6 Market Map hierarchy-state accessibility and definitive gate
 
 Product commit `a981101c` exposes the selected Market Map hierarchy/group and
