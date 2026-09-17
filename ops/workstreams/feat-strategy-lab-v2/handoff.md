@@ -12,6 +12,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Dedicated serial worker process boundary
+
+`worker_process.py` now provides `SerialWorkerProcessExecutor`, which runs
+each immutable execution handoff in a fresh `spawn` child process. A one-way
+pipe transfers only the typed request and `WorkerExecutionResolution`; the
+parent owns join, timeout, termination, and reaping, and child failures are
+reduced to stable exception-type digests. The boundary does not acquire
+leases, persist state, or run from FastAPI/the general ARQ worker; a concrete
+Redis service entrypoint, lease-heartbeat integration, and Compose activation
+remain deferred.
+
+The full Strategy Lab v2 package passed 748 tests with Ruff/MyPy green. The
+exact backend gate then passed 2,397 tests with 83.77% combined coverage
+(required threshold: 75%); branch-scoped Docker resources were cleaned and no
+retained testcontainer sessions remain. Migration startup, worker service
+activation, upstream contract reconciliation, stable Nautilus activation,
+and full repository integration remain deferred.
+
 ## 2026-09-17 - Artifact orphan reconciliation and scheduled cleanup
 
 `LocalArtifactStore.cleanup_uncommitted()` now scans only the store's

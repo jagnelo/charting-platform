@@ -1083,6 +1083,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   outcomes remain storage-neutral for a later compare-and-set transaction. The
   typed resolution also rejects a contradictory worker decision/runtime-result
   pair before it can be settled.
+- `worker_process.py` provides the dedicated serial process boundary for that
+  handoff. `SerialWorkerProcessExecutor` uses a fresh `spawn` child per
+  execution, transfers only the immutable request and typed resolution over a
+  one-way pipe, and makes the parent responsible for join, timeout,
+  termination, and reaping. Child failures are reduced to stable type-only
+  digests; this module does not acquire leases, persist state, or run from
+  FastAPI/the general ARQ worker. A service entrypoint and Compose activation
+  remain deployment integration gates.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, applies a deterministic
