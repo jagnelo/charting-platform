@@ -1091,6 +1091,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   digests; this module does not acquire leases, persist state, or run from
   FastAPI/the general ARQ worker. A service entrypoint and Compose activation
   remain deployment integration gates.
+- `worker_service.py` composes that process boundary with the Redis scheduler.
+  It materializes each authenticated durable payload, runs the handoff off the
+  event loop in the serial executor, and delegates completion persistence to an
+  injected writer before the transport can acknowledge the entry. The Redis
+  runtime factory exposes this composition without starting it implicitly.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, applies a deterministic

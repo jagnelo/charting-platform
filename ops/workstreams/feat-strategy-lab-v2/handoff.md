@@ -12,6 +12,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Dedicated worker service composition
+
+`worker_service.py` now composes the authenticated Redis payload loader,
+bounded scheduler, fresh serial worker process, and injected durable
+completion writer. Each handoff runs off the event loop, and the transport can
+acknowledge an entry only after the writer returns a matching receipt. The
+Redis runtime exposes this composition without implicitly starting it; a
+concrete process entrypoint, lease-heartbeat integration, and Compose service
+activation remain deferred.
+
+The focused worker-service/runtime tests passed (9 tests). The full
+Strategy Lab v2 package passed 751 tests with Ruff/MyPy green, and the exact
+backend gate passed 2,400 tests with 83.78% combined coverage (required
+threshold: 75%); branch-scoped Docker resources were cleaned and no retained
+testcontainer sessions remain. Migration startup, worker service activation,
+upstream contract reconciliation, stable Nautilus activation, and full
+repository integration remain deferred.
+
 ## 2026-09-17 - Dedicated serial worker process boundary
 
 `worker_process.py` now provides `SerialWorkerProcessExecutor`, which runs
