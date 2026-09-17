@@ -680,7 +680,11 @@ function applyFactoryStudy() {
   }
   name.value = template.name
   source.value = template.source
-  clearOpenedStudyDefinition()
+  // Factory selection is a local authoring transition. Persist the new
+  // template configuration through the existing parameter-schema watcher
+  // after this function finishes instead of emitting an intermediate config
+  // that briefly omits the template schema.
+  clearOpenedStudyDefinition(false)
   parameterSchemaText.value = template.parameterSchema ?? ''
   validation.value = null
   run.value = null
