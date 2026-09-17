@@ -602,7 +602,7 @@ def test_walk_forward_gaps_embargo_and_oos_aggregation_are_explicit() -> None:
 
 
 def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
-    requirement = _requirement()
+    requirement = replace(_requirement(), end=END + timedelta(days=1))
     strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
     dependency = StrategyDataDependency("daily-bars", requirement, ("close",), lookback_periods=0)
     manifest = StrategySdkManifest(strategy, (dependency,))
@@ -676,6 +676,32 @@ def test_sdk_intents_are_typed_scoped_and_context_is_read_only() -> None:
                         11,
                         {"close": Decimal("190.25")},
                     ),
+                )
+            },
+        )
+    with pytest.raises(ValueError, match="declared interval"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=10,
+            random_seed=7,
+            parameters={},
+            market_events={
+                "daily-bars": (
+                    replace(market_event, event_time=START - timedelta(seconds=1)),
+                )
+            },
+        )
+    with pytest.raises(ValueError, match="declared interval"):
+        build_strategy_context(
+            manifest,
+            event_time=END,
+            event_sequence=10,
+            random_seed=7,
+            parameters={},
+            market_events={
+                "daily-bars": (
+                    replace(market_event, event_time=END + timedelta(days=1)),
                 )
             },
         )

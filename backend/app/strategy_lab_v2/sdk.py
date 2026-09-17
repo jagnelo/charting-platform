@@ -253,6 +253,10 @@ def build_strategy_context(
         for event in events:
             if event.instrument_id != dependency.requirement.instrument_id:
                 raise ValueError(f"dependency {dependency_id!r} contains an undeclared instrument")
+            if not dependency.requirement.start <= event.event_time < dependency.requirement.end:
+                raise ValueError(
+                    f"dependency {dependency_id!r} event falls outside its declared interval"
+                )
             extra_fields = set(event.values) - allowed_fields
             if extra_fields:
                 raise ValueError(
