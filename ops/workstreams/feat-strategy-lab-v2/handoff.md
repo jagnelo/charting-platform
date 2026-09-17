@@ -3248,6 +3248,16 @@ green. Worker image/entrypoint, application scheduling, migrations, upstream
 reconciliation, and authoritative Nautilus execution remain deferred behind
 the existing gates.
 
+## 2026-09-17 - Combined backend coverage revalidation
+
+The repository-authoritative `make test-backend-coverage` gate now passes at
+the current implementation tip: 2,316 backend unit, integration, and Strategy
+Lab v2 tests completed with 83.65% combined coverage, exceeding the required
+75% threshold. Docker setup and cleanup completed successfully, including the
+PostgreSQL/Redis-backed integration suite. This supersedes the earlier
+transient connection-refusal attempt; shared-path integration and stable
+Nautilus release execution remain gated by the approved plan.
+
 ## 2026-09-17 - Metric-set identity canonicalization checkpoint
 
 `MetricSet` now requires typed `MetricValue` records, validates that every
