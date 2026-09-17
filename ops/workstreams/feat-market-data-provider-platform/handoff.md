@@ -5419,3 +5419,14 @@ the authoritative record for this replay; it made zero provider calls.
   reset and current entitlement evidence remain review gates.
 - Focused quota-contract coverage for the citation correction passed `110/110`;
   no provider request was made.
+## 2026-09-17 current-head live preflight after refresh-queue fixes
+
+- The exact current source `ba3893314` was checked with the full provider
+  matrix. It stopped before transport (`0/0` cases, zero provider requests).
+- The receipt records the durable quota-coordinator availability blocker plus
+  the existing provider-specific quota/reset, legal/use, capability-coverage,
+  and unresolved-operation blockers. No credentials or provider payloads were
+  consumed; the receipt is appended to `validation.jsonl`.
+- The queue fixes remain repository-controlled and fully validated separately:
+  the backend unit gate, workflow tests, Compose contracts, Ruff, and
+  workstream validation are green.

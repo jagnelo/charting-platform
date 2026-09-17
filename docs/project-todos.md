@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-17 — Current-head provider preflight after queue fixes
+
+- [x] Re-run the full provider matrix at source `ba3893314` after the daily
+      refresh-key and queue-throughput changes. The safety preflight stopped
+      before transport (`0/0` cases, zero provider requests) and recorded the
+      durable quota-coordinator availability blocker plus the existing
+      provider-specific quota/reset, legal/use, capability-coverage, and
+      unresolved-operation blockers.
+- [x] Preserve the result as an aggregate-only `validation.jsonl` receipt;
+      no credentials or provider payloads were consumed. This does not close
+      live acceptance, routing-promotion, deployment-secret, universe, or
+      final-shadow gates.
+
 ### 2026-09-17 — Configurable core-refresh throughput
 
 - [x] Add `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` with a default of 100 and a

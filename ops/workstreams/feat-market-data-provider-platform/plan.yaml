@@ -744,6 +744,14 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 current-head full-matrix preflight after the recurring
+      refresh-queue fixes: source `ba3893314` stopped before transport with
+      `0/0` cases and zero provider requests. The receipt records the missing
+      durable quota-coordinator availability plus the existing provider
+      quota/reset, legal/use, capability-coverage, and unresolved-operation
+      blockers. No credentials or provider payloads were consumed; this is
+      fail-closed safety evidence, not live acceptance.
+    - >-
       2026-09-17 configurable core-refresh throughput: added the explicit
       `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` deployment setting (default 100,
       bounded to 1..500) and wired it through standard/RPi Compose. The worker
