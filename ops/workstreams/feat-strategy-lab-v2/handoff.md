@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Relational API resource projections
+
+`postgres_resources.py` now supports application-owned projection loaders in
+addition to the aggregate store. `persistence.py` registers authenticated
+PostgreSQL projections for attempts (latest execution summaries), metric sets,
+and forward instances; each is converted into the immutable REST resource
+envelope with a canonical revision digest. Projection collections retain
+deterministic ordering, duplicate-ID rejection, cursor snapshot binding, and
+owner scoping, while strategy/package/portfolio/snapshot/experiment/trial
+resources continue through the aggregate projection path. Focused projection,
+application, and persistence tests plus the branch and exact coverage gates are
+green. Remaining resource projections, migration startup, worker scheduling,
+and runtime activation remain deferred.
+
 ## 2026-09-17 - Forward-instance collection read surface
 
 `postgres_forward_state.py` now exposes `load_all(principal=...)`, returning

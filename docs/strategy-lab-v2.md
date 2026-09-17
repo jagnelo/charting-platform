@@ -696,6 +696,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   resource documents, orders pages deterministically, and binds every cursor to
   the complete visible-set digest. Missing or foreign rows are not disclosed;
   malformed owner/resource/relationship state and snapshot drift fail closed.
+  It now accepts application-owned relational projection loaders as well, so
+  attempts, metric sets, and forward instances can be read from their
+  authenticated PostgreSQL projections while retaining the same cursor and
+  snapshot contract; aggregate-backed resource types continue through the
+  original store path.
   The adapter is registration-neutral and does not execute migrations, mutate
   aggregates, or dispatch work. The additive Alembic revision
   `ff0a1b2c3d4e_add_strategy_lab_v2_storage.py` creates every v2 adapter table
