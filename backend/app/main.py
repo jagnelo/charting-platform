@@ -41,6 +41,7 @@ from app.services.alert_engine import run_alert_check
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
+from app.strategy_lab_v2.application import create_registered_strategy_lab_v2_router
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -113,6 +114,7 @@ app.include_router(alerts.router, prefix=PREFIX)
 app.include_router(alert_history.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)
 app.include_router(strategy_lab.router, prefix=PREFIX)
+app.include_router(create_registered_strategy_lab_v2_router(), prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)
