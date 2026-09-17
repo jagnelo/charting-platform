@@ -299,6 +299,17 @@ def _encode_manifest(manifest: StrategySdkManifest) -> dict[str, Any]:
     }
 
 
+def _validate_source_manifest_binding(source: str, manifest: StrategySdkManifest) -> None:
+    """Reject request envelopes whose source bytes disagree with the manifest."""
+
+    if not isinstance(source, str):
+        raise TypeError("invocation source must be a string")
+    if not isinstance(manifest, StrategySdkManifest):
+        raise TypeError("manifest must use StrategySdkManifest")
+    if content_digest(source) != manifest.strategy.source_digest:
+        raise ValueError("invocation source digest does not match the manifest")
+
+
 def _decode_dependency(value: Any) -> StrategyDependency:
     item = _mapping(value, "strategy dependency")
     if set(item) != {"distribution", "version", "artifact_digest"}:
@@ -463,6 +474,7 @@ def serialize_invocation(
 
     if not isinstance(source, str):
         raise TypeError("source must be a string")
+    _validate_source_manifest_binding(source, manifest)
     if not isinstance(entrypoint, str) or not entrypoint.strip():
         raise ValueError("entrypoint must not be empty")
     if (
@@ -509,7 +521,9 @@ def deserialize_invocation(payload: str) -> tuple[str, StrategySdkManifest, Stra
     max_intents = item["max_intents_per_event"]
     if not isinstance(max_intents, int) or isinstance(max_intents, bool) or max_intents < 1:
         raise ValueError("invocation max_intents_per_event must be positive")
-    return source, _decode_manifest(item["manifest"]), _decode_context(item["context"]), entrypoint, max_intents
+    manifest = _decode_manifest(item["manifest"])
+    _validate_source_manifest_binding(source, manifest)
+    return source, manifest, _decode_context(item["context"]), entrypoint, max_intents
 
 
 def serialize_invocation_batch(
@@ -524,6 +538,7 @@ def serialize_invocation_batch(
 
     if not isinstance(source, str):
         raise TypeError("batch invocation source must be a string")
+    _validate_source_manifest_binding(source, manifest)
     if not isinstance(contexts, Sequence) or isinstance(contexts, str | bytes):
         raise TypeError("batch invocation contexts must be a sequence")
     contexts_tuple = tuple(contexts)
@@ -583,7 +598,9 @@ def deserialize_invocation_batch(
     if not raw_contexts:
         raise ValueError("batch invocation contexts must not be empty")
     contexts = tuple(_decode_context(raw) for raw in raw_contexts)
-    return source, _decode_manifest(item["manifest"]), contexts, entrypoint, max_intents
+    manifest = _decode_manifest(item["manifest"])
+    _validate_source_manifest_binding(source, manifest)
+    return source, manifest, contexts, entrypoint, max_intents
 
 
 def _encode_intent(intent: StrategyIntent) -> dict[str, Any]:

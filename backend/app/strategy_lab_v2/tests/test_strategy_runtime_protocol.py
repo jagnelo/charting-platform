@@ -293,6 +293,39 @@ def test_batch_wire_rejects_empty_contexts_unknown_fields_and_versions() -> None
         ))
 
 
+def test_wire_rejects_source_manifest_digest_mismatch() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    with pytest.raises(ValueError, match="source digest"):
+        serialize_invocation(
+            source=source + "\n",
+            manifest=manifest,
+            context=_context(),
+            entrypoint="strategy.main:Strategy",
+        )
+
+    encoded = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=_context(),
+        entrypoint="strategy.main:Strategy",
+    )
+    wire_source = source.replace("\n", "\\n")
+    tampered = encoded.replace(wire_source, wire_source + "\\n", 1)
+    with pytest.raises(ValueError, match="source digest"):
+        deserialize_invocation(tampered)
+
+    batch_encoded = serialize_invocation_batch(
+        source=source,
+        manifest=manifest,
+        contexts=(_context(),),
+        entrypoint="strategy.main:Strategy",
+    )
+    batch_tampered = batch_encoded.replace(wire_source, wire_source + "\\n", 1)
+    with pytest.raises(ValueError, match="source digest"):
+        deserialize_invocation_batch(batch_tampered)
+
+
 def test_protocol_rejects_unknown_fields_and_versions() -> None:
     with pytest.raises(ValueError, match="valid JSON"):
         deserialize_invocation("not-json")
