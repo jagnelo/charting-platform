@@ -1,5 +1,34 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 VirtualWatchlist editor-dialog disclosure ids and definitive gate
+
+Product commits `0d6b53c88` and `3bb805dda` link the Columns and Column sets
+triggers to unique per-watchlist dialog ids through `aria-controls`, while
+preserving `aria-expanded`, editor keyboard entry, focus restoration, dialog
+names, saved-set behavior, and visual layout. Focused VirtualWatchlist
+coverage passed `75/75`; full frontend Vitest passed `1,148/1,148`; frontend
+type-check and production build passed with the existing large-chunk warning.
+
+The definitive raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` passed
+against the final product state: backend combined coverage passed `1,621`
+tests with `82.26%` total coverage, frontend Vitest passed `1,148/1,148`,
+type-check/build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium passed `170` with
+`107` documented skips, and all four visual projects passed `104/104`.
+Teardown removed the assigned containers, volumes, network, four generated
+images, and test sessions; post-gate accounting reported zero retained
+resources. The standard `/usr/bin/make` wrapper remains unavailable because
+of host Xcode license status `69`; the installed CommandLineTools Make binary
+ran the same target. No provider-platform, ETF, visual-baseline, threshold,
+mask, skip, fallback, or acceptance policy changed.
+
+The broader goal remains active/in progress: provider/ETF consumer integration
+is deferred until both upstream branches reach staging, then shared paths need
+semantic reconciliation and another exact-tip gate. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Strategy toggle-state semantics and definitive gate
 
 Product commit `797b29339` exposes the selected state of Strategy Lab's run
