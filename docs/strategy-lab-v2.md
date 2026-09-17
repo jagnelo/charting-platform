@@ -201,6 +201,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   skip-occurrence outcomes are immutable, content-addressed decisions. Neither
   module implies same-price fills, infers a catch-up event, fetches calendars,
   or creates orders.
+- `event_tape.py` provides a frozen, snapshot-bound event sequence for replay.
+  It canonicalizes cross-series ordering, rejects duplicate event identities,
+  prevents one dependency from switching instruments, and requires each
+  dependency's sequence and event time to advance monotonically. Deterministic
+  same-time batches and explicit non-interpolating time slices are available to
+  a later strategy/engine adapter; acquisition, coverage, and fills remain
+  outside this contract.
 - `observations.py` defines normalized event-time/sequence points, native
   fill-cost cash effects with explicit currency-conversion and slippage-benchmark
   evidence, explicit complete/partial/unavailable cost-report coverage, and

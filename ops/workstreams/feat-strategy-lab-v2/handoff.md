@@ -3120,6 +3120,25 @@ Provider/API/database/worker/Compose integration, stable Nautilus execution,
 frontend work, promotion, and deployment remain deferred behind the existing
 ownership and release gates.
 
+## 2026-09-17 - Frozen deterministic event-tape checkpoint
+
+`event_tape.py` now provides a content-addressed, snapshot-bound replay tape
+for later backtest and forward adapters. It canonicalizes cross-series event
+ordering, groups same-time events into stable batches, exposes explicit
+non-interpolating boundary slices, rejects duplicate event identities, prevents
+one dependency from switching instruments, and requires each dependency's
+sequence and event time to advance monotonically. Empty tapes remain explicit
+inputs rather than being mistaken for complete coverage; provider acquisition,
+coverage attestation, strategy execution, order routing, and fills remain
+outside this contract.
+
+The focused event-tape suite passed 7 tests; the full package suite passed 649
+tests with Ruff, MyPy, `git diff --check`, and workstream validation green. The
+Docker-backed combined coverage gate passed 2,296 tests with 83.59% total
+coverage (required threshold: 75%), and setup/cleanup completed successfully.
+The provider/API/database/worker/Compose integration and stable Nautilus
+execution gates remain deferred.
+
 ## 2026-09-16 - Sandbox-gated planner checkpoint
 
 The engine and worker orchestration gates now validate the hardened sandbox
