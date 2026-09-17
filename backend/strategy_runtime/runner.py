@@ -521,6 +521,14 @@ def run_strategy_events(
         raise ValueError("contexts must contain at least one StrategyContext")
     if any(not isinstance(context, StrategyContext) for context in contexts_tuple):
         raise TypeError("contexts must contain StrategyContext values")
+    previous_key: tuple[Any, int] | None = None
+    for context in contexts_tuple:
+        context_key = (context.event_time, context.event_sequence)
+        if previous_key is not None and context_key <= previous_key:
+            raise ValueError(
+                "contexts must be strictly chronological by event_time and event_sequence"
+            )
+        previous_key = context_key
     session = StrategyInvocationSession(
         source,
         manifest=manifest,

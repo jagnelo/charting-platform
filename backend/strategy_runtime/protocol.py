@@ -199,6 +199,19 @@ def _list(value: Any, field_name: str) -> list[Any]:
     return value
 
 
+def _validate_context_order(contexts: Sequence[StrategyContext], field_name: str) -> None:
+    """Require a batch envelope to be strictly chronological before execution."""
+
+    previous_key: tuple[datetime, int] | None = None
+    for context in contexts:
+        context_key = (context.event_time, context.event_sequence)
+        if previous_key is not None and context_key <= previous_key:
+            raise ValueError(
+                f"{field_name} must be strictly chronological by event_time and event_sequence"
+            )
+        previous_key = context_key
+
+
 def _encode_requirement(requirement: CapabilityRequirement) -> dict[str, Any]:
     if not isinstance(requirement, CapabilityRequirement):
         raise TypeError("data dependency requirement must use CapabilityRequirement")
@@ -546,6 +559,7 @@ def serialize_invocation_batch(
         raise ValueError("batch invocation contexts must not be empty")
     if any(not isinstance(context, StrategyContext) for context in contexts_tuple):
         raise TypeError("batch invocation contexts must use StrategyContext values")
+    _validate_context_order(contexts_tuple, "batch invocation contexts")
     if not isinstance(entrypoint, str) or not entrypoint.strip():
         raise ValueError("batch invocation entrypoint must not be empty")
     if (
@@ -598,6 +612,7 @@ def deserialize_invocation_batch(
     if not raw_contexts:
         raise ValueError("batch invocation contexts must not be empty")
     contexts = tuple(_decode_context(raw) for raw in raw_contexts)
+    _validate_context_order(contexts, "batch invocation contexts")
     manifest = _decode_manifest(item["manifest"])
     _validate_source_manifest_binding(source, manifest)
     return source, manifest, contexts, entrypoint, max_intents

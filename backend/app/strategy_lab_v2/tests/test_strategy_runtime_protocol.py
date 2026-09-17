@@ -294,6 +294,44 @@ def test_batch_wire_rejects_empty_contexts_unknown_fields_and_versions() -> None
         ))
 
 
+def test_batch_wire_rejects_non_chronological_contexts_before_execution() -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    manifest = _manifest(source)
+    first = _context()
+    duplicate = replace(first, event_sequence=first.event_sequence)
+
+    with pytest.raises(ValueError, match="strictly chronological"):
+        serialize_invocation_batch(
+            source=source,
+            manifest=manifest,
+            contexts=(first, duplicate),
+            entrypoint="strategy.main:Strategy",
+        )
+
+    valid_payload = serialize_invocation_batch(
+        source=source,
+        manifest=manifest,
+        contexts=(
+            first,
+            replace(first, event_sequence=2, market_events={"daily-bars": ()}),
+        ),
+        entrypoint="strategy.main:Strategy",
+    )
+    tampered = valid_payload.replace(
+        '"event_sequence":2', '"event_sequence":0', 1
+    )
+    with pytest.raises(ValueError, match="strictly chronological"):
+        deserialize_invocation_batch(tampered)
+
+    with pytest.raises(ValueError, match="strictly chronological"):
+        run_strategy_events(
+            source,
+            manifest=manifest,
+            contexts=(first, duplicate),
+            entrypoint="strategy.main:Strategy",
+        )
+
+
 def test_wire_rejects_source_manifest_digest_mismatch() -> None:
     source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
     manifest = _manifest(source)

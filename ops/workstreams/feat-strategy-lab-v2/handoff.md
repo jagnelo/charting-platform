@@ -149,6 +149,22 @@ Docker-backed combined coverage gate recorded below after this exact-tip
 checkpoint. Worker image/entrypoint, application scheduling, migrations,
 upstream reconciliation, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Strict strategy-runtime batch chronology
+
+Batch invocation envelopes and the direct `run_strategy_events()` primitive now
+preflight strict `(event_time, event_sequence)` ordering before a strategy
+session can execute. Duplicate or out-of-order contexts therefore fail as a
+typed malformed batch at the serializer/decoder or direct-call boundary instead
+of partially invoking a stateful strategy and returning a late monotonic
+rejection. The existing single-event API and valid chronological batches are
+unchanged.
+
+The focused runtime/protocol suite passes 18 tests and the complete Strategy
+Lab v2 package passes 692 tests with Ruff and MyPy green. The Docker-backed
+combined coverage gate, worker image/entrypoint, application scheduling,
+migrations, upstream reconciliation, and authoritative Nautilus execution
+remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the
