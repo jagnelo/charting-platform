@@ -221,6 +221,40 @@ def test_router_rejects_invalid_cursor_and_unknown_resource_with_typed_errors() 
         assert too_large.status_code == 400
 
 
+def test_router_rejects_ambiguous_or_non_finite_raw_json_bodies() -> None:
+    adapter = FakeAdapter()
+    with _client(adapter) as client:
+        duplicate = client.post(
+            "/api/v1/strategy-lab/v2/submissions",
+            headers={
+                "Content-Type": "application/json",
+                "Idempotency-Key": "submission-key",
+            },
+            content=(
+                '{"operation":"backtest","operation":"retry",'
+                '"attempt_id":"attempt-1","payload":{}}'
+            ),
+        )
+        assert duplicate.status_code == 422
+        assert duplicate.json()["errors"][0]["code"] == "validation_error"
+        assert adapter.submissions == []
+
+        non_finite = client.post(
+            "/api/v1/strategy-lab/v2/submissions",
+            headers={
+                "Content-Type": "application/json",
+                "Idempotency-Key": "submission-key",
+            },
+            content=(
+                '{"operation":"backtest","attempt_id":"attempt-1",'
+                '"payload":{"score":NaN}}'
+            ),
+        )
+        assert non_finite.status_code == 422
+        assert non_finite.json()["errors"][0]["code"] == "validation_error"
+        assert adapter.submissions == []
+
+
 def test_router_rejects_collection_request_identity_drift() -> None:
     with _client(RequestDriftAdapter()) as client:
         response = client.get("/api/v1/strategy-lab/v2/trials")

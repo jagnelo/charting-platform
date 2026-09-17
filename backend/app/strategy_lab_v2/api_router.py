@@ -11,6 +11,7 @@ semantics stay outside FastAPI.
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import math
 import re
@@ -331,6 +332,44 @@ async def _resolve(value: Awaitable[_T] | _T) -> _T:
     return cast(_T, value)
 
 
+def _reject_duplicate_json_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous request objects before FastAPI body normalization."""
+
+    values: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in values:
+            raise ValueError("request JSON contains duplicate object fields")
+        values[key] = value
+    return values
+
+
+def _reject_non_finite_json(value: str) -> Any:
+    """Reject JSON extensions that cannot participate in request identity."""
+
+    raise ValueError(f"request JSON contains non-finite constant: {value}")
+
+
+async def _strict_json_body(request: Request, request_id: str) -> Any:
+    """Reparse the raw body so duplicate keys cannot be hidden by FastAPI."""
+
+    try:
+        return json.loads(
+            (await request.body()).decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_json_fields,
+            parse_constant=_reject_non_finite_json,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.VALIDATION_ERROR,
+                "request body is not canonical JSON",
+                request_id,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                details={"reason": "duplicate fields or non-finite values are not allowed"},
+            )
+        ) from error
+
+
 def _resource_type(value: str, request_id: str) -> ApiResourceType | JSONResponse:
     try:
         return ApiResourceType(value)
@@ -535,6 +574,10 @@ def create_strategy_lab_router(
         _: Any = Depends(principal_dependency),
     ) -> JSONResponse:
         request_id = _request_id(request, request_id_factory)
+        try:
+            body = await _strict_json_body(request, request_id)
+        except ApiAdapterError as error:
+            return _error_response(error.error)
         if not isinstance(body, Mapping) or set(body) != {"source"} or not isinstance(
             body.get("source"), str
         ):
@@ -716,6 +759,7 @@ def create_strategy_lab_router(
     ) -> JSONResponse:
         try:
             request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
             submission, payload = _parse_submission(
                 body, idempotency_key=idempotency_key, request_id=request_id, now=clock()
             )
@@ -777,6 +821,7 @@ def create_strategy_lab_router(
     ) -> JSONResponse:
         try:
             request_id = _request_id(request, request_id_factory)
+            body = await _strict_json_body(request, request_id)
             try:
                 command_idempotency_key = _safe_header_value(
                     idempotency_key, "Idempotency-Key", 256

@@ -3336,6 +3336,19 @@ exact pushed tip passed the branch gate: 689 package tests, Ruff, MyPy across
 Docker-backed combined coverage gate: 2,336 tests with 83.70% total coverage,
 above the required 75% threshold; setup and cleanup completed successfully.
 
+## 2026-09-17 - Strict REST JSON request-body checkpoint
+
+The POST routes now reparse raw request bytes with duplicate-object-field and
+non-finite-constant rejection before FastAPI-normalized bodies reach strategy
+validation, submission idempotency, or command dispatch. This preserves one
+canonical request identity even when a transport parser would otherwise silently
+collapse ambiguous JSON. Shared router registration, authentication, and
+persistence remain deferred behind the existing gates.
+
+Focused raw-body coverage passed 11 tests with Ruff and MyPy green. The exact
+implementation tip still requires the branch-wide validation checkpoint below
+before this ops record is finalized.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:
