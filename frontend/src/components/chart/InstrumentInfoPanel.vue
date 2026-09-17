@@ -25,8 +25,14 @@
 
         <!-- Description (shown when present, e.g. for ETFs) -->
         <template v-if="instrument.description">
-          <div class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
-          <button v-if="instrument.description.length > 160" class="desc-more" @click="descExpanded = !descExpanded">
+          <div :id="descriptionBodyId" class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
+          <button
+            v-if="instrument.description.length > 160"
+            class="desc-more"
+            :aria-expanded="descExpanded"
+            :aria-controls="descriptionBodyId"
+            @click="descExpanded = !descExpanded"
+          >
             {{ descExpanded ? 'less' : 'more' }} <WorkstationGlyph :kind="descExpanded ? 'chevron-up' : 'chevron-down'" />
           </button>
         </template>
@@ -162,6 +168,7 @@ const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null
 const isOpen      = ref(true)
 const descExpanded = ref(false)
 const reportBodyId = useId()
+const descriptionBodyId = `${reportBodyId}-description`
 function toggleOpen() { isOpen.value = !isOpen.value }
 
 const stats = computed(() => props.instrument?.stats ?? null)

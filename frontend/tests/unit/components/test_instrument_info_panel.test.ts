@@ -164,6 +164,31 @@ describe('InstrumentInfoPanel', () => {
     wrapper.unmount()
   })
 
+  it('exposes long instrument descriptions as an accessible disclosure', async () => {
+    const wrapper = mount(InstrumentInfoPanel, {
+      props: {
+        instrument: {
+          id: 11,
+          symbol: 'LONG',
+          name: 'Long description instrument',
+          is_active: true,
+          description: 'A'.repeat(200),
+        },
+      },
+    })
+
+    const toggle = wrapper.get('.desc-more')
+    const description = wrapper.get('.info-description')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.attributes('aria-controls')).toBe(description.attributes('id'))
+
+    await toggle.trigger('click')
+
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('.info-description').classes()).toContain('info-description--expanded')
+    wrapper.unmount()
+  })
+
   it('publishes canonical identity when opening a synthetic constituent', async () => {
     const wrapper = mount(InstrumentInfoPanel, {
       props: {
