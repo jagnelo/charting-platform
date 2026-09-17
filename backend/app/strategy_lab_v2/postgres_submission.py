@@ -19,6 +19,7 @@ from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
 from app.strategy_lab_v2.api_router import ApiAdapterError, SubmissionServiceResult
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.outbox import OutboxMessage
 from app.strategy_lab_v2.submission_dispatch import (
     SubmissionDispatchDecision,
     SubmissionReceiptLedger,
@@ -52,11 +53,13 @@ class PostgresSubmissionSchema:
 
     submission_table: str = "strategy_lab_v2_submissions"
     dispatch_table: str = "strategy_lab_v2_submission_dispatches"
+    outbox_table: str = "strategy_lab_v2_execution_outbox"
 
     def __post_init__(self) -> None:
         for name, value in (
             ("submission_table", self.submission_table),
             ("dispatch_table", self.dispatch_table),
+            ("outbox_table", self.outbox_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
@@ -196,12 +199,88 @@ class PostgresSubmissionDispatchAdapter:
                     await self._insert_submission(session, owner_id, receipt)
                 if prior_dispatch is None:
                     await self._insert_dispatch(session, owner_id, dispatch_request)
+                outbox_message = _submission_outbox_message(
+                    owner_id,
+                    request,
+                    dispatch_request,
+                )
+                prior_outbox = await self._load_outbox(session, outbox_message.request_id)
+                if prior_outbox is not None and prior_outbox != outbox_message:
+                    raise ApiAdapterError(
+                        _api_error(
+                            ApiErrorCode.IDEMPOTENCY_CONFLICT,
+                            "submission outbox identity is already bound to different content",
+                            request_id=request_id,
+                            status_code=409,
+                        )
+                    )
+                if prior_outbox is None:
+                    await self._insert_outbox(session, outbox_message)
                 submission_resolution = resolve_submission(request, ledger.receipts)
                 if submission_resolution.decision is SubmissionDecision.ACCEPT:
                     # The pure dispatch resolver creates the receipt using the
                     # adapter clock, so the request fingerprint remains exact.
                     submission_resolution = resolve_submission(request, ())
                 return SubmissionServiceResult(submission_resolution, receipt)
+
+    async def _load_outbox(
+        self, session: AsyncSessionLike, request_id: str
+    ) -> OutboxMessage | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT request_id, message_fingerprint, aggregate_type, aggregate_id, event_id, topic,
+                       payload_digest, created_at, available_at
+                FROM {self._schema.outbox_table}
+                WHERE request_id = :request_id
+                FOR UPDATE
+                """
+            ),
+            {"request_id": request_id},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL submission outbox query returned duplicate keys")
+        message = _decode_outbox(rows[0])
+        if rows[0].get("request_id") != message.request_id:
+            raise ValueError("PostgreSQL submission outbox request identity drifted")
+        if rows[0].get("message_fingerprint") not in (None, message.fingerprint):
+            raise ValueError("PostgreSQL submission outbox fingerprint does not match bytes")
+        return message
+
+    async def _insert_outbox(
+        self, session: AsyncSessionLike, message: OutboxMessage
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.outbox_table}
+                    (message_id, message_fingerprint, request_id, aggregate_type,
+                     aggregate_id, event_id, topic, payload_digest, created_at,
+                     available_at, published)
+                VALUES (:message_id, :message_fingerprint, :request_id, :aggregate_type,
+                        :aggregate_id, :event_id, :topic, :payload_digest, :created_at,
+                        :available_at, FALSE)
+                ON CONFLICT (request_id) DO NOTHING
+                """
+            ),
+            {
+                "message_id": message.message_id,
+                "message_fingerprint": message.fingerprint,
+                "request_id": message.request_id,
+                "aggregate_type": message.aggregate_type,
+                "aggregate_id": message.aggregate_id,
+                "event_id": message.event_id,
+                "topic": message.topic,
+                "payload_digest": message.payload_digest,
+                "created_at": _encode_datetime(message.created_at),
+                "available_at": _encode_datetime(message.available_at),
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL submission outbox insert lost a uniqueness race")
 
     async def _load_submission(
         self, session: AsyncSessionLike, owner_id: str, idempotency_key: str
@@ -312,6 +391,50 @@ class PostgresSubmissionDispatchAdapter:
         )
         if getattr(result, "rowcount", 0) != 1:
             raise ValueError("PostgreSQL dispatch insert lost an idempotency race")
+
+
+def _submission_outbox_message(
+    owner_id: str,
+    request: SubmissionRequest,
+    dispatch: DispatchRequest,
+) -> OutboxMessage:
+    """Bind an API submission to the shared execution outbox namespace."""
+
+    event_id = content_digest(
+        {"owner_id": owner_id, "submission_fingerprint": request.fingerprint}
+    )
+    request_id = content_digest(
+        {"owner_id": owner_id, "submission_fingerprint": request.fingerprint, "kind": "outbox"}
+    )
+    return OutboxMessage(
+        request_id=request_id,
+        aggregate_type="strategy_submission",
+        aggregate_id=request.attempt_id,
+        event_id=event_id,
+        topic=dispatch.queue_name,
+        payload_digest=dispatch.payload_digest,
+        created_at=dispatch.created_at,
+        available_at=dispatch.created_at,
+    )
+
+
+def _decode_outbox(row: Mapping[str, Any]) -> OutboxMessage:
+    try:
+        message = OutboxMessage(
+            row["request_id"],
+            row["aggregate_type"],
+            row["aggregate_id"],
+            row["event_id"],
+            row["topic"],
+            row["payload_digest"],
+            _decode_datetime(row["created_at"], "created_at"),
+            _decode_datetime(row["available_at"], "available_at"),
+        )
+        if row.get("message_fingerprint") not in (None, message.fingerprint):
+            raise ValueError("submission outbox fingerprint does not match bytes")
+        return message
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL submission outbox row is malformed") from error
 
 
 def _statement(sql: str) -> Any:

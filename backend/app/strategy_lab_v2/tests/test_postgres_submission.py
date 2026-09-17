@@ -38,6 +38,7 @@ class FakeSession:
     def __init__(self) -> None:
         self.submissions: dict[tuple[str, str], dict[str, Any]] = {}
         self.dispatches: dict[tuple[str, str], dict[str, Any]] = {}
+        self.outboxes: dict[str, dict[str, Any]] = {}
         self.calls: list[str] = []
 
     async def __aenter__(self):
@@ -60,6 +61,9 @@ class FakeSession:
         if sql.lstrip().startswith("SELECT") and "dispatches" in sql:
             row = self.dispatches.get(key)
             return FakeResult([] if row is None else [row])
+        if sql.lstrip().startswith("SELECT") and "execution_outbox" in sql:
+            row = self.outboxes.get(values["request_id"])
+            return FakeResult([] if row is None else [row])
         if sql.lstrip().startswith("INSERT") and "submissions" in sql:
             if key in self.submissions:
                 return FakeResult(rowcount=0)
@@ -69,6 +73,12 @@ class FakeSession:
             if key in self.dispatches:
                 return FakeResult(rowcount=0)
             self.dispatches[key] = values
+            return FakeResult(rowcount=1)
+        if sql.lstrip().startswith("INSERT") and "execution_outbox" in sql:
+            request_id = values["request_id"]
+            if request_id in self.outboxes:
+                return FakeResult(rowcount=0)
+            self.outboxes[request_id] = values
             return FakeResult(rowcount=1)
         raise AssertionError(f"unexpected SQL: {sql}")
 
@@ -102,12 +112,13 @@ async def test_submission_adapter_stages_receipt_and_dispatch_atomically() -> No
     assert accepted.receipt.request == request
     assert len(session.submissions) == 1
     assert len(session.dispatches) == 1
+    assert len(session.outboxes) == 1
 
     calls = len(session.calls)
     replay = await adapter.submit(principal="alice", request=request, payload=payload)
     assert replay.resolution.decision is SubmissionDecision.REPLAY_EXISTING
     assert replay.receipt == accepted.receipt
-    assert len(session.calls) == calls + 2  # locked submission and dispatch reads only
+    assert len(session.calls) == calls + 3  # locked submission, dispatch, and outbox reads only
 
 
 @pytest.mark.asyncio
@@ -121,6 +132,11 @@ async def test_submission_adapter_repairs_missing_dispatch_and_scopes_owner() ->
     repaired = await adapter.submit(principal="alice", request=request, payload=payload)
     assert repaired.resolution.decision is SubmissionDecision.REPLAY_EXISTING
     assert ("alice", request.idempotency_key) in session.dispatches
+
+    del session.outboxes[next(iter(session.outboxes))]
+    repaired_again = await adapter.submit(principal="alice", request=request, payload=payload)
+    assert repaired_again.resolution.decision is SubmissionDecision.REPLAY_EXISTING
+    assert len(session.outboxes) == 1
 
     other_owner = await adapter.submit(principal="bob", request=request, payload=payload)
     assert other_owner.resolution.decision is SubmissionDecision.ACCEPT
