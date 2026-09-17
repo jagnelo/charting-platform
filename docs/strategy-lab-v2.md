@@ -879,6 +879,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   bounded independently of the container's memory and output limits. Both
   mounted strategy and custom-metric CLIs read at most that limit plus one byte
   before decoding, so oversized request files cannot bypass the decoder guard.
+  The single and batch serializers apply the same byte bound before a request or
+  result envelope is written, keeping generated mounted artifacts within the
+  protocol contract.
   The SDK's
   `MarketEvent` and
   `StrategyContext` also normalize aware event times to UTC before scope and

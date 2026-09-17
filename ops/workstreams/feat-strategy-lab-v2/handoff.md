@@ -184,6 +184,16 @@ tests and the complete package gate passes 698 tests; persistence, canonical
 event-stream wiring, worker activation, and stable Nautilus execution remain
 deferred.
 
+## 2026-09-17 - Bounded runtime wire serialization
+
+The canonical strategy and custom-metric protocol serializers now enforce the
+same 16 MiB UTF-8 byte limit used by inbound decoders for single and batch
+request/result envelopes. Oversized generated payloads fail before a mounted
+artifact is emitted, while canonical ordering and typed fingerprints remain
+unchanged. Focused runtime protocol coverage passes 23 tests and the complete
+Strategy Lab v2 package passes 700 tests; worker activation, application
+wiring, and stable Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source
