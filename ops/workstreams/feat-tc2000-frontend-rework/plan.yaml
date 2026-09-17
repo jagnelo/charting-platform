@@ -21,18 +21,17 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the exact gate at product
-  tip 42a23a7633646b1acbb149c234c8a61528f569e5 passed the repository stages,
+  tip 797b29339f62cae9079bfa3766e4074762382e6b passed the repository stages,
   authenticated functional browser flows, and all four visual projects with
   clean branch-scoped teardown. The initial F8p high/low failure was a real
   TC-owned factory-configuration race and was corrected in the follow-up
   commits; the focused retries and definitive exact gates now pass. The
-  IndicatorPanel gate also required transient focused retries for F8k-grey,
-  F8u, and one unavailable-freshness screenshot before the definitive gate
-  passed. Provider-
-  platform and ETF consumer integration remains a sequencing gate until both
-  upstream branches reach staging; that does not stop independent TC-owned
-  work. Origin synchronization remains a separate operational hold under the
-  recorded private-origin safeguard, not a product or validation blocker.
+  Strategy toggle-state gate also preserves all preceding disclosure and
+  transient browser-retry receipts. Provider-platform and ETF consumer
+  integration remains a sequencing gate until both upstream branches reach
+  staging; that does not stop independent TC-owned work. Origin
+  synchronization remains a separate operational hold under the recorded
+  private-origin safeguard, not a product or validation blocker.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "Retain the full-stack/browser profile for the TC workstation, shared consumer/read seams, authenticated workflows, four visual projects, and exact-tip integration after upstream staging promotion. Live provider/ETF probes, ingestion, and refresh-worker verification remain owned by their respective upstream branches."
