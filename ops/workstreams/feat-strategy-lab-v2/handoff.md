@@ -3299,6 +3299,20 @@ payloads while preserving the existing boundary that checksums are integrity
 signals, not authorization. Route ownership and persistence integration remain
 deferred behind the shared-path gates.
 
+## 2026-09-17 - Strict REST JSON serialization checkpoint
+
+The registration-neutral API serializer now emits date values as ISO strings,
+normalizes aware timestamps to UTC, preserves finite floats and exact Decimal
+values, and rejects non-finite or unsupported scalar values before a response
+can be published. This prevents JSONResponse from silently accepting ambiguous
+numeric values or leaking an application object representation; router
+registration, authentication, and persistence remain deferred behind the
+shared-path gates.
+
+Focused REST serialization coverage passed 15 tests with Ruff and MyPy green.
+The exact implementation tip still requires the branch-wide validation
+checkpoint below before this ops record is finalized.
+
 The focused API contract suite passed 6 tests with Ruff and MyPy green. The
 exact pushed tip passed the branch gate: 687 package tests, Ruff, MyPy across
 237 source files, diff check, and workstream validation. The same tip passed

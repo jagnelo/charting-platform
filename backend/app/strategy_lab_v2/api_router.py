@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import inspect
 import logging
+import math
 import re
 import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Protocol, TypeVar, cast
@@ -151,11 +152,19 @@ def _json_value(value: Any) -> Any:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("API datetimes must be timezone-aware")
         return value.astimezone(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    if isinstance(value, date):
+        return value.isoformat()
     if isinstance(value, Decimal):
         if not value.is_finite():
             raise ValueError("API decimals must be finite")
         return str(value)
-    return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("API floats must be finite")
+        return value
+    if value is None or isinstance(value, bool | int | str):
+        return value
+    raise TypeError(f"unsupported API JSON value: {type(value).__name__}")
 
 
 def serialize_resource_identifier(identifier: ResourceIdentifier) -> dict[str, Any]:

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -15,6 +16,7 @@ from app.strategy_lab_v2.api_resources import (
 )
 from app.strategy_lab_v2.api_router import (
     SubmissionServiceResult,
+    _json_value,
     create_strategy_lab_router,
     serialize_resource,
 )
@@ -165,6 +167,15 @@ def test_resource_serialization_preserves_decimal_as_exact_string() -> None:
         {"type": "experiments", "id": "experiment-1"}
     ]
     assert serialized["meta"]["schema_version"] == 1
+
+
+def test_api_json_serialization_handles_dates_and_rejects_unsafe_scalars() -> None:
+    assert _json_value(date(2024, 1, 2)) == "2024-01-02"
+    assert _json_value(1.25) == 1.25
+    with pytest.raises(ValueError, match="finite"):
+        _json_value(float("nan"))
+    with pytest.raises(TypeError, match="unsupported API JSON value"):
+        _json_value(object())
 
 
 def test_router_lists_and_reads_cursor_bound_resources() -> None:

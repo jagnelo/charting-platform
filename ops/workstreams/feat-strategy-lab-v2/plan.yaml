@@ -328,6 +328,7 @@ remaining_gaps:
   - Custom-metric entrypoint validation now rejects non-string declarations and resolves dotted callable paths through the restricted namespace; wire-helper exports are lazy to preserve package import safety.
   - Custom metrics now support immutable uniquely fingerprinted ordered batches, strict batch request/result envelopes, and a batch CLI mode for deterministic metric sweeps; container worker activation and application wiring remain open.
   - REST cursor decoding now rejects duplicate object fields and non-finite JSON constants before checksum or snapshot validation; cursor checksums remain integrity aids rather than authentication, and route ownership checks remain open.
+  - REST resource serialization now canonicalizes dates, normalizes aware timestamps to UTC, preserves Decimal values as exact strings, and rejects non-finite or unsupported scalar values before JSON publication; application registration and authentication remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -362,7 +363,8 @@ progress:
     - custom-metric-entrypoint-and-export-hardening
     - custom-metric-batch-runtime-and-wire-protocol
     - strict-rest-cursor-token-decoding
+    - strict-rest-json-serialization
   total: 18
-  current_phase: strict-rest-cursor-token-decoding-staging-ready-for-human-review
+  current_phase: strict-rest-json-serialization-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary
