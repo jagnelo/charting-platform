@@ -1362,6 +1362,12 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         missing.append("quota_scope")
     if not str(policy.quota_source or "").strip():
         missing.append("quota_source")
+    bootstrap = contract.get("account_usage_bootstrap")
+    if isinstance(bootstrap, dict) and bootstrap.get("enabled") is True:
+        if not account_usage_reconciled_dimensions(policy):
+            missing.append(
+                "quota_contract.account_usage_bootstrap.reconciled_dimensions"
+            )
     unknown_dimensions = contract.get("unknown_dimensions")
     if isinstance(unknown_dimensions, list):
         safety_resolved: set[str] = set()

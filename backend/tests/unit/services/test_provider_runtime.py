@@ -31,6 +31,7 @@ from app.services.provider_runtime import (
     _get_semaphore,
     execute_provider_call,
     policy_allows_account_usage_bootstrap,
+    quota_contract_missing_dimensions,
     resolve_provider_chain,
     seed_provider_runtime,
 )
@@ -146,6 +147,10 @@ def test_account_usage_bootstrap_requires_valid_reconciled_dimension_map():
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
     contract["account_usage_bootstrap"]["reconciled_dimensions"] = ["account_usage_probe_concurrency"]
     assert policy_allows_account_usage_bootstrap(policy, "fetch_account_usage") is False
+    assert (
+        "quota_contract.account_usage_bootstrap.reconciled_dimensions"
+        in quota_contract_missing_dimensions(policy)
+    )
 
 
 @pytest.mark.asyncio
