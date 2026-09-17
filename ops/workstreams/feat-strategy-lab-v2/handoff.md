@@ -11,6 +11,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable legacy-import checkpoint
+
+`postgres_legacy.py` now maps digest-only legacy import records and their exact
+compatibility assessments to an owner-scoped additive PostgreSQL registry.
+Original metadata, mapping evidence, and record fingerprints are authenticated
+on every read. Supported and unsupported imports are both preserved; exact
+retries replay, changed payload or mapping content returns an explicit conflict,
+and the adapter never reads legacy payload bytes or claims replay equivalence.
+
+The focused legacy-adapter suite passed 4 tests. The complete Strategy Lab v2
+package passed 574 tests with Ruff, MyPy, and `git diff --check` clean. Shared
+migrations, authorization, API/worker wiring, upstream reconciliation, and
+stable Nautilus execution remain open gates.
+
 ## 2026-09-17 - Durable forward-state checkpoint
 
 `postgres_forward_state.py` now maps owner-scoped forward instances, immutable

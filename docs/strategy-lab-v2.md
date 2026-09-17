@@ -677,6 +677,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   compare-and-set fingerprints. Exact retries replay, while candidate or
   experiment tampering fails closed; dispatch transport and worker effects
   remain separate integration concerns.
+- `postgres_legacy.py` maps digest-only legacy import records and compatibility
+  assessments to an owner-scoped additive PostgreSQL registry. Original
+  metadata and mapping evidence are authenticated before each read; supported
+  and unsupported imports are preserved, exact retries replay, and changed
+  payload or mapping content returns the pure conflict decision. The adapter
+  never reads legacy payload bytes or claims replay parity, and migrations,
+  authorization, and route wiring remain shared integration concerns.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

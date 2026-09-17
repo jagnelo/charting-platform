@@ -308,11 +308,12 @@ remaining_gaps:
   - PostgreSQL forward-state persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped instance checkpoints, one-time warm-up receipts, content-addressed seen-event identities, authenticated compare-and-set transitions, and restart-safe duplicate/gap/out-of-order/correction accounting; migrations, event-stream wiring, worker execution, and application authorization remain open.
   - Atomic PostgreSQL forward event/correction staging now persists counterfactual replay plans with the admitted event checkpoint in one transaction; exact retries return the stored replay identity, while malformed or contradictory replay rows fail closed. Redis dispatch, replay execution, migrations, and application wiring remain open.
   - PostgreSQL search-state persistence now stores immutable experiment queues and candidate checkpoints with owner-scoped locks, candidate retry/terminal transitions, idempotent cancellation, and authenticated compare-and-set fingerprints; search dispatch, migrations, and application/worker wiring remain open.
+  - PostgreSQL legacy-import persistence now stores owner-scoped digest-only originals and exact compatibility assessments with authenticated record fingerprints; supported and unsupported imports replay idempotently while changed content conflicts, and payload-byte access, migrations, authorization, and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
     - combined-coverage-and-branch-validation
   total: 18
-  current_phase: durable-search-state-staging-ready-for-human-review
+  current_phase: durable-legacy-import-state-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary
