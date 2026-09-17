@@ -23,7 +23,7 @@
         <button type="button" :disabled="pythonLoading" @click="loadPythonAssets">{{ pythonLoading ? 'Loading…' : 'Load Python plots' }}</button>
         <select v-if="pythonAssets.length" v-model="selectedPythonVersion" aria-label="Python plot asset"><option value="">Add Python plot…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select>
         <button v-if="selectedPythonVersion" type="button" @click="addPythonPlot">Add</button>
-        <small v-if="pythonStatus">{{ pythonStatus }}</small>
+        <small v-if="pythonStatus" role="status" aria-live="polite" aria-atomic="true">{{ pythonStatus }}</small>
       </section>
       <section class="chart-plots__python chart-plots__scan" aria-label="EasyScan plot assets">
         <button type="button" :disabled="scanLoading" @click="loadScanPlots">{{ scanLoading ? 'Loading…' : 'Load EasyScan plots' }}</button>
@@ -32,7 +32,7 @@
           <option v-for="asset in scanAssets" :key="`${asset.screenerId}:${asset.metric}`" :value="`${asset.screenerId}:${asset.metric}`">{{ asset.name }} · {{ asset.metric }}</option>
         </select>
         <button v-if="selectedScanAsset" type="button" @click="addScanPlot">Add</button>
-        <small v-if="scanStatus">{{ scanStatus }}</small>
+        <small v-if="scanStatus" role="status" aria-live="polite" aria-atomic="true">{{ scanStatus }}</small>
       </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
         <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="column">Boolean column</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option><option value="signal">Strategy signal</option></select>
@@ -44,7 +44,7 @@
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
-      <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length">No indicator or reusable plots.</p>
+      <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length" role="status" aria-live="polite" aria-atomic="true">No indicator or reusable plots.</p>
       <ol v-else><li v-for="(plot, index) in (scanPlots ?? [])" :key="scanPlotKey(plot, index)" class="chart-plots__python-item chart-plots__scan-item" :class="{ muted: plot.hidden }">
         <input :value="plot.color ?? '#4dd0e1'" :aria-label="`${plot.name} color`" type="color" @input="updateScanPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>EasyScan · {{ plot.metric }}</small></span>
         <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" @click="toggleScanPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="moveScanPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (scanPlots?.length ?? 0) - 1" @click="moveScanPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicateScanPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyScanPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyScanPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removeScanPlot(index)"><WorkstationGlyph kind="delete" /></button>

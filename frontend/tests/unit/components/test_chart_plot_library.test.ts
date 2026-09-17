@@ -66,6 +66,30 @@ describe('ChartPlotLibrary', () => {
     wrapper.unmount()
   })
 
+  it('announces empty reusable-plot states politely', async () => {
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-empty-state-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+
+    const emptyPlots = wrapper.get('p[role="status"]')
+    expect(emptyPlots.text()).toBe('No indicator or reusable plots.')
+    expect(emptyPlots.attributes('aria-live')).toBe('polite')
+    expect(emptyPlots.attributes('aria-atomic')).toBe('true')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await flushPromises()
+    const pythonStatus = wrapper.get('.chart-plots__python small[role="status"]')
+    expect(pythonStatus.text()).toBe('No Python plot assets available')
+    expect(pythonStatus.attributes('aria-live')).toBe('polite')
+    expect(pythonStatus.attributes('aria-atomic')).toBe('true')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load EasyScan plots')!.trigger('click')
+    await flushPromises()
+    const scanStatus = wrapper.get('.chart-plots__scan small[role="status"]')
+    expect(scanStatus.text()).toBe('No retained scan history available')
+    expect(scanStatus.attributes('aria-live')).toBe('polite')
+    expect(scanStatus.attributes('aria-atomic')).toBe('true')
+  })
+
   it('opens at the last enabled plot action when ArrowUp is pressed', async () => {
     const chart = usePanelStore('plot-library-arrow-up-test')
     chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
