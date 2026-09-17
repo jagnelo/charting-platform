@@ -581,7 +581,7 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=" in example
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
-    assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=1" in example
+    assert "ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0" in example
     assert "ALPACA_REVIEWED_RESET=" in example
     assert "ALPACA_QUOTA_EVIDENCE=" in example
     assert "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0" in example

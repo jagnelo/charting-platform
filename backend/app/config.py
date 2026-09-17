@@ -2229,7 +2229,11 @@ class Settings(BaseSettings):
     # Corporate-actions responses are cursor-paginated. This is a per-job
     # fairness budget only; continuation state is persisted and requeued until
     # every page is ingested. It is never a permanent retention limit.
-    ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 1
+    # Compatibility-only setting retained for older deployments.  The adapter
+    # and event worker follow every provider cursor; zero means no local page
+    # cap and is the only safe default because a cap must never become a data
+    # retention boundary.
+    ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
     ALPACA_CORPORATE_ACTIONS_START_DATE: str = "1900-01-01"
     # Massive publishes the Stocks Basic five-calls/minute ceiling but does
     # not specify whether its minute bucket is fixed or rolling. Keep the
