@@ -1167,7 +1167,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
 - `conformance_fixtures.py` defines typed expected/observed digest evidence for
   every required engine check. Suites reject duplicate checks and untruthful
   pass claims, require complete coverage before evidence construction, and feed
-  the existing stable-release gate without importing or starting Nautilus.
+  the existing stable-release gate without importing or starting Nautilus. Its
+  executable `execute_conformance_suite(...)` runs every required check through
+  an injected engine boundary, reduces runner exceptions to deterministic
+  failed observations, and returns suite/evidence/report as one identity-bound
+  resolution; stable authority still requires a complete stable release report.
 - `tests/` holds focused tests adjacent to the new package because the active
   provider workstream owns `backend/tests/`.
 

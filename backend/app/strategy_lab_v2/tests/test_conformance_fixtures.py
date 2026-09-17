@@ -11,9 +11,11 @@ from app.strategy_lab_v2.conformance import (
     evaluate_engine_conformance,
 )
 from app.strategy_lab_v2.conformance_fixtures import (
+    ConformanceExecutionResolution,
     ConformanceFixtureObservation,
     ConformanceFixtureSuite,
     build_conformance_evidence,
+    execute_conformance_suite,
     require_complete_conformance_suite,
 )
 
@@ -99,3 +101,79 @@ def test_invalid_types_and_timestamp_fail_closed() -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
         build_conformance_evidence("nautilus", "2", content_digest("build"), EngineReleaseChannel.STABLE, _suite(), tested_at=datetime(2024, 1, 1))
 
+
+def test_executable_suite_runs_all_checks_and_binds_the_report() -> None:
+    expected = {
+        check: content_digest({"check": check.value, "fixture": "ok"})
+        for check in ConformanceCheck
+    }
+    calls: list[ConformanceCheck] = []
+
+    def runner(check: ConformanceCheck):
+        calls.append(check)
+        return {"check": check.value, "fixture": "ok"}
+
+    resolved = execute_conformance_suite(
+        expected,
+        runner,
+        suite_id="executable-v2",
+        engine_id="nautilus",
+        engine_version="2.0.0",
+        build_digest=content_digest("build"),
+        release_channel=EngineReleaseChannel.STABLE,
+        tested_at=NOW,
+    )
+    assert isinstance(resolved, ConformanceExecutionResolution)
+    assert calls == list(sorted(ConformanceCheck, key=lambda item: item.value))
+    assert resolved.report.authoritative
+    assert resolved.suite.missing_checks == frozenset()
+
+
+def test_executable_suite_reduces_runner_errors_to_failed_digest_evidence() -> None:
+    expected = {
+        check: content_digest({"check": check.value, "fixture": "ok"})
+        for check in ConformanceCheck
+    }
+
+    def runner(check: ConformanceCheck):
+        if check is ConformanceCheck.ENGINE_LIFECYCLE:
+            raise RuntimeError("engine unavailable")
+        return {"check": check.value, "fixture": "ok"}
+
+    resolved = execute_conformance_suite(
+        expected,
+        runner,
+        suite_id="error-v2",
+        engine_id="nautilus",
+        engine_version="2.0.0-rc1",
+        build_digest=content_digest("build"),
+        release_channel=EngineReleaseChannel.RELEASE_CANDIDATE,
+        tested_at=NOW,
+    )
+    assert not resolved.report.compatible
+    failed = next(
+        item
+        for item in resolved.suite.observations
+        if item.check is ConformanceCheck.ENGINE_LIFECYCLE
+    )
+    assert not failed.passed
+    assert failed.detail == "runner failed: RuntimeError"
+
+
+def test_executable_suite_requires_exact_expected_checks() -> None:
+    expected = {
+        check: content_digest({"check": check.value})
+        for check in ConformanceCheck
+    }
+    expected.pop(ConformanceCheck.ENGINE_LIFECYCLE)
+    with pytest.raises(ValueError, match="exact"):
+        execute_conformance_suite(
+            expected,
+            lambda _check: None,
+            suite_id="partial",
+            engine_id="nautilus",
+            engine_version="2.0.0",
+            build_digest=content_digest("build"),
+            release_channel=EngineReleaseChannel.STABLE,
+            tested_at=NOW,
+        )
