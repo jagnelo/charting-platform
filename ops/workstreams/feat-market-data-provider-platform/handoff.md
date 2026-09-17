@@ -54,6 +54,16 @@
   transient 20-request cap. This does not promote Sandbox to ordinary
   routing, and no Sandbox payload entered canonical persistence.
 
+## 2026-09-17 exact-current Binance and OpenFIGI revalidation
+
+- Binance's native fixed-minute request-weight bootstrap and bounded crypto
+  matrix passed `3/3` at source `fec91f02921b318e52b0894b0d7d6dee3f56660c`.
+  The durable coordinator admitted the native snapshot before discovery,
+  latest-price, and history operations; no generic request count was used.
+- OpenFIGI's anonymous native-usage, mapping, and profile matrix passed `3/3`
+  at the same source. The run proves only the anonymous public-IP contract;
+  keyed-mode evidence remains absent because no OpenFIGI API key is configured.
+
 ## 2026-09-17 lossless, resumable provider-event ingestion
 
 - Replaced the Alpaca corporate-action page bound with a durable cursor

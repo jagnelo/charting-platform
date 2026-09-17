@@ -745,6 +745,18 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current Binance live validation at source
+      `fec91f02921b318e52b0894b0d7d6dee3f56660c` passed `3/3` with the native
+      request-weight snapshot preceding discovery, latest price, and bounded
+      history reads. The provider's fixed-minute weight contract was respected
+      by the durable coordinator; the receipt records aggregate telemetry only.
+    - >-
+      2026-09-17 exact-current OpenFIGI anonymous live validation at source
+      `fec91f02921b318e52b0894b0d7d6dee3f56660c` passed `3/3` for native usage,
+      mapping, and profile resolution. Anonymous public-IP evidence is current;
+      keyed-mode validation remains intentionally absent because no keyed
+      credential is configured.
+    - >-
       2026-09-17 exact-current Alpaca validation was replayed after the
       unbounded corporate-action compatibility fix at source
       `22e66317440d6e18212a7af8604593a1178cc3af`. The native usage snapshot,
