@@ -3243,9 +3243,12 @@ durable byte lifecycle, migrations, authorization, and application wiring
 remain deferred behind the existing shared-path gates.
 
 The focused artifact/core regression set passed 31 tests with Ruff and MyPy
-green. The branch remains `ready_for_human_review`; the Docker-backed combined
-coverage evidence is recorded above for the preceding exact checkpoint tip and
-will be revalidated after this slice is committed.
+green. The exact pushed tip then passed the Docker-backed combined coverage
+gate: 2,320 tests with 83.66% total coverage, above the required 75% threshold;
+setup and cleanup completed successfully. The branch remains
+`ready_for_human_review`; provider/API/database/worker/Compose integration,
+stable Nautilus execution, frontend work, promotion, and deployment remain
+deferred.
 
 ## 2026-09-17 - SDK UTC event-time normalization checkpoint
 
