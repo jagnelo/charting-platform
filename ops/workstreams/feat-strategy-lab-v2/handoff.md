@@ -3238,9 +3238,10 @@ remain deferred behind the existing shared-path gates.
 
 The focused custom-metric suite passed 4 tests with Ruff and MyPy green. The
 exact branch gate then passed 677 package tests, Ruff, MyPy across 234 source
-files, diff check, and workstream validation. The branch remains
-`ready_for_human_review` pending the combined coverage evidence for this new
-runtime slice.
+files, diff check, and workstream validation. The exact pushed tip subsequently
+passed the Docker-backed combined coverage gate: 2,324 tests with 83.67% total
+coverage, above the required 75% threshold; setup and cleanup completed
+successfully. The branch remains `ready_for_human_review`.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
