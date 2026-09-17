@@ -23,10 +23,12 @@ checkpoint state. The adapter is registration-neutral: it does not consume
 providers, submit broker orders, start workers, apply migrations, or register
 application routes.
 
-The focused forward-state adapter suite passed 4 tests. Full package, branch,
-Docker-backed coverage, and exact-tip synchronization receipts will be recorded
-after this boundary is validated. Schema migration, event-stream/worker wiring,
-application authorization, upstream reconciliation, and stable Nautilus
+The focused forward-state adapter suite passed 4 tests. The complete
+Strategy Lab v2 package passed 565 tests with Ruff, MyPy, and `git diff --check`
+clean. All five declared branch checks passed, and the Docker-backed combined
+gate passed 2,212 tests with 83.24% total coverage (required threshold: 75%),
+with setup and cleanup successful. Schema migration, event-stream/worker
+wiring, application authorization, upstream reconciliation, and stable Nautilus
 execution remain open shared-path gates.
 
 ## 2026-09-17 - Durable artifact-lineage checkpoint
