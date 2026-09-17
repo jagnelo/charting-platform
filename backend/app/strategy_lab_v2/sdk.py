@@ -63,7 +63,7 @@ class StrategyDataDependency:
             or self.lookback_periods < 0
         ):
             raise ValueError("lookback_periods must be a non-negative integer")
-        object.__setattr__(self, "fields", fields)
+        object.__setattr__(self, "fields", tuple(sorted(fields)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,8 +86,25 @@ class StrategySdkManifest:
         dependency_ids = [item.dependency_id for item in data_dependencies]
         if len(set(dependency_ids)) != len(dependency_ids):
             raise ValueError("strategy data dependency ids must be unique")
-        object.__setattr__(self, "data_dependencies", data_dependencies)
-        object.__setattr__(self, "model_dependencies", model_dependencies)
+        object.__setattr__(
+            self,
+            "data_dependencies",
+            tuple(sorted(data_dependencies, key=lambda item: item.dependency_id)),
+        )
+        object.__setattr__(
+            self,
+            "model_dependencies",
+            tuple(
+                sorted(
+                    model_dependencies,
+                    key=lambda item: (
+                        item.distribution.casefold(),
+                        item.version,
+                        item.artifact_digest,
+                    ),
+                )
+            ),
+        )
 
     @property
     def capability_requirements(self) -> tuple[CapabilityRequirement, ...]:

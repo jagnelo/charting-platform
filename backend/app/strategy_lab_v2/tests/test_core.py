@@ -41,6 +41,7 @@ from app.strategy_lab_v2.contracts import (
     SensitivityComparisonEvidence,
     SensitivityEvidenceLevel,
     SharedRiskPolicy,
+    StrategyDependency,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -747,6 +748,43 @@ def test_sdk_normalizes_event_and_context_times_to_utc() -> None:
     assert event.event_time.tzinfo is UTC
     assert context.event_time.tzinfo is UTC
     assert context.market_events["daily-bars"][0].event_time.tzinfo is UTC
+
+
+def test_sdk_manifest_canonicalizes_dependency_and_field_order() -> None:
+    requirement = replace(_requirement(), end=END + timedelta(days=1))
+    strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
+    daily = StrategyDataDependency("daily-bars", requirement, ("close", "open"))
+    weekly = StrategyDataDependency(
+        "weekly-bars", replace(requirement, timeframe="1w"), ("high", "close")
+    )
+    models = (
+        StrategyDependency("z-model", "2.0.0", content_digest("z-model")),
+        StrategyDependency("a-model", "1.0.0", content_digest("a-model")),
+    )
+
+    first = StrategySdkManifest(strategy, (weekly, daily), models)
+    second = StrategySdkManifest(
+        strategy,
+        (
+            StrategyDataDependency("daily-bars", requirement, ("open", "close")),
+            StrategyDataDependency(
+                "weekly-bars", replace(requirement, timeframe="1w"), ("close", "high")
+            ),
+        ),
+        tuple(reversed(models)),
+    )
+
+    assert first == second
+    assert first.fingerprint == second.fingerprint
+    assert tuple(item.dependency_id for item in first.data_dependencies) == (
+        "daily-bars",
+        "weekly-bars",
+    )
+    assert first.data_dependencies[0].fields == ("close", "open")
+    assert tuple(item.distribution for item in first.model_dependencies) == (
+        "a-model",
+        "z-model",
+    )
 
 
 def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
