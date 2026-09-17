@@ -15,6 +15,9 @@
 - The focused market-universe and persistence suites pass (`50/50`); the
   large-offset regression proves a continuation beyond the former 2,000,000
   ceiling is retained.
+- The full Docker-backed backend gate at commit `3b2b7aee` passes `2,769`
+  tests with `82.06%` total coverage; generated coverage artifacts were removed
+  and the worktree is clean.
 
 ## 2026-09-17 native usage bootstrap dimension correction
 
