@@ -22,8 +22,8 @@
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
         </select>
         <div ref="menuRoot" class="tool-window__menu-wrap">
-          <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
-          <div v-if="menuOpen" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
+          <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
+          <div v-if="menuOpen" :id="menuId" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
@@ -77,6 +77,7 @@ const emit = defineEmits<{
 // Component UIDs remain globally unique across those roots and keep the
 // labelled tool relationship valid without changing visible layout.
 const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
+const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)

@@ -13,6 +13,7 @@ describe('ToolWindow', () => {
     expect(wrapper.find('.tool-window').attributes('role')).toBe('group')
     expect(wrapper.find('.tool-window').attributes('aria-labelledby')).toBe(titleId)
     expect(wrapper.find('[aria-label="Open tool menu"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Open tool menu"]').attributes('aria-controls')).toBeTruthy()
     expect(wrapper.find('[aria-label="Maximize tool"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Float tool"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Close tool"]').exists()).toBe(true)
@@ -52,6 +53,33 @@ describe('ToolWindow', () => {
     expect(firstId).not.toBe(secondId)
     expect(first.find('.tool-window').attributes('aria-labelledby')).toBe(firstId)
     expect(second.find('.tool-window').attributes('aria-labelledby')).toBe(secondId)
+
+    first.unmount()
+    second.unmount()
+  })
+
+  it('keeps each detached tool menu trigger linked to its own menu', async () => {
+    const first = mount(ToolWindow, { props: { title: 'Chart' } })
+    const second = mount(ToolWindow, { props: { title: 'Chart' } })
+
+    const firstTrigger = first.find('[aria-label="Open tool menu"]')
+    const secondTrigger = second.find('[aria-label="Open tool menu"]')
+    const firstMenuId = firstTrigger.attributes('aria-controls')
+    const secondMenuId = secondTrigger.attributes('aria-controls')
+
+    expect(firstMenuId).toBeTruthy()
+    expect(secondMenuId).toBeTruthy()
+    expect(firstMenuId).not.toBe(secondMenuId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+    expect(secondTrigger.attributes('aria-expanded')).toBe('false')
+
+    await firstTrigger.trigger('click')
+    await secondTrigger.trigger('click')
+
+    expect(first.find(`#${firstMenuId}`).exists()).toBe(true)
+    expect(second.find(`#${secondMenuId}`).exists()).toBe(true)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(secondTrigger.attributes('aria-expanded')).toBe('true')
 
     first.unmount()
     second.unmount()
