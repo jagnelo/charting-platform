@@ -154,18 +154,18 @@
                 <button
                   type="button"
                   class="panel-toggle"
-                  aria-controls="strategy-profile-panel"
+                  :aria-controls="sectionPanelIds.profile"
                   :aria-expanded="sectionExpanded.profile ? 'true' : 'false'"
                   :title="sectionExpanded.profile ? 'Collapse Strategy profile' : 'Expand Strategy profile'"
                   @click="toggleSection('profile')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.profile }">▸</span>
                 </button>
-                <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-profile-panel" :aria-expanded="sectionExpanded.profile ? 'true' : 'false'" @click="toggleSection('profile')" @keydown.enter.prevent="toggleSection('profile')" @keydown.space.prevent="toggleSection('profile')">Strategy profile</h3>
+                <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.profile" :aria-expanded="sectionExpanded.profile ? 'true' : 'false'" @click="toggleSection('profile')" @keydown.enter.prevent="toggleSection('profile')" @keydown.space.prevent="toggleSection('profile')">Strategy profile</h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.profile" id="strategy-profile-panel" class="panel-body">
+            <div v-if="sectionExpanded.profile" :id="sectionPanelIds.profile" class="panel-body">
             <div class="form-grid two-up">
               <label class="field">
                 <span class="field-label">
@@ -432,18 +432,18 @@
               <button
                   type="button"
                   class="panel-toggle"
-                  aria-controls="strategy-entry-panel"
+                  :aria-controls="sectionPanelIds.entry"
                   :aria-expanded="sectionExpanded.entry ? 'true' : 'false'"
                 :title="sectionExpanded.entry ? `Collapse ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}` : `Expand ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}`"
                 @click="toggleSection('entry')"
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.entry }">▸</span>
               </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-entry-panel" :aria-expanded="sectionExpanded.entry ? 'true' : 'false'" @click="toggleSection('entry')" @keydown.enter.prevent="toggleSection('entry')" @keydown.space.prevent="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
+              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.entry" :aria-expanded="sectionExpanded.entry ? 'true' : 'false'" @click="toggleSection('entry')" @keydown.enter.prevent="toggleSection('entry')" @keydown.space.prevent="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
             </div>
           </div>
 
-          <div v-if="sectionExpanded.entry" id="strategy-entry-panel" class="panel-body">
+          <div v-if="sectionExpanded.entry" :id="sectionPanelIds.entry" class="panel-body">
           <template v-if="sourceType === 'custom'">
             <div class="form-grid one-up">
               <label class="field">
@@ -563,18 +563,18 @@
                 <button
                   type="button"
                   class="panel-toggle"
-                  aria-controls="strategy-risk-panel"
+                  :aria-controls="sectionPanelIds.risk"
                   :aria-expanded="sectionExpanded.risk ? 'true' : 'false'"
                   :title="sectionExpanded.risk ? 'Collapse Risk' : 'Expand Risk'"
                   @click="toggleSection('risk')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.risk }">▸</span>
                 </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-risk-panel" :aria-expanded="sectionExpanded.risk ? 'true' : 'false'" @click="toggleSection('risk')" @keydown.enter.prevent="toggleSection('risk')" @keydown.space.prevent="toggleSection('risk')">Risk</h3>
+              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.risk" :aria-expanded="sectionExpanded.risk ? 'true' : 'false'" @click="toggleSection('risk')" @keydown.enter.prevent="toggleSection('risk')" @keydown.space.prevent="toggleSection('risk')">Risk</h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.risk" id="strategy-risk-panel" class="panel-body">
+            <div v-if="sectionExpanded.risk" :id="sectionPanelIds.risk" class="panel-body">
             <div class="form-grid three-up">
               <label class="field">
                 <span class="field-label">
@@ -715,18 +715,18 @@
                 <button
                   type="button"
                   class="panel-toggle"
-                  aria-controls="strategy-exits-panel"
+                  :aria-controls="sectionPanelIds.exits"
                   :aria-expanded="sectionExpanded.exits ? 'true' : 'false'"
                   :title="sectionExpanded.exits ? 'Collapse Exits' : 'Expand Exits'"
                   @click="toggleSection('exits')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.exits }">▸</span>
                 </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-exits-panel" :aria-expanded="sectionExpanded.exits ? 'true' : 'false'" @click="toggleSection('exits')" @keydown.enter.prevent="toggleSection('exits')" @keydown.space.prevent="toggleSection('exits')">Exits</h3>
+              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.exits" :aria-expanded="sectionExpanded.exits ? 'true' : 'false'" @click="toggleSection('exits')" @keydown.enter.prevent="toggleSection('exits')" @keydown.space.prevent="toggleSection('exits')">Exits</h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.exits" id="strategy-exits-panel" class="panel-body">
+            <div v-if="sectionExpanded.exits" :id="sectionPanelIds.exits" class="panel-body">
             <div class="form-grid two-up">
               <div class="field field--sweep">
                 <span class="field-label">
@@ -809,14 +809,14 @@
               <button
                 type="button"
                 class="panel-toggle"
-                aria-controls="strategy-runs-panel"
+                :aria-controls="sectionPanelIds.runs"
                 :aria-expanded="sectionExpanded.runs ? 'true' : 'false'"
                 :title="sectionExpanded.runs ? 'Collapse Research runs' : 'Expand Research runs'"
                 @click="toggleSection('runs')"
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.runs }">▸</span>
               </button>
-              <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-runs-panel" :aria-expanded="sectionExpanded.runs ? 'true' : 'false'" @click="toggleSection('runs')" @keydown.enter.prevent="toggleSection('runs')" @keydown.space.prevent="toggleSection('runs')">Research runs</h3>
+              <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.runs" :aria-expanded="sectionExpanded.runs ? 'true' : 'false'" @click="toggleSection('runs')" @keydown.enter.prevent="toggleSection('runs')" @keydown.space.prevent="toggleSection('runs')">Research runs</h3>
             </div>
             <div class="panel-head-controls">
               <button
@@ -832,7 +832,7 @@
             </div>
           </div>
 
-          <div v-if="sectionExpanded.runs" id="strategy-runs-panel" class="panel-body">
+          <div v-if="sectionExpanded.runs" :id="sectionPanelIds.runs" class="panel-body">
           <div class="mode-strip">
             <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" :aria-pressed="runDraft.test_mode === 'backtest' ? 'true' : 'false'" @click="runDraft.test_mode = 'backtest'">Backtest</button>
             <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" :aria-pressed="runDraft.test_mode === 'walk_forward' ? 'true' : 'false'" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
@@ -970,7 +970,7 @@
             <button
               type="button"
               class="advanced-toggle"
-              aria-controls="strategy-advanced-run-options"
+              :aria-controls="advancedRunOptionsId"
               :aria-expanded="showAdvancedRunOptions ? 'true' : 'false'"
               @click="showAdvancedRunOptions = !showAdvancedRunOptions"
             >
@@ -980,7 +980,7 @@
               </span>
             </button>
 
-            <div v-show="showAdvancedRunOptions" id="strategy-advanced-run-options" class="advanced-panel">
+            <div v-show="showAdvancedRunOptions" :id="advancedRunOptionsId" class="advanced-panel">
               <template v-if="availableRunSubsetSymbols.length">
                 <div class="subsection-head">
                   <div class="subsection-title">
@@ -1034,7 +1034,7 @@
               type="button"
               class="scroll-list-toggle"
               :aria-expanded="runHistoryExpanded ? 'true' : 'false'"
-              aria-controls="strategy-run-history"
+              :aria-controls="runHistoryId"
               @click="runHistoryExpanded = !runHistoryExpanded"
             >
               <span class="scroll-list-toggle__icon" :class="{ 'scroll-list-toggle__icon--expanded': runHistoryExpanded }">▸</span>
@@ -1042,7 +1042,7 @@
               <small>{{ selectedRunBatches.length }} {{ selectedRunBatches.length === 1 ? 'batch' : 'batches' }}</small>
             </button>
 
-          <div v-if="runHistoryExpanded" id="strategy-run-history" class="run-list">
+          <div v-if="runHistoryExpanded" :id="runHistoryId" class="run-list">
             <article
               v-for="batch in selectedRunBatches"
               :key="batch.id"
@@ -1106,14 +1106,14 @@
             <button
               type="button"
               class="panel-toggle"
-              aria-controls="strategy-results-panel"
+              :aria-controls="sectionPanelIds.results"
               :aria-expanded="sectionExpanded.results ? 'true' : 'false'"
               :title="sectionExpanded.results ? 'Collapse Results' : 'Expand Results'"
               @click="toggleSection('results')"
             >
               <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.results }">▸</span>
             </button>
-            <h3 class="panel-head-heading" role="button" tabindex="0" aria-controls="strategy-results-panel" :aria-expanded="sectionExpanded.results ? 'true' : 'false'" @click="toggleSection('results')" @keydown.enter.prevent="toggleSection('results')" @keydown.space.prevent="toggleSection('results')">Results</h3>
+            <h3 class="panel-head-heading" role="button" tabindex="0" :aria-controls="sectionPanelIds.results" :aria-expanded="sectionExpanded.results ? 'true' : 'false'" @click="toggleSection('results')" @keydown.enter.prevent="toggleSection('results')" @keydown.space.prevent="toggleSection('results')">Results</h3>
           </div>
           <div class="panel-head-controls">
             <div v-if="selectedRunDetail" class="detail-actions">
@@ -1155,7 +1155,7 @@
           </div>
         </div>
 
-        <div v-if="sectionExpanded.results" id="strategy-results-panel" class="panel-body">
+        <div v-if="sectionExpanded.results" :id="sectionPanelIds.results" class="panel-body">
         <div v-if="selectedRunDetail" class="run-detail">
           <div class="form-grid two-up" v-if="selectedRuns.length > 1">
             <label class="field">
@@ -1742,6 +1742,16 @@ function currentVersionNumber(definition: StrategyDefinition) {
 
 const strategyLab = useStrategyLabStore()
 const strategyInstanceId = useId()
+const sectionPanelIds = {
+  profile: `${strategyInstanceId}-profile-panel`,
+  entry: `${strategyInstanceId}-entry-panel`,
+  risk: `${strategyInstanceId}-risk-panel`,
+  exits: `${strategyInstanceId}-exits-panel`,
+  runs: `${strategyInstanceId}-runs-panel`,
+  results: `${strategyInstanceId}-results-panel`,
+} as const
+const advancedRunOptionsId = `${strategyInstanceId}-advanced-run-options`
+const runHistoryId = `${strategyInstanceId}-run-history`
 const runSubsetMenuId = `${strategyInstanceId}-run-subset-menu`
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])

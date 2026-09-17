@@ -575,7 +575,8 @@ describe('StrategyLabView', () => {
     expect(heading).toBeTruthy()
     expect(heading!.attributes('role')).toBe('button')
     expect(heading!.attributes('tabindex')).toBe('0')
-    expect(heading!.attributes('aria-controls')).toBe('strategy-profile-panel')
+    const profilePanelId = heading!.attributes('aria-controls')
+    expect(profilePanelId).toMatch(/-profile-panel$/)
 
     const initialExpanded = heading!.attributes('aria-expanded')
     await heading!.trigger('keydown', { key: 'Enter' })
@@ -584,6 +585,24 @@ describe('StrategyLabView', () => {
     const afterEnter = heading!.attributes('aria-expanded')
     await heading!.trigger('keydown', { key: ' ' })
     expect(heading!.attributes('aria-expanded')).toBe(afterEnter === 'true' ? 'false' : 'true')
+  })
+
+  it('scopes strategy disclosure ids within the mounted view instance', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const profileHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
+    expect(profileHeading).toBeTruthy()
+
+    const profilePanelId = profileHeading!.attributes('aria-controls')
+    const disclosureIds = wrapper.findAll('.panel-head-heading')
+      .map(node => node.attributes('aria-controls'))
+      .filter((id): id is string => Boolean(id))
+    expect(profilePanelId).toMatch(/-profile-panel$/)
+    expect(profilePanelId).not.toBe('strategy-profile-panel')
+    expect(new Set(disclosureIds).size).toBe(disclosureIds.length)
+
+    wrapper.unmount()
   })
 
   function findFieldByLabel(wrapper: ReturnType<typeof mount>, label: string) {
@@ -914,15 +933,16 @@ describe('StrategyLabView', () => {
     await runsHeading!.trigger('click')
 
     const toggle = wrapper.get('.scroll-list-toggle')
-    expect(toggle.attributes('aria-controls')).toBe('strategy-run-history')
-    if (!wrapper.find('#strategy-run-history').exists()) {
+    const runHistoryId = toggle.attributes('aria-controls')
+    expect(runHistoryId).toMatch(/-run-history$/)
+    if (!wrapper.find(`#${runHistoryId}`).exists()) {
       await toggle.trigger('click')
     }
-    expect(wrapper.find('#strategy-run-history').exists()).toBe(true)
+    expect(wrapper.find(`#${runHistoryId}`).exists()).toBe(true)
 
     await toggle.trigger('click')
     expect(toggle.attributes('aria-expanded')).toBe('false')
-    expect(wrapper.find('#strategy-run-history').exists()).toBe(false)
+    expect(wrapper.find(`#${runHistoryId}`).exists()).toBe(false)
   })
 
   it('does not preselect a comparison run by default', async () => {
@@ -1439,10 +1459,11 @@ describe('StrategyLabView', () => {
     await ensurePanelExpanded(subsetWrapper, 'Research runs')
     const advancedToggle = subsetWrapper.get('.advanced-toggle')
     expect(advancedToggle.attributes('aria-expanded')).toBe('false')
-    expect(advancedToggle.attributes('aria-controls')).toBe('strategy-advanced-run-options')
+    const advancedRunOptionsId = advancedToggle.attributes('aria-controls')
+    expect(advancedRunOptionsId).toMatch(/-advanced-run-options$/)
     await advancedToggle.trigger('click')
     expect(advancedToggle.attributes('aria-expanded')).toBe('true')
-    expect(subsetWrapper.get('#strategy-advanced-run-options').exists()).toBe(true)
+    expect(subsetWrapper.get(`#${advancedRunOptionsId}`).exists()).toBe(true)
     await flushPromises()
 
     const subsetToggle = subsetWrapper.get('.advanced-panel .field--checkbox input[type="checkbox"]')
