@@ -53,6 +53,7 @@
           type="button"
           class="coverage-list-toggle"
           :aria-expanded="instrumentListExpanded ? 'true' : 'false'"
+          :aria-controls="coverageTimelineId"
           @click="instrumentListExpanded = !instrumentListExpanded"
         >
           <span class="coverage-list-toggle__icon" :class="{ 'coverage-list-toggle__icon--expanded': instrumentListExpanded }">▸</span>
@@ -60,7 +61,7 @@
           <small>{{ issueCoverageRows.length }} issues</small>
         </button>
 
-        <div v-if="instrumentListExpanded" class="coverage-timeline-panel">
+        <div v-if="instrumentListExpanded" :id="coverageTimelineId" class="coverage-timeline-panel">
           <div class="coverage-timeline-axis">
             <span>{{ formatShortDate(coverageDomain.start) }}</span>
             <span>Requested strategy range</span>
@@ -149,6 +150,12 @@ const props = withDefaults(defineProps<{
 })
 
 const instrumentListExpanded = ref(false)
+const coverageTimelineId = (() => {
+  const scope = globalThis as typeof globalThis & { __tc2000StrategyCoveragePanelSequence?: number }
+  const next = (scope.__tc2000StrategyCoveragePanelSequence ?? 0) + 1
+  scope.__tc2000StrategyCoveragePanelSequence = next
+  return `strategy-coverage-${next}-timeline`
+})()
 
 const sortedInstruments = computed(() => {
   if (!props.coverage) return []

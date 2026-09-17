@@ -118,6 +118,26 @@ describe('StrategyCoveragePanel', () => {
     expect(wrapper.text()).not.toContain('AAPL')
   })
 
+  it('keeps coverage disclosure relationships unique across linked panes', async () => {
+    const first = mount(StrategyCoveragePanel, { props: { coverage: baseCoverage } })
+    const second = mount(StrategyCoveragePanel, { props: { coverage: baseCoverage } })
+
+    const firstToggle = first.get('.coverage-list-toggle')
+    const secondToggle = second.get('.coverage-list-toggle')
+    const firstPanelId = firstToggle.attributes('aria-controls')
+    const secondPanelId = secondToggle.attributes('aria-controls')
+
+    expect(firstPanelId).toBeTruthy()
+    expect(secondPanelId).toBeTruthy()
+    expect(firstPanelId).not.toBe(secondPanelId)
+
+    await firstToggle.trigger('click')
+    await secondToggle.trigger('click')
+
+    expect(first.find(`#${firstPanelId}`).exists()).toBe(true)
+    expect(second.find(`#${secondPanelId}`).exists()).toBe(true)
+  })
+
   it('uses an informative empty message when there are no coverage issues', async () => {
     const cleanCoverage = {
       ...baseCoverage,
