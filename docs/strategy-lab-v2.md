@@ -349,7 +349,9 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   mean, nearest-rank median/minimum/maximum, and configured nearest-rank
   quantiles. The result exposes only the signed difference of arm means; it does
   not rank candidates, estimate significance, or claim independence or paired
-  inference. Remaining gaps include trusted paired inference.
+  inference. Trusted paired inference is provided separately by the bounded
+  exact sign-flip calculator; approximate/bootstrap inference and inferential
+  ranking remain outside this package boundary.
 - Every metric produced by the v2 calculators carries a versioned
   `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
   stable formula-family ID, Decimal context, and effective formula parameters.
