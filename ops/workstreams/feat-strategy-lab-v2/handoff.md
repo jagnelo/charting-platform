@@ -3207,6 +3207,23 @@ coverage (required threshold: 75%), with setup and cleanup successful.
 Schema/API/worker/Compose integration and stable Nautilus execution remain
 deferred behind the existing gates.
 
+## 2026-09-17 - Execution and audit event-time canonicalization checkpoint
+
+`events.py` and `audit.py` now normalize every aware occurrence timestamp to
+UTC at immutable-contract construction. This closes an identity/replay edge
+case where the same instant arriving with a different offset compared unequal
+to the already persisted record and could be reported as a content collision.
+The append and journal monotonicity semantics remain unchanged; persistence,
+outbox/Redis transport, and application wiring remain deferred behind the
+existing shared-path gates.
+
+Regression coverage verifies equality, content-address identity, and exact
+replay for offset-equivalent execution and audit records. Focused validation
+passed 13 tests, Ruff, and MyPy for the changed modules. The branch remains
+`ready_for_human_review`; provider/API/database/worker/Compose integration,
+stable Nautilus execution, frontend work, promotion, and deployment remain
+deferred.
+
 ## 2026-09-17 - SDK UTC event-time normalization checkpoint
 
 `MarketEvent` and `StrategyContext` now normalize every aware event time to

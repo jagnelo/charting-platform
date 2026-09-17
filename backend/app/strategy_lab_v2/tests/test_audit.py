@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -40,6 +40,20 @@ def test_append_is_contiguous_and_exact_retry_replays() -> None:
     assert replay.decision is AuditAppendDecision.REPLAY_EXISTING
     assert replay.journal == applied.journal
     assert first.entry_id == first.fingerprint
+
+
+def test_equivalent_offset_timestamps_replay_as_the_same_audit_entry() -> None:
+    first = _entry(1)
+    equivalent = _entry(
+        1,
+        occurred_at=first.occurred_at.astimezone(timezone(timedelta(hours=-5))),
+    )
+    assert equivalent.occurred_at.tzinfo is UTC
+    assert equivalent == first
+    assert equivalent.entry_id == first.entry_id
+    journal = append_audit_entry(AuditJournal("run_attempt", "attempt-1"), first).journal
+    replay = append_audit_entry(journal, equivalent, (first,))
+    assert replay.decision is AuditAppendDecision.REPLAY_EXISTING
 
 
 def test_gaps_and_sequence_content_conflicts_are_explicit() -> None:

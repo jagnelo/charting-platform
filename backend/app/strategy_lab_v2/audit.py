@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -57,6 +57,10 @@ class AuditEntry:
             raise TypeError("entry_type must be an AuditEntryType")
         require_sha256_digest(self.payload_digest, field_name="payload_digest")
         _aware(self.occurred_at, "occurred_at")
+        # Audit identities and monotonic journal ordering represent instants,
+        # not their serialized offsets.  Canonicalize at construction so
+        # equivalent retries remain byte- and equality-stable after transport.
+        object.__setattr__(self, "occurred_at", self.occurred_at.astimezone(UTC))
         _nonempty(self.actor, "actor")
         if self.correlation_id is not None:
             require_sha256_digest(self.correlation_id, field_name="correlation_id")

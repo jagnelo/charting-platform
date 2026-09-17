@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -51,6 +51,11 @@ class ExecutionEvent:
         require_sha256_digest(self.payload_digest, field_name="payload_digest")
         if self.occurred_at.tzinfo is None or self.occurred_at.utcoffset() is None:
             raise ValueError("event occurred_at must be timezone-aware")
+        # Event identity and replay semantics are instant-based.  Normalize
+        # equivalent offset-aware timestamps at the contract boundary so an
+        # exact retry deserialized from a different timezone compares equal
+        # instead of being misclassified as a content collision.
+        object.__setattr__(self, "occurred_at", self.occurred_at.astimezone(UTC))
         if self.causation_id is not None:
             require_sha256_digest(self.causation_id, field_name="causation_id")
 

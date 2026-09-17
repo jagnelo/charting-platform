@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -43,6 +43,26 @@ def test_event_identity_and_contiguous_append_are_deterministic() -> None:
     assert replay.decision is EventAppendDecision.REPLAY_EXISTING
     assert replay.cursor == result.cursor
     assert replay == resolve_event_append(first, result.cursor, (first,))
+
+
+def test_equivalent_offset_timestamps_replay_as_the_same_event() -> None:
+    first = _event(1)
+    equivalent = ExecutionEvent(
+        trial_id=first.trial_id,
+        attempt_id=first.attempt_id,
+        sequence=first.sequence,
+        event_type=first.event_type,
+        payload_digest=first.payload_digest,
+        occurred_at=first.occurred_at.astimezone(timezone(timedelta(hours=2))),
+        producer=first.producer,
+        causation_id=first.causation_id,
+    )
+    assert equivalent.occurred_at.tzinfo is UTC
+    assert equivalent == first
+    assert equivalent.event_id == first.event_id
+    cursor = resolve_event_append(first, EventStreamCursor("trial-1", "attempt-1")).cursor
+    replay = resolve_event_append(equivalent, cursor, (first,))
+    assert replay.decision is EventAppendDecision.REPLAY_EXISTING
 
 
 def test_event_gaps_are_reported_until_the_missing_sequence_is_supplied() -> None:

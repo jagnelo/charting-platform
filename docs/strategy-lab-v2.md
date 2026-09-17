@@ -421,10 +421,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   identity. Durable compare-and-set, scheduling, worker restart, and engine
   disposal remain adapter responsibilities.
 - `events.py` defines content-addressed execution event envelopes, typed
-  per-trial/attempt cursors, and pure append decisions. Exact prior events can
-  be replayed; stale, missing, foreign, or conflicting sequences are surfaced
-  without advancing the cursor. PostgreSQL/outbox/Redis adapters still own
-  atomic persistence and transport.
+  per-trial/attempt cursors, and pure append decisions. Event timestamps are
+  normalized to UTC at construction, so equivalent offset-aware retries retain
+  one dataclass value and event identity after transport. Exact prior events
+  can be replayed; stale, missing, foreign, or conflicting sequences are
+  surfaced without advancing the cursor. PostgreSQL/outbox/Redis adapters
+  still own atomic persistence and transport.
 - `api_contracts.py` defines stable REST-boundary values for future routes:
   snapshot-bound opaque cursors round-trip deterministically with an integrity
   checksum, page envelopes require consistent continuation cursors, and
@@ -526,11 +528,14 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   unadmitted/mismatched corrections fail closed without rewriting live state.
 - `audit.py` defines an immutable aggregate-scoped execution audit journal.
   Entries carry typed event kinds, content-addressed payloads, actor and
-  correlation identity, and contiguous sequence numbers. Exact appends replay;
-  gaps, stale sequence content, same-sequence conflicts, foreign aggregates,
-  and timestamp regressions remain explicit without mutating the journal. A
-  future PostgreSQL/outbox adapter must persist the returned decision
-  atomically; this contract never writes or transports audit records.
+  correlation identity, and contiguous sequence numbers. Occurrence timestamps
+  are normalized to UTC at construction, keeping equality, identity, and
+  monotonic journal checks stable across offset-changing serialization. Exact
+  appends replay; gaps, stale sequence content, same-sequence conflicts,
+  foreign aggregates, and timestamp regressions remain explicit without
+  mutating the journal. A future PostgreSQL/outbox adapter must persist the
+  returned decision atomically; this contract never writes or transports audit
+  records.
 - `outbox.py` defines immutable transactional-outbox messages and state.
   Request identity conflicts, content duplicates, deterministic pending order,
   and publish acknowledgements are resolved without I/O. Exact enqueue and
