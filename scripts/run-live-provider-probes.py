@@ -1239,6 +1239,12 @@ def manifest_account_usage_providers(providers: set[str]) -> set[str]:
     }
 
 
+def account_usage_only_provider_set() -> set[str]:
+    """Return the manifest-derived providers accepted by usage-only runs."""
+
+    return manifest_account_usage_providers(set(LIVE_PROVIDER_CASES))
+
+
 def normalized_reviewed_https_source(value: str) -> str | None:
     """Return a credential-free HTTPS source URL suitable for exact review binding."""
 
@@ -2987,18 +2993,15 @@ def main() -> int:
     if dinari_sandbox_canary and account_usage_only:
         print("--dinari-sandbox-canary cannot be combined with --account-usage-only")
         return 2
-    if account_usage_only and selected_providers not in (
-        {"alpaca"},
-        {"marketdata_app"},
-        {"twelve_data"},
-        {"eodhd"},
-        {"binance"},
-        {"openfigi"},
+    account_usage_providers = account_usage_only_provider_set()
+    if account_usage_only and not (
+        len(selected_providers) == 1
+        and selected_providers <= account_usage_providers
     ):
+        allowed = ", ".join(sorted(account_usage_providers))
         print(
-            "account-usage-only requires exactly one of --provider alpaca, "
-            "marketdata_app, --provider twelve_data, --provider eodhd, or "
-            "--provider binance, or --provider openfigi"
+            "account-usage-only requires exactly one --provider with an "
+            f"explicit manifest account-usage case ({allowed})"
         )
         return 2
     if arguments.allow_staged_candidate and (

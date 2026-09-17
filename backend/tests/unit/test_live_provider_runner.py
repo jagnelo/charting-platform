@@ -230,6 +230,14 @@ def test_manifest_account_usage_providers_are_explicit():
     assert runner.manifest_account_usage_providers(
         {"binance", "twelve_data", "finnhub", "unknown"}
     ) == {"binance", "twelve_data"}
+    assert runner.account_usage_only_provider_set() == {
+        "alpaca",
+        "binance",
+        "eodhd",
+        "marketdata_app",
+        "openfigi",
+        "twelve_data",
+    }
 
 
 def test_live_quota_preflight_only_allows_explicit_bootstrap_unknown_baseline(
