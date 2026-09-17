@@ -483,6 +483,13 @@ remaining_gaps:
       Python/Rust versions, and legacy-runtime isolation. Complete stable
       fixture evidence without a valid isolated pin remains compatibility
       evidence but cannot become authoritative.
+  - >-
+      `resource_mutations.py` and the registration-neutral API router now expose
+      strict idempotent creation for mutable Strategy Lab resources. Exact
+      retries replay the existing resource receipt, changed content conflicts,
+      rejected preconditions are typed, and artifact/metric-set creation stays
+      read-only. Domain persistence and result-publication policy remain
+      application-owned integration gates.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -558,7 +565,8 @@ progress:
     - strategy-lab-v2-concrete-terminal-result-persistence-adapter
     - strategy-lab-v2-executable-conformance-harness
     - strategy-lab-v2-isolated-nautilus-release-pin-contract
+    - strategy-lab-v2-idempotent-resource-creation-api-boundary
   total: 18
-  current_phase: strategy-lab-v2-isolated-nautilus-release-pin-contract-staging-ready-for-human-review
+  current_phase: strategy-lab-v2-idempotent-resource-creation-api-boundary-staging-ready-for-human-review
   current_blocker: Compose activation, stable Nautilus release, upstream contract reconciliation, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then add Compose activation and stable-release conformance without changing the engine-neutral boundary

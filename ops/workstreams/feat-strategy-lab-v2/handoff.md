@@ -72,6 +72,22 @@ Focused conformance/publication tests passed (23 tests). Compose activation,
 stable Nautilus release/conformance against the real engine, upstream contract
 reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Idempotent resource-creation API boundary
+
+`resource_mutations.py` now provides immutable resource-mutation requests,
+receipts, and accept/replay/conflict/reject decisions. The registration-neutral
+router adds `POST /strategy-lab/v2/{resource}` for mutable resource types with
+strict canonical `attributes`, optional relationship identifiers, bounded JSON
+payloads, required `Idempotency-Key`, and 202 resource-document responses.
+Artifact and metric-set resources remain read-only through this generic route;
+the application adapter still owns domain validation, persistence, outbox
+staging, and result-publication policy.
+
+Focused resource-mutation/API tests passed (20 tests). Compose activation,
+stable Nautilus release/conformance against the real engine, upstream contract
+reconciliation, full persistence-backed mutation flows, and full repository
+integration remain open.
+
 ## 2026-09-17 - Explicit terminal/result completion context
 
 `worker_service.py` now exposes an optional terminal writer that receives an
