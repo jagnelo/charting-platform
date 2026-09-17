@@ -227,21 +227,27 @@ remaining_gaps:
     provider request.
   - >-
     Tiingo's 500-unique-symbol monthly and 50-request/hour pools now have
-    independent provider-specific admission controls. Tiingo's current
-    general documentation confirms that hourly requests reset every hour, but
-    it does not identify whether that boundary is fixed/calendar or rolling;
-    the 500-symbol monthly anchor is also unspecified. A complete
-    `TIINGO_OPERATION_BYTE_BOUNDS` map is insufficient: routing also requires
-    admission-safe `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET` and
-    `TIINGO_REVIEWED_HOURLY_RESET` values plus independent current evidence
-    (`TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE` and
-    `TIINGO_HOURLY_QUOTA_EVIDENCE`). The already documented EST daily and
-    monthly bandwidth boundaries remain explicit; blank or invalid controls
-    preserve the unresolved symbol/hour contract and fail closed; no rolling
-    31-day symbol or hourly window is inferred. Controls are
-    wired through local/RPi Compose and GitHub live CI. Focused coverage passes
-    155/155 and the complete backend unit gate passes 2,357/2,357 with 37
-    warnings at 70.77% coverage.
+    provider-scoped rolling 31-day and rolling one-hour application safety
+    envelopes because the native reset models are not fully stated. The
+    provider-defined labels remain audit-visible; reviewed native reset values
+    and independent evidence remain optional overrides. A complete
+    `TIINGO_OPERATION_BYTE_BOUNDS` map remains mandatory, while the documented
+    EST daily and monthly bandwidth boundaries stay explicit. Blank or invalid
+    byte controls preserve the unresolved bandwidth contract and fail closed;
+    no generic limiter is inferred. Controls are wired through local/RPi
+    Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
+    161/161 and the Docker-backed complete backend gate passes 2,767/2,767
+    with 89 warnings at 82.05% coverage.
+  - >-
+    FINRA's exact public-credential 10 GB allowance retains the
+    provider-defined monthly reset label for audit, while a conservative
+    provider-scoped rolling 31-day safety envelope now protects the durable
+    byte ledger because the provider does not publish its reset timezone or
+    byte convention. The 3 MB synchronous reservation bound and measured-byte
+    settlement remain unchanged; async result-byte admission, ORF entitlement,
+    terms, and current baseline evidence remain separate gates. Focused quota
+    coverage must be replayed after this change; no generic limiter or data
+    loss is introduced.
   - >-
     Marketstack's conflicting 100-versus-1,000 requests/month claims now have
     an explicit account-review gate. Routing requires positive

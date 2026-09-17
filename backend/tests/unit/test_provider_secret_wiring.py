@@ -903,7 +903,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
         '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1, "bulk_fetch": 1, "get_instrument_profile": 1, "fetch_market_events": 1, "discover_universe_page": 1}',
     )
     statuses = routing_safety_preflight()
-    assert statuses["tiingo"].startswith("non-routable: missing reviewed controls for")
+    assert statuses["tiingo"] == "routable"
     assert statuses["fmp"].startswith("non-routable: missing reviewed controls for")
 
     monkeypatch.setenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")

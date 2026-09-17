@@ -538,10 +538,6 @@ class TestProviderRegistry:
         ]
         assert provider_missing_routing_controls("tiingo") == [
             "TIINGO_OPERATION_BYTE_BOUNDS",
-            "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
-            "TIINGO_REVIEWED_HOURLY_RESET",
-            "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
-            "TIINGO_HOURLY_QUOTA_EVIDENCE",
         ]
         assert provider_missing_routing_controls("fmp") == [
             "FMP_OPERATION_BYTE_BOUNDS",
@@ -618,10 +614,6 @@ class TestProviderRegistry:
         )
         assert provider_missing_routing_controls("tiingo") == [
             "TIINGO_OPERATION_BYTE_BOUNDS",
-            "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET",
-            "TIINGO_REVIEWED_HOURLY_RESET",
-            "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE",
-            "TIINGO_HOURLY_QUOTA_EVIDENCE",
         ]
         monkeypatch.setattr(
             settings,

@@ -536,8 +536,9 @@ class Settings(BaseSettings):
                         # disabled until the first day of the following month
                         # if exhausted, but does not state the reset timezone
                         # or byte convention. Keep the decimal magnitude
-                        # explicit while refusing to turn the month into a
-                        # guessed rolling 31-day window.
+                        # explicit; retain the provider-defined label for audit
+                        # while enforcing a conservative provider-scoped
+                        # rolling 31-day safety envelope.
                         "limit": 10_000_000_000,
                         "window_seconds": 2678400,
                         "unit": "bytes",
@@ -545,6 +546,10 @@ class Settings(BaseSettings):
                         "quota_group": "public_credential",
                         "source": "https://developer.finra.org/support",
                         "reset": "provider_defined",
+                        "safety_reset": "rolling_31_days",
+                        "safety_resolves_unknown_dimensions": [
+                            "download_bytes_month_reset_boundary"
+                        ],
                         "limit_basis": "decimal_bytes_conservative_for_published_GB",
                     },
                 ],
@@ -818,10 +823,15 @@ class Settings(BaseSettings):
                         "quota_group": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
                         # Tiingo publishes the distinct-symbol pool but does
-                        # not state its reset anchor. Do not turn that
-                        # provider-defined boundary into a guessed rolling
-                        # window; routing remains blocked until reviewed.
+                        # not state its reset anchor. Keep the provider-defined
+                        # label for audit and enforce a provider-scoped rolling
+                        # 31-day safety envelope; a reviewed native reset may
+                        # replace it through configuration.
                         "reset": "provider_defined",
+                        "safety_reset": "rolling_31_days",
+                        "safety_resolves_unknown_dimensions": [
+                            "unique_symbols_reset_anchor"
+                        ],
                     },
                     {
                         "name": "requests_per_hour",
@@ -833,10 +843,15 @@ class Settings(BaseSettings):
                         "source": "https://www.tiingo.com/documentation/general",
                         # Tiingo documents that the hourly pool resets every
                         # hour, but does not identify whether the boundary is
-                        # fixed/calendar or rolling. Keep the boundary
-                        # provider-defined until that admission detail is
-                        # explicitly reviewed; no rolling window is inferred.
+                        # fixed/calendar or rolling. Keep the provider-defined
+                        # label for audit and enforce a provider-scoped rolling
+                        # one-hour safety envelope until native evidence is
+                        # reviewed.
                         "reset": "provider_defined",
+                        "safety_reset": "rolling",
+                        "safety_resolves_unknown_dimensions": [
+                            "requests_per_hour_reset_boundary_model"
+                        ],
                     },
                     {
                         "name": "requests_per_day",
@@ -1059,6 +1074,9 @@ class Settings(BaseSettings):
                         # label for audit and enforce a provider-scoped
                         # rolling 24-hour safety envelope.
                         "safety_reset": "rolling",
+                        "safety_resolves_unknown_dimensions": [
+                            "calls_daily_reset_anchor"
+                        ],
                     }
                 ],
                 "reset": "provider_defined",
@@ -2129,8 +2147,9 @@ class Settings(BaseSettings):
     # remains fail-closed and non-routable.
     TIINGO_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
     # Tiingo leaves the 500-unique-symbol reset anchor and 50/hour boundary
-    # unspecified in the reviewed sources. Keep both pools fail-closed until
-    # independently reviewed reset semantics and evidence are configured.
+    # unspecified in the reviewed sources. The seed applies explicit,
+    # provider-scoped rolling safety envelopes for both pools; these optional
+    # settings replace them only with provider-native reset evidence.
     TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: str = ""
     TIINGO_REVIEWED_HOURLY_RESET: str = ""
     TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: str = ""
@@ -2599,6 +2618,7 @@ _KNOWN_PROVIDER_QUOTA_RESETS = frozenset(
         "provider_defined_minute_and_rolling_second",
         "rolling",
         "rolling_30_days",
+        "rolling_31_days",
         "rolling_or_provider_defined",
     }
 )
@@ -3333,10 +3353,10 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     if provider_name == "tiingo":
         # Tiingo publishes the distinct-symbol pool without a monthly anchor
         # and says the hourly pool resets every hour, but does not identify the
-        # hourly boundary model (fixed/calendar versus rolling). Promote only
-        # when those independent boundaries and the response-byte map have all
-        # been explicitly reviewed; never infer a rolling window from the
-        # phrase "every hour".
+        # hourly boundary model (fixed/calendar versus rolling). The seed
+        # carries provider-scoped rolling safety envelopes for both pools;
+        # reviewed native reset labels/evidence may replace them. No generic
+        # cross-provider fallback is introduced.
         unique_reset = str(
             getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "") or ""
         ).strip()
@@ -3349,12 +3369,51 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         hourly_evidence = str(
             getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
         ).strip()
-        if not (
+        contract = seed.get("quota_contract")
+        dimensions = (
+            contract.get("dimensions", []) if isinstance(contract, dict) else []
+        )
+        unique_dimension = next(
+            (
+                item
+                for item in dimensions
+                if isinstance(item, dict) and item.get("name") == "unique_symbols_per_month"
+            ),
+            None,
+        )
+        hourly_dimension = next(
+            (
+                item
+                for item in dimensions
+                if isinstance(item, dict) and item.get("name") == "requests_per_hour"
+            ),
+            None,
+        )
+        unique_safety_reset = (
+            str(unique_dimension.get("safety_reset") or "").strip()
+            if isinstance(unique_dimension, dict)
+            else ""
+        )
+        hourly_safety_reset = (
+            str(hourly_dimension.get("safety_reset") or "").strip()
+            if isinstance(hourly_dimension, dict)
+            else ""
+        )
+        native_override_valid = (
             provider_quota_reset_is_admission_safe(unique_reset)
             and provider_quota_reset_is_admission_safe(hourly_reset)
             and unique_evidence
             and hourly_evidence
-        ):
+        )
+        safety_default_valid = (
+            not unique_reset
+            and not hourly_reset
+            and not unique_evidence
+            and not hourly_evidence
+            and provider_quota_reset_is_admission_safe(unique_safety_reset)
+            and provider_quota_reset_is_admission_safe(hourly_safety_reset)
+        )
+        if not (native_override_valid or safety_default_valid):
             return seed
         required = _BYTE_BOUND_OPERATIONS.get(provider_name)
         if not required:
@@ -3362,7 +3421,6 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         bounds = provider_operation_byte_bounds(provider_name)
         if any(operation not in bounds for operation in required):
             return seed
-        contract = seed.get("quota_contract")
         if not isinstance(contract, dict):
             return seed
         untracked = list(contract.get("untracked_constraints") or [])
@@ -3389,23 +3447,49 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             dimensions.append(dict(byte_constraint))
         contract["dimensions"] = dimensions
         contract["reset"] = "per_dimension"
-        contract["unknown_dimensions"] = []
+        if native_override_valid:
+            contract["unknown_dimensions"] = [
+                item
+                for item in (contract.get("unknown_dimensions") or [])
+                if item
+                not in {
+                    "unique_symbols_reset_anchor",
+                    "requests_per_hour_reset_boundary_model",
+                }
+            ]
         for dimension in dimensions:
             if not isinstance(dimension, dict):
                 continue
             if dimension.get("name") == "unique_symbols_per_month":
-                dimension["reset"] = unique_reset
+                if native_override_valid:
+                    dimension["reset"] = unique_reset
+                else:
+                    dimension.pop("reset", None)
+                    dimension["safety_reset"] = unique_safety_reset
             elif dimension.get("name") == "requests_per_hour":
-                dimension["reset"] = hourly_reset
+                if native_override_valid:
+                    dimension["reset"] = hourly_reset
+                else:
+                    dimension.pop("reset", None)
+                    dimension["safety_reset"] = hourly_safety_reset
         contract["dimension_costs_required"] = True
         contract["operation_costs_required"] = True
         contract["source"] = (
             f"{contract.get('source', 'Tiingo pricing and API documentation')} plus "
-            "operator-reviewed distinct-symbol/hourly reset evidence"
+            + (
+                "provider-scoped rolling distinct-symbol/hourly safety envelopes"
+                if not native_override_valid
+                else "operator-reviewed distinct-symbol/hourly reset evidence"
+            )
         )
         seed["quota_contract"] = contract
         seed["quota_source"] = (
-            "Tiingo plan allowance plus operator-reviewed distinct-symbol/hourly reset evidence"
+            "Tiingo plan allowance plus "
+            + (
+                "provider-scoped rolling distinct-symbol/hourly safety envelopes"
+                if not native_override_valid
+                else "operator-reviewed distinct-symbol/hourly reset evidence"
+            )
         )
         seed["_byte_reservation_bounds"] = bounds
         return seed

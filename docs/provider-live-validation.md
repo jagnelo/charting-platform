@@ -779,8 +779,11 @@ through the provider-scoped rolling-24-hour safety envelope by default, while
 reviewed native daily reset/evidence remain optional overrides. The documented
 rolling-30-day bandwidth boundary is used by default and may be replaced only
 by an explicit reviewed override.
-Tiingo additionally requires independent reviewed reset labels and evidence
-for its distinct-symbol and hourly pools.
+Tiingo's exact distinct-symbol and hourly ceilings use provider-scoped rolling
+31-day and one-hour application safety envelopes by default. The
+`TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET` / `TIINGO_REVIEWED_HOURLY_RESET` values
+and independent evidence fields remain optional native-reset overrides; no
+generic cross-provider limiter is used.
 When all controls are present, the runtime reserves the documented bandwidth
 pool before execution and settles it to measured response bytes; incomplete or
 invalid maps or reset controls remain fail-closed.
@@ -817,10 +820,13 @@ Tiingo's documented pool magnitudes are retained. Its general API
 documentation states that daily requests reset at midnight EST and monthly
 bandwidth resets on the first day of each month at midnight EST; the source
 does not define the distinct-symbol monthly reset anchor or an hourly
-timezone/boundary. Those two dimensions therefore remain explicitly
-provider-defined and non-routable until exact evidence is available; the
-durable `provider_quota_identity` ledger does not invent a rolling 31-day
-symbol window. FINRA's synchronous short-interest and OTC
+timezone/boundary. Those two dimensions retain their provider-defined labels
+for audit but use explicit provider-scoped rolling 31-day and one-hour safety
+envelopes by default; the durable `provider_quota_identity` ledger therefore
+does not invent a cross-provider limit. FINRA's public-credential byte pool
+retains its provider-defined monthly label for audit but uses a conservative
+provider-scoped rolling 31-day safety envelope; the durable byte ledger still
+requires a current baseline before admission. FINRA's synchronous short-interest and OTC
 Daily List calls reserve a maximum 3,000,000 response bytes (the conservative
 decimal interpretation of FINRA's ambiguous 3 MB ceiling) against the public
 credential's published 10 GB monthly pool. FINRA says an exhausted public

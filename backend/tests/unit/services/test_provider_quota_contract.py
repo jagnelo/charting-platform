@@ -451,20 +451,16 @@ async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map
             ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
         )
     ).scalar_one()
-    assert not policy_has_known_quota(policy)
-    assert "quota_contract.unknown_dimensions.unique_symbols_reset_anchor" in (
-        quota_contract_missing_dimensions(policy)
-    )
+    assert policy_has_known_quota(policy)
+    assert quota_contract_missing_dimensions(policy) == []
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
     await seed_provider_runtime(async_db)
     db.refresh(policy)
-    assert not policy_has_known_quota(policy)
-    assert policy.quota_verified_at is None
-    assert any(
-        item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
-        for item in quota_contract_missing_dimensions(policy)
-    )
+    # A previously promoted contract is durable and is not silently destroyed
+    # merely because a later process starts without the optional local byte map.
+    assert policy_has_known_quota(policy)
+    assert quota_contract_missing_dimensions(policy) == []
 
 
 def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
@@ -561,7 +557,7 @@ def test_per_dimension_without_dimension_reset_is_not_a_window():
         )
 
 
-def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
+def test_tiingo_byte_pool_uses_provider_scoped_reset_safety_envelopes(monkeypatch):
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
@@ -575,8 +571,29 @@ def test_tiingo_byte_pool_also_requires_symbol_reset_review(monkeypatch):
     monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "")
     monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "")
     monkeypatch.setattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "")
+    safety_seed = provider_rate_limit_seed("tiingo")
+    safety_contract = safety_seed["quota_contract"]
+    assert safety_contract["untracked_constraints"] == []
+    assert safety_contract["unknown_dimensions"] == [
+        "unique_symbols_reset_anchor",
+        "requests_per_hour_reset_boundary_model",
+    ]
+    assert next(
+        item
+        for item in safety_contract["dimensions"]
+        if item["name"] == "unique_symbols_per_month"
+    )["safety_reset"] == "rolling_31_days"
+    assert next(
+        item
+        for item in safety_contract["dimensions"]
+        if item["name"] == "requests_per_hour"
+    )["safety_reset"] == "rolling"
+    assert safety_seed["_byte_reservation_bounds"] == bounds
+
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
     blocked = provider_rate_limit_seed("tiingo")
     assert blocked["quota_contract"]["untracked_constraints"]
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", bounds)
     monkeypatch.setattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "calendar_month_est")
     monkeypatch.setattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "rolling")
     monkeypatch.setattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "symbol review")
@@ -2891,6 +2908,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finra_bytes = next(item for item in finra["dimensions"] if item["unit"] == "bytes")
     assert finra_bytes["limit"] == 10_000_000_000
     assert finra_bytes["reset"] == "provider_defined"
+    assert finra_bytes["safety_reset"] == "rolling_31_days"
     assert "download_bytes_month_reset_boundary" in finra["unknown_dimensions"]
     assert finra["reset"] == "provider_defined"
     assert finra["dimension_costs_required"] is True
@@ -3072,11 +3090,8 @@ def test_finra_synchronous_budget_uses_documented_byte_reservation():
         quota_source=seed["quota_source"],
         quota_contract=contract,
     )
-    assert not policy_has_known_quota(policy)
-    assert (
-        "quota_contract.unknown_dimensions.download_bytes_month_reset_boundary"
-        in quota_contract_missing_dimensions(policy)
-    )
+    assert policy_has_known_quota(policy)
+    assert quota_contract_missing_dimensions(policy) == []
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
 
@@ -3091,11 +3106,8 @@ async def test_seeded_finra_policy_contains_dimension_cost_profile(db):
             ProviderPolicy.capability == ProviderCapability.SHORT_INTEREST,
         )
     ).scalar_one()
-    assert not policy_has_known_quota(policy)
-    assert (
-        "quota_contract.unknown_dimensions.download_bytes_month_reset_boundary"
-        in quota_contract_missing_dimensions(policy)
-    )
+    assert policy_has_known_quota(policy)
+    assert quota_contract_missing_dimensions(policy) == []
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
     assert (
         source.config["usage_tracking"]["dimension_costs"]["download_bytes_per_calendar_month"][

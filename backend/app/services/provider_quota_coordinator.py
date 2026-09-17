@@ -1849,12 +1849,18 @@ def _reservation_plan_for_live_probe(
             and provider_quota_reset_is_admission_safe(admission_reset)
         ):
             dimension_name = str(dimension.get("name") or "").strip()
+            explicit_names = {
+                str(item or "").strip()
+                for item in (dimension.get("safety_resolves_unknown_dimensions") or [])
+                if str(item or "").strip()
+            }
             if dimension_name:
-                safety_resolved_unknown.update(
+                explicit_names.update(
                     item
                     for item in unknown_dimensions
                     if item.startswith(f"{dimension_name}_")
                 )
+            safety_resolved_unknown.update(explicit_names & unknown_dimensions)
     unknown_dimensions -= safety_resolved_unknown
     allowed_bootstrap_unknown = {
         str(item or "").strip()

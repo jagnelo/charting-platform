@@ -1379,14 +1379,18 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
                     and provider_quota_reset_is_admission_safe(admission_reset)
                 ):
                     dimension_name = str(dimension.get("name") or "").strip()
+                    explicit_names = {
+                        str(item or "").strip()
+                        for item in (dimension.get("safety_resolves_unknown_dimensions") or [])
+                        if str(item or "").strip()
+                    }
                     if dimension_name:
-                        safety_resolved.update(
-                            {
-                                item
-                                for item in unknown_dimensions
-                                if str(item).startswith(f"{dimension_name}_")
-                            }
+                        explicit_names.update(
+                            item
+                            for item in unknown_dimensions
+                            if str(item).startswith(f"{dimension_name}_")
                         )
+                        safety_resolved.update(explicit_names & set(unknown_dimensions))
         for item in unknown_dimensions:
             name = str(item or "unknown").strip()
             if name and name not in safety_resolved:

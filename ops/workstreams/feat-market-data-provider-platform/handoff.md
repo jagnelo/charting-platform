@@ -23,6 +23,37 @@
   confirms fail-closed behavior, not live transport success. Receipt commit:
   `897b076ec`.
 
+## 2026-09-17 Tiingo provider-scoped reset safety completion
+
+- Tiingo's exact 500-unique-symbol/month and 50-request/hour pools now retain
+  provider-defined reset labels for audit while enforcing provider-scoped
+  rolling 31-day and rolling one-hour application envelopes. The existing
+  native reset/evidence settings remain optional overrides and no generic
+  limiter is introduced.
+- Complete `TIINGO_OPERATION_BYTE_BOUNDS` remains mandatory before routing;
+  the documented EST daily request and monthly bandwidth boundaries remain
+  explicit. The durable distinct-symbol identity ledger continues to claim
+  each provider symbol once per safety window and never discards observations.
+- The focused quota/registry/wiring suite remains green at `161/161`; no
+  Tiingo request was made. The implementation is included in the current
+  working tree and must be covered by the next full Docker gate before its
+  receipt is committed.
+
+## 2026-09-17 FINRA public-byte safety envelope completion
+
+- FINRA's exact public-credential 10 GB allowance now retains the
+  provider-defined monthly reset label for audit while enforcing a conservative
+  provider-scoped rolling 31-day safety envelope. The provider does not publish
+  the reset timezone or byte convention, so the application protects the
+  durable byte ledger without inventing a universal cross-provider limit.
+- The synchronous 3,000,000-byte reservation bound remains explicit and
+  measured response bytes still settle reservations. Async result-byte bounds,
+  ORF entitlement, source terms, and current external baseline evidence remain
+  separate admission gates; no data is dropped or permanently skipped.
+- The focused quota suite must be replayed after this change; the implementation
+  is included in the current working tree and the next Docker gate must cover it
+  before a validation receipt is committed.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,

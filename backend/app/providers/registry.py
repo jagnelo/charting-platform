@@ -994,6 +994,25 @@ def provider_missing_routing_controls(
         return list(dict.fromkeys(missing))
     if name == "tiingo":
         missing: list[str] = []
+        seed_contract = provider_rate_limit_seed(name).get("quota_contract")
+        dimensions = (
+            seed_contract.get("dimensions", [])
+            if isinstance(seed_contract, dict)
+            else []
+        )
+        has_symbol_safety = False
+        has_hourly_safety = False
+        for dimension in dimensions:
+            if not isinstance(dimension, dict):
+                continue
+            if dimension.get("name") == "unique_symbols_per_month":
+                has_symbol_safety = provider_quota_reset_is_admission_safe(
+                    dimension.get("safety_reset")
+                )
+            elif dimension.get("name") == "requests_per_hour":
+                has_hourly_safety = provider_quota_reset_is_admission_safe(
+                    dimension.get("safety_reset")
+                )
         configured_map = getattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {}) or {}
         operations = provider_required_operation_byte_bounds(name)
         if not isinstance(configured_map, dict) or not all(
@@ -1003,22 +1022,34 @@ def provider_missing_routing_controls(
             for operation in operations
         ):
             missing.append("TIINGO_OPERATION_BYTE_BOUNDS")
-        if not provider_quota_reset_is_admission_safe(
-            getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "")
-        ):
-            missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
-        if not provider_quota_reset_is_admission_safe(
-            getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "")
-        ):
-            missing.append("TIINGO_REVIEWED_HOURLY_RESET")
-        if not str(
+        unique_reset = str(
+            getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "") or ""
+        ).strip()
+        hourly_reset = str(
+            getattr(settings, "TIINGO_REVIEWED_HOURLY_RESET", "") or ""
+        ).strip()
+        unique_evidence = str(
             getattr(settings, "TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "") or ""
-        ).strip():
-            missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
-        if not str(
+        ).strip()
+        hourly_evidence = str(
             getattr(settings, "TIINGO_HOURLY_QUOTA_EVIDENCE", "") or ""
-        ).strip():
-            missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
+        ).strip()
+        if not (
+            has_symbol_safety
+            and has_hourly_safety
+            and not unique_reset
+            and not hourly_reset
+            and not unique_evidence
+            and not hourly_evidence
+        ):
+            if not provider_quota_reset_is_admission_safe(unique_reset):
+                missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
+            if not provider_quota_reset_is_admission_safe(hourly_reset):
+                missing.append("TIINGO_REVIEWED_HOURLY_RESET")
+            if not unique_evidence:
+                missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
+            if not hourly_evidence:
+                missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
         return list(dict.fromkeys(missing))
     if name == "marketstack":
         missing: list[str] = []

@@ -1827,18 +1827,28 @@ def routing_safety_preflight() -> dict[str, str]:
             or parsed[operation] <= 0
         ]
         if provider == "tiingo" and not missing:
-            if not provider_quota_reset_is_admission_safe(
-                os.getenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "").strip()
+            unique_reset = os.getenv("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "").strip()
+            hourly_reset = os.getenv("TIINGO_REVIEWED_HOURLY_RESET", "").strip()
+            unique_evidence = os.getenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "").strip()
+            hourly_evidence = os.getenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "").strip()
+            unique_safety = _seed_safety_reset("tiingo", "unique_symbols_per_month")
+            hourly_safety = _seed_safety_reset("tiingo", "requests_per_hour")
+            if not (
+                unique_safety
+                and hourly_safety
+                and not unique_reset
+                and not hourly_reset
+                and not unique_evidence
+                and not hourly_evidence
             ):
-                missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
-            if not provider_quota_reset_is_admission_safe(
-                os.getenv("TIINGO_REVIEWED_HOURLY_RESET", "").strip()
-            ):
-                missing.append("TIINGO_REVIEWED_HOURLY_RESET")
-            if not os.getenv("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE", "").strip():
-                missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
-            if not os.getenv("TIINGO_HOURLY_QUOTA_EVIDENCE", "").strip():
-                missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
+                if not provider_quota_reset_is_admission_safe(unique_reset):
+                    missing.append("TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET")
+                if not provider_quota_reset_is_admission_safe(hourly_reset):
+                    missing.append("TIINGO_REVIEWED_HOURLY_RESET")
+                if not unique_evidence:
+                    missing.append("TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE")
+                if not hourly_evidence:
+                    missing.append("TIINGO_HOURLY_QUOTA_EVIDENCE")
         if provider == "fmp" and not missing:
             daily_reset = os.getenv("FMP_REVIEWED_DAILY_RESET", "").strip()
             daily_evidence = os.getenv("FMP_DAILY_QUOTA_EVIDENCE", "").strip()

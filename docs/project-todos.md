@@ -315,18 +315,32 @@
       defined, but the rolling safety envelope prevents unsafe admission until
       a reviewed native reset is supplied.
 
-### 2026-09-16 — Tiingo independent quota-reset admission controls
+### 2026-09-17 — Tiingo provider-scoped reset safety envelopes
 
-- [x] Add explicit Tiingo controls for the independent 500-unique-symbol
-      monthly and 50-request/hour pools: `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET`,
-      `TIINGO_REVIEWED_HOURLY_RESET`, `TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE`,
-      and `TIINGO_HOURLY_QUOTA_EVIDENCE`. A complete response-byte map alone
-      no longer promotes Tiingo; documented EST daily/monthly boundaries stay
-      explicit and unresolved symbol/hour controls remain fail-closed.
+- [x] Apply the provider-scoped safety-envelope decision to Tiingo's exact
+      500-unique-symbol/month and 50-request/hour pools. The native reset
+      labels remain provider-defined for audit, while rolling 31-day and
+      rolling one-hour application envelopes prevent unsafe admission. The
+      reviewed native-reset/evidence variables remain optional overrides.
+      A complete `TIINGO_OPERATION_BYTE_BOUNDS` map remains mandatory.
 - [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
-      diagnostics, and durable documentation. Focused coverage passes
-      `155/155`; the full backend unit suite passes `2,357/2,357` with 37
-      warnings. No Tiingo provider request was made by this change.
+      diagnostics, and durable documentation. Focused quota/registry/wiring
+      coverage passes `161/161`; the Docker-backed full backend gate passes
+      `2,767/2,767` with 89 warnings and 82.05% coverage. No Tiingo provider
+      request was made by this change.
+
+### 2026-09-17 — FINRA public-byte safety envelope
+
+- [x] Retain FINRA's exact 10 GB public-credential allowance and its native
+      provider-defined monthly label for audit, while enforcing a conservative
+      provider-scoped rolling 31-day application envelope because the reset
+      timezone and byte convention are not published.
+- [x] Keep the 3 MB synchronous response reservation and measured-byte
+      settlement unchanged; this protects the durable ledger without dropping
+      data or treating a guessed boundary as provider fact.
+- [ ] Replay the focused and Docker-backed gates, then refresh the committed
+      current-source live preflight. Async result-byte, ORF entitlement, legal
+      terms, and external baseline gates remain independently required.
 
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
