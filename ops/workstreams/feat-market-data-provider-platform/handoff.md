@@ -64,6 +64,17 @@
   at the same source. The run proves only the anonymous public-IP contract;
   keyed-mode evidence remains absent because no OpenFIGI API key is configured.
 
+## 2026-09-17 exact-current EODHD and Twelve Data usage refresh
+
+- EODHD's native `/user` account-usage probe passed `1/1` at source
+  `bc2db97d257755a0352eb5ff1eaaa051049247c`. Its daily observation remained
+  stale and its official minute limits remain conflicting, so the result is
+  retained as telemetry without promoting either routing pool.
+- Twelve Data's native `/api_usage` probe passed `1/1` at the same source. The
+  provider-reported minute pool reconciled into the durable ledger; the
+  separate Basic daily allowance remains un-inferred because the response does
+  not expose a stable daily cumulative counter.
+
 ## 2026-09-17 lossless, resumable provider-event ingestion
 
 - Replaced the Alpaca corporate-action page bound with a durable cursor

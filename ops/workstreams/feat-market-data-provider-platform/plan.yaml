@@ -745,6 +745,17 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 exact-current EODHD native account-usage validation at source
+      `bc2db97d257755a0352eb5ff1eaaa051049247c` passed `1/1` with one bounded
+      `/user` request. The observation is retained as provider telemetry; its
+      stale usage date and conflicting minute-plan sources correctly prevent
+      daily/minute routing promotion.
+    - >-
+      2026-09-17 exact-current Twelve Data native account-usage validation at
+      source `bc2db97d257755a0352eb5ff1eaaa051049247c` passed `1/1` with one
+      bounded `/api_usage` request. The native minute pool was observed and
+      reconciled; the separate daily pool is not inferred from that response.
+    - >-
       2026-09-17 exact-current Binance live validation at source
       `fec91f02921b318e52b0894b0d7d6dee3f56660c` passed `3/3` with the native
       request-weight snapshot preceding discovery, latest price, and bounded
