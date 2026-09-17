@@ -723,8 +723,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   intents to an owner-scoped additive PostgreSQL transaction. Exact retries
   replay the durable receipt, a missing dispatch can be repaired from that
   receipt, changed content conflicts, and different principals remain isolated.
-  It validates payload/fingerprint identity and stages no Redis message until a
-  later outbox relay; application wiring and relay activation remain gated.
+  It validates payload/fingerprint identity and atomically stages or repairs an
+  owner-derived message in the shared execution outbox; the later relay owns
+  Redis publication while application activation and worker effects remain
+  gated.
 - `postgres_commands.py` maps retry/cancellation commands to owner-scoped,
   transactionally locked PostgreSQL receipts. It resolves the latest injected
   outcome/progress context through the engine-neutral command state machine,

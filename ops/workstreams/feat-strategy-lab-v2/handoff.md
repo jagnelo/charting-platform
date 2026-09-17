@@ -12,6 +12,24 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Atomic submission-to-outbox staging
+
+`postgres_submission.py` now binds each accepted API submission to the shared
+`strategy_lab_v2_execution_outbox` in the same PostgreSQL transaction as its
+owner-scoped receipt and dispatch intent. The outbox request/event identities
+are derived from both owner and request content, preventing cross-owner
+collisions while preserving idempotent retries. Missing dispatch or outbox rows
+are repaired on replay; contradictory durable content fails with a typed
+idempotency conflict. The existing Redis relay can therefore observe API
+submissions as authoritative pending work.
+
+The full declared branch suite passed 729 Strategy Lab v2 tests plus the
+migration structural test, Ruff, MyPy, diff, and workstream validation. The
+exact-worktree backend gate passed 2,377 tests with 83.77% combined coverage
+(required threshold: 75%), and branch-scoped Docker resources were cleaned
+afterward. Worker payload materialization, isolated execution, and stable
+Nautilus activation remain deferred.
+
 ## 2026-09-17 - Application-owned Redis runtime lifecycle
 
 `redis_application.py` now owns the concrete Redis boundary without leaking a
