@@ -3224,6 +3224,18 @@ environment failure is independent of this SDK change and Docker cleanup
 completed. Provider/API/database/worker/Compose integration and stable Nautilus
 execution remain deferred behind the existing ownership and release gates.
 
+## 2026-09-17 - SDK manifest identity canonicalization checkpoint
+
+`StrategySdkManifest` now canonicalizes data dependencies by dependency ID,
+model dependencies by distribution/version/artifact identity, and each data
+dependency's declared fields lexically. Equivalent declarations therefore
+produce the same immutable manifest fingerprint regardless of caller input
+ordering, while duplicate IDs/fields remain rejected. The complete Strategy
+Lab v2 package passed 667 tests with Ruff, MyPy, `git diff --check`, and
+workstream validation green. Worker image/entrypoint, application scheduling,
+migrations, upstream reconciliation, and authoritative Nautilus execution
+remain deferred behind the existing gates.
+
 ## 2026-09-17 - Snapshot-bound event-tape/SDK binding checkpoint
 
 `bind_event_tape()` now verifies that a frozen replay tape belongs to the exact
