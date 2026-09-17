@@ -1276,15 +1276,22 @@ class MetricSet:
     def __post_init__(self) -> None:
         for name in ("metric_set_id", "trial_id", "attempt_id", "definition_version"):
             _nonempty(getattr(self, name), name)
-        if not self.values:
+        values = tuple(self.values)
+        if not values:
             raise ValueError("a metric set must contain values")
-        keys = [(item.name, item.basis) for item in self.values]
+        if any(not isinstance(item, MetricValue) for item in values):
+            raise TypeError("metric set values must contain MetricValue records")
+        keys = [(item.name, item.basis) for item in values]
         if len(set(keys)) != len(keys):
             raise ValueError("metric names must be unique within a basis")
-        if any(item.definition_version != self.definition_version for item in self.values):
+        if any(item.definition_version != self.definition_version for item in values):
             raise ValueError("metric values must match their metric-set definition version")
         _aware(self.created_at, "created_at")
-        object.__setattr__(self, "values", tuple(self.values))
+        object.__setattr__(
+            self,
+            "values",
+            tuple(sorted(values, key=lambda item: (item.name, item.basis.value, item.unit))),
+        )
 
     @property
     def fingerprint(self) -> str:

@@ -843,6 +843,47 @@ def test_scientific_contracts_canonicalize_dependency_and_strategy_order() -> No
         )
 
 
+def test_metric_set_canonicalizes_value_order_and_rejects_malformed_values() -> None:
+    first_value = MetricValue(
+        "total_return",
+        Decimal("0.2"),
+        "fraction",
+        "metrics-v1",
+        MetricBasis.NET,
+        2,
+    )
+    second_value = MetricValue(
+        "total_pnl",
+        Decimal("20"),
+        "currency:USD",
+        "metrics-v1",
+        MetricBasis.NET,
+        2,
+    )
+    first = MetricSet(
+        "metrics-1",
+        "trial-1",
+        "attempt-1",
+        "metrics-v1",
+        (first_value, second_value),
+        END,
+    )
+    second = MetricSet(
+        "metrics-1",
+        "trial-1",
+        "attempt-1",
+        "metrics-v1",
+        (second_value, first_value),
+        END,
+    )
+
+    assert first == second
+    assert first.fingerprint == second.fingerprint
+    assert tuple(item.name for item in first.values) == ("total_pnl", "total_return")
+    with pytest.raises(TypeError, match="MetricValue"):
+        MetricSet("metrics-1", "trial-1", "attempt-1", "metrics-v1", ("bad",), END)  # type: ignore[arg-type]
+
+
 def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
     requirement = _requirement()
     strategy = StrategyVersion("s-1", "v-1", "2.0", SOURCE_DIGEST)
