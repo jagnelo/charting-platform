@@ -745,6 +745,16 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 Nasdaq Trader's application-owned directory ceiling now has
+      an explicit `baseline_mode: local_zero` contract. The first local
+      market-day window is persisted at zero before transport, while all
+      externally metered providers continue to require an observed or
+      reviewed baseline. Focused coordinator/runner coverage passed `83/83`.
+      The current keyless Nasdaq Trader full-directory pagination probe passed
+      `1/1` with exactly two official-file requests and `890,361` response
+      bytes; the durable local baseline and reservation are recorded in the
+      owner-local ledger.
+    - >-
       2026-09-17 exact-current EODHD native account-usage validation at source
       `bc2db97d257755a0352eb5ff1eaaa051049247c` passed `1/1` with one bounded
       `/user` request. The observation is retained as provider telemetry; its

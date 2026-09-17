@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 Nasdaq directory first-window bootstrap
+
+- Nasdaq Trader's complete NMS directory refresh is governed by an explicit
+  application-owned ceiling of two conditional requests per market day (one
+  each for `nasdaqlisted.txt` and `otherlisted.txt`); Nasdaq does not publish a
+  numeric quota for these files.
+- The durable live ledger now records that distinction explicitly with a
+  `baseline_mode: local_zero` contract field. A missing first local window is
+  initialized and persisted at zero only for this deployment-scoped pool; no
+  external provider allowance or generic zero baseline is inferred.
+- Focused coordinator/runner coverage passed `83/83`. The current keyless
+  Nasdaq directory pagination probe then passed `1/1`, making exactly two
+  official-file requests and measuring `890,361` response bytes. The receipt
+  is retained in `validation.jsonl`; later sessions reuse the durable local
+  baseline and cap.
+- No frontend files, ETF provider adapters, credentials, or provider payloads
+  were changed. OTC completeness, SEC materialization policy, target secret
+  stores, deferred providers, and the final shadow phase remain separate gates.
+
 ## 2026-09-17 current-source backend acceptance replay
 
 - The combined backend unit and Docker-backed integration gate passed

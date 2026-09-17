@@ -1205,6 +1205,17 @@ def live_operation_quota_preflight(
                     continue
                 if state.get("status") != "verified":
                     if (
+                        state.get("status") == "initializable"
+                        and str(dimension.get("baseline_mode") or "").strip()
+                        == "local_zero"
+                        and str(dimension.get("scope") or "").strip() == "deployment"
+                    ):
+                        # Nasdaq's directory pool is an application-owned
+                        # safety ceiling, not a provider account allowance.
+                        # Its first local window is persisted at zero by the
+                        # reservation path; no external usage is inferred.
+                        continue
+                    if (
                         state.get("status") == "unknown"
                         and provider in bootstrap_providers
                     ):

@@ -218,6 +218,72 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
     ) is None
 
 
+def test_explicit_local_zero_baseline_is_persisted_for_client_owned_pool(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    policy = _policy(
+        _dimension(
+            "directory_requests_per_market_day",
+            limit=2,
+            window_seconds=86400,
+            scope="deployment",
+            quota_group="directory",
+            baseline_mode="local_zero",
+        ),
+        reset="calendar_day_est",
+        scope="deployment",
+    )
+    now = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+
+    status = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="universe",
+        policy=policy,
+        dimension_name="directory_requests_per_market_day",
+        now=now,
+    )
+    assert status["status"] == "initializable"
+    assert status["initial_baseline"] == "local_zero"
+    assert status["remaining_units"] == 2
+
+    reservation = reserve_provider_quota(
+        provider_name="fixture",
+        capability="universe",
+        operation="discover_universe_page",
+        policy=policy,
+        dimension_units={"directory_requests_per_market_day": 1},
+        now=now,
+    )
+    assert reservation is not None
+    settled = provider_quota_baseline_status(
+        provider_name="fixture",
+        capability="universe",
+        policy=policy,
+        dimension_name="directory_requests_per_market_day",
+        now=now,
+    )
+    assert settled["status"] == "verified"
+    assert settled["baseline"]["source"] == "local_policy"
+
+    settle_provider_quota(
+        reservation,
+        observed_dimension_units={"directory_requests_per_market_day": 1},
+        now=now,
+    )
+    second_reservation = reserve_provider_quota(
+        provider_name="fixture",
+        capability="universe",
+        operation="discover_universe_page",
+        policy=policy,
+        dimension_units={"directory_requests_per_market_day": 1},
+        now=now,
+    )
+    assert second_reservation is not None
+    settle_provider_quota(
+        second_reservation,
+        observed_dimension_units={"directory_requests_per_market_day": 1},
+        now=now,
+    )
+
 def test_zero_cost_dimension_does_not_require_a_starting_baseline(tmp_path, monkeypatch):
     """Unmetered provider introspection may bootstrap the durable coordinator."""
 

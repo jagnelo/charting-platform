@@ -1095,6 +1095,66 @@ def test_live_operation_quota_preflight_requires_each_selected_active_baseline(
     }
 
 
+def test_live_operation_quota_preflight_allows_explicit_local_zero_baseline(
+    monkeypatch,
+):
+    from app import config
+    from app.services import provider_quota_coordinator
+
+    runner = _runner_module()
+    monkeypatch.setattr(
+        runner, "LIVE_REQUIRED_OPERATIONS", {"nasdaq": {"discover_universe_page"}}
+    )
+    monkeypatch.setattr(
+        config,
+        "provider_rate_limit_seed",
+        lambda _provider: {
+            "quota_scope": "deployment",
+            "quota_contract": {
+                "reset": "calendar_day_est",
+                "dimensions": [
+                    {
+                        "name": "directory_requests_per_market_day",
+                        "limit": 2,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "deployment",
+                        "quota_group": "nasdaq_symbol_directory",
+                        "baseline_mode": "local_zero",
+                    }
+                ],
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "_reservation_plan_for_live_probe",
+        lambda *_args, **_kwargs: (
+            "calendar_day_est",
+            {"directory_requests_per_market_day": 2},
+            [
+                {
+                    "dimension": "directory_requests_per_market_day",
+                    "quota_group": "nasdaq_symbol_directory",
+                    "units": 2,
+                    "release_only": False,
+                }
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "provider_quota_baseline_status",
+        lambda **_kwargs: {
+            "status": "initializable",
+            "remaining_units": 2,
+        },
+    )
+
+    assert runner.live_operation_quota_preflight({"nasdaq"}) == {}
+
+
 def test_live_operation_quota_preflight_uses_bounded_response_cost_overrides(
     monkeypatch,
 ):

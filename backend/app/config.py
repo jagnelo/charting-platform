@@ -385,6 +385,11 @@ class Settings(BaseSettings):
                         "quota_group": "nasdaq_symbol_directory",
                         "source": "application_policy:one conditional request per official directory file per market day",
                         "reset": "calendar_day_est",
+                        # This is a client-imposed deployment ceiling, not a
+                        # vendor allowance. The first local window may be
+                        # initialized explicitly at zero because no external
+                        # account can have spent this application-owned pool.
+                        "baseline_mode": "local_zero",
                     }
                 ],
                 "reset": "calendar_day_est",

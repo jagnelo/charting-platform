@@ -657,6 +657,9 @@ def _dimension_specs(
                 "reset": dimension_reset,
                 "rolling": rolling,
                 "limit_units": int(dimension["limit"]),
+                "baseline_mode": str(
+                    dimension.get("baseline_mode") or contract.get("baseline_mode") or ""
+                ).strip(),
                 "units": 1 if release_only else units,
                 "release_only": release_only,
                 "lease_expires_at": lease_expires_at,
@@ -767,6 +770,51 @@ def _baseline_for_reservation(connection, spec: dict[str, Any], now: datetime):
     baseline = connection.execute(_baseline_query(lookup)).mappings().first()
     if baseline is not None:
         return baseline
+
+    if str(spec.get("baseline_mode") or "").strip() == "local_zero":
+        # This branch is driven only by an explicit provider contract field.
+        # It applies to a quota owned by this deployment, where a missing row
+        # cannot hide consumption by another client. Persist the zero as a
+        # normal baseline so restarts and subsequent workers share it.
+        rollover_at = _utc(spec["window_started_at"])
+        idempotency_key = hashlib.sha256(
+            "|".join(
+                [
+                    spec["account_scope"],
+                    spec["quota_group"],
+                    spec["dimension"],
+                    str(spec["window_seconds"]),
+                    spec["reset"],
+                    rollover_at.isoformat(),
+                ]
+            ).encode("utf-8")
+        ).hexdigest()
+        _insert_ignore(
+            connection,
+            _baselines,
+            {
+                "account_scope": spec["account_scope"],
+                "quota_group": spec["quota_group"],
+                "dimension": spec["dimension"],
+                "unit": spec["unit"],
+                "reset": spec["reset"],
+                "window_started_at": rollover_at,
+                "window_seconds": int(spec["window_seconds"]),
+                "rolling": bool(spec["rolling"]),
+                "limit_units": int(spec["limit_units"]),
+                "used_units": 0,
+                "observed_at": _utc(now),
+                "source": "local_policy",
+                "evidence_reference": (
+                    f"application-policy:{spec['provider_name']}:local-zero"
+                ),
+                "source_provider_name": str(spec["provider_name"]),
+                "actor_user_id": None,
+                "idempotency_key": idempotency_key,
+            },
+            ["idempotency_key"],
+        )
+        return connection.execute(_baseline_query(lookup)).mappings().first()
 
     prior_query = select(_baselines).where(
         _baselines.c.account_scope == spec["account_scope"],
@@ -1159,6 +1207,31 @@ def provider_quota_baseline_status(
             else:
                 local_settled = reserved = 0
         if row is None:
+            if str(dimension.get("baseline_mode") or "").strip() == "local_zero":
+                # A local-zero baseline is permitted only for an explicitly
+                # client-owned pool (for example the Nasdaq directory safety
+                # ceiling). It is not a generic missing-baseline fallback:
+                # the contract must opt in and the reservation path persists
+                # the auditable zero before transport.
+                return {
+                    "required": True,
+                    "status": "initializable",
+                    "provider": provider_name,
+                    "account_scope": spec["account_scope"],
+                    "quota_group": spec["quota_group"],
+                    "dimension": dimension_name,
+                    "unit": unit,
+                    "limit_units": spec["limit_units"],
+                    "window_started_at": start.replace(tzinfo=UTC).isoformat(),
+                    "window_seconds": spec["window_seconds"],
+                    "rolling": rolling,
+                    "baseline": None,
+                    "initial_baseline": "local_zero",
+                    "effective_used_units": 0,
+                    "local_settled_since_baseline_units": 0,
+                    "reserved_units": 0,
+                    "remaining_units": spec["limit_units"],
+                }
             return {
                 "required": True,
                 "status": "unknown",
@@ -1989,6 +2062,9 @@ def _reservation_plan_for_live_probe(
                 "reset": dimension_reset,
                 "rolling": rolling,
                 "limit_units": int(dimension["limit"]),
+                "baseline_mode": str(
+                    dimension.get("baseline_mode") or contract.get("baseline_mode") or ""
+                ).strip(),
                 "units": 1 if unit in {"concurrent_requests", "concurrency"} else amount,
                 "release_only": unit in {"concurrent_requests", "concurrency"},
                 "lease_expires_at": _utc(now + timedelta(seconds=40))
