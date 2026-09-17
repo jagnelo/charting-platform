@@ -691,6 +691,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   retries replay and changed series content conflicts. Provider fetching,
   repair, snapshot admission, migrations, and application authorization stay
   outside this registration-neutral adapter.
+- `postgres_capability.py` maps immutable data/engine capability summaries to an
+  owner-scoped additive PostgreSQL read model. Report and binding identities
+  are the stable key; gaps, degradations, executable/ranking flags, and
+  authoritative-publication eligibility are serialized and re-authenticated so
+  altered projections conflict instead of silently replacing preflight
+  evidence. Capability calculation, provider entitlement, engine registration,
+  migrations, and API authorization remain outside the adapter.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

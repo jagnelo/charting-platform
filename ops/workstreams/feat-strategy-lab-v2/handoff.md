@@ -11,6 +11,21 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable capability-summary checkpoint
+
+`postgres_capability.py` now maps immutable data/engine capability summaries to
+an owner-scoped additive PostgreSQL read model keyed by report and binding
+identity. Gaps, degradations, executable/ranking flags, and authoritative
+publication eligibility are serialized and re-authenticated; exact retries
+replay while a changed projection for the same preflight identities conflicts.
+Capability calculation, provider entitlements, engine registration, shared
+migrations, authorization, and API wiring remain outside this adapter.
+
+The focused capability-adapter suite passed 4 tests. Package/static and
+combined coverage evidence will be recorded after this boundary is committed
+and rerun; upstream reconciliation and stable Nautilus execution remain open
+gates.
+
 ## 2026-09-17 - Durable coverage-attestation checkpoint
 
 `postgres_coverage.py` now maps provider-supplied coverage attestations to an

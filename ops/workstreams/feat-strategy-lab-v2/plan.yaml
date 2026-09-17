@@ -310,11 +310,12 @@ remaining_gaps:
   - PostgreSQL search-state persistence now stores immutable experiment queues and candidate checkpoints with owner-scoped locks, candidate retry/terminal transitions, idempotent cancellation, and authenticated compare-and-set fingerprints; search dispatch, migrations, and application/worker wiring remain open.
   - PostgreSQL legacy-import persistence now stores owner-scoped digest-only originals and exact compatibility assessments with authenticated record fingerprints; supported and unsupported imports replay idempotently while changed content conflicts, and payload-byte access, migrations, authorization, and application wiring remain open.
   - PostgreSQL coverage-attestation persistence now stores owner-scoped provider evidence claims with authenticated series/attestation fingerprints, deterministic listing, exact registration replay, and changed-content conflicts; provider fetch/repair, snapshot admission, migrations, and application wiring remain open.
+  - PostgreSQL capability-summary persistence now stores owner-scoped report/binding projections with authenticated summary fingerprints, explicit gap/degradation evidence, deterministic listing, and changed-projection conflicts; capability calculation, entitlement/engine registration, migrations, and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
     - combined-coverage-and-branch-validation
   total: 18
-  current_phase: durable-coverage-attestation-state-staging-ready-for-human-review
+  current_phase: durable-capability-summary-state-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary
