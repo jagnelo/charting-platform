@@ -2144,7 +2144,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
     assert {
         "unique_symbols_reset_anchor",
-        "requests_per_hour_reset_boundary",
+        "requests_per_hour_reset_boundary_model",
     } == set(tiingo["unknown_dimensions"])
 
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
@@ -2865,7 +2865,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["dimensions"][0]["reset"] == "provider_defined"
     assert tiingo["unknown_dimensions"] == [
         "unique_symbols_reset_anchor",
-        "requests_per_hour_reset_boundary",
+        "requests_per_hour_reset_boundary_model",
     ]
     assert tiingo["dimensions"][2]["reset"] == "calendar_day_est"
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"

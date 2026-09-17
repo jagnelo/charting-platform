@@ -202,14 +202,18 @@ remaining_gaps:
     warnings at 70.79% coverage.
   - >-
     Tiingo's 500-unique-symbol monthly and 50-request/hour pools now have
-    independent provider-specific admission controls. A complete
+    independent provider-specific admission controls. Tiingo's current
+    general documentation confirms that hourly requests reset every hour, but
+    it does not identify whether that boundary is fixed/calendar or rolling;
+    the 500-symbol monthly anchor is also unspecified. A complete
     `TIINGO_OPERATION_BYTE_BOUNDS` map is insufficient: routing also requires
     admission-safe `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET` and
     `TIINGO_REVIEWED_HOURLY_RESET` values plus independent current evidence
     (`TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE` and
     `TIINGO_HOURLY_QUOTA_EVIDENCE`). The already documented EST daily and
     monthly bandwidth boundaries remain explicit; blank or invalid controls
-    preserve the unresolved symbol/hour contract and fail closed. Controls are
+    preserve the unresolved symbol/hour contract and fail closed; no rolling
+    31-day symbol or hourly window is inferred. Controls are
     wired through local/RPi Compose and GitHub live CI. Focused coverage passes
     155/155 and the complete backend unit gate passes 2,357/2,357 with 37
     warnings at 70.77% coverage.

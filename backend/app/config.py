@@ -805,7 +805,12 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "api_key",
                         "quota_group": "api_key",
-                        "source": "https://www.tiingo.com/about/pricing",
+                        "source": "https://www.tiingo.com/documentation/general",
+                        # Tiingo documents that the hourly pool resets every
+                        # hour, but does not identify whether the boundary is
+                        # fixed/calendar or rolling. Keep the boundary
+                        # provider-defined until that admission detail is
+                        # explicitly reviewed; no rolling window is inferred.
                         "reset": "provider_defined",
                     },
                     {
@@ -823,7 +828,7 @@ class Settings(BaseSettings):
                 ],
                 "unknown_dimensions": [
                     "unique_symbols_reset_anchor",
-                    "requests_per_hour_reset_boundary",
+                    "requests_per_hour_reset_boundary_model",
                 ],
                 "reset": "provider_defined",
                 "untracked_constraints": [
@@ -3249,9 +3254,12 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             )
         return seed
     if provider_name == "tiingo":
-        # Tiingo publishes the distinct-symbol and hourly pools but not their
-        # reset anchors. Promote only when those independent boundaries and
-        # the response-byte map have all been explicitly reviewed.
+        # Tiingo publishes the distinct-symbol pool without a monthly anchor
+        # and says the hourly pool resets every hour, but does not identify the
+        # hourly boundary model (fixed/calendar versus rolling). Promote only
+        # when those independent boundaries and the response-byte map have all
+        # been explicitly reviewed; never infer a rolling window from the
+        # phrase "every hour".
         unique_reset = str(
             getattr(settings, "TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET", "") or ""
         ).strip()

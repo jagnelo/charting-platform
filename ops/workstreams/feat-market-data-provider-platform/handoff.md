@@ -5253,3 +5253,18 @@ the authoritative record for this replay; it made zero provider calls.
   exact-current-source bounded live account-usage replay at `cfe08fde0` also
   passed `1/1` with one request and 304 response bytes. The redacted receipt is
   retained in `validation.jsonl`; no secret or provider payload was persisted.
+
+## 2026-09-17 Tiingo reset-contract clarification
+
+- The current official Tiingo general API documentation states that hourly
+  requests reset every hour, daily requests reset at midnight Eastern time,
+  and monthly bandwidth resets on the first of each month at midnight Eastern
+  time. The repository now cites that source for the hourly dimension instead
+  of describing the hourly reset as entirely undocumented.
+- The hourly boundary model (fixed/calendar versus rolling) and the 500
+  unique-symbol monthly anchor remain unspecified by Tiingo. The contract
+  therefore remains fail-closed and requires explicit
+  `TIINGO_REVIEWED_HOURLY_RESET`, `TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET`, and
+  evidence controls; no rolling hourly or 31-day symbol window is inferred.
+- The focused quota/registry suite passed `134/134`. No provider request was
+  made for this documentation/contract correction.
