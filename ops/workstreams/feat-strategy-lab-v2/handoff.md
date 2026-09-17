@@ -161,9 +161,12 @@ unchanged.
 
 The focused runtime/protocol suite passes 18 tests and the complete Strategy
 Lab v2 package passes 692 tests with Ruff and MyPy green. The Docker-backed
-combined coverage gate, worker image/entrypoint, application scheduling,
-migrations, upstream reconciliation, and authoritative Nautilus execution
-remain deferred.
+combined coverage gate passes 2,339 tests with 83.71% total coverage (required
+threshold: 75%) when run directly from this exact worktree; the first Makefile
+wrapper attempt incorrectly collected the provider-platform checkout and is
+recorded as a non-authoritative cross-worktree failure. Worker image/entrypoint,
+application scheduling, migrations, upstream reconciliation, and authoritative
+Nautilus execution remain deferred.
 
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
