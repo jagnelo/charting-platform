@@ -39,6 +39,8 @@ from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
 from app.strategy_lab_v2.worker_service import (
     WorkerCompletionWriter,
     WorkerHandoffMaterializer,
+    WorkerLeaseHeartbeatWriter,
+    WorkerServiceCallbacks,
 )
 
 
@@ -129,6 +131,8 @@ class WorkerEntrypointConfig:
     block_ms: int = 0
     interval_seconds: float = 1.0
     process_timeout_seconds: float = 300.0
+    heartbeat_interval_seconds: float = 5.0
+    heartbeat_extension_seconds: float = 30.0
     docker_binary: str = "docker"
 
     def __post_init__(self) -> None:
@@ -152,6 +156,8 @@ class WorkerEntrypointConfig:
         _non_negative_int(self.block_ms, "block_ms")
         _positive_float(self.interval_seconds, "interval_seconds")
         _positive_float(self.process_timeout_seconds, "process_timeout_seconds")
+        _positive_float(self.heartbeat_interval_seconds, "heartbeat_interval_seconds")
+        _positive_float(self.heartbeat_extension_seconds, "heartbeat_extension_seconds")
 
     @classmethod
     def from_env(cls, environment: Mapping[str, str] | None = None) -> WorkerEntrypointConfig:
@@ -194,6 +200,12 @@ class WorkerEntrypointConfig:
             interval_seconds=_env_float(env, "STRATEGY_LAB_V2_INTERVAL_SECONDS", 1.0),
             process_timeout_seconds=_env_float(
                 env, "STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS", 300.0
+            ),
+            heartbeat_interval_seconds=_env_float(
+                env, "STRATEGY_LAB_V2_HEARTBEAT_INTERVAL_SECONDS", 5.0
+            ),
+            heartbeat_extension_seconds=_env_float(
+                env, "STRATEGY_LAB_V2_HEARTBEAT_EXTENSION_SECONDS", 30.0
             ),
             docker_binary=env.get("STRATEGY_LAB_V2_DOCKER_BINARY", "docker"),
         )
@@ -249,7 +261,9 @@ class WorkerEntrypointStartupError(RuntimeError):
 
 WorkerCallbackFactory = Callable[
     [PostgresStrategyLabV2Persistence, Path],
-    tuple[WorkerHandoffMaterializer, WorkerCompletionWriter],
+    WorkerServiceCallbacks
+    | tuple[WorkerHandoffMaterializer, WorkerCompletionWriter]
+    | tuple[WorkerHandoffMaterializer, WorkerCompletionWriter, WorkerLeaseHeartbeatWriter],
 ]
 RuntimeFactory = Callable[..., Awaitable[Any]]
 PersistenceFactory = Callable[[Callable[[], Any]], PostgresStrategyLabV2Persistence]
@@ -275,7 +289,8 @@ async def run_strategy_lab_v2_worker(
     Startup migrations complete before Redis is opened.  The persistence bundle
     and callback factory are created once, while the runtime is always closed in
     ``finally``.  Callback factories may be synchronous or return an awaitable,
-    but must return exactly ``(materializer, completion_writer)``.
+    but must return a ``WorkerServiceCallbacks`` value or a two/three-item
+    ``(materializer, completion_writer[, heartbeat_writer])`` tuple.
     """
 
     if not isinstance(config, WorkerEntrypointConfig):
@@ -321,17 +336,22 @@ async def run_strategy_lab_v2_worker(
     callbacks = factory(persistence, config.artifact_root)
     if inspect.isawaitable(callbacks):
         callbacks = await callbacks
-    if (
-        not isinstance(callbacks, tuple)
-        or len(callbacks) != 2
-        or not callable(callbacks[0])
-        or not callable(callbacks[1])
-    ):
-        raise TypeError(
-            "callback_factory must return (materializer, completion_writer) callables"
+    if isinstance(callbacks, WorkerServiceCallbacks):
+        callback_set = callbacks
+    elif isinstance(callbacks, tuple) and len(callbacks) in {2, 3}:
+        if not callable(callbacks[0]) or not callable(callbacks[1]):
+            raise TypeError("callback_factory tuple must contain callables")
+        if len(callbacks) == 3 and not callable(callbacks[2]):
+            raise TypeError("callback_factory heartbeat writer must be callable")
+        callback_set = WorkerServiceCallbacks(
+            cast(WorkerHandoffMaterializer, callbacks[0]),
+            cast(WorkerCompletionWriter, callbacks[1]),
+            cast(WorkerLeaseHeartbeatWriter, callbacks[2]) if len(callbacks) == 3 else None,
         )
-    materializer = cast(WorkerHandoffMaterializer, callbacks[0])
-    completion_writer = cast(WorkerCompletionWriter, callbacks[1])
+    else:
+        raise TypeError(
+            "callback_factory must return WorkerServiceCallbacks or a two/three-item tuple"
+        )
 
     runtime = await runtime_factory(config.redis_url, namespace=config.redis_namespace)
     closed = False
@@ -347,14 +367,17 @@ async def run_strategy_lab_v2_worker(
         service = runtime.worker_service(
             worker,
             payload_loader=persistence.submissions,
-            materializer=materializer,
-            completion_writer=completion_writer,
+            materializer=callback_set.materializer,
+            completion_writer=callback_set.completion_writer,
             interval_seconds=config.interval_seconds,
             sleep=sleep,
             process_executor=process_executor
             or SerialWorkerProcessExecutor(
                 timeout_seconds=config.process_timeout_seconds,
             ),
+            heartbeat_writer=callback_set.heartbeat_writer,
+            heartbeat_interval_seconds=config.heartbeat_interval_seconds,
+            heartbeat_extension_seconds=config.heartbeat_extension_seconds,
         )
         if not callable(getattr(service, "run", None)):
             raise TypeError("runtime.worker_service() must return a worker service")

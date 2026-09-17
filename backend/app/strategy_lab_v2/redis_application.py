@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from importlib import import_module
 from typing import Any
 
@@ -19,6 +21,7 @@ from app.strategy_lab_v2.worker_service import (
     DedicatedStrategyWorkerService,
     WorkerCompletionWriter,
     WorkerHandoffMaterializer,
+    WorkerLeaseHeartbeatWriter,
 )
 
 
@@ -130,6 +133,11 @@ class RedisDispatchRuntime:
         interval_seconds: float = 1.0,
         sleep: Callable[[float], Awaitable[None]],
         process_executor: SerialWorkerProcessExecutor | None = None,
+        heartbeat_writer: WorkerLeaseHeartbeatWriter | None = None,
+        heartbeat_interval_seconds: float = 5.0,
+        heartbeat_extension_seconds: float = 30.0,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> DedicatedStrategyWorkerService:
         """Compose the dedicated Redis-to-process worker service."""
 
@@ -144,6 +152,11 @@ class RedisDispatchRuntime:
             materializer,
             completion_writer,
             process_executor=process_executor,
+            heartbeat_writer=heartbeat_writer,
+            heartbeat_interval_seconds=heartbeat_interval_seconds,
+            heartbeat_extension_seconds=heartbeat_extension_seconds,
+            clock=clock,
+            heartbeat_sleep=heartbeat_sleep,
         )
 
     async def aclose(self) -> None:
