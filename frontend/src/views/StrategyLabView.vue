@@ -1001,14 +1001,15 @@
                     type="button"
                     class="multi-select-trigger"
                     :class="{ 'form-select--invalid': showRunSubsetValidation }"
-                    aria-controls="strategy-run-subset-menu"
+                    aria-label="Run subset symbols"
+                    :aria-controls="runSubsetMenuId"
                     :aria-expanded="runSubsetMenuOpen ? 'true' : 'false'"
                     @click="runSubsetMenuOpen = !runSubsetMenuOpen"
                   >
                     <span>{{ runSubsetSummary }}</span>
                     <span class="multi-select-caret">{{ runSubsetMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="runSubsetMenuOpen" id="strategy-run-subset-menu" class="multi-select-menu">
+                  <div v-if="runSubsetMenuOpen" :id="runSubsetMenuId" class="multi-select-menu" role="group" aria-label="Run subset symbols">
                     <label
                       v-for="symbol in availableRunSubsetSymbols"
                       :key="symbol"
@@ -1017,6 +1018,7 @@
                       <input
                         :checked="runDraft.overrideSymbols.includes(symbol)"
                         type="checkbox"
+                        :aria-label="`Include ${symbol} in run subset`"
                         @change="toggleRunSubsetSymbol(symbol, checkboxValue($event))"
                       />
                       <span>{{ symbol }}</span>
@@ -1624,7 +1626,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, useId, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ResizeHandle from '@/components/common/ResizeHandle.vue'
@@ -1739,6 +1741,8 @@ function currentVersionNumber(definition: StrategyDefinition) {
 }
 
 const strategyLab = useStrategyLabStore()
+const strategyInstanceId = useId()
+const runSubsetMenuId = `${strategyInstanceId}-run-subset-menu`
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
 const availableBaskets = ref<Basket[]>([])
