@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined">
+  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined" @mousemove="releaseLinkedCursor">
     <div class="ratio-chart__legend">
       <strong>{{ ratioLabels }}</strong>
       <template v-if="editableBenchmarks">
@@ -50,6 +50,10 @@ const asOfDraft = ref(props.asOf ? props.asOf.slice(0, 10) : '')
 let chart: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
 let applyingLinkedCursor = false
+// uPlot can emit a late initial/latest-bar cursor callback after the immediate
+// applyingLinkedCursor guard has been released. Keep linked occurrences
+// programmatic until the user moves over the ratio chart.
+let linkedCursorProgrammatic = Boolean(props.linkedTimestamp)
 let lastPublishedCursor: string | null = null
 let loadGeneration = 0
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
@@ -219,7 +223,7 @@ function draw() {
     series: [{}, ...series.value.map((item, index) => ({ label: `${props.symbol}/${item.benchmark}`, stroke: colors[index % colors.length], width: 1.5 }))],
     hooks: {
       setCursor: [(u) => {
-        if (applyingLinkedCursor || u.cursor.idx == null) return
+        if (applyingLinkedCursor || linkedCursorProgrammatic || u.cursor.idx == null) return
         const xValues = u.data[0] as number[] | undefined
         const seconds = xValues?.[u.cursor.idx]
         if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return
@@ -250,7 +254,14 @@ function applyLinkedTimestamp(timestamp: string | null) {
   applyingLinkedCursor = false
 }
 
-watch(() => props.linkedTimestamp, applyLinkedTimestamp)
+function releaseLinkedCursor() {
+  linkedCursorProgrammatic = false
+}
+
+watch(() => props.linkedTimestamp, (timestamp) => {
+  linkedCursorProgrammatic = Boolean(timestamp)
+  applyLinkedTimestamp(timestamp)
+})
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
   resizeObserver = new ResizeObserver(() => draw())
