@@ -60,10 +60,10 @@
           role="combobox"
           aria-autocomplete="list"
           :aria-expanded="searchPanelVisible"
-          aria-controls="workstation-symbol-results"
-          :aria-activedescendant="searchIndex >= 0 ? `workstation-symbol-option-${searchIndex}` : undefined"
+          :aria-controls="symbolResultsId"
+          :aria-activedescendant="searchIndex >= 0 ? symbolOptionId(searchIndex) : undefined"
           :aria-busy="searchLoading ? 'true' : 'false'"
-          aria-describedby="workstation-symbol-search-state"
+          :aria-describedby="symbolSearchStateId"
           @input="handleSymbolInput"
           @blur="closeSymbolSearch"
           @keydown.stop="handleSymbolInputKeydown"
@@ -86,11 +86,11 @@
             <strong>{{ item.symbol }}</strong><span>{{ item.name || 'Viewed instrument' }}</span>
           </button>
         </div>
-        <div v-if="searchPanelVisible" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
+        <div v-if="searchPanelVisible" :id="symbolResultsId" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
           <button
             v-for="(result, index) in searchResults"
             :key="`${result.symbol}:${result.exchange}`"
-            :id="`workstation-symbol-option-${index}`"
+            :id="symbolOptionId(index)"
             type="button"
             role="option"
             :aria-selected="index === searchIndex"
@@ -100,7 +100,7 @@
           <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
           <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
         </div>
-        <span id="workstation-symbol-search-state" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
+        <span :id="symbolSearchStateId" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
       </div>
       <label class="workstation__timeframe">TF
         <select :value="workspaceStore.linkedTimeframe" aria-label="Linked timeframe" @change="setLinkedTimeframe(($event.target as HTMLSelectElement).value)">
@@ -162,7 +162,7 @@
     <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
-    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel" aria-describedby="workstation-popout-context">
+    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel" :aria-describedby="popoutContextId">
       <WorkstationToolContent
         v-if="popoutTool"
         :tool="popoutTool"
@@ -192,7 +192,7 @@
         @close="closePopoutTool"
       />
       <div v-else class="workstation__missing-tool" role="alert" aria-live="assertive">The requested tool is unavailable. It remains in the source workspace.</div>
-      <span id="workstation-popout-context" class="sr-only">This is a browser-managed pop-out window. Placement across monitors and window controls are controlled by the browser and operating system.</span>
+      <span :id="popoutContextId" class="sr-only">This is a browser-managed pop-out window. Placement across monitors and window controls are controlled by the browser and operating system.</span>
     </main>
     <main v-else-if="!isPopout && !goldenLayoutConfig" class="workstation__layout-state" role="status">
       <span v-if="workspaceStore.loading">Loading saved workstation…</span>
@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, type VNode } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -244,6 +244,11 @@ const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const recentStore = useRecentInstrumentsStore()
 const queryClient = useQueryClient()
+const workstationInstanceId = useId()
+const symbolResultsId = `${workstationInstanceId}-symbol-results`
+const symbolSearchStateId = `${workstationInstanceId}-symbol-search-state`
+const symbolOptionId = (index: number) => `${workstationInstanceId}-symbol-option-${index}`
+const popoutContextId = `${workstationInstanceId}-popout-context`
 const symbolInput = ref<HTMLInputElement | null>(null)
 const workspaceMenuTrigger = ref<HTMLButtonElement | null>(null)
 const workspaceMenuRoot = ref<HTMLElement | null>(null)
