@@ -24,6 +24,10 @@
   response payload, frontend file, or ETF-provider adapter changed.
 - Repository workflow/deployment contracts remain green: `46` workflow tests
   passed, and the backend/e2e/RPi Compose configuration assertions passed.
+- The final committed-checkout backend unit gate passed `2,364/2,364` with
+  37 warnings and 70.82% coverage. This verifies repository-controlled code;
+  it does not close external quota, legal/source, target-secret, Docker, or
+  shadow-run gates.
 
 ## 2026-09-17 EODHD reviewed-entitlement routing correction
 

@@ -22,6 +22,8 @@
       provider payloads were persisted.
 - [x] Re-run repository workflow and deployment contracts: workflow tests passed
       `46/46`, and backend/e2e/RPi Compose configuration assertions passed.
+- [x] Replay the authoritative committed-checkout backend unit gate: `2,364`
+      passed, 37 warnings, 70.82% coverage.
 
 ### 2026-09-17 — EODHD reviewed-entitlement routing correction
 
