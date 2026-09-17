@@ -3300,8 +3300,11 @@ signals, not authorization. Route ownership and persistence integration remain
 deferred behind the shared-path gates.
 
 The focused API contract suite passed 6 tests with Ruff and MyPy green. The
-exact implementation tip still requires the branch-wide validation checkpoint
-below before this ops record is finalized.
+exact pushed tip passed the branch gate: 687 package tests, Ruff, MyPy across
+237 source files, diff check, and workstream validation. The same tip passed
+the Docker-backed combined coverage gate: 2,334 tests with 83.69% total
+coverage, above the required 75% threshold; setup and cleanup completed
+successfully.
 
 ## 2026-09-17 - Combined backend coverage revalidation
 
