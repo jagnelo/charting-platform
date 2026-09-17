@@ -213,7 +213,7 @@ remaining_gaps:
     or invalid byte/evidence controls preserve the unresolved contract and
     fail closed; no generic limit is inferred. The controls are wired through local/RPi
     Compose and GitHub live CI. Focused quota/registry/wiring coverage passes
-    161/161 and the Docker-backed complete backend gate passes 2,767/2,767
+    216/216 and the Docker-backed complete backend gate passes 2,767/2,767
     with 89 warnings at 82.05% coverage.
   - >-
     2026-09-17 FMP source correction: the bandwidth seed now cites the

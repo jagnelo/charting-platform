@@ -325,7 +325,7 @@
       A complete `TIINGO_OPERATION_BYTE_BOUNDS` map remains mandatory.
 - [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
       diagnostics, and durable documentation. Focused quota/registry/wiring
-      coverage passes `161/161`; the Docker-backed full backend gate passes
+      coverage passes `216/216`; the Docker-backed full backend gate passes
       `2,767/2,767` with 89 warnings and 82.05% coverage. No Tiingo provider
       request was made by this change.
 

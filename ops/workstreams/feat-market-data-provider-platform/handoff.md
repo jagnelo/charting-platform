@@ -34,7 +34,7 @@
   the documented EST daily request and monthly bandwidth boundaries remain
   explicit. The durable distinct-symbol identity ledger continues to claim
   each provider symbol once per safety window and never discards observations.
-- The focused quota/registry/wiring suite remains green at `161/161`; no
+- The focused quota/registry/wiring suite remains green at `216/216`; no
   Tiingo request was made. The implementation is included in the current
   working tree and must be covered by the next full Docker gate before its
   receipt is committed.
