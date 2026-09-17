@@ -104,6 +104,22 @@ Docker-backed combined coverage gate recorded below after this exact-tip
 checkpoint. Worker image/entrypoint, application scheduling, migrations,
 upstream reconciliation, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Manifest-bound runtime result provenance
+
+`StrategyInvocationResult` now carries the SDK manifest fingerprint used during
+source loading, context admission, and intent validation. The single and batch
+JSON result envelopes preserve and validate this identity, so a host adapter can
+bind returned intents to the exact immutable strategy contract rather than
+trusting source/context digests alone. Existing single-event and batch callers
+remain compatible through the updated typed protocol constructors.
+
+The full Strategy Lab package gate passes 665 tests with Ruff, MyPy,
+`git diff --check`, and workstream validation green. The Docker-backed combined
+coverage gate passes 2,312 tests with 83.62% total coverage (required threshold:
+75%); setup and cleanup completed successfully. Worker image/entrypoint,
+application scheduling, migrations, upstream reconciliation, and authoritative
+Nautilus execution remain deferred.
+
 ## 2026-09-17 - Runtime wire source-binding hardening
 
 Single and batch invocation serializers and decoders now verify that the source

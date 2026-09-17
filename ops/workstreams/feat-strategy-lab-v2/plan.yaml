@@ -343,7 +343,8 @@ progress:
     - strategy-runtime-batch-cli
     - deterministic-runtime-wire-identities
     - runtime-wire-source-binding
+    - manifest-bound-runtime-results
   total: 18
-  current_phase: runtime-wire-source-binding-staging-ready-for-human-review
+  current_phase: manifest-bound-runtime-results-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open
   next_action: reconcile provider-platform, ETF, and TC2000 shared contracts after their branches reach staging, then register the router and add additive persistence/API/worker integration without changing the engine-neutral boundary

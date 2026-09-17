@@ -846,6 +846,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   exception-type-only digest; exception text and process-specific repr values
   never affect the published result. The dedicated worker image/entrypoint and
   Docker activation are still separate integration gates.
+- Every invocation result also carries the immutable SDK manifest fingerprint
+  used for validation, allowing a host adapter to reject a result produced
+  under a different strategy contract even when source/context identities are
+  otherwise reusable.
 - Runtime request serialization/deserialization now rejects any source bytes
   whose content digest differs from the immutable SDK manifest. This keeps
   malformed source/manifest pairs out of mounted bundles instead of deferring
