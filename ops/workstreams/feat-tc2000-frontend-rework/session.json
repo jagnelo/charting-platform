@@ -117,7 +117,7 @@
   "last_human_progress_update": "2026-09-17T14:24:03+01:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Preserve the Strategy toggle-state and run-disclosure semantics, VirtualWatchlist membership disclosure, IndicatorPanel section keyboard semantics, Strategy section disclosure, Instrument Report description disclosure, Strategy run-history disclosure, current-revision, selected-study version, saved-study reopen, dense-range, ChartPanel link-menu, and LayoutPicker disclosure exact-gate receipts; select the next bounded TC-owned R1/R5/R6 item and keep provider and ETF consumer work deferred until both branches reach staging.",
-  "plan_hash": "80d25d7d49c12a10730ab69e0e6dcb030bdbf4ef0c933bc518021881ea559890",
+  "plan_hash": "fd38ec7a23e9dcf4ffd6c21ad2e2baf2580aacef5c7ef1886fc4974d64d251c1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

@@ -23,8 +23,8 @@ current_blocker: >-
   No active TC-owned product or validation blocker: the definitive exact gate
   at product tip 6df819b8a3b57c4a17ae208c6b77bf8d54254176 passed the repository
   stages, authenticated functional browser flows, and all four visual projects
-  with clean branch-scoped teardown. The ChartPanel symbol-link disclosure
-  slice preserves layout actions, geometry, and now exposes explicit disclosure
+  with clean branch-scoped teardown. The LayoutPicker disclosure slice
+  preserves layout actions, geometry, and now exposes explicit disclosure
   semantics for custom-grid/profile popovers and keyboard-activatable grid
   choices. Provider-platform and ETF consumer integration remains a
   sequencing gate until both upstream branches reach staging; that does not
