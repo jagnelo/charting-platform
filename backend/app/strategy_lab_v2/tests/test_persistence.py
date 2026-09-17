@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Any, cast
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.artifact_application import LocalArtifactRetentionService
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
@@ -13,7 +15,9 @@ from app.strategy_lab_v2.postgres_submission import PostgresSubmissionDispatchAd
 from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
 
 
-def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies() -> None:
+def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
+    tmp_path: Path,
+) -> None:
     bundle = PostgresStrategyLabV2Persistence.build(lambda: object())
 
     assert isinstance(bundle.aggregate_store, PostgresAggregateStore)
@@ -24,6 +28,9 @@ def test_persistence_bundle_shares_store_and_wires_all_initial_api_dependencies(
     assert isinstance(bundle.commands, PostgresCommandAdapter)
     assert isinstance(bundle.submissions, PostgresSubmissionDispatchAdapter)
     assert isinstance(bundle.artifact_commits, PostgresArtifactCommitAdapter)
+    assert isinstance(
+        bundle.artifact_retention_service(tmp_path / "artifacts"), LocalArtifactRetentionService
+    )
     assert set(bundle.resources._projections) == {
         ApiResourceType.ATTEMPT,
         ApiResourceType.METRIC_SET,

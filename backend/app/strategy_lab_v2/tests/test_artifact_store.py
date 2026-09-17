@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.strategy_lab_v2.artifact_retention import (
+    ArtifactRetentionState,
+    resolve_artifact_retention,
+)
 from app.strategy_lab_v2.artifact_store import (
+    ArtifactByteDecision,
     ArtifactStoreCorruptionError,
     ArtifactStoreDecision,
     LocalArtifactStore,
 )
 from app.strategy_lab_v2.artifacts import artifact_content_digest
-from app.strategy_lab_v2.contracts import ArtifactManifest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
+
+NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 def _manifest(payload: bytes) -> ArtifactManifest:
@@ -103,3 +111,56 @@ def test_invalid_roots_and_keys_fail_closed(tmp_path) -> None:
 def test_store_root_is_resolved_and_stable(tmp_path) -> None:
     store = LocalArtifactStore(os.fspath(tmp_path / "nested"))
     assert store.root.is_absolute()
+
+
+def test_collect_deletes_only_when_retention_is_explicitly_eligible(tmp_path) -> None:
+    payload = b"tiered artifact"
+    manifest = ArtifactManifest(
+        artifact_content_digest(payload),
+        len(payload),
+        "application/octet-stream",
+        "v1",
+        artifact_content_digest(payload),
+        retention_class=ArtifactRetention.TIERED_RESULT,
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    eligible_at = NOW + timedelta(days=1)
+    state = ArtifactRetentionState.from_manifest(manifest, retention_eligible_at=eligible_at)
+
+    retained = store.collect(
+        manifest,
+        resolve_artifact_retention(state, observed_at=NOW),
+    )
+    assert retained.decision is ArtifactByteDecision.RETAINED
+    assert store.read(manifest.storage_key) == payload
+
+    deleted = store.collect(
+        manifest,
+        resolve_artifact_retention(state, observed_at=eligible_at),
+    )
+    assert deleted.decision is ArtifactByteDecision.DELETED
+    assert deleted.byte_length == len(payload)
+    assert not store.path_for(manifest.storage_key).exists()
+    assert store.collect(
+        manifest,
+        resolve_artifact_retention(state, observed_at=eligible_at),
+    ).decision is ArtifactByteDecision.NOT_FOUND
+
+
+def test_collect_preserves_pinned_bytes_and_rejects_foreign_retention(tmp_path) -> None:
+    payload = b"pinned artifact"
+    manifest = _manifest(payload)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    state = ArtifactRetentionState.from_manifest(manifest)
+    retained = store.collect(
+        manifest,
+        resolve_artifact_retention(state, observed_at=NOW),
+    )
+    assert retained.decision is ArtifactByteDecision.RETAINED
+    assert store.read(manifest.storage_key) == payload
+
+    other_manifest = _manifest(b"other")
+    with pytest.raises(ValueError, match="different manifest"):
+        store.collect(other_manifest, resolve_artifact_retention(state, observed_at=NOW))

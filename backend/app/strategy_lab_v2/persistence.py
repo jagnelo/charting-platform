@@ -13,7 +13,10 @@ from app.strategy_lab_v2.api_resources import (
     ResourceDocument,
     ResourceIdentifier,
 )
-from app.strategy_lab_v2.artifact_application import LocalArtifactPublicationService
+from app.strategy_lab_v2.artifact_application import (
+    LocalArtifactPublicationService,
+    LocalArtifactRetentionService,
+)
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.outbox_application import OutboxRelayService
@@ -243,6 +246,16 @@ class PostgresStrategyLabV2Persistence:
         return LocalArtifactPublicationService(
             LocalArtifactStore(root),
             self.artifact_commits,
+        )
+
+    def artifact_retention_service(
+        self, root: str | os.PathLike[str]
+    ) -> LocalArtifactRetentionService:
+        """Create a retention-aware byte collector for an explicit artifact root."""
+
+        return LocalArtifactRetentionService(
+            LocalArtifactStore(root),
+            self.artifact_retention,
         )
 
     def outbox_relay(self, transport: RedisDispatchTransport) -> OutboxRelayService:

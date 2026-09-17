@@ -22,13 +22,17 @@ from app.strategy_lab_v2.artifact_commit import (
     ArtifactCommitResolution,
 )
 from app.strategy_lab_v2.artifact_publication import plan_artifact_publication
+from app.strategy_lab_v2.artifact_retention import ArtifactRetentionResolution
 from app.strategy_lab_v2.artifact_store import (
+    ArtifactByteResolution,
     ArtifactStoreDecision,
     ArtifactStoreResolution,
     LocalArtifactStore,
 )
+from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import ArtifactManifest
 from app.strategy_lab_v2.postgres_artifact_commit import PostgresArtifactCommitAdapter
+from app.strategy_lab_v2.postgres_artifact_retention import PostgresArtifactRetentionAdapter
 
 
 class ArtifactCommitter(Protocol):
@@ -40,6 +44,12 @@ class ArtifactCommitter(Protocol):
         *,
         committed_at: datetime,
     ) -> ArtifactCommitResolution: ...
+
+
+class ArtifactRetentionResolver(Protocol):
+    async def resolve(
+        self, *, manifest_fingerprint: str, observed_at: datetime
+    ) -> ArtifactRetentionResolution: ...
 
 
 class ArtifactPublicationDecision(StrEnum):
@@ -150,6 +160,42 @@ class LocalArtifactPublicationService:
         )
 
 
+class LocalArtifactRetentionService:
+    """Coordinate explicit PostgreSQL retention decisions with byte collection."""
+
+    def __init__(self, store: LocalArtifactStore, resolver: ArtifactRetentionResolver) -> None:
+        if not isinstance(store, LocalArtifactStore):
+            raise TypeError("store must be a LocalArtifactStore")
+        if not callable(getattr(resolver, "resolve", None)):
+            raise TypeError("resolver must provide a resolve method")
+        self._store = store
+        self._resolver = resolver
+
+    @property
+    def store(self) -> LocalArtifactStore:
+        return self._store
+
+    async def collect(
+        self,
+        manifest: ArtifactManifest,
+        *,
+        observed_at: datetime,
+    ) -> ArtifactByteResolution:
+        """Evaluate retention at an explicit instant, then collect eligible bytes."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        retention = await self._resolver.resolve(
+            manifest_fingerprint=content_digest(manifest),
+            observed_at=observed_at,
+        )
+        if not isinstance(retention, ArtifactRetentionResolution):
+            raise TypeError("resolver.resolve must return an ArtifactRetentionResolution")
+        return self._store.collect(manifest, retention)
+
+
 def create_local_artifact_publication_service(
     root: str | os.PathLike[str],
     session_factory: Any,
@@ -168,10 +214,25 @@ def create_local_artifact_publication_service(
     )
 
 
+def create_local_artifact_retention_service(
+    root: str | os.PathLike[str],
+    session_factory: Any,
+) -> LocalArtifactRetentionService:
+    """Build the local filesystem/PostgreSQL retention composition."""
+
+    return LocalArtifactRetentionService(
+        LocalArtifactStore(root),
+        PostgresArtifactRetentionAdapter(session_factory),
+    )
+
+
 __all__ = [
     "ArtifactCommitter",
+    "ArtifactRetentionResolver",
     "ArtifactPublicationDecision",
     "ArtifactPublicationResolution",
     "LocalArtifactPublicationService",
+    "LocalArtifactRetentionService",
     "create_local_artifact_publication_service",
+    "create_local_artifact_retention_service",
 ]

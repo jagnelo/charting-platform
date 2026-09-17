@@ -5,7 +5,9 @@ from datetime import UTC, datetime, timedelta
 from app.strategy_lab_v2.artifact_application import (
     ArtifactPublicationDecision,
     LocalArtifactPublicationService,
+    LocalArtifactRetentionService,
     create_local_artifact_publication_service,
+    create_local_artifact_retention_service,
 )
 from app.strategy_lab_v2.artifact_commit import (
     ArtifactCommitDecision,
@@ -14,9 +16,14 @@ from app.strategy_lab_v2.artifact_commit import (
     finalize_artifact_commit,
 )
 from app.strategy_lab_v2.artifact_publication import ArtifactPublicationPlan
+from app.strategy_lab_v2.artifact_retention import (
+    ArtifactRetentionState,
+    resolve_artifact_retention,
+)
 from app.strategy_lab_v2.artifact_store import ArtifactStoreDecision, LocalArtifactStore
 from app.strategy_lab_v2.artifacts import artifact_content_digest
-from app.strategy_lab_v2.contracts import ArtifactManifest
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ArtifactManifest, ArtifactRetention
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -24,6 +31,16 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 def _manifest(payload: bytes) -> ArtifactManifest:
     digest = artifact_content_digest(payload)
     return ArtifactManifest(digest, len(payload), "application/octet-stream", "v1", digest)
+
+
+class _RetentionResolver:
+    def __init__(self, resolution) -> None:
+        self.resolution = resolution
+        self.calls: list[tuple[str, datetime]] = []
+
+    async def resolve(self, *, manifest_fingerprint: str, observed_at: datetime):
+        self.calls.append((manifest_fingerprint, observed_at))
+        return self.resolution
 
 
 class _Committer:
@@ -89,3 +106,36 @@ def test_local_factory_uses_explicit_root_and_postgres_commit_adapter(tmp_path) 
 
     assert isinstance(service, LocalArtifactPublicationService)
     assert service.store.root == (tmp_path / "artifacts").resolve()
+
+    retention_service = create_local_artifact_retention_service(
+        tmp_path / "retention-artifacts", lambda: object()
+    )
+    assert isinstance(retention_service, LocalArtifactRetentionService)
+    assert retention_service.store.root == (tmp_path / "retention-artifacts").resolve()
+
+
+async def test_retention_service_deletes_only_after_resolver_authorizes(tmp_path) -> None:
+    payload = b"ephemeral result"
+    digest = artifact_content_digest(payload)
+    manifest = ArtifactManifest(
+        digest,
+        len(payload),
+        "application/octet-stream",
+        "v1",
+        digest,
+        ArtifactRetention.EPHEMERAL,
+    )
+    eligible_at = NOW + timedelta(days=1)
+    state = ArtifactRetentionState.from_manifest(manifest, retention_eligible_at=eligible_at)
+    resolver = _RetentionResolver(
+        resolve_artifact_retention(state, observed_at=eligible_at)
+    )
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    store.publish(manifest, payload)
+    service = LocalArtifactRetentionService(store, resolver)
+
+    collected = await service.collect(manifest, observed_at=eligible_at)
+
+    assert collected.decision.value == "deleted"
+    assert resolver.calls == [(content_digest(manifest), eligible_at)]
+    assert not store.path_for(manifest.storage_key).exists()

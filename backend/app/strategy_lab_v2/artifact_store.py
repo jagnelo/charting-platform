@@ -15,6 +15,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from app.strategy_lab_v2.artifact_retention import (
+    ArtifactRetentionResolution,
+    RetentionDecision,
+)
 from app.strategy_lab_v2.artifacts import (
     ArtifactIntegrityReceipt,
     artifact_content_digest,
@@ -61,6 +65,43 @@ class ArtifactStoreResolution:
 
 class ArtifactStoreCorruptionError(RuntimeError):
     """Raised when bytes at a content address no longer match that address."""
+
+
+class ArtifactByteDecision(StrEnum):
+    DELETED = "deleted"
+    RETAINED = "retained"
+    NOT_FOUND = "not_found"
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactByteResolution:
+    """Evidence for one retention-authorized byte collection attempt."""
+
+    decision: ArtifactByteDecision
+    storage_key: str
+    byte_length: int
+    retention: ArtifactRetentionResolution
+    integrity: ArtifactIntegrityReceipt | None = None
+    rejection_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision, ArtifactByteDecision):
+            raise TypeError("decision must be an ArtifactByteDecision")
+        require_sha256_digest(self.storage_key, field_name="storage_key")
+        if not isinstance(self.byte_length, int) or isinstance(self.byte_length, bool) or self.byte_length < 0:
+            raise ValueError("byte_length must be a non-negative integer")
+        if not isinstance(self.retention, ArtifactRetentionResolution):
+            raise TypeError("retention must be an ArtifactRetentionResolution")
+        if self.integrity is not None and not isinstance(self.integrity, ArtifactIntegrityReceipt):
+            raise TypeError("integrity must be an ArtifactIntegrityReceipt")
+        if self.decision is ArtifactByteDecision.RETAINED and self.rejection_reason:
+            raise ValueError("retained artifact bytes cannot contain a rejection reason")
+        if self.decision is not ArtifactByteDecision.RETAINED and self.rejection_reason:
+            raise ValueError("artifact byte resolutions cannot contain a rejection reason")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
 
 
 class LocalArtifactStore:
@@ -203,6 +244,63 @@ class LocalArtifactStore:
         if not integrity.verified:
             raise ArtifactStoreCorruptionError("artifact bytes do not match the manifest")
         return payload, integrity
+
+    def collect(
+        self,
+        manifest: ArtifactManifest,
+        retention: ArtifactRetentionResolution,
+    ) -> ArtifactByteResolution:
+        """Delete bytes only after an explicit, authenticated eligible decision."""
+
+        if not isinstance(manifest, ArtifactManifest):
+            raise TypeError("manifest must be an ArtifactManifest")
+        if not isinstance(retention, ArtifactRetentionResolution):
+            raise TypeError("retention must be an ArtifactRetentionResolution")
+        manifest_fingerprint = content_digest(manifest)
+        if retention.state.manifest_fingerprint != manifest_fingerprint:
+            raise ValueError("retention resolution references a different manifest")
+        if retention.state.content_digest != manifest.content_digest:
+            raise ValueError("retention resolution references different artifact bytes")
+        target = self.path_for(manifest.storage_key)
+        existing = self._read_existing(target, manifest.storage_key)
+        if existing is None:
+            return ArtifactByteResolution(
+                ArtifactByteDecision.NOT_FOUND,
+                manifest.storage_key,
+                0,
+                retention,
+            )
+        integrity = verify_artifact_payload(manifest, existing)
+        if not integrity.verified:
+            raise ArtifactStoreCorruptionError("artifact bytes do not match the manifest")
+        if retention.decision not in {
+            RetentionDecision.TIER_ELIGIBLE,
+            RetentionDecision.EXPIRE_ELIGIBLE,
+        }:
+            return ArtifactByteResolution(
+                ArtifactByteDecision.RETAINED,
+                manifest.storage_key,
+                len(existing),
+                retention,
+                integrity,
+            )
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            return ArtifactByteResolution(
+                ArtifactByteDecision.NOT_FOUND,
+                manifest.storage_key,
+                0,
+                retention,
+            )
+        self._fsync_directory(target.parent)
+        return ArtifactByteResolution(
+            ArtifactByteDecision.DELETED,
+            manifest.storage_key,
+            len(existing),
+            retention,
+            integrity,
+        )
 
     @staticmethod
     def _read_existing(target: Path, storage_key: str) -> bytes | None:
