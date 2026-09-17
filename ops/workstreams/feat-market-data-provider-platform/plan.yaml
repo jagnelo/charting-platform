@@ -304,6 +304,13 @@ remaining_gaps:
     no-request guard are current-source proven; trial expiry and paid-plan
     changes remain explicit configuration gates.
   - >-
+    The replacement Dinari Sandbox pair passed the isolated current-source
+    canary 1/1 with 14 bounded upstream requests across catalogue/identity,
+    price/quote, all four history windows, news, dividends, splits, and
+    corporate actions. Only aggregate telemetry was committed; the transient
+    canary controls and Sandbox payloads were not persisted, and normal Dinari
+    routing remains disabled.
+  - >-
     Alpha Vantage's free-key 25-requests/day quota still has no
     provider-published reset boundary/timezone, but the current seed now
     declares an explicit rolling 24-hour application envelope for that exact

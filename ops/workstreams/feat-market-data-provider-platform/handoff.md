@@ -105,6 +105,17 @@
   trial expiry and quota remain environment-specific, and paid-plan changes
   still require explicit configuration rather than inference from `/user/`.
 
+## 2026-09-17 Dinari Sandbox replacement-key canary
+
+- The replacement Dinari Sandbox pair passed the isolated canary `1/1` at the
+  current source, making 14 bounded upstream requests across catalogue/identity,
+  price/quote, all four history windows, news, dividends, splits, and corporate
+  actions. The receipt is aggregate-only and committed in `validation.jsonl`.
+- This remains Sandbox-only transport/schema evidence. The transient canary
+  authorization and request cap were not persisted; synthetic Sandbox data did
+  not enter canonical persistence, usage, alerts, or analytics, and normal
+  Dinari routing remains disabled.
+
 ## 2026-09-17 committed-source safety-preflight replay
 
 - At implementation source `37e616e65`, the focused Alpha Vantage, SEC EDGAR,

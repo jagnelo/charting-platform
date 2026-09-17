@@ -378,6 +378,16 @@
 - [x] Preserve the aggregate-only receipt; trial expiry and future paid-plan
       limits remain explicit environment configuration.
 
+### 2026-09-17 — Dinari Sandbox replacement-key canary
+
+- [x] Validate the replacement Sandbox key pair through the isolated canary:
+      `1/1` passed with 14 bounded upstream requests across catalogue/identity,
+      price/quote, DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and
+      corporate actions.
+- [x] Keep the canary authorization/cap transient and preserve only aggregate
+      telemetry; no Sandbox payload entered canonical persistence or normal
+      routing.
+
 ### 2026-09-16 — Marketstack monthly-cap admission review
 
 - [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,
