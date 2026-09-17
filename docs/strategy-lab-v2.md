@@ -1046,7 +1046,8 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   digest, verifies byte length and canonical decoded content on every read, and
   deduplicates equivalent payloads across owner-scoped submissions. The
   additive `ff1a2b3c4d5e` migration creates this table; startup migration
-  execution and process-level worker activation remain integration gates.
+  invocation is now explicit through `migration_startup.py`; process-level
+  worker activation remains an integration gate.
 - `postgres_storage.py` maps the compare-and-set aggregate contract to one
   SQLAlchemy async transaction. It locks requested aggregate/receipt rows,
   preserves canonical state identity through a versioned JSON codec, uses
