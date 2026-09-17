@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Strategy toggle-state semantics and definitive gate
+
+Product commit `797b29339` exposes the selected state of Strategy Lab's run
+mode, position-evolution value-mode, and return-period toggle groups through
+`aria-pressed`, preserving the existing labels, active styling, state changes,
+run payloads, result projections, and visual layout.
+
+Focused Strategy Lab coverage passed `34/34`; full frontend Vitest passed
+`1,136/1,136`; frontend type-check and production build passed with the
+existing large-chunk warning; TC scope validation/self-tests, workstream
+validation, and `git diff --check` passed. No provider-platform, ETF,
+visual-oracle, or acceptance-policy behavior changed.
+
+The definitive raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration`
+passed at product tip `797b29339`: backend combined coverage passed `1,621`
+tests with `82.26%` total coverage, frontend Vitest passed `1,136/1,136`,
+type-check/build, Compose/provider contracts, branch-scoped Docker health,
+research-runner probes, authenticated functional Chromium passed `170` with
+`107` documented skips, and all four visual projects passed `104/104`.
+Teardown removed the assigned containers, volumes, network, four generated
+images, and test sessions; post-gate resource accounting reported zero
+retained resources. The standard `/usr/bin/make` wrapper remains unavailable
+because of host Xcode license status `69`; the installed CommandLineTools Make
+binary ran the same target.
+
+The broader goal remains active/in progress: no TC-owned product or validation
+blocker is present. Provider/ETF consumer integration remains deferred until
+both upstream branches reach staging, after which shared paths require
+semantic reconciliation and another exact-tip gate. Origin synchronization
+remains a separate private-origin operational hold. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 Strategy run-disclosure semantics and definitive gate
 
 Product commit `eb1337daa` gives the Strategy Lab “Advanced run options” and
