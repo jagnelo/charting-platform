@@ -3106,8 +3106,11 @@ snapshot's preflight decisions and explicit degradations, matches effective
 series semantics and effective dependency intervals, requires declared
 instruments and exact event fields, rejects missing/unsupported dependencies, and emits a
 content-addressed `EventTapeBinding` with deterministic per-dependency counts.
-This keeps provider acquisition, coverage attestation, strategy execution,
-order routing, and fills behind their existing adapter/runtime gates.
+The SDK's `build_strategy_context()` applies the same declared-history interval
+boundary for direct callers, so a context cannot bypass replay scope merely by
+avoiding the binder. This keeps provider acquisition, coverage attestation,
+strategy execution, order routing, and fills behind their existing adapter/
+runtime gates.
 
 The focused event-tape suite and complete Strategy Lab v2 package passed 653
 tests with Ruff, MyPy, `git diff --check`, and workstream validation green. The
