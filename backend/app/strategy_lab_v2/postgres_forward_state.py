@@ -26,6 +26,15 @@ from app.strategy_lab_v2.forward_admission import (
     ForwardSeenEvent,
     admit_forward_event,
 )
+from app.strategy_lab_v2.forward_corrections import (
+    CounterfactualReplayPlan,
+    ForwardCorrectionCommand,
+)
+from app.strategy_lab_v2.forward_event_transaction import (
+    ForwardEventTransactionDecision,
+    ForwardEventTransactionResolution,
+    resolve_forward_event_transaction,
+)
 from app.strategy_lab_v2.forward_state import ForwardStateCheckpoint
 from app.strategy_lab_v2.forward_warmup import (
     ForwardWarmupDecision,
@@ -121,12 +130,14 @@ class PostgresForwardStateSchema:
     instance_table: str = "strategy_lab_v2_forward_instances"
     warmup_table: str = "strategy_lab_v2_forward_warmups"
     event_table: str = "strategy_lab_v2_forward_seen_events"
+    replay_table: str = "strategy_lab_v2_forward_replays"
 
     def __post_init__(self) -> None:
         for name, value in (
             ("instance_table", self.instance_table),
             ("warmup_table", self.warmup_table),
             ("event_table", self.event_table),
+            ("replay_table", self.replay_table),
         ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
@@ -181,6 +192,20 @@ class PostgresForwardStateSchema:
                 sequence BIGINT NOT NULL,
                 seen_fingerprint TEXT NOT NULL,
                 PRIMARY KEY (owner_id, instance_id, event_id)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.replay_table} (
+                owner_id TEXT NOT NULL,
+                instance_id TEXT NOT NULL,
+                replay_id TEXT NOT NULL,
+                correction_event_id TEXT NOT NULL,
+                original_event_id TEXT NOT NULL,
+                base_checkpoint_fingerprint TEXT NOT NULL,
+                warmup_receipt_fingerprint TEXT NOT NULL,
+                planned_at TEXT NOT NULL,
+                replay_fingerprint TEXT NOT NULL,
+                PRIMARY KEY (owner_id, instance_id, replay_id)
             )
             """,
         )
@@ -374,6 +399,71 @@ class PostgresForwardStateAdapter:
                             )
                 return resolution
 
+    async def transact(
+        self,
+        *,
+        principal: Any,
+        instance_id: str,
+        event: CanonicalForwardEvent,
+        observation: ForwardEventObservation,
+        correction_command: ForwardCorrectionCommand | None = None,
+    ) -> ForwardEventTransactionResolution:
+        """Atomically stage event admission and correction replay evidence.
+
+        A correction is never committed without its immutable replay plan.  An
+        exact retry returns the prior plan and checkpoint; ordinary events use
+        the same checkpoint/CAS path as :meth:`admit`.
+        """
+
+        _validate_instance_id(instance_id)
+        if not isinstance(event, CanonicalForwardEvent):
+            raise TypeError("event must be a CanonicalForwardEvent")
+        if not isinstance(observation, ForwardEventObservation):
+            raise TypeError("observation must be a ForwardEventObservation")
+        if correction_command is not None and not isinstance(
+            correction_command, ForwardCorrectionCommand
+        ):
+            raise TypeError("correction_command must be a ForwardCorrectionCommand")
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                state = await self._load_live_state(session, owner_id, instance_id)
+                if state is None:
+                    raise ValueError("active forward instance was not found")
+                plans = await self._load_replays(session, owner_id, instance_id)
+                existing_plan = None
+                if correction_command is not None:
+                    replay_id = _replay_id(state, correction_command)
+                    existing_plan = next(
+                        (item for item in plans if item.replay_id == replay_id), None
+                    )
+                resolution = resolve_forward_event_transaction(
+                    state,
+                    event,
+                    observation,
+                    correction_command=correction_command,
+                    existing_replay_plan=existing_plan,
+                )
+                if resolution.state != state:
+                    await self._update_instance(
+                        session,
+                        owner_id,
+                        state.checkpoint,
+                        resolution.state.checkpoint.instance,
+                        checkpoint_override=resolution.state.checkpoint,
+                    )
+                    existing_ids = {item.event_id for item in state.seen_events}
+                    for item in resolution.state.seen_events:
+                        if item.event_id not in existing_ids:
+                            await self._insert_seen_event(session, owner_id, instance_id, item)
+                if (
+                    resolution.decision is ForwardEventTransactionDecision.CORRECTION_ACCEPTED
+                    and resolution.replay_plan is not None
+                ):
+                    await self._insert_replay(session, owner_id, resolution.replay_plan)
+                return resolution
+
     async def _load_checkpoint(
         self, session: AsyncSessionLike, owner_id: str, instance_id: str
     ) -> tuple[ForwardInstance, ForwardStateCheckpoint] | None:
@@ -496,6 +586,38 @@ class PostgresForwardStateAdapter:
             warmup_receipt_fingerprint=receipt.fingerprint,
             seen_events=ordered,
         )
+
+    async def _load_replays(
+        self, session: AsyncSessionLike, owner_id: str, instance_id: str
+    ) -> tuple[CounterfactualReplayPlan, ...]:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, instance_id, replay_id, correction_event_id,
+                       original_event_id, base_checkpoint_fingerprint,
+                       warmup_receipt_fingerprint, planned_at, replay_fingerprint
+                FROM {self._schema.replay_table}
+                WHERE owner_id = :owner_id AND instance_id = :instance_id
+                ORDER BY replay_id ASC
+                FOR UPDATE
+                """
+            ),
+            {"owner_id": owner_id, "instance_id": instance_id},
+        )
+        plans: list[CounterfactualReplayPlan] = []
+        for row in result.mappings():
+            plan = _decode_replay(row)
+            if row.get("owner_id") != owner_id or row.get("instance_id") != instance_id:
+                raise ValueError("PostgreSQL replay owner/identity drifted")
+            if row.get("replay_id") != plan.replay_id:
+                raise ValueError("PostgreSQL replay identity does not match bytes")
+            if row.get("replay_fingerprint") != plan.fingerprint:
+                raise ValueError("PostgreSQL replay fingerprint does not match bytes")
+            plans.append(plan)
+        ordered = tuple(sorted(plans, key=lambda item: item.replay_id))
+        if tuple(plans) != ordered:
+            raise ValueError("PostgreSQL replays are not deterministically ordered")
+        return ordered
 
     async def _insert_instance(
         self, session: AsyncSessionLike, owner_id: str, checkpoint: ForwardStateCheckpoint
@@ -638,6 +760,27 @@ class PostgresForwardStateAdapter:
         if getattr(result, "rowcount", 0) != 1:
             raise ValueError("PostgreSQL seen event insert lost a uniqueness race")
 
+    async def _insert_replay(
+        self, session: AsyncSessionLike, owner_id: str, plan: CounterfactualReplayPlan
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.replay_table}
+                    (owner_id, instance_id, replay_id, correction_event_id,
+                     original_event_id, base_checkpoint_fingerprint,
+                     warmup_receipt_fingerprint, planned_at, replay_fingerprint)
+                VALUES (:owner_id, :instance_id, :replay_id, :correction_event_id,
+                        :original_event_id, :base_checkpoint_fingerprint,
+                        :warmup_receipt_fingerprint, :planned_at, :replay_fingerprint)
+                ON CONFLICT (owner_id, instance_id, replay_id) DO NOTHING
+                """
+            ),
+            _replay_values(owner_id, plan),
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL replay insert lost a uniqueness race")
+
 
 def _initial_checkpoint(instance: ForwardInstance) -> ForwardStateCheckpoint:
     processed = (
@@ -684,6 +827,33 @@ def _receipt_values(owner_id: str, receipt: ForwardWarmupReceipt) -> dict[str, A
         "final_event_sequence": receipt.final_event_sequence,
         "final_event_fingerprint": receipt.final_event_fingerprint,
         "receipt_fingerprint": receipt.fingerprint,
+    }
+
+
+def _replay_id(state: ForwardLiveAdmissionState, command: ForwardCorrectionCommand) -> str:
+    return content_digest(
+        {
+            "base_checkpoint_fingerprint": command.base_checkpoint_fingerprint,
+            "command_fingerprint": command.fingerprint,
+            "correction_event_id": command.correction_event_id,
+            "instance_id": command.instance_id,
+            "original_event_id": command.original_event_id,
+            "warmup_receipt_fingerprint": state.warmup_receipt_fingerprint,
+        }
+    )
+
+
+def _replay_values(owner_id: str, plan: CounterfactualReplayPlan) -> dict[str, Any]:
+    return {
+        "owner_id": owner_id,
+        "instance_id": plan.instance_id,
+        "replay_id": plan.replay_id,
+        "correction_event_id": plan.correction_event_id,
+        "original_event_id": plan.original_event_id,
+        "base_checkpoint_fingerprint": plan.base_checkpoint_fingerprint,
+        "warmup_receipt_fingerprint": plan.warmup_receipt_fingerprint,
+        "planned_at": _encode_datetime(plan.planned_at),
+        "replay_fingerprint": plan.fingerprint,
     }
 
 
@@ -737,6 +907,21 @@ def _decode_seen_event(row: Mapping[str, Any]) -> ForwardSeenEvent:
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("PostgreSQL seen event row is malformed") from error
+
+
+def _decode_replay(row: Mapping[str, Any]) -> CounterfactualReplayPlan:
+    try:
+        return CounterfactualReplayPlan(
+            row["replay_id"],
+            row["instance_id"],
+            row["correction_event_id"],
+            row["original_event_id"],
+            row["base_checkpoint_fingerprint"],
+            row["warmup_receipt_fingerprint"],
+            _decode_datetime(row["planned_at"], "planned_at"),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL replay row is malformed") from error
 
 
 def _carry_in_mode(value: Any):

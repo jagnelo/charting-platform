@@ -665,8 +665,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   activation, and live-event admission lock the owner-scoped rows and use
   authenticated compare-and-set updates; exact retries replay while duplicate,
   gap, out-of-order, and correction observations remain represented in the
-  checkpoint. The adapter never fetches provider data, submits broker orders,
-  starts workers, or applies migrations.
+  checkpoint. Its atomic event-transaction path persists a correction's
+  counterfactual replay plan in the same transaction as the event checkpoint,
+  so a correction can never be admitted without replay evidence. The adapter
+  never fetches provider data, submits broker orders, starts workers, or applies
+  migrations.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

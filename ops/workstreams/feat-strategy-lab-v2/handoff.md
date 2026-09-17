@@ -23,10 +23,15 @@ checkpoint state. The adapter is registration-neutral: it does not consume
 providers, submit broker orders, start workers, apply migrations, or register
 application routes.
 
+The same adapter now exposes an atomic event-transaction path that stores a
+correction's counterfactual replay plan beside the admitted event checkpoint.
+Correction retries return the original replay identity and cannot leave a live
+correction admitted without replay evidence.
+
 The focused forward-state adapter suite passed 4 tests. The complete
 Strategy Lab v2 package passed 565 tests with Ruff, MyPy, and `git diff --check`
 clean. All five declared branch checks passed, and the Docker-backed combined
-gate passed 2,212 tests with 83.23% total coverage (required threshold: 75%),
+gate passed 2,213 tests with 83.24% total coverage (required threshold: 75%),
 with setup and cleanup successful. Cross-record cursor/checkpoint integrity was
 also revalidated after the initial adapter checkpoint. Schema migration,
 event-stream/worker

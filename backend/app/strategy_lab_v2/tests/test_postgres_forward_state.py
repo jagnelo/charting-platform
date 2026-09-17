@@ -8,6 +8,8 @@ import pytest
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import CarryInMode, ForwardInstance, ForwardState
 from app.strategy_lab_v2.forward_admission import ForwardAdmissionDecision
+from app.strategy_lab_v2.forward_corrections import ForwardCorrectionCommand
+from app.strategy_lab_v2.forward_event_transaction import ForwardEventTransactionDecision
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupDecision, ForwardWarmupReceipt
 from app.strategy_lab_v2.lifecycle import (
     CanonicalForwardEvent,
@@ -47,6 +49,7 @@ class FakeSession:
         self.instances: dict[tuple[str, str], dict[str, Any]] = {}
         self.warmups: dict[tuple[str, str], dict[str, Any]] = {}
         self.events: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self.replays: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     async def __aenter__(self):
         return self
@@ -73,11 +76,24 @@ class FakeSession:
                 if owner == values["owner_id"] and instance_id == values["instance_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["event_id"]))
+        if "FROM strategy_lab_v2_forward_replays" in sql:
+            rows = [
+                row
+                for (owner, instance_id, _), row in self.replays.items()
+                if owner == values["owner_id"] and instance_id == values["instance_id"]
+            ]
+            return FakeResult(sorted(rows, key=lambda row: row["replay_id"]))
         if sql.lstrip().startswith("INSERT INTO") and "instance_fingerprint" in sql:
             key = (values["owner_id"], values["instance_id"])
             if key in self.instances:
                 return FakeResult(rowcount=0)
             self.instances[key] = values
+            return FakeResult(rowcount=1)
+        if sql.lstrip().startswith("INSERT INTO") and "replay_fingerprint" in sql:
+            key = (values["owner_id"], values["instance_id"], values["replay_id"])
+            if key in self.replays:
+                return FakeResult(rowcount=0)
+            self.replays[key] = values
             return FakeResult(rowcount=1)
         if sql.lstrip().startswith("INSERT INTO") and "receipt_fingerprint" in sql:
             key = (values["owner_id"], values["instance_id"])
@@ -208,9 +224,69 @@ async def test_forward_adapter_rejects_tampered_checkpoint_and_owner_conflicts()
         await adapter.load_instance(principal="owner-1", instance_id=instance.instance_id)
 
 
+@pytest.mark.asyncio
+async def test_forward_adapter_stages_correction_replay_atomically() -> None:
+    session = FakeSession()
+    adapter = PostgresForwardStateAdapter(lambda: session)
+    instance = _instance(ForwardState.WARMING_UP)
+    await adapter.ensure_instance(principal="owner-1", instance=instance)
+    await adapter.complete_warmup(principal="owner-1", receipt=_receipt(instance))
+    original = CanonicalForwardEvent(
+        "event-1", 0, NOW + timedelta(minutes=2), NOW + timedelta(minutes=2), DIGEST
+    )
+    original_observation = observe_forward_event(ForwardCursor(), original)
+    await adapter.admit(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        event=original,
+        observation=original_observation,
+    )
+    live = await adapter.load_state(principal="owner-1", instance_id=instance.instance_id)
+    assert live is not None
+    correction = CanonicalForwardEvent(
+        "correction-1",
+        1,
+        NOW + timedelta(minutes=3),
+        NOW + timedelta(minutes=3),
+        content_digest({"correction": "one"}),
+        correction_of=original.event_id,
+    )
+    correction_observation = observe_forward_event(
+        ForwardCursor(0, original.event_id, original.event_time), correction
+    )
+    command = ForwardCorrectionCommand(
+        content_digest("correction-command"),
+        instance.instance_id,
+        correction.event_id,
+        original.event_id,
+        live.checkpoint.fingerprint,
+        NOW + timedelta(minutes=4),
+        "audit correction",
+    )
+    accepted = await adapter.transact(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        event=correction,
+        observation=correction_observation,
+        correction_command=command,
+    )
+    assert accepted.decision is ForwardEventTransactionDecision.CORRECTION_ACCEPTED
+    assert accepted.replay_plan is not None
+    replay = await adapter.transact(
+        principal="owner-1",
+        instance_id=instance.instance_id,
+        event=correction,
+        observation=correction_observation,
+        correction_command=command,
+    )
+    assert replay.decision is ForwardEventTransactionDecision.CORRECTION_REPLAY
+    assert replay.replay_plan == accepted.replay_plan
+    assert len(session.replays) == 1
+
+
 def test_forward_state_schema_is_explicit_and_safe() -> None:
     schema = PostgresForwardStateSchema()
-    assert len(schema.statements) == 3
+    assert len(schema.statements) == 4
     assert all("CREATE TABLE" in statement for statement in schema.statements)
     assert "PRIMARY KEY (owner_id, instance_id, event_id)" in schema.statements[2]
     with pytest.raises(ValueError, match="safe SQL identifier"):

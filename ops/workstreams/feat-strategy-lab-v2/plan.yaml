@@ -306,6 +306,7 @@ remaining_gaps:
   - Nautilus stable v2 is not yet published; authoritative engine runtime activation is gated on a stable release and the new conformance evidence gate.
   - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold; full repository integration, migrations, API registration, worker entrypoints, Compose, and stable Nautilus execution remain unimplemented.
   - PostgreSQL forward-state persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped instance checkpoints, one-time warm-up receipts, content-addressed seen-event identities, authenticated compare-and-set transitions, and restart-safe duplicate/gap/out-of-order/correction accounting; migrations, event-stream wiring, worker execution, and application authorization remain open.
+  - Atomic PostgreSQL forward event/correction staging now persists counterfactual replay plans with the admitted event checkpoint in one transaction; exact retries return the stored replay identity, while malformed or contradictory replay rows fail closed. Redis dispatch, replay execution, migrations, and application wiring remain open.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
