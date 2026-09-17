@@ -839,8 +839,10 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   contexts and an independently fingerprinted sequence of typed results, so an
   isolated worker can retain one strategy instance across a replay. The
   `run_strategy_events()` primitive stops at the first typed rejection/failure;
-  `python -m strategy_runtime` retains its existing one-event mounted CLI until
-  the dedicated worker image/entrypoint is wired.
+  `python -m strategy_runtime` accepts either the single-event or batch
+  envelope, atomically publishes the matching typed result envelope, and uses
+  status-based exit codes. The dedicated worker image/entrypoint and Docker
+  activation are still separate integration gates.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance

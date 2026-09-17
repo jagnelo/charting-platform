@@ -90,6 +90,20 @@ coverage gate remains the repository-level validation step for this checkpoint;
 worker image/entrypoint, application scheduling, migrations, upstream
 reconciliation, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Stateful batch runtime CLI checkpoint
+
+`python -m strategy_runtime` now detects the strict batch request envelope while
+retaining the existing single-event path. Batch requests are reconstructed into
+typed contexts, executed through one `StrategyInvocationSession`, and published
+atomically as a fingerprinted batch-result envelope. A non-successful typed
+invocation returns exit status 2; malformed input or output setup remains exit
+status 1, and no strategy exception text crosses the process boundary.
+
+The focused CLI/protocol tests pass, with the complete branch gate and
+Docker-backed combined coverage gate recorded below after this exact-tip
+checkpoint. Worker image/entrypoint, application scheduling, migrations,
+upstream reconciliation, and authoritative Nautilus execution remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the
