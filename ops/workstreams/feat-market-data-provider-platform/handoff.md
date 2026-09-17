@@ -28,6 +28,11 @@
   37 warnings and 70.82% coverage. This verifies repository-controlled code;
   it does not close external quota, legal/source, target-secret, Docker, or
   shadow-run gates.
+- The current-head full live-matrix safety preflight stopped before transport at
+  source `481bf244c`, with `0/0` cases and zero provider requests. It reports
+  provider-specific quota/baseline/reset, unresolved live-operation, and legal
+  or capability-safety blockers; no acceptance or routing-promotion claim was
+  made.
 
 ## 2026-09-17 EODHD reviewed-entitlement routing correction
 

@@ -24,6 +24,9 @@
       `46/46`, and backend/e2e/RPi Compose configuration assertions passed.
 - [x] Replay the authoritative committed-checkout backend unit gate: `2,364`
       passed, 37 warnings, 70.82% coverage.
+- [x] Run the current-head full live-matrix safety preflight: it stopped before
+      transport with `0/0` cases and zero provider requests, retaining exact
+      provider-specific quota/baseline/reset and legal/capability blockers.
 
 ### 2026-09-17 — EODHD reviewed-entitlement routing correction
 

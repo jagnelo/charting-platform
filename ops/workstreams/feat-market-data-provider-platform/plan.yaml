@@ -766,6 +766,10 @@ progress:
       The final committed-checkout backend unit gate passed 2,364/2,364 with
       37 warnings and 70.82% coverage; external quota/legal/source,
       target-secret, Docker, and shadow gates remain separate.
+      The current-head full live-matrix safety preflight then stopped before
+      transport at source `481bf244c`, with 0/0 cases and zero provider
+      requests, retaining the exact provider-specific quota/baseline/reset,
+      unresolved-operation, and legal/capability blockers.
     - >-
       2026-09-17 EODHD routing-control regression correction: the diagnostic
       path no longer rejects a positive reviewed minute entitlement merely
