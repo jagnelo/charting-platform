@@ -74,6 +74,22 @@ adapters are implemented. Focused domain/application/API tests passed (29
 tests); Compose activation, stable Nautilus conformance, upstream contract
 reconciliation, and full repository integration remain open.
 
+## 2026-09-17 - Typed strategy package resource registration
+
+`resource_domains.py` now extends the application-owned typed mutation boundary
+to strategy packages. Source archives and wheels are represented by the
+immutable `StrategyPackage` contract: the linked strategy fingerprint, archive,
+manifest, and dependency-lock digests, positive archive length,
+module-entrypoint, SDK version, and runtime ABI are validated and
+canonicalized. Unknown fields and conflicting API ID aliases fail closed, and
+the package fingerprint is retained in resource metadata through the same
+owner-scoped compare-and-set and exact-replay bridge used for strategies.
+
+Focused package/domain/application tests passed (31 tests); the full Strategy
+Lab v2 package passed 788 tests, branch-declared validation passed, and Compose
+activation, stable Nautilus conformance, upstream contract reconciliation, and
+full repository integration remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an

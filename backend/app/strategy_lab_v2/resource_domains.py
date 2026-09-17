@@ -1,10 +1,10 @@
 """Domain validation and canonicalization for API resource mutations.
 
 The REST router intentionally accepts registration-neutral resource envelopes.
-This module is the first application-owned domain boundary: it turns a
-strategy resource into the immutable :class:`StrategyVersion` contract before
-the application persists it, while leaving other resource types available to
-their future domain adapters.
+This module is the first application-owned domain boundary: it turns strategy
+and package resources into immutable :class:`StrategyVersion` and
+:class:`StrategyPackage` contracts before the application persists them, while
+leaving other resource types available to their future domain adapters.
 """
 
 from __future__ import annotations
@@ -15,7 +15,12 @@ from typing import Any
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import StrategyDependency, StrategyVersion
+from app.strategy_lab_v2.contracts import (
+    StrategyDependency,
+    StrategyPackage,
+    StrategyPackageFormat,
+    StrategyVersion,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,18 +45,21 @@ def normalize_resource_attributes(
 ) -> ResourceDomainNormalization:
     """Validate and canonicalize the domain fields for one resource.
 
-    Strategy creation is deliberately strict because its source/dependency
-    identity controls reproducibility. Other resources retain the generic
-    frozen envelope until their domain-specific adapters are introduced.
+    Strategy and package creation are deliberately strict because their
+    source/dependency/runtime identities control reproducibility. Other
+    resources retain the generic frozen envelope until their domain-specific
+    adapters are introduced.
     """
 
     if not isinstance(resource_type, ApiResourceType):
         raise TypeError("resource_type must be an ApiResourceType")
     if not isinstance(attributes, Mapping):
         raise TypeError("resource attributes must be a mapping")
-    if resource_type is not ApiResourceType.STRATEGY:
-        return ResourceDomainNormalization(attributes)
-    return _normalize_strategy(attributes)
+    if resource_type is ApiResourceType.STRATEGY:
+        return _normalize_strategy(attributes)
+    if resource_type is ApiResourceType.PACKAGE:
+        return _normalize_package(attributes)
+    return ResourceDomainNormalization(attributes)
 
 
 def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
@@ -133,6 +141,65 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, strategy.fingerprint)
+
+
+def _normalize_package(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "package_id",
+        "strategy_fingerprint",
+        "package_format",
+        "archive_digest",
+        "manifest_digest",
+        "dependency_lock_digest",
+        "archive_byte_length",
+        "entrypoint",
+        "sdk_version",
+        "runtime_abi",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(f"package attributes contain unsupported fields: {', '.join(unknown)}")
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("package resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("package resource_id and id must agree")
+    try:
+        package_format = StrategyPackageFormat(attributes["package_format"])
+        package = StrategyPackage(
+            package_id=attributes["package_id"],
+            strategy_fingerprint=attributes["strategy_fingerprint"],
+            package_format=package_format,
+            archive_digest=attributes["archive_digest"],
+            manifest_digest=attributes["manifest_digest"],
+            dependency_lock_digest=attributes["dependency_lock_digest"],
+            archive_byte_length=attributes["archive_byte_length"],
+            entrypoint=attributes["entrypoint"],
+            sdk_version=attributes["sdk_version"],
+            runtime_abi=attributes["runtime_abi"],
+        )
+    except KeyError as error:
+        raise ValueError(f"package attribute is required: {error.args[0]}") from error
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"package attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "package_id": package.package_id,
+        "strategy_fingerprint": package.strategy_fingerprint,
+        "package_format": package.package_format,
+        "archive_digest": package.archive_digest,
+        "manifest_digest": package.manifest_digest,
+        "dependency_lock_digest": package.dependency_lock_digest,
+        "archive_byte_length": package.archive_byte_length,
+        "entrypoint": package.entrypoint,
+        "sdk_version": package.sdk_version,
+        "runtime_abi": package.runtime_abi,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, package.fingerprint)
 
 
 __all__ = ["ResourceDomainNormalization", "normalize_resource_attributes"]

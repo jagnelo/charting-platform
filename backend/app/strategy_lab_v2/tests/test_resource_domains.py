@@ -79,3 +79,56 @@ def test_non_strategy_resources_remain_frozen_until_their_domain_adapter_exists(
 
     assert result.domain_fingerprint is None
     assert result.attributes["nested"]["values"] == (1, 2)
+
+
+def test_package_attributes_are_normalized_and_domain_fingerprinted() -> None:
+    attributes = {
+        "package_id": "momentum-package",
+        "strategy_fingerprint": content_digest("strategy-version"),
+        "package_format": "source_archive",
+        "archive_digest": content_digest("strategy-archive"),
+        "manifest_digest": content_digest("strategy-manifest"),
+        "dependency_lock_digest": content_digest("dependency-lock"),
+        "archive_byte_length": 128,
+        "entrypoint": "strategy.main:run",
+        "sdk_version": "strategy-sdk.v2",
+        "runtime_abi": "python3.12-linux-arm64",
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.PACKAGE, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["package_format"] == "source_archive"
+    assert result.attributes["archive_byte_length"] == 128
+
+
+def test_package_rejects_unknown_fields_and_invalid_runtime_identity() -> None:
+    unknown = {
+        "package_id": "pkg",
+        "unexpected": True,
+    }
+    try:
+        normalize_resource_attributes(ApiResourceType.PACKAGE, unknown)
+    except ValueError as error:
+        assert "unsupported fields" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("unknown package fields should be rejected")
+
+    invalid = {
+        "package_id": "pkg",
+        "strategy_fingerprint": "sha256:bad",
+        "package_format": "wheel",
+        "archive_digest": ARTIFACT_DIGEST,
+        "manifest_digest": ARTIFACT_DIGEST,
+        "dependency_lock_digest": ARTIFACT_DIGEST,
+        "archive_byte_length": 0,
+        "entrypoint": "not-an-entrypoint",
+        "sdk_version": "sdk",
+        "runtime_abi": "abi",
+    }
+    try:
+        normalize_resource_attributes(ApiResourceType.PACKAGE, invalid)
+    except ValueError as error:
+        assert "invalid" in str(error) or "digest" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("invalid package identity should be rejected")

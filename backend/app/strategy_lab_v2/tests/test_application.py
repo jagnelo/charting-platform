@@ -103,7 +103,8 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     accepted_at = NOW.replace(hour=13)
     conflict_clock = NOW.replace(hour=14)
     strategy_clock = NOW.replace(hour=15)
-    clocks = iter((accepted_at, conflict_clock, strategy_clock))
+    package_clock = NOW.replace(hour=16)
+    clocks = iter((accepted_at, conflict_clock, strategy_clock, package_clock))
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
         ApiResourceType.TRIAL,
@@ -155,3 +156,31 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert strategy.receipt is not None
     assert strategy.receipt.resource.attributes["strategy_id"] == "momentum"
     assert strategy.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    package = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-5",
+        request=ResourceMutationRequest(
+            ApiResourceType.PACKAGE,
+            "package-key",
+            {
+                "attributes": {
+                    "package_id": "momentum-package",
+                    "strategy_fingerprint": strategy.receipt.resource.meta["domain_fingerprint"],
+                    "package_format": "source_archive",
+                    "archive_digest": content_digest("strategy-archive"),
+                    "manifest_digest": content_digest("strategy-manifest"),
+                    "dependency_lock_digest": content_digest("dependency-lock"),
+                    "archive_byte_length": 128,
+                    "entrypoint": "strategy.main:run",
+                    "sdk_version": "strategy-sdk.v2",
+                    "runtime_abi": "python3.12-linux-arm64",
+                }
+            },
+            NOW,
+        ),
+    )
+    assert package.resolution.decision.value == "accept"
+    assert package.receipt is not None
+    assert package.receipt.resource.attributes["package_format"] == "source_archive"
+    assert package.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
