@@ -12,6 +12,26 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Atomic worker lease/capacity settlement
+
+`PostgresWorkerStateAdapter.release_capacity()` now closes the worker-side
+release boundary in one locked transaction. It authenticates the profile,
+reservation, lease, and release observation identities; applies the ordered
+release observation; compare-and-set updates the lease; and releases the
+serial reservation before returning. Exact retries replay both the already
+released lease and capacity state, while sequence gaps, foreign attempts,
+non-release observations, missing rows, and identity drift fail closed without
+partial state. This works for both backtest and forward worker profiles and is
+available to the entrypoint's injected completion/recovery callbacks.
+
+The focused PostgreSQL worker-state tests passed (7 tests); branch validation
+passed 763 package tests; and the exact backend gate passed 2,412 tests with
+83.77% combined coverage (required threshold: 75%). Branch-scoped Docker
+resources were cleaned with no retained testcontainer sessions. Concrete
+terminal/result callback wiring, Compose activation, stable Nautilus
+conformance, upstream contract reconciliation, and full repository integration
+remain deferred.
+
 ## 2026-09-17 - Durable lease-heartbeat integration
 
 `worker_service.py` now accepts an optional durable lease-observation writer.

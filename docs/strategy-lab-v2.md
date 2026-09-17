@@ -1115,6 +1115,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   result, and reduces migration exceptions to stable type-only digests. The
   service is deliberately not invoked by module import or router construction;
   the deployment entrypoint still owns when startup migration is required.
+- `postgres_worker_state.py` exposes `release_capacity()`, an atomic durable
+  release for the worker lease observation and its serial reservation. The
+  operation locks and authenticates both state families, compare-and-set
+  updates them together, and replays exact retries without a second mutation;
+  completion/recovery callbacks can use it for either backtest or forward
+  workers.
 - `worker_settlement.py` closes the serial worker lifecycle after any bounded
   handoff, including a pre-process rejection. It verifies the orchestration
   plan is still bound to the admission and pool profile, applies a deterministic
