@@ -105,7 +105,10 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     strategy_clock = NOW.replace(hour=15)
     package_clock = NOW.replace(hour=16)
     portfolio_clock = NOW.replace(hour=17)
-    clocks = iter((accepted_at, conflict_clock, strategy_clock, package_clock, portfolio_clock))
+    experiment_clock = NOW.replace(hour=18)
+    clocks = iter(
+        (accepted_at, conflict_clock, strategy_clock, package_clock, portfolio_clock, experiment_clock)
+    )
     adapter._clock = lambda: next(clocks)
     request = ResourceMutationRequest(
         ApiResourceType.TRIAL,
@@ -217,3 +220,33 @@ async def test_application_adapter_persists_and_replays_resource_mutations() -> 
     assert portfolio.receipt is not None
     assert portfolio.receipt.resource.attributes["base_currency"] == "USD"
     assert portfolio.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")
+
+    experiment = await adapter.create_resource(
+        principal=_User(42),
+        request_id="request-7",
+        request=ResourceMutationRequest(
+            ApiResourceType.EXPERIMENT,
+            "experiment-key",
+            {
+                "attributes": {
+                    "experiment_id": "momentum-search",
+                    "portfolio_fingerprint": portfolio.receipt.resource.meta[
+                        "domain_fingerprint"
+                    ],
+                    "strategy_fingerprints": [
+                        strategy.receipt.resource.meta["domain_fingerprint"]
+                    ],
+                    "snapshot_fingerprint": content_digest("snapshot-v1"),
+                    "capability_contract_digest": content_digest("capability-v1"),
+                    "seed": 42,
+                    "metric_definition_version": "strategy-lab.metrics.v1",
+                    "engine_contract": {"engine": "nautilus", "version": "v2"},
+                }
+            },
+            NOW,
+        ),
+    )
+    assert experiment.resolution.decision.value == "accept"
+    assert experiment.receipt is not None
+    assert experiment.receipt.resource.attributes["seed"] == 42
+    assert experiment.receipt.resource.meta["domain_fingerprint"].startswith("sha256:")

@@ -223,3 +223,46 @@ def test_portfolio_rejects_unknown_fields_and_overweight_components() -> None:
     unknown["unexpected"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         normalize_resource_attributes(ApiResourceType.PORTFOLIO, unknown)
+
+
+def test_experiment_attributes_are_normalized_and_strategy_order_is_canonical() -> None:
+    first = content_digest("strategy-one")
+    second = content_digest("strategy-two")
+    attributes = {
+        "experiment_id": "momentum-search",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "strategy_fingerprints": [second, first],
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "capability_contract_digest": content_digest("capability-v1"),
+        "seed": 42,
+        "metric_definition_version": "strategy-lab.metrics.v1",
+        "engine_contract": {"engine": "nautilus", "version": "v2"},
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["strategy_fingerprints"] == tuple(sorted((first, second)))
+    assert result.attributes["seed"] == 42
+    assert result.attributes["engine_contract"]["version"] == "v2"
+
+
+def test_experiment_rejects_non_integer_seed_and_unknown_fields() -> None:
+    attributes = {
+        "experiment_id": "search",
+        "portfolio_fingerprint": content_digest("portfolio"),
+        "strategy_fingerprints": [content_digest("strategy")],
+        "snapshot_fingerprint": content_digest("snapshot"),
+        "capability_contract_digest": content_digest("capability"),
+        "seed": "42",
+        "metric_definition_version": "metrics.v1",
+    }
+
+    with pytest.raises(ValueError, match="seed must be an integer"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
+
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    unknown["seed"] = 42
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, unknown)

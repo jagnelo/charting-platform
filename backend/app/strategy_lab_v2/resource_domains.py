@@ -18,6 +18,7 @@ from typing import Any
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import freeze_json, require_sha256_digest
 from app.strategy_lab_v2.contracts import (
+    ExperimentDefinition,
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
@@ -77,6 +78,8 @@ def normalize_resource_attributes(
         return _normalize_package(attributes)
     if resource_type is ApiResourceType.PORTFOLIO:
         return _normalize_portfolio(attributes)
+    if resource_type is ApiResourceType.EXPERIMENT:
+        return _normalize_experiment(attributes)
     return ResourceDomainNormalization(attributes)
 
 
@@ -304,6 +307,73 @@ def _normalize_portfolio(attributes: Mapping[str, Any]) -> ResourceDomainNormali
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, portfolio.fingerprint)
+
+
+def _normalize_experiment(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:
+    allowed = {
+        "experiment_id",
+        "portfolio_fingerprint",
+        "strategy_fingerprints",
+        "snapshot_fingerprint",
+        "capability_contract_digest",
+        "seed",
+        "metric_definition_version",
+        "engine_contract",
+        "resource_id",
+        "id",
+    }
+    unknown = sorted(set(attributes) - allowed)
+    if unknown:
+        raise ValueError(
+            f"experiment attributes contain unsupported fields: {', '.join(unknown)}"
+        )
+    api_ids = [attributes[name] for name in ("resource_id", "id") if name in attributes]
+    if any(not isinstance(value, str) or not value.strip() for value in api_ids):
+        raise ValueError("experiment resource_id/id must be a non-empty string")
+    if len(api_ids) == 2 and api_ids[0] != api_ids[1]:
+        raise ValueError("experiment resource_id and id must agree")
+    strategy_fingerprints = attributes.get("strategy_fingerprints")
+    if not isinstance(strategy_fingerprints, Sequence) or isinstance(
+        strategy_fingerprints, str | bytes
+    ):
+        raise ValueError("experiment strategy_fingerprints must be a sequence")
+    if any(not isinstance(value, str) for value in strategy_fingerprints):
+        raise ValueError("experiment strategy_fingerprints must contain strings")
+    engine_contract = attributes.get("engine_contract", {})
+    if not isinstance(engine_contract, Mapping):
+        raise ValueError("experiment engine_contract must be a mapping")
+    seed = attributes.get("seed")
+    if not isinstance(seed, int) or isinstance(seed, bool):
+        raise ValueError("experiment seed must be an integer")
+    try:
+        experiment = ExperimentDefinition(
+            experiment_id=attributes["experiment_id"],
+            portfolio_fingerprint=attributes["portfolio_fingerprint"],
+            strategy_fingerprints=tuple(strategy_fingerprints),
+            snapshot_fingerprint=attributes["snapshot_fingerprint"],
+            capability_contract_digest=attributes["capability_contract_digest"],
+            seed=seed,
+            metric_definition_version=attributes["metric_definition_version"],
+            engine_contract=engine_contract,
+        )
+    except KeyError as error:
+        raise ValueError(f"experiment attribute is required: {error.args[0]}") from error
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError(f"experiment attributes are invalid: {error}") from error
+
+    normalized: dict[str, Any] = {
+        "experiment_id": experiment.experiment_id,
+        "portfolio_fingerprint": experiment.portfolio_fingerprint,
+        "strategy_fingerprints": experiment.strategy_fingerprints,
+        "snapshot_fingerprint": experiment.snapshot_fingerprint,
+        "capability_contract_digest": experiment.capability_contract_digest,
+        "seed": experiment.seed,
+        "metric_definition_version": experiment.metric_definition_version,
+        "engine_contract": experiment.engine_contract,
+    }
+    if api_ids:
+        normalized["resource_id"] = api_ids[0]
+    return ResourceDomainNormalization(normalized, experiment.fingerprint)
 
 
 def _portfolio_component(value: Any) -> PortfolioComponent:

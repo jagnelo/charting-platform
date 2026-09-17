@@ -107,6 +107,23 @@ Lab v2 package passed 790 tests. Compose activation, stable Nautilus
 conformance, upstream contract reconciliation, and full repository integration
 remain open.
 
+## 2026-09-17 - Typed experiment resource registration
+
+`resource_domains.py` now extends typed mutation validation to experiment
+definitions. The application binds portfolio, strategy-version, snapshot, and
+capability-contract digests with an integer seed, metric-definition version,
+and frozen engine contract through the immutable `ExperimentDefinition`
+contract. Strategy fingerprint order is canonicalized; unknown fields,
+malformed digest lists, non-integer seeds, invalid engine contracts, and
+conflicting API ID aliases fail closed; the experiment fingerprint is retained
+in resource metadata through the existing owner-scoped compare-and-set and
+exact-replay bridge.
+
+Focused experiment/domain/application tests passed (15 tests); the full
+Strategy Lab v2 package passed 792 tests. Compose activation, stable Nautilus
+conformance, upstream contract reconciliation, and full repository integration
+remain open.
+
 ## 2026-09-17 - Executable Nautilus conformance harness
 
 `conformance_fixtures.py` now exposes `execute_conformance_suite(...)`, an
