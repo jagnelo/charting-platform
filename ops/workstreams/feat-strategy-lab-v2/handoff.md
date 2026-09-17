@@ -3243,6 +3243,23 @@ passed the Docker-backed combined coverage gate: 2,324 tests with 83.67% total
 coverage, above the required 75% threshold; setup and cleanup completed
 successfully. The branch remains `ready_for_human_review`.
 
+## 2026-09-17 - Custom-metric wire protocol and CLI checkpoint
+
+`custom_metric_protocol.py` now provides a strict tagged-JSON request/result
+boundary for isolated custom-metric workers. It preserves Decimal and other
+typed values through the existing runtime codec, rejects duplicate fields and
+non-finite JSON constants, binds source and definition identity, and verifies
+the content-addressed result fingerprint. `custom_metric_runner.py` reads a
+mounted request, runs the restricted metric boundary, and atomically publishes
+the typed result with status-based exit codes; it does not start Docker or
+weaken the containing no-network sandbox. Worker image activation, persistence,
+API wiring, and scheduling remain deferred behind the existing shared-path
+gates.
+
+Focused protocol/CLI coverage passed 4 tests with Ruff and MyPy green. The
+branch gate and combined coverage evidence will be refreshed at the committed
+tip before handoff.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:
