@@ -723,7 +723,7 @@ def test_sdk_public_boundaries_reject_malformed_runtime_values() -> None:
             event_sequence=0,
             random_seed=1,
             parameters={},
-            market_events={"daily-bars": ("bad",)},  # type: ignore[arg-type]
+            market_events={"daily-bars": ("bad",)},  # type: ignore[dict-item]
         )
 
 

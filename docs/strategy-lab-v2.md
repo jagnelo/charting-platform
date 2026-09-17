@@ -797,6 +797,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   or unbounded-process controls. Typed results distinguish success, non-zero
   exit, timeout, output overflow, and process-start failure; Docker remains the
   production command boundary.
+- `backend/strategy_runtime/` provides the restricted invocation runner used
+  inside that command boundary. It binds source bytes to the declared digest,
+  repeats static source preflight, exposes only the engine-neutral SDK symbols
+  and a vetted standard-library import surface, and validates every emitted
+  intent against the manifest before returning a content-addressed result.
+  Source/entrypoint/output failures are typed without returning exception text;
+  the package still requires the hardened container for actual isolation.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance

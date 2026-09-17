@@ -12,6 +12,20 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Restricted strategy invocation runner
+
+The new owned `backend/strategy_runtime/` package executes one strategy event
+inside the already-hardened worker boundary. It verifies the source digest
+against the immutable SDK manifest, repeats static source preflight, executes
+with a restricted builtin/import surface, injects only engine-neutral SDK
+symbols, and validates emitted intents against declared instrument scope and
+per-event limits. Source/entrypoint/output failures return typed,
+content-addressed evidence without exposing exception text. Four focused tests
+cover success, digest/static rejection, typed failures, and import restriction;
+the full package suite now passes 627 tests with Ruff and MyPy. Docker image,
+worker entrypoint, and application wiring remain deferred shared integration
+gates.
+
 ## 2026-09-17 - Engine-neutral SDK boundary hardening
 
 `sdk.py` now validates public input types before dereferencing them: manifests
