@@ -841,8 +841,11 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `run_strategy_events()` primitive stops at the first typed rejection/failure;
   `python -m strategy_runtime` accepts either the single-event or batch
   envelope, atomically publishes the matching typed result envelope, and uses
-  status-based exit codes. The dedicated worker image/entrypoint and Docker
-  activation are still separate integration gates.
+  status-based exit codes. Wire timestamps are normalized to UTC so equivalent
+  instants produce byte-identical envelopes. Failure evidence is a versioned,
+  exception-type-only digest; exception text and process-specific repr values
+  never affect the published result. The dedicated worker image/entrypoint and
+  Docker activation are still separate integration gates.
 - `engine_execution.py` binds the final Nautilus invocation gate to execution
   authorization, runtime preflight, sandbox request identity, data-snapshot
   identity, hardened sandbox argv validation, and complete conformance

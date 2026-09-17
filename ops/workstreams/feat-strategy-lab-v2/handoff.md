@@ -104,6 +104,20 @@ Docker-backed combined coverage gate recorded below after this exact-tip
 checkpoint. Worker image/entrypoint, application scheduling, migrations,
 upstream reconciliation, and authoritative Nautilus execution remain deferred.
 
+## 2026-09-17 - Deterministic runtime identity hardening
+
+The strategy runtime wire protocol now normalizes every timezone-aware
+timestamp to UTC before serialization and after decoding. Equivalent instants
+therefore produce byte-identical single and batch envelopes even when callers
+use different source offsets. Failure evidence is now bound to a versioned,
+fully-qualified exception type only; private exception text, strategy data, and
+process-specific object representations cannot change the published digest.
+
+The focused runtime/protocol tests pass, with the complete branch gate and
+Docker-backed combined coverage gate recorded below after this exact-tip
+checkpoint. Worker image/entrypoint, application scheduling, migrations,
+upstream reconciliation, and authoritative Nautilus execution remain deferred.
+
 ## 2026-09-17 - Replay-safe wall-clock preflight hardening
 
 Static strategy validation now rejects wall-clock method references at the
