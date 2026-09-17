@@ -5437,3 +5437,9 @@ matrix still stopped before transport (`0/0`, zero provider requests) on the
 provider-specific reset/baseline/cost blockers, unresolved live-operation
 dispositions, and legal/use controls listed in the receipt. This supersedes
 the sandbox-only “quota coordinator unavailable” diagnostic above.
+
+Commit `247718a6f` adds a requirement-by-requirement acceptance audit to
+`docs/provider-live-validation.md`. It records which platform areas are
+verified by repository evidence and which remain external/provider,
+deployment-secret, universe, or final-shadow gates; it does not promote any
+provider or start the shadow run.

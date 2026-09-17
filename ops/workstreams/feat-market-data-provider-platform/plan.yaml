@@ -744,6 +744,12 @@ remaining_gaps:
 progress:
   completed:
     - >-
+      2026-09-17 added the requirement-by-requirement acceptance audit to
+      `docs/provider-live-validation.md` at source `247718a6f`. It separates
+      verified repository behavior from external/provider, deployment-secret,
+      universe, and final-shadow gates, so no unresolved acceptance item is
+      hidden behind the ready-for-human-review status.
+    - >-
       2026-09-17 elevated-access replay at source `94b72c17b` reached the
       owner-only durable quota ledger successfully, then stopped before
       transport with `0/0` cases and zero provider requests. The remaining
