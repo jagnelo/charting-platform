@@ -760,6 +760,9 @@ progress:
       anonymous account-usage probe returned a typed upstream 429; it was
       recorded without a blind retry and does not replace earlier bounded
       anonymous evidence. No frontend or ETF files changed.
+      Workflow helper tests (46/46) and Compose backend/e2e/RPi contract
+      assertions also passed; these static contracts do not verify owner-managed
+      GitHub/RPi/deployment secret-store contents.
     - >-
       2026-09-17 EODHD routing-control regression correction: the diagnostic
       path no longer rejects a positive reviewed minute entitlement merely

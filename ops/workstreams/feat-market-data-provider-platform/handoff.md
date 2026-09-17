@@ -22,6 +22,8 @@
   replace the earlier bounded anonymous evidence.
 - The receipts contain aggregate request/byte telemetry only. No credential,
   response payload, frontend file, or ETF-provider adapter changed.
+- Repository workflow/deployment contracts remain green: `46` workflow tests
+  passed, and the backend/e2e/RPi Compose configuration assertions passed.
 
 ## 2026-09-17 EODHD reviewed-entitlement routing correction
 

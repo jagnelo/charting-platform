@@ -20,6 +20,8 @@
 - [x] Verify the live receipts contain only redacted aggregate telemetry while
       the durable owner-local quota ledger remains outside Git; no secrets or
       provider payloads were persisted.
+- [x] Re-run repository workflow and deployment contracts: workflow tests passed
+      `46/46`, and backend/e2e/RPi Compose configuration assertions passed.
 
 ### 2026-09-17 — EODHD reviewed-entitlement routing correction
 
