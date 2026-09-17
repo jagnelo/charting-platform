@@ -304,9 +304,11 @@ class LocalArtifactStore:
 
     @staticmethod
     def _read_existing(target: Path, storage_key: str) -> bytes | None:
+        if target.is_symlink():
+            raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
         if not target.exists():
             return None
-        if target.is_symlink() or not target.is_file():
+        if not target.is_file():
             raise ArtifactStoreCorruptionError("artifact target is not a regular immutable file")
         payload = target.read_bytes()
         if artifact_content_digest(payload) != storage_key:

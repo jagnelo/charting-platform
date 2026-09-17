@@ -93,6 +93,13 @@ def test_existing_non_regular_targets_and_symlink_shards_are_rejected(tmp_path) 
     with pytest.raises(ArtifactStoreCorruptionError, match="symlink"):
         symlink_root.path_for("sha256:" + "aa" * 32)
 
+    target_symlink_store = LocalArtifactStore(tmp_path / "target-symlink-store")
+    target = target_symlink_store.path_for(manifest.storage_key)
+    target.parent.mkdir(parents=True)
+    target.symlink_to(tmp_path / "missing-artifact")
+    with pytest.raises(ArtifactStoreCorruptionError, match="regular"):
+        target_symlink_store.read(manifest.storage_key)
+
 
 def test_invalid_roots_and_keys_fail_closed(tmp_path) -> None:
     with pytest.raises(ValueError, match="directory"):
