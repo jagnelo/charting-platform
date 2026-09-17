@@ -110,3 +110,10 @@ def test_custom_metric_cli_reads_and_atomically_writes_typed_result(tmp_path) ->
     result = deserialize_custom_metric_result(result_path.read_text(encoding="utf-8"))
     assert result.status is CustomMetricStatus.SUCCEEDED
     assert result.metric is not None and result.metric.value == Decimal("3.5")
+
+
+def test_custom_metric_wire_helpers_are_available_as_lazy_runtime_exports() -> None:
+    import strategy_runtime
+
+    assert strategy_runtime.serialize_custom_metric_invocation is serialize_custom_metric_invocation
+    assert strategy_runtime.deserialize_custom_metric_result is deserialize_custom_metric_result

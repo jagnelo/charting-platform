@@ -325,6 +325,7 @@ remaining_gaps:
   - Artifact manifests and integrity receipts now reject untyped lengths/retention values and forged verified mismatches, while canonicalizing failure evidence before publication; durable byte lifecycle, migrations, authorization, and application wiring remain open.
   - A restricted custom-metric boundary now executes source-bound callables over frozen Decimal observations, emits versioned typed metrics with input evidence, and strips exception text; container worker activation and API/persistence wiring remain open.
   - Custom-metric execution now has a strict tagged-JSON request/result protocol and mounted-file CLI with duplicate-field rejection, source/definition identity, result fingerprints, and atomic typed-result publication; worker image activation, persistence, API wiring, and scheduling remain open.
+  - Custom-metric entrypoint validation now rejects non-string declarations and resolves dotted callable paths through the restricted namespace; wire-helper exports are lazy to preserve package import safety.
 progress:
   completed:
     - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
@@ -356,6 +357,7 @@ progress:
     - artifact-manifest-integrity-hardening
     - restricted-custom-metric-boundary
     - custom-metric-wire-protocol-and-cli
+    - custom-metric-entrypoint-and-export-hardening
   total: 18
   current_phase: custom-metric-wire-protocol-and-cli-staging-ready-for-human-review
   current_blocker: stable Nautilus release, schema migration, application wiring, and full repository integration remain open

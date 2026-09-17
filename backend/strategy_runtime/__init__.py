@@ -6,6 +6,8 @@ restricted builtins/imports, source-digest binding, and typed SDK output
 validation before an intent can reach host allocation and risk.
 """
 
+from typing import Any
+
 from strategy_runtime.protocol import (
     BATCH_WIRE_PROTOCOL_VERSION,
     WIRE_PROTOCOL_VERSION,
@@ -28,6 +30,28 @@ from strategy_runtime.runner import (
     run_strategy_events,
 )
 
+_CUSTOM_METRIC_EXPORTS = frozenset(
+    {
+        "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
+        "deserialize_custom_metric_invocation",
+        "deserialize_custom_metric_result",
+        "serialize_custom_metric_invocation",
+        "serialize_custom_metric_result",
+    }
+)
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily expose custom-metric wire helpers without package import cycles."""
+
+    if name not in _CUSTOM_METRIC_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from strategy_runtime import custom_metric_protocol
+
+    value = getattr(custom_metric_protocol, name)
+    globals()[name] = value
+    return value
+
 __all__ = [
     "InvocationStatus",
     "RUNTIME_ERROR_EVIDENCE_VERSION",
@@ -46,4 +70,9 @@ __all__ = [
     "serialize_invocation_batch_result",
     "serialize_invocation",
     "serialize_invocation_result",
+    "CUSTOM_METRIC_WIRE_PROTOCOL_VERSION",
+    "deserialize_custom_metric_invocation",
+    "deserialize_custom_metric_result",
+    "serialize_custom_metric_invocation",
+    "serialize_custom_metric_result",
 ]

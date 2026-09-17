@@ -3260,6 +3260,16 @@ Focused protocol/CLI coverage passed 4 tests with Ruff and MyPy green. The
 exact pushed tip passed the branch gate and combined coverage gate recorded
 above; no worker image, persistence, API, or scheduling gate was opened.
 
+## 2026-09-17 - Custom-metric entrypoint and export hardening checkpoint
+
+Custom-metric definitions now reject non-string entrypoints explicitly and the
+restricted loader resolves the declared dotted callable path instead of only
+top-level names. The `strategy_runtime` package exposes its custom-metric wire
+helpers lazily, preserving the earlier import-cycle fix while retaining a
+convenient public API. Focused coverage passed 10 tests with Ruff and MyPy
+green; the full branch and combined coverage receipts will be refreshed at the
+committed tip.
+
 ## 2026-09-17 - Combined backend coverage revalidation
 
 The exact pushed checkpoint tip passed the Docker-backed combined coverage gate:

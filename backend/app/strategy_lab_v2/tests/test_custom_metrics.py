@@ -118,3 +118,24 @@ def calculate(observations, parameters):
             observations={},
             parameters=[],  # type: ignore[arg-type]
         )
+
+
+def test_custom_metric_resolves_dotted_callable_entrypoints() -> None:
+    source = """
+from decimal import Decimal
+
+class Metrics:
+    @staticmethod
+    def calculate(observations, parameters):
+        return Decimal('1')
+"""
+    definition = CustomMetricDefinition(
+        name="dotted_metric",
+        unit="fraction",
+        basis=MetricBasis.NET,
+        source_digest=content_digest(source),
+        entrypoint="custom_metric:Metrics.calculate",
+    )
+    result = run_custom_metric(source, definition=definition, observations={})
+    assert result.status is CustomMetricStatus.SUCCEEDED
+    assert result.metric is not None and result.metric.value == Decimal("1")

@@ -35,6 +35,8 @@ def _nonempty(value: str, field_name: str) -> None:
 
 
 def _entrypoint(value: str) -> None:
+    if not isinstance(value, str):
+        raise TypeError("entrypoint must use module.path:callable syntax")
     parts = value.split(":")
     if len(parts) != 2 or any(
         not part or any(not token.isidentifier() for token in part.split("."))
@@ -163,7 +165,12 @@ def _load_metric_callable(source: str, entrypoint: str) -> Callable[..., Any]:
     namespace["Decimal"] = Decimal
     code = compile(source, namespace["__file__"], "exec")
     exec(code, namespace, namespace)
-    candidate = namespace.get(callable_name)
+    candidate: Any = namespace.get(callable_name.partition(".")[0])
+    for attribute in callable_name.split(".")[1:]:
+        try:
+            candidate = getattr(candidate, attribute)
+        except AttributeError as error:
+            raise LookupError("custom metric entrypoint was not defined") from error
     if not callable(candidate):
         raise TypeError("custom metric entrypoint must be callable")
     return candidate
