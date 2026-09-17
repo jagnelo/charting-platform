@@ -578,6 +578,22 @@ def _absolute_path(value: str, field_name: str) -> Path:
     return path
 
 
+def _read_bounded_text(path: Path, *, max_bytes: int) -> str:
+    """Read a mounted UTF-8 payload without allocating beyond its wire limit."""
+
+    if (
+        not isinstance(max_bytes, int)
+        or isinstance(max_bytes, bool)
+        or max_bytes < 1
+    ):
+        raise ValueError("max_bytes must be a positive integer")
+    with path.open("rb") as handle:
+        payload = handle.read(max_bytes + 1)
+    if len(payload) > max_bytes:
+        raise ValueError(f"request payload exceeds the {max_bytes}-byte limit")
+    return payload.decode("utf-8")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run a mounted single-event or batch request and publish typed results.
 
@@ -596,13 +612,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         request_path = _absolute_path(args.request, "request path")
         result_path = _absolute_path(args.result, "result path")
         from strategy_runtime.protocol import (
+            MAX_WIRE_PAYLOAD_BYTES,
             deserialize_invocation,
             deserialize_invocation_batch,
             serialize_invocation_batch_result,
             serialize_invocation_result,
         )
 
-        payload = request_path.read_text(encoding="utf-8")
+        payload = _read_bounded_text(request_path, max_bytes=MAX_WIRE_PAYLOAD_BYTES)
         try:
             source, manifest, contexts, entrypoint, max_intents = deserialize_invocation_batch(
                 payload

@@ -401,6 +401,15 @@ def test_protocol_rejects_oversized_inbound_payload_before_json_decode() -> None
         deserialize_invocation(oversized)
 
 
+def test_cli_rejects_oversized_request_before_reading_unbounded_text(tmp_path) -> None:
+    request = tmp_path / "oversized-request.json"
+    result_path = tmp_path / "result.json"
+    request.write_bytes(b"{" + (b" " * MAX_WIRE_PAYLOAD_BYTES))
+
+    assert main(["--request", str(request), "--result", str(result_path)]) == 1
+    assert not result_path.exists()
+
+
 def test_cli_reads_request_and_atomically_publishes_result(tmp_path) -> None:
     source = """
 class Strategy:

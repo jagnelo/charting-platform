@@ -25,6 +25,7 @@ from strategy_runtime.custom_metric_protocol import (
     serialize_custom_metric_result_batch,
 )
 from strategy_runtime.custom_metric_runner import main as custom_metric_main
+from strategy_runtime.protocol import MAX_WIRE_PAYLOAD_BYTES
 
 SOURCE = """
 from decimal import Decimal
@@ -142,6 +143,15 @@ def test_custom_metric_cli_reads_and_atomically_writes_typed_result(tmp_path) ->
     result = deserialize_custom_metric_result(result_path.read_text(encoding="utf-8"))
     assert result.status is CustomMetricStatus.SUCCEEDED
     assert result.metric is not None and result.metric.value == Decimal("3.5")
+
+
+def test_custom_metric_cli_rejects_oversized_request_before_reading_unbounded_text(tmp_path) -> None:
+    request_path = tmp_path / "oversized-request.json"
+    result_path = tmp_path / "result.json"
+    request_path.write_bytes(b"{" + (b" " * MAX_WIRE_PAYLOAD_BYTES))
+
+    assert custom_metric_main(["--request", str(request_path), "--result", str(result_path)]) == 1
+    assert not result_path.exists()
 
 
 def test_custom_metric_cli_supports_deterministic_batches(tmp_path) -> None:

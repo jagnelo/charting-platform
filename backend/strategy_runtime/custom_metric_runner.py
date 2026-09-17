@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
-from pathlib import Path
 
 from app.strategy_lab_v2.custom_metrics import (
     CustomMetricStatus,
@@ -22,7 +21,8 @@ from strategy_runtime.custom_metric_protocol import (
     serialize_custom_metric_result,
     serialize_custom_metric_result_batch,
 )
-from strategy_runtime.runner import _absolute_path, _atomic_write
+from strategy_runtime.protocol import MAX_WIRE_PAYLOAD_BYTES
+from strategy_runtime.runner import _absolute_path, _atomic_write, _read_bounded_text
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -45,7 +45,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         request_path = _absolute_path(args.request, "request path")
         result_path = _absolute_path(args.result, "result path")
-        request_payload = Path(request_path).read_text(encoding="utf-8")
+        request_payload = _read_bounded_text(request_path, max_bytes=MAX_WIRE_PAYLOAD_BYTES)
         if args.batch:
             invocations = deserialize_custom_metric_invocation_batch(request_payload)
             results = run_custom_metrics(invocations)
