@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## 2026-09-17 — R6 Strategy Lab radar-filter disclosure ids and definitive gate
+
+Product commit `b8f8e97aa` gives Strategy Lab's radar Setup families and States
+multi-selects stable per-instance controlled-group ids with
+`aria-controls`/`aria-expanded` state and explicit group labels. Selection,
+mutually exclusive menu behavior, publishing payloads, keyboard activation,
+and visual layout are unchanged. Focused Strategy Lab coverage passed `36/36`;
+full frontend Vitest passed `1,149/1,149`; type-check and production build
+passed with the existing large-chunk warning.
+
+The exact-tip raw-capture gate
+`PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache
+/Library/Developer/CommandLineTools/usr/bin/make validate-integration` passed
+at `b8f8e97aa`: backend combined coverage passed `1,621` unit and `408`
+integration tests with `82.26%` total coverage; frontend Vitest passed
+`1,149/1,149`; type-check/build, Compose/provider contracts, branch-scoped
+Docker health, research-runner probes, authenticated functional Chromium
+passed `170` with `107` documented skips, and all four visual projects passed
+`104/104`. Teardown removed the assigned containers, volumes, network, four
+generated images, and test sessions; resource accounting reported zero retained
+resources. The standard `/usr/bin/make` wrapper remains unavailable because of
+host Xcode license status `69`; the installed CommandLineTools Make binary ran
+the same target. No provider-platform, ETF, visual-baseline, threshold, mask,
+skip, fallback, or acceptance policy changed.
+
+The broader goal remains active/in progress: provider/ETF consumer integration
+is deferred until both upstream branches reach staging, then shared paths need
+semantic reconciliation and another exact-tip gate. This slice does not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-17 — R6 VirtualWatchlist editor-dialog disclosure ids and definitive gate
 
 Product commits `0d6b53c88` and `3bb805dda` link the Columns and Column sets

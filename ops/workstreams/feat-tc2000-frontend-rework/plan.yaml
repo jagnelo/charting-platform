@@ -21,9 +21,11 @@ validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
   No active TC-owned product or validation blocker: the definitive exact gate
-  at the watchlist-editor product state 3bb805dda passed the repository stages, authenticated
+  at product tip b8f8e97aa passed the repository stages, authenticated
   functional browser flows, and all four visual projects with clean
-  branch-scoped teardown. The ToolWindow menu disclosure-id slice keeps each
+  branch-scoped teardown. The Strategy Lab radar-filter disclosure-id slice
+  keeps each multi-select group uniquely addressable while preserving selection,
+  publishing behavior, and visual layout. The ToolWindow menu disclosure-id slice keeps each
   detached tool menu uniquely addressable while preserving menu behavior,
   keyboard focus, and visual layout. Provider-platform and
   ETF consumer integration remains a sequencing gate until both upstream
@@ -263,7 +265,7 @@ status: in_progress
 progress:
   completed: [AC1]
   total: 9
-  current_phase: R6_watchlist_editor_disclosure_ids_exact_gate_passed
+  current_phase: R6_strategy_lab_radar_filter_disclosure_ids_exact_gate_passed
   next_action: >-
     Preserve the Strategy toggle-state and run-subset disclosure semantics,
     VirtualWatchlist membership disclosure, IndicatorPanel section keyboard
@@ -275,7 +277,8 @@ progress:
     Research Results artifact-summary-id and Study Lab artifact-summary-id
     exact-gate receipts, and add the Strategy Coverage, ToolWindow menu,
     Workstation shell-menu, Chart library, and VirtualWatchlist editor-dialog
-    disclosure-id receipts.
+    disclosure-id receipts, and add the Strategy Lab radar-filter
+    disclosure-id receipt.
     Continue with the next bounded TC-owned R1/R5/R6 item;
     keep provider/ETF consumer work
     deferred until both upstream branches reach staging. Do not retry origin
@@ -283,13 +286,13 @@ progress:
     accepted exact-payload authorization.
   current_blocker: >-
     No active TC-owned product or validation blocker. The definitive
-    full_stack_browser gate at the watchlist-editor product state 3bb805dda
-    passed and branch-scoped
+    full_stack_browser gate at product tip b8f8e97aa passed and branch-scoped
     cleanup/resource accounting are clean. The focused Workstation
     accessibility-id, Research Results artifact-summary-id, Study Lab
     artifact-summary-id, Strategy Coverage disclosure-id, ToolWindow menu
     disclosure-id, Workstation shell-menu disclosure-id, Chart library
-    disclosure-id, and VirtualWatchlist editor-dialog disclosure-id suites
+    disclosure-id, VirtualWatchlist editor-dialog disclosure-id, and Strategy
+    Lab radar-filter disclosure-id suites
     and full
     frontend checks passed before the definitive gate; no visual or functional
     policy changed. The preceding
@@ -508,6 +511,8 @@ historical_implementation_records_continued:
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip 6f475f33e: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,147/1,147, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Chart Plot Library and Chart Templates disclosure-id semantics slice and does not close the broader workstream or upstream staging dependencies."
   - "Product commits 0d6b53c88 and 3bb805dda link each VirtualWatchlist Columns and Column sets trigger to a unique per-watchlist dialog id through aria-controls while preserving expanded state, editor keyboard entry, focus restoration, accessible dialog names, saved-set behavior, and visual layout. Focused VirtualWatchlist coverage passed 75/75; full frontend Vitest passed 1,148/1,148; frontend type-check and production build passed with the existing large-chunk warning. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
   - "The definitive raw-capture PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed against the watchlist-editor product state represented by 3bb805dda: backend combined coverage passed 1,621 tests with 82.26% total coverage, frontend Vitest passed 1,148/1,148, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable with Xcode license status 69; the equivalent installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the VirtualWatchlist editor-dialog disclosure-id semantics slice and does not close the broader workstream or upstream staging dependencies."
+  - "Product commit b8f8e97aa gives Strategy Lab's radar Setup families and States multi-selects stable per-instance ids with aria-controls/aria-expanded relationships and explicit group labels while preserving selection, mutually exclusive menu behavior, publishing payloads, keyboard activation, and visual layout. Focused Strategy Lab coverage passed 36/36; full frontend Vitest passed 1,149/1,149; frontend type-check and production build passed with the existing large-chunk warning; TC scope validation/self-tests, workstream validation, and git diff --check passed. No provider-platform, ETF, visual-oracle, or acceptance-policy behavior changed."
+  - "The definitive exact-tip PLAYWRIGHT_HTML_OPEN=never UV_CACHE_DIR=/private/tmp/tc2000-uv-cache /Library/Developer/CommandLineTools/usr/bin/make validate-integration gate passed at product tip b8f8e97aa181f3042e76c66ac0c8d120943c1526: backend combined coverage passed 1,621 unit tests and 408 integration tests with 82.26% total coverage, frontend Vitest passed 1,149/1,149, type-check/build, Compose/provider contracts, branch-scoped Docker health, research-runner probes, authenticated functional Chromium passed 170 with 107 documented skips, and all four visual projects passed 104/104. Teardown removed the assigned containers, volumes, network, four generated images, and test sessions; post-gate accounting reported zero retained resources. The standard /usr/bin/make wrapper remains unavailable because of host Xcode license status 69; the installed CommandLineTools Make binary ran the same target. No provider-platform, ETF, visual-baseline, threshold, mask, skip, fallback, or acceptance policy changed. This receipt covers the Strategy Lab radar-filter disclosure-id semantics slice and does not close the broader workstream or upstream staging dependencies."
 remaining_gaps:
   - "Provider-platform dependency: its branch is ready_for_human_review but has not reached staging; TC consumer integration remains pending that promotion."
   - "ETF dependency: its branch is waiting for provider-platform staging integration; TC holdings consumer integration and final owner reconciliation remain pending."
