@@ -106,8 +106,16 @@
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('copy')">Copy symbol</button>
       <button v-if="contextMarketMapSourceId" type="button" role="menuitem" tabindex="-1" @click="openContextMarketMap">Open constituents in Market Map</button>
       <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
-      <button v-if="relatedLists.length" type="button" role="menuitem" tabindex="-1" @click="membershipInspectionOpen = !membershipInspectionOpen">{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
-      <div v-if="membershipInspectionOpen" class="watchlist__membership-inspection" aria-label="List membership">
+      <button
+        v-if="relatedLists.length"
+        type="button"
+        role="menuitem"
+        tabindex="-1"
+        :aria-controls="membershipInspectionId"
+        :aria-expanded="membershipInspectionOpen ? 'true' : 'false'"
+        @click="membershipInspectionOpen = !membershipInspectionOpen"
+      >{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
+      <div v-if="membershipInspectionOpen" :id="membershipInspectionId" class="watchlist__membership-inspection" role="region" aria-label="List membership">
         <small v-for="target in relatedLists" :key="target.id">{{ target.name }}{{ target.id === sourceWatchlistId ? ' · current' : '' }}</small>
       </div>
       <template v-if="membershipTargets.length">
@@ -361,6 +369,7 @@ type WatchlistEditor = 'columns' | 'sets'
 // mount several copies of the same watchlist (including browser pop-outs), so
 // instrument IDs alone are not sufficient for aria-activedescendant targets.
 const watchlistDomId = `watchlist-${globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`}`
+const membershipInspectionId = `${watchlistDomId}-membership-inspection`
 function rowDomId(row: WatchlistRow) {
   const identity = row.instrumentId != null ? String(row.instrumentId) : row.symbol
   return `${watchlistDomId}-row-${identity.replace(/[^a-zA-Z0-9_-]/g, '-')}`
