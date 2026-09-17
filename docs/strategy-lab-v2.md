@@ -653,6 +653,12 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and lets storage-key collisions return the pure conflict decision before any
   write. Artifact bytes, manifest validation, retention policy, migrations, and
   application wiring remain outside this registration-neutral adapter.
+- `postgres_lineage.py` maps owner-scoped immutable artifact-lineage edges to
+  an additive PostgreSQL table. Semantic keys provide idempotent replay and
+  changed-edge conflicts; rows are locked, fingerprint-authenticated, and
+  deterministically ordered before the pure lineage index is returned. The
+  adapter does not certify manifests, create foreign-key migrations, authorize
+  owners, or publish artifact bytes.
 - `storage.py` defines the persistence adapter boundary: versioned aggregate
   snapshots, content-addressed create/update mutations, compare-and-set
   preconditions, deterministic transaction ordering, and idempotent receipts.

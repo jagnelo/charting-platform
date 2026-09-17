@@ -11,6 +11,23 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-17 - Durable artifact-lineage checkpoint
+
+`postgres_lineage.py` now maps owner-scoped immutable artifact-lineage edges to
+an additive PostgreSQL table. Semantic keys provide exact replay and changed
+edge conflicts; rows are locked, fingerprint-authenticated, and ordered
+deterministically before the pure lineage index is returned. The adapter does
+not certify manifest existence, create foreign-key migrations, authorize
+owners, or publish artifact bytes.
+
+The focused lineage-adapter suite passed 4 tests. The complete Strategy Lab v2
+package passed 561 tests with Ruff, MyPy, and `git diff --check` clean. All five
+declared branch checks passed, and the Docker-backed combined gate passed 2,208
+tests with 83.22% total coverage (required threshold: 75%), with setup and
+cleanup successful. Schema migrations, application wiring, worker entrypoints,
+Compose integration, upstream reconciliation, and stable Nautilus execution
+remain open shared-path gates.
+
 ## 2026-09-17 - Durable artifact-commit checkpoint
 
 `postgres_artifact_commit.py` now maps immutable artifact-publication commit
