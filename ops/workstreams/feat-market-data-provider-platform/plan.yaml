@@ -735,6 +735,9 @@ progress:
       Starter Trial expiry/fallback behavior remains covered and configured;
       provider/legal/source, secret-store, universe, routing-promotion, and
       final shadow gates remain open.
+      Current `make test-compose-contract` and `make test-workflow` also pass
+      (the latter `46/46`); these are static wiring checks and do not verify
+      owner-controlled target secret stores.
     - >-
       2026-09-17 Bybit live-preflight diagnostic correction: commit
       `a3ce59d2` aligns `LIVE_PREFLIGHT_ROUTING_CONTROLS[bybit_xstocks]` with

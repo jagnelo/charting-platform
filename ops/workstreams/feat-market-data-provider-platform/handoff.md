@@ -5218,6 +5218,11 @@ the authoritative record for this replay; it made zero provider calls.
   Bybit automated-use/egress-jurisdiction controls and the unknown native
   five-second usage baseline; no provider quota or legal entitlement was
   inferred. The receipt is appended to `validation.jsonl`.
+- Current static deployment validation also passed: `make
+  test-compose-contract` validated the main and RPi Compose files, and `make
+  test-workflow` passed `46/46` workflow tests. These checks verify wiring and
+  isolation contracts only; they do not prove the owner-controlled GitHub,
+  RPi, or production secret stores contain the required values.
 - MarketData.app remains configured as the owner-approved Starter Trial
   (`10,000` credits/day) through `2026-10-11T18:09:00+01:00`, then falls back
   automatically to the configurable Free Forever (`100` credits/day) pool.
