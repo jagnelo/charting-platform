@@ -47,8 +47,8 @@
       <details v-if="selectedRun.logs" class="research-results-tool__run-details"><summary>Execution log</summary><pre>{{ selectedRun.logs }}</pre></details>
       <details v-if="Object.keys(selectedRun.resource_usage ?? {}).length" class="research-results-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(selectedRun.resource_usage) }}</pre></details>
       <div v-if="selectedRun.artifacts.length" class="research-results-tool__artifacts">
-        <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="`research-artifact-${artifact.id}-summary`">
-          <span :id="`research-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
+        <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="artifactSummaryId(artifact.id)">
+          <span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
           <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
@@ -175,6 +175,12 @@ interface ResearchRunSummary {
 
 const runs = ref<ResearchRunSummary[]>([])
 const resultsRoot = ref<HTMLElement | null>(null)
+const resultsInstanceId = (() => {
+  const scope = globalThis as typeof globalThis & { __tc2000ResearchResultsInstanceSequence?: number }
+  const next = (scope.__tc2000ResearchResultsInstanceSequence ?? 0) + 1
+  scope.__tc2000ResearchResultsInstanceSequence = next
+  return `research-results-${next}`
+})()
 const selectedRun = ref<ResearchRunSummary | null>(null)
 const comparisonIds = ref<number[]>([])
 const comparisonOpen = ref(false)
@@ -199,6 +205,7 @@ const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const runsQueryKey = ['workstation', 'research-runs'] as const
 const queryClient = useQueryClient()
+const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0

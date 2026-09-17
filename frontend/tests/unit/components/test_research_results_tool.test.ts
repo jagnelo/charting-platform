@@ -40,8 +40,29 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
     expect(wrapper.find('.bars-chart').exists()).toBe(true)
     expect(wrapper.find('.range-chart').exists()).toBe(true)
-    expect(wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')).toBe('research-artifact-6-summary')
-    expect(wrapper.find('#research-artifact-6-summary').text()).toContain('confidence range result with 1 observations')
+    const summaryId = wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    expect(summaryId).toMatch(/-research-artifact-6-summary$/)
+    expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
+  })
+
+  it('keeps artifact summary relationships unique across linked result panes', async () => {
+    const response = [{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }]
+    apiGet.mockResolvedValue(response)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const plugin = [VueQueryPlugin, { queryClient }] as const
+    const first = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    const second = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    await flushPromises()
+
+    const firstId = first.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    const secondId = second.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    expect(firstId).toMatch(/-research-artifact-6-summary$/)
+    expect(secondId).toMatch(/-research-artifact-6-summary$/)
+    expect(firstId).not.toBe(secondId)
+    expect(first.find(`#${firstId}`).exists()).toBe(true)
+    expect(second.find(`#${secondId}`).exists()).toBe(true)
+    first.unmount()
+    second.unmount()
   })
 
   it('exposes selected-run and loading/error states as navigable live regions', async () => {
