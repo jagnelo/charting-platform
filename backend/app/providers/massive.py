@@ -472,38 +472,26 @@ class MassiveProvider:
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
         """Normalize Massive's documented split and dividend history.
 
-        The provider exposes two independently paginated endpoints, so one
-        platform event read can consume up to two times the reviewed page
-        bound.  A missing bound is an intentional fail-closed result; callers
-        must not turn the two HTTP requests (or an opaque continuation) into a
-        guessed one-request charge.
+        The provider exposes two independently paginated endpoints.  This
+        compatibility method follows both cursors until the provider reports
+        completion; local page settings must never turn into a permanent data
+        retention limit.
         """
 
         normalized_symbol = str(symbol or "").strip().upper()
         if not normalized_symbol:
             return []
-        max_pages = provider_positive_integer(
-            getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
-        )
-        if max_pages is None:
-            raise ProviderNotConfiguredError(
-                "massive corporate actions require a positive "
-                "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES bound"
-            )
-
         fetched_at = datetime.now(UTC)
         events: list[InstrumentEventRecord] = []
         for row in self._fetch_corporate_action_rows(
             _SPLITS_PATH,
             normalized_symbol,
-            max_pages=max_pages,
             sort="execution_date.desc",
         ):
             events.append(self._split_event(row, normalized_symbol, fetched_at))
         for row in self._fetch_corporate_action_rows(
             _DIVIDENDS_PATH,
             normalized_symbol,
-            max_pages=max_pages,
             sort="ex_dividend_date.desc",
         ):
             events.extend(self._dividend_events(row, normalized_symbol, fetched_at))
@@ -514,7 +502,6 @@ class MassiveProvider:
         path: str,
         symbol: str,
         *,
-        max_pages: int,
         sort: str,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -525,7 +512,7 @@ class MassiveProvider:
             sort=sort,
         )
         seen_cursors: set[str] = set()
-        for page_index in range(max_pages):
+        while True:
             payload = self._get_path(next_path, next_params)
             if not isinstance(payload, dict):
                 raise ProviderResponseError(
@@ -541,13 +528,7 @@ class MassiveProvider:
                     self.name, "Massive corporate-actions pagination repeated a cursor"
                 )
             seen_cursors.add(cursor)
-            if page_index + 1 >= max_pages:
-                raise ProviderResponseError(
-                    self.name,
-                    "Massive corporate-actions page bound reached before pagination completed",
-                )
             next_params = self._params(cursor=cursor)
-        raise ProviderResponseError(self.name, "Massive corporate-actions page bound is invalid")
 
     def _split_event(
         self, row: dict[str, Any], symbol: str, fetched_at: datetime

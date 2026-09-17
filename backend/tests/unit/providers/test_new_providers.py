@@ -821,29 +821,38 @@ class TestAlpacaOHLCVParsing:
         assert get.call_args_list[0].args[0] == "https://data.alpaca.markets/v1/corporate-actions"
         assert get.call_args_list[0].kwargs["params"]["symbols"] == "AAPL"
         assert get.call_args_list[0].kwargs["params"]["types"] == (
-            "forward_split,reverse_split,cash_dividend"
+            "forward_split,reverse_split,unit_split,cash_dividend,stock_dividend,"
+            "spin_off,cash_merger,stock_merger,stock_and_cash_merger,redemption,"
+            "name_change,worthless_removal,rights_distribution,partial_call,"
+            "reorganization,capital_gains_distribution"
         )
         assert get.call_args_list[0].kwargs["params"]["limit"] == 1000
         assert get.call_args_list[1].kwargs["params"]["page_token"] == "next-page"
 
-    def test_corporate_actions_positive_page_bound_fails_before_unreserved_page(self):
-        response = MagicMock()
-        response.json.return_value = {
-            "corporate_actions": {"cash_dividends": []},
-            "next_page_token": "next-page",
-        }
-        response.raise_for_status.return_value = None
+    def test_corporate_actions_follow_all_pages_even_when_local_bound_is_one(self):
+        responses = []
+        for payload in (
+            {
+                "corporate_actions": {"cash_dividends": []},
+                "next_page_token": "next-page",
+            },
+            {"corporate_actions": {"cash_dividends": []}, "next_page_token": None},
+        ):
+            response = MagicMock()
+            response.json.return_value = payload
+            response.raise_for_status.return_value = None
+            responses.append(response)
         with (
             patch("app.providers.alpaca.settings") as configured,
-            patch("app.providers.alpaca.httpx.get", return_value=response) as get,
+            patch("app.providers.alpaca.httpx.get", side_effect=responses) as get,
         ):
             configured.ALPACA_API_KEY = "key"
             configured.ALPACA_SECRET_KEY = "secret"
             configured.ALPACA_CORPORATE_ACTIONS_MAX_PAGES = 1
-            with pytest.raises(ProviderResponseError, match="page bound"):
-                AlpacaProvider().fetch_instrument_events("AAPL")
+            events = AlpacaProvider().fetch_instrument_events("AAPL")
 
-        assert get.call_count == 1
+        assert events == []
+        assert get.call_count == 2
 
     def test_corporate_actions_rejects_repeated_pagination_cycle(self):
         responses = []
@@ -1559,19 +1568,19 @@ class TestMassiveReferenceProvider:
             "https://api.massive.com/stocks/v1/dividends",
         ]
 
-    def test_corporate_actions_require_positive_page_bound(self):
+    def test_corporate_actions_do_not_require_a_local_page_bound(self):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"results": []}
         with (
             patch("app.providers.massive.settings") as mock_settings,
-            patch("app.providers.massive.httpx.get") as get,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
         ):
             mock_settings.MASSIVE_API_KEY = "key"
             mock_settings.MARKETDATA_API_KEY = ""
             mock_settings.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES = 0
-            with pytest.raises(
-                ProviderNotConfiguredError, match="MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
-            ):
-                MassiveProvider().fetch_instrument_events("AAPL")
-        get.assert_not_called()
+            assert MassiveProvider().fetch_instrument_events("AAPL") == []
+        assert get.call_count == 2
 
     def test_corporate_actions_follow_valid_cursor_without_crossing_bound(self):
         response = MagicMock()

@@ -307,14 +307,12 @@ class Settings(BaseSettings):
                         "applies_to_operations": ["fetch_account_usage"],
                     },
                 ],
-                # Alpaca publishes the 200/minute ceiling and exposes reset
-                # headers, but the plan documentation does not establish the
-                # initial window boundary. Do not interpret a compound label
-                # as a guessed rolling window before exact evidence is
-                # admitted. The explicitly enabled account-usage bootstrap
-                # can make one uncharged native-header observation while the
-                # ordinary provider pool remains unroutable.
-                "reset": "provider_defined",
+                # Alpaca's Market Data OpenAPI defines this as a per-minute
+                # request pool and exposes the native reset epoch. Runtime
+                # admission still reconciles the exact limit/remaining/reset
+                # headers from the configured account; it never synthesizes a
+                # baseline when those headers are absent or stale.
+                "reset": "fixed_minute",
                 "account_usage_bootstrap": {
                     "enabled": True,
                     "source": "application_policy:provider_native_baseline_bootstrap",
@@ -2041,7 +2039,7 @@ class Settings(BaseSettings):
     # reviewed plan still do not admit a provider whose probe has not passed.
     PROVIDER_LIVE_PROBE_STATUS_SEEDS: dict[str, str] = {
         # Credentialed history/latest/assets/corporate-actions probes passed on
-        # 2026-09-12; the event-only page bound remains a separate routing gate.
+        # 2026-09-12; event cursors are now persisted and resumed page by page.
         "alpaca": "passed",
         "massive": "passed",
         "alpha_vantage": "passed",
@@ -2215,22 +2213,21 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
-    # Alpaca publishes the 200/minute market-data ceiling and emits reset
-    # headers, but its plan documentation does not establish whether the
-    # account pool resets on a fixed or rolling boundary. Keep routing
-    # fail-closed until an operator records the reviewed boundary and its
-    # evidence. This is provider-specific so plan changes remain configuration
-    # only and cannot be mistaken for a generic limiter default.
+    # Optional plan-change overrides. The current Basic Trading API contract
+    # is source-backed in the checked-in provider seed and is admitted from
+    # the native response headers; these settings are only needed when an
+    # operator changes the plan or its documented semantics.
     ALPACA_REVIEWED_RESET: str = ""
     ALPACA_QUOTA_EVIDENCE: str = ""
     # Paper accounts use the paper trading host for the authenticated assets
     # directory. Production credentials must opt into the live host explicitly;
     # market-data history/latest endpoints continue to use data.alpaca.markets.
     ALPACA_TRADING_BASE_URL: str = "https://paper-api.alpaca.markets/v2"
-    # Corporate-actions responses are cursor-paginated and the request count
-    # depends on the provider response. Keep event routing fail-closed until
-    # operations records a positive conservative page bound for this account.
-    ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 0
+    # Corporate-actions responses are cursor-paginated. This is a per-job
+    # fairness budget only; continuation state is persisted and requeued until
+    # every page is ingested. It is never a permanent retention limit.
+    ALPACA_CORPORATE_ACTIONS_MAX_PAGES: int = 1
+    ALPACA_CORPORATE_ACTIONS_START_DATE: str = "1900-01-01"
     # Massive publishes the Stocks Basic five-calls/minute ceiling but does
     # not specify whether its minute bucket is fixed or rolling. Keep the
     # provider-specific reset and evidence explicit; never infer a window
@@ -3185,10 +3182,11 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             )
         return seed
     if provider_name == "alpaca":
-        # Alpaca exposes a documented account ceiling and native reset
-        # headers, but the published plan documentation does not define the
-        # initial reset boundary. Promote the seed only after an operator
-        # records an explicit calculable reset label and current evidence.
+        # The current Trading API Basic contract is source-backed by the
+        # Market Data documentation/OpenAPI and the provider's native
+        # X-RateLimit-* headers. Optional settings remain available for a
+        # future plan change, but ordinary routing must not wait for a human
+        # to restate a reset model that Alpaca already defines as per-minute.
         reviewed_reset = str(
             getattr(settings, "ALPACA_REVIEWED_RESET", "") or ""
         ).strip()
@@ -3196,27 +3194,31 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
             getattr(settings, "ALPACA_QUOTA_EVIDENCE", "") or ""
         ).strip()
         contract = seed.get("quota_contract")
-        if (
-            provider_quota_reset_is_admission_safe(reviewed_reset)
-            and quota_evidence
-            and isinstance(contract, dict)
-        ):
-            contract["reset"] = reviewed_reset
-            contract["unknown_dimensions"] = []
+        if isinstance(contract, dict):
             for dimension in contract.get("dimensions") or []:
                 if (
                     isinstance(dimension, dict)
                     and dimension.get("name") == "market_data_requests_per_minute"
                 ):
-                    dimension["reset"] = reviewed_reset
-            contract["source"] = (
-                f"{contract.get('source', 'Alpaca market data API documentation')} plus "
-                "operator-reviewed reset-boundary evidence"
-            )
+                    dimension["reset"] = contract.get("reset", "fixed_minute")
+            if reviewed_reset:
+                if not provider_quota_reset_is_admission_safe(reviewed_reset) or not quota_evidence:
+                    contract["unknown_dimensions"] = ["operator_reset_override_invalid"]
+                    return seed
+                contract["reset"] = reviewed_reset
+                contract["source"] = (
+                    f"{contract.get('source', 'Alpaca market data API documentation')} plus "
+                    "operator-reviewed reset-boundary evidence"
+                )
+                for dimension in contract.get("dimensions") or []:
+                    if (
+                        isinstance(dimension, dict)
+                        and dimension.get("name") == "market_data_requests_per_minute"
+                    ):
+                        dimension["reset"] = reviewed_reset
+            contract["unknown_dimensions"] = []
             seed["quota_scope"] = "account"
-            seed["quota_source"] = (
-                "Alpaca market-data allowance plus operator-reviewed reset evidence"
-            )
+            seed["quota_source"] = "Alpaca Market Data API allowance and native reset headers"
         return seed
     if provider_name == "finnhub":
         # Finnhub's free account exposes separate minute and second request

@@ -26,11 +26,12 @@ from urllib.parse import quote
 
 import httpx
 
-from app.config import provider_positive_integer, settings
+from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import (
     IdentifierRecord,
+    InstrumentEventPage,
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
@@ -527,151 +528,22 @@ class AlpacaProvider:
     # ── Corporate Actions (Events) ────────────────────────────────────────────
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
+        """Fetch the complete available corporate-action history.
+
+        This compatibility method intentionally follows every cursor.  The
+        durable service uses ``fetch_instrument_events_page`` to pause and
+        resume between jobs, but a direct provider call must never silently
+        truncate a result set because of a local page budget.
+        """
+
         self._require_configured()
-        now = datetime.now(UTC)
-        since = (now - timedelta(days=365 * 10)).strftime("%Y-%m-%d")
-        until = (now + timedelta(days=90)).strftime("%Y-%m-%d")
         events: list[InstrumentEventRecord] = []
-        fetched = now
-
-        # The v1 endpoint is the current API. The former v2 announcements
-        # endpoint is deprecated, limited to a 90-day interval, and is not
-        # served from the market-data host used by this adapter. Follow the
-        # documented page token so long history cannot be silently truncated.
         page_token: str | None = None
-        page_count = 0
         seen_page_tokens: set[str] = set()
-        max_pages = provider_positive_integer(
-            getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
-        )
         while True:
-            params: dict[str, Any] = {
-                "symbols": symbol,
-                "types": "forward_split,reverse_split,cash_dividend",
-                "start": since,
-                "end": until,
-                # Alpaca documents a maximum of 1,000 corporate actions per
-                # response. Requesting that page size minimizes calls while
-                # the explicit local page budget below still prevents an
-                # unbounded pagination loop.
-                "limit": 1000,
-            }
-            if page_token:
-                params["page_token"] = page_token
-            try:
-                r = httpx.get(
-                    f"{_DATA_V1_BASE}/corporate-actions",
-                    params=params,
-                    headers=self._headers(),
-                    timeout=30,
-                )
-                observe_response(r)
-                r.raise_for_status()
-                payload = r.json()
-                if not isinstance(payload, dict):
-                    raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
-            except httpx.HTTPStatusError:
-                raise
-            except httpx.RequestError as exc:
-                raise ProviderResponseError(self.name, str(exc)) from exc
-            except (TypeError, ValueError) as exc:
-                raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
-
-            ca = payload.get("corporate_actions") or {}
-            if not isinstance(ca, dict):
-                raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
-
-            for s in _corporate_action_rows(ca, "forward_splits"):
-                dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
-                if dt is None:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned a forward split without a valid date"
-                    )
-                split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
-                if s.get("new_rate") is not None or s.get("old_rate") is not None:
-                    if split_ratio is None or split_ratio <= 0:
-                        raise ProviderResponseError(
-                            self.name, "Alpaca returned an invalid forward split ratio"
-                        )
-                events.append(
-                    InstrumentEventRecord(
-                        event_type=InstrumentEventType.SPLIT,
-                        event_time=dt,
-                        time_hint=EventTimeHint.UNKNOWN,
-                        title=f"Forward Split {symbol}",
-                        source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
-                        fetched_at=fetched,
-                        split_ratio=split_ratio,
-                        raw_payload=str(s),
-                    )
-                )
-
-            for s in _corporate_action_rows(ca, "reverse_splits"):
-                dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
-                if dt is None:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned a reverse split without a valid date"
-                    )
-                split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
-                if s.get("new_rate") is not None or s.get("old_rate") is not None:
-                    if split_ratio is None or split_ratio <= 0:
-                        raise ProviderResponseError(
-                            self.name, "Alpaca returned an invalid reverse split ratio"
-                        )
-                events.append(
-                    InstrumentEventRecord(
-                        event_type=InstrumentEventType.SPLIT,
-                        event_time=dt,
-                        time_hint=EventTimeHint.UNKNOWN,
-                        title=f"Reverse Split {symbol}",
-                        source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
-                        fetched_at=fetched,
-                        split_ratio=split_ratio,
-                        raw_payload=str(s),
-                    )
-                )
-
-            for d in _corporate_action_rows(ca, "cash_dividends"):
-                ex_dt = _parse_date(d.get("ex_date") or "")
-                pay_dt = _parse_date(d.get("payable_date") or d.get("pay_date") or "")
-                amount = _safe_decimal(d.get("rate"))
-                if d.get("rate") is not None and amount is None:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned an invalid cash-dividend rate"
-                    )
-                if ex_dt is None and pay_dt is None:
-                    raise ProviderResponseError(
-                        self.name, "Alpaca returned a cash dividend without a valid date"
-                    )
-                raw = str(d)
-                if ex_dt:
-                    events.append(
-                        InstrumentEventRecord(
-                            event_type=InstrumentEventType.EX_DIVIDEND,
-                            event_time=ex_dt,
-                            time_hint=EventTimeHint.UNKNOWN,
-                            title=f"Ex-Dividend {symbol}",
-                            source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
-                            fetched_at=fetched,
-                            dividend_amount=amount,
-                            raw_payload=raw,
-                        )
-                    )
-                if pay_dt:
-                    events.append(
-                        InstrumentEventRecord(
-                            event_type=InstrumentEventType.DIVIDEND,
-                            event_time=pay_dt,
-                            time_hint=EventTimeHint.UNKNOWN,
-                            title=f"Dividend {symbol}",
-                            source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
-                            fetched_at=fetched,
-                            dividend_amount=amount,
-                            raw_payload=raw,
-                        )
-                    )
-
-            next_token = payload.get("next_page_token")
+            page = self.fetch_instrument_events_page(symbol, page_token)
+            events.extend(page.events)
+            next_token = page.next_page_token
             if next_token is None or next_token == "":
                 break
             if not isinstance(next_token, str) or next_token == page_token:
@@ -682,15 +554,75 @@ class AlpacaProvider:
                     "Alpaca returned a repeated corporate-actions pagination token",
                 )
             seen_page_tokens.add(next_token)
-            page_count += 1
-            if max_pages is not None and page_count >= max_pages:
-                raise ProviderResponseError(
-                    self.name,
-                    "Alpaca corporate-actions page bound reached before pagination completed",
-                )
             page_token = next_token
 
         return events
+
+    def fetch_instrument_events_page(
+        self,
+        symbol: str,
+        page_token: str | None = None,
+        *,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> InstrumentEventPage:
+        """Fetch exactly one complete corporate-action page.
+
+        The returned raw envelope and continuation token are persisted by the
+        ingestion service.  A worker may therefore stop after this request and
+        continue later without refetching earlier pages.
+        """
+
+        self._require_configured()
+        fetched = datetime.now(UTC)
+        params: dict[str, Any] = {
+            "symbols": symbol,
+            # Request every corporate-action family documented by Alpaca. The
+            # normalized event rows remain additive; the raw page is retained
+            # even when a future family needs a new canonical model.
+            "types": (
+                "forward_split,reverse_split,unit_split,cash_dividend,stock_dividend,"
+                "spin_off,cash_merger,stock_merger,stock_and_cash_merger,redemption,"
+                "name_change,worthless_removal,rights_distribution,partial_call,"
+                "reorganization,capital_gains_distribution"
+            ),
+            "start": start_date
+            or str(getattr(settings, "ALPACA_CORPORATE_ACTIONS_START_DATE", "1900-01-01")),
+            "end": end_date or (fetched + timedelta(days=90)).strftime("%Y-%m-%d"),
+            "limit": 1000,
+        }
+        if page_token:
+            params["page_token"] = page_token
+        try:
+            response = httpx.get(
+                f"{_DATA_V1_BASE}/corporate-actions",
+                params=params,
+                headers=self._headers(),
+                timeout=30,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            payload = response.json()
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
+        ca = payload.get("corporate_actions") or {}
+        if not isinstance(ca, dict):
+            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
+        next_token = payload.get("next_page_token")
+        if next_token is not None and not isinstance(next_token, str):
+            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions pagination token")
+        return InstrumentEventPage(
+            events=_parse_corporate_action_events(ca, symbol, fetched),
+            next_page_token=next_token or None,
+            request_page_token=page_token,
+            raw_payload=payload,
+        )
 
     # ── Universe Discovery ────────────────────────────────────────────────────
 
@@ -821,6 +753,80 @@ def _corporate_action_rows(payload: dict[str, Any], field: str) -> list[dict[str
             "alpaca", f"Alpaca returned an invalid {field} collection"
         )
     return value
+
+
+def _parse_corporate_action_events(
+    payload: dict[str, Any], symbol: str, fetched: datetime
+) -> list[InstrumentEventRecord]:
+    """Normalize currently modeled events without dropping the raw envelope.
+
+    Alpaca supports additional corporate-action families.  Those rows remain
+    durably available in the page snapshot even before a dedicated canonical
+    event type is added; this parser only creates normalized rows for the
+    existing economic-event schema.
+    """
+
+    events: list[InstrumentEventRecord] = []
+    for split_field, title, key_prefix in (
+        ("forward_splits", "Forward Split", "alpaca_fwd_split"),
+        ("reverse_splits", "Reverse Split", "alpaca_rev_split"),
+    ):
+        for row in _corporate_action_rows(payload, split_field):
+            dt = _parse_date(row.get("ex_date") or row.get("effective_date") or "")
+            if dt is None:
+                raise ProviderResponseError("alpaca", f"Alpaca returned a {title.lower()} without a valid date")
+            split_ratio = _safe_ratio(row.get("new_rate"), row.get("old_rate"))
+            if row.get("new_rate") is not None or row.get("old_rate") is not None:
+                if split_ratio is None or split_ratio <= 0:
+                    raise ProviderResponseError("alpaca", f"Alpaca returned an invalid {title.lower()} ratio")
+            events.append(
+                InstrumentEventRecord(
+                    event_type=InstrumentEventType.SPLIT,
+                    event_time=dt,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"{title} {symbol}",
+                    source_event_key=f"{key_prefix}_{row.get('id', dt.date())}",
+                    fetched_at=fetched,
+                    split_ratio=split_ratio,
+                    raw_payload=str(row),
+                )
+            )
+
+    for row in _corporate_action_rows(payload, "cash_dividends"):
+        ex_dt = _parse_date(row.get("ex_date") or "")
+        pay_dt = _parse_date(row.get("payable_date") or row.get("pay_date") or "")
+        amount = _safe_decimal(row.get("rate"))
+        if row.get("rate") is not None and amount is None:
+            raise ProviderResponseError("alpaca", "Alpaca returned an invalid cash-dividend rate")
+        if ex_dt is None and pay_dt is None:
+            raise ProviderResponseError("alpaca", "Alpaca returned a cash dividend without a valid date")
+        if ex_dt:
+            events.append(
+                InstrumentEventRecord(
+                    event_type=InstrumentEventType.EX_DIVIDEND,
+                    event_time=ex_dt,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"Ex-Dividend {symbol}",
+                    source_event_key=f"alpaca_exdiv_{row.get('id', ex_dt.date())}",
+                    fetched_at=fetched,
+                    dividend_amount=amount,
+                    raw_payload=str(row),
+                )
+            )
+        if pay_dt:
+            events.append(
+                InstrumentEventRecord(
+                    event_type=InstrumentEventType.DIVIDEND,
+                    event_time=pay_dt,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"Dividend {symbol}",
+                    source_event_key=f"alpaca_div_{row.get('id', pay_dt.date())}",
+                    fetched_at=fetched,
+                    dividend_amount=amount,
+                    raw_payload=str(row),
+                )
+            )
+    return events
 
 
 def _cached_assets(headers: dict, asset_class: str) -> list[dict]:

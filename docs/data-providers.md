@@ -195,8 +195,8 @@ decimal interpretation would allow; the contract records the basis explicitly.
 
 | Provider | Implemented data surface | Credential/config key | Documented usage contract | Reset/scope | Routing status |
 |---|---|---|---|---|---|
-| Alpaca | US stocks/ETFs + crypto OHLCV, latest, authenticated asset metadata (exchange/status/tradability/provider asset UUID), corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL`, `ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE` | 200 historical API calls/min; the official plan page does not state whether that minute pool is fixed or rolling; single asset metadata reads cost one request; corporate-actions pages accept 1–1,000 records (1,000 requested); `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained, including a current/previous reset boundary, but reconciliation uses only a future boundary. Alpaca's official [market-data OpenAPI](https://github.com/alpacahq/cli/blob/main/api/specs/market-data-api.json) describes `X-RateLimit-Reset` only as the epoch when the remaining quota changes, not the window type | provider/account window remains unresolved until `ALPACA_REVIEWED_RESET` contains an admission-safe boundary and `ALPACA_QUOTA_EVIDENCE` records current plan/header evidence; free IEX feed restriction applies; paper/live assets host is explicit; corporate-actions page count remains an explicit local safety bound; Alpaca UUID is provider-native and is not promoted to a canonical FIGI/CIK | history/latest and metadata transport are fixture/live-covered, and native account-usage observation is live-covered; market-data routing remains fail-closed until the reset/evidence pair is configured; event routing additionally requires `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` |
-| Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV, historical splits and dividends for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates, and corporate actions; the published plan does not state the minute reset boundary; aggregate pages accept at most 50,000 base aggregates; splits/dividends accept at most 5,000 rows and may continue with `next_url` | API key / minute reset boundary unresolved until reviewed `MASSIVE_REVIEWED_RESET` plus `MASSIVE_QUOTA_EVIDENCE`; every historical/corporate-action page is reserved before execution; metadata overview costs one request | reference, metadata, adjusted daily, raw five-minute history, and corporate actions remain fail-closed until the reset boundary, provider-specific page bound, and explicit `personal_noncommercial_nonredistributed` use attestation are configured. Massive's free terms prohibit business/commercial use, third-party application use, and redistribution; a configured key alone is not legal authorization |
+| Alpaca | US stocks/ETFs + crypto OHLCV, latest, authenticated asset metadata (exchange/status/tradability/provider asset UUID), corporate actions, assets | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_TRADING_BASE_URL`, optional `ALPACA_REVIEWED_RESET`, `ALPACA_QUOTA_EVIDENCE` | 200 historical API calls/min on the documented Basic market-data plan; corporate-actions pages accept 1–1,000 records; `X-RateLimit-Limit`/`Remaining`/`Reset` headers are retained and reconciled against the fixed-minute contract. Alpaca's official [market-data OpenAPI](https://github.com/alpacahq/cli/blob/main/api/specs/market-data-api.json) defines the reset header as the epoch when remaining quota changes | account / fixed minute for current documented plan; free IEX feed restriction applies; paper/live assets host is explicit; every corporate-action page is persisted and resumed; Alpaca UUID is provider-native and is not promoted to a canonical FIGI/CIK | history/latest, metadata, account usage, and cursor pagination are fixture/live-covered; optional reset/evidence settings only document future plan changes |
+| Massive | US ticker search/reference universe, single-ticker metadata (CIK/FIGI, exchange, lifecycle, classification, description/branding), split-adjusted or raw aggregate OHLCV, historical splits and dividends for all canonical timeframes | `MASSIVE_API_KEY` (or legacy `MARKETDATA_API_KEY`) | Stocks Basic: 5 API calls/minute, two years of historical data, EOD/reference/minute aggregates, and corporate actions; the published plan does not state the minute reset boundary; aggregate pages accept at most 50,000 base aggregates; splits/dividends accept at most 5,000 rows and may continue with `next_url` | API key / minute reset boundary remains explicit and terms-gated; validated history and corporate-action cursors are followed until completion; metadata overview costs one request | reference, metadata, adjusted daily, raw five-minute history, and corporate actions remain gated by the unresolved reset/terms attestation. The legacy page-bound setting no longer excludes pages; a configured key alone is not legal authorization |
 | Alpha Vantage | Raw daily, weekly, and monthly OHLCV, symbol search, listings, IPO calendar events, historical annual/quarterly earnings with EPS estimates and surprise metrics | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); daily `compact` output is latest 100 points, while documented weekly/monthly series expose long historical ranges; adjusted daily history is premium and weekly/monthly endpoints are raw; `EARNINGS` is one query per symbol; the provider does not publish the daily reset boundary/timezone | API key / provider-defined day (reset boundary unresolved) | raw daily/weekly/monthly history and bounded earnings normalization are fixture-covered; adjusted history is rejected explicitly; a range older than the 100-point daily compact window fails closed instead of returning a partial slice; IPO-calendar remains subject to its documented capacity response; daily-capacity routing remains fail-closed until `ALPHA_VANTAGE_REVIEWED_RESET` plus non-empty `ALPHA_VANTAGE_QUOTA_EVIDENCE` are configured from current evidence |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts, provisional IPO-pipeline filing candidates | `EDGAR_USER_AGENT`, `EDGAR_REVIEWED_RESET`, `EDGAR_QUOTA_EVIDENCE` | 10 requests/sec total across an IP; the SEC source does not define whether the enforcement window is fixed or rolling | IP / provider-defined until reviewed | contract recorded; profile and complete directory pagination live-proven 2026-09-12 with the supplied contact value; duplicate ticker/CIK candidates are preserved as ambiguous and never silently resolved; IPO-pipeline case is bounded and candidate-only; routing remains fail-closed until the reviewed reset/evidence pair is configured |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | Without key: 25 mapping requests/minute and at most 5 jobs/request. With key: 25 mapping requests/6 seconds and at most 100 jobs/request. The API exposes `ratelimit-limit`, `ratelimit-remaining`, and `ratelimit-reset`; HTTP 429 means the active window is exhausted | anonymous traffic is IP-scoped; keyed traffic is API-key-scoped; both use provider rolling/reset windows | exact contract switches from anonymous to keyed only when `OPENFIGI_API_KEY` is present; the adapter is fixture/live-covered and preserves native rate-limit headers |
@@ -891,12 +891,12 @@ credentials. Historical/latest market-data calls continue to use
 `https://data.alpaca.markets/v2`.
 
 Corporate actions use the [current v1 endpoint](https://docs.alpaca.markets/us/reference/corporateactions-1) and follow its `next_page_token`
-cursor. Because the number of requests is response-dependent, the checked-in
-usage profile deliberately has no fixed event cost. Runtime event routing is
-fail-closed until a positive, conservative `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`
-bound is reviewed for the deployment; the bound is reserved as the worst-case
-request cost and the adapter raises before issuing an unreserved page. Direct
-live probes may still exercise the full cursor with the default zero control.
+cursor. Each successful page is stored as an immutable raw snapshot together
+with normalized rows and the continuation token. Snapshots are append-only, so
+a later response for the same query/page cannot overwrite earlier evidence.
+Jobs may stop after a page
+for quota/fairness reasons and resume later; no local page bound permanently
+excludes any provider page or action family.
 
 The official Basic market-data plan publishes US stock/ETF historical data
 since 2016, with the free feed's documented delayed/latest-data restriction.
@@ -952,10 +952,10 @@ operator review item.
 The aggregate adapter uses [`/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}`](https://massive.com/docs/rest/stocks/aggregates), requests the documented 50,000-base-aggregate maximum, and follows only validated `api.massive.com` continuation URLs. It records the response adjustment flag, request ID, provider row, and normalized UTC timestamp in bar provenance. Historical and latest-window reservations are calculated from the requested base-candle count, so pagination never silently falls back to one request.
 
 Corporate-action reads are two independent endpoint families. The adapter
-requires a positive `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` bound, applies it to
-each endpoint, validates every continuation URL, and reserves `2 * bound`
-requests before execution. A zero/unset bound keeps event routing fail-closed;
-it is never treated as one request.
+validates every continuation URL and follows both endpoint cursors until the
+provider reports completion. The old local page-bound setting is retained only
+as a compatibility configuration name; it is never used to discard rows or
+make an incomplete response look complete.
 
 Massive history is intentionally not in the default `price_history` chain: the
 free five-call/minute and two-year limits are materially narrower than Alpaca's
@@ -1363,8 +1363,8 @@ ALPACA_API_KEY=your_alpaca_key_id
 ALPACA_SECRET_KEY=your_alpaca_secret
 ALPACA_DATA_FEED=iex          # iex (free) | sip (paid consolidated feed)
 ALPACA_TRADING_BASE_URL=https://paper-api.alpaca.markets/v2  # live keys: https://api.alpaca.markets/v2
-ALPACA_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound required before Alpaca event routing
-MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound per split/dividend endpoint required before Massive event routing
+ALPACA_CORPORATE_ACTIONS_MAX_PAGES=1 # per-job fairness setting; every continuation is persisted and resumed
+MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # legacy compatibility setting; provider pagination is always followed to completion
 MASSIVE_REVIEWED_RESET= # e.g. fixed_minute or rolling; required before Massive market-data routing
 MASSIVE_QUOTA_EVIDENCE= # current provider/plan evidence for the reviewed reset boundary
 

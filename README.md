@@ -194,7 +194,7 @@ OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
 OPENFIGI_API_KEY=
 OPENFIGI_TIMEOUT_SECONDS=10
 MARKETDATA_API_KEY=
-MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # positive reviewed bound per split/dividend endpoint required before Massive event routing
+MASSIVE_CORPORATE_ACTIONS_MAX_PAGES=0 # legacy compatibility setting; Massive follows all cursors to completion
 FMP_API_KEY=
 ```
 

@@ -572,8 +572,9 @@ remaining_gaps:
     Massive's official free Stocks Basic terms are personal,
     non-business/non-commercial, and non-redistributed. The implementation now
     requires an explicit provider-specific use-scope attestation, review
-    reference/timestamp, optional expiry, and the existing corporate-action
-    page bound before routing any Massive capability. This is a fail-closed
+    reference/timestamp, and optional expiry before routing any Massive
+    capability. Corporate-action cursors are now durable and never gated by a
+    local page bound. This is a fail-closed
     policy control, not a legal authorization or a live-routing promotion; the
     exact staged matrix and any broader commercial entitlement remain open.
   - >-
@@ -610,11 +611,10 @@ remaining_gaps:
     existing deferred Tradier, IBKR, or Ondo credential gates or the separate
     provider/legal/deployment/shadow gates.
   - >-
-    Massive split/dividend events are now implemented and bounded with the
-    provider-specific `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` control. The
-    credentialed five-request transport probe passed, but event routing remains
-    intentionally non-routable until operations reviews a positive page bound,
-    the free-plan corporate-action entitlement, and redistribution terms.
+    Massive split/dividend events are now implemented with validated cursors
+    that are followed to completion. The credentialed five-request transport
+    probe passed; event routing remains subject to the free-plan corporate-
+    action entitlement and redistribution terms, not a local page bound.
   - the latest lock-protected live matrix on 2026-09-13 collected 47 cases and passed 41 after using the existing owner-managed credentials. The six honest outcomes were Alpha Vantage's typed documented 25-requests/day capacity response for IPO-calendar and both earnings reads plus exact intentional credential preflights for Tradier, IBKR, and Ondo. All other configured provider and public tokenized probes produced positive bounded transport observations; the safety preflight still reports FRED, FINRA OTC, Nasdaq, xStocks, Bybit, Marketstack discovery, MarketData.app plan/options, and Tiingo/FMP byte-map controls as non-routable until reviewed. The runner returned exit code 2 and made no acceptance claim. Each environment must configure its own SEC contact value.
   - the checked-in manual GitHub live workflow is environment-scoped and fail-safe, but the `jagnelo` `provider-live-validation` environment cannot currently be inspected or populated from this session because the local `gh` credential is invalid for `jagnelo-symbiotech`; owner authentication is required before GitHub secret/variable presence can be verified
   - IBKR's concrete read-only Client Portal Gateway adapter is fixture-covered and wired through local/RPi/GitHub configuration. Its generic conid history path now explicitly advertises documented futures history, including the expired-futures two-year provider limit; live evidence remains blocked until an operator supplies the gateway URL and interactive session cookie, and automated gateway login/options methods remain intentionally out of scope
@@ -673,10 +673,11 @@ remaining_gaps:
     candidate acceptance.
   - >-
     2026-09-16 Alpaca live-test reservation overrides now cover the exact
-    bounded five-day history and two-page corporate-action probes; the runner
-    no longer classifies those test costs as unreviewed. Alpaca execution still
-    requires a current durable IP/account baseline and the separately reviewed
-    corporate-action page bound. SEC EDGAR execution was preflight-blocked by
+    bounded five-day history and one-page corporate-action transport probe; the
+    runner no longer classifies those test costs as unreviewed. Alpaca
+    execution still requires a current durable IP/account baseline, while its
+    corporate-action cursor is persisted and resumed without a page bound. SEC
+    EDGAR execution was preflight-blocked by
     the missing current IP-window baseline and made no request. These are
     operational admission gaps, not successful live evidence.
   - the 2026-09-11T17:43:45Z matrix supersedes the earlier missing-credential run: 33/37 passed, with only Alpha Vantage IPO-calendar capacity plus the explicitly deferred Tradier, IBKR, and Ondo credential preflights remaining. The run wrote only aggregate telemetry to `/private/tmp/charting-provider-live-usage-resume.jsonl`; no credentials or payloads entered Git.
@@ -2983,7 +2984,8 @@ progress:
     - >-
       Alpaca corporate-action history now rejects repeated pagination-token
       cycles instead of relying only on an immediate self-repeat or an
-      optional local page bound. Focused corporate-action coverage passes
+      optional local page bound (now superseded by durable page snapshots).
+      Focused corporate-action coverage passes
       `7/7`, and the complete backend unit suite passes `1,988/1,988` with 37
       warnings; Ruff, compileall, and diff checks pass. Source checkpoint
       `f6482ed2` contains no frontend or ETF-provider changes.
@@ -3463,9 +3465,9 @@ progress:
       dividend endpoints into the shared instrument-event model, including
       ex-dividend and payable-date records, strict ticker/date/ratio/value
       validation, and trusted cursor continuation checks. A positive
-      `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` bound is required per endpoint;
-      the service reserves `2 * bound` requests before execution and remains
-      fail-closed when unset. Focused provider, registry, service, quota, and
+      cursor continuation is followed to completion for each endpoint; the
+      legacy `MASSIVE_CORPORATE_ACTIONS_MAX_PAGES` setting is compatibility-only
+      and cannot discard pages. Focused provider, registry, service, quota, and
       wiring coverage passed `365/365`; the bounded credentialed Massive case
       passed `1/1` with exactly five upstream requests and 463,329 response
       bytes, and its redacted receipt merged into the owner-managed ledger
@@ -3890,4 +3892,18 @@ progress:
       complete-universe gates, and target secret-store blockers. This is
       fail-closed safety evidence only; routing promotion, deployment,
       deferred-provider activation, and the final shadow remain unauthorized.
+    - >-
+      2026-09-17 lossless event-ingestion correction: Alpaca corporate-action
+      pages are now durable records with raw envelopes, normalized rows,
+      request/next cursors, query fingerprints, cumulative counts, and an
+      explicit completion flag. Incomplete work is pinned to its issuing
+      provider and resumed from the stored cursor; a fresh cache from another
+      provider cannot strand it. Alpaca requests all documented corporate-
+      action families and retains currently unsupported families in the raw
+      snapshot. Massive split/dividend pagination now follows both endpoint
+      cursors to completion. Local page-bound settings are compatibility-only
+      and cannot discard pages or mark partial data complete. Additive schema
+      migration `cd4e5f6a7b8c` is the single Alembic head. Focused event,
+      provider, quota, runtime, registry, wiring, and live-runner checks are
+      green; a deployed migration/resume probe remains an environment gate.
   next_action: Human review of the implementation evidence and the explicitly listed provider/account, source/legal, universe, secret-store, deferred-provider, exact-current-SHA live-matrix, and final shadow gates. Resume implementation only after the owner-controlled gate inputs are available; do not integrate, deploy, activate routing, or start the 30-day shadow run from this checkpoint.

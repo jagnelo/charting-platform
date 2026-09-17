@@ -2559,8 +2559,8 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
     status_rows = []
     for policy, health, data_source, entitlement in rows:
         # Keep operation-specific controls accurate in diagnostics as well as
-        # in resolver admission. Alpaca's page bound applies only to events;
-        # use a non-event marker for the other capability rows.
+        # in resolver admission. Cursor continuation is durable state, not a
+        # routing control; use a non-event marker for unrelated capability rows.
         diagnostic_operation = (
             "fetch_instrument_events"
             if policy.capability == ProviderCapability.INSTRUMENT_EVENTS

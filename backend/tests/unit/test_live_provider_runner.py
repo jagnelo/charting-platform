@@ -334,7 +334,7 @@ def test_bounded_manifest_cost_overrides_cover_response_paged_cases():
     assert runner.LIVE_OPERATION_COST_OVERRIDES == {
         "alpaca": {
             "fetch_ohlcv": 2,
-            "fetch_instrument_events": 2,
+            "fetch_instrument_events": 1,
         },
         "binance": {"fetch_latest_ohlcv": 2, "fetch_ohlcv": 2},
         "coinbase": {"fetch_latest_ohlcv": 1},
@@ -355,6 +355,10 @@ def test_live_matrix_inventory_is_structurally_exact_and_disposition_kinds_are_e
     assert runner.live_matrix_inventory_errors() == []
     assert runner.provider_method_inventory_errors() == []
     assert runner.LIVE_OPERATION_METHOD_ALIASES["fetch_latest_ohlcv"] == "fetch_ohlcv"
+    assert (
+        runner.LIVE_OPERATION_METHOD_ALIASES["fetch_instrument_events_page"]
+        == "fetch_instrument_events"
+    )
     assert runner.LIVE_SERVICE_OPERATION_ALIASES == {
         "fetch_rfr_ohlcv": "fetch_ohlcv",
         "bulk_fetch": "fetch_ohlcv",

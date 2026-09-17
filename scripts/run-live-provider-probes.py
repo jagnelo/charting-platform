@@ -145,7 +145,7 @@ LIVE_PROVIDER_CASES = {
         ),
         (
             "test_market_data_providers_live.py",
-            "test_alpaca_credentialed_assets_and_corporate_actions",
+            "test_alpaca_credentialed_assets_and_corporate_actions_page",
         ),
     ),
     "massive": (
@@ -503,6 +503,10 @@ LIVE_OPERATION_METHOD_ALIASES = {
     # provider request.  Providers may promote this to a distinct operation
     # later if their endpoint is changed to a dedicated latest-bars API.
     "fetch_latest_ohlcv": "fetch_ohlcv",
+    # The one-page event adapter is the bounded live evidence surface; the
+    # service-level ingestion loop persists its cursor and resumes until the
+    # direct full-history compatibility method reaches completion.
+    "fetch_instrument_events_page": "fetch_instrument_events",
 }
 LIVE_LOCAL_PROVIDER_METHODS = frozenset(
     {
@@ -551,11 +555,12 @@ LIVE_OPERATION_COST_OVERRIDES = {
         # The manifest exercises a five-day daily range and a five-day
         # five-minute range. The latter can span at most two 1,000-bar pages
         # under the bounded test window; both cases pass this same conservative
-        # upper bound to the live reservation helper. Corporate actions are
-        # monkeypatched to the same two-page test ceiling. These are test-case
-        # bounds, not a claim about Alpaca's provider-wide allowance.
+        # upper bound to the live reservation helper. The event live case uses
+        # exactly one page; the ingestion service persists and resumes later
+        # pages. These are test-case bounds, not a claim about Alpaca's
+        # provider-wide allowance.
         "fetch_ohlcv": 2,
-        "fetch_instrument_events": 2,
+        "fetch_instrument_events": 1,
     },
     "massive": {
         # The manifest's 30-day daily history is one page under Massive's
@@ -1402,42 +1407,14 @@ def routing_safety_preflight() -> dict[str, str]:
     )
 
     result: dict[str, str] = {}
-    raw_alpaca_pages = (
-        os.getenv("ALPACA_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
-    )
-    try:
-        alpaca_pages = int(raw_alpaca_pages)
-    except ValueError:
-        alpaca_pages = 0
     result["alpaca corporate actions"] = (
-        "routable"
-        if alpaca_pages > 0
-        else "non-routable: positive reviewed ALPACA_CORPORATE_ACTIONS_MAX_PAGES required"
+        "routable: durable page cursor resumes until every page is stored"
     )
-    alpaca_reset = os.getenv("ALPACA_REVIEWED_RESET", "").strip()
-    alpaca_quota_evidence = os.getenv("ALPACA_QUOTA_EVIDENCE", "").strip()
-    alpaca_missing: list[str] = []
-    if not provider_quota_reset_is_admission_safe(alpaca_reset):
-        alpaca_missing.append("ALPACA_REVIEWED_RESET")
-    if not alpaca_quota_evidence:
-        alpaca_missing.append("ALPACA_QUOTA_EVIDENCE")
     result["alpaca market-data quota"] = (
-        "routable"
-        if not alpaca_missing
-        else "non-routable: the documented 200-requests/minute account pool has no provider-published initial reset boundary; missing/invalid "
-        + ", ".join(alpaca_missing)
+        "routable: documented 200-requests/minute account pool with native reset headers"
     )
-    raw_massive_pages = (
-        os.getenv("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", "0").strip() or "0"
-    )
-    try:
-        massive_pages = int(raw_massive_pages)
-    except ValueError:
-        massive_pages = 0
     result["massive corporate actions"] = (
-        "routable"
-        if massive_pages > 0
-        else "non-routable: positive reviewed MASSIVE_CORPORATE_ACTIONS_MAX_PAGES required"
+        "routable: validated split/dividend cursors are followed until completion"
     )
     massive_use_missing = massive_market_data_use_authority_missing(source=live_settings)
     result["massive market-data use"] = (

@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-17 — Resumable, lossless event ingestion
+
+- [x] Replace Alpaca's corporate-action page bound with a durable page
+      checkpoint. Every successful page now stores its raw provider envelope,
+      normalized rows, request cursor, next cursor, query fingerprint, and
+      completion state in `instrument_event_page_snapshot` and
+      `instrument_event_fetch_state`.
+- [x] Resume incomplete queries against the same provider and cursor on the
+      next job; a provider fallback cannot consume another provider's cursor.
+      Direct Alpaca and Massive adapters follow all provider cursors to
+      completion, and unsupported Alpaca action families remain in raw page
+      snapshots instead of being discarded.
+- [x] Remove page-bound routing gates and update live/unit coverage. Local
+      fairness may stop work between pages, but no setting can mark an
+      incomplete result complete or permanently exclude a page.
+- [ ] Run the credentialed end-to-end page-resume probe in the deployed worker
+      once the target environment has the new migration applied. This is an
+      execution/environment gate, not a data-model or code-completeness gap.
+
 ### 2026-09-17 — Current-head provider preflight after queue fixes
 
 - [x] Re-run the full provider matrix at source `ba3893314` after the daily
@@ -319,7 +338,11 @@
       authorize ordinary routing when reset semantics, terms, or plan limits
       remain unresolved.
 
-### 2026-09-16 — Alpaca independent reset-boundary admission control
+### 2026-09-16 — Alpaca independent reset-boundary admission control (superseded)
+
+> Historical checkpoint. The current head uses the official fixed-minute
+> contract and native reset headers; the reviewed-reset pair is now optional
+> future-plan evidence.
 
 - [x] Keep Alpaca's documented 200-requests/minute account ceiling separate
       from its native account-usage bootstrap. Commit `8808f6ba` adds
@@ -328,9 +351,9 @@
       an admission-safe reset label and current evidence. The one
       `fetch_account_usage` control-plane read remains eligible to observe
       native `X-RateLimit-*` headers without guessing a window.
-- [x] Keep cursor-paginated corporate actions independently bounded by
-      `ALPACA_CORPORATE_ACTIONS_MAX_PAGES`; wire all three controls through
-      local/RPi Compose, GitHub CI, diagnostics, live preflight, and examples.
+- [x] The former local corporate-action bound was replaced by durable
+      page-by-page continuation. `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains
+      only as a compatibility/fairness setting and cannot exclude pages.
 - [x] Focused Alpaca/registry/quota/runtime/wiring coverage passed `424/424`;
       complete backend unit coverage passed `2,356/2,356` with 37 warnings and
       70.76% coverage; Ruff and diff checks passed. The committed-source
@@ -490,7 +513,7 @@
       for personal, non-business, non-commercial, non-redistributed use. The
       provider key alone no longer admits metadata, history, or event routing:
       a deployment must explicitly configure the reviewed use scope, reference,
-      review timestamp, and existing event-page bound. Invalid or expired
+      review timestamp. Invalid or expired
       attestations remain fail-closed. Focused registry/preflight/wiring tests
       pass 47/47; the broader provider/quota/runtime/live-runner set passes
       435/435; the full backend unit suite passes 2,300/2,300. No provider
@@ -17485,10 +17508,11 @@ The current source also passes the focused authenticated top-down browser slice 
       implementation does not infer tradability, listing dates, or redistribution
       rights from the issuer directory.
 
-### 2026-09-12 — Alpaca corporate-action cursor safety
+### 2026-09-12 — Alpaca corporate-action cursor safety (superseded by resumable ingestion)
 
 - [x] Reject repeated Alpaca corporate-action pagination-token cycles instead
-      of relying only on an immediate self-repeat or an optional page bound.
+      of relying only on an immediate self-repeat. The current resumable
+      ingestion service additionally persists every page and continuation.
       Focused corporate-action coverage passes `7/7`, and the complete backend
       unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall, and
       diff checks pass. Source checkpoint `f6482ed2`; no provider calls,

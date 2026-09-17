@@ -1,5 +1,44 @@
 # feat/market-data-provider-platform
 
+## 2026-09-17 lossless, resumable provider-event ingestion
+
+- Replaced the Alpaca corporate-action page bound with a durable cursor
+  workflow. `InstrumentEventPageSnapshot` retains each raw provider envelope;
+  `InstrumentEventFetchState` retains the provider, query fingerprint, page
+  number, continuation token, cumulative normalized counts, and completion
+  state.
+- Event refreshes process one page per provider call, pin incomplete work to
+  the provider that issued the cursor, and resume from that cursor on the next
+  job. A fresh cache from another provider cannot strand an incomplete page
+  chain. Repeated persisted cursors fail closed rather than looping.
+- Alpaca requests all documented corporate-action families. Families not yet
+  represented by the normalized event enum remain in the immutable raw page
+  snapshot. The direct Alpaca compatibility method follows every page.
+- Massive split/dividend reads now follow both independently paginated
+  endpoints to completion; the old local page-bound setting is compatibility
+  only and is no longer a routing gate or a data-retention limit.
+- Added migration `cd4e5f6a7b8c_add_resumable_event_pages.py`, with a single
+  Alembic head after merging the existing `b0c1d2e3f4a5` and
+  `bc2d3e4f5a6b` branches. Focused provider/event/runtime/wiring tests and the
+  full unit suite were replayed; live validation now uses one durable Alpaca
+  page as the bounded transport case, while the service-level resume path is
+  covered by deterministic tests.
+- No frontend files, ETF constituent adapters, credentials, or external
+  payloads were changed. Deployment migration application and a credentialed
+  worker resume probe remain environment gates.
+- The current owner-local Alpaca live replay selected seven credentialed cases,
+  but the durable shared Alpaca ledger admitted only the native usage snapshot;
+  the remaining six calls were correctly refused before transport because the
+  configured key's recorded quota was exhausted. The native snapshot remains
+  observation-only because its reset timestamp did not prove the active window.
+  This is a live-environment evidence limitation, not a data-retention or
+  pagination failure.
+- Host-backed integration validation was subsequently rerun with the running
+  Docker daemon (`29.7.2`) and passed `386/386` in `358.18s` using the
+  repository's Postgres/Redis testcontainers. The earlier failure was only the
+  unprivileged sandbox's inability to open Docker's Unix socket, not a missing
+  or stopped Docker installation.
+
 ## 2026-09-17 configurable core-refresh throughput
 
 - Added `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` to make the durable refresh

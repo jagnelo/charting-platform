@@ -75,6 +75,26 @@ class InstrumentEventRecord:
 
 
 @dataclass(slots=True)
+class InstrumentEventPage:
+    """One durable page of provider event data.
+
+    A page is deliberately a first-class result.  Providers may expose a
+    cursor whose continuation must be persisted across jobs; returning the
+    cursor alongside the normalized rows prevents callers from having to
+    refetch page one when a quota or worker budget pauses a backfill.
+    """
+
+    events: list[InstrumentEventRecord]
+    next_page_token: str | None
+    raw_payload: dict[str, Any]
+    request_page_token: str | None = None
+
+    @property
+    def complete(self) -> bool:
+        return not self.next_page_token
+
+
+@dataclass(slots=True)
 class FundamentalFactRecord:
     namespace: str
     key: str
@@ -287,6 +307,13 @@ class LatestPriceProvider(ProviderDescriptor, Protocol):
 @runtime_checkable
 class EventProvider(ProviderDescriptor, Protocol):
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]: ...
+
+
+@runtime_checkable
+class PaginatedEventProvider(EventProvider, Protocol):
+    def fetch_instrument_events_page(
+        self, symbol: str, page_token: str | None = None
+    ) -> InstrumentEventPage: ...
 
 
 @runtime_checkable

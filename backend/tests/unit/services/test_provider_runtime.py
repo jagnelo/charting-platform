@@ -603,10 +603,10 @@ async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypa
     db.commit()
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
-    # Positive transport evidence cannot override the unresolved provider
-    # reset boundary; the contract must be promoted with exact window
-    # evidence before Alpaca can enter the runtime chain.
-    assert all(item.provider_name != "alpaca" for item in chain)
+    # The current Alpaca contract is source-backed; once transport evidence
+    # is positive, the provider may enter the chain without a second manual
+    # reset-boundary gate.
+    assert any(item.provider_name == "alpaca" for item in chain)
 
 
 @pytest.mark.asyncio
@@ -850,13 +850,18 @@ async def test_marketdata_app_account_usage_bootstraps_fresh_durable_coordinator
 
 @pytest.mark.asyncio
 async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting_data(
-    db, monkeypatch
+    db, monkeypatch, tmp_path
 ):
     """Alpaca's native header snapshot is allowed without guessing its reset window."""
 
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "configured-key")
     monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "configured-secret")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_PATH",
+        str(tmp_path / "alpaca.sqlite3"),
+    )
 
     await seed_provider_runtime(async_db)
     account_usage_chain = await resolve_provider_chain(
@@ -872,7 +877,7 @@ async def test_alpaca_account_usage_bootstrap_observes_headers_without_admitting
         operation="fetch_ohlcv:D1",
         operation_cost_overrides={"alpaca": 1},
     )
-    assert all(item.provider_name != "alpaca" for item in price_chain)
+    assert any(item.provider_name == "alpaca" for item in price_chain)
 
     observed_at = datetime.now(UTC).replace(microsecond=0)
     result = await execute_provider_call(

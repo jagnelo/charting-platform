@@ -544,17 +544,10 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
 # separate from credential diagnostics so an operator can distinguish
 # "credential missing" from "credential present but quota safety incomplete".
 _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
-    # Corporate actions follow a provider cursor, so operation cost is the
-    # reviewed maximum number of pages rather than an invented one-request
-    # default. The adapter remains directly testable while routing is closed
-    # until this non-secret bound is configured.
-    "alpaca": (
-        "ALPACA_CORPORATE_ACTIONS_MAX_PAGES",
-        "ALPACA_REVIEWED_RESET",
-        "ALPACA_QUOTA_EVIDENCE",
-    ),
+    # Alpaca's native request-window headers are the quota evidence. Corporate
+    # action pagination is governed by a resumable per-job fairness budget in
+    # the ingestion service, never by a routing admission gate.
     "massive": (
-        "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES",
         "MASSIVE_MARKET_DATA_USE_AUTHORIZED",
         "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
         "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
@@ -725,33 +718,15 @@ def provider_missing_settings(name: str, operation: str | None = None) -> list[s
 def provider_routing_control_settings(
     name: str, operation: str | None = None
 ) -> tuple[str, ...]:
-    """Return non-secret routing-safety setting names for operator diagnostics.
+    """Return non-secret routing-safety setting names for operator diagnostics."""
 
-    Alpaca's page bound is specific to corporate actions; its account-pool
-    reset review applies to every metered market-data operation.
-    """
-
-    if (
-        name == "alpaca"
-        and operation is not None
-        and operation not in {"fetch_instrument_events", "fetch_account_usage"}
-    ):
-        return tuple(
-            control
-            for control in _ROUTING_CONTROL_SETTINGS[name]
-            if control != "ALPACA_CORPORATE_ACTIONS_MAX_PAGES"
-        )
     if name == "alpaca" and operation == "fetch_account_usage":
         # The native usage snapshot is the explicit bootstrap mechanism for
         # observing Alpaca's reset-bearing headers. Requiring the reviewed
         # reset pair before that one control-plane read would be circular.
         return ()
     if name == "massive" and operation is not None and operation != "fetch_instrument_events":
-        return tuple(
-            control
-            for control in _ROUTING_CONTROL_SETTINGS[name]
-            if control != "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES"
-        )
+        return tuple(_ROUTING_CONTROL_SETTINGS[name])
     # The async signed-result bound is independent from FINRA's synchronous
     # short-interest and OTC Daily List calls. Those dataset operations already
     # reserve the published 3 MB synchronous response ceiling against the
@@ -795,10 +770,9 @@ def provider_missing_routing_controls(
 
     Some controls apply to one response-priced operation rather than every
     capability exposed by a provider. ``operation`` lets runtime routing keep
-    unrelated Alpaca surfaces (history, latest price, discovery) eligible while
-    still fail-closing corporate-actions calls without a reviewed page bound.
-    The provider-level diagnostics call omits it and therefore reports the
-    outstanding control for operator visibility.
+    unrelated provider surfaces eligible while retaining only controls that
+    are actually required for the selected operation. Cursor pagination is
+    handled by durable continuation state, not by a routing page bound.
     """
 
     required = provider_routing_control_settings(name, operation)
@@ -811,33 +785,8 @@ def provider_missing_routing_controls(
             getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
         )
         return [] if configured is not None else list(required)
-    if name == "alpaca":
-        missing: list[str] = []
-        if operation is None or operation == "fetch_instrument_events":
-            configured = provider_positive_integer(
-                getattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 0)
-            )
-            if configured is None:
-                missing.append("ALPACA_CORPORATE_ACTIONS_MAX_PAGES")
-        reviewed_reset = str(
-            getattr(settings, "ALPACA_REVIEWED_RESET", "") or ""
-        ).strip()
-        quota_evidence = str(
-            getattr(settings, "ALPACA_QUOTA_EVIDENCE", "") or ""
-        ).strip()
-        if not provider_quota_reset_is_admission_safe(reviewed_reset):
-            missing.append("ALPACA_REVIEWED_RESET")
-        if not quota_evidence:
-            missing.append("ALPACA_QUOTA_EVIDENCE")
-        return list(dict.fromkeys(missing))
     if name == "massive":
         missing = massive_market_data_use_authority_missing()
-        configured = provider_positive_integer(
-            getattr(settings, "MASSIVE_CORPORATE_ACTIONS_MAX_PAGES", 0)
-        )
-        if operation is None or operation == "fetch_instrument_events":
-            if configured is None:
-                missing.append("MASSIVE_CORPORATE_ACTIONS_MAX_PAGES")
         return list(dict.fromkeys(missing))
     if name == "finra_otc_directory":
         configured_map = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}

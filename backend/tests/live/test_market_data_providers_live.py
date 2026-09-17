@@ -653,9 +653,12 @@ def test_alpaca_credentialed_account_usage_snapshot():
     assert window.remaining is not None and 0 <= window.remaining <= window.limit
     assert window.consumed == window.limit - window.remaining
     assert window.reset_at is not None and window.reset_at.tzinfo is not None
-    # Alpaca's reset semantics are deliberately still unresolved for ordinary
-    # routing; this snapshot is observation-only until that boundary is
-    # reviewed. The runner must not claim baseline reconciliation here.
+    # The OpenAPI contract defines the account request pool as per-minute.
+    # A single native snapshot is retained as telemetry, but it must not be
+    # treated as a durable baseline unless its reset boundary is proven to be
+    # in the active window.  The current paper-key response does not provide
+    # that proof, so this live assertion intentionally verifies fail-closed
+    # handling rather than guessing current usage.
     reconciliation = reconcile_native_account_usage("alpaca", usage)
     assert [item["status"] for item in reconciliation] == ["not_reconciled"]
 
@@ -686,14 +689,10 @@ def test_alpaca_credentialed_crypto_profile():
     assert profile.listings and profile.listings[0].provider_symbol == "BTC/USD"
 
 
-def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
-    """Exercise the non-price Alpaca surfaces used by universe/event refreshes."""
+def test_alpaca_credentialed_assets_and_corporate_actions_page():
+    """Exercise one durable Alpaca event page without hiding later cursors."""
 
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
-    # Keep the direct live probe bounded even when the provider returns a
-    # cursor. This is test-safety only; deployment routing still requires its
-    # own operator-reviewed positive bound and remains fail-closed by default.
-    monkeypatch.setattr(settings, "ALPACA_CORPORATE_ACTIONS_MAX_PAGES", 2)
     provider = AlpacaProvider()
     page, _ = _observed_read(
         lambda: provider.discover_universe_page("EQUITY", 0),
@@ -703,16 +702,15 @@ def test_alpaca_credentialed_assets_and_corporate_actions(monkeypatch):
     assert page["quotes"]
     assert page["total"] >= len(page["quotes"])
     assert all(row["quoteType"] == "EQUITY" for row in page["quotes"])
-    events, _ = _observed_read(
-        lambda: provider.fetch_instrument_events("AAPL"),
+    page, _ = _observed_read(
+        lambda: provider.fetch_instrument_events_page("AAPL"),
         "alpaca",
         "fetch_instrument_events",
-        operation_cost_override=settings.ALPACA_CORPORATE_ACTIONS_MAX_PAGES,
+        operation_cost_override=1,
     )
-    # A symbol can legitimately have no actions in the bounded lookback. The
-    # transport and normalized event container must still be valid.
-    assert isinstance(events, list)
-    assert all(event.event_type.value in {"split", "dividend", "ex_dividend"} for event in events)
+    assert isinstance(page.events, list)
+    assert isinstance(page.raw_payload, dict)
+    assert page.next_page_token is None or isinstance(page.next_page_token, str)
 
 
 def test_massive_credentialed_reference():

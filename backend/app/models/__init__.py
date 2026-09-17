@@ -25,6 +25,7 @@ from app.models.instrument_event import (
     EventTimeHint,
     InstrumentEvent,
     InstrumentEventFetchState,
+    InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
 from app.models.instrument_identity import (
@@ -202,6 +203,7 @@ __all__ = [
     "OptionQuotePoint",
     "UniverseDiscoverySnapshot",
     "InstrumentEvent",
+    "InstrumentEventPageSnapshot",
     "InstrumentEventFetchState",
     "InstrumentEventType",
     "EventTimeHint",
